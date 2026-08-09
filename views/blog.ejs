@@ -1,0 +1,77 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+
+<main>
+    <section class="section blog-hero">
+        <div class="container">
+            <span class="badge blog-badge">The Kurukoo Blog</span>
+            <h1 class="blog-hero-title">Ideas, Updates & Stories</h1>
+            <p class="blog-hero-desc">Exploring the intersection of technology, community, and everyday life in Nigeria.</p>
+        </div>
+    </section>
+
+    <section class="section container">
+        <div class="pattern-bg"></div>
+        <!-- Featured Post -->
+        <div class="article-card featured-article">
+            <div class="article-img featured-article-img">📱</div>
+            <div class="article-content featured-article-content">
+                <span class="category-tag">Engineering</span>
+                <h2 class="featured-article-h2">How we built a super-app that runs on any phone.</h2>
+                <p class="featured-article-p">A deep dive into our channel-agnostic architecture, from USSD to high-performance Apps.</p>
+                <div class="author-row">
+                    <div class="author-avatar">ST</div>
+                    <div class="author-info">
+                        <div class="author-name">Segun T.</div>
+                        <div class="author-meta">CTO • 8 min read</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Article Grid -->
+        <div class="grid grid-3">
+            <div class="article-card">
+                <div class="article-img article-icon-center">🤝</div>
+                <div class="article-content">
+                    <span class="category-tag">Community</span>
+                    <h3 class="article-h3">The power of Money Circles in digital economy.</h3>
+                    <p class="article-desc">Why Money Circles and community savings are the backbone of our financial features.</p>
+                    <a href="#" class="article-read-more">Read More →</a>
+                </div>
+            </div>
+            <div class="article-card">
+                <div class="article-img article-icon-center">⚡</div>
+                <div class="article-content">
+                    <span class="category-tag">Product</span>
+                    <h3 class="article-h3">Introducing Nearby Pulse for local hawkers.</h3>
+                    <p class="article-desc">Revolutionizing real-time visibility for mobile service providers.</p>
+                    <a href="#" class="article-read-more">Read More →</a>
+                </div>
+            </div>
+            <div class="article-card">
+                <div class="article-img article-icon-center">🏙️</div>
+                <div class="article-content">
+                    <span class="category-tag">News</span>
+                    <h3 class="article-h3">Kurukoo expands to 5 new cities this month.</h3>
+                    <p class="article-desc">Our journey towards 100% coverage across Nigeria continues.</p>
+                    <a href="#" class="article-read-more">Read More →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="section newsletter-section">
+        <div class="container text-center">
+            <h2>Stay in the loop.</h2>
+            <p class="newsletter-desc">Get the latest stories and product updates delivered to your inbox.</p>
+            <form class="input-group newsletter-form" onsubmit="event.preventDefault(); alert('Subscribed!');">
+                <input type="email" placeholder="Your email address" required>
+                <button type="submit" class="btn btn-primary">Subscribe</button>
+            </form>
+        </div>
+    </section>
+</main>
+
+<%- include('_partials/footer') %>

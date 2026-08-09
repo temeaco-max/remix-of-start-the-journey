@@ -1,0 +1,49 @@
+<%- include('../_partials/head') %>
+<%- include('../_partials/nav') %>
+
+<main class="container resources-main">
+    <section class="advertise-hero">
+        <div class="category-badge-pill">
+            Resources
+        </div>
+        <h1 class="advertise-title">
+            Learn how things work
+        </h1>
+        <p class="advertise-desc">
+            Guides for users, providers and businesses. Evergreen, searchable and regularly refreshed — learn at your own pace.
+        </p>
+    </section>
+
+    <div id="resources-list" class="resources-grid">
+        <div class="muted-info-text">Loading resources…</div>
+    </div>
+</main>
+
+<script>
+(async function(){
+    const list = document.getElementById('resources-list');
+    try {
+        const res = await fetch('/api/resources?page=1');
+        const data = await res.json();
+        const items = (data && data.resources) ? data.resources : [];
+        list.innerHTML = '';
+        if (!items.length) { list.innerHTML = '<div class="muted-info-text">Resources coming soon.</div>'; return; }
+        items.forEach(r => {
+            const card = document.createElement('a');
+            card.href = `/resources/${r.slug}`;
+            card.className = 'resource-card-link';
+            const catColorClass = r.category === 'Provider' ? 'electric-blue' : r.category === 'Business' ? 'charcoal' : 'terracotta';
+            card.innerHTML = `
+                <div class="resource-card-cat text-${catColorClass}">${r.category||'Guide'}</div>
+                <h2 class="resource-card-title">${r.title}</h2>
+                <p class="resource-card-excerpt">${r.excerpt||''}</p>
+                <span class="resource-read-link">Read guide →</span>`;
+            list.appendChild(card);
+        });
+    } catch(e) {
+        list.innerHTML = '<div class="muted-info-text">Could not load resources.</div>';
+    }
+})();
+</script>
+
+<%- include('../_partials/footer') %>

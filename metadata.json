@@ -1,0 +1,12 @@
+{
+  "name": "Kurukoo v2",
+  "description": "Kurukoo is an AI-powered coordination platform for the informal economy",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

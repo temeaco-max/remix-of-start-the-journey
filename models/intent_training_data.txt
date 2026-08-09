@@ -1,0 +1,133 @@
+__label__check_balance Check my credit balance
+__label__check_balance How many credits do I have left
+__label__check_balance Show wallet balance
+__label__check_balance How many points do I have
+__label__check_balance What is my wallet balance
+__label__check_balance How much credit do I have remaining
+__label__check_balance Show me my points balance please
+__label__check_balance Check my wallet and points status
+__label__check_balance I want to see my current balance
+__label__check_balance How much do I have in my wallet
+__label__check_balance Balance enquiry check my account
+__label__check_balance Tell me my points and credit level
+__label__check_balance View my wallet balance and tier status
+__label__emergency I need an emergency police contact
+__label__emergency Accident on expressway help me
+__label__emergency Trigger SOS emergency alert
+__label__emergency I feel unsafe need urgent help
+__label__emergency Robbery attack call for emergency help
+__label__emergency Please call emergency services now
+__label__emergency There is a fire emergency near my house
+__label__emergency I am in danger send help immediately
+__label__emergency Medical emergency need ambulance fast
+__label__emergency Emergency alert someone is following me
+__label__emergency SOS I need urgent assistance right now
+__label__emergency Call 112 emergency number for me
+__label__emergency I need police help there is trouble here
+__label__circle_create Create a money circle ajo savings
+__label__circle_create I want to join active savings circle
+__label__circle_create Start an ajo esusu thrift group
+__label__circle_create Open a savings circle with friends
+__label__circle_create Create an ajo contribution group
+__label__circle_create I want to start a thrift savings club
+__label__circle_create Join a money circle esusu group
+__label__circle_create Set up a rotating savings group
+__label__circle_create Start a collective savings ajo circle
+__label__circle_create Create a group contribution thrift plan
+__label__circle_create I want to save money in a circle group
+__label__circle_create Open an ajo savings group with my colleagues
+__label__circle_create Begin a money circle for weekly savings
+__label__ride_request Book an okada ride to Bodija
+__label__ride_request I need a keke or taxi now
+__label__ride_request Get me a ride to the airport
+__label__ride_request Call a bike rider for me
+__label__ride_request I need a cab to go home
+__label__ride_request Book a taxi to take me to work
+__label__ride_request I want an okada to come pick me up
+__label__ride_request Find me a keke napep nearby
+__label__ride_request I need a ride to the market now
+__label__ride_request Get a bike to take me to my destination
+__label__ride_request Order a car ride to Ikeja
+__label__ride_request I want to book a keke ride
+__label__ride_request Call me an okada rider immediately
+__label__order_food I am hungry order rice food
+__label__order_food Order jollof rice and chicken
+__label__order_food Buy groceries and foodstuff from the market
+__label__order_food Order provisions and household supplies
+__label__order_food I want to order a product from a vendor
+__label__order_food I want to buy food from a restaurant nearby
+__label__order_food Order amala and ewedu for me
+__label__order_food I need to buy foodstuff for the week
+__label__order_food Get me some pounded yam and egusi soup
+__label__order_food I want to order groceries from a shop
+__label__order_food Buy provisions from the supermarket
+__label__order_food I am starving get me some food please
+__label__order_food Order some snacks and drinks for delivery
+__label__find_worker Find local plumber electrician mechanic near me
+__label__find_worker I need a plumber to fix a leaking pipe
+__label__find_worker Get me an electrician for house wiring
+__label__find_worker I need a mechanic to check my engine
+__label__find_worker I need a carpenter or furniture maker
+__label__find_worker Find a tailor or fashion designer near me
+__label__find_worker I need a cleaner or home cleaning service
+__label__find_worker Where can I buy spare parts for my vehicle
+__label__find_worker I need an engine parts dealer near me
+__label__find_worker I need a bodyguard for an event tonight
+__label__find_worker Hire private security personnel for my shop
+__label__find_worker Book a football pitch for a match
+__label__find_worker Find a sports coach or recreation trainer
+__label__pay_bill Pay electricity bill utility DSTV
+__label__pay_bill Pay my power bill NEPA Eko Disco
+__label__pay_bill Settle my DSTV GoTV subscription
+__label__pay_bill Pay water bill and internet subscription
+__label__pay_bill I want to pay my electricity bill online
+__label__pay_bill Pay my cable TV subscription for the month
+__label__pay_bill Settle my utility bills power and water
+__label__pay_bill I need to pay my NEPA bill today
+__label__pay_bill Pay my internet subscription and data plan
+__label__pay_bill Renew my DSTV and GoTV subscription
+__label__pay_bill I want to settle my Eko Disco electricity bill
+__label__pay_bill Pay utility bills for my house
+__label__pay_bill Settle my monthly water and power bill
+__label__airtime_purchase Buy MTN Airtel airtime recharge topup
+__label__airtime_purchase Recharge my Glo line with airtime
+__label__airtime_purchase Buy data bundle 9mobile
+__label__airtime_purchase Top up my phone credit
+__label__airtime_purchase Buy mtn airtime for my line
+__label__airtime_purchase I want to recharge my Airtel line
+__label__airtime_purchase Buy data for my 9mobile sim
+__label__airtime_purchase Topup my Glo airtime balance
+__label__airtime_purchase I need to buy airtime credit now
+__label__airtime_purchase Recharge my phone with data bundle
+__label__airtime_purchase Buy mtn data subscription plan
+__label__airtime_purchase I want to top up my Airtel airtime
+__label__airtime_purchase Get me airtime recharge for my Glo number
+__label__nearby_pulse_start Go live on Nearby Pulse and broadcast
+__label__nearby_pulse_start Start a live broadcast of my skill
+__label__nearby_pulse_start I want to share a how-to video tutorial
+__label__nearby_pulse_start Broadcast event coverage from a live scene
+__label__nearby_pulse_start Go live and stream what is happening around me
+__label__nearby_pulse_start How to video tutorial I want to broadcast
+__label__nearby_pulse_start Start a live stream showing my work
+__label__nearby_pulse_start I want to go live and share a video tutorial
+__label__nearby_pulse_start Broadcast live video of this event scene
+__label__nearby_pulse_start Go live on pulse to show people my skill
+__label__nearby_pulse_start I want to stream a how to tutorial live
+__label__nearby_pulse_start Start broadcasting my live video now
+__label__nearby_pulse_start Share a live video tutorial with nearby users
+__label__referral Refer a friend referral invite code
+__label__referral Share my referral code to invite people
+__label__referral I want to invite friends and earn points
+__label__referral Refer a friend for points
+__label__referral Refer friend and get rewarded
+__label__referral Invite friend to earn bonus
+__label__referral Get my referral code to share
+__label__referral Invite a friend and get bonus points
+__label__referral I want to refer someone to join Kurukoo
+__label__referral Share my invite link with friends
+__label__referral How do I refer people to earn rewards
+__label__referral I want to send my referral code to a friend
+__label__referral Refer friends and get free points
+__label__referral Give me my referral invite code
+__label__referral I want to invite my contacts to Kurukoo
+__label__referral Share referral link and earn bonus credits

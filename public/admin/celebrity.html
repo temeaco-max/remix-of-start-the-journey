@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Celebrity Demand Tracker</title>
+</head>
+<body>
+    <h1>Celebrity Demand</h1>
+    <table border="1">
+        <thead>
+            <tr><th>Name</th><th>Category</th><th>Interested Users</th><th>Threshold</th><th>Status</th></tr>
+        </thead>
+        <tbody id="celebrity-tbody"></tbody>
+    </table>
+    <script>
+        fetch('/api/admin/celebrity').then(res=>res.json()).then(data => {
+            document.getElementById('celebrity-tbody').innerHTML = data.map(c => 
+                `<tr><td>${c.name}</td><td>${c.category}</td><td>${c.interested_users}</td><td>${c.threshold}</td><td>${c.status}</td></tr>`
+            ).join('');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,775 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+
+<main>
+    <!-- Top Announcement Banner -->
+    <% 
+        const defaultBannerTexts = [
+            "One number. One conversation. Every Hustle.",
+            "Tell it what you want — always ready to assist.",
+            "The always-on neighborhood helper right in your chat.",
+            "Find local riders, fixers, and electricians instantly.",
+            "List your skills, offer services, and discover daily local jobs.",
+            "Keep your transactions secure with smart escrow payments.",
+            "Receive real-time, proactive notifications and opportunity alerts.",
+            "Get daily reminders, price checks, and marketplace updates.",
+            "Support your family and send secure mobile money home.",
+            "No downloads. No new apps. All through one conversation.",
+            "Multi-sided OS designed for everyday tasks & life"
+        ];
+        const bannerList = (typeof rotatingTexts !== 'undefined' && Array.isArray(rotatingTexts) && rotatingTexts.length > 0) 
+            ? rotatingTexts 
+            : defaultBannerTexts;
+    %>
+    <div class="announcement-banner">
+        <span class="announcement-banner-text"><%= bannerList[0] %></span> 
+    </div>
+
+    <script id="rotating-banner-data" type="application/json"><%- JSON.stringify(bannerList) %></script>
+    <script>
+        (function() {
+            function initBanner() {
+                const bannerTextEl = document.querySelector('.announcement-banner-text');
+                if (!bannerTextEl) return;
+
+                let texts = [];
+                try {
+                    const dataEl = document.getElementById('rotating-banner-data');
+                    if (dataEl && dataEl.textContent) {
+                        texts = JSON.parse(dataEl.textContent);
+                    }
+                } catch (e) {}
+
+                if (!Array.isArray(texts) || texts.length === 0) {
+                    texts = [
+                        "One number. One conversation. Every Hustle.",
+                        "Tell it what you want — always ready to assist.",
+                        "The always-on neighborhood helper right in your chat.",
+                        "Find local riders, fixers, and electricians instantly.",
+                        "List your skills, offer services, and discover daily local jobs.",
+                        "Keep your transactions secure with smart escrow payments.",
+                        "Receive real-time, proactive notifications and opportunity alerts.",
+                        "Get daily reminders, price checks, and marketplace updates.",
+                        "Support your family and send secure mobile money home.",
+                        "No downloads. No new apps. All through one conversation.",
+                        "Multi-sided OS designed for everyday tasks & life"
+                    ];
+                }
+
+                let currentIndex = 0;
+                setInterval(() => {
+                    bannerTextEl.style.opacity = '0';
+                    setTimeout(() => {
+                        currentIndex = (currentIndex + 1) % texts.length;
+                        bannerTextEl.textContent = texts[currentIndex];
+                        bannerTextEl.style.opacity = '0.9';
+                    }, 600);
+                }, 4500);
+
+                // Check for live updates asynchronously with safe fallback
+                if (typeof window.fetch === 'function') {
+                    fetch('/api/content/rotating-texts')
+                        .then(res => {
+                            if (!res.ok) return null;
+                            return res.json();
+                        })
+                        .then(data => {
+                            if (data && Array.isArray(data.texts) && data.texts.length > 0) {
+                                texts = data.texts;
+                            }
+                        })
+                        .catch(() => {
+                            // Safe fallback to preloaded texts
+                        });
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initBanner);
+            } else {
+                initBanner();
+            }
+        })();
+    </script>
+
+    <!-- Hero Section -->
+    <section class="hero container hero-container">
+        <div class="hero-text">
+            <span class="badge">Multi-sided economic OS</span>
+            <h1 class="hero-dynamic-h1" id="hero-title">
+                Your trusted Assistant<br>who gets things sorted.
+            </h1>
+            <p class="hero-desc">
+                Kurukoo is an AI assisted multi-sided utility that connects you with what you need and handles the process from start to completion. Anything from geting a keke, to rides, controlling devices, getting reminders, knowing earning opportunities, kurukoo has got your covered.
+            </p>
+            <div class="hero-action-group">
+                <button type="button" class="btn btn-primary hero-primary-btn" onclick="openKurukooOnboarding('buyer')">
+                    👉 Start using Kurukooo
+                </button>
+                <div class="hero-secondary-btn-wrapper">
+                    Or Become an Earner
+                </div>
+            </div>
+            
+            <div class="hero-trust-list">
+                <span>Trusted by thousands • Your payment is protected • Works on every phone</span>
+            </div>
+        </div>
+        
+        <div class="hero-visual hero-visual-col">
+            <div class="glow"></div>
+
+            <div class="chat-preview-window">
+                <!-- Live Hybrid Chat Embed Container -->
+                <div id="homepage-live-chat-embed" class="chat-embed-container"></div>
+            </div>
+
+                            <div class="step-desc">Parsing Pidgin & slang into structured payload attributes.</div>
+                        </div>
+                    </div>
+                    
+                        <span class="step-num">2</span>
+                        <div>
+                            <div class="step-title">Living Memory Engine</div>
+                            <div class="step-desc">Retrieving customer history, vehicle records, and preferences.</div>
+                        </div>
+                    </div>
+                    
+                        <span class="step-num">3</span>
+                        <div>
+                            <div class="step-title">Catalog & Worker Match</div>
+                            <div class="step-desc">Searching nearby micro-catalogs & calculating trust scores.</div>
+                        </div>
+                    </div>
+                    
+                        <span class="step-num">4</span>
+                        <div>
+                            <div class="step-title">Escrow Protection Lock</div>
+                            <div class="step-desc">Securing pay split in safe escrow until buyer verification.</div>
+                        </div>
+                    </div>
+                    
+                        <span class="step-num">5</span>
+                        <div>
+                            <div class="step-title">Multi-Leg Dispatch & Track</div>
+                            <div class="step-desc">Orchestrating live motorcycle courier & ETA delivery tracking.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Activity Ticker (Nearby Radar - Module E - Moved to Prominent Section Separator) -->
+    <div id="live-activity-ticker" class="live-activity-ticker">
+        <div class="ticker-content-wrapper">
+            <span class="ticker-label">🟢 NEARBY RADAR:</span>
+            <span id="ticker-radar-text" class="ticker-radar-text">Loading real-time micro-operations across Nigeria...</span>
+        </div>
+    </div>
+    <script>
+        (function() {
+            async function loadRadarTicker() {
+                try {
+                    const res = await fetch('/api/stats/radar');
+                    const data = await res.json();
+                    if (data && data.success && data.radars) {
+                        const radarTexts = data.radars.map(p => p.text).join('   •   ');
+                        const el = document.getElementById('ticker-radar-text');
+                        if (el) {
+                            el.textContent = radarTexts;
+                        }
+                    }
+                } catch(e) {
+                    console.error('Failed loading radar ticker', e);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', loadRadarTicker);
+            } else {
+                loadRadarTicker();
+            }
+        })();
+    </script>
+
+    <!-- Supported Channels Strip -->
+    <section class="supported-channels-strip">
+        <div class="container supported-channels-inner">
+            <span class="supported-channels-label">
+                Available Everywhere You Are
+            </span>
+            <div class="channels-slider-container">
+                <div class="channels-marquee">
+                    <!-- Set 1 (No Duplicates) -->
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366" xmlns="http://www.w3.org/2000/svg"><path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.761.46 3.473 1.333 4.985L2 22l5.183-1.361c1.45.79 3.08 1.209 4.823 1.21h.005c5.505 0 9.987-4.482 9.987-9.988C22 6.482 17.518 2 12.012 2zm6.035 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/></svg>
+                        <span>WhatsApp Chat</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#0088cc" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.64-.35-1 .22-1.58.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.24-5.54 3.65-.52.36-.97.53-1.34.52-.42-.01-1.22-.24-1.82-.43-.73-.24-1.32-.37-1.27-.78.02-.21.31-.43.86-.66 3.37-1.47 5.62-2.44 6.75-2.91 3.2-1.33 3.86-1.56 4.3-.16.1.25.07.51.04.76z"/></svg>
+                        <span>Telegram Assistant</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97A5C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <span>Kurukoo Web App</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E5BFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <span>*7000# USSD Code</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>SMS Notification Engine</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="2" width="14" height="20" rx="3"/><rect x="7" y="4" width="10" height="6" rx="1"/><circle cx="9" cy="13" r="1"/><circle cx="12" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><circle cx="9" cy="16" r="1"/><circle cx="12" cy="16" r="1"/><circle cx="15" cy="16" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+                        <span>Nokia Devices</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 11h.01M12 15h.01M10 13h.01M14 13h.01"/></svg>
+                        <span>KaiOS Devices</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#3DDC84" xmlns="http://www.w3.org/2000/svg"><path d="M17.523 15.3l1.816 3.146a.5.5 0 0 1-.866.5l-1.84-3.185A8.956 8.956 0 0 1 12 17c-1.748 0-3.37-.5-4.757-1.359l-1.84 3.185a.5.5 0 0 1-.866-.5L6.353 15.3A8.96 8.96 0 0 1 3 8h18a8.96 8.96 0 0 1-3.477 7.3zM7 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
+                        <span>Tecno Phones</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#3DDC84" xmlns="http://www.w3.org/2000/svg"><path d="M17.523 15.3l1.816 3.146a.5.5 0 0 1-.866.5l-1.84-3.185A8.956 8.956 0 0 1 12 17c-1.748 0-3.37-.5-4.757-1.359l-1.84 3.185a.5.5 0 0 1-.866-.5L6.353 15.3A8.96 8.96 0 0 1 3 8h18a8.96 8.96 0 0 1-3.477 7.3zM7 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
+                        <span>Infinix Phones</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#3DDC84" xmlns="http://www.w3.org/2000/svg"><path d="M17.523 15.3l1.816 3.146a.5.5 0 0 1-.866.5l-1.84-3.185A8.956 8.956 0 0 1 12 17c-1.748 0-3.37-.5-4.757-1.359l-1.84 3.185a.5.5 0 0 1-.866-.5L6.353 15.3A8.96 8.96 0 0 1 3 8h18a8.96 8.96 0 0 1-3.477 7.3zM7 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M9.5 2.5a.5.5 0 0 1-.5-.5V1a.5.5 0 0 1 1 0v1a.5.5 0 0 1-.5.5zm5 0a.5.5 0 0 1-.5-.5V1a.5.5 0 0 1 1 0v1a.5.5 0 0 1-.5.5z" stroke="#3DDC84" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span>Android Devices</span>
+                    </div>
+                    <div class="channel-indicator-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#111111" xmlns="http://www.w3.org/2000/svg"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.21.67-2.93 1.49-.62.69-1.16 1.84-1.01 2.96 1.12.09 2.27-.57 2.95-1.39z"/></svg>
+                        <span>iOS iPhones</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Statement -->
+    <section class="section">
+        <div class="container">
+            <div class="grid grid-2 gap-12 items-center">
+                <div>
+                    <h2>Finding help in your neighborhood shouldn't be this hard.</h2>
+                    <p>You know the drill. Need a ride, a repair, or someone to help with errands? You ask friends, wait for replies, haggle over prices, and hope they show up. Want to earn? You post on social media, chase leads, and pray you get paid.</p>
+                    <p>Kurukoo fixes all of that. One chat. Verified locals. Protected payments. No app. No hassle.</p>
+                </div>
+                <div class="bg-gray-100 h-64 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-200">
+                    <span class="text-6xl">😟</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Overview -->
+    <section class="section">
+        <div class="container">
+            <div class="grid grid-2 gap-12 items-center">
+                <div class="bg-gray-100 h-64 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-200">
+                    <span class="text-6xl">🚀</span>
+                </div>
+                <div>
+                    <h2>Meet Kurukoo—your neighborhood guide, always ready to assist.</h2>
+                    <p>Kurukoo is a conversational AI assistant for the informal economy. It connects you with trusted locals for rides, repairs, deliveries, earning, and more—all through a simple chat. One profile that remembers you. No profile switching. No new apps.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Role Priming Section (3 Cards) -->
+    <section class="section" id="role-priming">
+        <div class="container">
+            <div class="role-priming-header">
+                <span class="badge role-priming-badge">Everyone's welcome</span>
+                <h2 class="role-priming-h2">What do you want to do today?</h2>
+                <p class="role-priming-p">One conversation. Every role. No profile switching, no new apps. Kurukoo is like that reliable, connected neighbor who knows every plumber, okada rider, and shopkeeper in town — always ready to assist you or find you some good work.</p>
+            </div>
+            <div class="grid grid-3 role-priming-grid">
+                <div class="card role-card-consumer">
+                    <div class="role-card-icon">🧰</div>
+                    <h3 class="role-card-h3">Request a service</h3>
+                    <p class="role-card-p">Ask for anything. Need a quick ride, a reliable plumber, fresh produce, or a helper for errands? Just tell your trusted neighbor. We match you with verified locals instantly, hold your payments safely in escrow, and coordinate the details so you never have to worry.</p>
+                    <a href="https://wa.me/2347000?text=Hi%2C%20I%20need%20help%20with%20%5Btell%20me%20what%20you%20need%5D" target="_blank" class="btn btn-primary role-card-btn-full">Request a service</a>
+                </div>
+                <div class="card role-card-provider">
+                    <div class="role-card-icon">🛠️</div>
+                    <h3 class="role-card-h3">Offer your skills</h3>
+                    <p class="role-card-p">Get found by your neighborhood. Whether you ride an okada, fix phones, sell food, or do repairs, list your skill once. Your neighborhood assistant finds clients who need you, manages matches, and routes payments straight to your wallet. You keep what you earn.</p>
+                    <a href="https://wa.me/2347000?text=Hi%2C%20I%20want%20to%20offer%20my%20skills.%20I%20do%20%5Byour%20skill%5D" target="_blank" class="btn role-card-btn-outline">Offer your skills</a>
+                </div>
+                <div class="card role-card-business">
+                    <div class="role-card-icon">🏪</div>
+                    <h3 class="role-card-h3">Grow my business</h3>
+                    <p class="role-card-p">A digital storefront without the stress. Run a shop, kiosk, or restaurant? Kurukoo learns your products by importing your WhatsApp catalog and asking simple, friendly questions to keep stock updated. Your goods are recommended to neighbors searching for them — no dashboards, no tech setup, just natural chat.</p>
+                    <a href="https://wa.me/2347000?text=Hi%2C%20I%20want%20to%20grow%20my%20business%20on%20Kurukoo" target="_blank" class="btn role-card-btn-outline">Grow my business</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- It Learns You Section -->
+    <section class="section container">
+        <div class="section-header">
+            <h2>A helper who learns a little more every day.</h2>
+            <p>No lengthy sign-up forms or complex setup. Kurukoo builds your living profile as you chat, remembering what you need and what you do best.</p>
+        </div>
+        
+        <div class="grid grid-3">
+            <div class="card living-profile-card">
+                <div class="living-profile-icon-terracotta">🧠</div>
+                <h3 class="living-profile-card-h3">A Friend Who Remembers</h3>
+                <p class="living-profile-card-p">Whether you're ordering dinner, booking a carpenter, or offering your own skills, everything links to a single secure profile. It remembers your favorite spots, typical rates, and trusted people just like a real neighbor.</p>
+            </div>
+            <div class="card living-profile-card">
+                <div class="living-profile-icon-blue">💬</div>
+                <h3 class="living-profile-card-h3">Natural Conversations</h3>
+                <p class="living-profile-card-p">Speak or type naturally in English, Pidgin, or local phrases. Your neighborhood guide understands your intent, coordinates deals, and handles the complicated math behind the scenes.</p>
+            </div>
+            <div class="card living-profile-card">
+                <div class="living-profile-icon-terracotta">⚡</div>
+                <h3 class="living-profile-card-h3">Proactive Opportunities</h3>
+                <p class="living-profile-card-p">Always looking out for you. It surfaces timely alerts, nearby mobile vendors, and earning opportunities matching your skills — right when you need them.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section" id="testimonials">
+        <div class="container">
+            <h2 class="text-center mb-12">What people say</h2>
+            <div class="grid grid-2 gap-8">
+                <div class="card">
+                    <p>"Escrow protection is a lifesaver. I felt so much safer knowing my money was secure until the job was completed."</p>
+                    <div class="font-bold mt-4">— Local Buyer</div>
+                </div>
+                <div class="card">
+                    <p>"I keep 100% of my earnings. Kurukoo just connects me, I handle the work, and the payout is instant."</p>
+                    <div class="font-bold mt-4">— Local Provider</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="section" id="pricing">
+        <div class="container text-center">
+            <h2 class="mb-8">Simple Pricing</h2>
+            <div class="grid grid-2 gap-8 max-w-2xl mx-auto">
+                <div class="card">
+                    <h3 class="text-xl font-bold">Free</h3>
+                    <p class="text-3xl font-bold my-4">₦0</p>
+                    <p class="text-gray">Standard access</p>
+                </div>
+                <div class="card border-2 border-primary">
+                    <h3 class="text-xl font-bold">Pro</h3>
+                    <p class="text-3xl font-bold my-4">₦1,500<span class="text-sm font-normal">/mo</span></p>
+                    <p class="text-gray">Unlimited + Priority</p>
+                </div>
+            </div>
+            <p class="text-gray mt-8">Escrow fees apply only on successful transactions. Providers keep 100%.</p>
+        </div>
+    </section>
+
+    <!-- Powerful SaaS Tools Feature Spotlight -->
+    <section class="section section-white saas-spotlight-section">
+        <div class="container">
+            <div class="grid grid-2 flex-between">
+                <div>
+                    <span class="badge saas-badge">Chat-Delivered SaaS</span>
+                    <h2 class="saas-spotlight-h2">
+                        Powerful SaaS Tools, Delivered via Chat
+                    </h2>
+                    <p class="saas-spotlight-p">
+                        Kurukoo is a multi-sided utility that uses conversational AI to deliver powerful, on-demand SaaS tools straight to the informal economy. We bundle digital storefronts, smart escrow payments, and proactive opportunity ranking into one simple chat thread.
+                    </p>
+                    <ul class="saas-benefits-list">
+                        <li class="saas-benefit-item"><span>✓</span> Escrow-locked payments protect buyers and sellers</li>
+                        <li class="saas-benefit-item"><span>✓</span> Automated inventory sync directly from WhatsApp catalogue</li>
+                        <li class="saas-benefit-item"><span>✓</span> Zero-dashboard management — run everything via simple text</li>
+                    </ul>
+                    <a href="/dashboard.html" class="btn btn-primary btn-saas-primary">
+                        Get Started Now
+                    </a>
+                </div>
+                <div>
+                    <div class="saas-card-preview">
+                        <svg viewBox="0 0 450 380" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto">
+                            <!-- Grid background inside the mockup card for a premium tech feel -->
+                            <defs>
+                                <pattern id="grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(0, 0, 0, 0.03)" stroke-width="1" />
+                                </pattern>
+                                <linearGradient id="terracotta-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#E58C72" />
+                                    <stop offset="100%" stop-color="#D97A5C" />
+                                </linearGradient>
+                                <linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#42A5F5" />
+                                    <stop offset="100%" stop-color="#1E88E5" />
+                                </linearGradient>
+                                <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+                                    <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.08" />
+                                </filter>
+                            </defs>
+
+                            <!-- Background grid pattern -->
+                            <rect width="450" height="380" fill="url(#grid-pattern)" rx="16" />
+
+                            <!-- Connecting glowing background paths -->
+                            <path d="M 190 140 Q 330 140 330 110" fill="none" stroke="rgba(217, 122, 92, 0.4)" stroke-width="2" stroke-dasharray="4 4" />
+                            <path d="M 190 200 Q 350 200 350 210" fill="none" stroke="rgba(30, 136, 229, 0.4)" stroke-width="2" stroke-dasharray="4 4" />
+                            <path d="M 190 260 Q 320 260 320 290" fill="none" stroke="rgba(30, 136, 229, 0.4)" stroke-width="2" stroke-dasharray="4 4" />
+
+                            <!-- Phone/Chat Mockup (Central piece) -->
+                            <g filter="url(#soft-shadow)">
+                                <!-- Smartphone Case -->
+                                <rect x="30" y="30" width="220" height="320" rx="28" fill="#2E2E2E" />
+                                <!-- Screen -->
+                                <rect x="36" y="36" width="208" height="308" rx="22" fill="#FFF8F0" />
+                                
+                                <!-- Phone Top Speaker/Camera notch -->
+                                <rect x="100" y="44" width="80" height="12" rx="6" fill="#2E2E2E" />
+                                <circle cx="106" cy="50" r="3" fill="#111111" />
+                                
+                                <!-- Phone Screen Header -->
+                                <text x="140" y="70" fill="#2E2E2E" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="700" text-anchor="middle">Kurukoo Agent</text>
+                                <circle cx="56" cy="67" r="4" fill="#25D366" /> <!-- WhatsApp green dot -->
+                                <text x="65" y="70" fill="#666" font-family="'Inter', sans-serif" font-size="9" font-weight="600">Active</text>
+                                <line x1="36" y1="80" x2="244" y2="80" stroke="rgba(0,0,0,0.06)" stroke-width="1" />
+
+                                <!-- Chat Bubbles -->
+                                <!-- Bubble 1: User -->
+                                <g transform="translate(100, 95)">
+                                    <rect x="0" y="0" width="134" height="34" rx="10" fill="#EAEAEA" />
+                                    <text x="10" y="20" fill="#2E2E2E" font-family="'Inter', sans-serif" font-size="9" font-weight="500">Sell 10 bags cement to Tunde</text>
+                                </g>
+
+                                <!-- Bubble 2: Assistant Escrow Lock -->
+                                <g transform="translate(46, 142)">
+                                    <rect x="0" y="0" width="144" height="42" rx="10" fill="url(#blue-grad)" />
+                                    <text x="10" y="16" fill="#FFFFFF" font-family="'Inter', sans-serif" font-size="9" font-weight="600">🔐 Escrow Active</text>
+                                    <text x="10" y="28" fill="rgba(255,255,255,0.85)" font-family="'Inter', sans-serif" font-size="8" font-weight="400">₦45,000 locked securely</text>
+                                </g>
+
+                                <!-- Bubble 3: Assistant Catalog Update -->
+                                <g transform="translate(46, 196)">
+                                    <rect x="0" y="0" width="144" height="42" rx="10" fill="url(#terracotta-grad)" />
+                                    <text x="10" y="16" fill="#FFFFFF" font-family="'Inter', sans-serif" font-size="9" font-weight="600">🏪 Inventory Synced</text>
+                                    <text x="10" y="28" fill="rgba(255,255,255,0.85)" font-family="'Inter', sans-serif" font-size="8" font-weight="400">WhatsApp catalog updated (-10)</text>
+                                </g>
+
+                                <!-- Bubble 4: User Receipt -->
+                                <g transform="translate(110, 250)">
+                                    <rect x="0" y="0" width="124" height="32" rx="10" fill="#EAEAEA" />
+                                    <text x="10" y="19" fill="#2E2E2E" font-family="'Inter', sans-serif" font-size="9" font-weight="500">Awesome, thank you!</text>
+                                </g>
+
+                                <!-- Phone Footer Bar -->
+                                <rect x="96" y="332" width="88" height="4" rx="2" fill="#CCCCCC" />
+                            </g>
+
+                            <!-- Interactive Floating SaaS Nodes on the Right -->
+                            <!-- Node 1: Smart Escrow Badge -->
+                            <g transform="translate(300, 75)" filter="url(#soft-shadow)">
+                                <circle cx="35" cy="35" r="28" fill="#FFFFFF" stroke="#1E88E5" stroke-width="2" />
+                                <!-- Escrow Shield Icon -->
+                                <path d="M 35 22 L 44 26 L 44 34 C 44 40 39 45 35 47 C 31 45 26 40 26 34 L 26 26 Z" fill="#1E88E5" />
+                                <path d="M 32 34 L 34 36 L 38 31" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                                <!-- Label -->
+                                <rect x="12" y="66" width="46" height="15" rx="4" fill="#1E88E5" />
+                                <text x="35" y="76" fill="#FFFFFF" font-family="'Space Grotesk', sans-serif" font-size="8" font-weight="700" text-anchor="middle">ESCROW</text>
+                            </g>
+
+                            <!-- Node 2: Catalog Auto-Scraper -->
+                            <g transform="translate(340, 175)" filter="url(#soft-shadow)">
+                                <circle cx="35" cy="35" r="28" fill="#FFFFFF" stroke="#D97A5C" stroke-width="2" />
+                                <!-- Store/Sync Icon -->
+                                <path d="M 24 28 L 26 24 L 44 24 L 46 28 M 24 28 L 24 43 L 46 43 L 46 28 M 24 28 L 46 28 M 30 34 L 40 34 M 30 38 L 36 38" stroke="#D97A5C" stroke-width="2" stroke-linecap="round" fill="none" />
+                                <!-- Label -->
+                                <rect x="12" y="66" width="46" height="15" rx="4" fill="#D97A5C" />
+                                <text x="35" y="76" fill="#FFFFFF" font-family="'Space Grotesk', sans-serif" font-size="8" font-weight="700" text-anchor="middle">STORES</text>
+                            </g>
+
+                            <!-- Node 3: Micro-Accounting & Ledger -->
+                            <g transform="translate(290, 275)" filter="url(#soft-shadow)">
+                                <circle cx="35" cy="35" r="28" fill="#FFFFFF" stroke="#2E2E2E" stroke-width="2" />
+                                <!-- Chart Icon -->
+                                <path d="M 26 42 L 26 26 M 31 42 L 31 32 M 36 42 L 36 29 M 41 42 L 41 35 M 46 42 L 46 24" stroke="#2E2E2E" stroke-width="2" stroke-linecap="round" fill="none" />
+                                <!-- Label -->
+                                <rect x="12" y="66" width="46" height="15" rx="4" fill="#2E2E2E" />
+                                <text x="35" y="76" fill="#FFFFFF" font-family="'Space Grotesk', sans-serif" font-size="8" font-weight="700" text-anchor="middle">LEDGER</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Nearby Radar Feature Spotlight -->
+    <section class="section radar-spotlight-section">
+        <div class="container">
+            <div class="grid grid-2">
+                <div>
+                    <span class="badge radar-badge">Real-Time Discovery</span>
+                    <h2 class="radar-spotlight-h2">
+                        Your neighbor's radar: See who's active right now.
+                    </h2>
+                    <p class="radar-spotlight-p">
+                        Nearby Radar is like looking out your front door and seeing who is active on the street. Discover local hawkers selling fresh produce, roadside phone repairers, bakers, verified riders, and mobile providers moving near you in real time, ready to assist.
+                    </p>
+                    <ul class="radar-benefits-list">
+                        <li class="radar-benefit-item"><span>✓</span> Stop nearby mobile hawkers or order directly in chat</li>
+                        <li class="radar-benefit-item"><span>✓</span> Let neighbors know you're active and open for business</li>
+                        <li class="radar-benefit-item"><span>✓</span> Fully integrated into your ongoing conversation</li>
+                    </ul>
+                    <a href="https://wa.me/2347000" target="_blank" class="btn btn-primary btn-radar-primary">
+                        Try Nearby Radar on WhatsApp →
+                    </a>
+                </div>
+                <div>
+                    <div class="radar-card-preview">
+                        <div class="radar-card-header">
+                            <div class="radar-card-title">
+                                <span class="radar-status-dot"></span> Nearby Radar Active
+                            </div>
+                            <span class="radar-location-tag">Ikeja, Lagos</span>
+                        </div>
+                        <div class="radar-list">
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">🍊</div>
+                                    <div>
+                                        <div class="radar-item-name">Mama Nkechi (Fresh Oranges)</div>
+                                        <div class="radar-item-sub">Mobile Hawker • 150m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Stop / Order</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">🔧</div>
+                                    <div>
+                                        <div class="radar-item-name">Sola Phone Repairs</div>
+                                        <div class="radar-item-sub">Roadside Technician • 300m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Request Fix</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">🛺</div>
+                                    <div>
+                                        <div class="radar-item-name">Musa (Keke Rider)</div>
+                                        <div class="radar-item-sub">Verified Rider • 200m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Get Lift</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">⚡</div>
+                                    <div>
+                                        <div class="radar-item-name">Tunde Electrician</div>
+                                        <div class="radar-item-sub">Certified Pro • 450m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Hire Tunde</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">💇‍♀️</div>
+                                    <div>
+                                        <div class="radar-item-name">Grace Hair Salon</div>
+                                        <div class="radar-item-sub">Home Service • 600m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Book Style</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">🚰</div>
+                                    <div>
+                                        <div class="radar-item-name">Chidi Plumbing</div>
+                                        <div class="radar-item-sub">Verified Plumber • 350m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Request Repair</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">🍢</div>
+                                    <div>
+                                        <div class="radar-item-name">Alhassan Suya Spot</div>
+                                        <div class="radar-item-sub">Food Vendor • 120m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Order Suya</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">🧵</div>
+                                    <div>
+                                        <div class="radar-item-name">Blessing Tailoring</div>
+                                        <div class="radar-item-sub">Fashion Designer • 500m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Request Fitting</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">🏍️</div>
+                                    <div>
+                                        <div class="radar-item-name">Suleiman Okada</div>
+                                        <div class="radar-item-sub">Verified Rider • 180m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Get Ride</a>
+                            </div>
+                            <div class="radar-item">
+                                <div class="radar-item-content">
+                                    <div class="radar-item-emoji">🥤</div>
+                                    <div>
+                                        <div class="radar-item-name">Ngozi Cold Drinks</div>
+                                        <div class="radar-item-sub">Mobile Hawker • 80m away</div>
+                                    </div>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="radar-item-btn">Stop / Buy</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Your Day with Kurukoo Section (Timeline) -->
+    <section class="section">
+        <div class="container">
+            <div class="section-header">
+                <h2>A companion for dawn to dusk — one conversation, all day long</h2>
+                <p>No apps to juggle. No tabs to switch. Just Kurukoo, from sunrise to sunset.</p>
+            </div>
+            <div class="day-timeline-container">
+                <div class="day-card"><div class="ico">🌅</div><div class="copy"><strong>6:30 AM — Wake up</strong><p>"Ku Kurukoo! 🌅 Good morning. 3 verified okada riders are active near you. Need a lift to the market?"</p></div></div>
+                <div class="day-card"><div class="ico">🍲</div><div class="copy"><strong>12:00 PM — Lunch break</strong><p>"Mama Nkechi is walking down your street with fresh oranges. Want me to tell her to stop by?"</p></div></div>
+                <div class="day-card"><div class="ico">🔧</div><div class="copy"><strong>2:00 PM — Get it fixed</strong><p>"Spotted a leak in your kitchen? I found Chidi, a top-rated plumber in Ikeja. He can come over now."</p></div></div>
+                <div class="day-card"><div class="ico">💰</div><div class="copy"><strong>4:00 PM — Hustle time</strong><p>"Earning opportunity! A shop owner nearby needs a quick delivery helper. Earn +₦1,500 and +5 Points."</p></div></div>
+                <div class="day-card"><div class="ico">📦</div><div class="copy"><strong>6:00 PM — Send it</strong><p>"Escrow payment released for Chidi's plumbing job. Your money stayed safe until you confirmed the leak was fixed."</p></div></div>
+                <div class="day-card"><div class="ico">🌙</div><div class="copy"><strong>9:00 PM — Wind down</strong><p>"A quiet night ahead. All tasks completed, 15 Points earned today. Sleep well, see you tomorrow."</p></div></div>
+            </div>
+            <div class="day-timeline-cta">
+                <a href="https://wa.me/2347000" target="_blank" class="btn btn-primary">Start your day with Kurukoo →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Kurukoo + Social Proof Section -->
+    <section class="section social-proof-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Trusted by neighborhoods across Nigeria</h2>
+                <p>Kurukoo is live in Lagos, Abuja, Port Harcourt, Ibadan, and expanding. Providers are already earning. Customers are already saving time.</p>
+            </div>
+            <div class="grid grid-2">
+                <div class="card social-card">
+                    <div class="social-card-title">👨🏾🔧 Chinedu, Kuru Agent — Lagos</div>
+                    <p class="social-card-text">"I joined Kurukoo as an agent 3 months ago. I referred 12 providers to the platform and earned ₦45,000 in referral bonuses. Now I manage a network of 40+ active providers in my area."</p>
+                </div>
+                <div class="card social-card">
+                    <div class="social-card-title">👩🏾 Aisha, Lagos</div>
+                    <p class="social-card-text">"I needed a plumber at 8pm on a Saturday. I sent one WhatsApp message to Kurukoo. It felt like asking the most connected person on my street — within 10 minutes, a verified plumber was at my door. Escrow kept my money safe until the job was done."</p>
+                </div>
+            </div>
+            <div class="live-feed">
+                <div class="live-feed-title">Happening now near you</div>
+                <div class="live-feed-row">
+                    <div class="live-feed-item">🔧 3 plumbers active in Lagos Island</div>
+                    <div class="live-feed-item">🛵 12 okada riders available in Ikeja</div>
+                    <div class="live-feed-item">📦 5 delivery persons active in Victoria Island</div>
+                    <div class="live-feed-item">🍕 2 restaurants accepting orders in Yaba</div>
+                </div>
+                <div class="live-feed-note">*Numbers update in real time based on Nearby Radar presence data.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="section final-cta-section">
+        <div class="container">
+            <h2 class="final-cta-h2 display-font">Wake up. Get going.</h2>
+            <p class="final-cta-p">
+                Tell Kurukoo what you need or what you can do. Your trusted neighborhood guide is always ready to assist.
+            </p>
+            <div class="final-cta-buttons">
+                <a href="https://wa.me/2347000" target="_blank" class="btn final-cta-btn-primary">
+                    Start on WhatsApp (7000)
+                </a>
+                <a href="/dashboard.html" class="btn final-cta-btn-secondary">
+                    Power Version (PWA)
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="/js/kurukoo-chat.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        KurukooChat.init({
+            containerId: 'homepage-live-chat-embed',
+            mode: 'homepage_simulation',
+            mockScript: [
+                { sender: 'assistant', content: 'Ku Kurukoo! 🌅 Found 4 hot active deals and services near you in Ikeja right now. Swipe & click to book or purchase instantly!' },
+                { sender: 'assistant', content: '[PRODUCTS_4X4]' },
+                { sender: 'user', content: 'Order fresh oranges Nigeria' },
+                { sender: 'assistant', content: 'Perfect! Mama Ngozi is heading your way with fresh oranges. Her live location is active — expect her in 5 minutes. 🍊' },
+                { sender: 'user', content: 'I need a plumber' },
+                { sender: 'assistant', content: 'Found 3 plumbers near you in Ikeja. Chidi (4.8★, verified) can come tomorrow 8am.' },
+                { sender: 'user', content: 'Book Chidi' },
+                { sender: 'assistant', content: 'Done! Chidi arrives tomorrow 8am. Estimated ₦5,000. I’ll remind you 1 hour before.' },
+                { sender: 'assistant', content: 'You’ve earned 5 Points for completing your booking. You now have 35 Points. You can boost your own listing or keep them for discounts.' }
+            ]
+        });
+
+        // Rotating Radar Feed logic
+        function rotateRadarFeed() {
+            const list = document.querySelector('.radar-list');
+            if (!list) return;
+            
+            const firstItem = list.firstElementChild;
+            if (!firstItem) return;
+            
+            const height = firstItem.offsetHeight;
+            const parentStyle = window.getComputedStyle(list);
+            const gap = parseFloat(parentStyle.rowGap || parentStyle.gap) || 14;
+            const totalHeight = height + gap;
+            
+            // Apply smooth slide up and fade out
+            firstItem.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+            firstItem.style.opacity = '0';
+            firstItem.style.marginTop = `-${totalHeight}px`;
+            firstItem.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                // Instantly remove styles and cycle the item to the end
+                firstItem.style.transition = 'none';
+                firstItem.style.opacity = '';
+                firstItem.style.marginTop = '';
+                firstItem.style.transform = '';
+                list.appendChild(firstItem);
+            }, 800);
+        }
+        
+        // Rotate every 3.5 seconds
+        setInterval(rotateRadarFeed, 3500);
+    });
+</script>
+
+<%- include('_partials/onboarding-modal') %>
+<%- include('_partials/footer') %>

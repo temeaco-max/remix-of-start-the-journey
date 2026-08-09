@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kurukoo Unified Admin Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+        body {
+            background-color: var(--cream);
+            color: var(--charcoal);
+            font-family: var(--font-body);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: var(--font-heading);
+            color: #1A1A1A;
+            margin-top: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #1A1A1A;
+            color: #F8F7F4;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 20px;
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-200px);
+        }
+
+        .sidebar-item {
+            display: block;
+            padding: 10px;
+            color: #ccc;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .sidebar-item:hover {
+            background: #333;
+            color: white;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 50px;
+        }
+
+        .header-bar {
+            background-color: #1A1A1A;
+            color: #F8F7F4;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-bar .logo {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-bar .logo span {
+            color: #D97A5C;
+        }
+
+        .header-bar nav a {
+            color: #F8F7F4;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: 500;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .header-bar nav a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 32px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E2DE;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .metric-title {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 36px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            color: #1A1A1A;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .admin-section {
+            background: #FFFFFF;
+            border: 1px solid #E5E2DE;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .admin-section h3 {
+            font-size: 18px;
+            border-bottom: 1px solid #E5E2DE;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-action {
+            background-color: #D97A5C;
+            color: #FFFFFF;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-action:hover {
+            background-color: #C06B4F;
+        }
+
+        .btn-secondary {
+            background-color: #2E2E2E;
+            color: #FFF8F0;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #FFF8F0;
+            color: #2E2E2E;
+            font-weight: 600;
+            padding: 12px;
+            border-bottom: 2px solid #EAE0D5;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #FFF8F0;
+            color: #4A4A4A;
+        }
+
+        tr:hover td {
+            background-color: #FFFDFB;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-active {
+            background-color: rgba(30, 136, 229, 0.1);
+            color: #1E88E5;
+        }
+
+        .badge-spent {
+            background-color: rgba(217, 122, 92, 0.1);
+            color: #D97A5C;
+        }
+
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(46, 46, 46, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: #FFFFFF;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            padding: 24px;
+            border-top: 6px solid #D97A5C;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #2E2E2E;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #EAE0D5;
+            border-radius: 4px;
+            background-color: #FFFDFB;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #D97A5C;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .trend-bar-container {
+            margin-bottom: 12px;
+        }
+
+        .trend-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .trend-bar-bg {
+            background-color: #FFF8F0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #EAE0D5;
+        }
+
+        .trend-bar-fill {
+            background-color: #D97A5C;
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+        }
+
+        .trend-bar-fill.blue {
+            background-color: #1E88E5;
+        }
+        .sidebar {
+            width: 260px;
+            background: #111111;
+            color: #F8F7F4;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 24px 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #2A2A2A;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.15);
+        }
+
+        .sidebar.collapsed {
+            width: 76px;
+            padding: 24px 8px;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+            margin-bottom: 28px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .sidebar-brand {
+            justify-content: center;
+            padding: 0;
+        }
+
+        .sidebar-brand-text {
+            font-family: 'Space Grotesk', sans-serif;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            transition: opacity 0.2s;
+        }
+
+        .sidebar.collapsed .sidebar-brand-text {
+            display: none;
+        }
+
+        .sidebar-menu-section {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #555555;
+            letter-spacing: 0.1em;
+            padding: 16px 12px 8px 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar.collapsed .sidebar-menu-section {
+            display: none;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            color: #a3a3a3;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .sidebar-item {
+            justify-content: center;
+            padding: 10px 0;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 6px auto;
+        }
+
+        .sidebar-item-label {
+            transition: opacity 0.2s;
+        }
+
+        .sidebar.collapsed .sidebar-item-label {
+            display: none;
+        }
+
+        .sidebar-item:hover {
+            background: #222222;
+            color: #FFFFFF;
+        }
+        
+        .sidebar-item.active {
+            background: #D97A5C;
+            color: white;
+        }
+
+        .sidebar-item svg {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 32px;
+        }
+
+        .main-content.expanded {
+            margin-left: 76px;
+        }
+
+        .header-bar {
+            background-color: #FFFFFF;
+            color: #1A1A1A;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #E5E2DE;
+            margin-bottom: 32px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <svg style="width:24px; height:24px; color:#D97A5C;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+            <span class="sidebar-brand-text">Kurukoo Admin</span>
+        </div>
+        
+        <div style="flex-grow: 1; overflow-y: auto; padding-bottom: 20px;">
+            <div class="sidebar-menu-section">Core Modules</div>
+            <a href="/admin/dashboard.html" class="sidebar-item active" title="Dashboard">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="9"></rect>
+                    <rect x="14" y="3" width="7" height="5"></rect>
+                    <rect x="14" y="12" width="7" height="9"></rect>
+                    <rect x="3" y="16" width="7" height="5"></rect>
+                </svg>
+                <span class="sidebar-item-label">Dashboard</span>
+            </a>
+            <a href="/admin/analytics.html" class="sidebar-item" title="Analytics">
+                <svg viewBox="0 0 24 24">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span class="sidebar-item-label">Analytics</span>
+            </a>
+            <a href="/admin/users.html" class="sidebar-item" title="Users">
+                <svg viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="sidebar-item-label">Users</span>
+            </a>
+            <a href="/admin/ai-agents.html" class="sidebar-item" title="AI Agents">
+                <svg viewBox="0 0 24 24">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="15" x2="23" y2="15"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="15" x2="4" y2="15"></line>
+                </svg>
+                <span class="sidebar-item-label">AI Agents</span>
+            </a>
+
+            <div class="sidebar-menu-section">Operations</div>
+            <a href="/admin/content.html" class="sidebar-item" title="Content CMS">
+                <svg viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span class="sidebar-item-label">Content CMS</span>
+            </a>
+            <a href="/admin/referrals.html" class="sidebar-item" title="Referral Engine">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                <span class="sidebar-item-label">Referrals</span>
+            </a>
+            <a href="/admin/partnerships.html" class="sidebar-item" title="Partnerships">
+                <svg viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="sidebar-item-label">Partnerships</span>
+            </a>
+            <a href="/admin/scam.html" class="sidebar-item" title="Scam Reports">
+                <svg viewBox="0 0 24 24">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="13" y2="17"></line>
+                </svg>
+                <span class="sidebar-item-label">Scam Reports</span>
+            </a>
+
+            <div class="sidebar-menu-section">Monetization</div>
+            <a href="/admin/pricing.html" class="sidebar-item" title="Pricing Plans">
+                <svg viewBox="0 0 24 24">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                <span class="sidebar-item-label">Pricing Plans</span>
+            </a>
+            <a href="/admin/commissions.html" class="sidebar-item" title="Commission Settings">
+                <svg viewBox="0 0 24 24">
+                    <line x1="19" y1="5" x2="5" y2="19"></line>
+                    <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                    <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                </svg>
+                <span class="sidebar-item-label">Commissions</span>
+            </a>
+            <a href="/admin/revenue.html" class="sidebar-item" title="Revenue & Escrow">
+                <svg viewBox="0 0 24 24">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span class="sidebar-item-label">Revenue & Escrow</span>
+            </a>
+
+            <div class="sidebar-menu-section">Growth & Strategy</div>
+            <a href="/admin/artists.html" class="sidebar-item" title="Artists Hub">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+                <span class="sidebar-item-label">Artists Hub</span>
+            </a>
+            <a href="/admin/social.html" class="sidebar-item" title="Social Scheduler">
+                <svg viewBox="0 0 24 24">
+                    <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                </svg>
+                <span class="sidebar-item-label">Social Scheduler</span>
+            </a>
+            <a href="/admin/future.html" class="sidebar-item" title="Future Roadmap">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span class="sidebar-item-label">Future Roadmap</span>
+            </a>
+            <a href="/admin/seo.html" class="sidebar-item" title="SEO Settings">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span class="sidebar-item-label">SEO Config</span>
+            </a>
+            <a href="/admin/celebrity.html" class="sidebar-item" title="Celebrity Demand">
+                <svg viewBox="0 0 24 24">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <span class="sidebar-item-label">Celebrity Demand</span>
+            </a>
+        </div>
+
+        <button onclick="toggleSidebar()" style="width:100%; background:#222; border:1px solid #333; color:#a3a3a3; padding:12px; cursor:pointer; border-radius:8px; display:flex; align-items:center; justify-content:center; gap:8px;" title="Collapse Menu">
+            <svg id="sidebar-toggle-icon" style="width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2;" viewBox="0 0 24 24">
+                <polyline points="11 17 6 12 11 7"></polyline>
+                <polyline points="18 17 13 12 18 7"></polyline>
+            </svg>
+            <span class="sidebar-item-label" id="toggle-button-text">Collapse Menu</span>
+        </button>
+    </div>
+    
+    <div class="main-content" id="main-content">
+        <div class="header-bar">
+            <div class="logo" style="font-weight: 700; font-size: 20px;"><span>Kurukoo</span> Admin Console</div>
+            <nav style="display: flex; gap: 8px; align-items: center;">
+                <a href="/dashboard.html" target="_blank" style="padding:8px 16px; border:1px solid #E5E2DE; border-radius:8px; text-decoration:none; color:#1A1A1A;">View Live App</a>
+            </nav>
+        </div>
+
+    <script>
+        // Close the dropdown if the user clicks outside of it
+        window.onclick = function(event) {
+            if (!event.target.matches('.dropdown a')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                        openDropdown.style.display = 'none';
+                    }
+                }
+            } else if (event.target.matches('.dropdown a')) {
+                const dd = document.getElementById('admin-dropdown');
+                if (dd.classList.contains('show')) {
+                    dd.style.display = 'block';
+                } else {
+                    dd.style.display = 'none';
+                }
+            }
+        }
+    </script>
+    <div class="container">
+        <!-- Metric Cards -->
+        <div class="stats-grid">
+            <div class="metric-card">
+                <div class="metric-title">Registered Profiles</div>
+                <div id="stat-users" class="metric-value">...</div>
+            </div>
+            <div class="metric-card blue">
+                <div class="metric-title">Active Workers</div>
+                <div id="stat-providers" class="metric-value">...</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-title">Telemetry Stream</div>
+                <div id="stat-messages" class="metric-value">...</div>
+            </div>
+            <div class="metric-card blue">
+                <div class="metric-title">Budget Circulated</div>
+                <div id="stat-credits" class="metric-value">...</div>
+            </div>
+        </div>
+
+        <div class="layout-grid">
+            <!-- Left Side: Flows & Campaigns -->
+            <div>
+                <!-- SECTION 9: Skill Flow Taxonomy Manager -->
+                <div class="admin-section">
+                    <h3>
+                        <span>Skill Flow Taxonomy</span>
+                        <button class="btn-action" onclick="openSkillFlowModal()">+ Add New Flow</button>
+                    </h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Skill Name</th>
+                                    <th>Post-Match Action</th>
+                                    <th>Payment Model</th>
+                                    <th>Fulfillment</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="skill-flows-tbody">
+                                <tr><td colspan="5">Loading skill flows...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECTION 5: Active Sponsored Campaigns -->
+                <div class="admin-section">
+                    <h3>
+                        <span>Active Sponsored Campaigns</span>
+                        <button class="btn-action btn-secondary" onclick="openAdModal()">+ Launch Campaign</button>
+                    </h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Keyword Match</th>
+                                    <th>Budget (Credits)</th>
+                                    <th>Spent (Credits)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ads-tbody">
+                                <tr><td colspan="5">Loading active campaigns...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Unified Content Management System (CMS) -->
+                <div class="admin-section">
+                    <h3>
+                        <span>Unified Content Management System (CMS)</span>
+                        <button class="btn-action" onclick="openCmsModal()">+ Create Page</button>
+                    </h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Slug</th>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Author</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cms-tbody">
+                                <tr><td colspan="5">Loading CMS content...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Real-Time Active Sessions & Analytics Trends -->
+            <div>
+                <!-- SECTION 9: Active Pulse Broadcasts -->
+                <div class="admin-section">
+                    <h3>Active Pulse Broadcasts</h3>
+                    <div id="pulse-sessions-list" style="font-size: 14px;">
+                        <p style="color: #7A7A7A;">No active broadcast sessions currently detected on map grid.</p>
+                    </div>
+                </div>
+
+                <!-- SECTION 8: Real-Time Analytics & Search Trends -->
+                <div class="admin-section">
+                    <h3>Intelligence Analytics</h3>
+                    <div id="analytics-section">
+                        <p style="font-size: 13px; color: #7A7A7A; margin-bottom: 16px;">Top contextual keyword hits parsed in raw conversational threads:</p>
+                        <div id="trends-bars">
+                            <!-- Bars loaded dynamically -->
+                            Loading analytical intelligence...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 8: Geographic Density Tracker -->
+                <div class="admin-section">
+                    <h3>Geographic Density Tracker</h3>
+                    <div id="density-bars">
+                        <!-- Density bars loaded dynamically -->
+                        Loading density analytics...
+                    </div>
+                </div>
+
+                <!-- SECTION 11: WhatsApp Free-Session Keep-Alive Performance -->
+                <div class="admin-section">
+                    <h3>WhatsApp Keep-Alive Analytics</h3>
+                    <p style="font-size: 13px; color: #7A7A7A; margin-bottom: 16px;">
+                        Performance of our free-session bypass strategy via FCM pushes and loophole webhook resets:
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div style="background: #F0F9FF; border: 1px solid #BAE6FD; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 11px; color: #0369A1; font-weight: 700; text-transform: uppercase;">FCM Pushes Sent</div>
+                            <div id="keepalive-sent" style="font-size: 24px; font-weight: 700; color: #0369A1; font-family: 'Space Grotesk', sans-serif;">0</div>
+                        </div>
+                        <div style="background: #ECFDF5; border: 1px solid #A7F3D0; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 11px; color: #047857; font-weight: 700; text-transform: uppercase;">Session Resets</div>
+                            <div id="keepalive-opened" style="font-size: 24px; font-weight: 700; color: #047857; font-family: 'Space Grotesk', sans-serif;">0</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div style="background: #FFFBEB; border: 1px solid #FDE68A; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 11px; color: #B45309; font-weight: 700; text-transform: uppercase;">Open / Reset Rate</div>
+                            <div id="keepalive-rate" style="font-size: 24px; font-weight: 700; color: #B45309; font-family: 'Space Grotesk', sans-serif;">0%</div>
+                        </div>
+                        <div style="background: #FFF5F5; border: 1px solid #FECACA; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 11px; color: #B91C1C; font-weight: 700; text-transform: uppercase;">Total Savings (₦)</div>
+                            <div id="keepalive-savings" style="font-size: 24px; font-weight: 700; color: #B91C1C; font-family: 'Space Grotesk', sans-serif;">₦0.00</div>
+                        </div>
+                    </div>
+
+                    <div style="background: #FAF5FF; border: 1px solid #E9D5FF; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
+                        <div style="font-size: 11px; color: #6B21A8; font-weight: 700; text-transform: uppercase;">Average Session Duration</div>
+                        <div id="keepalive-duration" style="font-size: 20px; font-weight: 700; color: #6B21A8; font-family: 'Space Grotesk', sans-serif;">24.0 hours</div>
+                    </div>
+
+                    <h4 style="margin-top: 16px; margin-bottom: 8px; font-size: 13px;">Recent Keep-Alive Stream</h4>
+                    <div id="keepalive-stream" style="font-size: 12px; max-height: 200px; overflow-y: auto; border: 1px solid #E5E2DE; border-radius: 6px; padding: 8px; background: #FFF;">
+                        Loading stream...
+                    </div>
+                </div>
+
+                <!-- Dispute Resolution Board -->
+                <div class="admin-section">
+                    <h3>Dispute Resolution Board</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Order</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="disputes-tbody">
+                                <tr><td colspan="6">Loading active disputes...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Customer Support Tickets -->
+                <div class="admin-section">
+                    <h3>Customer Support Tickets</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Message</th>
+                                    <th>Status</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tickets-tbody">
+                                <tr><td colspan="5">Loading support tickets...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Skill Flow Create/Update -->
+    <div id="skill-flow-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="flow-modal-title">Create New Skill Flow</h3>
+            <form id="skill-flow-form" onsubmit="saveSkillFlow(event)">
+                <div class="form-group">
+                    <label for="flow-skill">Skill Tag Name</label>
+                    <input type="text" id="flow-skill" required placeholder="e.g. laundry_service">
+                </div>
+                <div class="form-group">
+                    <label for="flow-questions">Question Set (JSON Array)</label>
+                    <textarea id="flow-questions" rows="3" required placeholder='["Do you have washing machine?", "Where are you located?"]'></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="flow-action">Post-Match Action</label>
+                    <select id="flow-action">
+                        <option value="direct_phone_bridge">Direct Phone Bridge (Privacy Masked)</option>
+                        <option value="group_savings_escrow">Hold in Group Savings Escrow</option>
+                        <option value="principal_arbitrage">Principal Arbitrage Instant Purchase</option>
+                        <option value="logistics_dispatch">Automatic Rider Logistics Dispatch</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="flow-payment">Payment Model</label>
+                    <select id="flow-payment">
+                        <option value="subscription_plus">Subscription Plus Plus / Leads</option>
+                        <option value="lead_charge_minor">Lead Charge (Deducted on Accept)</option>
+                        <option value="escrow_release">Full Escrow Release on Delivery</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="flow-instructions">Fulfillment & Operations Instructions</label>
+                    <textarea id="flow-instructions" rows="2" placeholder="Step-by-step instructions for automated matching engine dispatch..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-action btn-secondary" onclick="closeSkillFlowModal()">Cancel</button>
+                    <button type="submit" class="btn-action">Save Flow</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Ad Campaign Launch -->
+    <div id="ad-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Launch New Sponsored Campaign</h3>
+            <form id="ad-form" onsubmit="saveAdCampaign(event)">
+                <div class="form-group">
+                    <label for="ad-title">Campaign / Product Title</label>
+                    <input type="text" id="ad-title" required placeholder="e.g. Mama Gold Rice (50kg)">
+                </div>
+                <div class="form-group">
+                    <label for="ad-desc">Ad Body Description</label>
+                    <textarea id="ad-desc" rows="2" required placeholder="Get premium Nigerian rice delivered straight to your home."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="ad-image">Image URL</label>
+                    <input type="text" id="ad-image" placeholder="https://images.unsplash.com/photo-...">
+                </div>
+                <div class="form-group">
+                    <label for="ad-keyword">Target Context Keyword Match</label>
+                    <input type="text" id="ad-keyword" required placeholder="e.g. rice">
+                </div>
+                <div class="form-group">
+                    <label for="ad-budget">Credits Budget</label>
+                    <input type="number" id="ad-budget" required value="100">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-action btn-secondary" onclick="closeAdModal()">Cancel</button>
+                    <button type="submit" class="btn-action">Launch Campaign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for CMS Page Create/Update -->
+    <div id="cms-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="cms-modal-title" style="color:var(--terracotta); font-family:'Space Grotesk',sans-serif; margin-bottom:16px;">Create CMS Page</h3>
+            <form id="cms-form" onsubmit="saveCmsPage(event)">
+                <div class="form-group">
+                    <label for="cms-slug">Slug (Unique Name / ID)</label>
+                    <input type="text" id="cms-slug" required placeholder="e.g. refund-policy">
+                </div>
+                <div class="form-group">
+                    <label for="cms-title">Title</label>
+                    <input type="text" id="cms-title" required placeholder="e.g. Refund Policy & Guidelines">
+                </div>
+                <div class="form-group">
+                    <label for="cms-type">Content Type</label>
+                    <select id="cms-type" style="width:100%; padding:8px; border:1px solid #C4B6A6; border-radius:4px;">
+                        <option value="blog">Blog Post</option>
+                        <option value="help">Help Article</option>
+                        <option value="legal">Legal & Terms</option>
+                        <option value="page">Custom Page</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cms-author">Author</label>
+                    <input type="text" id="cms-author" placeholder="Admin">
+                </div>
+                <div class="form-group">
+                    <label for="cms-body">Body Content</label>
+                    <textarea id="cms-body" rows="6" required placeholder="Type the page content here..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-action btn-secondary" onclick="closeCmsModal()">Cancel</button>
+                    <button type="submit" class="btn-action">Save Content</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Support Ticket Reply -->
+    <div id="ticket-reply-modal" class="modal-overlay">
+        <div class="modal-content" style="border-top: 4px solid var(--electric-blue);">
+            <h3 style="color:var(--electric-blue); font-family:'Space Grotesk',sans-serif; margin-bottom:16px;">Reply to Support Ticket</h3>
+            <form id="ticket-reply-form" onsubmit="submitTicketReply(event)">
+                <input type="hidden" id="reply-ticket-id">
+                <div class="form-group">
+                    <label>User's Message</label>
+                    <div id="reply-ticket-message" style="background: #FFF8F0; padding: 10px; border-radius: 4px; font-size:13px; color: #555; max-height:100px; overflow-y:auto; border:1px solid #EADCC9; margin-top:4px;">...</div>
+                </div>
+                <div class="form-group">
+                    <label for="reply-content">Agent Reply Content</label>
+                    <textarea id="reply-content" rows="4" required placeholder="Type your response to send directly to the user's chat..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-action btn-secondary" onclick="closeTicketReplyModal()">Cancel</button>
+                    <button type="submit" class="btn-action" style="background-color: var(--electric-blue); border-color:var(--electric-blue);">Send Reply & Resolve</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Load initial console data
+        function loadConsoleData() {
+            // Load stats
+            fetch('/api/admin/stats').then(res=>res.json()).then(data => {
+                document.getElementById('stat-users').innerText = data.users;
+                document.getElementById('stat-providers').innerText = data.providers;
+                document.getElementById('stat-messages').innerText = data.messages;
+                document.getElementById('stat-credits').innerText = data.credits;
+            }).catch(e => console.error('Stats error:', e));
+
+            // Load skill flows
+            fetch('/api/admin/skill-flows').then(res=>res.json()).then(flows => {
+                const tbody = document.getElementById('skill-flows-tbody');
+                tbody.innerHTML = flows.map(f => `
+                    <tr>
+                        <td><strong>${f.skill}</strong></td>
+                        <td><span class="badge badge-active">${f.post_match_action}</span></td>
+                        <td>${f.payment_model}</td>
+                        <td style="max-width: 250px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.fulfillment_instructions || 'N/A'}</td>
+                        <td style="text-align: right;">
+                            <button class="btn-action" style="padding: 4px 8px; font-size:12px; background-color:#1E88E5;" onclick="editSkillFlow('${escapeHtml(JSON.stringify(f))}')">Edit</button>
+                            <button class="btn-action btn-secondary" style="padding: 4px 8px; font-size:12px;" onclick="deleteSkillFlow('${f.skill}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('') || `<tr><td colspan="5" style="text-align:center;">No custom skill flows defined. Click add flow above!</td></tr>`;
+            }).catch(e => console.error('Skill flows load error:', e));
+
+            // Load ad campaigns
+            fetch('/api/ads').then(res=>res.json()).then(ads => {
+                const tbody = document.getElementById('ads-tbody');
+                tbody.innerHTML = ads.map(ad => `
+                    <tr>
+                        <td><strong>${ad.title}</strong></td>
+                        <td><span class="badge badge-active">${ad.targetKeyword}</span></td>
+                        <td>${ad.creditsBudget}</td>
+                        <td>${ad.creditsSpent}</td>
+                        <td><span class="badge ${ad.status === 'active' ? 'badge-active' : 'badge-spent'}">${ad.status}</span></td>
+                    </tr>
+                `).join('') || `<tr><td colspan="5" style="text-align:center;">No campaigns active.</td></tr>`;
+            }).catch(e => console.error('Ads load error:', e));
+
+            // Load active pulse sessions
+            fetch('/api/admin/pulse-sessions').then(res=>res.json()).then(sessions => {
+                const div = document.getElementById('pulse-sessions-list');
+                div.innerHTML = sessions.map(s => `
+                    <div style="background-color:#FFF8F0; border:1px dashed #EAE0D5; padding:12px; border-radius:6px; margin-bottom:10px;">
+                        <strong>${s.name}</strong> (${s.location})<br/>
+                        Broadcasting: <span style="color:#D97A5C; font-weight:600;">${s.skill}</span><br/>
+                        Coords: [${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}]<br/>
+                        <span style="font-size:11px; color:#7A7A7A;">Expires: ${s.expires_at}</span>
+                    </div>
+                `).join('') || `<p style="color:#7A7A7A; text-align:center; padding:16px;">No live broadcasts active on map grid.</p>`;
+            }).catch(e => console.error('Pulse sessions error:', e));
+
+            // Load real-time trends analytics
+            fetch('/api/admin/analytics/trends').then(res=>res.json()).then(data => {
+                // Trends
+                const trendsDiv = document.getElementById('trends-bars');
+                trendsDiv.innerHTML = data.trends.map(t => {
+                    const percent = Math.min(100, (t.count / 20) * 100);
+                    return `
+                        <div class="trend-bar-container">
+                            <div class="trend-label">
+                                <strong>${t.keyword}</strong>
+                                <span>${t.count} hits</span>
+                            </div>
+                            <div class="trend-bar-bg">
+                                <div class="trend-bar-fill" style="width: ${percent}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('') || `<p style="color:#7A7A7A; font-size:12px;">Waiting for conversational queries to aggregate trends...</p>`;
+
+                // Density
+                const densityDiv = document.getElementById('density-bars');
+                densityDiv.innerHTML = data.density.map(d => {
+                    const percent = Math.min(100, (d.providersCount / 10) * 100);
+                    return `
+                        <div class="trend-bar-container">
+                            <div class="trend-label">
+                                <strong>${d.region}</strong>
+                                <span>${d.providersCount} active profiles</span>
+                            </div>
+                            <div class="trend-bar-bg">
+                                <div class="trend-bar-fill blue" style="width: ${percent}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('') || `<p style="color:#7A7A7A; font-size:12px;">No regional profile data distributed.</p>`;
+            }).catch(e => console.error('Analytics trends error:', e));
+
+            // CMS, Disputes, and Support Tickets Loaders
+            loadCmsList();
+            loadDisputesList();
+            loadTicketsList();
+            loadKeepAliveAnalytics();
+        }
+
+        function loadKeepAliveAnalytics() {
+            fetch('/api/admin/keep-alive-analytics')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('keepalive-sent').innerText = data.sentCount || 0;
+                    document.getElementById('keepalive-opened').innerText = data.openedCount || 0;
+                    document.getElementById('keepalive-rate').innerText = (data.openRate || 0) + '%';
+                    document.getElementById('keepalive-savings').innerText = '₦' + (data.totalSavings || 0).toFixed(2);
+                    document.getElementById('keepalive-duration').innerText = (data.averageSessionDurationHours || 24.0) + ' hours';
+
+                    const streamDiv = document.getElementById('keepalive-stream');
+                    if (data.recentEvents && data.recentEvents.length > 0) {
+                        streamDiv.innerHTML = data.recentEvents.map(e => {
+                            let label = e.event_type;
+                            let color = '#333';
+                            if (e.event_type === 'session_start') { color = '#0369A1'; label = 'Session Started'; }
+                            else if (e.event_type === 'push_sent') { color = '#B45309'; label = 'FCM Push Sent'; }
+                            else if (e.event_type === 'push_opened') { color = '#047857'; label = 'Keep-Alive Reset'; }
+                            else if (e.event_type === 'session_expired') { color = '#B91C1C'; label = 'Session Expired'; }
+
+                            const d = e.timestamp ? new Date(e.timestamp) : new Date();
+                            const localTime = isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                            return `
+                                <div style="border-bottom: 1px solid #F0ECE7; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                                    <div>
+                                        <span style="font-weight: 700; color: ${color};">${label}</span><br/>
+                                        <span style="font-size: 10px; color: #7A7A7A;">User: ${e.phone}</span>
+                                    </div>
+                                    <span style="font-size: 10px; color: #999;">${localTime}</span>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        streamDiv.innerHTML = `<p style="color:#7A7A7A; text-align:center; padding:12px; margin:0;">No keep-alive events logged yet.</p>`;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading keep-alive analytics:', err);
+                });
+        }
+
+        // Skill Flow Actions
+        function openSkillFlowModal() {
+            document.getElementById('flow-modal-title').innerText = 'Create New Skill Flow';
+            document.getElementById('flow-skill').value = '';
+            document.getElementById('flow-skill').disabled = false;
+            document.getElementById('flow-questions').value = '[]';
+            document.getElementById('flow-action').value = 'direct_phone_bridge';
+            document.getElementById('flow-payment').value = 'subscription_plus';
+            document.getElementById('flow-instructions').value = '';
+            document.getElementById('skill-flow-modal').classList.add('active');
+        }
+
+        function closeSkillFlowModal() {
+            document.getElementById('skill-flow-modal').classList.remove('active');
+        }
+
+        function editSkillFlow(fEscaped) {
+            const f = JSON.parse(fEscaped);
+            document.getElementById('flow-modal-title').innerText = 'Update Skill Flow';
+            document.getElementById('flow-skill').value = f.skill;
+            document.getElementById('flow-skill').disabled = true;
+            document.getElementById('flow-questions').value = f.question_set;
+            document.getElementById('flow-action').value = f.post_match_action;
+            document.getElementById('flow-payment').value = f.payment_model;
+            document.getElementById('flow-instructions').value = f.fulfillment_instructions || '';
+            document.getElementById('skill-flow-modal').classList.add('active');
+        }
+
+        function saveSkillFlow(e) {
+            e.preventDefault();
+            const skill = document.getElementById('flow-skill').value;
+            const question_set = document.getElementById('flow-questions').value;
+            const post_match_action = document.getElementById('flow-action').value;
+            const payment_model = document.getElementById('flow-payment').value;
+            const fulfillment_instructions = document.getElementById('flow-instructions').value;
+
+            // Validate questions is valid JSON
+            try {
+                JSON.parse(question_set);
+            } catch (err) {
+                alert('Question Set must be a valid JSON array of strings!');
+                return;
+            }
+
+            fetch('/api/admin/skill-flows', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ skill, question_set, post_match_action, payment_model, fulfillment_instructions })
+            }).then(res => res.json()).then(data => {
+                closeSkillFlowModal();
+                loadConsoleData();
+            }).catch(err => {
+                console.error(err);
+                alert('Failed to save skill flow');
+            });
+        }
+
+        function deleteSkillFlow(skill) {
+            if (!confirm(`Are you sure you want to delete the skill flow for "${skill}"?`)) return;
+            fetch(`/api/admin/skill-flows/${skill}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(() => loadConsoleData())
+                .catch(err => console.error(err));
+        }
+
+        // Ad Campaign Actions
+        function openAdModal() {
+            document.getElementById('ad-title').value = '';
+            document.getElementById('ad-desc').value = '';
+            document.getElementById('ad-image').value = '';
+            document.getElementById('ad-keyword').value = '';
+            document.getElementById('ad-budget').value = '100';
+            document.getElementById('ad-modal').classList.add('active');
+        }
+
+        function closeAdModal() {
+            document.getElementById('ad-modal').classList.remove('active');
+        }
+
+        function saveAdCampaign(e) {
+            e.preventDefault();
+            const title = document.getElementById('ad-title').value;
+            const desc = document.getElementById('ad-desc').value;
+            const imageUrl = document.getElementById('ad-image').value;
+            const targetKeyword = document.getElementById('ad-keyword').value;
+            const creditsBudget = document.getElementById('ad-budget').value;
+
+            fetch('/api/ads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, desc, imageUrl, targetKeyword, creditsBudget })
+            }).then(res => res.json()).then(() => {
+                closeAdModal();
+                loadConsoleData();
+            }).catch(err => {
+                console.error(err);
+                alert('Failed to launch ad campaign');
+            });
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // CMS Actions & Loaders
+        function loadCmsList() {
+            fetch('/api/content').then(res => res.json()).then(data => {
+                const tbody = document.getElementById('cms-tbody');
+                tbody.innerHTML = data.map(page => `
+                    <tr>
+                        <td><strong>${page.slug}</strong></td>
+                        <td>${page.title}</td>
+                        <td><span class="badge badge-active" style="background:#1E88E5;">${page.type}</span></td>
+                        <td>${page.author || 'Admin'}</td>
+                        <td style="text-align: right;">
+                            <button class="btn-action" style="padding: 4px 8px; font-size:12px; background-color:#1E88E5;" onclick="editCmsPage('${escapeHtml(JSON.stringify(page))}')">Edit</button>
+                            <button class="btn-action btn-secondary" style="padding: 4px 8px; font-size:12px;" onclick="deleteCmsPage('${page.slug}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('') || `<tr><td colspan="5" style="text-align:center;">No CMS content found. Click create page to add!</td></tr>`;
+            }).catch(e => console.error('CMS load error:', e));
+        }
+
+        function openCmsModal() {
+            document.getElementById('cms-modal-title').innerText = 'Create CMS Page';
+            document.getElementById('cms-slug').value = '';
+            document.getElementById('cms-slug').disabled = false;
+            document.getElementById('cms-title').value = '';
+            document.getElementById('cms-type').value = 'help';
+            document.getElementById('cms-author').value = 'Admin';
+            document.getElementById('cms-body').value = '';
+            document.getElementById('cms-modal').classList.add('active');
+        }
+
+        function closeCmsModal() {
+            document.getElementById('cms-modal').classList.remove('active');
+        }
+
+        function editCmsPage(pEscaped) {
+            const page = JSON.parse(pEscaped);
+            document.getElementById('cms-modal-title').innerText = 'Edit CMS Page';
+            document.getElementById('cms-slug').value = page.slug;
+            document.getElementById('cms-slug').disabled = true;
+            document.getElementById('cms-title').value = page.title;
+            document.getElementById('cms-type').value = page.type;
+            document.getElementById('cms-author').value = page.author || 'Admin';
+            document.getElementById('cms-body').value = page.body;
+            document.getElementById('cms-modal').classList.add('active');
+        }
+
+        function deleteCmsPage(slug) {
+            if (!confirm(`Are you sure you want to delete the page "${slug}"?`)) return;
+            fetch(`/api/admin/content/${slug}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(() => loadCmsList())
+                .catch(err => console.error(err));
+        }
+
+        function saveCmsPage(e) {
+            e.preventDefault();
+            const slug = document.getElementById('cms-slug').value;
+            const title = document.getElementById('cms-title').value;
+            const type = document.getElementById('cms-type').value;
+            const author = document.getElementById('cms-author').value;
+            const body = document.getElementById('cms-body').value;
+
+            fetch('/api/admin/content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug, title, type, author, body })
+            }).then(res => res.json()).then(() => {
+                closeCmsModal();
+                loadCmsList();
+            }).catch(err => {
+                console.error(err);
+                alert('Failed to save CMS page');
+            });
+        }
+
+        // Disputes Actions & Loaders
+        function loadDisputesList() {
+            fetch('/api/admin/tickets?type=dispute').then(res => res.json()).then(data => {
+                const tbody = document.getElementById('disputes-tbody');
+                tbody.innerHTML = data.map(d => `
+                    <tr>
+                        <td><strong>#${d.id}</strong></td>
+                        <td>${d.phone}</td>
+                        <td>Order #${d.order_id || 'N/A'}</td>
+                        <td style="max-width:200px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${d.reason}</td>
+                        <td><span class="badge ${d.status === 'open' ? 'badge-active' : d.status === 'escalated' ? 'badge-spent' : 'badge-spent'}" style="background:${d.status === 'open' ? 'var(--terracotta)' : d.status === 'escalated' ? '#e0a800' : '#28a745'};">${d.status}</span></td>
+                        <td style="text-align: right;">
+                            ${d.status === 'open' || d.status === 'escalated' ? `
+                                <button class="btn-action" style="padding: 4px 8px; font-size:11px; background-color:#28a745;" onclick="resolveDisputeAction('${d.id}', 'refund')">Refund</button>
+                                <button class="btn-action" style="padding: 4px 8px; font-size:11px; background-color:#007bff;" onclick="resolveDisputeAction('${d.id}', 'release')">Release</button>
+                                <button class="btn-action btn-secondary" style="padding: 4px 8px; font-size:11px;" onclick="escalateDisputeAction('${d.id}')">Escalate</button>
+                            ` : `<span style="font-size:11px; color:#777;">Resolved</span>`}
+                        </td>
+                    </tr>
+                `).join('') || `<tr><td colspan="6" style="text-align:center;">No active disputes.</td></tr>`;
+            }).catch(e => console.error('Disputes load error:', e));
+        }
+
+        function resolveDisputeAction(id, action) {
+            if (!confirm(`Are you sure you want to resolve dispute #${id} with action "${action}"?`)) return;
+            fetch(`/api/admin/disputes/resolve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ disputeId: id, action })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    alert('Dispute resolved successfully!');
+                    loadDisputesList();
+                } else {
+                    alert(`Error: ${data.error || 'Failed to resolve dispute'}`);
+                }
+            }).catch(err => console.error(err));
+        }
+
+        function escalateDisputeAction(id) {
+            if (!confirm(`Are you sure you want to escalate dispute #${id} to legal status?`)) return;
+            fetch(`/api/admin/disputes/escalate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ disputeId: id })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    alert('Dispute escalated to external legal status!');
+                    loadDisputesList();
+                } else {
+                    alert(`Error: ${data.error || 'Failed to escalate dispute'}`);
+                }
+            }).catch(err => console.error(err));
+        }
+
+        // Tickets Actions & Loaders
+        function loadTicketsList() {
+            fetch('/api/admin/tickets?type=support').then(res => res.json()).then(data => {
+                const tbody = document.getElementById('tickets-tbody');
+                tbody.innerHTML = data.map(t => `
+                    <tr>
+                        <td><strong>#${t.id}</strong></td>
+                        <td>${t.phone}</td>
+                        <td style="max-width:250px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${t.reason}</td>
+                        <td><span class="badge ${t.status === 'open' ? 'badge-active' : 'badge-spent'}" style="background:${t.status === 'open' ? 'var(--electric-blue)' : '#28a745'};">${t.status}</span></td>
+                        <td style="text-align: right;">
+                            ${t.status === 'open' ? `
+                                <button class="btn-action" style="padding: 4px 8px; font-size:11px; background-color:var(--electric-blue);" onclick="openTicketReplyModal('${t.id}', '${escapeHtml(t.reason)}')">Reply & Resolve</button>
+                            ` : `<span style="font-size:11px; color:#777;">Resolved</span>`}
+                        </td>
+                    </tr>
+                `).join('') || `<tr><td colspan="5" style="text-align:center;">No support tickets active.</td></tr>`;
+            }).catch(e => console.error('Tickets load error:', e));
+        }
+
+        function openTicketReplyModal(id, reason) {
+            document.getElementById('reply-ticket-id').value = id;
+            document.getElementById('reply-ticket-message').innerText = reason;
+            document.getElementById('reply-content').value = '';
+            document.getElementById('ticket-reply-modal').classList.add('active');
+        }
+
+        function closeTicketReplyModal() {
+            document.getElementById('ticket-reply-modal').classList.remove('active');
+        }
+
+        function submitTicketReply(e) {
+            e.preventDefault();
+            const disputeId = document.getElementById('reply-ticket-id').value;
+            const replyMessage = document.getElementById('reply-content').value;
+
+            fetch('/api/admin/tickets/reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ disputeId, replyMessage })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    alert('Reply sent successfully and ticket marked as resolved!');
+                    closeTicketReplyModal();
+                    loadTicketsList();
+                } else {
+                    alert(`Error: ${data.error || 'Failed to send reply'}`);
+                }
+            }).catch(err => {
+                console.error(err);
+                alert('Error replying to ticket');
+            });
+        }
+
+        // Initialize Console on window load and set sidebar state
+        window.onload = function() {
+            // Apply persistent sidebar preference
+            const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const toggleIcon = document.getElementById('sidebar-toggle-icon');
+            const buttonText = document.getElementById('toggle-button-text');
+            
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                if (toggleIcon) {
+                    toggleIcon.innerHTML = `
+                        <polyline points="13 17 18 12 13 7"></polyline>
+                        <polyline points="6 17 11 12 6 7"></polyline>
+                    `;
+                }
+                if (buttonText) buttonText.innerText = '';
+            } else {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+                if (toggleIcon) {
+                    toggleIcon.innerHTML = `
+                        <polyline points="11 17 6 12 11 7"></polyline>
+                        <polyline points="18 17 13 12 18 7"></polyline>
+                    `;
+                }
+                if (buttonText) buttonText.innerText = 'Collapse Menu';
+            }
+
+            loadConsoleData();
+        };
+
+        // Auto-refresh console every 20 seconds
+        setInterval(loadConsoleData, 20000);
+    </script>
+    </div>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const toggleIcon = document.getElementById('sidebar-toggle-icon');
+            const buttonText = document.getElementById('toggle-button-text');
+
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebar_collapsed', isCollapsed);
+
+            if (isCollapsed) {
+                if (toggleIcon) {
+                    toggleIcon.innerHTML = `
+                        <polyline points="13 17 18 12 13 7"></polyline>
+                        <polyline points="6 17 11 12 6 7"></polyline>
+                    `;
+                }
+                if (buttonText) buttonText.innerText = '';
+            } else {
+                if (toggleIcon) {
+                    toggleIcon.innerHTML = `
+                        <polyline points="11 17 6 12 11 7"></polyline>
+                        <polyline points="18 17 13 12 18 7"></polyline>
+                    `;
+                }
+                if (buttonText) buttonText.innerText = 'Collapse Menu';
+            }
+        }
+    </script>
+</body>
+</html>

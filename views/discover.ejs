@@ -1,0 +1,107 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<main class="container discover-main">
+    <section class="advertise-hero">
+        <div class="category-badge-pill">
+            Discover &middot; Nearby Pulse
+        </div>
+        <h1 class="advertise-title">
+            What's happening around you
+        </h1>
+        <p class="advertise-desc">
+            Live map of nearby providers, AI agents, stationary shops, emergency services and active deals. Locations are fuzzed to ~100m for privacy.
+        </p>
+    </section>
+
+    <div id="layer-chips" class="layer-chips-bar">
+        <button class="layer-chip active" data-layer="mobile">🟢 Mobile providers</button>
+        <button class="layer-chip" data-layer="stationary">📍 Stationary providers</button>
+        <button class="layer-chip" data-layer="agents">🤖 AI agents</button>
+        <button class="layer-chip" data-layer="emergency">🔴 Emergency</button>
+        <button class="layer-chip" data-layer="deals">🔵 Active deals</button>
+        <button class="layer-chip" data-layer="events">🟣 Events</button>
+    </div>
+
+    <div class="discover-layout">
+        <aside class="discover-sidebar">
+            <h3 class="discover-sidebar-title">Happening now</h3>
+            <div id="discover-list" class="discover-list-box">
+                <div class="muted-info-text">Loading nearby activity…</div>
+            </div>
+        </aside>
+        <div id="discover-map" class="discover-map-box"></div>
+    </div>
+
+    <p class="discover-disclaimer">
+        🔒 Privacy: your location is fuzzed to ~100m and never shown publicly without consent.
+    </p>
+</main>
+
+<script>
+(function(){
+    const activeLayers = { mobile:true, stationary:true, agents:true, emergency:true, deals:true, events:true };
+    const map = L.map('discover-map').setView([6.5244, 3.3792], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+    const layerGroups = {};
+    document.querySelectorAll('.layer-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const layer = chip.dataset.layer;
+            activeLayers[layer] = !activeLayers[layer];
+            chip.classList.toggle('active', activeLayers[layer]);
+            if (layerGroups[layer]) {
+                if (activeLayers[layer]) layerGroups[layer].addTo(map);
+                else map.removeLayer(layerGroups[layer]);
+            }
+        });
+    });
+
+    const colorFor = { mobile:'#25D366', stationary:'#E67E22', agents:'#8E44AD', emergency:'#E74C3C', deals:'#2E86DE', events:'#D35400' };
+
+    async function loadDiscover() {
+        try {
+            const center = map.getCenter();
+            const layers = Object.keys(activeLayers).filter(k=>activeLayers[k]).join(',');
+            const res = await fetch(`/api/discover/map?lat=${center.lat}&lng=${center.lng}&radius=10000&layers=${layers}`);
+            const data = await res.json();
+            render(data);
+        } catch(e) {
+            document.getElementById('discover-list').innerHTML = '<div class="muted-info-text">Could not load map data.</div>';
+        }
+    }
+
+    function render(data) {
+        Object.values(layerGroups).forEach(g => map.removeLayer(g));
+        Object.keys(layerGroups).forEach(k => delete layerGroups[k]);
+        const list = document.getElementById('discover-list');
+        list.innerHTML = '';
+        const features = data && data.features ? data.features : [];
+        if (!features.length) list.innerHTML = '<div class="muted-info-text">No active activity in this area yet.</div>';
+
+        features.forEach(f => {
+            const { layer, name, detail, lat, lng } = f.properties || {};
+            const color = colorFor[layer] || '#888';
+            if (lat && lng && activeLayers[layer] !== false) {
+                const g = layerGroups[layer] || (layerGroups[layer] = L.layerGroup());
+                L.circleMarker([lat,lng], { radius: 8, color, fillColor: color, fillOpacity: 0.8 }).bindPopup(`<strong>${name}</strong><br/>${detail||''}`).addTo(g);
+                if (activeLayers[layer]) g.addTo(map);
+            }
+            if (activeLayers[layer] !== false) {
+                const item = document.createElement('div');
+                item.className = 'discover-list-item-node';
+                item.innerHTML = `<span class="dot-indicator" style="background-color: ${color};"></span><div><div class="item-title-bold">${name}</div><div class="item-detail-muted">${detail||''}</div></div>`;
+                list.appendChild(item);
+            }
+        });
+    }
+
+    map.on('moveend', loadDiscover);
+    setInterval(loadDiscover, 30000);
+    loadDiscover();
+})();
+</script>
+
+<%- include('_partials/footer') %>

@@ -1,0 +1,129 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+
+<main class="container programmatic-main">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb-bar">
+        <a href="/" class="breadcrumb-link">Home</a> /
+        <a href="/explore/<%= category.slug %>" class="breadcrumb-link"><%= category.name %></a> /
+        <span><%= city.name %></span>
+    </div>
+
+    <!-- Hero -->
+    <section class="programmatic-hero">
+        <div class="category-badge-pill">
+            <%= category.icon %> <%= category.name %> &middot; <%= city.name %>
+        </div>
+        <h1 class="programmatic-title">
+            <%= category.name %> in <%= city.name %>
+        </h1>
+        <p class="programmatic-desc">
+            <%= category.description %> Connect instantly with trusted <%= category.name.toLowerCase() %> providers in <%= city.name %> through Kurukoo's conversation-first platform.
+        </p>
+    </section>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-box">
+            <div class="stat-box-val"><%= stats.providerCount %></div>
+            <div class="stat-box-lbl">Verified Providers</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-box-val"><%= stats.avgRating %> &starf;</div>
+            <div class="stat-box-lbl">Average Rating</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-box-val"><%= stats.jobsCompleted %></div>
+            <div class="stat-box-lbl">Jobs Completed</div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="banner-cta-card">
+        <h2 class="banner-cta-h2">
+            Need a <%= category.name.toLowerCase() %> in <%= city.name %> right now?
+        </h2>
+        <p class="banner-cta-p">
+            Chat with Kurukoo on WhatsApp and get connected to a verified provider in minutes. No app downloads, no forms &mdash; just a conversation.
+        </p>
+        <div class="banner-cta-btns">
+            <a href="https://wa.me/2347000?text=Hi%2C%20I%20need%20a%20<%= encodeURIComponent(category.name.toLowerCase()) %>%20in%20<%= encodeURIComponent(city.name.toLowerCase()) %>"
+               target="_blank" rel="nofollow noopener"
+               class="btn-wa-green">
+                &rightarrow;&nbsp;Chat on WhatsApp
+            </a>
+            <a href="tel:*7000%23"
+               class="btn-ussd-translucent">
+                *7000#
+            </a>
+        </div>
+    </div>
+
+    <!-- How it works -->
+    <section class="section-mb-48">
+        <h2 class="section-h2">How it works</h2>
+        <div class="how-it-works-grid">
+            <div class="how-card">
+                <div class="how-num">1&middot;</div>
+                <h3 class="how-title">Send a message</h3>
+                <p class="how-desc">Tell Kurukoo what you need on WhatsApp or USSD. No app to download &mdash; just your phone.</p>
+            </div>
+            <div class="how-card">
+                <div class="how-num">2&middot;</div>
+                <h3 class="how-title">Get matched</h3>
+                <p class="how-desc">Kurukoo finds the nearest verified <%= category.name.toLowerCase() %> provider in <%= city.name %> and connects you instantly.</p>
+            </div>
+            <div class="how-card">
+                <div class="how-num">3&middot;</div>
+                <h3 class="how-title">Job done</h3>
+                <p class="how-desc">Pay safely through escrow, rate the provider, and earn Points for every completed job.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Related Categories -->
+    <% if (relatedCategories && relatedCategories.length > 0) { %>
+    <section class="section-mb-48">
+        <h2 class="section-h2">Related services in <%= city.name %></h2>
+        <div class="rel-cats-grid">
+            <% relatedCategories.forEach(function(rc) { %>
+            <a href="/<%= rc.slug %>/<%= city.slug %>" class="rel-cat-card">
+                <span><%= rc.icon || '' %> <%= rc.name %></span>
+                <span class="arrow-terracotta">&rarr;</span>
+            </a>
+            <% }) %>
+        </div>
+    </section>
+    <% } %>
+
+    <!-- Other Cities -->
+    <% if (otherCities && otherCities.length > 0) { %>
+    <section class="section-mb-48">
+        <h2 class="section-h2"><%= category.name %> in other cities</h2>
+        <div class="cities-pills">
+            <% otherCities.forEach(function(oc) { %>
+            <a href="/<%= category.slug %>/<%= oc.slug %>" class="city-pill-link">
+                <%= oc.name %>
+            </a>
+            <% }) %>
+        </div>
+    </section>
+    <% } %>
+
+    <!-- FAQ Section -->
+    <% if (faqs && faqs.length > 0) { %>
+    <section class="section-mb-48">
+        <h2 class="section-h2">Frequently asked questions</h2>
+        <div class="faq-box-wrapper">
+            <% faqs.forEach(function(f) { %>
+            <details class="faq-item-details">
+                <summary class="faq-item-summary"><%= f.question %></summary>
+                <p class="faq-item-answer"><%= f.answer %></p>
+            </details>
+            <% }) %>
+        </div>
+    </section>
+    <% } %>
+</main>
+
+<%- include('_partials/footer') %>

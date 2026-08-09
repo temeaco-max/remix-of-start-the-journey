@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEO Management — Kurukoo Admin</title>
+  <style>
+    :root { color-scheme: light; --bg:#f4f6f8; --card:#fff; --text:#1a1a1a; --muted:#6b7280; --border:#e5e7eb; --accent:#16a34a; --danger:#dc2626; --warning:#f59e0b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    header { background:#0f172a; color:#fff; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+    header a { color:#fff; text-decoration:none; opacity:.9; }
+    header a:hover { opacity:1; }
+    main { padding:24px; max-width:1200px; margin:0 auto; }
+    .grid { display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .card h3 { margin:0 0 8px; font-size:16px; }
+    .card p { margin:0; color:var(--muted); font-size:13px; }
+    .actions { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; }
+    button, .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:#fff; color:var(--text); cursor:pointer; font-size:13px; text-decoration:none; }
+    button.primary, .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:13px; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-weight:600; }
+    .status { display:inline-flex; padding:2px 8px; border-radius:999px; font-size:12px; background:#eef2ff; color:#1e3a8a; }
+    .muted { color:var(--muted); }
+    .section { margin-top:24px; }
+    .section-title { font-size:18px; font-weight:700; margin:0 0 12px; }
+    .toast { position:fixed; bottom:16px; right:16px; background:#0f172a; color:#fff; padding:10px 14px; border-radius:8px; font-size:13px; opacity:0; transition:opacity .2s; }
+    .toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <a href="/admin"><strong>Kurukoo Admin</strong></a>
+      <span style="opacity:.7"> / SEO Management</span>
+    </div>
+    <nav style="display:flex;gap:12px;">
+      <a href="/admin">Dashboard</a>
+      <a href="/ng">View Site</a>
+    </nav>
+  </header>
+  <main>
+    <h1 class="section-title">SEO Management Console</h1>
+    <p class="muted">Manage SEO metadata, redirects, keywords, backlinks, content calendar, FAQ schema, and 404 monitoring.</p>
+    <div class="section">
+      <div class="grid">
+        <div class="card">
+          <h3>Pages & Metadata</h3>
+          <p>Per-page titles, meta descriptions, canonical URLs, robots directives, and OG/Twitter metadata.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadPages()">Load Pages</button>
+            <button onclick="openPageEditor()">Add / Edit Page</button>
+          </div>
+          <div id="pages-table"></div>
+        </div>
+        <div class="card">
+          <h3>Redirects</h3>
+          <p>301/302 redirects, regex support, and redirect matching.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadRedirects()">Load Redirects</button>
+            <button onclick="openRedirectEditor()">Add Redirect</button>
+          </div>
+          <div id="redirects-table"></div>
+        </div>
+        <div class="card">
+          <h3>Keywords</h3>
+          <p>Tracked keywords by locale, search volume, difficulty, and tracking status.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadKeywords()">Load Keywords</button>
+            <button onclick="openKeywordEditor()">Add Keyword</button>
+          </div>
+          <div id="keywords-table"></div>
+        </div>
+        <div class="card">
+          <h3>Backlinks</h3>
+          <p>Inbound links and anchor text tracking.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadBacklinks()">Load Backlinks</button>
+            <button onclick="openBacklinkEditor()">Add Backlink</button>
+          </div>
+          <div id="backlinks-table"></div>
+        </div>
+        <div class="card">
+          <h3>Content Calendar</h3>
+          <p>Planned content items with target keywords, pillar URLs, and publish dates.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadContentCalendar()">Load Calendar</button>
+            <button onclick="openCalendarEditor()">Add Entry</button>
+          </div>
+          <div id="calendar-table"></div>
+        </div>
+        <div class="card">
+          <h3>Content Briefs</h3>
+          <p>Briefs tied to calendar items: outline, word count, focus terms, competitors.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadContentBriefs()">Load Briefs</button>
+            <button onclick="openBriefEditor()">Add Brief</button>
+            <button onclick="generateBriefAI()">AI Generate Brief</button>
+          </div>
+          <div id="briefs-table"></div>
+        </div>
+        <div class="card">
+          <h3>Internal Links</h3>
+          <p>Contextual links between Kurukoo pages for topical authority.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadInternalLinks()">Load Links</button>
+            <button onclick="openLinkEditor()">Add Link</button>
+          </div>
+          <div id="links-table"></div>
+        </div>
+        <div class="card">
+          <h3>FAQ Manager</h3>
+          <p>Per-page FAQ entries for FAQPage JSON-LD and on-page text.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadFaqs()">Load FAQs</button>
+            <button onclick="openFaqEditor()">Add FAQ</button>
+            <button onclick="generateFaqsAI()">AI Generate FAQs</button>
+          </div>
+          <div id="faqs-table"></div>
+        </div>
+        <div class="card">
+          <h3>Schema Templates</h3>
+          <p>Reusable JSON-LD schema templates by page type and intent.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadSchemas()">Load Schemas</button>
+            <button onclick="openSchemaEditor()">Add Template</button>
+          </div>
+          <div id="schemas-table"></div>
+        </div>
+        <div class="card">
+          <h3>404 Log</h3>
+          <p>Crawled 404 URLs, referrers, hits, and ignore controls.</p>
+          <div class="actions">
+            <button class="primary" onclick="load404Log()">Load 404s</button>
+            <button onclick="refresh404Log()">Refresh</button>
+          </div>
+          <div id="404-table"></div>
+        </div>
+        <div class="card">
+          <h3>SEO Audits</h3>
+          <p>30-point on-page SEO audit results with scores and failing checks.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadAudits()">Load Audits</button>
+            <button onclick="triggerRunAudit()">Run 30-Point Audit</button>
+          </div>
+          <div id="audits-table"></div>
+        </div>
+        <div class="card">
+          <h3>Rankings</h3>
+          <p>Tracked SERP positions by keyword, locale, and change over time.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadRankings()">Load Rankings</button>
+          </div>
+          <div id="rankings-table"></div>
+        </div>
+        <div class="card">
+          <h3>Orphan Pages</h3>
+          <p>Pages with no internal links pointing to them.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadOrphans()">Find Orphans</button>
+          </div>
+          <div id="orphans-table"></div>
+        </div>
+        <div class="card">
+          <h3>Image Metadata</h3>
+          <p>Auto-generated alt text, SEO filenames, titles, and captions.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadImageMeta()">Load Image Meta</button>
+            <button onclick="generateAltText()">Generate Missing Alt Text</button>
+          </div>
+          <div id="image-meta-table"></div>
+        </div>
+        <div class="card">
+          <h3>SEO Health</h3>
+          <p>Aggregate health score from the 30-point SEO audit checklist.</p>
+          <div class="actions">
+            <button class="primary" onclick="loadHealth()">Run Health Check</button>
+          </div>
+          <div id="health-panel"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script>
+    const API = '/api/admin/seo';
+    
+    // Check for slug in URL
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const slug = urlParams.get('slug');
+        if (slug) {
+            openPageEditor(slug);
+        }
+    };
+    
+    const toast = (msg) => {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2000);
+    };
+    const table = (headers, rows) => {
+      if (!rows.length) return '<p class="muted">No data.</p>';
+      const head = '<tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+      const body = rows.map(r => '<tr>' + r.map(c => '<td>' + (c ?? '') + '</td>').join('') + '</tr>').join('');
+      return '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+    };
+    async function loadPages() {
+      const res = await fetch(API + '/pages').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.url_path, r.title || '', r.meta_description || '', r.canonical || '', '<span class="status">' + (r.locale || 'all') + '</span>']);
+      document.getElementById('pages-table').innerHTML = table(['URL','Title','Description','Canonical','Locale'], rows);
+      toast('Pages loaded');
+    }
+    async function openPageEditor(defaultSlug = '') {
+      const url_path = prompt('Page URL path (e.g. /ng/about):', defaultSlug || '');
+      if (!url_path) return;
+      const title = prompt('Title:') || '';
+      const meta_description = prompt('Meta description:') || '';
+      const canonical = prompt('Canonical URL:') || url_path;
+      const locale = prompt('Locale (ng|gh|gb|all):') || 'all';
+      await fetch(API + '/pages', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url_path, title, meta_description, canonical, locale})});
+      loadPages(); toast('Page saved');
+    }
+    async function loadRedirects() {
+      const res = await fetch(API + '/redirects').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.from_pattern, r.to_url, String(r.status_code ?? ''), r.is_regex ? 'Yes' : 'No', '<button onclick="deleteRedirect(' + r.id + ')">Delete</button>']);
+      document.getElementById('redirects-table').innerHTML = table(['From','To','Code','Regex',''], rows);
+      toast('Redirects loaded');
+    }
+    async function openRedirectEditor() {
+      const from_pattern = prompt('From pattern (or regex):');
+      if (!from_pattern) return;
+      const to_url = prompt('To URL:');
+      if (!to_url) return;
+      const status_code = parseInt(prompt('Status code (301 or 302):') || '301');
+      const is_regex = confirm('Is this a regex pattern?');
+      await fetch(API + '/redirects', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({from_pattern, to_url, status_code, is_regex})});
+      loadRedirects(); toast('Redirect saved');
+    }
+    async function deleteRedirect(id) { await fetch(API + '/redirects/' + id, {method:'DELETE'}); loadRedirects(); toast('Redirect deleted'); }
+    async function loadKeywords() {
+      const res = await fetch(API + '/keywords').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.keyword, r.locale, r.country, String(r.search_volume ?? ''), String(r.difficulty ?? ''), r.tracked ? 'Yes' : 'No', '<button onclick="deleteKeyword(' + r.id + ')">Delete</button>']);
+      document.getElementById('keywords-table').innerHTML = table(['Keyword','Locale','Country','Volume','Difficulty','Tracked',''], rows);
+      toast('Keywords loaded');
+    }
+    async function openKeywordEditor() {
+      const keyword = prompt('Keyword:');
+      if (!keyword) return;
+      const locale = prompt('Locale (en|yo|ha|ig|pcm):') || 'en';
+      const country = prompt('Country (ng|gh|gb):') || 'ng';
+      const search_volume = parseInt(prompt('Search volume:') || '0');
+      const difficulty = parseInt(prompt('Difficulty (0-100):') || '0');
+      const tracked = confirm('Track this keyword?');
+      await fetch(API + '/keywords', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({keyword, locale, country, search_volume, difficulty, tracked})});
+      loadKeywords(); toast('Keyword saved');
+    }
+    async function deleteKeyword(id) { await fetch(API + '/keywords/' + id, {method:'DELETE'}); loadKeywords(); toast('Keyword deleted'); }
+    async function loadBacklinks() {
+      const res = await fetch(API + '/backlinks').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.source_url, r.target_url, r.anchor_text || '', '<button onclick="deleteBacklink(' + r.id + ')">Delete</button>']);
+      document.getElementById('backlinks-table').innerHTML = table(['Source','Target','Anchor',''], rows);
+      toast('Backlinks loaded');
+    }
+    async function openBacklinkEditor() {
+      const source_url = prompt('Source URL:');
+      if (!source_url) return;
+      const target_url = prompt('Target URL:');
+      if (!target_url) return;
+      const anchor_text = prompt('Anchor text:') || '';
+      await fetch(API + '/backlinks', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({source_url, target_url, anchor_text})});
+      loadBacklinks(); toast('Backlink saved');
+    }
+    async function deleteBacklink(id) { await fetch(API + '/backlinks/' + id, {method:'DELETE'}); loadBacklinks(); toast('Backlink deleted'); }
+    async function loadContentCalendar() {
+      const res = await fetch(API + '/content-calendar').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.target_keyword || '', r.cluster_title || '', r.planned_publish_date || '', r.status || '', r.assigned_to || '', '<button onclick="deleteCalendar(' + r.id + ')">Delete</button>']);
+      document.getElementById('calendar-table').innerHTML = table(['Keyword','Title','Date','Status','Assigned',''], rows);
+      toast('Content calendar loaded');
+    }
+    async function openCalendarEditor() {
+      const target_keyword = prompt('Target keyword:') || '';
+      const cluster_title = prompt('Cluster title:') || '';
+      const planned_publish_date = prompt('Planned publish date (YYYY-MM-DD):') || '';
+      const status = prompt('Status (idea|draft|review|published):') || 'idea';
+      const assigned_to = prompt('Assigned to:') || '';
+      await fetch(API + '/content-calendar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target_keyword, cluster_title, planned_publish_date, status, assigned_to})});
+      loadContentCalendar(); toast('Calendar entry saved');
+    }
+    async function deleteCalendar(id) { await fetch(API + '/content-calendar/' + id, {method:'DELETE'}); loadContentCalendar(); toast('Calendar entry deleted'); }
+    async function loadContentBriefs() {
+      const res = await fetch(API + '/content-briefs').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.target_keyword || '', r.search_intent || '', String(r.recommended_word_count ?? ''), r.outline || '', '<button onclick="deleteBrief(' + r.id + ')">Delete</button>']);
+      document.getElementById('briefs-table').innerHTML = table(['Keyword','Intent','Words','Outline',''], rows);
+      toast('Content briefs loaded');
+    }
+    async function openBriefEditor() {
+      const target_keyword = prompt('Target keyword:');
+      if (!target_keyword) return;
+      const search_intent = prompt('Search intent (informational|transactional|navigational):') || 'informational';
+      const recommended_word_count = parseInt(prompt('Recommended word count:') || '1500');
+      const outline = prompt('Outline:') || '';
+      await fetch(API + '/content-briefs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target_keyword, search_intent, recommended_word_count, outline})});
+      loadContentBriefs(); toast('Brief saved');
+    }
+    async function deleteBrief(id) { await fetch(API + '/content-briefs/' + id, {method:'DELETE'}); loadContentBriefs(); toast('Brief deleted'); }
+    async function loadInternalLinks() {
+      const res = await fetch(API + '/internal-links').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.source_url, r.target_url, r.anchor_text || '', r.link_type || '', '<button onclick="deleteLink(' + r.id + ')">Delete</button>']);
+      document.getElementById('links-table').innerHTML = table(['Source','Target','Anchor','Type',''], rows);
+      toast('Internal links loaded');
+    }
+    async function openLinkEditor() {
+      const source_url = prompt('Source URL:');
+      if (!source_url) return;
+      const target_url = prompt('Target URL:');
+      if (!target_url) return;
+      const anchor_text = prompt('Anchor text:') || '';
+      const link_type = prompt('Link type (contextual|image|nofollow):') || 'contextual';
+      await fetch(API + '/internal-links', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({source_url, target_url, anchor_text, link_type})});
+      loadInternalLinks(); toast('Link saved');
+    }
+    async function deleteLink(id) { await fetch(API + '/internal-links/' + id, {method:'DELETE'}); loadInternalLinks(); toast('Link deleted'); }
+    async function loadFaqs() {
+      const res = await fetch(API + '/faqs').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.page_url_path, r.question || '', r.answer || '', String(r.display_order ?? ''), r.is_visible ? 'Visible' : 'Hidden', '<button onclick="deleteFaq(' + r.id + ')">Delete</button>']);
+      document.getElementById('faqs-table').innerHTML = table(['Page','Question','Answer','Order','Visible',''], rows);
+      toast('FAQs loaded');
+    }
+    async function openFaqEditor() {
+      const page_url_path = prompt('Page URL path:');
+      if (!page_url_path) return;
+      const question = prompt('Question:');
+      if (!question) return;
+      const answer = prompt('Answer:');
+      if (!answer) return;
+      const display_order = parseInt(prompt('Display order (0+):') || '0');
+      await fetch(API + '/faqs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({page_url_path, question, answer, display_order})});
+      loadFaqs(); toast('FAQ saved');
+    }
+    async function deleteFaq(id) { await fetch(API + '/faqs/' + id, {method:'DELETE'}); loadFaqs(); toast('FAQ deleted'); }
+    async function loadSchemas() {
+      const res = await fetch(API + '/schemas').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.id, r.name, r.type, r.applies_to || '', '<button onclick="deleteSchema(\'' + r.id + '\')">Delete</button>']);
+      document.getElementById('schemas-table').innerHTML = table(['ID','Name','Type','Applies To',''], rows);
+      toast('Schema templates loaded');
+    }
+    async function openSchemaEditor() {
+      const id = prompt('Schema ID:');
+      if (!id) return;
+      const name = prompt('Name:');
+      if (!name) return;
+      const type = prompt('Type (e.g. FAQPage, Article, Product):') || 'Article';
+      const template = prompt('JSON-LD template (or leave blank for empty {}):') || '{}';
+      const applies_to = prompt('Applies to (comma-separated URL paths or * for all):') || '*';
+      await fetch(API + '/schemas', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, name, type, template, applies_to})});
+      loadSchemas(); toast('Schema saved');
+    }
+    async function deleteSchema(id) { await fetch(API + '/schemas/' + encodeURIComponent(id), {method:'DELETE'}); loadSchemas(); toast('Schema deleted'); }
+    async function load404Log() {
+      const res = await fetch(API + '/404-log').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.url_path, r.referrer || '', String(r.hit_count ?? 1), r.status || 'active', '<button onclick="ignore404(' + r.id + ')">Ignore</button>']);
+      document.getElementById('404-table').innerHTML = table(['URL','Referrer','Hits','Status',''], rows);
+      toast('404 log loaded');
+    }
+    function refresh404Log() { load404Log(); toast('404 log refreshed'); }
+    async function ignore404(id) { await fetch(API + '/404-log/ignore/' + id, {method:'POST'}); load404Log(); toast('404 ignored'); }
+    async function loadAudits() {
+      const res = await fetch(API + '/audits').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.url_path || '', r.check_name || '', r.status || '', String(r.points ?? ''), r.detail || '', new Date(r.run_at || r.created_at || Date.now()).toLocaleString()]);
+      document.getElementById('audits-table').innerHTML = table(['URL','Check','Status','Points','Detail','Run At'], rows);
+      toast('Audits loaded');
+    }
+    async function loadRankings() {
+      const res = await fetch(API + '/rankings').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.keyword || '', r.url || '', String(r.position ?? ''), r.search_engine || '', new Date(r.checked_at || Date.now()).toLocaleDateString()]);
+      document.getElementById('rankings-table').innerHTML = table(['Keyword','URL','Position','Engine','Checked'], rows);
+      toast('Rankings loaded');
+    }
+    async function loadOrphans() {
+      const res = await fetch(API + '/orphans').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.url_path, String(r.internal_inlinks ?? 0)]);
+      document.getElementById('orphans-table').innerHTML = table(['URL','Inbound Internal Links'], rows);
+      toast('Orphan pages loaded');
+    }
+    async function loadImageMeta() {
+      const res = await fetch(API + '/image-meta').then(r => r.json()).catch(() => []);
+      const rows = res.map(r => [r.page_url_path || '', r.image_url || '', r.alt_text || '', r.seo_filename || '', r.seo_caption || '', '<button onclick="deleteImageMeta(' + r.id + ')">Delete</button>']);
+      document.getElementById('image-meta-table').innerHTML = table(['Page','Image','Alt','Filename','Caption',''], rows);
+      toast('Image metadata loaded');
+    }
+    async function generateAltText() {
+      const imagePath = prompt('Image path or URL:');
+      if (!imagePath) return;
+      const context = prompt('Context (optional):') || '';
+      const res = await fetch(API + '/image-meta/generate-alt', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({imagePath, context})}).then(r => r.json()).catch(() => ({}));
+      toast(res?.alt_text ? 'Generated: ' + res.alt_text.slice(0, 60) : 'Alt text generation failed');
+    }
+    async function deleteImageMeta(id) { await fetch(API + '/image-meta/' + id, {method:'DELETE'}); loadImageMeta(); toast('Image meta deleted'); }
+    async function loadHealth() {
+      const res = await fetch(API + '/health').then(r => r.json()).catch(() => null);
+      const panel = document.getElementById('health-panel');
+      if (!res) { panel.innerHTML = '<p class="muted">No health data.</p>'; return; }
+      panel.innerHTML = '<table><tr><th>Score</th><td>' + (res.score ?? '—') + '/100</td></tr><tr><th>Grade</th><td>' + (res.grade ?? '—') + '</td></tr><tr><th>Passed</th><td>' + String(res.passed ?? 0) + '/' + String(res.total ?? 0) + '</td></tr><tr><th>Updated</th><td>' + (res.updated_at || '—') + '</td></tr></table>';
+      toast('SEO health loaded');
+    }
+    async function generateFaqsAI() {
+      const urlPath = prompt('URL path (e.g. /ng/explore/plumbing):');
+      if (!urlPath) return;
+      const topicName = prompt('Topic name (e.g. Plumbing in Lagos):') || '';
+      toast('Generating FAQs via AI...');
+      const res = await fetch(API + '/generate-faqs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({urlPath, topicName})}).then(r => r.json()).catch(() => ({}));
+      if (res.success) { loadFaqs(); toast('4 FAQs generated & saved!'); } else { toast('Failed to generate FAQs'); }
+    }
+    async function generateBriefAI() {
+      const targetKeyword = prompt('Target Keyword (e.g. verified electrician in Lagos):');
+      if (!targetKeyword) return;
+      toast('Generating Content Brief via AI...');
+      const res = await fetch(API + '/generate-brief', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({targetKeyword})}).then(r => r.json()).catch(() => ({}));
+      if (res.success) { loadContentBriefs(); toast('Content Brief generated!'); } else { toast('Failed to generate brief'); }
+    }
+    async function triggerRunAudit() {
+      const urlPath = prompt('URL path to audit (e.g. /):') || '/';
+      toast('Running 30-Point SEO Audit...');
+      const res = await fetch(API + '/run-audit', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({urlPath})}).then(r => r.json()).catch(() => ({}));
+      if (res.score) { loadAudits(); loadHealth(); toast('Audit complete! Score: ' + res.score + '/100 (Grade: ' + (res.grade || 'A') + ')'); }
+    }
+  </script>
+</body>
+</html>

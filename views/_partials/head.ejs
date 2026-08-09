@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="<%= (typeof seo !== 'undefined' && seo.locale) ? seo.locale : (typeof country !== 'undefined' ? 'en-' + country.toUpperCase() : 'en') %>">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <%
+        const seoTitle = (typeof seo !== 'undefined' && seo.title) ? seo.title : 'Kurukoo — Wake up. Get going.';
+        const seoDesc = (typeof seo !== 'undefined' && seo.meta_description) ? seo.meta_description : 'One number. One conversation. It learns you a little more every day. Tell it what you need or what you can do — it connects you and surfaces useful opportunities nearby. Wake up. Get going.';
+        const seoCanonical = (typeof seo !== 'undefined' && seo.canonical) ? seo.canonical : 'https://kurukoo.com' + (typeof reqPath !== 'undefined' ? reqPath : '');
+        const seoRobots = (typeof seo !== 'undefined' && seo.robots_directive) ? seo.robots_directive : 'index,follow';
+        const seoOgTitle = (typeof seo !== 'undefined' && seo.og_title) ? seo.og_title : seoTitle;
+        const seoOgDesc = (typeof seo !== 'undefined' && seo.og_description) ? seo.og_description : seoDesc;
+        const seoOgImage = (typeof seo !== 'undefined' && seo.og_image) ? seo.og_image : '/assets/brand/og-image-ng.png';
+        const seoTwitterCard = (typeof seo !== 'undefined' && seo.twitter_card) ? seo.twitter_card : 'summary_large_image';
+        const seoLocale = (typeof seo !== 'undefined' && seo.locale) ? seo.locale : (typeof country !== 'undefined' ? 'en-' + country.toUpperCase() : 'en');
+        const seoSchemas = (typeof schemas !== 'undefined') ? schemas : [];
+        const seoFaqs = (typeof faqs !== 'undefined') ? faqs : [];
+    %>
+    <title><%= seoTitle %></title>
+    <meta name="description" content="<%= seoDesc %>">
+    <meta name="robots" content="<%= seoRobots %>">
+    <link rel="canonical" href="<%= seoCanonical %>">
+
+    <!-- hreflang / international targeting (§53.2.1) -->
+    <link rel="alternate" hreflang="en-NG" href="https://kurukoo.com/ng">
+    <link rel="alternate" hreflang="en-GH" href="https://kurukoo.com/gh">
+    <link rel="alternate" hreflang="en-GB" href="https://kurukoo.com/gb">
+    <link rel="alternate" hreflang="x-default" href="https://kurukoo.com/">
+
+    <!-- Open Graph (§53.2.2) -->
+    <meta property="og:title" content="<%= seoOgTitle %>">
+    <meta property="og:description" content="<%= seoOgDesc %>">
+    <meta property="og:image" content="<%= seoOgImage %>">
+    <meta property="og:url" content="<%= seoCanonical %>">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="<%= seoLocale %>">
+    <meta property="og:site_name" content="Kurukoo">
+
+    <!-- Twitter Card (§53.2.2) -->
+    <meta name="twitter:card" content="<%= seoTwitterCard %>">
+    <meta name="twitter:title" content="<%= seoOgTitle %>">
+    <meta name="twitter:description" content="<%= seoOgDesc %>">
+    <meta name="twitter:image" content="<%= seoOgImage %>">
+
+    <!-- Structured Data / JSON-LD (§53.2.3) -->
+    <% seoSchemas.forEach(function(s) { %>
+    <script type="application/ld+json"><%- JSON.stringify(s) %></script>
+    <% }); %>
+
+    <!-- FAQPage Schema (§53.2.2.1) -->
+    <% if (seoFaqs.length > 0) { %>
+    <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[<%- seoFaqs.map(function(f) { return JSON.stringify({"@type":"Question","name":f.question,"acceptedAnswer":{"@type":"Answer","text":f.answer}}); }).join(',') %>]}
+    </script>
+    <% } %>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css?v=1.1.3">
+    <link rel="icon" type="image/svg+xml" href="/assets/brand/favicon.svg">
+    <link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then((reg) => {
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    showUpdateToast();
+                                }
+                            });
+                        }
+                    });
+                }).catch(function() {});
+            });
+        }
+
+        function showUpdateToast() {
+            if (document.getElementById('sw-update-toast')) return;
+            const toast = document.createElement('div');
+            toast.id = 'sw-update-toast';
+            toast.className = 'pwa-update-toast';
+            toast.innerHTML = `
+                <span>A new version is available. Refresh to update.</span>
+                <button onclick="window.location.reload()" class="pwa-refresh-btn">Refresh</button>
+            `;
+            document.body.appendChild(toast);
+        }
+
+        // Stub to safely queue user interactions before kurukoo-chat.js loads
+        window.KurukooChat = window.KurukooChat || {
+            _queue: [],
+            _cardQueue: [],
+            runScenario: function(scenarioKey) {
+                if (this.initComplete) {
+                    this.realRunScenario ? this.realRunScenario(scenarioKey) : console.log('Already loaded but realRunScenario missing');
+                } else {
+                    this._queue.push(scenarioKey);
+                    console.log('KurukooChat: Scenario queued', scenarioKey);
+                }
+            },
+            handleCardClick: function(messageText) {
+                if (this.initComplete) {
+                    this.realHandleCardClick ? this.realHandleCardClick(messageText) : console.log('Already loaded but realHandleCardClick missing');
+                } else {
+                    this._cardQueue.push(messageText);
+                    console.log('KurukooChat: Card click queued', messageText);
+                }
+            }
+        };
+    </script>
+</head>
+<body>

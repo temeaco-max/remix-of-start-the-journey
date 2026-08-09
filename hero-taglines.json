@@ -1,0 +1,26 @@
+{
+  "global": [
+    { "text": "Wake up. Get going. Your everyday Sorted", "angle": "Ecosystem Core", "highlight": "Get going." },
+    { "text": "A modern utility platform for everyday hustle.", "angle": "Everyday Hustle", "highlight": "everyday hustle." },
+    { "text": "Get Anything done. Anytime, Anywhere", "angle": "Instant Action", "highlight": "Anything done." },
+    { "text": "Boost Your Sales. Kurukoo makes it happen", "angle": "Business Growth", "highlight": "Your Sales." },
+    { "text": "Multiple ways to earn. Its easy to start", "angle": "Earning Opportunities", "highlight": "ways to earn." },
+    { "text": "Do business differently with Ku Kurukoo", "angle": "Commerce", "highlight": "differently." },
+    { "text": "Local Emergencies, Sorted. Use our APP or USSD", "angle": "Emergency SOS", "highlight": "Sorted." },
+    { "text": "Order Anything, Anywhere. Only a few steps", "angle": "Deliveries & Orders", "highlight": "Anywhere." },
+    { "text": "Hustle Anytime, Anywhere. With Intelligence", "angle": "Freelance & Gigs", "highlight": "Hustle Anytime." },
+    { "text": "Your deliveries, Sorted. Food & Products", "angle": "Logistics", "highlight": "Sorted." },
+    { "text": "Say less, Do More. Kurukoo AI does the rest", "angle": "Conversational AI", "highlight": "Do More." },
+    { "text": "One number, Endless options. Don't be left out", "angle": "Unified Identity", "highlight": "Endless options." }
+  ],
+  "gb": [
+    { "text": "Your everyday, sorted. With Kukuroo AI", "angle": "Everyday Utility", "highlight": "sorted." },
+    { "text": "Wake up. Get going. Never miss a date", "angle": "Ecosystem Core", "highlight": "Get going." },
+    { "text": "Get Anything done. Anytime, Anywhere", "angle": "Instant Action", "highlight": "Anything done." },
+    { "text": "Multiple ways to earn. Its easy to start", "angle": "Earning Opportunities", "highlight": "ways to earn." },
+    { "text": "Do business differently, with Ku Kurukoo", "angle": "Commerce", "highlight": "differently." },
+    { "text": "Your deliveries, Sorted. Shop with Kurukoo", "angle": "Logistics", "highlight": "Sorted." },
+    { "text": "Say less, Do More. Convenience in hand", "angle": "Conversational AI", "highlight": "Do More." },
+    { "text": "One number, Endless options. Be Limitless", "angle": "Unified Identity", "highlight": "Endless options." }
+  ]
+}

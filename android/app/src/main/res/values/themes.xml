@@ -1,0 +1,22 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. African Modernism Palette -->
+    <style name="Theme.Kurukoo" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <!-- Primary brand color: Terracotta -->
+        <item name="colorPrimary">#D97A5C</item>
+        <item name="colorPrimaryVariant">#D97A5C</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <!-- Secondary brand color: Electric Blue -->
+        <item name="colorSecondary">#1E88E5</item>
+        <item name="colorSecondaryVariant">#1E88E5</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+
+    <style name="Theme.Kurukoo.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:statusBarColor">#FFF8F0</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

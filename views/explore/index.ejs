@@ -1,0 +1,102 @@
+<%- include('../_partials/head', { country, t, seo, schemas, faqs, reqPath }) %>
+<%- include('../_partials/nav', { country, t, shortcode }) %>
+
+    <main class="explore-container">
+        <!-- Hero Section -->
+        <section class="explore-header-section">
+            <div class="explore-badge">
+                Kurukoo Explore Hub
+            </div>
+            <h1 class="explore-h1">
+                What do you need today?
+            </h1>
+            <p class="explore-subtitle">
+                Browse 45+ everyday utility services, verified local providers, express delivery, and instant assistance. One private conversation or tap gets it sorted.
+            </p>
+
+            <!-- Search & Instant Intent Bar -->
+            <div class="explore-search-container">
+                <input type="text" id="explore-search" class="explore-search-input" placeholder="Search service (e.g. plumbing, rider, solar, tailoring)...">
+                <button onclick="filterCategories()" class="explore-search-btn">
+                    Search
+                </button>
+            </div>
+        </section>
+
+        <!-- Trending Strip -->
+        <section class="trending-section">
+            <h3 class="trending-h3">
+                🔥 Trending Services Today
+            </h3>
+            <div class="trending-scroll-row">
+                <% const trending = categories.slice(0, 6); %>
+                <% trending.forEach(cat => { %>
+                    <a href="/explore/<%= cat.slug %>" class="trending-tag">
+                        <span class="trending-tag-icon"><%= cat.icon %></span>
+                        <span><%= cat.name %></span>
+                    </a>
+                <% }) %>
+            </div>
+        </section>
+
+        <!-- Categories Responsive Grid (Every 6th slot replaced by Ad placement) -->
+        <section class="categories-section">
+            <h2 class="categories-h2">
+                All Categories (45+ Services)
+            </h2>
+            <div id="categories-grid" class="categories-grid">
+                <% categories.forEach((cat, index) => { %>
+                    <!-- Category Card -->
+                    <a href="/explore/<%= cat.slug %>" class="category-card explore-category-card" data-name="<%= cat.name.toLowerCase() %>">
+                        <div>
+                            <div class="explore-category-icon"><%= cat.icon %></div>
+                            <h3 class="explore-category-title"><%= cat.name %></h3>
+                            <p class="explore-category-desc"><%= cat.description.substring(0, 85) %>...</p>
+                        </div>
+                        <div class="explore-category-footer">
+                            <span><%= cat.providerCount %> providers</span>
+                            <span>★ <%= cat.avgRating %></span>
+                        </div>
+                    </a>
+
+                    <!-- Every 6th card insert Ad Placement -->
+                    <% if ((index + 1) % 6 === 0 && ads && ads.length > 0) { %>
+                        <% const adIndex = Math.floor(index / 6) % ads.length; %>
+                        <% const ad = ads[adIndex]; %>
+                        <% if (ad) { %>
+                            <div class="sponsored-ad-card">
+                                <div>
+                                    <span class="sponsored-badge">Sponsored Ad</span>
+                                    <h4 class="sponsored-title"><%= ad.title %></h4>
+                                    <p class="sponsored-desc"><%= ad.desc %></p>
+                                </div>
+                                <a href="https://wa.me/2347000" target="_blank" class="sponsored-btn">
+                                    Explore Offer →
+                                </a>
+                            </div>
+                        <% } %>
+                    <% } %>
+                <% }) %>
+            </div>
+        </section>
+    </main>
+
+    <%- include('../_partials/footer') %>
+
+    <script>
+        function filterCategories() {
+            const query = document.getElementById('explore-search').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.category-card');
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name');
+                if (!query || name.includes(query)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        document.getElementById('explore-search').addEventListener('input', filterCategories);
+    </script>
+</body>
+</html>

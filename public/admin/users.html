@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kurukoo User Management</title>
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+        :root {
+            --primary: #D97A5C;
+            --primary-hover: #C56548;
+            --neutral-dark: #111111;
+            --neutral-light: #F8F7F4;
+            --neutral-white: #FFFFFF;
+            --neutral-muted: #7A7A7A;
+            --border-color: #E5E2DE;
+            --success: #10B981;
+            --danger: #EF4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--neutral-light);
+            color: var(--neutral-dark);
+            font-family: var(--font-body);
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 260px;
+            background: #111111;
+            color: #F8F7F4;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 24px 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #2A2A2A;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.15);
+        }
+
+        .sidebar.collapsed {
+            width: 76px;
+            padding: 24px 8px;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+            margin-bottom: 28px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .sidebar-brand {
+            justify-content: center;
+            padding: 0;
+        }
+
+        .sidebar-brand-text {
+            font-family: 'Space Grotesk', sans-serif;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            transition: opacity 0.2s;
+        }
+
+        .sidebar.collapsed .sidebar-brand-text {
+            display: none;
+        }
+
+        .sidebar-menu-section {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #555555;
+            letter-spacing: 0.1em;
+            padding: 16px 12px 8px 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar.collapsed .sidebar-menu-section {
+            display: none;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            color: #a3a3a3;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .sidebar-item {
+            justify-content: center;
+            padding: 10px 0;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 6px auto;
+        }
+
+        .sidebar-item-label {
+            transition: opacity 0.2s;
+        }
+
+        .sidebar.collapsed .sidebar-item-label {
+            display: none;
+        }
+
+        .sidebar-item:hover {
+            background: #222222;
+            color: #FFFFFF;
+        }
+        
+        .sidebar-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .sidebar-item svg {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.8;
+        }
+
+        /* Main Content Container */
+        .main-content {
+            margin-left: 260px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 32px;
+        }
+
+        .main-content.expanded {
+            margin-left: 76px;
+        }
+
+        /* Header block */
+        .header-bar {
+            background-color: var(--neutral-white);
+            color: var(--neutral-dark);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 32px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .header-title h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--neutral-muted);
+            margin-top: 4px;
+        }
+
+        /* Console Panels */
+        .panel {
+            background: var(--neutral-white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            margin-bottom: 24px;
+        }
+
+        /* Filter Controls */
+        .filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .search-container {
+            position: relative;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-container svg {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--neutral-muted);
+            width: 18px;
+            height: 18px;
+            pointer-events: none;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px 14px 10px 42px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #FAFAFA;
+            color: var(--neutral-dark);
+            transition: all 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(217, 122, 92, 0.15);
+        }
+
+        .select-field {
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #FFFFFF;
+            color: var(--neutral-dark);
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .select-field:focus {
+            border-color: var(--primary);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        /* Custom Table Styling */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #FAFAFA;
+            color: var(--neutral-dark);
+            font-weight: 600;
+            padding: 14px 16px;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: #333333;
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background-color: #FAF9F6;
+        }
+
+        tr.selected {
+            background-color: #FFF3EF;
+        }
+
+        /* Checkboxes */
+        .checkbox-cell {
+            width: 48px;
+            text-align: center;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .badge-premium {
+            background-color: #FDF2F8;
+            color: #DB2777;
+        }
+
+        .badge-base {
+            background-color: #F3F4F6;
+            color: #4B5563;
+        }
+
+        .badge-enterprise {
+            background-color: #EEF2F6;
+            color: #2563EB;
+        }
+
+        .badge-contributor {
+            background-color: #F5F3FF;
+            color: #7C3AED;
+        }
+
+        .badge-success {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-muted {
+            background-color: #F3F4F6;
+            color: #6B7280;
+        }
+
+        /* Pagination Controls */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            gap: 16px;
+        }
+
+        .pagination-info {
+            font-size: 13px;
+            color: var(--neutral-muted);
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            color: var(--neutral-dark);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            color: white;
+            border-color: var(--primary-hover);
+        }
+
+        .page-num {
+            min-width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .page-num:hover:not(.active) {
+            background-color: #F3F4F6;
+        }
+
+        .page-num.active {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 700;
+        }
+
+        /* Bulk Action Toast / Bar */
+        .bulk-action-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(150px);
+            background: var(--neutral-dark);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 200;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 90%;
+            width: auto;
+        }
+
+        .bulk-action-bar.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .selected-count-badge {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .bulk-action-selects {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bulk-select {
+            background: #2A2A2A;
+            border: 1px solid #444444;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .bulk-select:focus {
+            border-color: var(--primary);
+        }
+
+        .bulk-input {
+            background: #2A2A2A;
+            border: 1px solid #444444;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            width: 100px;
+        }
+
+        /* Toast Notifications */
+        .toast-notification {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: #1F2937;
+            color: white;
+            padding: 14px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 13.5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 300;
+            transform: translateY(-100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <svg style="width:24px; height:24px; color:#D97A5C;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+            <span class="sidebar-brand-text">Kurukoo Admin</span>
+        </div>
+        
+        <div style="flex-grow: 1; overflow-y: auto; padding-bottom: 20px;">
+            <div class="sidebar-menu-section">Core Modules</div>
+            <a href="/admin/dashboard.html" class="sidebar-item" title="Dashboard">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="9"></rect>
+                    <rect x="14" y="3" width="7" height="5"></rect>
+                    <rect x="14" y="12" width="7" height="9"></rect>
+                    <rect x="3" y="16" width="7" height="5"></rect>
+                </svg>
+                <span class="sidebar-item-label">Dashboard</span>
+            </a>
+            <a href="/admin/analytics.html" class="sidebar-item" title="Analytics">
+                <svg viewBox="0 0 24 24">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span class="sidebar-item-label">Analytics</span>
+            </a>
+            <a href="/admin/users.html" class="sidebar-item active" title="Users">
+                <svg viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="sidebar-item-label">Users</span>
+            </a>
+            <a href="/admin/ai-agents.html" class="sidebar-item" title="AI Agents">
+                <svg viewBox="0 0 24 24">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="15" x2="23" y2="15"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="15" x2="4" y2="15"></line>
+                </svg>
+                <span class="sidebar-item-label">AI Agents</span>
+            </a>
+
+            <div class="sidebar-menu-section">Operations</div>
+            <a href="/admin/content.html" class="sidebar-item" title="Content CMS">
+                <svg viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span class="sidebar-item-label">Content CMS</span>
+            </a>
+            <a href="/admin/referrals.html" class="sidebar-item" title="Referral Engine">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                <span class="sidebar-item-label">Referrals</span>
+            </a>
+            <a href="/admin/partnerships.html" class="sidebar-item" title="Partnerships">
+                <svg viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="sidebar-item-label">Partnerships</span>
+            </a>
+            <a href="/admin/scam.html" class="sidebar-item" title="Scam Reports">
+                <svg viewBox="0 0 24 24">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="13" y2="17"></line>
+                </svg>
+                <span class="sidebar-item-label">Scam Reports</span>
+            </a>
+
+            <div class="sidebar-menu-section">Monetization</div>
+            <a href="/admin/pricing.html" class="sidebar-item" title="Pricing Plans">
+                <svg viewBox="0 0 24 24">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                <span class="sidebar-item-label">Pricing Plans</span>
+            </a>
+            <a href="/admin/commissions.html" class="sidebar-item" title="Commission Settings">
+                <svg viewBox="0 0 24 24">
+                    <line x1="19" y1="5" x2="5" y2="19"></line>
+                    <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                    <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                </svg>
+                <span class="sidebar-item-label">Commissions</span>
+            </a>
+            <a href="/admin/revenue.html" class="sidebar-item" title="Revenue & Escrow">
+                <svg viewBox="0 0 24 24">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span class="sidebar-item-label">Revenue & Escrow</span>
+            </a>
+
+            <div class="sidebar-menu-section">Growth & Strategy</div>
+            <a href="/admin/artists.html" class="sidebar-item" title="Artists Hub">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+                <span class="sidebar-item-label">Artists Hub</span>
+            </a>
+            <a href="/admin/social.html" class="sidebar-item" title="Social Scheduler">
+                <svg viewBox="0 0 24 24">
+                    <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                </svg>
+                <span class="sidebar-item-label">Social Scheduler</span>
+            </a>
+            <a href="/admin/future.html" class="sidebar-item" title="Future Roadmap">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span class="sidebar-item-label">Future Roadmap</span>
+            </a>
+            <a href="/admin/seo.html" class="sidebar-item" title="SEO Settings">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span class="sidebar-item-label">SEO Config</span>
+            </a>
+            <a href="/admin/celebrity.html" class="sidebar-item" title="Celebrity Demand">
+                <svg viewBox="0 0 24 24">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <span class="sidebar-item-label">Celebrity Demand</span>
+            </a>
+        </div>
+
+        <button onclick="toggleSidebar()" style="width:100%; background:#222; border:1px solid #333; color:#a3a3a3; padding:12px; cursor:pointer; border-radius:8px; display:flex; align-items:center; justify-content:center; gap:8px;" title="Collapse Menu">
+            <svg id="sidebar-toggle-icon" style="width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2;" viewBox="0 0 24 24">
+                <polyline points="11 17 6 12 11 7"></polyline>
+                <polyline points="18 17 13 12 18 7"></polyline>
+            </svg>
+            <span class="sidebar-item-label" id="toggle-button-text">Collapse Menu</span>
+        </button>
+    </div>
+
+    <div class="main-content" id="main-content">
+        <div class="header-bar">
+            <div class="header-title">
+                <h1>User Base Manager</h1>
+                <p>Support high-scale paginated data query, instant search by phone, and multi-user bulk action management.</p>
+            </div>
+            <div style="font-size: 13px; color: var(--neutral-muted); font-weight: 500;" id="last-sync-time">
+                Synced in real-time
+            </div>
+        </div>
+
+        <!-- Filter and Search controls panel -->
+        <div class="panel">
+            <div class="filters-row">
+                <div class="search-container">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="search-input" class="input-field" placeholder="Search by name, phone, or location..." oninput="triggerSearch()">
+                </div>
+
+                <div class="filter-group">
+                    <select id="filter-tier" class="select-field" onchange="triggerFilters()">
+                        <option value="">All Tiers</option>
+                        <option value="Base">Base Tier</option>
+                        <option value="Premium">Premium Tier</option>
+                        <option value="Enterprise">Enterprise Tier</option>
+                        <option value="Contributor">Contributor Tier</option>
+                    </select>
+
+                    <select id="filter-verified" class="select-field" onchange="triggerFilters()">
+                        <option value="">All Statuses</option>
+                        <option value="1">Verified Providers</option>
+                        <option value="0">Unverified Users</option>
+                    </select>
+
+                    <select id="limit-select" class="select-field" onchange="changeLimit(this.value)" style="width: 80px;">
+                        <option value="10">10 / pg</option>
+                        <option value="25">25 / pg</option>
+                        <option value="50">50 / pg</option>
+                        <option value="100">100 / pg</option>
+                    </select>
+
+                    <button class="btn" onclick="resetFilters()">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table responsive structure -->
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this.checked)">
+                            </th>
+                            <th>Phone / Identity</th>
+                            <th>Name</th>
+                            <th>Location / Country</th>
+                            <th>Sub Tier</th>
+                            <th>Wallet Bal.</th>
+                            <th>Points</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px; color: var(--neutral-muted);">
+                                Loading active profiles...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination block -->
+            <div class="pagination-container">
+                <div class="pagination-info" id="pagination-info-text">
+                    Showing 0 to 0 of 0 entries
+                </div>
+                <div class="pagination-buttons" id="pagination-buttons-container">
+                    <!-- Dynamic page buttons -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Persistent, interactive bulk action dock -->
+    <div class="bulk-action-bar" id="bulk-action-dock">
+        <div>
+            Selected: <span class="selected-count-badge" id="selected-count">0</span>
+        </div>
+        
+        <div class="bulk-action-selects">
+            <select class="bulk-select" id="bulk-action-dropdown" onchange="handleBulkActionChange(this.value)">
+                <option value="">Choose Bulk Action...</option>
+                <option value="subscription_tier">Update Tier</option>
+                <option value="verified_provider">Update Verification</option>
+                <option value="is_available">Update Availability</option>
+                <option value="add_points">Grant Points</option>
+                <option value="delete">Batch Delete Account</option>
+            </select>
+
+            <!-- Conditional values for actions -->
+            <select class="bulk-select" id="bulk-value-tier" style="display: none;">
+                <option value="Base">Base Tier</option>
+                <option value="Premium">Premium Tier</option>
+                <option value="Enterprise">Enterprise Tier</option>
+                <option value="Contributor">Contributor Tier</option>
+            </select>
+
+            <select class="bulk-select" id="bulk-value-boolean" style="display: none;">
+                <option value="1">Enable / Active</option>
+                <option value="0">Disable / Off</option>
+            </select>
+
+            <input type="number" class="bulk-input" id="bulk-value-points" placeholder="Points" style="display: none;" min="1" max="1000">
+
+            <button class="btn btn-primary" onclick="submitBulkActions()">
+                Apply to Batch
+            </button>
+            <button class="btn" style="background: none; border-color: #444; color: #a3a3a3;" onclick="clearSelection()">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification structure -->
+    <div class="toast-notification" id="toast-notify">
+        <span id="toast-text">Action executed successfully.</span>
+    </div>
+
+    <script>
+        // Global State variables
+        let currentPage = 1;
+        let currentLimit = 10;
+        let totalRecords = 0;
+        let totalPages = 1;
+        let searchQuery = '';
+        let tierFilter = '';
+        let verifiedFilter = '';
+        let selectedPhones = new Set();
+        let loadedUsers = [];
+        let searchTimeout = null;
+
+        // Toggle sidebar with localStorage memory support
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const toggleIcon = document.getElementById('sidebar-toggle-icon');
+            const buttonText = document.getElementById('toggle-button-text');
+
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebar_collapsed', isCollapsed);
+
+            updateSidebarUI(isCollapsed);
+        }
+
+        function updateSidebarUI(isCollapsed) {
+            const toggleIcon = document.getElementById('sidebar-toggle-icon');
+            const buttonText = document.getElementById('toggle-button-text');
+
+            if (isCollapsed) {
+                if (toggleIcon) {
+                    toggleIcon.innerHTML = `
+                        <polyline points="13 17 18 12 13 7"></polyline>
+                        <polyline points="6 17 11 12 6 7"></polyline>
+                    `;
+                }
+                if (buttonText) buttonText.innerText = '';
+            } else {
+                if (toggleIcon) {
+                    toggleIcon.innerHTML = `
+                        <polyline points="11 17 6 12 11 7"></polyline>
+                        <polyline points="18 17 13 12 18 7"></polyline>
+                    `;
+                }
+                if (buttonText) buttonText.innerText = 'Collapse Menu';
+            }
+        }
+
+        // Apply persistent sidebar preference on startup
+        const storedSidebarState = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (storedSidebarState) {
+            document.getElementById('sidebar').classList.add('collapsed');
+            document.getElementById('main-content').classList.add('expanded');
+            updateSidebarUI(true);
+        } else {
+            document.getElementById('sidebar').classList.remove('collapsed');
+            document.getElementById('main-content').classList.remove('expanded');
+            updateSidebarUI(false);
+        }
+
+        // Search trigger with 300ms debounce
+        function triggerSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchQuery = document.getElementById('search-input').value.trim();
+                currentPage = 1; // Reset to page 1 on new search
+                loadUsersData();
+            }, 300);
+        }
+
+        // Filter trigger
+        function triggerFilters() {
+            tierFilter = document.getElementById('filter-tier').value;
+            verifiedFilter = document.getElementById('filter-verified').value;
+            currentPage = 1; // Reset to page 1
+            loadUsersData();
+        }
+
+        // Change pagination items limit
+        function changeLimit(val) {
+            currentLimit = parseInt(val, 10);
+            currentPage = 1;
+            loadUsersData();
+        }
+
+        // Clear all filters
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('filter-tier').value = '';
+            document.getElementById('filter-verified').value = '';
+            searchQuery = '';
+            tierFilter = '';
+            verifiedFilter = '';
+            currentPage = 1;
+            loadUsersData();
+        }
+
+        // Fetch User list from our backend API
+        function loadUsersData() {
+            const url = `/api/admin/users?page=${currentPage}&limit=${currentLimit}&search=${encodeURIComponent(searchQuery)}&tier=${tierFilter}&verified=${verifiedFilter}`;
+            
+            const tbody = document.getElementById('users-tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--neutral-muted);">
+                        Fetching profiles...
+                    </td>
+                </tr>
+            `;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    loadedUsers = data.users || [];
+                    totalRecords = data.total || 0;
+                    totalPages = data.totalPages || 1;
+                    currentPage = data.page || 1;
+
+                    renderUsersList();
+                    updatePaginationUI();
+                })
+                .catch(err => {
+                    console.error('Error fetching users:', err);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px; color: var(--danger); font-weight: 500;">
+                                Error loading user records. Please try again.
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        // Render dynamic table rows
+        function renderUsersList() {
+            const tbody = document.getElementById('users-tbody');
+            
+            if (loadedUsers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--neutral-muted);">
+                            No registered users match your query parameters.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = loadedUsers.map(user => {
+                const isChecked = selectedPhones.has(user.phone);
+                
+                // Get subscription badge style
+                let tierBadgeClass = 'badge-base';
+                if (user.subscription_tier === 'Premium') tierBadgeClass = 'badge-premium';
+                else if (user.subscription_tier === 'Enterprise') tierBadgeClass = 'badge-enterprise';
+                else if (user.subscription_tier === 'Contributor') tierBadgeClass = 'badge-contributor';
+
+                // Status badges
+                const isVerified = user.verified_provider === 1;
+                const statusBadge = isVerified 
+                    ? '<span class="badge badge-success">Verified Provider</span>' 
+                    : '<span class="badge badge-muted">Client User</span>';
+
+                const displayWallet = '₦' + ((user.wallet_balance_minor || 0) / 100).toFixed(2);
+
+                return `
+                    <tr class="${isChecked ? 'selected' : ''}" data-phone="${user.phone}">
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="user-row-checkbox" data-phone="${user.phone}" ${isChecked ? 'checked' : ''} onchange="toggleRowCheckbox(this, '${user.phone}')">
+                        </td>
+                        <td style="font-weight: 700; font-family: 'Space Grotesk', sans-serif;">
+                            ${user.phone}
+                        </td>
+                        <td>
+                            ${user.name || 'Anonymous User'}
+                        </td>
+                        <td style="font-size: 13px; color: #4B5563;">
+                            ${user.location || 'Ibadan'}, ${user.country ? user.country.toUpperCase() : 'NG'}
+                        </td>
+                        <td>
+                            <span class="badge ${tierBadgeClass}">${user.subscription_tier || 'Base'}</span>
+                        </td>
+                        <td style="font-family: monospace; font-weight: 600;">
+                            ${displayWallet}
+                        </td>
+                        <td style="font-weight: 600; color: var(--neutral-dark);">
+                            ${user.points_balance || 0} pts
+                        </td>
+                        <td>
+                            ${statusBadge}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Synchronize the 'Select All' checkbox
+            syncSelectAllHeader();
+        }
+
+        // Toggle checkbox on a single row
+        function toggleRowCheckbox(checkbox, phone) {
+            const tr = checkbox.closest('tr');
+            if (checkbox.checked) {
+                selectedPhones.add(phone);
+                if (tr) tr.classList.add('selected');
+            } else {
+                selectedPhones.delete(phone);
+                if (tr) tr.classList.remove('selected');
+            }
+            syncSelectAllHeader();
+            updateBulkDockUI();
+        }
+
+        // Bulk action dropdown option toggles
+        function handleBulkActionChange(action) {
+            // Hide all conditional inputs
+            document.getElementById('bulk-value-tier').style.display = 'none';
+            document.getElementById('bulk-value-boolean').style.display = 'none';
+            document.getElementById('bulk-value-points').style.display = 'none';
+
+            if (action === 'subscription_tier') {
+                document.getElementById('bulk-value-tier').style.display = 'block';
+            } else if (action === 'verified_provider' || action === 'is_available') {
+                document.getElementById('bulk-value-boolean').style.display = 'block';
+            } else if (action === 'add_points') {
+                document.getElementById('bulk-value-points').style.display = 'block';
+            }
+        }
+
+        // Trigger or hide the Batch action dock
+        function updateBulkDockUI() {
+            const dock = document.getElementById('bulk-action-dock');
+            const counter = document.getElementById('selected-count');
+            
+            if (selectedPhones.size > 0) {
+                counter.innerText = selectedPhones.size;
+                dock.classList.add('visible');
+            } else {
+                dock.classList.remove('visible');
+            }
+        }
+
+        // Check/Uncheck all rows in currently visible list
+        function toggleSelectAll(isChecked) {
+            loadedUsers.forEach(user => {
+                const rowChk = document.querySelector(`.user-row-checkbox[data-phone="${user.phone}"]`);
+                const tr = document.querySelector(`tr[data-phone="${user.phone}"]`);
+                
+                if (isChecked) {
+                    selectedPhones.add(user.phone);
+                    if (rowChk) rowChk.checked = true;
+                    if (tr) tr.classList.add('selected');
+                } else {
+                    selectedPhones.delete(user.phone);
+                    if (rowChk) rowChk.checked = false;
+                    if (tr) tr.classList.remove('selected');
+                }
+            });
+            updateBulkDockUI();
+        }
+
+        // Synchronize header state based on rows
+        function syncSelectAllHeader() {
+            const allCheckbox = document.getElementById('select-all-checkbox');
+            if (!allCheckbox) return;
+
+            if (loadedUsers.length === 0) {
+                allCheckbox.checked = false;
+                return;
+            }
+
+            const allVisibleChecked = loadedUsers.every(user => selectedPhones.has(user.phone));
+            allCheckbox.checked = allVisibleChecked;
+        }
+
+        // Clear selection entirely
+        function clearSelection() {
+            selectedPhones.clear();
+            
+            // Uncheck visible boxes
+            document.querySelectorAll('.user-row-checkbox').forEach(chk => chk.checked = false);
+            document.querySelectorAll('tr.selected').forEach(tr => tr.classList.remove('selected'));
+            
+            const headerChk = document.getElementById('select-all-checkbox');
+            if (headerChk) headerChk.checked = false;
+
+            updateBulkDockUI();
+        }
+
+        // Process batch update to backend
+        function submitBulkActions() {
+            const action = document.getElementById('bulk-action-dropdown').value;
+            if (!action) {
+                showToast('Please select a valid bulk action!');
+                return;
+            }
+
+            // Confirm delete action
+            if (action === 'delete') {
+                const confirmed = confirm(`Are you sure you want to permanently delete these ${selectedPhones.size} accounts? This action is IRREVERSIBLE.`);
+                if (!confirmed) return;
+            }
+
+            // Determine custom value based on bulk action
+            let finalValue = null;
+            if (action === 'subscription_tier') {
+                finalValue = document.getElementById('bulk-value-tier').value;
+            } else if (action === 'verified_provider' || action === 'is_available') {
+                finalValue = document.getElementById('bulk-value-boolean').value;
+            } else if (action === 'add_points') {
+                finalValue = parseInt(document.getElementById('bulk-value-points').value, 10) || 0;
+                if (finalValue <= 0) {
+                    showToast('Please enter a valid points amount to grant!');
+                    return;
+                }
+            }
+
+            const payload = {
+                phones: Array.from(selectedPhones),
+                action: action,
+                value: finalValue
+            };
+
+            fetch('/api/admin/users/bulk-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Bulk settings applied successfully!');
+                    clearSelection();
+                    loadUsersData(); // Reload table records
+                } else {
+                    showToast(data.error || 'Failed to complete batch update.');
+                }
+            })
+            .catch(err => {
+                console.error('Error applying bulk action:', err);
+                showToast('Server connection error. Failed to apply changes.');
+            });
+        }
+
+        // Show a custom sliding toast alert
+        function showToast(message) {
+            const toast = document.getElementById('toast-notify');
+            const text = document.getElementById('toast-text');
+            
+            text.innerText = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // Render paginated page buttons and entries info
+        function updatePaginationUI() {
+            const infoText = document.getElementById('pagination-info-text');
+            const startRange = totalRecords === 0 ? 0 : (currentPage - 1) * currentLimit + 1;
+            const endRange = Math.min(currentPage * currentLimit, totalRecords);
+            
+            infoText.innerText = `Showing ${startRange} to ${endRange} of ${totalRecords} registered profiles`;
+
+            const container = document.getElementById('pagination-buttons-container');
+            container.innerHTML = '';
+
+            // Previous Button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'btn';
+            prevBtn.innerHTML = '← Previous';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadUsersData();
+                }
+            };
+            container.appendChild(prevBtn);
+
+            // Dynamic page number buttons
+            const rangeStart = Math.max(1, currentPage - 2);
+            const rangeEnd = Math.min(totalPages, currentPage + 2);
+
+            for (let i = rangeStart; i <= rangeEnd; i++) {
+                const pNum = document.createElement('div');
+                pNum.className = `page-num ${i === currentPage ? 'active' : ''}`;
+                pNum.innerText = i;
+                pNum.onclick = () => {
+                    if (i !== currentPage) {
+                        currentPage = i;
+                        loadUsersData();
+                    }
+                };
+                container.appendChild(pNum);
+            }
+
+            // Next Button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'btn';
+            nextBtn.innerHTML = 'Next →';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadUsersData();
+                }
+            };
+            container.appendChild(nextBtn);
+        }
+
+        // Start initialization sequence
+        window.onload = function() {
+            loadUsersData();
+            
+            // Format dynamic sync timestamp
+            document.getElementById('last-sync-time').innerText = 'Synced: ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+    </script>
+</body>
+</html>

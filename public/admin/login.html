@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Admin Login</title><link rel="stylesheet" href="/css/site.css"></head>
+<body style="display:flex;justify-content:center;align-items:center;height:100vh;">
+<div class="card" style="width:320px;">
+    <h2>Admin Login</h2>
+    <form id="login-form" style="margin-top:16px;">
+        <input type="text" id="username" placeholder="Username" style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ccc;border-radius:6px;">
+        <input type="password" id="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:16px;border:1px solid #ccc;border-radius:6px;">
+        <button type="submit" class="btn-primary" style="width:100%;">Login</button>
+    </form>
+</div>
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: document.getElementById('username').value, password: document.getElementById('password').value})
+    });
+    const data = await res.json();
+    if(data.success) {
+        localStorage.setItem('kurukoo_admin', data.token);
+        window.location.href = '/admin/dashboard.html';
+    } else { alert('Invalid credentials'); }
+});
+</script>
+</body>
+</html>

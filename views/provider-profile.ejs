@@ -1,0 +1,104 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+
+<main class="container provider-main">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb-bar">
+        <a href="/" class="breadcrumb-link">Home</a> /
+        <span>Provider</span>
+    </div>
+
+    <!-- Provider Header -->
+    <div class="provider-header">
+        <div class="provider-avatar">
+            <%= provider.initials %>
+        </div>
+        <div>
+            <h1 class="provider-h1">
+                <%= provider.name %>
+            </h1>
+            <div class="provider-meta-row">
+                <span>&#128205; Service area: <%= provider.location %></span>
+                <% if (provider.verified) { %><span>&#9989; Verified Provider</span><% } %>
+                <span>&starf; <%= provider.trustScore.toFixed(1) %> Trust Score</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skills -->
+    <section class="section-mb-40">
+        <h2 class="section-h2">Services offered</h2>
+        <div class="skills-grid">
+            <% provider.skills.forEach(function(skill) { %>
+            <div class="skill-card">
+                <div class="skill-name"><%= skill.skill %></div>
+                <div class="skill-meta">
+                    <span>&starf; <%= skill.rating.toFixed(1) %></span>
+                    <span>&#10003; <%= skill.jobsCompleted %> jobs</span>
+                    <% if (skill.hourlyRate > 0) { %><span>&#8358;<%= skill.hourlyRate %>/hr</span><% } %>
+                </div>
+            </div>
+            <% }) %>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <div class="banner-cta-card">
+        <h2 class="banner-cta-h2">
+            Connect with <%= provider.name %>
+        </h2>
+        <p class="banner-cta-p">
+            Chat with Kurukoo on WhatsApp to request a service from this provider. Your phone number stays private.
+        </p>
+        <a href="https://wa.me/2347000?text=Hi%2C%20I%20want%20to%20connect%20with%20<%= encodeURIComponent(provider.name) %>"
+           target="_blank" rel="nofollow noopener"
+           class="btn-wa-green">
+            &rightarrow;&nbsp;Connect via WhatsApp
+        </a>
+    </div>
+
+    <!-- Trust & Safety -->
+    <section class="section-mb-40">
+        <h2 class="section-h2">Trust &amp; safety</h2>
+        <div class="trust-safety-card">
+            <ul class="trust-list">
+                <li class="trust-item">
+                    <span class="check-green">&#10003;</span> All payments protected by Kurukoo escrow
+                </li>
+                <li class="trust-item">
+                    <span class="check-green">&#10003;</span> Rate the provider after every completed job
+                </li>
+                <li class="trust-item">
+                    <span class="check-green">&#10003;</span> Dispute resolution support available 24/7
+                </li>
+                <% if (provider.verified) { %>
+                <li class="trust-item">
+                    <span class="check-green">&#10003;</span> Identity verified by Kurukoo
+                </li>
+                <% } %>
+            </ul>
+        </div>
+    </section>
+
+    <!-- FAQ Section (§53.2.2 — visible, indexable FAQ accordion) -->
+    <% if (faqs && faqs.length > 0) { %>
+    <section class="section-mb-40">
+        <h2 class="section-h2">Frequently asked questions</h2>
+        <div>
+            <% faqs.forEach(function(f) { %>
+            <details class="faq-item-details">
+                <summary class="faq-item-summary"><%= f.question %></summary>
+                <p class="faq-item-answer"><%= f.answer %></p>
+            </details>
+            <% }) %>
+        </div>
+    </section>
+    <% } %>
+
+    <!-- Privacy Notice -->
+    <p class="privacy-notice-text">
+        &#128274; This profile is publicly visible because the provider has verified their account or explicitly opted in. Phone numbers are never shown publicly &mdash; all connections go through Kurukoo's privacy-protected chat.
+    </p>
+</main>
+
+<%- include('_partials/footer') %>

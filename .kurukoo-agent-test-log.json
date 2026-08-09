@@ -1,0 +1,589 @@
+{
+  "totalCompleted": 97,
+  "passed": 97,
+  "failedAndFixed": 0,
+  "scenarios": [
+    {
+      "prompt": "log in -> view_profile",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "sign in -> view_profile",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "sign up -> general_question",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "register -> general_question",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "I want to log in -> view_profile",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "balance -> view_balance",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "points -> view_balance",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "wallet -> view_balance",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "how much credit -> view_balance",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "check wallet -> view_balance",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "price check -> price_check",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "how much is rice -> price_check",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "cheapest price -> price_check",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "market price -> price_check",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "price check garri -> price_check",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "dispute -> support_triage",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "complain -> support_triage",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "scam -> support_triage",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "emergency -> support_triage",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "safety -> support_triage",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "bin day -> bin_day",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "mot reminder -> bin_day",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "council tax -> bin_day",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "energy tariff -> bin_day",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "lost pet -> bin_day",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "arbitrage -> trade_match",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "wholesale supplier -> trade_match",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "trade deal -> trade_match",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "find wholesale supplier -> trade_match",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "new arbitrage -> trade_match",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "hello -> general_question",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "hi -> general_question",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "are you there -> general_question",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "thank you -> general_question",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "what is my request -> general_question",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "ride -> driver",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "okada -> driver",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "keke -> driver",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "car -> driver",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "I need a ride -> driver",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "food -> caterer",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "hungry -> caterer",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "caterer -> caterer",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "rice -> caterer",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "I want food -> caterer",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "plumber -> artisan",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "electrician -> artisan",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "mechanic -> artisan",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "worker -> artisan",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "fix it -> artisan",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "pulse -> nearby_pulse_start",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "go live -> nearby_pulse_start",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "addPoints 100",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "addPoints 50",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "deductPoints 30 success",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "balance after deduct",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "deductPoints fails without grace",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "balance unaffected",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "deductPoints succeeds with grace",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "isGrace flag set",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "addCredits alias",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "deductCredits alias",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "balance final alias",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "seedDefaultAIAgents creates >=6",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "get price agent",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "price agent lga is Ikeja",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "triage agent active",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "reminder agent has bin_day",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "execute agent task success",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "execute agent task result format",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "execute agent task tokens > 0",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "execute paused agent fails",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "execute paused agent message",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "execute over quota fails",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "execute over quota message",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "over quota agent auto paused",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "find agent by skill mot_reminder",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "delegate to agent success",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "delegate to agent deducted 1 point",
+      "target": "pointsEngine",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "delegate fails low balance",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "delegate fails message",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "created agent exists",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "created agent temp 0.5",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "updated agent temp 0.9",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "clone agent name",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "delete agent",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "whatsapp empty body ignored",
+      "target": "whatsapp",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "whatsapp empty entry ignored",
+      "target": "whatsapp",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "whatsapp empty changes ignored",
+      "target": "whatsapp",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "whatsapp text success",
+      "target": "whatsapp",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "whatsapp button success",
+      "target": "whatsapp",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "execute invalid agent",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "delegate to unknown skill fails",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "delegate unknown message",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "find agent by compliance_filter",
+      "target": "aiAgentService",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "groq fallback general",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    },
+    {
+      "prompt": "groq fallback general 2",
+      "target": "intentRouter",
+      "status": "PASSED",
+      "summary": "No issue found"
+    }
+  ]
+}

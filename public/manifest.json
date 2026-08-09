@@ -1,0 +1,20 @@
+{
+  "name": "Kurukoo Platform",
+  "short_name": "Kurukoo",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "background_color": "#FFF8F0",
+  "theme_color": "#D97A5C",
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/assets/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kurukoo AI Agents Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+        body {
+            background-color: #FFF8F0;
+            color: #2E2E2E;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            color: #2E2E2E;
+            margin-top: 0;
+        }
+
+        .header-bar {
+            background-color: #2E2E2E;
+            color: #FFF8F0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid #D97A5C;
+        }
+
+        .header-bar .logo {
+            font-size: 20px;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-bar .logo span {
+            color: #D97A5C;
+        }
+
+        .header-bar nav a {
+            color: #FFF8F0;
+            text-decoration: none;
+            margin-left: 12px;
+            font-weight: 500;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .header-bar nav a:hover {
+            background-color: rgba(255, 248, 240, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+
+        .card {
+            background: #FFFFFF;
+            border: 1px solid #EAE0D5;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #EAE0D5;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #FAF4ED;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-active { background-color: #E8F5E9; color: #2E7D32; }
+        .badge-paused { background-color: #FFEBEE; color: #C62828; }
+
+        .btn {
+            background-color: #D97A5C;
+            color: #FFFFFF;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #C06143;
+        }
+
+        .btn-secondary {
+            background-color: #1E88E5;
+        }
+
+        .btn-secondary:hover {
+            background-color: #1565C0;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #EAE0D5;
+            border-radius: 6px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #FFF;
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header-bar">
+        <div class="logo">
+            🤖 Kurukoo <span>AI Agents</span> Center
+        </div>
+        <nav>
+            <a href="/admin/dashboard.html">Dashboard</a>
+            <a href="/admin/users.html">Users</a>
+            <a href="/admin/ai-agents.html" style="background: rgba(255,248,240,0.2);">AI Agents</a>
+            <a href="/admin/revenue.html">Revenue</a>
+            <a href="/admin/analytics.html">Analytics</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div>
+                <h2>First-Class AI Agents Management (§21a)</h2>
+                <p style="color: #666; margin: 0;">Configure, prompt-tune, quota-manage, and test AI Agents running on Kurukoo.</p>
+            </div>
+            <button class="btn" onclick="openCreateModal()">+ Create New AI Agent</button>
+        </div>
+
+        <!-- Intent Classification System Override Settings -->
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #D97A5C;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">🧠 Intent Classification Override Settings</h3>
+                <p style="color: #666; margin: 4px 0 0 0; font-size: 13px;">Toggle the routing engine between FastText (Default local keywords-matching) and Groq (LLM semantic classification).</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="routing-mode-label" style="font-weight: 600; font-size: 14px; color: #2E2E2E;">Loading...</span>
+                <button class="btn" id="toggle-routing-btn" onclick="toggleRoutingEngine()">Toggle Engine</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Active AI Agent Fleet</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID & Name</th>
+                        <th>Skills</th>
+                        <th>Status</th>
+                        <th>LGA</th>
+                        <th>Daily Token Usage</th>
+                        <th>Temp</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="agent-table-body">
+                    <tr><td colspan="7">Loading AI agents...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card" id="test-agent-card" style="display: none;">
+            <h3 id="test-agent-title">Test Agent Execution</h3>
+            <div class="form-group">
+                <label>Input Task Prompt:</label>
+                <input type="text" id="test-task-input" placeholder="e.g. Compare bag of rice prices in Surulere market...">
+            </div>
+            <button class="btn btn-secondary" onclick="runAgentTask()">Execute Task</button>
+
+            <div id="test-output-box" style="margin-top: 16px; padding: 16px; background: #FAF4ED; border: 1px solid #EAE0D5; border-radius: 6px; display: none;">
+                <h4>Execution Result:</h4>
+                <pre id="test-output-text" style="white-space: pre-wrap; margin: 0;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create / Edit Modal -->
+    <div class="modal" id="agentModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Create AI Agent</h3>
+            <form id="agentForm" onsubmit="saveAgent(event)">
+                <input type="hidden" id="edit-agent-id">
+                <div class="form-group">
+                    <label>Agent Avatar (Emoji):</label>
+                    <input type="text" id="agent-avatar" value="🤖">
+                </div>
+                <div class="form-group">
+                    <label>Agent ID (e.g. agent_custom_bot):</label>
+                    <input type="text" id="agent-id" required>
+                </div>
+                <div class="form-group">
+                    <label>Agent Name:</label>
+                    <input type="text" id="agent-name" required>
+                </div>
+                <div class="form-group">
+                    <label>System Prompt:</label>
+                    <textarea id="agent-prompt" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Skills (comma separated):</label>
+                    <input type="text" id="agent-skills" placeholder="price_check, market_intel">
+                </div>
+                <div class="form-group">
+                    <label>Tools (comma separated):</label>
+                    <input type="text" id="agent-tools" placeholder="catalog_scraper, fcm_notifier">
+                </div>
+                <div class="form-group">
+                    <label>Target LGA:</label>
+                    <input type="text" id="agent-lga" value="All">
+                </div>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select id="agent-status">
+                        <option value="active">Active</option>
+                        <option value="paused">Paused</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Daily Token Quota:</label>
+                    <input type="number" id="agent-quota" value="20000">
+                </div>
+                <div class="form-group">
+                    <label>Temperature (0.0 to 1.0):</label>
+                    <input type="number" step="0.1" id="agent-temp" value="0.2">
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn" style="background: #888;" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn">Save Agent</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentTestingAgentId = null;
+
+        async function loadAgents() {
+            const res = await fetch('/api/admin/ai-agents');
+            const agents = await res.json();
+            const tbody = document.getElementById('agent-table-body');
+            tbody.innerHTML = '';
+
+            if (agents.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No AI agents configured yet.</td></tr>';
+                return;
+            }
+
+            agents.forEach(agent => {
+                const tr = document.createElement('tr');
+                const badgeClass = agent.status === 'active' ? 'badge-active' : 'badge-paused';
+                const usage = `${agent.tokens_used_today || 0} / ${agent.token_quota_daily}`;
+
+                tr.innerHTML = `
+                    <td>
+                        <span style="font-size: 24px; margin-right: 8px;">${agent.avatar || '🤖'}</span>
+                        <strong>${agent.name}</strong><br>
+                        <small style="color:#666;">${agent.id}</small>
+                    </td>
+                    <td>${(agent.skills || []).join(', ')}</td>
+                    <td><span class="badge ${badgeClass}">${agent.status.toUpperCase()}</span></td>
+                    <td>${agent.lga || 'All'}</td>
+                    <td>${usage}</td>
+                    <td>${agent.temperature}</td>
+                    <td>
+                        <button class="btn btn-sm" onclick="togglePause('${agent.id}', '${agent.status}')">${agent.status === 'active' ? 'Pause' : 'Resume'}</button>
+                        <button class="btn btn-sm btn-secondary" onclick="openTestPanel('${agent.id}', '${agent.name}')">Test</button>
+                        <button class="btn btn-sm" onclick="editAgent('${agent.id}')">Edit</button>
+                        <button class="btn btn-sm" style="background: #333;" onclick="cloneAgentPrompt('${agent.id}', '${agent.name}')">Clone</button>
+                        <button class="btn btn-sm" style="background: #C62828;" onclick="deleteAgent('${agent.id}')">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function togglePause(id, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+            await fetch(`/api/admin/ai-agents/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            loadAgents();
+        }
+
+        async function deleteAgent(id) {
+            if (!confirm(`Are you sure you want to delete AI Agent ${id}?`)) return;
+            await fetch(`/api/admin/ai-agents/${id}`, { method: 'DELETE' });
+            loadAgents();
+        }
+
+        async function cloneAgentPrompt(id, name) {
+            const newId = prompt('Enter ID for cloned agent:', `${id}_copy`);
+            if (!newId) return;
+            const newName = prompt('Enter Name for cloned agent:', `${name} (Copy)`);
+            if (!newName) return;
+
+            await fetch(`/api/admin/ai-agents/${id}/clone`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newId, newName })
+            });
+            loadAgents();
+        }
+
+        function openTestPanel(id, name) {
+            currentTestingAgentId = id;
+            document.getElementById('test-agent-card').style.display = 'block';
+            document.getElementById('test-agent-title').innerText = `Test Execution: ${name} (${id})`;
+            document.getElementById('test-output-box').style.display = 'none';
+        }
+
+        async function runAgentTask() {
+            if (!currentTestingAgentId) return;
+            const input = document.getElementById('test-task-input').value;
+            const res = await fetch(`/api/admin/ai-agents/${currentTestingAgentId}/execute`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskInput: input })
+            });
+            const data = await res.json();
+            document.getElementById('test-output-box').style.display = 'block';
+            document.getElementById('test-output-text').innerText = JSON.stringify(data, null, 2);
+            loadAgents();
+        }
+
+        async function editAgent(id) {
+            const res = await fetch(`/api/admin/ai-agents/${id}`);
+            const agent = await res.json();
+            
+            document.getElementById('edit-agent-id').value = agent.id;
+            document.getElementById('agent-id').value = agent.id;
+            document.getElementById('agent-id').disabled = true;
+            document.getElementById('agent-name').value = agent.name;
+            document.getElementById('agent-avatar').value = agent.avatar || '🤖';
+            document.getElementById('agent-prompt').value = agent.system_prompt;
+            document.getElementById('agent-skills').value = (agent.skills || []).join(', ');
+            document.getElementById('agent-tools').value = (agent.tools || []).join(', ');
+            document.getElementById('agent-lga').value = agent.lga || 'All';
+            document.getElementById('agent-status').value = agent.status;
+            document.getElementById('agent-quota').value = agent.token_quota_daily;
+            document.getElementById('agent-temp').value = agent.temperature;
+            
+            document.getElementById('modalTitle').innerText = 'Edit AI Agent';
+            document.getElementById('agentModal').style.display = 'flex';
+        }
+
+        function openCreateModal() {
+            document.getElementById('edit-agent-id').value = '';
+            document.getElementById('agent-id').value = '';
+            document.getElementById('agent-id').disabled = false;
+            document.getElementById('agent-name').value = '';
+            document.getElementById('agent-prompt').value = '';
+            document.getElementById('agent-skills').value = '';
+            document.getElementById('agent-tools').value = '';
+            document.getElementById('agent-lga').value = 'All';
+            document.getElementById('modalTitle').innerText = 'Create AI Agent';
+            document.getElementById('agentModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('agentModal').style.display = 'none';
+        }
+
+        async function saveAgent(e) {
+            e.preventDefault();
+            const isEdit = !!document.getElementById('edit-agent-id').value;
+            const id = document.getElementById('agent-id').value;
+            const payload = {
+                id,
+                name: document.getElementById('agent-name').value,
+                avatar: document.getElementById('agent-avatar').value,
+                system_prompt: document.getElementById('agent-prompt').value,
+                skills: document.getElementById('agent-skills').value.split(',').map(s => s.trim()).filter(Boolean),
+                tools: document.getElementById('agent-tools').value.split(',').map(s => s.trim()).filter(Boolean),
+                lga: document.getElementById('agent-lga').value,
+                status: document.getElementById('agent-status').value,
+                token_quota_daily: parseInt(document.getElementById('agent-quota').value) || 20000,
+                temperature: parseFloat(document.getElementById('agent-temp').value) || 0.2
+            };
+
+            const url = isEdit ? `/api/admin/ai-agents/${id}` : '/api/admin/ai-agents';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            closeModal();
+            loadAgents();
+        }
+
+        let currentRoutingMode = false; // false = FastText, true = Groq
+
+        async function loadRoutingMode() {
+            try {
+                const res = await fetch('/api/admin/settings');
+                const data = await res.json();
+                currentRoutingMode = !!data.use_groq_routing;
+                updateRoutingUI();
+            } catch (err) {
+                console.error('Failed to load routing settings:', err);
+            }
+        }
+
+        function updateRoutingUI() {
+            const label = document.getElementById('routing-mode-label');
+            const btn = document.getElementById('toggle-routing-btn');
+            if (currentRoutingMode) {
+                label.innerHTML = '⚡ <span style="color: #2E7D32;">Groq Routing Mode</span> (FastText Bypassed)';
+                btn.innerText = 'Switch to FastText';
+                btn.style.backgroundColor = '#888';
+            } else {
+                label.innerHTML = '⚡ <span style="color: #C62828;">FastText Routing Mode</span> (Default)';
+                btn.innerText = 'Switch to Groq';
+                btn.style.backgroundColor = '#D97A5C';
+            }
+        }
+
+        async function toggleRoutingEngine() {
+            try {
+                const targetState = !currentRoutingMode;
+                const res = await fetch('/api/admin/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ use_groq_routing: targetState })
+                });
+                const data = await res.json();
+                currentRoutingMode = !!data.use_groq_routing;
+                updateRoutingUI();
+            } catch (err) {
+                console.error('Failed to toggle routing settings:', err);
+            }
+        }
+
+        window.onload = () => {
+            loadAgents();
+            loadRoutingMode();
+        };
+    </script>
+</body>
+</html>

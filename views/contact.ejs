@@ -1,0 +1,57 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+
+<main>
+    <section class="section contact-hero">
+        <div class="container text-center">
+            <h1 class="contact-title">Get in Touch</h1>
+            <p class="contact-subtitle">
+                Have a question or need a custom solution? Our team is here to help.
+            </p>
+        </div>
+    </section>
+
+    <section class="section container">
+        <div class="grid grid-2">
+            <div class="card">
+                <h2 class="mb-24">Message Us</h2>
+                <form class="contact-form flex-column gap-20">
+                    <div>
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label">Message</label>
+                        <textarea class="form-textarea"></textarea>
+                    </div>
+                    <button class="btn btn-primary">Send Message</button>
+                </form>
+            </div>
+            
+            <div class="contact-info-panel">
+                <h3 class="contact-info-title">Other ways to connect</h3>
+                
+                <div class="mb-40">
+                    <h4 class="mb-8">WhatsApp</h4>
+                    <p class="text-gray">Fastest response time. Start a chat at <strong>7000</strong></p>
+                </div>
+                
+                <div class="mb-40">
+                    <h4 class="mb-8">Email</h4>
+                    <p class="text-gray">For partnerships and press: <strong>hello@kurukoo.com</strong></p>
+                </div>
+                
+                <div class="mb-40">
+                    <h4 class="mb-8">Office</h4>
+                    <p class="text-gray">Ikeja, Lagos, Nigeria<br>London, United Kingdom</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<%- include('_partials/footer') %>

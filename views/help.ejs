@@ -1,0 +1,237 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+
+<main>
+    <section class="section help-hero">
+        <div class="container text-center">
+            <span class="badge help-badge">Kurukoo Help Centre</span>
+            <h1 class="help-title">How can we help?</h1>
+            <div class="help-search">
+                <form class="input-group help-search-box">
+                    <input type="text" class="help-search-input" placeholder="Search for answers, guides, or troubleshooting...">
+                    <button class="btn btn-primary btn-charcoal ml-8">Search</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="section container">
+        <div class="pattern-bg"></div>
+        <div class="grid grid-3 help-category-grid">
+            <a href="#setup" class="help-category card">
+                <div class="help-category-icon">🚀</div>
+                <h3>Getting Started</h3>
+                <p class="text-gray mt-12 text-0_9rem">New to Kurukoo? Learn how to set up your profile and make your first request.</p>
+            </a>
+            <a href="/legal/privacy" class="help-category card">
+                <div class="help-category-icon">🔒</div>
+                <h3>Privacy & Trust</h3>
+                <p class="text-gray mt-12 text-0_9rem">Understand how we protect your data and verify service providers in your area.</p>
+            </a>
+            <a href="#earning" class="help-category card">
+                <div class="help-category-icon">💰</div>
+                <h3>Earning Money</h3>
+                <p class="text-gray mt-12 text-0_9rem">Learn how to add skills, find jobs nearby, and manage your point earnings.</p>
+            </a>
+        </div>
+
+        <div id="guides" class="help-guides-section">
+            <h2 class="help-guides-title">How-To Guides</h2>
+            
+            <div class="grid grid-2 gap-40">
+                <div class="card" id="setup">
+                    <span class="category-tag">Setup</span>
+                    <h3 class="help-guide-title">How to use Kurukoo via WhatsApp</h3>
+                    <p class="text-gray mb-20">Follow these steps to link your phone number and start chatting with our assistant.</p>
+                    <ol class="help-guide-list pl-20">
+                        <li>Save <%= country === 'gb' ? '+44 7000' : (country === 'gh' ? '+233 7000' : '+234 7000') %> 000 000 to your contacts.</li>
+                        <li>Send "Hi" to start the conversation.</li>
+                        <li>Follow the automated prompts to set up your name and location.</li>
+                    </ol>
+                </div>
+
+                <div class="card" id="earning">
+                    <span class="category-tag">Earning</span>
+                    <h3 class="help-guide-title">Adding your skills as a Provider</h3>
+                    <p class="text-gray mb-20">Turn on your earning potential by letting neighbors know what you can do.</p>
+                    <ul class="help-guide-list list-none">
+                        <li>✓ Type "Add skill" in the chat.</li>
+                        <li>✓ Select your primary skill category (e.g., Plumbing).</li>
+                        <li>✓ Toggle "Available for work" in your profile settings.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2 help-questions-section">
+            <div>
+                <h2 class="mb-40">Common Questions</h2>
+                <div class="flex-column gap-24">
+                    <div class="help-question-item">
+                        <h4 class="mb-8">How do I top up my Points?</h4>
+                        <p class="text-gray text-0_95rem">You can top up via OPay, Moniepoint, or any verified Kurukoo agent in your neighbourhood. Simply tell the assistant "Top up" to get started.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">What is USSD code for Kurukoo?</h4>
+                        <p class="text-gray text-0_95rem">Simply dial <strong>*7000#</strong> on any phone to access our services without data. This works on basic feature phones too!</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">Is my phone number private?</h4>
+                        <p class="text-gray text-0_95rem">No – we use a privacy bridge. Your number is masked until you choose to share it.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">What if no one is available right now?</h4>
+                        <p class="text-gray text-0_95rem">Kurukoo keeps looking. We track your request and notify you as soon as a match is found.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">Can I share photos or videos for quotes?</h4>
+                        <p class="text-gray text-0_95rem">Yes – send pictures, PDFs, or videos of what needs fixing. The provider can give you an accurate quote.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">Can I book a football match or join a league?</h4>
+                        <p class="text-gray text-0_95rem">Yes – find players, book pitches, join leagues, and coordinate tournaments through Kurukoo.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">Can I get a security guard or bodyguard?</h4>
+                        <p class="text-gray text-0_95rem">Yes – book verified security personnel for events, homes, or personal protection.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">Can I hire a car or motorbike?</h4>
+                        <p class="text-gray text-0_95rem">Yes – list your vehicle for hire or find one to rent.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">Can I find a resort, motel, lounge, or play zone?</h4>
+                        <p class="text-gray text-0_95rem">Yes – discover and book local venues through Kurukoo.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">Can I control my smart devices?</h4>
+                        <p class="text-gray text-0_95rem">Yes – Universal Remote lets you control TVs, ACs, and other smart devices from the chat.</p>
+                    </div>
+                    <div class="help-question-item">
+                        <h4 class="mb-8">Can I get reminders for important things?</h4>
+                        <p class="text-gray text-0_95rem">Yes – set reminders for appointments, payments, or events.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card help-support-card">
+                <h3 class="mb-24">Still need help?</h3>
+                <p class="text-gray mb-32">Our support team is available 24/7 to assist you with any issues or feedback.</p>
+                
+                <div class="flex-column gap-20">
+                    <a href="https://wa.me/7000" class="btn btn-primary btn-whatsapp">Chat on WhatsApp</a>
+                    <a href="/contact" class="btn btn-secondary w-full flex-center">Email Support</a>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const searchForm = document.querySelector('.help-search-box');
+    const searchInput = document.querySelector('.help-search-input');
+    const categoryGrid = document.querySelector('.help-category-grid');
+    const guidesSection = document.getElementById('guides');
+    const questionSection = document.querySelector('.help-questions-section');
+    
+    // Create elements for feedback
+    const feedbackDiv = document.createElement('div');
+    feedbackDiv.className = 'card text-center mt-24 py-40';
+    feedbackDiv.style.display = 'none';
+    feedbackDiv.style.gridColumn = '1 / -1';
+    feedbackDiv.innerHTML = `
+        <div class="search-empty-icon">🔍</div>
+        <h3 class="mb-8">No matching answers found</h3>
+        <p class="text-gray mb-16">Try searching for other terms like "WhatsApp", "Points", "USSD", or "Earning".</p>
+        <button class="btn btn-secondary btn-sm" id="reset-help-search">Reset Search</button>
+    `;
+    
+    // Append feedback inside container
+    const container = document.querySelector('.help-questions-section').parentElement;
+    container.insertBefore(feedbackDiv, questionSection.nextSibling);
+
+    const resetBtn = feedbackDiv.querySelector('#reset-help-search');
+    resetBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        searchInput.value = '';
+        performSearch('');
+    });
+
+    searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const query = searchInput.value.trim().toLowerCase();
+        performSearch(query);
+    });
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        performSearch(query);
+    });
+
+    function performSearch(query) {
+        if (!query) {
+            // Restore everything
+            categoryGrid.style.display = '';
+            guidesSection.style.display = '';
+            questionSection.style.display = '';
+            feedbackDiv.style.display = 'none';
+            
+            // Show all nested items
+            document.querySelectorAll('.help-category, .help-guides-section .card, .help-question-item').forEach(el => {
+                el.style.display = '';
+            });
+            return;
+        }
+
+        // Hide category cards since they are top-level navigation, or filter them
+        categoryGrid.style.display = 'none';
+        
+        let matchCount = 0;
+
+        // Filter How-To Guides
+        const guideCards = document.querySelectorAll('.help-guides-section .card');
+        let guidesVisible = false;
+        guideCards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            if (text.includes(query)) {
+                card.style.display = '';
+                matchCount++;
+                guidesVisible = true;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        guidesSection.style.display = guidesVisible ? '' : 'none';
+
+        // Filter Common Questions
+        const questions = document.querySelectorAll('.help-question-item');
+        let questionsVisible = false;
+        questions.forEach(q => {
+            const text = q.textContent.toLowerCase();
+            if (text.includes(query)) {
+                q.style.display = '';
+                matchCount++;
+                questionsVisible = true;
+            } else {
+                q.style.display = 'none';
+            }
+        });
+
+        // Always keep the support card visible but manage the parent section
+        questionSection.style.display = ''; // keep section to show support card or matching questions
+
+        if (matchCount === 0) {
+            feedbackDiv.style.display = 'block';
+            guidesSection.style.display = 'none';
+            // Hide the question columns parent if no questions matched, but keep support card
+            document.querySelector('.help-questions-section > div').style.display = 'none';
+        } else {
+            feedbackDiv.style.display = 'none';
+            document.querySelector('.help-questions-section > div').style.display = '';
+        }
+    }
+});
+</script>
+
+<%- include('_partials/footer') %>

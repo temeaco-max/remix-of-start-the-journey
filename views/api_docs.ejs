@@ -1,0 +1,89 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+
+<main>
+    <section class="section api-hero-section">
+        <div class="container">
+            <span class="badge api-badge">Developer Platform</span>
+            <h1 class="api-hero-title">Build with Kurukoo.</h1>
+            <p class="api-hero-desc">Integrate our unified messaging and skills matching engine into your own applications.</p>
+        </div>
+    </section>
+
+    <section class="section container">
+        <div class="pattern-bg"></div>
+        <div class="grid api-layout-grid">
+            <aside class="api-sidebar">
+                <h4 class="api-sidebar-heading">Introduction</h4>
+                <ul class="footer-links api-sidebar-links">
+                    <li><a href="#getting-started" class="api-sidebar-link-active">Getting Started</a></li>
+                    <li><a href="#authentication">Authentication</a></li>
+                    <li><a href="#rate-limits">Rate Limits</a></li>
+                </ul>
+
+                <h4 class="api-sidebar-heading">Resources</h4>
+                <ul class="footer-links api-sidebar-links">
+                    <li><a href="#profiles">Profiles</a></li>
+                    <li><a href="#skills">Skills</a></li>
+                    <li><a href="#messaging">Messaging</a></li>
+                    <li><a href="#payments">Payments</a></li>
+                </ul>
+            </aside>
+            
+            <div class="legal-content">
+                <section id="getting-started" class="api-section-block">
+                    <h2 class="api-section-heading">Getting Started</h2>
+                    <p class="api-paragraph">The Kurukoo API allows you to programmatically access the core features of the platform. Our API is organized around REST. Our API has predictable resource-oriented URLs, accepts form-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.</p>
+                    
+                    <div class="api-code-block">
+                        GET https://api.kurukoo.com/v1/health
+                    </div>
+                </section>
+                
+                <section id="authentication" class="api-section-block">
+                    <h2 class="api-section-heading">Authentication</h2>
+                    <p class="api-paragraph">The Kurukoo API uses API keys to authenticate requests. You can view and manage your API keys in the Kurukoo Dashboard.</p>
+                    <p class="api-paragraph">Your API keys carry many privileges, so be sure to keep them secure! Do not share your secret API keys in publicly accessible areas such as GitHub, client-side code, and so forth.</p>
+                    
+                    <div class="api-code-block">
+                        Authorization: Bearer KURUKOO_SECRET_KEY
+                    </div>
+                </section>
+
+                <section id="profiles" class="api-section-block">
+                    <h2 class="api-section-heading">Profiles</h2>
+                    <p class="api-paragraph">Retrieve details about a specific memory profile using their phone number.</p>
+                    
+                    <div class="api-code-block">
+                        GET /v1/profiles/+2348012345678
+                    </div>
+
+                    <div class="api-schema-box">
+                        <h4 class="mb-16">Response Schema</h4>
+                        <div class="api-schema-grid">
+                            <div class="api-schema-key">phone</div>
+                            <div class="api-schema-val">String (E.164 format)</div>
+                            <div class="api-schema-key">name</div>
+                            <div class="api-schema-val">String</div>
+                            <div class="api-schema-key">credits</div>
+                            <div class="api-schema-val">Integer</div>
+                            <div class="api-schema-key">tier</div>
+                            <div class="api-schema-val">"base" | "plus" | "business"</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support CTA -->
+    <section class="section api-cta-section">
+        <div class="container text-center">
+            <h2>Need a custom integration?</h2>
+            <p class="api-cta-text">Our partnership team can help you build large-scale solutions on top of Kurukoo.</p>
+            <a href="/contact" class="btn btn-primary">Contact Partnership Team</a>
+        </div>
+    </section>
+</main>
+
+<%- include('_partials/footer') %>
