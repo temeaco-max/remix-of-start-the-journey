@@ -15,7 +15,9 @@
       <div class="ko-actions"><a class="ko-primary" href="/chat">Open Kurukoo Chat →</a><a class="ko-secondary" href="tel:*7000%23">Dial *7000#</a></div>
       <div class="ko-mandate"><span>Memory Profile</span><span>Presence</span><span>Conversation</span><span>Points</span><span>Proactive Intelligence</span></div>
     </div>
-    <div class="ko-chat-frame" id="homepage-chat"></div>
+    <div class="ko-chat-frame" id="homepage-chat">
+      <iframe class="ko-chat-iframe" title="Kurukoo primary chat" loading="eager" src="/chat/?embed=1"></iframe>
+    </div>
   </section>
 
   <section class="ko-section">
@@ -32,5 +34,4 @@
 
   <section class="ko-channel"><span class="ko-eyebrow">SUPPORTED TRANSPORTS, ONE CONVERSATION</span><div class="ko-channel-list"><span>Web</span><span>PWA</span><span>WhatsApp</span><span>USSD *7000#</span><span>SMS</span><span>Telegram</span><span>Email — integration pending</span><span>IVR — integration pending</span></div></section>
 </main>
-<script src="/js/kurukoo-home-chat.js?v=1"></script>
 <%- include('_partials/footer') %>
