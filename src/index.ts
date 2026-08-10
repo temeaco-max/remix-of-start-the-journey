@@ -53,6 +53,8 @@ import { createEscrow, releaseEscrow, refundEscrow } from './services/escrow.js'
 import { sourceProduct } from './services/productSourcing.js';
 import { startContactSyncService } from './services/contactSyncService.js';
 import { startDeliveryStatusService, updateDeliveryStatus } from './services/deliveryService.js';
+import { streamUnifiedAI } from './services/unifiedAiEngine.js';
+import { getGitHubSyncStatus, listGitHubFiles, getGitHubDiff, pullFromGitHub, pushToGitHub } from './services/githubService.js';
 
 // §53 SEO Management System
 import {
@@ -860,6 +862,207 @@ app.post(['/api/chat', '/api/pwa/chat'], async (req, res) => {
     saveDb();
 
     res.json({ success: true, reply: assistantReply, cardData: routing.cardData });
+});
+
+// API: Real-time Streaming Chat (SSE - Server-Sent Events)
+app.post('/api/chat/stream', async (req, res) => {
+    const { phone, message, channel, provider } = req.body;
+    if (!phone || !message) {
+        return res.status(400).json({ error: 'Missing phone or message' });
+    }
+
+    // Set headers for Server-Sent Events
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+
+    const db = await getDb();
+    db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'user', ?, ?)`, [phone, message, channel || 'web']);
+    await updateSessionInteraction(phone);
+
+    let fullReply = '';
+    let fullThought = '';
+    let cardData: any = null;
+
+    try {
+        // First check onboarding flow
+        const onboardingActive = await isOnboarding(phone);
+        if (onboardingActive) {
+            const onboardingRes = await handleOnboardingInput(phone, message);
+            cardData = onboardingRes.cardData;
+            fullReply = onboardingRes.reply;
+            
+            // Stream onboarding response
+            const words = fullReply.split(' ');
+            for (let i = 0; i < words.length; i += 2) {
+                const chunk = words.slice(i, i + 2).join(' ') + ' ';
+                res.write(`data: ${JSON.stringify({ type: 'text', content: chunk })}\n\n`);
+                await new Promise(r => setTimeout(r, 25));
+            }
+        } else {
+            // Check structured intent routing first
+            const routing = await routeIntent(message, phone, provider);
+            cardData = routing.cardData;
+
+            if (routing.skill && routing.skill !== 'general_question' && routing.skill !== 'autonomous_agent') {
+                let orderResult = { success: true, message: '' };
+                try {
+                    orderResult = await finalizeOrder(phone, 'lead', { skill: routing.skill });
+                } catch (e) {}
+
+                fullReply = `${routing.reply} ${orderResult.message ? '(' + orderResult.message + ')' : ''}`.trim();
+                
+                // Stream text chunks
+                const words = fullReply.split(' ');
+                for (let i = 0; i < words.length; i += 2) {
+                    const chunk = words.slice(i, i + 2).join(' ') + ' ';
+                    res.write(`data: ${JSON.stringify({ type: 'text', content: chunk })}\n\n`);
+                    await new Promise(r => setTimeout(r, 20));
+                }
+            } else {
+                // Stream via AI Pipeline with Thinking & Reasoning
+                for await (const chunk of streamUnifiedAI(message, { provider, phone })) {
+                    if (chunk.type === 'thought' && chunk.thought) {
+                        fullThought += chunk.thought;
+                        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                    } else if (chunk.type === 'text' && chunk.content) {
+                        fullReply += chunk.content;
+                        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                    } else if (chunk.type === 'metadata') {
+                        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                    }
+                }
+                if (!fullReply && routing.reply) {
+                    fullReply = routing.reply;
+                    res.write(`data: ${JSON.stringify({ type: 'text', content: fullReply })}\n\n`);
+                }
+            }
+        }
+
+        // Check contextual ad match
+        try {
+            const matchedAds = await matchAdCampaigns(message);
+            if (matchedAds.length > 0) {
+                const ad = matchedAds[0];
+                const spendSuccess = await spendAdCampaign(ad.id, 2);
+                if (spendSuccess) {
+                    const adCardData = {
+                        type: 'product_card',
+                        title: `[SPONSORED] ${ad.title}`,
+                        desc: ad.desc,
+                        image: ad.imageUrl,
+                        price: ad.title.includes('Rice') ? '₦32,500' : ad.title.includes('ride') ? '₦500' : '₦1,500'
+                    };
+                    cardData = cardData || adCardData;
+                }
+            }
+        } catch (adErr) {}
+
+        // Persist assistant message in database
+        const cardJson = cardData ? JSON.stringify(cardData) : null;
+        db.run(`INSERT INTO messages (phone, sender, content, channel, card_data) VALUES (?, 'assistant', ?, ?, ?)`, 
+            [phone, fullReply.trim(), channel || 'web', cardJson]);
+        saveDb();
+
+        // Send completion event
+        res.write(`data: ${JSON.stringify({ type: 'done', fullReply: fullReply.trim(), cardData })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+    } catch (err: any) {
+        console.error('Streaming chat error:', err);
+        res.write(`data: ${JSON.stringify({ type: 'error', error: err.message || 'Stream processing error' })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+    }
+});
+
+// API: Points Balance & Quick Topup
+app.get('/api/points/balance', async (req, res) => {
+    const phone = (req.query.phone as string) || '+2348030000000';
+    try {
+        const balance = await getPointsBalance(phone);
+        const profile = await getProfile(phone, 'points_query');
+        res.json({
+            success: true,
+            phone,
+            points: balance,
+            tier: profile?.subscription_tier || 'Base',
+            currency: '₦'
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'Failed to fetch points balance' });
+    }
+});
+
+app.post('/api/points/topup', async (req, res) => {
+    const { phone, amount_points, payment_ref } = req.body;
+    if (!phone || !amount_points) {
+        return res.status(400).json({ error: 'phone and amount_points are required' });
+    }
+    try {
+        const points = parseInt(amount_points, 10);
+        if (isNaN(points) || points <= 0) {
+            return res.status(400).json({ error: 'Invalid points amount' });
+        }
+        await addPoints(phone, points, `Top-up ref: ${payment_ref || 'instant_card'}`);
+        const newBalance = await getPointsBalance(phone);
+        res.json({
+            success: true,
+            message: `Successfully credited ${points} Points!`,
+            balance: newBalance
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'Failed to top up points' });
+    }
+});
+
+// --- GitHub Workspace Sync API Endpoints ---
+app.get('/api/github/status', async (req, res) => {
+    try {
+        const status = await getGitHubSyncStatus();
+        res.json({ success: true, status });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/github/list', async (req, res) => {
+    try {
+        const dirPath = (req.query.path as string) || '';
+        const files = await listGitHubFiles(dirPath);
+        res.json({ success: true, path: dirPath, files });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/github/diff', async (req, res) => {
+    try {
+        const diff = await getGitHubDiff();
+        res.json({ success: true, diff });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/github/pull', async (req, res) => {
+    try {
+        const result = await pullFromGitHub();
+        res.json(result);
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/github/push', async (req, res) => {
+    try {
+        const message = req.body.message || 'Update from Kurukoo Workspace';
+        const result = await pushToGitHub(message);
+        res.json(result);
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
 // API: Auth Login & SSO Synchronization
@@ -2438,6 +2641,28 @@ app.post('/api/subscription/upgrade', async (req, res) => {
         console.error('Subscription upgrade error:', e);
         res.status(500).json({ error: 'Failed to upgrade subscription' });
     }
+});
+
+// WhatsApp-style structure middleware: web.kurukoo.com -> /web -> dashboard.html
+app.use((req, res, next) => {
+    const host = req.headers.host || '';
+    if (host.startsWith('web.') && (req.path === '/' || req.path === '')) {
+        return res.sendFile(path.join(process.cwd(), 'public', 'dashboard.html'));
+    }
+    next();
+});
+
+app.get('/web', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'dashboard.html'));
+});
+
+app.get('/download', async (req, res) => {
+    const country = 'ng';
+    const t = getLocale('en');
+    const shortcode = '*7000#';
+    const reqPath = `/download`;
+    const { seo, schemas, faqs } = await fetchSeoData(reqPath);
+    res.render('download', { country, t, shortcode, seo, schemas, faqs, reqPath });
 });
 
 // Public Website Routes — each route fetches SEO data from §53 system

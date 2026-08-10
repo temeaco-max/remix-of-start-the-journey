@@ -16,8 +16,18 @@ export interface AIResponse {
     provider: string;
     model: string;
     text: string;
+    thought?: string;
     latencyMs: number;
     cost: string;
+}
+
+export interface AIStreamChunk {
+    type: 'thought' | 'text' | 'metadata';
+    content?: string;
+    thought?: string;
+    provider?: string;
+    model?: string;
+    cost?: string;
 }
 
 /**
@@ -35,10 +45,12 @@ export async function queryUnifiedAI(prompt: string, options?: UnifiedAIOptions)
     // 1. Explicit Gemini Selection
     if (preferred === 'gemini') {
         const text = await queryGemini(prompt, { systemInstruction: options?.systemPrompt });
+        const { cleanText, thought } = extractThinking(text);
         return {
             provider: 'Google Gemini',
             model: 'gemini-3.6-flash',
-            text,
+            text: cleanText,
+            thought,
             latencyMs: Date.now() - startTime,
             cost: 'Free Tier ($0.00)'
         };
@@ -47,10 +59,12 @@ export async function queryUnifiedAI(prompt: string, options?: UnifiedAIOptions)
     // 2. Explicit SmolLM2 Selection
     if (preferred === 'smollm2') {
         const text = await querySmolLM2(prompt, options?.systemPrompt);
+        const { cleanText, thought } = extractThinking(text);
         return {
             provider: 'HuggingFace SmolLM2',
             model: 'SmolLM2-1.7B-Instruct',
-            text,
+            text: cleanText,
+            thought,
             latencyMs: Date.now() - startTime,
             cost: 'Free Serverless ($0.00)'
         };
@@ -58,11 +72,13 @@ export async function queryUnifiedAI(prompt: string, options?: UnifiedAIOptions)
 
     // 3. Explicit Groq Selection
     if (preferred === 'groq') {
-        const text = await queryGroq(prompt);
+        const text = await queryGroq(prompt, { systemPrompt: options?.systemPrompt });
+        const { cleanText, thought } = extractThinking(text);
         return {
             provider: 'Groq Cloud',
             model: 'llama-3.1-8b-instant',
-            text,
+            text: cleanText,
+            thought,
             latencyMs: Date.now() - startTime,
             cost: 'Free Tier ($0.00)'
         };
@@ -88,10 +104,12 @@ export async function queryUnifiedAI(prompt: string, options?: UnifiedAIOptions)
         if (process.env.GEMINI_API_KEY || process.env.API_KEY) {
             const text = await queryGemini(prompt, { systemInstruction: options?.systemPrompt });
             if (text && !text.includes('processed your request')) {
+                const { cleanText, thought } = extractThinking(text);
                 return {
                     provider: 'Google Gemini',
                     model: 'gemini-3.6-flash',
-                    text,
+                    text: cleanText,
+                    thought,
                     latencyMs: Date.now() - startTime,
                     cost: 'Free Tier ($0.00)'
                 };
@@ -104,10 +122,12 @@ export async function queryUnifiedAI(prompt: string, options?: UnifiedAIOptions)
     try {
         const text = await querySmolLM2(prompt, options?.systemPrompt);
         if (text && !text.startsWith('🤖 [SmolLM2-1.7B-Instruct]: I received your request')) {
+            const { cleanText, thought } = extractThinking(text);
             return {
                 provider: 'HuggingFace SmolLM2',
                 model: 'SmolLM2-1.7B-Instruct',
-                text,
+                text: cleanText,
+                thought,
                 latencyMs: Date.now() - startTime,
                 cost: 'Free Serverless ($0.00)'
             };
@@ -118,11 +138,13 @@ export async function queryUnifiedAI(prompt: string, options?: UnifiedAIOptions)
 
     if (process.env.GROQ_API_KEY) {
         try {
-            const text = await queryGroq(prompt);
+            const text = await queryGroq(prompt, { systemPrompt: options?.systemPrompt });
+            const { cleanText, thought } = extractThinking(text);
             return {
                 provider: 'Groq Cloud',
                 model: 'llama-3.1-8b-instant',
-                text,
+                text: cleanText,
+                thought,
                 latencyMs: Date.now() - startTime,
                 cost: 'Free Tier ($0.00)'
             };
@@ -141,7 +163,60 @@ export async function queryUnifiedAI(prompt: string, options?: UnifiedAIOptions)
         provider: 'Local In-Memory Semantic Engine',
         model: 'TF-IDF-Vector-Classifier',
         text: fallbackText,
+        thought: 'Classified using local FastText token-similarity weights and Nigerian economic keyword ontology.',
         latencyMs: Date.now() - startTime,
         cost: '$0.00'
     };
+}
+
+/**
+ * Async generator for streaming AI responses with reasoning tokens.
+ */
+export async function* streamUnifiedAI(prompt: string, options?: UnifiedAIOptions): AsyncGenerator<AIStreamChunk> {
+    const fullResponse = await queryUnifiedAI(prompt, options);
+
+    // Yield metadata first
+    yield {
+        type: 'metadata',
+        provider: fullResponse.provider,
+        model: fullResponse.model,
+        cost: fullResponse.cost
+    };
+
+    // If thought process was extracted, stream thought chunks
+    if (fullResponse.thought) {
+        const thoughtWords = fullResponse.thought.split(' ');
+        for (let i = 0; i < thoughtWords.length; i += 3) {
+            const chunk = thoughtWords.slice(i, i + 3).join(' ') + ' ';
+            yield {
+                type: 'thought',
+                thought: chunk
+            };
+            await new Promise(r => setTimeout(r, 20));
+        }
+    }
+
+    // Stream main text tokens
+    const words = fullResponse.text.split(' ');
+    for (let i = 0; i < words.length; i += 3) {
+        const chunk = words.slice(i, i + 3).join(' ') + ' ';
+        yield {
+            type: 'text',
+            content: chunk
+        };
+        await new Promise(r => setTimeout(r, 25));
+    }
+}
+
+function extractThinking(rawText: string): { cleanText: string; thought?: string } {
+    if (!rawText) return { cleanText: '' };
+
+    const thinkMatch = rawText.match(/<think>([\s\S]*?)<\/think>/i);
+    if (thinkMatch) {
+        const thought = thinkMatch[1].trim();
+        const cleanText = rawText.replace(/<think>[\s\S]*?<\/think>/i, '').trim();
+        return { cleanText, thought };
+    }
+
+    return { cleanText: rawText };
 }

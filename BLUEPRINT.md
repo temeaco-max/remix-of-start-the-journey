@@ -192,17 +192,17 @@ This section is strictly internal. Public-facing copy must never expose the inte
 - Public language never mentions internal transport details. Users only see the benefit: "Real-time nearby discovery that just works."
 
 ### Channel Priority
-- WhatsApp is the primary everyday interface.
-- PWA (Add-to-Home-Screen) is the rich mirror and power-user experience (works on iOS 16.4+ and Android).
-- Native iOS & Android apps are Phase 2/3 and secondary. Website must not lead with "Download the App" as the main CTA.
-- USSD remains the feature-phone fallback.
+- **Top 3 Channels for Smart Device & Web Visitors:**
+  1. **Kurukoo Web App (PWA)** (`web.kurukoo.com`) — Rich browser and installed app experience with live radar, voice transcription, map matching, and wallet dashboards.
+  2. **WhatsApp Cloud API** — Everyday conversational interface with rich media, interactive buttons, catalog sync, and secure escrow notices.
+  3. **Telegram Bot** — Fast, lightweight bot interaction with secure deep-links and instant notifications for tech-savvy users and agent networks.
+- **USSD (`*7000#`)** — Offline fallback channel dedicated to feature phones (zero data required). Feature phone use is not heavily presented to web visitors, as visitors arriving on the website are using smart devices.
+- **Native iOS & Android apps** — Phase 2/3 secondary channels.
 
-### Channel Strategy — "Land on WhatsApp, Own the Relationship"
-- **WhatsApp is for acquisition.** Every ad, agent referral, and social post drives to WhatsApp. It is the front door — lowest friction, highest response rates, 95% of Nigerian smartphone users.
-- **PWA is for retention.** As users request services, the AI proactively suggests checking their dashboard on kurukoo.com. The PWA is the back door — Kurukoo controls the infrastructure, no platform dependency.
-- **USSD is for resilience.** If WhatsApp changes terms, raises prices, or offboards Kurukoo (GovChat precedent), the platform survives on USSD + PWA + SMS.
+### Channel Strategy — "Kurukoo Omnichannel Ecosystem"
+- **Web App (PWA) & WhatsApp & Telegram are primary.** Every web visitor lands on our top 3 smart device channels.
+- **USSD is for resilience.** If data networks fail or feature phones are used, Kurukoo survives on USSD + SMS.
 - **SMS is for notifications.** OTPs, delivery confirmations, payment receipts — universal reach, works when data fails.
-- **Telegram is for secondary chat.** Lower cost than WhatsApp, growing in Africa, good for agent network coordination and tech-savvy users.
 - **Email is for formal communications.** UK market primarily — receipts, contracts, formal disputes.
 
 ### 1.5.2 Email & SSO Authentication (Optional, Secondary)
