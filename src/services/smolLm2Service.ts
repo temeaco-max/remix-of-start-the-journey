@@ -18,14 +18,10 @@ function buildPrompt(prompt: string, systemPrompt?: string): string {
   const system = systemPrompt || 'You are Kurukoo, a concise economic coordination assistant. Answer clearly and never invent transactions or provider availability.';
   return `<|im_start|>system\n${system}<|im_end|>\n<|im_start|>user\n${prompt}<|im_end|>\n<|im_start|>assistant\n`;
 }
-
-async function acquireLocal(): Promise<void> {
-  while (localBusy) await new Promise(resolve => setTimeout(resolve, 20));
-  localBusy = true;
-}
+async function acquireLocal(): Promise<void> { while (localBusy) await new Promise(resolve => setTimeout(resolve, 20)); localBusy = true; }
 function releaseLocal() { localBusy = false; }
 
-export async function querySmolLM2(prompt: string, systemPrompt?: string): Promise<{ text: string; thought?: string }> {
+export async function querySmolLM2(prompt: string, systemPrompt?: string): Promise<string> {
   const input = buildPrompt(prompt, systemPrompt);
   if (process.env.KURUKOO_SMOLLM2_LOCAL !== 'false') {
     try {
@@ -35,17 +31,17 @@ export async function querySmolLM2(prompt: string, systemPrompt?: string): Promi
         const output = await generator(input, { max_new_tokens: Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), temperature: 0.2, do_sample: true, return_full_text: false });
         const first = Array.isArray(output) ? output[0] : output;
         const text = typeof first === 'object' && first && 'generated_text' in first ? String(first.generated_text || '').trim() : '';
-        if (text) return { text: text.replace(/<\|im_end\|>[\s\S]*$/g, '').trim() };
+        if (text) return text.replace(/<\|im_end\|>[\s\S]*$/g, '').trim();
       } finally { releaseLocal(); }
     } catch (err: any) { console.warn('[SmolLM2] Local inference failed:', err?.message || err); releaseLocal(); }
   }
   if (process.env.HUGGINGFACE_API_KEY || process.env.HF_API_KEY) {
     try {
       const response = await getHfClient().textGeneration({ model: MODEL_NAME, inputs: input, parameters: { max_new_tokens: Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), temperature: 0.2, return_full_text: false } });
-      if (response?.generated_text) return { text: response.generated_text.trim() };
+      if (response?.generated_text) return response.generated_text.trim();
     } catch (err: any) { console.warn('[SmolLM2] HF serverless inference failed:', err?.message || err); }
   }
-  return { text: getFallbackResponse(prompt) };
+  return getFallbackResponse(prompt);
 }
 
 function getFallbackResponse(prompt: string): string {
