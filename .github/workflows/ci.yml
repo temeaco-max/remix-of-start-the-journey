@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -20,8 +20,17 @@ jobs:
           node-version: 22
       - run: npm install
       - run: node scripts/apply-conversation-security.mjs
+      - run: node scripts/apply-chat-ui-integration.mjs
       - run: npm run lint
       - run: npm run build
+      - name: Commit deterministic source integration
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/index.ts public/dashboard.html
+          git diff --cached --quiet || git commit -m "Integrate shared chat UI"
+          git push
 
   secret-scan:
     runs-on: ubuntu-latest
