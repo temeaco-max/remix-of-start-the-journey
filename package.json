@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx index.ts",
-    "build": "tsc && npm run copy:public",
+    "build": "tsc && npm run copy:public && npm run optimize:css",
     "copy:public": "node scripts/copy-public.mjs",
+    "optimize:css": "node scripts/optimize-css.mjs",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
@@ -30,7 +31,6 @@
   },
   "devDependencies": {
     "@types/ejs": "^3.1.5",
-    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/sql.js": "^1.4.9",
     "adm-zip": "^0.6.0",
