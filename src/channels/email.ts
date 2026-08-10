@@ -17,9 +17,43 @@ function messageId(body: any): string | undefined {
     return body?.data?.message_id || body?.message_id || body?.headers?.['message-id'] || body?.headers?.['Message-ID'];
 }
 
-export async function handleEmailWebhook(body: any, headers: Record<string, any>) {
-    const expected = process.env.EMAIL_WEBHOOK_SECRET;
-    if (expected && headers['x-email-webhook-secret'] !== expected) throw new Error('Invalid email webhook signature');
+function timingSafeEqualHexOrBase64(expected: string, actual: string): boolean {
+    try {
+        const a = Buffer.from(expected, /^[a-f0-9]+$/i.test(expected) ? 'hex' : 'base64');
+        const b = Buffer.from(actual, /^[a-f0-9]+$/i.test(actual) ? 'hex' : 'base64');
+        return a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch { return false; }
+}
+
+function verifyWebhook(rawBody: string, headers: Record<string, any>): boolean {
+    const secret = process.env.RESEND_WEBHOOK_SECRET || process.env.EMAIL_WEBHOOK_SECRET;
+    if (!secret) return process.env.NODE_ENV !== 'production';
+
+    // Resend webhooks use Svix signing: v1 = HMAC-SHA256(timestamp + '.' + rawBody).
+    const svixId = String(headers['svix-id'] || headers['Svix-Id'] || '').trim();
+    const timestamp = String(headers['svix-timestamp'] || headers['Svix-Timestamp'] || '').trim();
+    const signature = String(headers['svix-signature'] || headers['Svix-Signature'] || '').trim();
+    if (svixId && timestamp && signature) {
+        const ts = Number(timestamp);
+        if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false;
+        const signingSecret = secret.startsWith('whsec_') ? secret.slice(6) : secret;
+        const key = Buffer.from(signingSecret, 'base64');
+        const signed = crypto.createHmac('sha256', key).update(`${timestamp}.${rawBody}`).digest('base64');
+        return signature.split(' ').some(part => {
+            const [, value] = part.split(',', 2);
+            return value ? timingSafeEqualHexOrBase64(signed, value) : false;
+        });
+    }
+
+    const provided = String(headers['x-email-webhook-signature'] || headers['x-email-webhook-secret'] || '').trim();
+    if (!provided) return false;
+    const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+    return timingSafeEqualHexOrBase64(expected, provided);
+}
+
+export async function handleEmailWebhook(body: any, headers: Record<string, any>, rawBody?: string) {
+    const raw = rawBody || JSON.stringify(body);
+    if (!verifyWebhook(raw, headers)) throw new Error('Invalid email webhook signature');
 
     const eventType = String(body?.type || 'email.received');
     if (eventType !== 'email.received') return { status: 'ignored', reason: `unsupported_event:${eventType}` };
@@ -32,6 +66,8 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
 
     const db = await getDb();
     db.run(`CREATE TABLE IF NOT EXISTS email_events (event_id TEXT PRIMARY KEY, message_id TEXT, sender TEXT NOT NULL, received_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+    db.run(`CREATE TABLE IF NOT EXISTS email_delivery_events (event_id TEXT PRIMARY KEY, phone TEXT, provider TEXT, provider_id TEXT, status TEXT NOT NULL, error TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+
     const id = eventId(body);
     const exists = db.prepare(`SELECT event_id FROM email_events WHERE event_id = ? LIMIT 1`);
     exists.bind([id]);
@@ -44,21 +80,35 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
     let phone: string | undefined;
     if (lookup.step()) phone = String(lookup.getAsObject().phone || '');
     lookup.free();
-    if (!phone) { saveDb(); return { status: 'ignored', reason: 'unlinked_email_identity' }; }
+    if (!phone) {
+        saveDb();
+        return { status: 'ignored', reason: 'unlinked_email_identity' };
+    }
 
     const inbound = subject ? `Subject: ${subject}\n\n${text}` : text;
     db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'user', ?, 'email')`, [phone, inbound]);
 
     const routing = await routeIntent(text, phone);
     const reply = routing.reply || 'I received your message and will continue here in Kurukoo.';
-    const references = [messageId(body)].filter(Boolean) as string[];
     const delivery = await sendEmail(from, /^re:/i.test(subject) ? subject : `Re: ${subject || 'Kurukoo'}`, reply, {
         inReplyTo: messageId(body),
-        references,
+        references: [messageId(body)].filter(Boolean) as string[],
         tags: { channel: 'email', conversation: 'kurukoo' }
     });
-    db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'assistant', ?, 'email')`, [phone, reply]);
+
+    db.run(`INSERT OR REPLACE INTO email_delivery_events (event_id, phone, provider, provider_id, status, error) VALUES (?, ?, ?, ?, ?, ?)`, [id, phone, delivery.provider, delivery.id || null, delivery.ok ? 'sent' : 'failed', delivery.error || null]);
+
+    // Do not write a successful assistant message when the external transport rejected it.
+    // The delivery ledger records the failed attempt so a worker can retry safely later.
+    if (delivery.ok) {
+        db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'assistant', ?, 'email')`, [phone, reply]);
+    }
     saveDb();
 
-    return { status: delivery.ok ? 'success' : 'accepted', response: reply, delivery, conversation: { phone, channel: 'email' } };
+    return {
+        status: delivery.ok ? 'success' : 'accepted_for_retry',
+        response: reply,
+        delivery,
+        conversation: { phone, channel: 'email' }
+    };
 }
