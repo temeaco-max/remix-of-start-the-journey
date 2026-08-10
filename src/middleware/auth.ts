@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import net from 'net';
 
 export interface AuthUser { id?: string | number; phone?: string; role?: string; username?: string; [key: string]: any; }
-export interface AuthRequest extends Request { user?: AuthUser; admin?: boolean | AuthUser; }
+export interface AuthRequest extends Request { user?: AuthUser; admin?: boolean | AuthUser; body: any; query: any; params: any; }
 
 type RateState = { count: number; resetAt: number };
 const rateState = new Map<string, RateState>();
@@ -91,14 +91,8 @@ function isPrivateOrReservedIp(host: string): boolean {
 
 function validateSensitiveInput(req: Request, res: Response, next: NextFunction): void {
     const body = req.body || {};
-    if (body.rating !== undefined) {
-        const rating = Number(body.rating);
-        if (!Number.isInteger(rating) || rating < 1 || rating > 5) return void res.status(400).json({ error: 'Rating must be an integer from 1 to 5' });
-    }
-    if (body.amount_points !== undefined) {
-        const amount = Number(body.amount_points);
-        if (!Number.isInteger(amount) || amount <= 0 || amount > 1_000_000) return void res.status(400).json({ error: 'Invalid Points amount' });
-    }
+    if (body.rating !== undefined) { const rating = Number(body.rating); if (!Number.isInteger(rating) || rating < 1 || rating > 5) return void res.status(400).json({ error: 'Rating must be an integer from 1 to 5' }); }
+    if (body.amount_points !== undefined) { const amount = Number(body.amount_points); if (!Number.isInteger(amount) || amount <= 0 || amount > 1_000_000) return void res.status(400).json({ error: 'Invalid Points amount' }); }
     if (req.path === '/api/iot/command') {
         if (body.protocol === 'http') {
             const host = String(body.ip || '').trim();
@@ -108,9 +102,7 @@ function validateSensitiveInput(req: Request, res: Response, next: NextFunction)
             if (!['GET', 'POST'].includes(method)) return void res.status(400).json({ error: 'IoT HTTP method not allowed' });
             const targetPath = String(body.path || '/');
             if (!targetPath.startsWith('/') || targetPath.includes('..')) return void res.status(400).json({ error: 'Invalid IoT target path' });
-        } else if (body.protocol === 'mqtt' && (!body.topic || String(body.topic).length > 200)) {
-            return void res.status(400).json({ error: 'Invalid MQTT topic' });
-        }
+        } else if (body.protocol === 'mqtt' && (!body.topic || String(body.topic).length > 200)) return void res.status(400).json({ error: 'Invalid MQTT topic' });
     }
     if (req.path === '/api/admin/disputes/resolve' && !['release', 'refund'].includes(String(body.action))) return void res.status(400).json({ error: 'Invalid dispute resolution action' });
     next();
@@ -122,11 +114,7 @@ function isPublicRoute(method: string, path: string): boolean {
     return false;
 }
 
-function normalizeRoutePaths(path: any): string[] {
-    if (typeof path === 'string') return [path];
-    if (Array.isArray(path)) return path.filter((p): p is string => typeof p === 'string');
-    return [];
-}
+function normalizeRoutePaths(path: any): string[] { if (typeof path === 'string') return [path]; if (Array.isArray(path)) return path.filter((p): p is string => typeof p === 'string'); return []; }
 
 function installApiRouteGuards() {
     const application: any = (express as any).application;
@@ -140,9 +128,8 @@ function installApiRouteGuards() {
             if (apiPaths.length > 0 && !apiPaths.every(p => isPublicRoute(method, p))) {
                 const isAdmin = apiPaths.some(p => p.startsWith('/api/admin/'));
                 const guard = isAdmin ? authenticateAdmin : authenticateUser;
-                const preflight = validateSensitiveInput;
                 const ownership = isAdmin ? null : enforceUserOwnership;
-                return original.call(this, path, ...(ownership ? [guard, preflight, ownership] : [guard, preflight]), ...handlers);
+                return original.call(this, path, ...(ownership ? [guard, validateSensitiveInput, ownership] : [guard, validateSensitiveInput]), ...handlers);
             }
             return original.call(this, path, ...handlers);
         };
