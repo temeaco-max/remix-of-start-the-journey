@@ -29,38 +29,14 @@ export async function getDb() {
 
 let saveTimer: NodeJS.Timeout | null = null;
 const SAVE_DEBOUNCE_MS = Math.max(50, Number(process.env.KURUKOO_DB_SAVE_DEBOUNCE_MS || 250));
-
-function flushDb() {
-    if (!db) return;
-    const data = db.export();
-    fs.writeFileSync(dbFilePath, Buffer.from(data));
-}
-
-export function saveDb(immediate = false) {
-    if (!db) return;
-    if (immediate) {
-        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-        flushDb();
-        return;
-    }
-    if (saveTimer) return;
-    saveTimer = setTimeout(() => { saveTimer = null; flushDb(); }, SAVE_DEBOUNCE_MS);
-}
-
+function flushDb() { if (!db) return; const data = db.export(); fs.writeFileSync(dbFilePath, Buffer.from(data)); }
+export function saveDb(immediate = false) { if (!db) return; if (immediate) { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; } flushDb(); return; } if (saveTimer) return; saveTimer = setTimeout(() => { saveTimer = null; flushDb(); }, SAVE_DEBOUNCE_MS); }
 process.once('beforeExit', () => flushDb());
 
 function initTables(database: any) {
     database.run(`
         CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT);
-        CREATE TABLE IF NOT EXISTS memory_profiles (
-            phone TEXT PRIMARY KEY, name TEXT, email TEXT, location TEXT, primary_lga TEXT, primary_state TEXT,
-            country TEXT DEFAULT 'ng', subscription_tier TEXT DEFAULT 'Base', points_balance INTEGER DEFAULT 30,
-            wallet_balance_minor INTEGER DEFAULT 30, currency TEXT DEFAULT 'NGN', preferences TEXT,
-            behavior_patterns TEXT, inferred_roles TEXT, grace_leads INTEGER DEFAULT 0, fcm_token TEXT,
-            is_available INTEGER DEFAULT 0, is_contributor INTEGER DEFAULT 0, nin TEXT, verified_provider INTEGER DEFAULT 0,
-            livecast_signals_remaining INTEGER DEFAULT 30, trust_score REAL DEFAULT 5.0, last_active_at TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
+        CREATE TABLE IF NOT EXISTS memory_profiles (phone TEXT PRIMARY KEY, name TEXT, email TEXT, location TEXT, primary_lga TEXT, primary_state TEXT, country TEXT DEFAULT 'ng', subscription_tier TEXT DEFAULT 'Base', points_balance INTEGER DEFAULT 30, wallet_balance_minor INTEGER DEFAULT 30, currency TEXT DEFAULT 'NGN', preferences TEXT, behavior_patterns TEXT, inferred_roles TEXT, grace_leads INTEGER DEFAULT 0, fcm_token TEXT, is_available INTEGER DEFAULT 0, is_contributor INTEGER DEFAULT 0, nin TEXT, verified_provider INTEGER DEFAULT 0, livecast_signals_remaining INTEGER DEFAULT 30, trust_score REAL DEFAULT 5.0, last_active_at TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS profile_access_log (id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT, service_name TEXT, action TEXT, timestamp TEXT DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS keep_alive_analytics (id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT, event_type TEXT, cost_impact REAL DEFAULT 0.0, metadata TEXT, timestamp TEXT DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS temp_sessions (sessionId TEXT PRIMARY KEY, location TEXT, interactions TEXT, preferences TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
@@ -110,109 +86,29 @@ function initTables(database: any) {
         CREATE TABLE IF NOT EXISTS provider_subscriptions (phone TEXT PRIMARY KEY, tier TEXT NOT NULL, status TEXT NOT NULL, next_billing_date TEXT NOT NULL, leads_this_month INTEGER DEFAULT 0);
         CREATE TABLE IF NOT EXISTS commission_config (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT UNIQUE, rate_minor INTEGER, description TEXT, active INTEGER DEFAULT 1);
     `);
-
-    const addColumns = (table: string, additions: Record<string, string>) => {
-        const result = database.exec(`PRAGMA table_info(${table})`);
-        const cols = result?.[0]?.values?.map((col: any[]) => String(col[1])) || [];
-        for (const [name, definition] of Object.entries(additions)) if (!cols.includes(name)) database.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
-    };
-    addColumns('memory_profiles', { email: 'TEXT', primary_lga: 'TEXT', primary_state: 'TEXT', points_balance: 'INTEGER DEFAULT 30', livecast_signals_remaining: 'INTEGER DEFAULT 30', trust_score: 'REAL DEFAULT 5.0', last_active_at: 'TEXT', full_name: 'TEXT', sso_provider: 'TEXT', sso_provider_id: 'TEXT', email_verified_at: 'TEXT', display_name: 'TEXT', subscription_expiry: 'TEXT', available_for_work: 'INTEGER DEFAULT 0' });
-    addColumns('escrow', { booking_type: 'TEXT', cooling_off_until: 'TEXT', completed_at: 'TEXT', dispute_reason: 'TEXT' });
-    addColumns('referrals', { status: "TEXT DEFAULT 'pending'", referral_code: 'TEXT', created_at: 'TEXT DEFAULT CURRENT_TIMESTAMP' });
-    addColumns('skills', { verified_artist: 'INTEGER DEFAULT 0' });
-    addColumns('ai_agents', { avatar: "TEXT DEFAULT '🤖'" });
-    addColumns('messages', { status: "TEXT DEFAULT 'sent'", whatsapp_msg_id: 'TEXT' });
-    addColumns('orders', {
-        category: 'TEXT',
-        requirements_json: "TEXT DEFAULT '{}'",
-        capabilities_json: "TEXT DEFAULT '[]'",
-        provider_status: "TEXT DEFAULT 'unmatched'",
-        quote_json: 'TEXT',
-        fulfillment_json: 'TEXT'
-    });
-    database.run("CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone)");
-    database.run("CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)");
-    database.run("CREATE INDEX IF NOT EXISTS idx_orders_phone_status ON orders(phone, status)");
-
-    const emergency = [['ng', 'Police Emergency', '112'], ['ng', 'Federal Road Safety (FRSC)', '122'], ['ng', 'Lagos State Emergency (LASEMA)', '767']];
-    for (const e of emergency) database.run(`INSERT OR IGNORE INTO emergency_contacts (country, name, phone) VALUES (?, ?, ?)`, e);
+    const result = database.exec("PRAGMA table_info(referrals)");
+    if (result?.length && result[0].values) { const c=result[0].values.map((x:any)=>x[1]); if(!c.includes('status'))database.run("ALTER TABLE referrals ADD COLUMN status TEXT DEFAULT 'pending'"); if(!c.includes('referral_code'))database.run("ALTER TABLE referrals ADD COLUMN referral_code TEXT"); if(!c.includes('created_at'))database.run("ALTER TABLE referrals ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP"); }
+    const skillsResult=database.exec("PRAGMA table_info(skills)"); if(skillsResult?.length&&skillsResult[0].values){const c=skillsResult[0].values.map((x:any)=>x[1]);if(!c.includes('verified_artist'))database.run("ALTER TABLE skills ADD COLUMN verified_artist BOOLEAN DEFAULT 0");}
+    const agentsResult=database.exec("PRAGMA table_info(ai_agents)"); if(agentsResult?.length&&agentsResult[0].values){const c=agentsResult[0].values.map((x:any)=>x[1]);if(!c.includes('avatar'))database.run("ALTER TABLE ai_agents ADD COLUMN avatar TEXT DEFAULT '🤖'");}
+    const messagesResult=database.exec("PRAGMA table_info(messages)"); if(messagesResult?.length&&messagesResult[0].values){const c=messagesResult[0].values.map((x:any)=>x[1]);if(!c.includes('status'))database.run("ALTER TABLE messages ADD COLUMN status TEXT DEFAULT 'sent'");if(!c.includes('whatsapp_msg_id'))database.run("ALTER TABLE messages ADD COLUMN whatsapp_msg_id TEXT");}
+    database.run("CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone)"); database.run("CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)");
+    const emergency=[['ng','Police Emergency','112'],['ng','Federal Road Safety (FRSC)','122'],['ng','Lagos State Emergency (LASEMA)','767']]; for(const e of emergency)database.run(`INSERT OR IGNORE INTO emergency_contacts (country,name,phone) VALUES (?,?,?)`,e);
 }
 
-function seedSkillFlows(database: any) {
-    const seeds = [
-        ['rider', [{ q: 'What is your pickup location?', options: [] }, { q: 'What is your dropoff location?', options: [] }], 'lead', 'credits', 'Find nearest active riders'],
-        ['plumber', [{ q: 'What plumbing issue are you facing?', options: ['Leaking pipe', 'Blocked drain', 'Toilet repair', 'Other'] }], 'lead', 'credits', 'Match with local plumber'],
-        ['electrician', [{ q: 'Describe the electrical job', options: ['Wiring', 'Fixture install', 'Fault finding', 'Other'] }], 'lead', 'credits', 'Match with electrician'],
-        ['mechanic', [{ q: 'What is the vehicle issue?', options: ['Engine', 'Brakes', 'Oil change', 'Battery', 'Not starting'] }], 'lead', 'credits', 'Match vehicle mechanic'],
-        ['phone_repair', [{ q: 'Select your phone issue', options: ['Screen replacement', 'Battery change', 'Charging port', 'Software'] }], 'lead', 'credits', 'Match mobile repair technician'],
-        ['food_nearby', [{ q: 'Postcode and cuisine', options: [] }], 'affiliate', 'credits', 'List nearby food providers'],
-        ['dispatch_rider', [{ q: 'What item needs dispatching?', options: ['Food', 'E-commerce package', 'Documents'] }], 'lead', 'credits', 'Match active dispatch rider'],
-        ['doctor_appointment', [{ q: 'What type of appointment do you need?', options: ['General', 'Specialist', 'Follow-up'] }], 'appointment', 'credits', 'Schedule with an appropriate provider'],
-        ['verified_artist', [{ q: 'What event are you planning?', options: ['Wedding', 'Corporate', 'Concert', 'Private event'] }, { q: 'Event date and venue', options: [] }, { q: 'Approximate budget', options: [] }], 'booking', 'escrow', 'Match verified talent/representative'],
-        ['event_mc', [{ q: 'What type of event?', options: ['Wedding', 'Corporate', 'Concert', 'Private party'] }], 'booking', 'escrow', 'Match event MC'],
-        ['dj', [{ q: 'What type of event?', options: ['Wedding', 'Corporate', 'Club', 'Private party'] }], 'booking', 'escrow', 'Match event DJ'],
-        ['buy_car', [{ q: 'Make, model, year and budget', options: [] }], 'listing', 'escrow', 'Match verified vehicle sellers and inspection options'],
-        ['buy_ticket', [{ q: 'Which event, date, quantity and seating preference?', options: [] }], 'reservation', 'payment', 'Check real inventory and reserve only after provider confirmation'],
-        ['order_food', [{ q: 'What would you like to order, and how many?', options: [] }, { q: 'Delivery location', options: [] }], 'order', 'payment', 'Match catalog vendor, confirm inventory, then dispatch if needed'],
-        ['keke_driver', [{ q: 'Pickup and destination', options: [] }, { q: 'When?', options: ['Now', 'Later'] }], 'ride', 'payment', 'Match available keke provider'],
-        ['okada_rider', [{ q: 'Pickup and destination', options: [] }, { q: 'When?', options: ['Now', 'Later'] }], 'ride', 'payment', 'Match available rider'],
-        ['repair', [{ q: 'What needs fixing?', options: [] }, { q: 'Where are you?', options: [] }, { q: 'How urgent is it?', options: ['Now', 'Today', 'Flexible'] }], 'lead', 'quote', 'Match the appropriate repair provider'],
-        ['find_worker', [{ q: 'What work do you need done?', options: [] }, { q: 'Where?', options: [] }, { q: 'When?', options: [] }], 'lead', 'quote', 'Match by skill, presence, availability and trust'],
-        ['emergency', [{ q: 'What is happening and where?', options: [] }], 'dispatch', 'none', 'Provide verified emergency contacts and escalate to appropriate services'],
-        ['product_sourcing', [{ q: 'What product, quantity and budget?', options: [] }, { q: 'Delivery location', options: [] }], 'order', 'escrow', 'Source from verified catalog providers and confirm inventory'],
-        ['security_personnel', [{ q: 'What protection/service is needed?', options: [] }, { q: 'Location, date and duration', options: [] }, { q: 'Vetting level required?', options: ['Standard', 'Enhanced'] }], 'booking', 'escrow', 'Match licensed/verified security providers'],
-        ['sports_coach', [{ q: 'Sport, level and schedule', options: [] }], 'booking', 'payment', 'Match sports provider'],
-        ['football_club_founder', [{ q: 'Club location, age group and objective', options: [] }], 'community', 'payment', 'Coordinate club formation and member onboarding']
-    ];
-    for (const [skill, q, action, payment, fulfillment] of seeds) database.run(`INSERT OR IGNORE INTO skill_flows (skill, question_set, post_match_action, payment_model, fulfillment_instructions) VALUES (?, ?, ?, ?, ?)`, [skill, JSON.stringify(q), action, payment, fulfillment]);
+function seedSkillFlows(database:any){
+    const skills=[['rider',[{q:'What is your pickup location?',options:[]},{q:'What is your dropoff location?',options:[]}],'lead','credits','Find nearest active riders'],['plumber',[{q:'What plumbing issue are you facing?',options:['Leaking pipe','Blocked drain','Toilet repair','Other']}],'lead','credits','Match with certified local plumber'],['electrician',[{q:'Describe the electrical job',options:['Wiring','Fixture install','Fault finding','Other']}],'lead','credits','Match with licensed electrician'],['mechanic',[{q:'What is the vehicle issue?',options:['Engine sound','Brakes','Oil change','Battery','Not starting']}],'lead','credits','Match vehicle mechanic'],['phone_repair',[{q:'Select your phone issue',options:['Screen replacement','Battery change','Charging port','Software']}],'lead','credits','Match mobile repair technician'],['order_food',[{q:'What would you like to order, and how many?',options:[]},{q:'Delivery location',options:[]}],'order','payment','Match catalog vendor, confirm inventory, then dispatch if needed'],['buy_car',[{q:'Make, model, year and budget',options:[]}],'listing','escrow','Match verified vehicle sellers and inspection options'],['buy_ticket',[{q:'Which event, date, quantity and seating preference?',options:[]}],'reservation','payment','Check real inventory and reserve only after provider confirmation'],['verified_artist',[{q:'What event are you planning?',options:['Wedding','Corporate','Concert','Private event']},{q:'Event date and venue',options:[]},{q:'Approximate budget',options:[]}],'booking','escrow','Match verified talent/representative'],['keke_driver',[{q:'Pickup and destination',options:[]},{q:'When?',options:['Now','Later']}],'ride','payment','Match available keke provider'],['okada_rider',[{q:'Pickup and destination',options:[]},{q:'When?',options:['Now','Later']}],'ride','payment','Match available rider'],['find_worker',[{q:'What work do you need done?',options:[]},{q:'Where?',options:[]},{q:'When?',options:[]}],'lead','quote','Match by skill, presence, availability and trust'],['repair',[{q:'What needs fixing?',options:[]},{q:'Where are you?',options:[]},{q:'How urgent is it?',options:['Now','Today','Flexible']}],'lead','quote','Match the appropriate repair provider'],['emergency',[{q:'What is happening and where?',options:[]}],'dispatch','none','Provide verified emergency contacts and escalate to appropriate services'],['product_sourcing',[{q:'What product, quantity and budget?',options:[]},{q:'Delivery location',options:[]}],'order','escrow','Source from verified catalog providers and confirm inventory'],['security_personnel',[{q:'What protection/service is needed?',options:[]},{q:'Location, date and duration',options:[]},{q:'Vetting level required?',options:['Standard','Enhanced']}],'booking','escrow','Match licensed/verified security providers'],['sports_coach',[{q:'Sport, level and schedule',options:[]}],'booking','payment','Match sports provider']];
+    for(const s of skills)database.run(`INSERT OR IGNORE INTO skill_flows (skill,question_set,post_match_action,payment_model,fulfillment_instructions) VALUES (?,?,?,?,?)`,[s[0],JSON.stringify(s[1]),s[2],s[3],s[4]]);
 }
+function seedDemoProviders(database:any){const skills=['plumber','electrician','mechanic','carpenter','painter','tailor','baker','caterer','photographer','cleaner','tutor','nanny','nurse','doctor','dj','event_planner','solar_installer','phone_repair','graphic_designer','web_developer','delivery','rider'];for(let i=1;i<=40;i++){const phone=`+23480${String(i).padStart(8,'0')}`;const skill=skills[i%skills.length];database.run(`INSERT OR IGNORE INTO memory_profiles(phone,name,location,country,subscription_tier,wallet_balance_minor,is_available) VALUES(?,?,?,'ng','Plus',200,1)`,[phone,`Provider ${i}`,'Lagos']);database.run(`INSERT OR IGNORE INTO skills(phone,skill,source,confidence,is_available,operation_mode,hourly_rate,rating,jobs_completed) VALUES(?,?, 'explicit',1,1,'mobile',2500,4.8,15)`,[phone,skill]);}}
+function seedNigerianProviders(database:any){return;}
+function auditAppointmentSkillFlows(database:any){const result=database.exec("PRAGMA table_info(skill_flows)");if(result?.length&&result[0].values){const c=result[0].values.map((x:any)=>x[1]);if(!c.includes('booking_mode'))database.run("ALTER TABLE skill_flows ADD COLUMN booking_mode TEXT DEFAULT 'instant'");}return 0;}
 
-export function seedDemoProviders(database: any) {}
-export function seedNigerianProviders(database: any) {}
-export function auditAppointmentSkillFlows(database: any) { return 0; }
-
-export async function searchUserMessages(phone: string, keyword: string): Promise<any[]> {
-    const database = await getDb();
-    const stmt = database.prepare(`SELECT * FROM messages WHERE phone = ? AND content LIKE ? ORDER BY id DESC`);
-    stmt.bind([phone, `%${keyword}%`]);
-    const results: any[] = [];
-    while (stmt.step()) results.push(stmt.getAsObject());
-    stmt.free();
-    return results;
-}
-export async function searchMessagesByKeyword(phone: string, keyword: string): Promise<any[]> { return searchUserMessages(phone, keyword); }
-
-export async function purgeExpiredData(): Promise<{ messagesDeleted: number; tempSessionsDeleted: number; pulseLocationsDeleted: number }> {
-    const database = await getDb();
-    const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
-    database.run(`DELETE FROM messages WHERE created_at < ?`, [twelveMonthsAgo]); const messagesDeleted = database.getRowsModified();
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    database.run(`DELETE FROM temp_sessions WHERE created_at < ?`, [sevenDaysAgo]); const tempSessionsDeleted = database.getRowsModified();
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    database.run(`DELETE FROM pulse_sessions WHERE expires_at < ?`, [thirtyDaysAgo]); const pulseLocationsDeleted = database.getRowsModified();
-    try { database.run(`DELETE FROM provider_presence WHERE updated_at < ? AND is_live = 0`, [thirtyDaysAgo]); } catch {}
-    try { database.run(`DELETE FROM audit_logs WHERE created_at < ?`, [thirtyDaysAgo]); } catch {}
-    saveDb();
-    return { messagesDeleted, tempSessionsDeleted, pulseLocationsDeleted };
-}
-
-export async function updateProviderPresence(presence: { phone: string; is_live?: boolean | number; operation_mode?: string; last_lat?: number; last_lng?: number; fuzzed_radius_m?: number; live_until?: string }): Promise<void> {
-    const database = await getDb(); const isLive = presence.is_live ? 1 : 0; const now = new Date().toISOString();
-    const existingStmt = database.prepare("SELECT phone FROM provider_presence WHERE phone = ?"); existingStmt.bind([presence.phone]); const exists = existingStmt.step(); existingStmt.free();
-    if (exists) database.run(`UPDATE provider_presence SET is_live=COALESCE(?,is_live), operation_mode=COALESCE(?,operation_mode), last_lat=COALESCE(?,last_lat), last_lng=COALESCE(?,last_lng), fuzzed_radius_m=COALESCE(?,fuzzed_radius_m), live_until=COALESCE(?,live_until), last_confirmed=?, updated_at=? WHERE phone=?`, [presence.is_live !== undefined ? isLive : null, presence.operation_mode || null, presence.last_lat ?? null, presence.last_lng ?? null, presence.fuzzed_radius_m ?? null, presence.live_until || null, now, now, presence.phone]);
-    else database.run(`INSERT INTO provider_presence (phone,is_live,operation_mode,last_lat,last_lng,fuzzed_radius_m,live_until,last_confirmed,updated_at) VALUES (?,?,?,?,?,?,?,?,?)`, [presence.phone,isLive,presence.operation_mode||'stationary',presence.last_lat||null,presence.last_lng||null,presence.fuzzed_radius_m||100,presence.live_until||null,now,now]);
-    saveDb();
-}
-export async function getProviderPresence(phone: string): Promise<any | null> { const database=await getDb(); const stmt=database.prepare("SELECT * FROM provider_presence WHERE phone=?"); stmt.bind([phone]); const result=stmt.step()?stmt.getAsObject():null; stmt.free(); return result; }
-export async function recordBehaviorSignal(signal: { phone:string; signal_type:string; key:string; value:any; strength?:number }): Promise<void> { const database=await getDb(); const valueStr=typeof signal.value==='object'?JSON.stringify(signal.value):String(signal.value); const now=new Date().toISOString(); database.run(`INSERT INTO user_behavior_signals (phone,signal_type,key,value,strength,last_seen,created_at) VALUES (?,?,?,?,?,?,?)`,[signal.phone,signal.signal_type,signal.key,valueStr,signal.strength??0.5,now,now]); saveDb(); }
-export async function getUserBehaviorSignals(phone:string, signalType?:string):Promise<any[]> { const database=await getDb(); let q="SELECT * FROM user_behavior_signals WHERE phone=?"; const p:any[]=[phone]; if(signalType){q+=" AND signal_type=?";p.push(signalType);} q+=" ORDER BY id DESC LIMIT 50"; const stmt=database.prepare(q);stmt.bind(p);const results:any[]=[];while(stmt.step()){const row=stmt.getAsObject();try{row.value=JSON.parse(row.value);}catch{}results.push(row);}stmt.free();return results; }
-export async function getSystemSetting(key:string, defaultValue:string=''):Promise<string>{const database=await getDb();const stmt=database.prepare("SELECT value FROM system_settings WHERE key=?");stmt.bind([key]);let val=defaultValue;if(stmt.step()){const row=stmt.getAsObject();val=row.value!==undefined?String(row.value):defaultValue;}stmt.free();return val;}
-export async function setSystemSetting(key:string,value:string):Promise<void>{const database=await getDb();database.run("INSERT OR REPLACE INTO system_settings (key,value) VALUES (?,?)",[key,value]);saveDb();}
-
-export async function createEconomicOrder(input: { id:string; phone:string; skill:string; category:string; requirements:Record<string,unknown>; capabilities:string[]; amount?:number }) {
-    const database=await getDb();
-    const stmt=database.prepare(`INSERT INTO orders (id,phone,order_type,amount,status,category,requirements_json,capabilities_json,provider_status) VALUES (?,?,?,?,?,?,?,?,?)`);
-    stmt.bind([input.id,input.phone,input.skill,input.amount??0,'requested',input.category,JSON.stringify(input.requirements||{}),JSON.stringify(input.capabilities||[]),'unmatched']);stmt.step();stmt.free();saveDb();return input.id;
-}
-export async function getEconomicOrder(id:string){const database=await getDb();const stmt=database.prepare(`SELECT * FROM orders WHERE id=? LIMIT 1`);stmt.bind([id]);const row=stmt.step()?stmt.getAsObject():null;stmt.free();if(!row)return null;return {...row,requirements:JSON.parse(String(row.requirements_json||'{}')),capabilities:JSON.parse(String(row.capabilities_json||'[]')),quote:row.quote_json?JSON.parse(String(row.quote_json)):null,fulfillment:row.fulfillment_json?JSON.parse(String(row.fulfillment_json)):null};}
-export async function transitionEconomicOrder(id:string,status:string,patch:Record<string,unknown>={}){const current=await getEconomicOrder(id);if(!current)throw new Error('Economic request not found');const allowed:Record<string,string[]>={requested:['awaiting_match','abandoned'],awaiting_match:['partially_matched','fulfilled','abandoned'],partially_matched:['fulfilled','abandoned'],fulfilled:[],abandoned:[]};if(status!==current.status&&!allowed[String(current.status)]?.includes(status))throw new Error(`Invalid economic request transition: ${current.status} -> ${status}`);const database=await getDb();const stmt=database.prepare(`UPDATE orders SET status=?,provider_phone=COALESCE(?,provider_phone),provider_status=COALESCE(?,provider_status),quote_json=COALESCE(?,quote_json),fulfillment_json=COALESCE(?,fulfillment_json) WHERE id=?`);stmt.bind([status,patch.provider_phone??null,patch.provider_status??null,patch.quote?JSON.stringify(patch.quote):null,patch.fulfillment?JSON.stringify(patch.fulfillment):null,id]);stmt.step();stmt.free();saveDb();return getEconomicOrder(id);}
+export async function searchUserMessages(phone:string,keyword:string):Promise<any[]>{const database=await getDb();const stmt=database.prepare(`SELECT * FROM messages WHERE phone=? AND content LIKE ? ORDER BY id DESC`);stmt.bind([phone,`%${keyword}%`]);const results:any[]=[];while(stmt.step())results.push(stmt.getAsObject());stmt.free();return results;}
+export async function searchMessagesByKeyword(phone:string,keyword:string):Promise<any[]>{return searchUserMessages(phone,keyword);}
+export async function purgeExpiredData():Promise<{messagesDeleted:number;tempSessionsDeleted:number;pulseLocationsDeleted:number}>{const database=await getDb();const a=new Date(Date.now()-365*86400000).toISOString();database.run(`DELETE FROM messages WHERE created_at<?`,[a]);const messagesDeleted=database.getRowsModified();const b=new Date(Date.now()-7*86400000).toISOString();database.run(`DELETE FROM temp_sessions WHERE created_at<?`,[b]);const tempSessionsDeleted=database.getRowsModified();const c=new Date(Date.now()-30*86400000).toISOString();database.run(`DELETE FROM pulse_sessions WHERE expires_at<?`,[c]);const pulseLocationsDeleted=database.getRowsModified();try{database.run(`DELETE FROM provider_presence WHERE updated_at<? AND is_live=0`,[c]);}catch{}try{database.run(`DELETE FROM audit_logs WHERE created_at<?`,[c]);}catch{}saveDb();return{messagesDeleted,tempSessionsDeleted,pulseLocationsDeleted};}
+export async function updateProviderPresence(p:{phone:string;is_live?:boolean|number;operation_mode?:string;last_lat?:number;last_lng?:number;fuzzed_radius_m?:number;live_until?:string}):Promise<void>{const database=await getDb();const isLive=p.is_live?1:0;const now=new Date().toISOString();const s=database.prepare("SELECT phone FROM provider_presence WHERE phone=?");s.bind([p.phone]);const exists=s.step();s.free();if(exists)database.run(`UPDATE provider_presence SET is_live=COALESCE(?,is_live),operation_mode=COALESCE(?,operation_mode),last_lat=COALESCE(?,last_lat),last_lng=COALESCE(?,last_lng),fuzzed_radius_m=COALESCE(?,fuzzed_radius_m),live_until=COALESCE(?,live_until),last_confirmed=?,updated_at=? WHERE phone=?`,[p.is_live!==undefined?isLive:null,p.operation_mode||null,p.last_lat??null,p.last_lng??null,p.fuzzed_radius_m??null,p.live_until||null,now,now,p.phone]);else database.run(`INSERT INTO provider_presence(phone,is_live,operation_mode,last_lat,last_lng,fuzzed_radius_m,live_until,last_confirmed,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`,[p.phone,isLive,p.operation_mode||'stationary',p.last_lat||null,p.last_lng||null,p.fuzzed_radius_m||100,p.live_until||null,now,now]);saveDb();}
+export async function getProviderPresence(phone:string):Promise<any|null>{const database=await getDb();const s=database.prepare("SELECT * FROM provider_presence WHERE phone=?");s.bind([phone]);const r=s.step()?s.getAsObject():null;s.free();return r;}
+export async function recordBehaviorSignal(s:{phone:string;signal_type:string;key:string;value:any;strength?:number}):Promise<void>{const database=await getDb();const v=typeof s.value==='object'?JSON.stringify(s.value):String(s.value);const now=new Date().toISOString();database.run(`INSERT INTO user_behavior_signals(phone,signal_type,key,value,strength,last_seen,created_at) VALUES(?,?,?,?,?,?,?)`,[s.phone,s.signal_type,s.key,v,s.strength??0.5,now,now]);saveDb();}
+export async function getUserBehaviorSignals(phone:string,signalType?:string):Promise<any[]>{const database=await getDb();let q="SELECT * FROM user_behavior_signals WHERE phone=?";const p:any[]=[phone];if(signalType){q+=" AND signal_type=?";p.push(signalType);}q+=" ORDER BY id DESC LIMIT 50";const s=database.prepare(q);s.bind(p);const r:any[]=[];while(s.step()){const row=s.getAsObject();try{row.value=JSON.parse(row.value);}catch{}r.push(row);}s.free();return r;}
+export async function getSystemSetting(key:string,defaultValue:string=''):Promise<string>{const database=await getDb();const s=database.prepare("SELECT value FROM system_settings WHERE key=?");s.bind([key]);let v=defaultValue;if(s.step()){const r=s.getAsObject();v=r.value!==undefined?String(r.value):defaultValue;}s.free();return v;}
+export async function setSystemSetting(key:string,value:string):Promise<void>{const database=await getDb();database.run("INSERT OR REPLACE INTO system_settings(key,value) VALUES(?,?)",[key,value]);saveDb();}
