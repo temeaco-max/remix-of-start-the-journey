@@ -5,27 +5,44 @@ export interface ChatMessageInput { phone: string; sender: 'user' | 'assistant' 
 export interface ChatHistoryOptions { conversationId?: string; limit?: number; beforeId?: number; }
 
 export async function ensureChatSchema(db: any): Promise<void> {
-    db.run(`CREATE TABLE IF NOT EXISTS chat_conversations (id TEXT PRIMARY KEY, phone TEXT NOT NULL, title TEXT, channel TEXT DEFAULT 'web', created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
+    db.run(`CREATE TABLE IF NOT EXISTS chat_conversations (id TEXT PRIMARY KEY, phone TEXT NOT NULL, title TEXT, channel TEXT DEFAULT 'unified', created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_phone_updated ON chat_conversations(phone, updated_at DESC);`);
     db.run(`CREATE TABLE IF NOT EXISTS chat_message_meta (message_id INTEGER PRIMARY KEY, conversation_id TEXT NOT NULL, metadata TEXT, attachment_url TEXT, attachment_name TEXT, attachment_type TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_chat_meta_conversation ON chat_message_meta(conversation_id, message_id DESC);`);
 }
 async function dbReady(): Promise<any> { const db = await getDb(); await ensureChatSchema(db); return db; }
 
-export async function ensureConversation(phone: string, conversationId?: string, channel = 'web', title?: string): Promise<string> {
-    const db = await dbReady(); const id = conversationId || randomUUID();
-    const stmt = db.prepare(`SELECT id FROM chat_conversations WHERE id = ? AND phone = ?`); stmt.bind([id, phone]); const exists = stmt.step(); stmt.free();
-    if (!exists) { db.run(`INSERT INTO chat_conversations (id, phone, title, channel) VALUES (?, ?, ?, ?)`, [id, phone, title || null, channel]); saveDb(); }
+export async function ensureConversation(phone: string, conversationId?: string, channel = 'unified', title?: string): Promise<string> {
+    const db = await dbReady();
+    if (conversationId) {
+        const stmt = db.prepare(`SELECT id FROM chat_conversations WHERE id = ? AND phone = ?`);
+        stmt.bind([conversationId, phone]); const exists = stmt.step(); stmt.free();
+        if (exists) return conversationId;
+    }
+
+    // One active conversation per phone is the cross-channel source of truth.
+    const latest = db.prepare(`SELECT id FROM chat_conversations WHERE phone = ? ORDER BY updated_at DESC LIMIT 1`);
+    latest.bind([phone]);
+    if (latest.step()) {
+        const id = String(latest.getAsObject().id); latest.free();
+        db.run(`UPDATE chat_conversations SET channel = 'unified', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ?`, [id, phone]);
+        return id;
+    }
+    latest.free();
+
+    const id = randomUUID();
+    db.run(`INSERT INTO chat_conversations (id, phone, title, channel) VALUES (?, ?, ?, 'unified')`, [id, phone, title || null]);
+    saveDb();
     return id;
 }
 
 export async function appendChatMessage(input: ChatMessageInput): Promise<{ id: number; conversationId: string }> {
     const db = await dbReady();
-    const conversationId = await ensureConversation(input.phone, input.conversationId, input.channel || 'web', input.sender === 'user' ? input.content.slice(0, 80) : undefined);
+    const conversationId = await ensureConversation(input.phone, input.conversationId, 'unified', input.sender === 'user' ? input.content.slice(0, 80) : undefined);
     db.run(`INSERT INTO messages (phone, sender, content, channel, card_data) VALUES (?, ?, ?, ?, ?)`, [input.phone, input.sender, input.content, input.channel || 'web', input.cardData == null ? null : JSON.stringify(input.cardData)]);
     const result = db.exec(`SELECT last_insert_rowid() AS id`); const id = Number(result?.[0]?.values?.[0]?.[0] || 0);
     db.run(`INSERT OR REPLACE INTO chat_message_meta (message_id, conversation_id, metadata) VALUES (?, ?, ?)`, [id, conversationId, input.metadata == null ? null : JSON.stringify(input.metadata)]);
-    db.run(`UPDATE chat_conversations SET updated_at = CURRENT_TIMESTAMP, title = COALESCE(title, ?) WHERE id = ? AND phone = ?`, [input.sender === 'user' ? input.content.slice(0, 80) : null, conversationId, input.phone]);
+    db.run(`UPDATE chat_conversations SET updated_at = CURRENT_TIMESTAMP, title = CASE WHEN title IS NULL AND ? = 'user' THEN ? ELSE title END WHERE id = ? AND phone = ?`, [input.sender, input.content.slice(0, 80), conversationId, input.phone]);
     saveDb(); return { id, conversationId };
 }
 
