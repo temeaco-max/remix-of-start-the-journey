@@ -33,11 +33,6 @@ function getCookie(req: Request, name: string): string | undefined {
     return pair ? decodeURIComponent(pair.slice(name.length + 1)) : undefined;
 }
 
-/**
- * Browser sessions use the HttpOnly kurukoo_auth cookie. API clients may use
- * Authorization: Bearer or the explicit x-auth-token header. Tokens are never
- * accepted from URLs because URLs leak into browser history, referrers and logs.
- */
 function getToken(req: Request): string | undefined {
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7).trim();
@@ -78,8 +73,16 @@ function extractPhone(req: Request): string | undefined {
 export function enforceUserOwnership(req: Request, res: Response, next: NextFunction): void {
     const user = (req as AuthRequest).user;
     if (!user?.phone) return void res.status(403).json({ error: 'Authenticated user identity is incomplete' });
+    const authenticatedPhone = String(user.phone);
     const requestedPhone = extractPhone(req);
-    if (requestedPhone && requestedPhone !== String(user.phone)) return void res.status(403).json({ error: 'You may only access your own user data' });
+    if (requestedPhone && requestedPhone !== authenticatedPhone) return void res.status(403).json({ error: 'You may only access your own user data' });
+
+    // Legacy endpoints that omitted a phone parameter must inherit the verified
+    // session identity rather than falling back to a demo/default user.
+    if (!requestedPhone) {
+        if (req.query && typeof req.query === 'object') req.query.phone = authenticatedPhone;
+        if (req.body && typeof req.body === 'object' && ('phone' in req.body || req.method !== 'GET')) req.body.phone = authenticatedPhone;
+    }
     next();
 }
 
