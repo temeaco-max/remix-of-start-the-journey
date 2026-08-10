@@ -7,30 +7,21 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
-      - run: node scripts/apply-conversation-security.mjs
-      - run: node scripts/apply-chat-ui-integration.mjs
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run build
-      - name: Commit deterministic source integration
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/index.ts public/dashboard.html
-          git diff --cached --quiet || git commit -m "Integrate shared chat UI"
-          git push
 
   secret-scan:
     runs-on: ubuntu-latest
