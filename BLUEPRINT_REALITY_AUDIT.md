@@ -80,7 +80,7 @@ The UI should never ask for a phone number merely to continue when a valid authe
 6. Do not send provider matching/payment/identity data to a large model when a deterministic service can answer it.
 7. Log token/model/provider usage by request class so model routing can be tuned from real economics.
 
-Groq's current published pricing makes a small model especially attractive for real-time workloads; Llama 3.1 8B Instant is listed at $0.05/M input and $0.08/M output tokens. urlGroq pricinghttps://groq.com/pricing/
+Groq's current published pricing makes a small model especially attractive for real-time workloads; Llama 3.1 8B Instant is listed at $0.05/M input and $0.08/M output tokens. See https://groq.com/pricing/.
 
 ## Email reality
 
@@ -101,7 +101,7 @@ Production requirements:
 - explicit mapping from verified email attribute to the canonical phone identity
 - rate limits and anti-loop protection
 
-Resend currently supports inbound email, attachments and `email.received` webhooks, and its July 2026 Message-ID support makes standards-based threading practical. urlResend inbound emailhttps://resend.com/features/inbound urlResend Message-ID threadinghttps://resend.com/changelog/message-id-for-sent-emails
+Resend currently supports inbound email, attachments and `email.received` webhooks, and its July 2026 Message-ID support makes standards-based threading practical. See https://resend.com/features/inbound and https://resend.com/changelog/message-id-for-sent-emails.
 
 ## Infrastructure economics
 
