@@ -1,9 +1,10 @@
-import { getDb, saveDb } from '../database.js';
 import { routeIntent } from '../services/intentRouter.js';
+import { appendChatMessage } from '../services/chatConversationService.js';
 
 export interface ChannelWebhookResult {
     status: string;
     response?: string;
+    conversationId?: string;
     [key: string]: any;
 }
 
@@ -21,33 +22,37 @@ export abstract class BaseChannelHandler {
     public async handleWebhook(body: any, headers: Record<string, any>): Promise<ChannelWebhookResult> {
         try {
             const parsed = this.parseMessage(body, headers);
-            if (!parsed) {
-                return { status: 'ignored' };
-            }
+            if (!parsed || !parsed.phone || !parsed.text.trim()) return { status: 'ignored' };
 
             const { phone, text, meta } = parsed;
-
             await this.onStart(meta);
 
-            const db = await getDb();
-            db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'user', ?, ?)`, [phone, text, this.channelName]);
+            // All channels share the same conversation ledger and Memory Profile identity.
+            const userMessage = await appendChatMessage({
+                phone,
+                sender: 'user',
+                content: text,
+                channel: this.channelName,
+                metadata: { channel: this.channelName, inbound: true, ...meta }
+            });
 
             const routing = await routeIntent(text);
             const reply = `${routing.reply}`;
 
-            db.run(`INSERT INTO messages (phone, sender, content, channel, card_data) VALUES (?, 'assistant', ?, ?, ?)`, [
+            await appendChatMessage({
                 phone,
-                reply,
-                this.channelName,
-                routing.cardData ? JSON.stringify(routing.cardData) : null
-            ]);
-            saveDb();
+                sender: 'assistant',
+                content: reply,
+                channel: this.channelName,
+                conversationId: userMessage.conversationId,
+                cardData: routing.cardData,
+                metadata: { channel: this.channelName, outbound: true }
+            });
 
             await this.sendReply(phone, reply, meta);
-
             await this.onComplete(meta);
 
-            return { status: 'success', response: reply };
+            return { status: 'success', response: reply, conversationId: userMessage.conversationId };
         } catch (e) {
             console.error(`[${this.channelName} Webhook] Error:`, e);
             return { status: 'error' };
