@@ -29,7 +29,6 @@ function verifyWebhook(rawBody: string, headers: Record<string, any>): boolean {
     const secret = process.env.RESEND_WEBHOOK_SECRET || process.env.EMAIL_WEBHOOK_SECRET;
     if (!secret) return process.env.NODE_ENV !== 'production';
 
-    // Resend webhooks use Svix signing: v1 = HMAC-SHA256(timestamp + '.' + rawBody).
     const svixId = String(headers['svix-id'] || headers['Svix-Id'] || '').trim();
     const timestamp = String(headers['svix-timestamp'] || headers['Svix-Timestamp'] || '').trim();
     const signature = String(headers['svix-signature'] || headers['Svix-Signature'] || '').trim();
@@ -38,7 +37,7 @@ function verifyWebhook(rawBody: string, headers: Record<string, any>): boolean {
         if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false;
         const signingSecret = secret.startsWith('whsec_') ? secret.slice(6) : secret;
         const key = Buffer.from(signingSecret, 'base64');
-        const signed = crypto.createHmac('sha256', key).update(`${timestamp}.${rawBody}`).digest('base64');
+        const signed = crypto.createHmac('sha256', key).update(`${svixId}.${timestamp}.${rawBody}`).digest('base64');
         return signature.split(' ').some(part => {
             const [, value] = part.split(',', 2);
             return value ? timingSafeEqualHexOrBase64(signed, value) : false;
@@ -55,25 +54,39 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
     const raw = rawBody || JSON.stringify(body);
     if (!verifyWebhook(raw, headers)) throw new Error('Invalid email webhook signature');
 
-    const eventType = String(body?.type || 'email.received');
-    if (eventType !== 'email.received') return { status: 'ignored', reason: `unsupported_event:${eventType}` };
-
+    const eventType = String(body?.type || 'email.received').toLowerCase();
     const data = body?.data || body;
-    const from = emailAddress(data?.from || body?.from || body?.sender);
-    const subject = String(data?.subject || body?.subject || '').trim();
-    const text = String(data?.text || body?.text || body?.body || '').trim();
-    if (!from || !text) throw new Error('Email sender and body are required');
-
+    const id = eventId(body);
     const db = await getDb();
-    db.run(`CREATE TABLE IF NOT EXISTS email_events (event_id TEXT PRIMARY KEY, message_id TEXT, sender TEXT NOT NULL, received_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+    db.run(`CREATE TABLE IF NOT EXISTS email_events (event_id TEXT PRIMARY KEY, event_type TEXT NOT NULL, message_id TEXT, sender TEXT, received_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
     db.run(`CREATE TABLE IF NOT EXISTS email_delivery_events (event_id TEXT PRIMARY KEY, phone TEXT, provider TEXT, provider_id TEXT, status TEXT NOT NULL, error TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
 
-    const id = eventId(body);
     const exists = db.prepare(`SELECT event_id FROM email_events WHERE event_id = ? LIMIT 1`);
     exists.bind([id]);
     if (exists.step()) { exists.free(); return { status: 'duplicate', eventId: id }; }
     exists.free();
-    db.run(`INSERT INTO email_events (event_id, message_id, sender) VALUES (?, ?, ?)`, [id, messageId(body) || null, from]);
+
+    const from = emailAddress(data?.from || body?.from || body?.sender);
+    const incomingMessageId = messageId(body);
+    db.run(`INSERT INTO email_events (event_id, event_type, message_id, sender) VALUES (?, ?, ?, ?)`, [id, eventType, incomingMessageId || null, from || null]);
+
+    // Provider lifecycle events are part of delivery state, not chat messages.
+    if (['email.delivered', 'email.delivery_delayed', 'email.bounced', 'email.complained', 'email.failed'].includes(eventType)) {
+        const providerStatus = eventType.replace('email.', '');
+        const providerId = String(data?.email_id || data?.id || incomingMessageId || id);
+        db.run(`INSERT OR REPLACE INTO email_delivery_events (event_id, phone, provider, provider_id, status, error) VALUES (?, NULL, 'resend', ?, ?, ?)`, [id, providerId, providerStatus, data?.reason || data?.message || null]);
+        saveDb();
+        return { status: 'recorded', eventId: id, deliveryStatus: providerStatus };
+    }
+
+    if (eventType !== 'email.received') {
+        saveDb();
+        return { status: 'ignored', reason: `unsupported_event:${eventType}` };
+    }
+
+    const subject = String(data?.subject || body?.subject || '').trim();
+    const text = String(data?.text || data?.plain_text || body?.text || body?.body || '').trim();
+    if (!from || !text) throw new Error('Email sender and body are required');
 
     const lookup = db.prepare(`SELECT phone FROM memory_profiles WHERE lower(email) = lower(?) LIMIT 1`);
     lookup.bind([from]);
@@ -91,18 +104,13 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
     const routing = await routeIntent(text, phone);
     const reply = routing.reply || 'I received your message and will continue here in Kurukoo.';
     const delivery = await sendEmail(from, /^re:/i.test(subject) ? subject : `Re: ${subject || 'Kurukoo'}`, reply, {
-        inReplyTo: messageId(body),
-        references: [messageId(body)].filter(Boolean) as string[],
+        inReplyTo: incomingMessageId,
+        references: [incomingMessageId].filter(Boolean) as string[],
         tags: { channel: 'email', conversation: 'kurukoo' }
     });
 
-    db.run(`INSERT OR REPLACE INTO email_delivery_events (event_id, phone, provider, provider_id, status, error) VALUES (?, ?, ?, ?, ?, ?)`, [id, phone, delivery.provider, delivery.id || null, delivery.ok ? 'sent' : 'failed', delivery.error || null]);
-
-    // Do not write a successful assistant message when the external transport rejected it.
-    // The delivery ledger records the failed attempt so a worker can retry safely later.
-    if (delivery.ok) {
-        db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'assistant', ?, 'email')`, [phone, reply]);
-    }
+    db.run(`INSERT OR REPLACE INTO email_delivery_events (event_id, phone, provider, provider_id, status, error) VALUES (?, ?, ?, ?, ?, ?)`, [id, phone, delivery.provider, delivery.id || null, delivery.ok ? 'accepted' : 'failed', delivery.error || null]);
+    if (delivery.ok) db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'assistant', ?, 'email')`, [phone, reply]);
     saveDb();
 
     return {
