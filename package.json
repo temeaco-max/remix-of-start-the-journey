@@ -15,6 +15,8 @@
     "audit:css:all": "node scripts/audit-css-system.mjs",
     "db:migrate:messages": "tsx scripts/migrate-messages.ts",
     "test:ai": "tsx scripts/test-ai-pipeline.ts",
+    "fasttext:build": "node scripts/build-fasttext.mjs",
+    "fasttext:test": "tsx scripts/test-fasttext.ts",
     "postinstall": "fasttext --help >/dev/null 2>&1 && echo 'FastText is available' || echo 'FastText CLI not found. Install with: brew install fasttext (macOS) or apt-get install fasttext (Linux). Using template fallback until model is available.'"
   },
   "dependencies": {
