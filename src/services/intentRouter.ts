@@ -8,7 +8,7 @@ import type { IntentRoutingResult } from '../types.js';
 
 const ACTION_INTENTS = new Set([
     'ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'sports_matchmaking',
-    'event_coverage', 'how_to_video', 'security_booking', 'emergency', 'circle_create'
+    'event_coverage', 'how_to_video', 'security_booking', 'circle_create', 'artist_booking'
 ]);
 
 function actionCard(intent: string): any {
@@ -18,7 +18,17 @@ function actionCard(intent: string): any {
     if (intent === 'sports_matchmaking') return { type: 'sports_search' };
     if (intent === 'event_coverage') return { type: 'event_coverage', status: 'offer' };
     if (intent === 'security_booking') return { type: 'security_booking', escrowProtected: true };
+    if (intent === 'artist_booking') return { type: 'artist_booking', status: 'verification_required', escrowProtected: true };
     return undefined;
+}
+
+function flowReply(intent: string, flow: Awaited<ReturnType<typeof getSkillFlow>>): string {
+    if (!flow) return `I can help with ${intent.replace(/_/g, ' ')}.`;
+    const action = flow.post_match_action || 'match a suitable provider';
+    const questions = flow.question_set ? flow.question_set.replace(/[\[\]{}]/g, '').trim() : '';
+    return questions
+        ? `I can help with this. ${questions} I’ll use the Kurukoo flow to ${action.toLowerCase()} and show you the next step before anything is committed.`
+        : `I can help with this. I’ll use the Kurukoo flow to ${action.toLowerCase()} and show you the next step before anything is committed.`;
 }
 
 async function balanceReply(phone?: string): Promise<string> {
@@ -44,28 +54,27 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const q = query.trim().toLowerCase();
     if (!q) return { skill: 'general_question', reply: 'Tell me what you need.' };
 
-    if (q === 'reset onboarding') {
-        return { skill: 'general_question', reply: 'Onboarding reset is available from your profile settings.' };
-    }
+    if (q === 'reset onboarding') return { skill: 'general_question', reply: 'Onboarding reset is available from your profile settings.' };
+    if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone) };
+    if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
 
-    if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) {
-        return { skill: 'view_balance', reply: await balanceReply(phone) };
-    }
-
-    if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) {
-        return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
+    if (q.includes('book an artist') || q.includes('book a musician') || q.includes('book a dj') || q.includes('book a celebrity') || q.includes('hire an artist')) {
+        const flow = await getSkillFlow('artist_booking').catch(() => null);
+        return {
+            skill: 'artist_booking',
+            reply: '🎤 I can coordinate a creator/artist booking, but I’ll only present verified representatives and the booking terms before any escrow is funded. Tell me the artist/act, event date, venue/city, expected set or appearance, and budget.',
+            cardData: actionCard('artist_booking') || flow ? { ...(actionCard('artist_booking') || {}), flow } : undefined
+        };
     }
 
     if (q.includes('price check') || q.includes('market price') || q.includes('how much is')) {
         const result = await delegateToAgentForSkill('price_checker', query, phone);
         if (result.success) return { skill: 'price_check', reply: result.reply };
     }
-
     if (q.includes('dispute') || q.includes('complain') || q.includes('scam') || q.includes('safety')) {
         const result = await delegateToAgentForSkill('support_triage', query, phone);
         if (result.success) return { skill: 'support_triage', reply: result.reply };
     }
-
     if (q.includes('bin day') || q.includes('mot reminder') || q.includes('council tax') || q.includes('energy tariff')) {
         const result = await delegateToAgentForSkill('bin_day', query, phone);
         if (result.success) return { skill: 'life_admin', reply: result.reply };
@@ -87,17 +96,12 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
             case 'event_coverage': reply = '📸 I can help coordinate event coverage. Tell me the event location, date, and what you need captured.'; break;
             case 'how_to_video': reply = '🎥 Tell me what you want to learn. I can turn a practical guide into a structured how-to video workflow.'; break;
             case 'security_booking': reply = '🛡️ Tell me the location, date/time, and duration. I’ll route a vetted security booking with escrow protection.'; break;
-            case 'emergency': reply = '🚨 I can help coordinate an emergency request. Tell me what happened and your current area, or use the emergency action if immediate assistance is needed.'; break;
-            default: reply = flow?.post_match_action || `I can help with ${classification.intent.replace(/_/g, ' ')}.`;
+            case 'circle_create': reply = flowReply(classification.intent, flow); break;
+            default: reply = flowReply(classification.intent, flow);
         }
         return { skill: classification.intent, reply, cardData };
     }
 
-    // General knowledge/simple conversation goes through the cost-effective AI router.
     const ai = await queryUnifiedAI(query, { provider, phone });
-    return {
-        skill: 'general_question',
-        reply: ai.text,
-        cardData: ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model } : undefined
-    };
+    return { skill: 'general_question', reply: ai.text, cardData: ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model } : undefined };
 }
