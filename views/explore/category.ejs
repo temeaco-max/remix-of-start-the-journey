@@ -1,115 +1,69 @@
 <%- include('../_partials/head', { country, t, seo, schemas, faqs, reqPath }) %>
 <%- include('../_partials/nav', { country, t, shortcode }) %>
 
-    <main class="viewsexplorecategoryejs-st-1 container" >
-        <!-- Breadcrumb -->
-        <div  class="viewsexplorecategoryejs-st-2">
-            <a href="/explore"  class="viewsexplorecategoryejs-st-3">← Back to Explore Hub</a> / <span><%= category.name %></span>
+<main class="viewsexplorecategoryejs-st-1 container">
+  <div class="viewsexplorecategoryejs-st-2">
+    <a href="/explore" class="viewsexplorecategoryejs-st-3">← Back to Explore Hub</a> / <span><%= category.name %></span>
+  </div>
+
+  <div class="hybrid-chat-hero-grid">
+    <div>
+      <div class="flex-align-center-gap-16">
+        <div class="explore-category-icon category-hero-icon-box"><%= category.icon %></div>
+        <div>
+          <h1 class="category-hero-title"><%= category.name %></h1>
+          <div class="category-hero-meta">
+            <span>🛡️ <%= category.providerCount %> Verified Providers</span>
+            <span>★ <%= category.avgRating %> Rating</span>
+            <span>⚡ Instant Dispatch</span>
+          </div>
         </div>
+      </div>
 
-        <div class="hybrid-chat-hero-grid">
-            
-            <!-- Left Column: Details & Subcategories -->
-            <div>
-                <div class="flex-align-center-gap-16">
-                    <div class="explore-category-icon category-hero-icon-box"><%= category.icon %></div>
-                    <div>
-                        <h1 class="category-hero-title"><%= category.name %></h1>
-                        <div class="category-hero-meta">
-                            <span>🛡️ <%= category.providerCount %> Verified Providers</span>
-                            <span>★ <%= category.avgRating %> Rating</span>
-                            <span>⚡ Instant Dispatch</span>
-                        </div>
-                    </div>
-                </div>
+      <p class="category-detail-desc"><%= category.description %> Kurukoo connects you with trusted professionals in your area through the primary conversation interface.</p>
 
-                <p class="category-detail-desc">
-                    <%= category.description %> Kurukoo connects you instantly with trusted professionals in your area through a private, zero-fuss conversation. No bloated apps or complex forms.
-                </p>
+      <h3 class="subcat-section-title">Related Services &amp; Sub-categories</h3>
+      <div class="subcat-grid">
+        <% category.subCategories.forEach(sub => { %>
+          <a href="/explore/<%= sub.slug %>" class="subcat-card"><span><%= sub.name %></span><span class="subcat-arrow">→</span></a>
+        <% }) %>
+      </div>
 
-                <!-- Feature Sub-categories -->
-                <h3 class="subcat-section-title">Related Services & Sub-categories</h3>
-                <div class="subcat-grid">
-                    <% category.subCategories.forEach(sub => { %>
-                        <a href="/explore/<%= sub.slug %>" class="subcat-card">
-                            <span><%= sub.name %></span>
-                            <span class="subcat-arrow">→</span>
-                        </a>
-                    <% }) %>
-                </div>
-
-                <!-- Sponsored Ad Slot -->
-                <% if (ads && ads.length > 0) { %>
-                    <% const ad = ads[0]; %>
-                    <div class="sponsored-ad-card">
-                        <span class="sponsored-badge">Featured Partner Offer</span>
-                        <h4 class="sponsored-title"><%= ad.title %></h4>
-                        <p class="sponsored-desc"><%= ad.desc %></p>
-                        <a href="https://wa.me/2347000" target="_blank" class="sponsored-btn">
-                            Claim Offer on WhatsApp →
-                        </a>
-                    </div>
-                <% } %>
-            </div>
-
-            <!-- Right Column: Interactive Live Chat Container -->
-            <div class="sticky-sidebar">
-                <div class="chat-preview-window">
-                    <!-- Embed Kurukoo Chat Container -->
-                    <div id="category-chat-embed" class="chat-embed-container"></div>
-                </div>
-
-                                <div class="step-desc">Parsing Pidgin & slang into structured payload attributes.</div>
-                            </div>
-                        </div>
-                        
-                            <span class="step-num">2</span>
-                            <div>
-                                <div class="step-title">Living Memory Engine</div>
-                                <div class="step-desc">Retrieving customer history, vehicle records, and preferences.</div>
-                            </div>
-                        </div>
-                        
-                            <span class="step-num">3</span>
-                            <div>
-                                <div class="step-title">Catalog & Worker Match</div>
-                                <div class="step-desc">Searching nearby micro-catalogs & calculating trust scores.</div>
-                            </div>
-                        </div>
-                        
-                            <span class="step-num">4</span>
-                            <div>
-                                <div class="step-title">Escrow Protection Lock</div>
-                                <div class="step-desc">Securing pay split in safe escrow until buyer verification.</div>
-                            </div>
-                        </div>
-                        
-                            <span class="step-num">5</span>
-                            <div>
-                                <div class="step-title">Multi-Leg Dispatch & Track</div>
-                                <div class="step-desc">Orchestrating live motorcycle courier & ETA delivery tracking.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
+      <% if (ads && ads.length > 0) { const ad = ads[0]; %>
+        <div class="sponsored-ad-card">
+          <span class="sponsored-badge">Featured Partner Offer</span>
+          <h4 class="sponsored-title"><%= ad.title %></h4>
+          <p class="sponsored-desc"><%= ad.desc %></p>
+          <a href="/chat?intent=<%= encodeURIComponent(category.name) %>" class="sponsored-btn">Ask Kurukoo →</a>
         </div>
-    </main>
+      <% } %>
+    </div>
 
-    <%- include('../_partials/footer') %>
+    <aside class="sticky-sidebar">
+      <div class="chat-preview-window">
+        <div class="chat-embed-header">
+          <strong>Talk to Kurukoo about <%= category.name %></strong>
+          <a href="/chat?intent=<%= encodeURIComponent(category.name) %>" class="btn btn-primary">Open full chat</a>
+        </div>
+        <iframe
+          class="chat-embed-container"
+          title="Kurukoo chat"
+          loading="lazy"
+          src="/chat/?embed=1&amp;prompt=<%= encodeURIComponent('I need a ' + category.name.toLowerCase() + ' service.') %>"></iframe>
+      </div>
 
-    <script src="/js/kurukoo-chat.js"></script>
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            KurukooChat.init({
-                containerId: 'category-chat-embed',
-                mode: 'homepage_simulation',
-                initialMessage: 'I need a <%= category.name.toLowerCase() %> service.',
-                mockScript: <%- JSON.stringify(category.mockConversation || []) %>
-            });
-        });
-    </script>
-</body>
-</html>
+      <div class="card workflow-summary">
+        <h3>How Kurukoo coordinates this</h3>
+        <ol class="workflow-steps">
+          <li><strong>Understand</strong><span>Intent and local language are interpreted into a structured request.</span></li>
+          <li><strong>Remember</strong><span>Memory Profile and preferences are applied.</span></li>
+          <li><strong>Match</strong><span>Nearby providers and micro-catalogs are evaluated.</span></li>
+          <li><strong>Protect</strong><span>Eligible transactions can use escrow.</span></li>
+          <li><strong>Coordinate</strong><span>Dispatch, updates and follow-up stay in the conversation.</span></li>
+        </ol>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<%- include('../_partials/footer') %>
