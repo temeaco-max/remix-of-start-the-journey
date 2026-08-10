@@ -1,0 +1,122 @@
+import { randomUUID } from 'crypto';
+import { getDb, saveDb } from '../database.js';
+
+export interface ChatMessageInput {
+    phone: string;
+    sender: 'user' | 'assistant' | 'system';
+    content: string;
+    channel?: string;
+    conversationId?: string;
+    cardData?: unknown;
+    metadata?: unknown;
+}
+
+export interface ChatHistoryOptions {
+    conversationId?: string;
+    limit?: number;
+    beforeId?: number;
+}
+
+export async function ensureChatSchema(db: any): Promise<void> {
+    db.run(`CREATE TABLE IF NOT EXISTS chat_conversations (
+        id TEXT PRIMARY KEY,
+        phone TEXT NOT NULL,
+        title TEXT,
+        channel TEXT DEFAULT 'web',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_phone_updated ON chat_conversations(phone, updated_at DESC);`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS chat_message_meta (
+        message_id INTEGER PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        metadata TEXT,
+        attachment_url TEXT,
+        attachment_name TEXT,
+        attachment_type TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_chat_meta_conversation ON chat_message_meta(conversation_id, message_id DESC);`);
+}
+
+async function dbReady(): Promise<any> {
+    const db = await getDb();
+    await ensureChatSchema(db);
+    return db;
+}
+
+export async function ensureConversation(phone: string, conversationId?: string, channel = 'web', title?: string): Promise<string> {
+    const db = await dbReady();
+    const id = conversationId || randomUUID();
+    const existing = db.exec(`SELECT id FROM chat_conversations WHERE id = '${id.replace(/'/g, "''")}' AND phone = '${phone.replace(/'/g, "''")}'`);
+    if (!existing.length) {
+        db.run(`INSERT INTO chat_conversations (id, phone, title, channel) VALUES (?, ?, ?, ?)`, [id, phone, title || null, channel]);
+        saveDb();
+    }
+    return id;
+}
+
+export async function appendChatMessage(input: ChatMessageInput): Promise<{ id: number; conversationId: string }> {
+    const db = await dbReady();
+    const conversationId = await ensureConversation(input.phone, input.conversationId, input.channel || 'web', input.sender === 'user' ? input.content.slice(0, 80) : undefined);
+    const cardData = input.cardData == null ? null : JSON.stringify(input.cardData);
+    db.run(`INSERT INTO messages (phone, sender, content, channel, card_data) VALUES (?, ?, ?, ?, ?)`, [input.phone, input.sender, input.content, input.channel || 'web', cardData]);
+    const result = db.exec(`SELECT last_insert_rowid() AS id`);
+    const id = Number(result?.[0]?.values?.[0]?.[0] || 0);
+    db.run(`INSERT OR REPLACE INTO chat_message_meta (message_id, conversation_id, metadata) VALUES (?, ?, ?)`, [id, conversationId, input.metadata == null ? null : JSON.stringify(input.metadata)]);
+    db.run(`UPDATE chat_conversations SET updated_at = CURRENT_TIMESTAMP, title = COALESCE(title, ?) WHERE id = ? AND phone = ?`, [input.sender === 'user' ? input.content.slice(0, 80) : null, conversationId, input.phone]);
+    saveDb();
+    return { id, conversationId };
+}
+
+export async function listChatConversations(phone: string, limit = 50): Promise<any[]> {
+    const db = await dbReady();
+    const stmt = db.prepare(`SELECT id, phone, title, channel, created_at, updated_at FROM chat_conversations WHERE phone = ? ORDER BY updated_at DESC LIMIT ?`);
+    stmt.bind([phone, Math.min(Math.max(limit, 1), 100)]);
+    const rows: any[] = [];
+    while (stmt.step()) rows.push(stmt.getAsObject());
+    stmt.free();
+    return rows;
+}
+
+export async function listChatMessages(phone: string, options: ChatHistoryOptions = {}): Promise<any[]> {
+    const db = await dbReady();
+    const limit = Math.min(Math.max(options.limit || 50, 1), 100);
+    const params: any[] = [phone];
+    let sql = `SELECT m.*, cm.conversation_id, cm.metadata, cm.attachment_url, cm.attachment_name, cm.attachment_type
+        FROM messages m LEFT JOIN chat_message_meta cm ON cm.message_id = m.id WHERE m.phone = ?`;
+    if (options.conversationId) { sql += ` AND cm.conversation_id = ?`; params.push(options.conversationId); }
+    if (options.beforeId) { sql += ` AND m.id < ?`; params.push(options.beforeId); }
+    sql += ` ORDER BY m.id DESC LIMIT ?`;
+    params.push(limit);
+    const stmt = db.prepare(sql);
+    stmt.bind(params);
+    const rows: any[] = [];
+    while (stmt.step()) rows.push(stmt.getAsObject());
+    stmt.free();
+    return rows.reverse();
+}
+
+export async function deleteChatMessage(phone: string, messageId: number): Promise<boolean> {
+    const db = await dbReady();
+    const stmt = db.prepare(`SELECT id FROM messages WHERE id = ? AND phone = ?`);
+    stmt.bind([messageId, phone]);
+    const exists = stmt.step();
+    stmt.free();
+    if (!exists) return false;
+    db.run(`DELETE FROM chat_message_meta WHERE message_id = ?`, [messageId]);
+    db.run(`DELETE FROM messages WHERE id = ? AND phone = ?`, [messageId, phone]);
+    saveDb();
+    return true;
+}
+
+export async function clearChatConversation(phone: string, conversationId: string): Promise<number> {
+    const db = await dbReady();
+    db.run(`DELETE FROM chat_message_meta WHERE message_id IN (SELECT m.id FROM messages m WHERE m.phone = ? AND m.id IN (SELECT message_id FROM chat_message_meta WHERE conversation_id = ?))`, [phone, conversationId]);
+    db.run(`DELETE FROM messages WHERE phone = ? AND id IN (SELECT message_id FROM chat_message_meta WHERE conversation_id = ?)`, [phone, conversationId]);
+    const changed = db.getRowsModified();
+    db.run(`DELETE FROM chat_conversations WHERE id = ? AND phone = ?`, [conversationId, phone]);
+    saveDb();
+    return changed;
+}
