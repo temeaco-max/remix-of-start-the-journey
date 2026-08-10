@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { getDb } from '../database.js';
@@ -20,8 +21,7 @@ function isRealBinaryModel(binPath: string): boolean {
         if (!fs.existsSync(binPath)) return false;
         const stats = fs.statSync(binPath);
         if (stats.size < 100) return false;
-        const header = fs.readFileSync(binPath).subarray(0, 32).toString('utf8');
-        return !header.includes('DUMMY_FASTTEXT');
+        return !fs.readFileSync(binPath).subarray(0, 32).toString('utf8').includes('DUMMY_FASTTEXT');
     } catch { return false; }
 }
 
@@ -84,18 +84,23 @@ function ruleClassify(q: string): FastTextResult | null {
 
 function classifyWithBinaryModel(query: string): FastTextResult | null {
     if (!fastTextReady) return null;
+    const clean = normalize(query);
+    if (!clean) return null;
+    const inputPath = path.join(os.tmpdir(), `kurukoo-fasttext-${process.pid}-${Date.now()}.txt`);
     try {
-        const clean = normalize(query);
-        if (!clean) return null;
-        const stdout = execFileSync('fasttext', ['predict-prob', modelPath(), '-'], { input: `${clean}\n`, encoding: 'utf8', timeout: 2500 }).trim();
+        fs.writeFileSync(inputPath, `${clean}\n`);
+        const stdout = execFileSync('fasttext', ['predict-prob', modelPath(), inputPath, '1'], { encoding: 'utf8', timeout: 2500 }).trim();
         const match = stdout.match(/__label__([^\s]+)\s+([0-9.]+)/);
         if (!match) return null;
         const confidence = Number(match[2]);
         if (!Number.isFinite(confidence) || confidence < MODEL_MIN_CONFIDENCE) return null;
-        const result: FastTextResult = { intent: match[1], confidence, source: 'fasttext' };
-        console.info(`[FastText] query="${query}" intent=${result.intent} confidence=${confidence.toFixed(3)} source=model`);
-        return result;
-    } catch (err: any) { console.warn('[FastText] prediction failed:', err?.message || err); return null; }
+        return { intent: match[1], confidence, source: 'fasttext' };
+    } catch (err: any) {
+        console.warn('[FastText] prediction failed:', err?.message || err);
+        return null;
+    } finally {
+        try { fs.unlinkSync(inputPath); } catch { /* best effort */ }
+    }
 }
 
 function classifyWithMemory(query: string): FastTextResult | null {
@@ -123,7 +128,6 @@ export function classifyWithFastText(query: string): FastTextResult | null {
     const cached = classificationCache.get(key);
     if (cached && cached.expiresAt > Date.now()) return cached.result;
 
-    // FastText is genuinely first. Rules are only a deterministic fallback when the model is unavailable/uncertain.
     const result = classifyWithBinaryModel(q) || ruleClassify(q) || classifyWithMemory(q);
     if (classificationCache.size > 2000) classificationCache.delete(classificationCache.keys().next().value as string);
     classificationCache.set(key, { result, expiresAt: Date.now() + CACHE_TTL_MS });
