@@ -40,16 +40,20 @@ export async function createEscrow(
 
 export async function releaseEscrow(escrowId: number, options: { force?: boolean } = {}): Promise<boolean> {
     const db = await getDb();
-    const stmt = db.prepare(`SELECT status, cooling_off_until FROM escrow WHERE id = ?`);
+    const stmt = db.prepare(`
+        SELECT e.status, e.cooling_off_until, o.status AS order_status
+        FROM escrow e
+        LEFT JOIN orders o ON o.id = e.order_id
+        WHERE e.id = ?
+    `);
     stmt.bind([escrowId]);
     let row: any = null;
     if (stmt.step()) row = stmt.getAsObject();
     stmt.free();
 
     if (!row || row.status !== 'held') return false;
-    if (!options.force && row.cooling_off_until && new Date(String(row.cooling_off_until)).getTime() > Date.now()) {
-        return false;
-    }
+    if (!options.force && !['delivered', 'completed'].includes(String(row.order_status))) return false;
+    if (!options.force && row.cooling_off_until && new Date(String(row.cooling_off_until)).getTime() > Date.now()) return false;
 
     db.run(`UPDATE escrow SET status = 'released', completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'held'`, [escrowId]);
     saveDb();
