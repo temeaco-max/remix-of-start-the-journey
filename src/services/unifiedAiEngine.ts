@@ -1,7 +1,6 @@
-import { queryGemini } from './geminiService.js';
 import { querySmolLM2 } from './smolLm2Service.js';
 import { queryGroq } from './groqService.js';
-import { classifyWithFastText } from './fastTextService.js';
+import { classifyWithFastText, type FastTextResult } from './fastTextService.js';
 
 export type AIProvider = 'auto' | 'gemini' | 'smollm2' | 'groq' | 'local_intent';
 
@@ -19,6 +18,8 @@ export interface AIResponse {
     thought?: string;
     latencyMs: number;
     cost: string;
+    intent?: string;
+    confidence?: number;
 }
 
 export interface AIStreamChunk {
@@ -28,195 +29,124 @@ export interface AIStreamChunk {
     provider?: string;
     model?: string;
     cost?: string;
+    intent?: string;
+    confidence?: number;
 }
 
-/**
- * Universal Free-Tier AI Inference Engine for Kurukoo.
- * Supports:
- *  1. Google Gemini 3.6 Flash / 3.1 Flash-Lite (Google AI Studio Free Tier)
- *  2. SmolLM2-1.7B-Instruct (Hugging Face Free Serverless)
- *  3. Groq Llama 3.1 8B Instant (Groq Free Tier)
- *  4. In-Memory TF-IDF / Semantic Intent Router (100% Offline / Zero-Cost)
- */
-export async function queryUnifiedAI(prompt: string, options?: UnifiedAIOptions): Promise<AIResponse> {
-    const startTime = Date.now();
-    const preferred = options?.provider || 'auto';
+const SIMPLE_INTENTS = new Set([
+    'general_question', 'check_balance', 'balance', 'price_check', 'help', 'weather',
+    'faq', 'greeting', 'general', 'unknown'
+]);
 
-    // 1. Explicit Gemini Selection
-    if (preferred === 'gemini') {
-        const text = await queryGemini(prompt, { systemInstruction: options?.systemPrompt });
-        const { cleanText, thought } = extractThinking(text);
-        return {
-            provider: 'Google Gemini',
-            model: 'gemini-3.6-flash',
-            text: cleanText,
-            thought,
-            latencyMs: Date.now() - startTime,
-            cost: 'Free Tier ($0.00)'
-        };
-    }
+const ACTION_INTENTS = new Set([
+    'ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'sports_matchmaking',
+    'event_coverage', 'how_to_video', 'security_booking', 'emergency', 'circle_create'
+]);
 
-    // 2. Explicit SmolLM2 Selection
-    if (preferred === 'smollm2') {
-        const text = await querySmolLM2(prompt, options?.systemPrompt);
-        const { cleanText, thought } = extractThinking(text);
-        return {
-            provider: 'HuggingFace SmolLM2',
-            model: 'SmolLM2-1.7B-Instruct',
-            text: cleanText,
-            thought,
-            latencyMs: Date.now() - startTime,
-            cost: 'Free Serverless ($0.00)'
-        };
-    }
+function cleanThinking(text: string): { text: string; thought?: string } {
+    const match = text?.match(/<think>([\s\S]*?)<\/think>/i);
+    if (!match) return { text: text || '' };
+    return { text: text.replace(/<think>[\s\S]*?<\/think>/i, '').trim(), thought: match[1].trim() };
+}
 
-    // 3. Explicit Groq Selection
-    if (preferred === 'groq') {
-        const text = await queryGroq(prompt, { systemPrompt: options?.systemPrompt });
-        const { cleanText, thought } = extractThinking(text);
-        return {
-            provider: 'Groq Cloud',
-            model: 'llama-3.1-8b-instant',
-            text: cleanText,
-            thought,
-            latencyMs: Date.now() - startTime,
-            cost: 'Free Tier ($0.00)'
-        };
-    }
+function fallback(query: string, intent?: FastTextResult | null): AIResponse {
+    const label = intent?.intent || 'general_question';
+    const text = label === 'ride_request'
+        ? 'I can arrange a ride. Tell me your destination and whether you want an Okada, Keke, or Taxi.'
+        : label === 'order_food'
+            ? 'I can help with food. Tell me what you want and your area.'
+            : label === 'find_worker'
+                ? 'I can find a verified worker. Tell me the job and your location.'
+                : 'I’m ready. Tell me what you need, what you can offer, or what you want to get done.';
+    return {
+        provider: 'Kurukoo Template',
+        model: 'template-fallback',
+        text,
+        latencyMs: 0,
+        cost: '$0.00',
+        intent: label,
+        confidence: intent?.confidence
+    };
+}
 
-    // 4. Explicit Local Fast-Intent
+export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions = {}): Promise<AIResponse> {
+    const started = Date.now();
+    const preferred = options.provider || 'auto';
+    const classification = classifyWithFastText(prompt);
+
     if (preferred === 'local_intent') {
-        const match = classifyWithFastText(prompt);
-        const text = match 
-            ? `⚡ [In-Memory Fast Intent]: Recognized intent "${match.intent}" with ${(match.confidence * 100).toFixed(0)}% confidence.`
-            : `⚡ [In-Memory Fast Intent]: General query acknowledged: "${prompt}".`;
         return {
-            provider: 'Local In-Memory Semantic Engine',
-            model: 'TF-IDF-Vector-Classifier',
-            text,
-            latencyMs: Date.now() - startTime,
-            cost: '$0.00 (Zero Latency)'
+            provider: 'FastText', model: 'kurukoo_intent',
+            text: classification ? `Intent: ${classification.intent} (${Math.round(classification.confidence * 100)}%)` : 'Intent: general_question',
+            latencyMs: Date.now() - started, cost: '$0.00',
+            intent: classification?.intent || 'general_question', confidence: classification?.confidence
         };
     }
 
-    // AUTO Mode: Resilient multi-tier fallback cascade (Gemini -> SmolLM2 -> Groq -> In-Memory)
-    try {
-        if (process.env.GEMINI_API_KEY || process.env.API_KEY) {
-            const text = await queryGemini(prompt, { systemInstruction: options?.systemPrompt });
-            if (text && !text.includes('processed your request')) {
-                const { cleanText, thought } = extractThinking(text);
-                return {
-                    provider: 'Google Gemini',
-                    model: 'gemini-3.6-flash',
-                    text: cleanText,
-                    thought,
-                    latencyMs: Date.now() - startTime,
-                    cost: 'Free Tier ($0.00)'
-                };
-            }
+    if (preferred === 'groq') {
+        try {
+            const result = cleanThinking(await queryGroq(prompt, { systemPrompt: options.systemPrompt }));
+            return { provider: 'Groq', model: 'llama-3.1-8b-instant', text: result.text, thought: result.thought, latencyMs: Date.now() - started, cost: 'rate-limited', intent: classification?.intent, confidence: classification?.confidence };
+        } catch (err) {
+            console.warn('[AI] Groq failed:', err);
+            return fallback(prompt, classification);
         }
-    } catch (e) {
-        console.warn('Auto mode Gemini attempt failed, cascading to SmolLM2...');
     }
 
-    try {
-        const text = await querySmolLM2(prompt, options?.systemPrompt);
-        if (text && !text.startsWith('🤖 [SmolLM2-1.7B-Instruct]: I received your request')) {
-            const { cleanText, thought } = extractThinking(text);
-            return {
-                provider: 'HuggingFace SmolLM2',
-                model: 'SmolLM2-1.7B-Instruct',
-                text: cleanText,
-                thought,
-                latencyMs: Date.now() - startTime,
-                cost: 'Free Serverless ($0.00)'
-            };
+    if (preferred === 'smollm2') {
+        try {
+            const result = cleanThinking(await querySmolLM2(prompt, options.systemPrompt));
+            return { provider: 'SmolLM2', model: 'SmolLM2-1.7B-Instruct', text: result.text, thought: result.thought, latencyMs: Date.now() - started, cost: 'low', intent: classification?.intent, confidence: classification?.confidence };
+        } catch (err) {
+            console.warn('[AI] SmolLM2 failed:', err);
+            return fallback(prompt, classification);
         }
-    } catch (e) {
-        console.warn('Auto mode SmolLM2 attempt failed, cascading to Groq...');
+    }
+
+    // Auto: FastText is always first. Actions go to the skill engine before generation.
+    // This function is only for natural-language generation after the action layer.
+    if (classification && ACTION_INTENTS.has(classification.intent)) {
+        return fallback(prompt, classification);
+    }
+
+    if (!classification || SIMPLE_INTENTS.has(classification.intent)) {
+        try {
+            const result = cleanThinking(await querySmolLM2(prompt, options.systemPrompt));
+            return { provider: 'SmolLM2', model: 'SmolLM2-1.7B-Instruct', text: result.text, thought: result.thought, latencyMs: Date.now() - started, cost: 'low', intent: classification?.intent, confidence: classification?.confidence };
+        } catch (err) {
+            console.warn('[AI] Simple-query SmolLM2 failed:', err);
+        }
     }
 
     if (process.env.GROQ_API_KEY) {
         try {
-            const text = await queryGroq(prompt, { systemPrompt: options?.systemPrompt });
-            const { cleanText, thought } = extractThinking(text);
-            return {
-                provider: 'Groq Cloud',
-                model: 'llama-3.1-8b-instant',
-                text: cleanText,
-                thought,
-                latencyMs: Date.now() - startTime,
-                cost: 'Free Tier ($0.00)'
-            };
-        } catch (e) {
-            console.warn('Auto mode Groq attempt failed, cascading to local intent classifier...');
+            const result = cleanThinking(await queryGroq(prompt, { systemPrompt: options.systemPrompt }));
+            return { provider: 'Groq', model: 'llama-3.1-8b-instant', text: result.text, thought: result.thought, latencyMs: Date.now() - started, cost: 'rate-limited', intent: classification?.intent, confidence: classification?.confidence };
+        } catch (err) {
+            console.warn('[AI] Complex-query Groq failed:', err);
         }
     }
 
-    // Ultimate Zero-Cost In-Memory Fallback
-    const localMatch = classifyWithFastText(prompt);
-    const fallbackText = localMatch
-        ? `⚡ [Kurukoo Intelligence]: I identified your intent as *${localMatch.intent}* (Confidence: ${(localMatch.confidence * 100).toFixed(0)}%). How can I help fulfill this for you today?`
-        : `⚡ *Kurukoo AI Assistant:* I received your request: "${prompt}". Ready to help with live rides, price checks, trade deals, and life-admin reminders!`;
-
-    return {
-        provider: 'Local In-Memory Semantic Engine',
-        model: 'TF-IDF-Vector-Classifier',
-        text: fallbackText,
-        thought: 'Classified using local FastText token-similarity weights and Nigerian economic keyword ontology.',
-        latencyMs: Date.now() - startTime,
-        cost: '$0.00'
-    };
+    return fallback(prompt, classification);
 }
 
-/**
- * Async generator for streaming AI responses with reasoning tokens.
- */
-export async function* streamUnifiedAI(prompt: string, options?: UnifiedAIOptions): AsyncGenerator<AIStreamChunk> {
-    const fullResponse = await queryUnifiedAI(prompt, options);
-
-    // Yield metadata first
+export async function* streamUnifiedAI(prompt: string, options: UnifiedAIOptions = {}): AsyncGenerator<AIStreamChunk> {
+    const result = await queryUnifiedAI(prompt, options);
     yield {
-        type: 'metadata',
-        provider: fullResponse.provider,
-        model: fullResponse.model,
-        cost: fullResponse.cost
+        type: 'metadata', provider: result.provider, model: result.model,
+        cost: result.cost, intent: result.intent, confidence: result.confidence
     };
 
-    // If thought process was extracted, stream thought chunks
-    if (fullResponse.thought) {
-        const thoughtWords = fullResponse.thought.split(' ');
-        for (let i = 0; i < thoughtWords.length; i += 3) {
-            const chunk = thoughtWords.slice(i, i + 3).join(' ') + ' ';
-            yield {
-                type: 'thought',
-                thought: chunk
-            };
-            await new Promise(r => setTimeout(r, 20));
-        }
+    // Never expose private chain-of-thought. A short status is safe for the UI.
+    if (result.thought) {
+        yield { type: 'thought', thought: 'Reasoning completed.' };
     }
 
-    // Stream main text tokens
-    const words = fullResponse.text.split(' ');
-    for (let i = 0; i < words.length; i += 3) {
-        const chunk = words.slice(i, i + 3).join(' ') + ' ';
-        yield {
-            type: 'text',
-            content: chunk
-        };
-        await new Promise(r => setTimeout(r, 25));
+    // Character-level chunks provide the same streaming feel across all providers,
+    // including local models whose runtime API returns a completed string.
+    const text = result.text || '';
+    for (let i = 0; i < text.length; i += 8) {
+        yield { type: 'text', content: text.slice(i, i + 8) };
+        await new Promise(resolve => setTimeout(resolve, 8));
     }
-}
-
-function extractThinking(rawText: string): { cleanText: string; thought?: string } {
-    if (!rawText) return { cleanText: '' };
-
-    const thinkMatch = rawText.match(/<think>([\s\S]*?)<\/think>/i);
-    if (thinkMatch) {
-        const thought = thinkMatch[1].trim();
-        const cleanText = rawText.replace(/<think>[\s\S]*?<\/think>/i, '').trim();
-        return { cleanText, thought };
-    }
-
-    return { cleanText: rawText };
 }
