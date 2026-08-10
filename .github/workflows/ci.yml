@@ -24,6 +24,7 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run audit:css:all
+      - run: npm run audit:messaging
 
   fasttext:
     runs-on: ubuntu-latest
@@ -40,8 +41,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run fasttext:build
       - name: Verify FastText model
-        run: |
-          npx tsx -e "import { classifyWithFastText } from './src/services/fastTextService.ts'; const samples=[['Book me a ride','ride_request'],['Find a plumber','find_worker'],['Order food near me','order_food']]; for (const [q,expected] of samples) { const r=classifyWithFastText(q); console.log(q,r); if (!r || r.intent!==expected) process.exit(1); }"
+        run: npm run fasttext:test
 
   secret-scan:
     runs-on: ubuntu-latest
