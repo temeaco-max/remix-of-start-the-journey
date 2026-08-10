@@ -7,25 +7,22 @@ export interface FastTextResult { intent: string; confidence: number; source?: '
 
 let trainingSet: { label: string; tokens: Set<string> }[] = [];
 let fastTextReady = false;
+const classificationCache = new Map<string, { result: FastTextResult | null; expiresAt: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const MODEL_MIN_CONFIDENCE = 0.55;
 
-function modelPath(): string {
-    return path.join(process.cwd(), 'models', 'kurukoo_intent.bin');
-}
-
-function trainingPath(): string {
-    return path.join(process.cwd(), 'models', 'intent_training_data.txt');
-}
+function modelPath(): string { return path.join(process.cwd(), 'models', 'kurukoo_intent.bin'); }
+function trainingPath(): string { return path.join(process.cwd(), 'models', 'intent_training_data.txt'); }
+function normalize(query: string): string { return query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
 
 function isRealBinaryModel(binPath: string): boolean {
     try {
         if (!fs.existsSync(binPath)) return false;
         const stats = fs.statSync(binPath);
         if (stats.size < 100) return false;
-        const header = fs.readFileSync(binPath).subarray(0, 16).toString('utf8');
+        const header = fs.readFileSync(binPath).subarray(0, 32).toString('utf8');
         return !header.includes('DUMMY_FASTTEXT');
-    } catch {
-        return false;
-    }
+    } catch { return false; }
 }
 
 function loadTrainingData(): void {
@@ -38,52 +35,27 @@ function loadTrainingData(): void {
             const spaceIdx = line.indexOf(' ');
             if (spaceIdx === -1) continue;
             const label = line.slice(9, spaceIdx).trim();
-            const text = line.slice(spaceIdx + 1).toLowerCase().replace(/[^a-z0-9 ]/g, ' ');
-            trainingSet.push({
-                label,
-                tokens: new Set(text.split(/\s+/).filter(token => token.length > 1))
-            });
+            trainingSet.push({ label, tokens: new Set(normalize(line.slice(spaceIdx + 1)).split(/\s+/).filter(token => token.length > 1)) });
         }
         console.log(`[FastText] loaded ${trainingSet.length} training examples`);
-    } catch (err) {
-        console.error('[FastText] training-data load failed:', err);
-    }
+    } catch (err) { console.error('[FastText] training-data load failed:', err); }
 }
 
 export function initializeFastText(): void {
     const modelsDir = path.join(process.cwd(), 'models');
     if (!fs.existsSync(modelsDir)) fs.mkdirSync(modelsDir, { recursive: true });
-
     const binPath = modelPath();
-    if (isRealBinaryModel(binPath)) {
-        fastTextReady = true;
-        loadTrainingData();
-        console.log(`[FastText] model ready: ${binPath}`);
-        return;
-    }
 
-    try {
-        const scriptPath = path.join(process.cwd(), 'scripts', 'generateIntentTrainingData.mjs');
-        if (!fs.existsSync(trainingPath()) && fs.existsSync(scriptPath)) {
-            execFileSync(process.execPath, [scriptPath], { stdio: 'ignore' });
-        }
-
-        if (fs.existsSync(trainingPath())) {
-            try {
-                execFileSync('fasttext', [
-                    'supervised',
-                    '-input', trainingPath(),
-                    '-output', path.join(modelsDir, 'kurukoo_intent'),
-                    '-lr', '0.5',
-                    '-epoch', '25',
-                    '-wordNgrams', '2'
-                ], { stdio: 'ignore' });
-            } catch {
-                console.warn('[FastText] CLI unavailable; using deterministic fallback classifier.');
+    if (!isRealBinaryModel(binPath)) {
+        try {
+            const scriptPath = path.join(process.cwd(), 'scripts', 'generateIntentTrainingData.mjs');
+            if (!fs.existsSync(trainingPath()) && fs.existsSync(scriptPath)) execFileSync(process.execPath, [scriptPath], { stdio: 'ignore' });
+            if (fs.existsSync(trainingPath())) {
+                try {
+                    execFileSync('fasttext', ['supervised', '-input', trainingPath(), '-output', path.join(modelsDir, 'kurukoo_intent'), '-lr', '0.5', '-epoch', '25', '-wordNgrams', '2'], { stdio: 'ignore', timeout: 30000 });
+                } catch { console.warn('[FastText] CLI unavailable during startup; deterministic fallback enabled.'); }
             }
-        }
-    } catch (err) {
-        console.warn('[FastText] initialization failed; using fallback classifier:', err);
+        } catch (err) { console.warn('[FastText] initialization failed; fallback enabled:', err); }
     }
 
     fastTextReady = isRealBinaryModel(binPath);
@@ -106,41 +78,31 @@ const blueprintRules: Array<[RegExp, string]> = [
 ];
 
 function ruleClassify(q: string): FastTextResult | null {
-    for (const [rule, intent] of blueprintRules) {
-        if (rule.test(q)) return { intent, confidence: 0.99, source: 'rules' };
-    }
+    for (const [rule, intent] of blueprintRules) if (rule.test(q)) return { intent, confidence: 0.99, source: 'rules' };
     return null;
 }
 
 function classifyWithBinaryModel(query: string): FastTextResult | null {
     if (!fastTextReady) return null;
     try {
-        const clean = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+        const clean = normalize(query);
         if (!clean) return null;
-        const stdout = execFileSync('fasttext', ['predict-prob', modelPath(), '-'], {
-            input: `${clean}\n`,
-            encoding: 'utf8',
-            timeout: 2500
-        }).trim();
+        const stdout = execFileSync('fasttext', ['predict-prob', modelPath(), '-'], { input: `${clean}\n`, encoding: 'utf8', timeout: 2500 }).trim();
         const match = stdout.match(/__label__([^\s]+)\s+([0-9.]+)/);
         if (!match) return null;
         const confidence = Number(match[2]);
-        const intent = match[1];
-        console.info(`[FastText] query="${query}" intent=${intent} confidence=${confidence.toFixed(3)} source=model`);
-        return { intent, confidence, source: 'fasttext' };
-    } catch (err: any) {
-        console.warn('[FastText] prediction failed:', err?.message || err);
-        return null;
-    }
+        if (!Number.isFinite(confidence) || confidence < MODEL_MIN_CONFIDENCE) return null;
+        const result: FastTextResult = { intent: match[1], confidence, source: 'fasttext' };
+        console.info(`[FastText] query="${query}" intent=${result.intent} confidence=${confidence.toFixed(3)} source=model`);
+        return result;
+    } catch (err: any) { console.warn('[FastText] prediction failed:', err?.message || err); return null; }
 }
 
 function classifyWithMemory(query: string): FastTextResult | null {
     if (!trainingSet.length) return null;
-    const tokens = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(t => t.length > 1);
+    const tokens = normalize(query).split(/\s+/).filter(t => t.length > 1);
     if (!tokens.length) return null;
-
-    let best = 'unknown';
-    let score = 0;
+    let best = 'unknown'; let score = 0;
     for (const item of trainingSet) {
         let hits = 0;
         for (const token of tokens) {
@@ -148,38 +110,30 @@ function classifyWithMemory(query: string): FastTextResult | null {
             else if ([...item.tokens].some(t => t.length >= 4 && token.length >= 4 && (t.includes(token) || token.includes(t)))) hits += 0.5;
         }
         const candidate = hits / tokens.length;
-        if (candidate > score) {
-            score = candidate;
-            best = item.label;
-        }
+        if (candidate > score) { score = candidate; best = item.label; }
     }
     if (best === 'unknown' || score < 0.35) return null;
-    const result = { intent: best, confidence: Math.min(0.95, Math.max(0.70, score)), source: 'fallback' as const };
-    console.info(`[FastText] query="${query}" intent=${result.intent} confidence=${result.confidence.toFixed(3)} source=memory`);
-    return result;
+    return { intent: best, confidence: Math.min(0.95, Math.max(0.70, score)), source: 'fallback' };
 }
 
 export function classifyWithFastText(query: string): FastTextResult | null {
     const q = query.trim();
     if (!q) return null;
+    const key = normalize(q);
+    const cached = classificationCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.result;
 
-    const rule = ruleClassify(q);
-    if (rule) {
-        console.info(`[FastText] query="${q}" intent=${rule.intent} confidence=${rule.confidence.toFixed(3)} source=rules`);
-        return rule;
+    // FastText is genuinely first. Rules are only a deterministic fallback when the model is unavailable/uncertain.
+    const result = classifyWithBinaryModel(q) || ruleClassify(q) || classifyWithMemory(q);
+    if (classificationCache.size > 2000) classificationCache.delete(classificationCache.keys().next().value as string);
+    classificationCache.set(key, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+
+    if (result) console.info(`[FastText] query="${q}" intent=${result.intent} confidence=${result.confidence.toFixed(3)} source=${result.source}`);
+    else {
+        getDb().then(db => db.run(`INSERT INTO unknown_intents (query) VALUES (?)`, [q])).catch(() => {});
+        console.info(`[FastText] query="${q}" intent=unknown source=fallback`);
     }
-
-    const model = classifyWithBinaryModel(q);
-    if (model) return model;
-
-    const memory = classifyWithMemory(q);
-    if (memory) return memory;
-
-    getDb().then(db => db.run(`INSERT INTO unknown_intents (query) VALUES (?)`, [q])).catch(() => {});
-    console.info(`[FastText] query="${q}" intent=unknown source=fallback`);
-    return null;
+    return result;
 }
 
-export function classifyIntentFastText(query: string): string {
-    return classifyWithFastText(query)?.intent || 'unknown';
-}
+export function classifyIntentFastText(query: string): string { return classifyWithFastText(query)?.intent || 'unknown'; }
