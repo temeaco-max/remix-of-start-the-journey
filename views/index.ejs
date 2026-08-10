@@ -1,231 +1,36 @@
 <%- include('_partials/head') %>
-<%- include('_partials/nav') %>
 
-<main class="whatsapp-style-home">
-    <!-- Top Announcement Bar -->
-    <div class="bg-emerald-600 text-white text-center py-2.5 px-4 text-sm font-medium tracking-wide flex items-center justify-center gap-2">
-        <span>🟢 One number. One conversation. Every hustle.</span>
+<link rel="stylesheet" href="/css/kurukoo-home.css?v=1">
+<main class="ko-home">
+  <header class="ko-nav">
+    <a href="/" class="ko-brand"><span class="ko-mark">K</span> Kurukoo</a>
+    <nav><a href="/chat">Chat</a><a href="/explore">Explore</a><a href="/dashboard.html">PWA</a></nav>
+  </header>
+
+  <section class="ko-hero">
+    <div class="ko-hero-copy">
+      <span class="ko-eyebrow">MULTI-CHANNEL ECONOMIC OS</span>
+      <h1>One conversation.<br>Every hustle.</h1>
+      <p>Kurukoo coordinates the informal economy through one persistent conversation — across Web, PWA, WhatsApp, USSD, SMS, Telegram, Email and IVR.</p>
+      <div class="ko-actions"><a class="ko-primary" href="/chat">Open Kurukoo Chat →</a><a class="ko-secondary" href="tel:*7000%23">Dial *7000#</a></div>
+      <div class="ko-mandate"><span>Memory Profile</span><span>Presence</span><span>Conversation</span><span>Points</span><span>Proactive Intelligence</span></div>
     </div>
+    <div class="ko-chat-frame" id="homepage-chat"></div>
+  </section>
 
-    <!-- Hero Section -->
-    <section class="py-20 md:py-28 bg-white border-b border-gray-100">
-        <div class="container mx-auto px-6 max-w-7xl">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div class="lg:col-span-6 space-y-6">
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold tracking-wider uppercase">
-                        <span>Omnichannel AI Platform & Assistant</span>
-                    </div>
-                    <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
-                        Your trusted AI assistant<br>on every channel.
-                    </h1>
-                    <p class="text-lg md:text-xl text-gray-600 leading-relaxed font-normal">
-                        Meet Kurukoo — the AI-powered companion for everyday African life. Find trusted local helpers, offer your skills, grow your business, and handle daily tasks instantly through <span class="font-bold text-gray-900">WhatsApp</span>, <span class="font-bold text-gray-900">*7000# USSD</span>, or our <span class="font-bold text-gray-900">Web App (PWA)</span>.
-                    </p>
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-                        <a href="https://wa.me/2347000?text=Hi%2C%20I%20need%20help%20with..." target="_blank" class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-base transition shadow-lg shadow-emerald-500/20">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.761.46 3.473 1.333 4.985L2 22l5.183-1.361c1.45.79 3.08 1.209 4.823 1.21h.005c5.505 0 9.987-4.482 9.987-9.988C22 6.482 17.518 2 12.012 2zm6.035 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/></svg>
-                            Start on WhatsApp
-                        </a>
-                        <a href="tel:*7000%23" class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-base transition">
-                            <span>📞 Dial *7000#</span>
-                        </a>
-                    </div>
-                    <div class="flex items-center gap-6 pt-4 text-sm text-gray-500 font-medium">
-                        <span>⭐ Trusted by thousands in Nigeria</span>
-                        <span>•</span>
-                        <span>🔒 Escrow protected</span>
-                        <span>•</span>
-                        <span>No app required</span>
-                    </div>
-                </div>
-                <div class="lg:col-span-6">
-                    <div class="relative bg-gray-50 border border-gray-200/80 rounded-2xl p-4 shadow-xl">
-                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-200">
-                            <div class="flex items-center gap-2">
-                                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span class="font-bold text-sm text-gray-800">Kurukoo AI Assistant</span>
-                            </div>
-                            <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-1 rounded-full">Online</span>
-                        </div>
-                        <div id="homepage-live-chat-embed" class="min-h-[380px] max-h-[420px] overflow-y-auto"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  <section class="ko-section">
+    <div><span class="ko-eyebrow">THE PRIMARY INTERFACE</span><h2>Tell Kurukoo what you need.</h2></div>
+    <p>Find a worker. Order food. Book a ride. Offer your skills. Check a price. Coordinate an event. Ask a question. The conversation routes the work behind the scenes.</p>
+  </section>
 
-    <!-- Role Priming Section (3 Clean Cards) -->
-    <section class="py-20 bg-gray-50">
-        <div class="container mx-auto px-6 max-w-7xl">
-            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
-                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900">What do you want to do today?</h2>
-                <p class="text-lg text-gray-600">One conversation. Every role. No profile switching, no new apps to install.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-                    <div class="space-y-4">
-                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900">Request a service</h3>
-                        <p class="text-gray-600 leading-relaxed text-sm">Need a ride, a repair, fresh food, or help with errands? Tell your trusted assistant. We match you with verified locals instantly, with payments securely locked in escrow.</p>
-                    </div>
-                    <div class="pt-6">
-                        <a href="https://wa.me/2347000?text=Hi%2C%20I%20need%20help%20with..." target="_blank" class="w-full inline-flex items-center justify-center font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 py-3 rounded-xl transition text-sm">
-                            Start Chat / Request →
-                        </a>
-                    </div>
-                </div>
+  <section class="ko-grid">
+    <article><strong>🧠 Memory</strong><p>One Memory Profile per phone. Context follows you across channels.</p></article>
+    <article><strong>📡 Presence</strong><p>Shared real-time presence adapts matching and proactive intelligence.</p></article>
+    <article><strong>🪙 Points</strong><p>Points are the continuous economic layer for participation and platform actions.</p></article>
+    <article><strong>🔒 Escrow</strong><p>Provider cards and eligible transactions can be protected by escrow.</p></article>
+  </section>
 
-                <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-                    <div class="space-y-4">
-                        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900">Offer your skills</h3>
-                        <p class="text-gray-600 leading-relaxed text-sm">Get found by your neighborhood. Whether you ride an okada, fix phones, or sell goods, list your skill once. Your assistant finds clients and routes payments straight to your wallet. You keep 100%.</p>
-                    </div>
-                    <div class="pt-6">
-                        <a href="https://wa.me/2347000?text=Hi%2C%20I%20want%20to%20offer%20my%20skills..." target="_blank" class="w-full inline-flex items-center justify-center font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-3 rounded-xl transition text-sm">
-                            Offer Skills via Chat →
-                        </a>
-                    </div>
-                </div>
-
-                <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-                    <div class="space-y-4">
-                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900">Grow my business</h3>
-                        <p class="text-gray-600 leading-relaxed text-sm">Run a shop or restaurant? Kurukoo imports your catalog and recommends your goods to nearby customers searching for them. No dashboards, just natural chat.</p>
-                    </div>
-                    <div class="pt-6">
-                        <a href="https://wa.me/2347000?text=Hi%2C%20I%20want%20to%20grow%20my%20business..." target="_blank" class="w-full inline-flex items-center justify-center font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 py-3 rounded-xl transition text-sm">
-                            Grow Business via Chat →
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features / Living Profile -->
-    <section class="py-20 bg-white border-t border-gray-100">
-        <div class="container mx-auto px-6 max-w-7xl">
-            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
-                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900">Designed for absolute simplicity</h2>
-                <p class="text-lg text-gray-600">No forms to fill out. No complex apps to download. Just message like you would a trusted friend.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="p-6 space-y-3">
-                    <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900">A friend who remembers</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Everything links to your secure profile. It remembers your favorite spots, rates, and trusted contacts so you never start from scratch.</p>
-                </div>
-                <div class="p-6 space-y-3">
-                    <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900">Natural conversations</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Speak or type in English, Pidgin, or local phrases. Kurukoo understands your intent instantly and handles all logistics behind the scenes.</p>
-                </div>
-                <div class="p-6 space-y-3">
-                    <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900">Proactive opportunities</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Always looking out for you with timely alerts, nearby mobile vendors, and earning opportunities matching your skills.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Multi-Channel Architecture Audit Section -->
-    <section class="py-20 bg-gray-50 border-t border-gray-200">
-        <div class="container mx-auto px-6 max-w-7xl">
-            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold tracking-wider uppercase">
-                    <span>Channel-Agnostic Blueprint</span>
-                </div>
-                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900">One Number. Every Channel. Seamless Continuity.</h2>
-                <p class="text-lg text-gray-600">Kurukoo's unified messaging backend syncs your conversation history across our top 3 smart device channels—Web App, WhatsApp, and Telegram—in real time.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Web App (PWA) -->
-                <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-                    <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900">1. Kurukoo Web App (PWA)</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Instant browser access via web.kurukoo.com. Features live radar, voice transcription, map matching, and wallet dashboards for smart devices.</p>
-                    <a href="/web" class="inline-flex items-center text-sm font-bold text-purple-600 hover:text-purple-700">Open Web App →</a>
-                </div>
-                <!-- WhatsApp -->
-                <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.761.46 3.473 1.333 4.985L2 22l5.183-1.361c1.45.79 3.08 1.209 4.823 1.21h.005c5.505 0 9.987-4.482 9.987-9.988C22 6.482 17.518 2 12.012 2z"/></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900">2. WhatsApp Cloud API</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Chat on your favorite messaging app with rich media, interactive buttons, catalog sync, and secure escrow notices.</p>
-                    <a href="https://wa.me/2347000" target="_blank" class="inline-flex items-center text-sm font-bold text-emerald-600 hover:text-emerald-700">Open WhatsApp →</a>
-                </div>
-                <!-- Telegram -->
-                <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900">3. Telegram Bot</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Fast, lightweight bot interaction with secure deep-links and instant notifications for tech-savvy users and agent networks.</p>
-                    <a href="https://t.me/kurukoo_bot" target="_blank" class="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-700">Open Telegram →</a>
-                </div>
-            </div>
-            <!-- Feature Phone Fallback Note -->
-            <div class="mt-8 text-center text-sm text-gray-500">
-                <span>Feature phone user? Dial <strong class="text-gray-700">*7000# USSD</strong> offline with zero data required.</span>
-            </div>
-        </div>
-    </section>
-
-    <!-- Final CTA -->
-    <section class="py-20 bg-gray-900 text-white text-center">
-        <div class="container mx-auto px-6 max-w-4xl space-y-6">
-            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Wake up. Get going.</h2>
-            <p class="text-gray-400 text-lg max-w-xl mx-auto">
-                Join thousands across Nigeria using Kurukoo across WhatsApp, USSD, and Web PWA for everyday hustle.
-            </p>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <a href="https://wa.me/2347000" target="_blank" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold transition">
-                    Start on WhatsApp (7000)
-                </a>
-                <a href="/dashboard.html" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-bold transition">
-                    Open Web App (PWA)
-                </a>
-            </div>
-        </div>
-    </section>
+  <section class="ko-channel"><span class="ko-eyebrow">EVERY CHANNEL, ONE CONVERSATION</span><div class="ko-channel-list"><span>Web</span><span>PWA</span><span>WhatsApp</span><span>USSD *7000#</span><span>SMS</span><span>Telegram</span><span>Email</span><span>IVR</span></div></section>
 </main>
-
-<script src="/js/kurukoo-chat.js"></script>
-<script>
-    window.addEventListener('DOMContentLoaded', () => {
-        if (window.KurukooChat && typeof window.KurukooChat.init === 'function') {
-            window.KurukooChat.init({
-                containerId: 'homepage-live-chat-embed',
-                mode: 'homepage_simulation',
-                mockScript: [
-                    { sender: 'assistant', content: 'Ku Kurukoo! 🌅 Found active services and helpers near you in Lagos right now.' },
-                    { sender: 'user', content: 'I need an electrician in Lekki' },
-                    { sender: 'assistant', content: 'Found Tunde Electrician (4.9★, 300m away, verified). Shall I book him for you?' },
-                    { sender: 'user', content: 'Yes please, book Tunde' },
-                    { sender: 'assistant', content: 'Done! Tunde is on his way. ₦5,000 held securely in Moniepoint escrow until you confirm the repair is complete.' }
-                ]
-            });
-        }
-    });
-</script>
-
-<%- include('_partials/onboarding-modal') %>
+<script src="/js/kurukoo-home-chat.js?v=1"></script>
 <%- include('_partials/footer') %>
