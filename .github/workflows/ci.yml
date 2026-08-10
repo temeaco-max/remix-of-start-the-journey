@@ -35,8 +35,7 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y fasttext
       - run: npm install --no-audit --no-fund
       - name: Train and verify FastText model
-        run: |
-          node -e "import('./src/services/fastTextService.ts').catch(e=>{console.error(e);process.exit(1)})"
+        run: npx tsx -e "import { classifyWithFastText } from './src/services/fastTextService.ts'; const samples=[['Book me a ride','ride_request'],['Find a plumber','find_worker'],['Order food near me','order_food']]; for (const [q,expected] of samples) { const r=classifyWithFastText(q); console.log(q,r); if (!r || r.intent!==expected) process.exit(1); }"
 
   secret-scan:
     runs-on: ubuntu-latest
