@@ -27,11 +27,19 @@ function getJwtSecret(): string {
     return secret;
 }
 
+function getCookie(req: Request, name: string): string | undefined {
+    const raw = String(req.headers.cookie || '');
+    const pair = raw.split(';').map(v => v.trim()).find(v => v.startsWith(`${name}=`));
+    return pair ? decodeURIComponent(pair.slice(name.length + 1)) : undefined;
+}
+
 function getToken(req: Request): string | undefined {
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7).trim();
     const headerToken = req.headers['x-auth-token'];
     if (typeof headerToken === 'string' && headerToken.trim()) return headerToken.trim();
+    const cookieToken = getCookie(req, 'kurukoo_auth');
+    if (cookieToken) return cookieToken;
     return typeof req.query.token === 'string' ? req.query.token : undefined;
 }
 
@@ -41,7 +49,7 @@ export function authenticateUser(req: Request, res: Response, next: NextFunction
     if (!token) return void res.status(401).json({ error: 'Authentication required' });
     try {
         const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] }) as AuthUser;
-        if (!decoded || decoded.role === 'guest') return void res.status(401).json({ error: 'Invalid authentication token' });
+        if (!decoded || decoded.role === 'guest' || !decoded.phone) return void res.status(401).json({ error: 'Invalid authentication token' });
         (req as AuthRequest).user = decoded;
         next();
     } catch { res.status(401).json({ error: 'Invalid or expired authentication token' }); }
@@ -109,7 +117,7 @@ function validateSensitiveInput(req: Request, res: Response, next: NextFunction)
 }
 
 function isPublicRoute(method: string, path: string): boolean {
-    if (method === 'post' && (/^\/api\/auth\/login$/.test(path) || /^\/api\/admin\/auth$/.test(path) || /^\/api\/referral\/resolve$/.test(path))) return true;
+    if (method === 'post' && (/^\/api\/auth\/(login|request-otp|verify-otp)$/.test(path) || /^\/api\/admin\/auth$/.test(path) || /^\/api\/referral\/resolve$/.test(path))) return true;
     if (method === 'get' && (/^\/api\/blog(?:\/.*)?$/.test(path) || /^\/api\/daily-pick$/.test(path) || /^\/api\/emergency$/.test(path) || /^\/api\/ads$/.test(path))) return true;
     return false;
 }
@@ -132,7 +140,7 @@ function installApiRouteGuards() {
             if (apiPaths.length > 0 && !apiPaths.every(p => isPublicRoute(method, p))) {
                 const isAdmin = apiPaths.some(p => p.startsWith('/api/admin/'));
                 const guard = isAdmin ? authenticateAdmin : authenticateUser;
-                const preflight = isAdmin ? validateSensitiveInput : validateSensitiveInput;
+                const preflight = validateSensitiveInput;
                 const ownership = isAdmin ? null : enforceUserOwnership;
                 return original.call(this, path, ...(ownership ? [guard, preflight, ownership] : [guard, preflight]), ...handlers);
             }
