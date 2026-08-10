@@ -1,115 +1,63 @@
 import { getDb, saveDb } from '../database.js';
 
-// Order delivery status flow:
-// escrow_held -> driver_assigned -> picked_up -> in_transit -> delivered -> completed
+const STATUS_ORDER = ['escrow_held', 'driver_assigned', 'picked_up', 'in_transit', 'delivered', 'completed'];
+const TERMINAL_STATUSES = new Set(['cancelled', 'refunded', 'completed']);
 
+/**
+ * Delivery is an external operational workflow. Kurukoo must never invent a
+ * driver, ETA, pickup, transit or delivery confirmation. Provider webhooks or
+ * an authenticated operator call update the order state.
+ */
 export async function startDeliveryStatusService() {
-    console.log('[Delivery Service] Initialized background delivery status simulation...');
-    
-    // Scan for active orders every 25 seconds to progress status
-    setInterval(async () => {
-        try {
-            await progressActiveOrders();
-        } catch (err) {
-            console.error('[Delivery Service] Error in periodic progress active orders:', err);
-        }
-    }, 25000);
+    console.log('[Delivery Service] Initialized provider-driven delivery status listener. No simulated progression is enabled.');
 }
 
 export async function progressActiveOrders() {
-    const db = await getDb();
-    
-    // Fetch orders that are in a transitional delivery status
-    const stmt = db.prepare(`SELECT * FROM orders WHERE status IN ('escrow_held', 'driver_assigned', 'picked_up', 'in_transit')`);
-    const ordersToProgress: any[] = [];
-    
-    while (stmt.step()) {
-        ordersToProgress.push(stmt.getAsObject());
-    }
-    stmt.free();
-    
-    if (ordersToProgress.length === 0) {
-        return;
-    }
-    
-    console.log(`[Delivery Service] Scanning ${ordersToProgress.length} active orders for delivery updates.`);
-    
-    for (const order of ordersToProgress) {
-        let nextStatus = '';
-        let updateMsg = '';
-        
-        switch (order.status) {
-            case 'escrow_held':
-                nextStatus = 'driver_assigned';
-                updateMsg = `🏍️ *Delivery Update (Order #${order.id}):* A dispatcher has been matched! Rider *Suleiman Okada* (4.8★) is heading to the merchant.`;
-                break;
-            case 'driver_assigned':
-                nextStatus = 'picked_up';
-                updateMsg = `📦 *Delivery Update (Order #${order.id}):* Your package has been picked up by *Suleiman Okada* from the merchant and is being prepared for dispatch.`;
-                break;
-            case 'picked_up':
-                nextStatus = 'in_transit';
-                updateMsg = `📍 *Delivery Update (Order #${order.id}):* Suleiman is in transit! Current ETA: 12 minutes. Track live updates right here.`;
-                break;
-            case 'in_transit':
-                nextStatus = 'delivered';
-                updateMsg = `✅ *Delivery Update (Order #${order.id}):* Suleiman has arrived and successfully delivered your package! Please type CONFIRM to finalize and release the escrow funds.`;
-                break;
-        }
-        
-        if (nextStatus) {
-            await updateDeliveryStatus(order.id, nextStatus, updateMsg);
-        }
-    }
+    // Retained for backwards compatibility with older schedulers. It is
+    // intentionally a no-op: real delivery providers must push status events.
+    return;
+}
+
+function validTransition(current: string, next: string): boolean {
+    if (current === next) return true;
+    if (TERMINAL_STATUSES.has(current)) return false;
+    if (TERMINAL_STATUSES.has(next)) return true;
+    const currentIndex = STATUS_ORDER.indexOf(current);
+    const nextIndex = STATUS_ORDER.indexOf(next);
+    return currentIndex >= 0 && nextIndex === currentIndex + 1;
 }
 
 export async function updateDeliveryStatus(orderId: string, status: string, messageText?: string) {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (!normalized) throw new Error('Delivery status is required');
+
     const db = await getDb();
-    
-    // Find the order
     const stmt = db.prepare(`SELECT * FROM orders WHERE id = ?`);
     let order: any = null;
-    if (stmt.step()) {
-        order = stmt.getAsObject();
-    }
+    if (stmt.step()) order = stmt.getAsObject();
     stmt.free();
-    
-    if (!order) {
-        throw new Error(`Order ${orderId} not found`);
+    if (!order) throw new Error(`Order ${orderId} not found`);
+    if (!validTransition(String(order.status), normalized)) {
+        throw new Error(`Invalid delivery transition: ${order.status} -> ${normalized}`);
     }
-    
-    // Update order status
-    db.run(`UPDATE orders SET status = ? WHERE id = ?`, [status, orderId]);
-    
-    // Generate default text if none supplied
-    const text = messageText || `🚚 *Delivery Status Update (Order #${orderId}):* Status changed to *${status.replace('_', ' ').toUpperCase()}*`;
-    
-    // Insert into user's chat thread
-    db.run(
-        `INSERT INTO messages (phone, sender, content, channel, status) VALUES (?, 'assistant', ?, 'pwa', 'read')`,
-        [order.phone, text]
-    );
-    
-    // Audit log
+
+    db.run(`UPDATE orders SET status = ? WHERE id = ?`, [normalized, orderId]);
+    const text = messageText || `🚚 Delivery update for order #${orderId}: ${normalized.replace(/_/g, ' ')}.`;
+    db.run(`INSERT INTO messages (phone, sender, content, channel, status) VALUES (?, 'assistant', ?, 'pwa', 'read')`, [order.phone, text]);
     db.run(`INSERT INTO audit_logs (action, details) VALUES (?, ?)`, [
         'delivery_status_updated',
-        JSON.stringify({ orderId, phone: order.phone, oldStatus: order.status, newStatus: status })
+        JSON.stringify({ orderId, phone: order.phone, oldStatus: order.status, newStatus: normalized, source: 'provider' })
     ]);
-    
     saveDb();
-    
-    // Send simulated or real WhatsApp message if token/phone is present
+
     const whatsappToken = process.env.WHATSAPP_TOKEN;
-    if (whatsappToken && order.phone) {
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    if (whatsappToken && phoneId && order.phone) {
         try {
-            const recipient = order.phone.replace(/^\+/, '');
-            const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || '1000000000000';
-            await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
+            const recipient = String(order.phone).replace(/^\+/, '');
+            const response = await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${whatsappToken}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { Authorization: `Bearer ${whatsappToken}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     messaging_product: 'whatsapp',
                     recipient_type: 'individual',
@@ -118,11 +66,11 @@ export async function updateDeliveryStatus(orderId: string, status: string, mess
                     text: { body: text }
                 })
             });
-            console.log(`[Delivery Service] Sent WhatsApp notification to ${order.phone} for order status ${status}`);
+            if (!response.ok) console.warn(`[Delivery Service] WhatsApp notification rejected with ${response.status}`);
         } catch (err) {
-            console.warn('[Delivery Service] Failed to send WhatsApp delivery status notification:', err);
+            console.warn('[Delivery Service] WhatsApp notification failed:', err instanceof Error ? err.message : err);
         }
     }
-    
-    console.log(`[Delivery Service] Order ${orderId} progressed to ${status}. Notification added to chat.`);
+
+    return { success: true, orderId, status: normalized };
 }
