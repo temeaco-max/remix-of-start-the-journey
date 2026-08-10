@@ -697,7 +697,7 @@ app.get('/api/messages', authenticateUser, async (req: AuthRequest, res) => {
 });
 
 // API: Messages Search by Keyword
-app.get('/api/messages/search', async (req, res) => {
+app.get('/api/messages/search', authenticateUser, async (req: AuthRequest, res) => {
     const phone = (req.query.phone as string) || '+2348030000000';
     const keyword = (req.query.q as string) || (req.query.keyword as string) || '';
     if (!keyword) {
@@ -766,11 +766,11 @@ const deleteMessagesHandler = async (req: express.Request, res: express.Response
     }
 };
 
-app.delete('/api/messages', deleteMessagesHandler);
-app.post('/api/messages/delete', deleteMessagesHandler);
+app.delete('/api/messages', authenticateUser, deleteMessagesHandler);
+app.post('/api/messages/delete', authenticateUser, deleteMessagesHandler);
 
 // API: Chat
-app.post('/api/iot/command', async (req, res) => {
+app.post('/api/iot/command', authenticateUser, async (req: AuthRequest, res) => {
     try {
         const { protocol, ip, topic, payload, path, method } = req.body;
         
@@ -793,7 +793,7 @@ app.post('/api/iot/command', async (req, res) => {
     }
 });
 
-app.post(['/api/chat', '/api/pwa/chat'], async (req, res) => {
+app.post(['/api/chat', '/api/pwa/chat'], authenticateUser, async (req: AuthRequest, res) => {
     const { phone, message, channel, provider } = req.body;
     if (!phone || !message) {
         return res.status(400).json({ error: 'Missing phone or message' });
@@ -865,7 +865,7 @@ app.post(['/api/chat', '/api/pwa/chat'], async (req, res) => {
 });
 
 // API: Real-time Streaming Chat (SSE - Server-Sent Events)
-app.post('/api/chat/stream', async (req, res) => {
+app.post('/api/chat/stream', authenticateUser, async (req: AuthRequest, res) => {
     const { phone, message, channel, provider } = req.body;
     if (!phone || !message) {
         return res.status(400).json({ error: 'Missing phone or message' });
@@ -978,7 +978,7 @@ app.post('/api/chat/stream', async (req, res) => {
 });
 
 // API: Points Balance & Quick Topup
-app.get('/api/points/balance', async (req, res) => {
+app.get('/api/points/balance', authenticateUser, async (req: AuthRequest, res) => {
     const phone = (req.query.phone as string) || '+2348030000000';
     try {
         const balance = await getPointsBalance(phone);
@@ -995,7 +995,7 @@ app.get('/api/points/balance', async (req, res) => {
     }
 });
 
-app.post('/api/points/topup', async (req, res) => {
+app.post('/api/points/topup', authenticateUser, async (req: AuthRequest, res) => {
     const { phone, amount_points, payment_ref } = req.body;
     if (!phone || !amount_points) {
         return res.status(400).json({ error: 'phone and amount_points are required' });
@@ -1018,7 +1018,7 @@ app.post('/api/points/topup', async (req, res) => {
 });
 
 // --- GitHub Workspace Sync API Endpoints ---
-app.get('/api/github/status', async (req, res) => {
+app.get('/api/github/status', authenticateAdmin, async (req: AuthRequest, res) => {
     try {
         const status = await getGitHubSyncStatus();
         res.json({ success: true, status });
@@ -1027,7 +1027,7 @@ app.get('/api/github/status', async (req, res) => {
     }
 });
 
-app.get('/api/github/list', async (req, res) => {
+app.get('/api/github/list', authenticateAdmin, async (req: AuthRequest, res) => {
     try {
         const dirPath = (req.query.path as string) || '';
         const files = await listGitHubFiles(dirPath);
@@ -1037,28 +1037,28 @@ app.get('/api/github/list', async (req, res) => {
     }
 });
 
-app.get('/api/github/diff', async (req, res) => {
+app.get('/api/github/diff', authenticateAdmin, async (req: AuthRequest, res) => {
     try {
-        const diff = await getGitHubDiff();
+        const diff = await getGitHubDiff(req.query.path as string | undefined);
         res.json({ success: true, diff });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-app.post('/api/github/pull', async (req, res) => {
+app.post('/api/github/pull', authenticateAdmin, async (req: AuthRequest, res) => {
     try {
-        const result = await pullFromGitHub();
+        const result = await pullFromGitHub(req.body?.path);
         res.json(result);
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-app.post('/api/github/push', async (req, res) => {
+app.post('/api/github/push', authenticateAdmin, async (req: AuthRequest, res) => {
     try {
         const message = req.body.message || 'Update from Kurukoo Workspace';
-        const result = await pushToGitHub(message);
+        const result = await pushToGitHub(message, req.body?.path, req.body?.content);
         res.json(result);
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
@@ -1091,7 +1091,8 @@ app.post('/api/auth/login', async (req, res) => {
         }
         saveDb();
 
-        const JWT_SECRET = process.env.JWT_SECRET || 'kurukoo_fallback_secret_39281';
+        const JWT_SECRET = process.env.JWT_SECRET;
+        if (!JWT_SECRET || JWT_SECRET.length < 32) throw new Error('JWT_SECRET must be configured with at least 32 characters');
         const token = jwt.sign({ phone: userPhone, role: 'user' }, JWT_SECRET, { expiresIn: '30d' });
 
         return res.json({ success: true, phone: userPhone, name: name || 'Kurukoo User', token });
