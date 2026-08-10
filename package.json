@@ -17,6 +17,7 @@
     "audit:skills": "node scripts/audit-skills.mjs",
     "audit:services": "node scripts/audit-services.mjs",
     "audit:security": "node scripts/audit-security-boundaries.mjs",
+    "audit:economic": "tsx scripts/test-economic-request.ts",
     "test:email": "tsx scripts/test-email-channel.ts",
     "db:migrate:messages": "tsx scripts/migrate-messages.ts",
     "test:ai": "tsx scripts/test-ai-pipeline.ts",
