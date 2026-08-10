@@ -1,11 +1,14 @@
 import { handleWhatsAppWebhook } from '../../channels/whatsapp.js';
 import { handleTelegramWebhook } from './telegram.js';
 import { handleSmsWebhook } from './sms.js';
+import { handleEmailWebhook } from './email.js';
+import { handleIvrWebhook } from './ivr.js';
 import { handleUssdRequest } from '../ussd/menus.js';
 
 export interface ChannelHandlerResult {
     status: string;
     response?: string;
+    contentType?: string;
     [key: string]: any;
 }
 
@@ -20,6 +23,12 @@ export const channelRegistry = {
     },
     sms: async (body: any, _headers: Record<string, any>): Promise<ChannelHandlerResult> => {
         return await handleSmsWebhook(body);
+    },
+    email: async (body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> => {
+        return await handleEmailWebhook(body, headers);
+    },
+    ivr: async (body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> => {
+        return await handleIvrWebhook(body, headers);
     },
     ussd: async (body: any, _headers: Record<string, any>): Promise<ChannelHandlerResult> => {
         const { phoneNumber, text } = body || {};
