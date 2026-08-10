@@ -1,4 +1,4 @@
-import { handleWhatsAppWebhook } from '../../channels/whatsapp.js';
+import { handleWhatsAppWebhook } from './whatsapp.js';
 import { handleTelegramWebhook } from './telegram.js';
 import { handleSmsWebhook } from './sms.js';
 import { handleEmailWebhook } from './email.js';
@@ -9,9 +9,14 @@ export interface ChannelHandlerResult {
     status: string;
     response?: string;
     contentType?: string;
+    conversationId?: string;
     [key: string]: any;
 }
 
+/**
+ * Transport registry. Channels are adapters only: identity, conversation,
+ * memory, intent and economic actions remain in the shared platform layer.
+ */
 export const channelRegistry = {
     whatsapp: async (body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> => {
         const signature = headers['x-hub-signature-256'] || '';
@@ -32,15 +37,15 @@ export const channelRegistry = {
     },
     ussd: async (body: any, _headers: Record<string, any>): Promise<ChannelHandlerResult> => {
         const { phoneNumber, text } = body || {};
-        const response = await handleUssdRequest(phoneNumber, text);
+        if (!phoneNumber || typeof phoneNumber !== 'string') return { status: 'ignored' };
+        const response = await handleUssdRequest(phoneNumber, typeof text === 'string' ? text : '');
         return { status: 'success', response };
     }
 };
 
-export async function dispatchWebhook(channel: keyof typeof channelRegistry, body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> {
+export type ChannelName = keyof typeof channelRegistry;
+
+export async function dispatchWebhook(channel: ChannelName, body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> {
     const handler = channelRegistry[channel];
-    if (!handler) {
-        throw new Error(`Unsupported channel: ${channel}`);
-    }
     return await handler(body, headers);
 }
