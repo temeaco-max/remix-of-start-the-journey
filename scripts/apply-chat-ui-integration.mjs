@@ -4,17 +4,14 @@ const path = 'public/dashboard.html';
 const source = fs.readFileSync(path, 'utf8');
 let out = source;
 
-if (!out.includes('/css/chat-ui.css')) {
-  out = out.replace(
-    /(<link rel="stylesheet" href="\/css\/site\.css[^>]*>)/,
-    '$1\n    <link rel="stylesheet" href="/css/chat-ui.css?v=1.0.0">'
-  );
-}
+// The platform now has one canonical stylesheet: /css/site.css.
+// Remove legacy chat-ui stylesheet injections from the PWA shell.
+out = out.replace(/\s*<link rel="stylesheet" href="\/css\/chat-ui\.css[^"]*">/g, '');
 
 if (!out.includes('/js/chat-ui-enhancements.js')) {
   out = out.replace(
     /(<\/head>)/,
-    '    <script src="/js/chat-ui-enhancements.js?v=1.0.0" defer></script>\n$1'
+    '    <script src="/js/chat-ui-enhancements.js?v=1.1.0" defer></script>\n$1'
   );
 }
 
