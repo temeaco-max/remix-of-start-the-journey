@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import jwt from 'jsonwebtoken';
 
 export interface AuthUser {
@@ -53,21 +54,13 @@ function getToken(req: Request): string | undefined {
 export function authenticateUser(req: Request, res: Response, next: NextFunction): void {
     if (!rateLimit(req, res)) return;
     const token = getToken(req);
-    if (!token) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-    }
+    if (!token) return void res.status(401).json({ error: 'Authentication required' });
     try {
         const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] }) as AuthUser;
-        if (!decoded || decoded.role === 'guest') {
-            res.status(401).json({ error: 'Invalid authentication token' });
-            return;
-        }
+        if (!decoded || decoded.role === 'guest') return void res.status(401).json({ error: 'Invalid authentication token' });
         (req as AuthRequest).user = decoded;
         next();
-    } catch {
-        res.status(401).json({ error: 'Invalid or expired authentication token' });
-    }
+    } catch { res.status(401).json({ error: 'Invalid or expired authentication token' }); }
 }
 
 export function authenticateAdmin(req: Request, res: Response, next: NextFunction): void {
@@ -75,10 +68,7 @@ export function authenticateAdmin(req: Request, res: Response, next: NextFunctio
     const token = getToken(req) ||
         (typeof req.headers['x-admin-token'] === 'string' ? req.headers['x-admin-token'] : undefined) ||
         (typeof req.query.admin_token === 'string' ? req.query.admin_token : undefined);
-    if (!token) {
-        res.status(401).json({ error: 'Admin authorization token required' });
-        return;
-    }
+    if (!token) return void res.status(401).json({ error: 'Admin authorization token required' });
     try {
         const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] }) as AuthUser;
         if (decoded && (decoded.role === 'admin' || decoded.username === 'admin')) {
@@ -88,7 +78,79 @@ export function authenticateAdmin(req: Request, res: Response, next: NextFunctio
             return;
         }
         res.status(403).json({ error: 'Forbidden: Admin role required' });
-    } catch {
-        res.status(401).json({ error: 'Invalid or expired admin token' });
+    } catch { res.status(401).json({ error: 'Invalid or expired admin token' }); }
+}
+
+function extractPhone(req: Request): string | undefined {
+    const candidates = [
+        req.body?.phone,
+        req.body?.buyer_phone,
+        req.body?.creator_phone,
+        req.body?.provider_phone,
+        req.body?.reporter_phone,
+        req.body?.alert_phone,
+        req.query?.phone,
+        req.params?.phone
+    ];
+    const value = candidates.find(v => typeof v === 'string' && v.trim());
+    return typeof value === 'string' ? value.trim() : undefined;
+}
+
+export function enforceUserOwnership(req: Request, res: Response, next: NextFunction): void {
+    const user = (req as AuthRequest).user;
+    if (!user?.phone) return void res.status(403).json({ error: 'Authenticated user identity is incomplete' });
+    const requestedPhone = extractPhone(req);
+    if (requestedPhone && requestedPhone !== String(user.phone)) {
+        return void res.status(403).json({ error: 'You may only access your own user data' });
+    }
+    next();
+}
+
+// Route-level guard installed at registration time. This closes the large class of
+// legacy /api handlers that predate the shared middleware without requiring every
+// handler to be rewritten individually. Public read-only surfaces remain public.
+const publicApi = [
+    /^\/api\/auth\/login$/,
+    /^\/api\/admin\/auth$/,
+    /^\/api\/blog(?:\/.*)?$/,
+    /^\/api\/daily-pick$/,
+    /^\/api\/emergency$/,
+    /^\/api\/referral\/resolve$/,
+    /^\/api\/ads$/
+];
+
+function routePathIsPublic(path: string): boolean {
+    return publicApi.some(pattern => pattern.test(path));
+}
+
+function normalizeRoutePaths(path: any): string[] {
+    if (typeof path === 'string') return [path];
+    if (Array.isArray(path)) return path.filter((p): p is string => typeof p === 'string');
+    return [];
+}
+
+function installApiRouteGuards() {
+    const application: any = (express as any).application;
+    if (!application || application.__kurukooApiGuardsInstalled) return;
+    application.__kurukooApiGuardsInstalled = true;
+
+    for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+        const original = application[method];
+        application[method] = function(path: any, ...handlers: any[]) {
+            const paths = normalizeRoutePaths(path);
+            if (paths.some(p => p.startsWith('/api/'))) {
+                const isAdmin = paths.some(p => p.startsWith('/api/admin/'));
+                const guardedPaths = paths.filter(p => p.startsWith('/api/') && !routePathIsPublic(p));
+                if (guardedPaths.length > 0) {
+                    const guard = isAdmin ? authenticateAdmin : authenticateUser;
+                    const ownership = isAdmin ? null : enforceUserOwnership;
+                    const guardHandlers = ownership ? [guard, ownership] : [guard];
+                    return original.call(this, path, ...guardHandlers, ...handlers);
+                }
+            }
+            return original.call(this, path, ...handlers);
+        };
     }
 }
+
+installApiRouteGuards();
