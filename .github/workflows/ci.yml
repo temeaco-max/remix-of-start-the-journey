@@ -21,6 +21,22 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run lint
       - run: npm run build
+      - run: npm run audit:css:all
+
+  fasttext:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install FastText CLI
+        run: sudo apt-get update -qq && sudo apt-get install -y fasttext
+      - run: npm install --no-audit --no-fund
+      - name: Train and verify FastText model
+        run: |
+          node -e "import('./src/services/fastTextService.ts').catch(e=>{console.error(e);process.exit(1)})"
 
   secret-scan:
     runs-on: ubuntu-latest
