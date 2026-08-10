@@ -21,11 +21,6 @@ function bookingToken(customerPhone: string): string {
     return crypto.createHash('sha256').update(`${customerPhone}:${Date.now()}:${Math.random()}`).digest('hex').slice(0, 24);
 }
 
-/**
- * Artist/creator booking is a verified marketplace flow, not a direct transfer
- * to an unverified phone number. Verification is stored on the artist profile
- * and must be explicitly approved before escrow can be funded.
- */
 export async function requestArtistVerification(phone: string, skill: string, managerName: string, managerContact: string): Promise<void> {
     const profile = await getProfile(phone);
     if (!profile) throw new Error('Artist profile not found');
@@ -50,7 +45,13 @@ export async function approveArtistVerification(artistPhone: string, approvedBy:
     await updateProfile(artistPhone, 'system', { preferences: prefs });
 }
 
-export async function bookArtist(customerPhone: string, request: ArtistBookingRequest): Promise<{ escrowId: number; bookingToken: string }> {
+export async function bookArtist(customerPhone: string, artistPhone: string, eventDetails: string, budget: number): Promise<number>;
+export async function bookArtist(customerPhone: string, request: ArtistBookingRequest): Promise<{ escrowId: number; bookingToken: string }>;
+export async function bookArtist(customerPhone: string, requestOrArtistPhone: ArtistBookingRequest | string, legacyEventDetails?: string, legacyBudget?: number): Promise<number | { escrowId: number; bookingToken: string }> {
+    const request: ArtistBookingRequest = typeof requestOrArtistPhone === 'string'
+        ? { artistPhone: requestOrArtistPhone, eventDate: '', venue: '', eventDetails: legacyEventDetails || '', budgetMinor: Number(legacyBudget || 0) }
+        : requestOrArtistPhone;
+
     if (!validDate(request.eventDate)) throw new Error('Artist booking date must be a future date');
     if (!request.venue.trim() || !request.eventDetails.trim()) throw new Error('Venue and event details are required');
     if (!Number.isInteger(request.budgetMinor) || request.budgetMinor <= 0) throw new Error('Budget must be a positive integer in minor currency units');
@@ -66,7 +67,7 @@ export async function bookArtist(customerPhone: string, request: ArtistBookingRe
     const description = `Artist Booking: ${request.eventDetails} | ${request.venue} | ${request.eventDate} | ${currency}`;
     const escrowId = await createEscrow(orderId, customerPhone, request.artistPhone, request.budgetMinor, `${description} (24-hour cooling-off period)`);
     saveDb();
-    return { escrowId, bookingToken: token };
+    return typeof requestOrArtistPhone === 'string' ? escrowId : { escrowId, bookingToken: token };
 }
 
 export async function releaseArtistEscrow(escrowId: number, bypassCoolingOff = false): Promise<{ success: boolean; message: string }> {
@@ -82,9 +83,7 @@ export async function releaseArtistEscrow(escrowId: number, bypassCoolingOff = f
 
     const createdAt = new Date(escrow.created_at as string);
     const diffHours = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60);
-    if (diffHours < 24 && !bypassCoolingOff) {
-        return { success: false, message: `Cannot release funds: booking is still within the 24-hour cooling-off period. (${(24 - diffHours).toFixed(1)} hours remaining)` };
-    }
+    if (diffHours < 24 && !bypassCoolingOff) return { success: false, message: `Cannot release funds: booking is still within the 24-hour cooling-off period. (${(24 - diffHours).toFixed(1)} hours remaining)` };
 
     await releaseEscrow(escrowId);
     return { success: true, message: 'Funds successfully released to the verified artist.' };
