@@ -14,6 +14,7 @@
     "audit:css": "node scripts/audit-inline-css.mjs",
     "audit:css:all": "node scripts/audit-css-system.mjs",
     "audit:messaging": "node scripts/audit-messaging-system.mjs",
+    "audit:skills": "node scripts/audit-skills.mjs",
     "db:migrate:messages": "tsx scripts/migrate-messages.ts",
     "test:ai": "tsx scripts/test-ai-pipeline.ts",
     "fasttext:build": "node scripts/build-fasttext.mjs",
