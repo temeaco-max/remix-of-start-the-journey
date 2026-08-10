@@ -11,6 +11,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "audit:css": "node scripts/audit-inline-css.mjs",
+    "audit:css:all": "node scripts/audit-css-system.mjs",
     "db:migrate:messages": "tsx scripts/migrate-messages.ts",
     "test:ai": "tsx scripts/test-ai-pipeline.ts",
     "postinstall": "fasttext --help >/dev/null 2>&1 && echo 'FastText is available' || echo 'FastText CLI not found. Install with: brew install fasttext (macOS) or apt-get install fasttext (Linux). Using template fallback until model is available.'"
