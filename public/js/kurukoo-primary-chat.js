@@ -1,7 +1,7 @@
 (() => {
   const state = {
     phone: localStorage.getItem('kurukoo_user_phone') || '',
-    token: localStorage.getItem('kurukoo_auth_token') || '',
+    token: '',
     conversationId: localStorage.getItem('kurukoo_conversation_id') || '',
     messages: [], busy: false, attached: null,
     theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
@@ -9,7 +9,7 @@
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message');
   const setConnection = (ok, text = ok ? 'Connected' : 'Offline') => { const el = $('connection-status'); if (el) { el.innerHTML = `<span class="status-dot"></span> ${text}`; el.classList.toggle('offline', !ok); } };
-  const authHeaders = () => state.token ? { Authorization: `Bearer ${state.token}` } : {};
+  const authHeaders = () => ({});
   const applyTheme = () => { document.body.classList.toggle('dark', state.theme === 'dark'); localStorage.setItem('kurukoo_theme', state.theme); };
   function sanitizeHtml(html) { const doc = new DOMParser().parseFromString(html, 'text/html'); doc.querySelectorAll('script,iframe,object,embed,style,link,form').forEach(n => n.remove()); doc.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => { if (/^on/i.test(a.name) || /^(javascript|data):/i.test(a.value)) n.removeAttribute(a.name); })); return doc.body.innerHTML; }
   function renderMarkdown(text) { if (!window.marked) return String(text || '').replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c])).replace(/\n/g, '<br>'); marked.setOptions({ breaks: true, gfm: true }); return sanitizeHtml(marked.parse(text || '')); }
@@ -17,15 +17,27 @@
   function escapeAttr(value) { return String(value || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   async function ensureIdentity() {
-    if (state.phone && state.token) return true;
-    const entered = window.prompt('Enter your phone number to continue with your Kurukoo Memory Profile:');
+    const sessionCheck = await fetch('/api/chat/history?limit=1').catch(() => null);
+    if (sessionCheck?.ok) { setConnection(true); return true; }
+    const entered = window.prompt('Enter your phone number to continue with Kurukoo:');
     if (!entered) return false;
-    state.phone = entered.trim(); if (!state.phone) return false; localStorage.setItem('kurukoo_user_phone', state.phone);
+    state.phone = entered.trim();
+    if (!/^\+?[1-9]\d{7,14}$/.test(state.phone.replace(/[\s().-]/g, ''))) { setConnection(false, 'Invalid phone'); return false; }
+    state.phone = state.phone.replace(/[\s().-]/g, '');
     try {
-      const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: state.phone, name: 'Kurukoo User' }) });
-      if (!response.ok) return false; const data = await response.json(); if (!data.token) return false;
-      state.token = data.token; localStorage.setItem('kurukoo_auth_token', state.token); setConnection(true); return true;
-    } catch { setConnection(false); return false; }
+      const request = await fetch('/api/chat/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: state.phone }) });
+      const requestData = await request.json().catch(() => ({}));
+      if (!request.ok) { alert(requestData.error || 'Unable to send verification code.'); return false; }
+      let code = window.prompt('Enter the 6-digit Kurukoo verification code sent to your phone:');
+      if (!code) return false;
+      const verify = await fetch('/api/chat/auth/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: state.phone, code: code.trim() }) });
+      const verifyData = await verify.json().catch(() => ({}));
+      if (!verify.ok) { alert(verifyData.error || 'Invalid verification code.'); return false; }
+      localStorage.setItem('kurukoo_user_phone', state.phone);
+      localStorage.removeItem('kurukoo_auth_token');
+      setConnection(true);
+      return true;
+    } catch { setConnection(false, 'Connection issue'); return false; }
   }
 
   function addHistoryItem(conversation, active = false) {
