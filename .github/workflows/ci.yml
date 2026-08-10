@@ -27,6 +27,7 @@ jobs:
       - run: npm run audit:messaging
       - run: npm run audit:skills
       - run: npm run audit:services
+      - run: npm run audit:security
       - run: npm run test:email
 
   fasttext:
