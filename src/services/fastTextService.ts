@@ -35,30 +35,19 @@ function loadTrainingData(): void {
             const spaceIdx = line.indexOf(' ');
             if (spaceIdx === -1) continue;
             const label = line.slice(9, spaceIdx).trim();
-            trainingSet.push({ label, tokens: new Set(normalize(line.slice(spaceIdx + 1)).split(/\s+/).filter(token => token.length > 1)) });
+            const tokens = new Set(normalize(line.slice(spaceIdx + 1)).split(/\s+/).filter(token => token.length > 1));
+            trainingSet.push({ label, tokens });
         }
         console.log(`[FastText] loaded ${trainingSet.length} training examples`);
     } catch (err) { console.error('[FastText] training-data load failed:', err); }
 }
 
+/**
+ * Runtime initialization is deliberately cheap. Model training belongs in CI/build
+ * and must never block the application process or a cold start.
+ */
 export function initializeFastText(): void {
-    const modelsDir = path.join(process.cwd(), 'models');
-    if (!fs.existsSync(modelsDir)) fs.mkdirSync(modelsDir, { recursive: true });
-    const binPath = modelPath();
-
-    if (!isRealBinaryModel(binPath)) {
-        try {
-            const scriptPath = path.join(process.cwd(), 'scripts', 'generateIntentTrainingData.mjs');
-            if (!fs.existsSync(trainingPath()) && fs.existsSync(scriptPath)) execFileSync(process.execPath, [scriptPath], { stdio: 'ignore' });
-            if (fs.existsSync(trainingPath())) {
-                try {
-                    execFileSync('fasttext', ['supervised', '-input', trainingPath(), '-output', path.join(modelsDir, 'kurukoo_intent'), '-lr', '0.5', '-epoch', '25', '-wordNgrams', '2'], { stdio: 'ignore', timeout: 30000 });
-                } catch { console.warn('[FastText] CLI unavailable during startup; deterministic fallback enabled.'); }
-            }
-        } catch (err) { console.warn('[FastText] initialization failed; fallback enabled:', err); }
-    }
-
-    fastTextReady = isRealBinaryModel(binPath);
+    fastTextReady = isRealBinaryModel(modelPath());
     loadTrainingData();
     console.log(`[FastText] ready=${fastTextReady}, trainingExamples=${trainingSet.length}`);
 }
@@ -86,9 +75,9 @@ function classifyWithBinaryModel(query: string): FastTextResult | null {
     if (!fastTextReady) return null;
     const clean = normalize(query);
     if (!clean) return null;
-    const inputPath = path.join(os.tmpdir(), `kurukoo-fasttext-${process.pid}-${Date.now()}.txt`);
+    const inputPath = path.join(os.tmpdir(), `kurukoo-fasttext-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
     try {
-        fs.writeFileSync(inputPath, `${clean}\n`);
+        fs.writeFileSync(inputPath, `${clean}\n`, { mode: 0o600 });
         const stdout = execFileSync('fasttext', ['predict-prob', modelPath(), inputPath, '1'], { encoding: 'utf8', timeout: 2500 }).trim();
         const match = stdout.match(/__label__([^\s]+)\s+([0-9.]+)/);
         if (!match) return null;
@@ -128,6 +117,9 @@ export function classifyWithFastText(query: string): FastTextResult | null {
     const cached = classificationCache.get(key);
     if (cached && cached.expiresAt > Date.now()) return cached.result;
 
+    // The real FastText model is always preferred. Rules are a deterministic safety
+    // net for action intents, followed by the training-data fallback when the binary
+    // model is unavailable in a development environment.
     const result = classifyWithBinaryModel(q) || ruleClassify(q) || classifyWithMemory(q);
     if (classificationCache.size > 2000) classificationCache.delete(classificationCache.keys().next().value as string);
     classificationCache.set(key, { result, expiresAt: Date.now() + CACHE_TTL_MS });
