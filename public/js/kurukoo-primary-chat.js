@@ -1,5 +1,10 @@
 (() => {
-  const state = { phone: localStorage.getItem('kurukoo_user_phone') || '', token: localStorage.getItem('kurukoo_auth_token') || '', messages: [], busy: false, attached: null, theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') };
+  const state = {
+    phone: localStorage.getItem('kurukoo_user_phone') || '',
+    token: localStorage.getItem('kurukoo_auth_token') || '',
+    messages: [], busy: false, attached: null,
+    theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message');
 
@@ -7,13 +12,18 @@
     if (state.phone && state.token) return true;
     const entered = window.prompt('Enter your phone number to continue with your Kurukoo Memory Profile:');
     if (!entered) return false;
-    state.phone = entered.trim(); localStorage.setItem('kurukoo_user_phone', state.phone);
+    state.phone = entered.trim();
+    if (!state.phone) return false;
+    localStorage.setItem('kurukoo_user_phone', state.phone);
     try {
       const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: state.phone, name: 'Kurukoo User' }) });
+      if (!response.ok) return false;
       const data = await response.json();
-      if (data.token) { state.token = data.token; localStorage.setItem('kurukoo_auth_token', state.token); }
-    } catch {}
-    return true;
+      if (!data.token) return false;
+      state.token = data.token;
+      localStorage.setItem('kurukoo_auth_token', state.token);
+      return true;
+    } catch { return false; }
   }
   const authHeaders = () => state.token ? { Authorization: `Bearer ${state.token}` } : {};
   const applyTheme = () => { document.body.classList.toggle('dark', state.theme === 'dark'); localStorage.setItem('kurukoo_theme', state.theme); };
@@ -35,12 +45,19 @@
 
   function addHistoryItem(title) {
     const list = $('history-list');
-    if ([...list.children].some(el => el.dataset.title === title)) return;
-    const item = document.createElement('div'); item.className = 'history-item active'; item.dataset.title = title; item.textContent = title.slice(0, 70); list.prepend(item);
+    if (!list || !title) return;
+    const normalized = String(title).trim();
+    if ([...list.children].some(el => el.dataset.title === normalized)) return;
+    const item = document.createElement('div');
+    item.className = 'history-item'; item.dataset.title = normalized;
+    item.textContent = normalized.slice(0, 70);
+    item.title = normalized;
+    list.prepend(item);
   }
+
   function createMessage(role, text = '') {
     const wrap = document.createElement('article'); wrap.className = `message ${role}`;
-    const avatar = role === 'assistant' ? '<div class="avatar">K</div>' : '';
+    const avatar = role === 'assistant' ? '<div class="avatar" aria-hidden="true">K</div>' : '';
     wrap.innerHTML = `${avatar}<div class="message-body"><div class="bubble"><div class="markdown-body"></div></div><div class="message-actions"></div></div>`;
     const bubble = wrap.querySelector('.markdown-body'); bubble.innerHTML = renderMarkdown(text); enhanceCode(wrap);
     wrap.querySelector('.message-actions').innerHTML = role === 'assistant' ? '<button data-action="copy">Copy</button><button data-action="regenerate">Regenerate</button><button data-action="delete">Delete</button>' : '<button data-action="copy">Copy</button><button data-action="delete">Delete</button>';
@@ -48,76 +65,148 @@
       const button = event.target.closest('button'); if (!button) return;
       if (button.dataset.action === 'copy') navigator.clipboard?.writeText(wrap.querySelector('.bubble').innerText);
       if (button.dataset.action === 'delete') wrap.remove();
-      if (button.dataset.action === 'regenerate') { const lastUser = [...state.messages].reverse().find(item => item.role === 'user'); if (lastUser) sendMessage(lastUser.text); }
+      if (button.dataset.action === 'regenerate') {
+        const lastUser = [...state.messages].reverse().find(item => item.role === 'user');
+        if (lastUser) sendMessage(lastUser.text);
+      }
     });
     chatContent.appendChild(wrap); scroll.scrollTop = scroll.scrollHeight; return wrap;
   }
   function addUserMessage(text) { $('welcome')?.remove(); state.messages.push({ role: 'user', text }); addHistoryItem(text); return createMessage('user', text); }
+
   function appendStreamBubble() {
-    $('welcome')?.remove(); const wrap = document.createElement('article'); wrap.className = 'message assistant';
-    wrap.innerHTML = '<div class="avatar">K</div><div class="message-body"><div class="bubble"><div class="markdown-body"></div><div class="thinking" hidden><details><summary>Reasoning completed</summary><div>Kurukoo selected the appropriate low-cost response path.</div></details></div></div><div class="message-actions"><button data-action="copy">Copy</button><button data-action="regenerate">Regenerate</button><button data-action="delete">Delete</button></div></div>';
+    $('welcome')?.remove();
+    const wrap = document.createElement('article'); wrap.className = 'message assistant';
+    wrap.innerHTML = '<div class="avatar" aria-hidden="true">K</div><div class="message-body"><div class="bubble"><div class="markdown-body"></div><div class="thinking" hidden><details><summary>Reasoning completed</summary><div>Kurukoo selected the appropriate response path. Private model reasoning is not exposed.</div></details></div></div><div class="message-actions"><button data-action="copy">Copy</button><button data-action="regenerate">Regenerate</button><button data-action="delete">Delete</button></div></div>';
     chatContent.appendChild(wrap); return wrap;
   }
 
+  function setDeferredStatus(card) {
+    const status = $('deferred-status');
+    if (!status) return;
+    if (!card || !['worker_match', 'service_search', 'nearby_radar'].includes(card.type)) {
+      status.hidden = true; return;
+    }
+    status.hidden = false;
+    status.textContent = card.type === 'nearby_radar'
+      ? '📡 Searching your shared Nearby Pulse for active providers…'
+      : '🔎 Searching for a verified match. If none is available now, Kurukoo will keep the request open and notify you when a match appears.';
+  }
+
   async function sendMessage(raw) {
-    const text = String(raw || input.value || '').trim(); if (!text || state.busy || !(await ensureIdentity())) return;
+    const text = String(raw || input.value || '').trim();
+    if (!text || state.busy || !(await ensureIdentity())) return;
     state.busy = true; send.disabled = true; input.value = ''; input.classList.remove('has-text');
-    const finalText = (state.attached ? `[Attachment: ${state.attached.name}] ` : '') + text; state.attached = null; input.placeholder = 'Message Kurukoo'; addUserMessage(finalText);
+    const attachment = state.attached;
+    const attachmentPrefix = attachment ? `[Attachment: ${attachment.name} (${attachment.type || 'file'})] ` : '';
+    const finalText = attachmentPrefix + text;
+    state.attached = null; input.placeholder = 'Message Kurukoo';
+    addUserMessage(finalText);
     const assistant = appendStreamBubble(), output = assistant.querySelector('.markdown-body'), thinking = assistant.querySelector('.thinking'); let full = '';
     try {
-      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify({ phone: state.phone, message: finalText, channel: 'web' }) });
+      const body = { phone: state.phone, message: finalText, channel: 'web' };
+      if (attachment) body.attachment = { name: attachment.name, type: attachment.type, size: attachment.size };
+      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(body) });
       if (!response.ok || !response.body) throw new Error(`Chat request failed (${response.status})`);
       const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '';
       while (true) {
         const { value, done } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true });
         const events = buffer.split('\n\n'); buffer = events.pop() || '';
         for (const event of events) {
-          const line = event.split('\n').find(x => x.startsWith('data: ')); if (!line) continue; const payload = line.slice(6); if (payload === '[DONE]') continue;
-          const data = JSON.parse(payload);
+          const line = event.split('\n').find(x => x.startsWith('data: ')); if (!line) continue;
+          const payload = line.slice(6); if (payload === '[DONE]') continue;
+          let data; try { data = JSON.parse(payload); } catch { continue; }
           if (data.type === 'text') { full += data.content || ''; output.innerHTML = renderMarkdown(full); enhanceCode(assistant); scroll.scrollTop = scroll.scrollHeight; }
           if (data.type === 'thought' && thinking) thinking.hidden = false;
           if (data.type === 'metadata') updateModelStatus(data);
-          if (data.type === 'done' && data.cardData) renderCard(data.cardData, assistant);
+          if (data.type === 'done' && data.cardData) { setDeferredStatus(data.cardData); renderCard(data.cardData, assistant); }
           if (data.type === 'error') throw new Error(data.error || 'Stream error');
         }
       }
-      state.messages.push({ role: 'assistant', text: full }); if (!full) output.textContent = 'I could not complete that request. Please try again.';
-    } catch (error) { output.innerHTML = renderMarkdown(`I’m having trouble completing that right now. **Please try again.**\n\n_${error.message}_`); }
-    finally { state.busy = false; send.disabled = false; input.focus(); loadPoints(); }
+      state.messages.push({ role: 'assistant', text: full });
+      if (!full) output.textContent = 'I could not complete that request. Please try again.';
+    } catch (error) {
+      output.innerHTML = renderMarkdown(`I’m having trouble completing that right now. **Please try again.**\n\n_${error.message}_`);
+    } finally {
+      state.busy = false; send.disabled = false; input.focus(); loadPoints();
+    }
   }
 
   function renderCard(card, messageEl) {
-    if (!card || !messageEl) return; const holder = document.createElement('div'); holder.className = 'provider-card';
+    if (!card || !messageEl) return;
+    const holder = document.createElement('div'); holder.className = 'provider-card';
     if (card.type === 'ride_picker') {
       holder.innerHTML = '<strong>Choose a ride</strong><div class="quick-actions"><button>🚗 Okada</button><button>🛺 Keke</button><button>🚕 Taxi</button></div><span class="escrow-badge">🔒 Escrow Protected</span>';
       holder.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => sendMessage(`${btn.textContent.trim()} ride`)));
-    } else holder.innerHTML = `<strong>${card.category || 'Service'}</strong><div class="deferred">Searching with your shared Memory Profile and presence.</div><span class="escrow-badge">🔒 Escrow Protected</span>`;
+    } else if (card.type === 'worker_match' || card.type === 'service_search') {
+      holder.innerHTML = `<strong>${card.category === 'food' ? 'Local food vendors' : 'Verified providers'}</strong><div class="deferred">Searching with your shared Memory Profile and real-time presence.</div><span class="escrow-badge">🔒 Escrow Protected</span>`;
+    } else if (card.type === 'nearby_radar') {
+      holder.innerHTML = '<strong>Nearby Pulse</strong><div class="deferred">Active providers will surface here as Kurukoo matches your request.</div>';
+    } else {
+      holder.innerHTML = `<strong>${card.category || 'Kurukoo action'}</strong>`;
+    }
     messageEl.querySelector('.bubble').appendChild(holder);
   }
   function updateModelStatus(data) { const label = document.querySelector('.model-badge'); if (label && data.model) label.textContent = data.model; }
 
   async function loadPoints() {
-    if (!state.phone) return; try { const res = await fetch(`/api/points/balance?phone=${encodeURIComponent(state.phone)}`, { headers: authHeaders() }); if (!res.ok) return; const data = await res.json(); const points = Number(data.points || 0); $('points-balance').querySelector('span').textContent = points; $('inspector-points').textContent = points; } catch {}
+    if (!state.phone) return;
+    try { const res = await fetch(`/api/points/balance?phone=${encodeURIComponent(state.phone)}`, { headers: authHeaders() }); if (!res.ok) return; const data = await res.json(); const points = Number(data.points || 0); $('points-balance').querySelector('span').textContent = points; $('inspector-points').textContent = points; } catch {}
   }
   async function loadMemory() {
-    if (!state.phone) return; try { const res = await fetch(`/api/profile/${encodeURIComponent(state.phone)}`, { headers: authHeaders() }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; $('memory-context').textContent = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile is shared across channels.`; } catch {}
+    if (!state.phone) return;
+    try { const res = await fetch(`/api/profile/${encodeURIComponent(state.phone)}`, { headers: authHeaders() }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; $('memory-context').textContent = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile is shared across channels.`; } catch {}
   }
   async function loadHistory() {
-    if (!state.phone) return; try { const res = await fetch(`/api/messages?phone=${encodeURIComponent(state.phone)}`, { headers: authHeaders() }); if (!res.ok) return; const messages = await res.json(); $('history-list').innerHTML = ''; messages.filter(m => m.sender === 'user').slice(-30).forEach(m => addHistoryItem(m.content)); if (messages.length && $('welcome')) $('welcome').remove(); messages.slice(-40).forEach(m => createMessage(m.sender === 'user' ? 'user' : 'assistant', m.content || '')); } catch {}
+    if (!state.phone) return;
+    try {
+      const res = await fetch(`/api/messages?phone=${encodeURIComponent(state.phone)}`, { headers: authHeaders() });
+      if (!res.ok) return;
+      const messages = await res.json();
+      $('history-list').innerHTML = '';
+      messages.filter(m => m.sender === 'user').slice(-30).forEach(m => addHistoryItem(m.content));
+      if (messages.length && $('welcome')) $('welcome').remove();
+      messages.slice(-40).forEach(m => createMessage(m.sender === 'user' ? 'user' : 'assistant', m.content || ''));
+    } catch {}
   }
 
-  $('quick-actions').addEventListener('click', event => { const button = event.target.closest('button[data-prompt]'); if (button) sendMessage(button.dataset.prompt); });
-  send.addEventListener('click', () => sendMessage());
-  input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } });
-  input.addEventListener('input', () => input.classList.toggle('has-text', Boolean(input.value)));
-  $('attach-file').addEventListener('click', () => $('file-input').click());
-  $('file-input').addEventListener('change', event => { state.attached = event.target.files?.[0] || null; if (state.attached) input.placeholder = `Attachment ready: ${state.attached.name}`; });
-  $('theme-toggle').addEventListener('click', () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; applyTheme(); });
-  $('open-sidebar').addEventListener('click', () => $('chat-sidebar').classList.add('open')); $('close-sidebar').addEventListener('click', () => $('chat-sidebar').classList.remove('open'));
-  $('memory-toggle').addEventListener('click', () => $('chat-inspector').classList.toggle('open')); $('close-inspector').addEventListener('click', () => $('chat-inspector').classList.remove('open'));
-  $('new-chat').addEventListener('click', () => { chatContent.innerHTML = ''; state.messages = []; renderWelcome(); }); $('topup-points').addEventListener('click', () => sendMessage('I want to top up my Points'));
-  $('voice-input').addEventListener('click', () => { const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Recognition) return input.focus(); const recognition = new Recognition(); recognition.lang = 'en-NG'; recognition.onresult = event => { input.value = event.results[0][0].transcript; input.dispatchEvent(new Event('input')); }; recognition.start(); });
+  function wireQuickActions(root = $('quick-actions')) {
+    if (!root || root.dataset.wired) return;
+    root.dataset.wired = 'true';
+    root.addEventListener('click', event => { const button = event.target.closest('button[data-prompt]'); if (button) sendMessage(button.dataset.prompt); });
+  }
+  wireQuickActions();
 
-  function renderWelcome() { chatContent.innerHTML = '<div class="welcome" id="welcome"><div class="welcome-mark">K</div><h1>What can I help you get done?</h1><p>One conversation for finding work, buying, earning, coordinating services, and everyday questions.</p><div class="quick-actions" id="quick-actions"><button data-prompt="Book a ride for me">🚗 Ride</button><button data-prompt="Order food near me">🍔 Food</button><button data-prompt="Find a verified repair worker">🔧 Repair</button><button data-prompt="I need emergency help">🏥 Emergency</button><button data-prompt="Help me find a way to earn">⚡ Earn</button></div></div>'; $('quick-actions').addEventListener('click', event => { const btn = event.target.closest('[data-prompt]'); if (btn) sendMessage(btn.dataset.prompt); }); }
-  applyTheme(); ensureIdentity().then(() => Promise.all([loadPoints(), loadMemory(), loadHistory()]));
+  $('send-message').addEventListener('click', () => sendMessage());
+  input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } });
+  input.addEventListener('input', () => { input.classList.toggle('has-text', Boolean(input.value)); input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 180)}px`; });
+  $('attach-file').addEventListener('click', () => $('file-input').click());
+  $('file-input').addEventListener('change', event => {
+    const file = event.target.files?.[0] || null;
+    state.attached = file;
+    if (file) input.placeholder = `Attachment ready: ${file.name}`;
+  });
+  $('theme-toggle').addEventListener('click', () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; applyTheme(); });
+  $('open-sidebar').addEventListener('click', () => $('chat-sidebar').classList.add('open'));
+  $('close-sidebar').addEventListener('click', () => $('chat-sidebar').classList.remove('open'));
+  $('memory-toggle').addEventListener('click', () => $('chat-inspector').classList.toggle('open'));
+  $('close-inspector').addEventListener('click', () => $('chat-inspector').classList.remove('open'));
+  $('new-chat').addEventListener('click', () => { chatContent.innerHTML = ''; state.messages = []; $('deferred-status').hidden = true; renderWelcome(); });
+  $('topup-points').addEventListener('click', () => sendMessage('I want to top up my Points'));
+  $('voice-input').addEventListener('click', () => {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) return input.focus();
+    const recognition = new Recognition(); recognition.lang = 'en-NG';
+    recognition.onresult = event => { input.value = event.results[0][0].transcript; input.dispatchEvent(new Event('input')); };
+    recognition.start();
+  });
+  $('points-balance').addEventListener('click', () => sendMessage('Show my Points balance and ways to top up'));
+
+  function renderWelcome() {
+    chatContent.innerHTML = '<div class="welcome" id="welcome"><div class="welcome-mark">K</div><h1>What can I help you get done?</h1><p>One conversation for finding work, buying, earning, coordinating services, and everyday questions.</p><div class="quick-actions" id="quick-actions"><button data-prompt="Book a ride for me">🚗 Ride</button><button data-prompt="Order food near me">🍔 Food</button><button data-prompt="Find a verified repair worker">🔧 Repair</button><button data-prompt="I need emergency help">🏥 Emergency</button><button data-prompt="Help me find a way to earn">⚡ Earn</button></div></div>';
+    wireQuickActions();
+  }
+
+  applyTheme();
+  ensureIdentity().then(ok => { if (ok) Promise.all([loadPoints(), loadMemory(), loadHistory()]); });
 })();
