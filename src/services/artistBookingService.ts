@@ -18,7 +18,7 @@ function validDate(value: string): boolean {
 }
 
 function bookingToken(customerPhone: string): string {
-    return crypto.createHash('sha256').update(`${customerPhone}:${Date.now()}:${Math.random()}`).digest('hex').slice(0, 24);
+    return crypto.randomBytes(18).toString('base64url');
 }
 
 export async function requestArtistVerification(phone: string, skill: string, managerName: string, managerContact: string): Promise<void> {
@@ -39,9 +39,11 @@ export async function requestArtistVerification(phone: string, skill: string, ma
 export async function approveArtistVerification(artistPhone: string, approvedBy: string): Promise<void> {
     const profile = await getProfile(artistPhone);
     if (!profile) throw new Error('Artist profile not found');
+    const approver = approvedBy.trim();
+    if (!approver) throw new Error('Verification approver is required');
     const prefs = profile.preferences || {};
     if (!prefs.artist_verification) throw new Error('No artist verification request exists');
-    prefs.artist_verification = { ...prefs.artist_verification, status: 'verified', verified_at: new Date().toISOString(), verified_by: approvedBy };
+    prefs.artist_verification = { ...prefs.artist_verification, status: 'verified', verified_at: new Date().toISOString(), verified_by: approver };
     await updateProfile(artistPhone, 'system', { preferences: prefs });
 }
 
