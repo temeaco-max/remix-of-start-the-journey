@@ -4,64 +4,47 @@ export interface SourcedProductCard {
     title: string;
     price: string;
     source: string;
+    location?: string;
+    verified?: boolean;
 }
 
+/**
+ * Conversational product sourcing. Kurukoo must never invent a product, price,
+ * affiliate relationship or verification status. External affiliate/catalog
+ * connectors can be added behind this same interface when credentials and live
+ * catalog APIs are configured.
+ */
 export async function sourceProduct(query: string, country: string): Promise<SourcedProductCard[]> {
-    const isNg = true;
-    const normalizedCountry = country.toLowerCase();
+    const normalizedCountry = country.toLowerCase().trim();
     const cleanQuery = query.toLowerCase().trim();
+    if (!cleanQuery || !normalizedCountry) return [];
 
     const db = await getDb();
     const cards: SourcedProductCard[] = [];
-
-    // Query local providers who match this skill or keyword in the given country
     try {
         const stmt = db.prepare(`
-            SELECT m.name, m.location, s.skill, s.hourly_rate, s.rating 
+            SELECT m.name, m.location, s.skill, s.hourly_rate, s.rating
             FROM memory_profiles m
             JOIN skills s ON m.phone = s.phone
-            WHERE m.country = ? AND (s.skill LIKE ? OR s.skill = ?)
+            WHERE lower(m.country) = ? AND (lower(s.skill) LIKE ? OR lower(s.skill) = ?)
             LIMIT 3
         `);
         stmt.bind([normalizedCountry, `%${cleanQuery}%`, cleanQuery]);
-
         while (stmt.step()) {
-            const row = stmt.getAsObject();
-            const priceStr = `₦${(row.hourly_rate || 2500).toLocaleString()}/hr`;
-
+            const row = stmt.getAsObject() as any;
+            const rate = Number(row.hourly_rate);
             cards.push({
-                title: `${row.name} (${row.skill})`,
-                price: priceStr,
-                source: `${row.location} (Local Verified Provider ★${row.rating || '4.8'})`
+                title: `${row.name || 'Verified provider'} (${row.skill})`,
+                price: Number.isFinite(rate) && rate > 0 ? `₦${rate.toLocaleString()}/hr` : 'Price on request',
+                source: `${row.location || 'Local provider'}`,
+                location: row.location || undefined,
+                verified: true
             });
         }
         stmt.free();
     } catch (err) {
-        console.error('Error querying local providers for sourcing:', err);
+        console.error('[Product Sourcing] local catalog query failed:', err);
     }
 
-    // Fallback/affiliate integrations if < 3
-    if (cards.length < 3) {
-        const affiliateStubs: Record<string, { title: string, price: string, source: string }[]> = {
-            ng: [
-                { title: `${query} (Standard Dispatch Product)`, price: '₦12,500', source: 'Jumia NG (Affiliate Partner)' },
-                { title: `${query} (Premium Sourced Express)`, price: '₦15,000', source: 'Konga (Affiliate Partner)' }
-            ],
-            
-            
-        };
-
-        const list = affiliateStubs[normalizedCountry] || affiliateStubs['ng'];
-        for (const item of list) {
-            if (cards.length >= 3) break;
-            cards.push({
-                title: item.title,
-                price: item.price,
-                source: item.source
-            });
-        }
-    }
-
-    // Ensure we don't return more than 3
     return cards.slice(0, 3);
 }
