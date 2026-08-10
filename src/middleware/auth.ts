@@ -33,14 +33,17 @@ function getCookie(req: Request, name: string): string | undefined {
     return pair ? decodeURIComponent(pair.slice(name.length + 1)) : undefined;
 }
 
+/**
+ * Browser sessions use the HttpOnly kurukoo_auth cookie. API clients may use
+ * Authorization: Bearer or the explicit x-auth-token header. Tokens are never
+ * accepted from URLs because URLs leak into browser history, referrers and logs.
+ */
 function getToken(req: Request): string | undefined {
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7).trim();
     const headerToken = req.headers['x-auth-token'];
     if (typeof headerToken === 'string' && headerToken.trim()) return headerToken.trim();
-    const cookieToken = getCookie(req, 'kurukoo_auth');
-    if (cookieToken) return cookieToken;
-    return typeof req.query.token === 'string' ? req.query.token : undefined;
+    return getCookie(req, 'kurukoo_auth');
 }
 
 export function authenticateUser(req: Request, res: Response, next: NextFunction): void {
@@ -57,7 +60,7 @@ export function authenticateUser(req: Request, res: Response, next: NextFunction
 
 export function authenticateAdmin(req: Request, res: Response, next: NextFunction): void {
     if (!rateLimit(req, res)) return;
-    const token = getToken(req) || (typeof req.headers['x-admin-token'] === 'string' ? req.headers['x-admin-token'] : undefined) || (typeof req.query.admin_token === 'string' ? req.query.admin_token : undefined);
+    const token = getToken(req) || (typeof req.headers['x-admin-token'] === 'string' ? req.headers['x-admin-token'] : undefined);
     if (!token) return void res.status(401).json({ error: 'Admin authorization token required' });
     try {
         const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] }) as AuthUser;
