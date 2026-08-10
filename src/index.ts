@@ -36,6 +36,7 @@ import { getAllCommissions, getCommission, updateCommission } from './services/c
 import { updateSessionInteraction, startSessionManagerScheduler, checkAndTriggerKeepAlives } from './services/sessionManager.js';
 import { recordKeepAliveEvent, getKeepAliveAnalyticsStats } from './services/analytics.js';
 import fcmRouter from './server.js';
+import chatRouter from './routes/chatRouter.js';
 
 import { schedulePost } from './services/socialScheduler.js';
 
@@ -78,8 +79,12 @@ import {
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+app.use('/api/chat/attachments', express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Canonical conversation surface. This router owns the production chat history, streaming, and attachments.
+app.use('/api/chat', chatRouter);
 
 // View engine setup
 app.set('view engine', 'ejs');

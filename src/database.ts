@@ -27,12 +27,27 @@ export async function getDb() {
     return db;
 }
 
-export function saveDb() {
+let saveTimer: NodeJS.Timeout | null = null;
+const SAVE_DEBOUNCE_MS = Math.max(50, Number(process.env.KURUKOO_DB_SAVE_DEBOUNCE_MS || 250));
+
+function flushDb() {
     if (!db) return;
     const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbFilePath, buffer);
+    fs.writeFileSync(dbFilePath, Buffer.from(data));
 }
+
+export function saveDb(immediate = false) {
+    if (!db) return;
+    if (immediate) {
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        flushDb();
+        return;
+    }
+    if (saveTimer) return;
+    saveTimer = setTimeout(() => { saveTimer = null; flushDb(); }, SAVE_DEBOUNCE_MS);
+}
+
+process.once('beforeExit', () => flushDb());
 
 function initTables(database: any) {
     database.run(`
