@@ -9,6 +9,7 @@ import { isOnboarding, handleOnboardingInput } from '../services/progressiveOnbo
 import { routeIntent } from '../services/intentRouter.js';
 import { finalizeOrder } from '../services/orderFinalizer.js';
 import { streamUnifiedAI } from '../services/unifiedAiEngine.js';
+import economicRequestRouter from './economicRequestRouter.js';
 import jwt from 'jsonwebtoken';
 
 const router = Router();
@@ -41,13 +42,7 @@ function setAuthCookie(res: any, token: string): void {
 
 async function ensureOtpTable(): Promise<void> {
     const db = await getDb();
-    db.run(`CREATE TABLE IF NOT EXISTS auth_otps (
-        phone TEXT PRIMARY KEY,
-        code_hash TEXT NOT NULL,
-        expires_at INTEGER NOT NULL,
-        attempts INTEGER DEFAULT 0,
-        last_sent_at INTEGER NOT NULL
-    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS auth_otps (phone TEXT PRIMARY KEY, code_hash TEXT NOT NULL, expires_at INTEGER NOT NULL, attempts INTEGER DEFAULT 0, last_sent_at INTEGER NOT NULL)`);
     saveDb();
 }
 
@@ -68,26 +63,20 @@ async function deliverOtp(phone: string, code: string): Promise<boolean> {
     }
 }
 
-// Public authentication bootstrap. No identity is trusted until OTP verification succeeds.
 router.post('/auth/request-otp', async (req, res) => {
     const phone = normalizePhone(req.body?.phone);
     if (!phone) return res.status(400).json({ error: 'Enter a valid international phone number.' });
     const now = Date.now();
     const lastSent = otpRate.get(phone) || 0;
     if (now - lastSent < OTP_RESEND_MS) return res.status(429).json({ error: 'Please wait before requesting another code.', retryAfter: Math.ceil((OTP_RESEND_MS - (now - lastSent)) / 1000) });
-
     await ensureOtpTable();
     const code = String(crypto.randomInt(100000, 1000000));
     const db = await getDb();
     db.run('INSERT OR REPLACE INTO auth_otps (phone, code_hash, expires_at, attempts, last_sent_at) VALUES (?, ?, ?, 0, ?)', [phone, hashOtp(phone, code), now + OTP_TTL_MS, now]);
     saveDb();
     otpRate.set(phone, now);
-
     const delivered = await deliverOtp(phone, code);
-    if (!delivered && process.env.NODE_ENV === 'production') {
-        return res.status(503).json({ error: 'Verification delivery is temporarily unavailable. Please try again later.' });
-    }
-    // Never return a real OTP in production. Development can opt into a fixed test code without exposing generated secrets.
+    if (!delivered && process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Verification delivery is temporarily unavailable. Please try again later.' });
     const response: any = { success: true, expiresIn: 300 };
     if (process.env.NODE_ENV !== 'production' && process.env.AUTH_OTP_DEV_CODE) response.devCode = process.env.AUTH_OTP_DEV_CODE;
     res.json(response);
@@ -104,19 +93,20 @@ router.post('/auth/verify-otp', async (req, res) => {
     const [storedHash, expiresAt, attempts] = result[0].values[0];
     if (Number(expiresAt) < Date.now()) { db.run('DELETE FROM auth_otps WHERE phone = ?', [phone]); saveDb(); return res.status(400).json({ error: 'Verification code expired. Request a new one.' }); }
     if (Number(attempts) >= OTP_MAX_ATTEMPTS) return res.status(429).json({ error: 'Too many verification attempts. Request a new code.' });
+    const expectedHash = hashOtp(phone, code);
+    const supplied = Buffer.from(expectedHash);
+    const stored = Buffer.from(String(storedHash));
     if (process.env.NODE_ENV !== 'production' && process.env.AUTH_OTP_DEV_CODE && code === process.env.AUTH_OTP_DEV_CODE) {
         // Explicit development-only test path.
-    } else if (!crypto.timingSafeEqual(Buffer.from(String(storedHash)), Buffer.from(hashOtp(phone, code)))) {
+    } else if (stored.length !== supplied.length || !crypto.timingSafeEqual(stored, supplied)) {
         db.run('UPDATE auth_otps SET attempts = attempts + 1 WHERE phone = ?', [phone]); saveDb();
         return res.status(401).json({ error: 'Invalid verification code.' });
     }
-
     db.run('DELETE FROM auth_otps WHERE phone = ?', [phone]);
     db.run(`INSERT INTO memory_profiles (phone, country, points_balance, wallet_balance_minor, created_at, updated_at)
             VALUES (?, CASE WHEN substr(?,1,4) = '+234' THEN 'ng' WHEN substr(?,1,3) = '+44' THEN 'gb' ELSE 'ng' END, 30, 30, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT(phone) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`, [phone, phone, phone]);
     saveDb();
-
     const token = jwt.sign({ phone, role: 'user' }, getJwtSecret(), { algorithm: 'HS256', expiresIn: '7d' });
     setAuthCookie(res, token);
     res.json({ success: true, token, phone });
@@ -128,6 +118,7 @@ router.post('/auth/logout', (_req, res) => {
 });
 
 router.use(authenticateUser);
+router.use('/economic-requests', economicRequestRouter);
 
 function userPhone(req: AuthRequest): string | null { const phone = req.user?.phone; return phone ? String(phone) : null; }
 function sse(res: any, payload: any) { res.write(`data: ${JSON.stringify(payload)}\n\n`); }
@@ -139,13 +130,11 @@ router.post('/stream', async (req: AuthRequest, res) => {
     const conversationId = typeof req.body?.conversationId === 'string' ? req.body.conversationId : undefined;
     const attachment = req.body?.attachment;
     if (!phone || !message) return res.status(400).json({ error: 'Authenticated phone and message are required' });
-
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders?.();
-
     let fullReply = '';
     let cardData: any = null;
     let activeConversation = conversationId;
@@ -154,7 +143,6 @@ router.post('/stream', async (req: AuthRequest, res) => {
         const savedUser = await appendChatMessage({ phone, sender: 'user', content: message, channel, conversationId, metadata: userMeta });
         activeConversation = savedUser.conversationId;
         sse(res, { type: 'conversation', conversationId: activeConversation, messageId: savedUser.id });
-
         if (await isOnboarding(phone)) {
             const onboarding = await handleOnboardingInput(phone, message);
             fullReply = onboarding.reply;
@@ -179,7 +167,6 @@ router.post('/stream', async (req: AuthRequest, res) => {
                 }
             }
         }
-
         const savedAssistant = await appendChatMessage({ phone, sender: 'assistant', content: fullReply.trim(), channel, conversationId: activeConversation, cardData, metadata: { ai: true } });
         sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, messageId: savedAssistant.id });
         sse(res, '[DONE]');
