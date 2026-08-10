@@ -77,6 +77,7 @@ import {
 } from './services/seoService.js';
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = Number(process.env.PORT) || 3000;
 
 app.use('/api/chat/attachments', express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb' }));
@@ -1628,8 +1629,10 @@ app.post('/api/ads/:id/spend', async (req, res) => {
 app.post('/api/admin/auth', (req, res) => {
     const { username, password } = req.body;
     const adminUser = process.env.ADMIN_USERNAME || 'admin';
-    const adminPass = process.env.ADMIN_PASSWORD || 'kurukoo2026';
-    const JWT_SECRET = process.env.JWT_SECRET || 'kurukoo_fallback_secret_39281';
+    const adminPass = process.env.ADMIN_PASSWORD;
+    if (!adminPass) return res.status(503).json({ success: false, error: 'Admin authentication is not configured' });
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET || JWT_SECRET.length < 32) return res.status(503).json({ success: false, error: 'JWT authentication is not configured' });
 
     if (username === adminUser && password === adminPass) {
         const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '24h' });
