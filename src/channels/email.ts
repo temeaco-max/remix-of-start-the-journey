@@ -31,19 +31,11 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
     if (!from || !text) throw new Error('Email sender and body are required');
 
     const db = await getDb();
-    db.run(`CREATE TABLE IF NOT EXISTS email_events (
-        event_id TEXT PRIMARY KEY,
-        message_id TEXT,
-        sender TEXT NOT NULL,
-        received_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS email_events (event_id TEXT PRIMARY KEY, message_id TEXT, sender TEXT NOT NULL, received_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
     const id = eventId(body);
     const exists = db.prepare(`SELECT event_id FROM email_events WHERE event_id = ? LIMIT 1`);
     exists.bind([id]);
-    if (exists.step()) {
-        exists.free();
-        return { status: 'duplicate', eventId: id };
-    }
+    if (exists.step()) { exists.free(); return { status: 'duplicate', eventId: id }; }
     exists.free();
     db.run(`INSERT INTO email_events (event_id, message_id, sender) VALUES (?, ?, ?)`, [id, messageId(body) || null, from]);
 
@@ -52,30 +44,21 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
     let phone: string | undefined;
     if (lookup.step()) phone = String(lookup.getAsObject().phone || '');
     lookup.free();
-    if (!phone) {
-        saveDb();
-        return { status: 'ignored', reason: 'unlinked_email_identity' };
-    }
+    if (!phone) { saveDb(); return { status: 'ignored', reason: 'unlinked_email_identity' }; }
 
     const inbound = subject ? `Subject: ${subject}\n\n${text}` : text;
     db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'user', ?, 'email')`, [phone, inbound]);
 
-    const routing = await routeIntent(text, phone, 'email');
+    const routing = await routeIntent(text, phone);
     const reply = routing.reply || 'I received your message and will continue here in Kurukoo.';
     const references = [messageId(body)].filter(Boolean) as string[];
-    const delivery = await sendEmail(
-        from,
-        /^re:/i.test(subject) ? subject : `Re: ${subject || 'Kurukoo'}`,
-        reply,
-        { inReplyTo: messageId(body), references, tags: { channel: 'email', conversation: 'kurukoo' } }
-    );
+    const delivery = await sendEmail(from, /^re:/i.test(subject) ? subject : `Re: ${subject || 'Kurukoo'}`, reply, {
+        inReplyTo: messageId(body),
+        references,
+        tags: { channel: 'email', conversation: 'kurukoo' }
+    });
     db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'assistant', ?, 'email')`, [phone, reply]);
     saveDb();
 
-    return {
-        status: delivery.ok ? 'success' : 'accepted',
-        response: reply,
-        delivery,
-        conversation: { phone, channel: 'email' }
-    };
+    return { status: delivery.ok ? 'success' : 'accepted', response: reply, delivery, conversation: { phone, channel: 'email' } };
 }
