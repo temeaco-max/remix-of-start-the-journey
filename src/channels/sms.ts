@@ -9,11 +9,37 @@ class SmsHandler extends BaseChannelHandler {
         if (!rawPhone || !text.trim()) return null;
         const phone = String(rawPhone).trim();
         const normalizedPhone = phone.startsWith('+') ? phone : `+${phone}`;
-        return { phone: normalizedPhone, text: String(text).trim() };
+        return { phone, text: String(text).trim() };
     }
 
-    protected async sendReply(_phone: string, _reply: string, _meta?: any): Promise<void> {
-        // Provider-specific SMS delivery can be added here; webhook response remains available to the gateway.
+    protected async sendReply(phone: string, reply: string): Promise<void> {
+        const apiKey = process.env.AFRICASTALKING_API_KEY;
+        const username = process.env.AFRICASTALKING_USERNAME;
+        const sender = process.env.AFRICASTALKING_SENDER_ID;
+        if (!apiKey || !username) {
+            console.warn('[SMS] Outbound delivery not configured; inbound conversation was persisted.');
+            return;
+        }
+
+        const body = new URLSearchParams({
+            username,
+            to: phone,
+            message: reply.slice(0, 918),
+            ...(sender ? { from: sender } : {})
+        });
+        const response = await fetch('https://api.africastalking.com/version1/messaging', {
+            method: 'POST',
+            headers: {
+                'apiKey': apiKey,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+            },
+            body
+        });
+        if (!response.ok) {
+            const detail = await response.text().catch(() => '');
+            throw new Error(`Africa's Talking SMS delivery failed (${response.status}): ${detail.slice(0, 300)}`);
+        }
     }
 }
 
