@@ -13,6 +13,7 @@ interface SendEmailOptions {
     references?: string[];
     replyTo?: string;
     tags?: Record<string, string>;
+    idempotencyKey?: string;
 }
 
 function required(name: string): string | undefined {
@@ -26,13 +27,20 @@ function normalizeMessageId(value?: string): string | undefined {
     return id.startsWith('<') && id.endsWith('>') ? id : `<${id.replace(/^<|>$/g, '')}>`;
 }
 
+function escapeHtml(value: string): string {
+    return value.replace(/[&<>\"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[character] || character));
+}
+
+function plainTextToHtml(body: string): string {
+    return `<div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.55;white-space:pre-wrap">${escapeHtml(body)}</div>`;
+}
+
 /**
  * Transactional email adapter for Kurukoo's secondary email channel.
  *
- * Email remains a transport into the same conversation ledger; it is not a
- * second identity system. Resend is the preferred low-ops transport. The
- * generic gateway remains available for deployments that already operate an
- * SMTP/mail relay.
+ * Email is a durable conversation transport, not a second identity system.
+ * Resend is the preferred low-ops transport; the generic gateway remains
+ * available for deployments that already operate an SMTP/mail relay.
  */
 export async function sendEmail(
     to: string,
@@ -48,7 +56,7 @@ export async function sendEmail(
     const from = required('EMAIL_FROM');
     const webhook = required('EMAIL_WEBHOOK_URL');
     const inReplyTo = normalizeMessageId(options.inReplyTo);
-    const references = (options.references || []).map(normalizeMessageId).filter(Boolean) as string[];
+    const references = [...new Set((options.references || []).map(normalizeMessageId).filter(Boolean) as string[])];
     let result: EmailResult;
 
     try {
@@ -57,7 +65,8 @@ export async function sendEmail(
                 from,
                 to: [recipient],
                 subject,
-                text: body
+                text: body,
+                html: plainTextToHtml(body)
             };
             if (options.replyTo) payload.reply_to = options.replyTo;
             if (inReplyTo || references.length) {
@@ -70,9 +79,15 @@ export async function sendEmail(
                 payload.tags = Object.entries(options.tags).map(([name, value]) => ({ name, value }));
             }
 
+            const requestHeaders: Record<string, string> = {
+                Authorization: `Bearer ${resendKey}`,
+                'Content-Type': 'application/json'
+            };
+            if (options.idempotencyKey) requestHeaders['Idempotency-Key'] = options.idempotencyKey;
+
             const response = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+                headers: requestHeaders,
                 body: JSON.stringify(payload)
             });
             const data = await response.json().catch(() => ({})) as { id?: string; message?: string; message_id?: string };
@@ -86,9 +101,11 @@ export async function sendEmail(
                     to: recipient,
                     subject,
                     text: body,
+                    html: plainTextToHtml(body),
                     replyTo: options.replyTo,
                     headers: { ...(inReplyTo ? { 'In-Reply-To': inReplyTo } : {}), ...(references.length ? { References: references } : {}) },
-                    tags: options.tags || {}
+                    tags: options.tags || {},
+                    idempotencyKey: options.idempotencyKey
                 })
             });
             if (!response.ok) throw new Error(`Email gateway returned ${response.status}`);
