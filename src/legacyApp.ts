@@ -80,7 +80,7 @@ import { queryGroq } from './services/groqService.js';
 import { createOpenIntention, resolveOpenIntention, getIntentions, incrementAttempt } from './services/deferredRequestService.js';
 import { getOpportunitiesForFeed, actOnOpportunity, dismissOpportunity } from './services/opportunityEngine.js';
 
-function registerLegacyRoutes(app: express.Application) {
+export function registerLegacyRoutes(app: express.Application) {
     app.set('trust proxy', 1);
 
 app.use('/api/chat/attachments', express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb' }));
