@@ -51,7 +51,7 @@ const alignment = {
 
 const architectureWarnings = [];
 if (alignment.canonicalSkillsWithoutExplicitSeedFlow > 0) architectureWarnings.push('Some canonical skills use the category/default flow path rather than an explicit database flow.');
-if (!alignment.legacyBoundaryAbsent) architectureWarnings.push('The removed legacy route boundary has returned; canonical route modules must remain the only HTTP ownership model.');
+if (!alignment.legacyBoundaryAbsent) architectureWarnings.push('A legacy route boundary is present; canonical route modules must remain the sole HTTP surface.');
 if (!alignment.artistUsesSharedLifecycle) architectureWarnings.push('Artist booking is not visibly using the shared Economic Request lifecycle.');
 if (!alignment.orderFinalizerGuardsChatCommitment) architectureWarnings.push('Order finalization does not visibly guard chat intent from automatic commitment.');
 if (!alignment.channelRouterWiredAtCompositionRoot) architectureWarnings.push('Channel router is not wired at the application composition root.');
