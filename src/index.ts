@@ -3,13 +3,14 @@
  *
  * The legacy route implementation remains isolated in legacyApp.ts while the
  * composition root owns the actual Express application, webhook ordering,
- * raw-body capture for signed providers, and server lifecycle.
+ * canonical economic boundaries, and server lifecycle.
  */
 import express from 'express';
 import { registerLegacyRoutes } from './legacyApp.js';
 import channelRoutes from './routes/channelRoutes.js';
 import circleRoutes from './routes/circleRoutes.js';
 import economicRequestRouter from './routes/economicRequestRouter.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 const app = express();
 
@@ -23,24 +24,24 @@ app.use(express.json({
     }
 }));
 
-// Channel webhooks must be registered before the legacy application's final
-// catch-all. They use the same conversation/channel adapters as the rest of
-// the platform rather than maintaining parallel webhook implementations.
+// Canonical channel boundary. It owns the provider webhook adapters and USSD
+// entry point rather than allowing legacyApp.ts to maintain duplicates.
 app.use('/api', channelRoutes);
 
-// Money Circle already has a dedicated authenticated route boundary. Mount it
-// before the legacy implementation so the secure, session-derived identity
-// boundary is the production path. The legacy handlers remain as a fallback
-// during the incremental legacyApp extraction and will be removed once parity
-// integration coverage is complete.
+// Canonical authenticated Money Circle boundary.
 app.use('/api', circleRoutes);
 
-// Economic requests already have a canonical route boundary backed by
-// skillFlows + the shared agentic storefront/trade engine. Mount it before the
-// legacy implementation so new economic traffic does not create a parallel
-// request lifecycle in legacyApp.ts.
+// Canonical economic-request boundary backed by skillFlows + the shared
+// agentic storefront/trade engine.
 app.use('/api/economic-requests', economicRequestRouter);
 
+// Canonical admin boundary. It already owns authentication and platform/admin
+// services; mounting it here makes it the production path before legacyApp.
+app.use('/api/admin', adminRoutes);
+
+// Remaining legacy/public routes are still registered incrementally. Existing
+// boundaries above intentionally stay mounted first so duplicate legacy
+// handlers cannot become the primary implementation.
 registerLegacyRoutes(app);
 
 const port = Number(process.env.PORT || 3000);
