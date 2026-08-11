@@ -23,27 +23,22 @@ jobs:
           if ! test -f src/legacyApp.ts; then exit 0; fi
           python3 <<'PY'
           from pathlib import Path
-          import re
           p = Path('src/legacyApp.ts')
           s = p.read_text()
           marker = 'export function registerLegacyRoutes(app: express.Application) {'
           start = s.find(marker)
-          if start < 0:
-              raise SystemExit('legacy registration function not found')
+          if start < 0: raise SystemExit('legacy registration function not found')
           prefix, body = s[:start], s[start:]
-          imports = []
-          kept = []
+          imports, kept = [], []
           for line in body.splitlines(True):
               if line.startswith('import ') and line.rstrip().endswith(';'):
                   imports.append(line)
               else:
                   kept.append(line)
           body = ''.join(kept)
-          body = re.sub(r'(?m)^export\\s+(?=(?:const|let|var|function|async function|class)\\b)', '', body)
-          s = prefix + ''.join(imports) + ('\n' if imports else '') + body
-          p.write_text(s)
+          body = ''.join(line[7:] if line.startswith('export ') else line for line in body.splitlines(True))
+          p.write_text(prefix + ''.join(imports) + ('\n' if imports else '') + body)
           PY
-
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/legacyApp.ts
