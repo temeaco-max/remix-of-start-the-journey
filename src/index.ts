@@ -13,6 +13,15 @@ import economicRequestRouter from './routes/economicRequestRouter.js';
 import adminRoutes from './routes/adminRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import chatRouter from './routes/chatRouter.js';
+import orderRoutes from './routes/orderRoutes.js';
+import presenceRoutes from './routes/presenceRoutes.js';
+import discoveryRoutes from './routes/discoveryRoutes.js';
+import contentRoutes from './routes/contentRoutes.js';
+import publicRoutes from './routes/publicRoutes.js';
+import pricingRoutes from './routes/pricingRoutes.js';
+import subscriptionRoutes from './routes/subscriptionRoutes.js';
 
 const app = express();
 
@@ -48,9 +57,37 @@ app.use('/api', paymentRoutes);
 // from the authenticated session rather than client-supplied ownership fields.
 app.use('/api', userRoutes);
 
+// Canonical OTP/authentication boundary.
+app.use('/api/auth', authRoutes);
+
+// Canonical chat boundary: history, streaming, attachments and conversations.
+// Mount before legacy chat handlers so the legacy implementation is no longer
+// the primary path.
+app.use('/api/chat', chatRouter);
+
+// Canonical orders/delivery boundary.
+app.use('/api', orderRoutes);
+
+// Canonical presence/Pulse and nearby discovery projections.
+app.use('/', presenceRoutes);
+app.use('/', discoveryRoutes);
+
+// Canonical public content API and public page routes.
+app.use('/', contentRoutes);
+app.use('/', publicRoutes);
+
+// Canonical pricing catalogue. Admin pricing endpoints remain under the
+// existing admin boundary; this router owns the public /api/pricing/:country
+// contract.
+app.use('/api/pricing', pricingRoutes);
+
+// Canonical subscription entitlement/payment boundary.
+app.use('/api', subscriptionRoutes);
+
 // Remaining legacy/public routes are still registered incrementally. Existing
 // boundaries above intentionally stay mounted first so duplicate legacy
-// handlers cannot become the primary implementation.
+// handlers cannot become the primary implementation. Routes not covered by an
+// existing canonical module remain owned by legacyApp until parity is proven.
 registerLegacyRoutes(app);
 
 const port = Number(process.env.PORT || 3000);
