@@ -1,26 +1,28 @@
-# Kurukoo v5.51 — Build Status
+# Kurukoo v5.52 — Build Status
 
-**Status:** Core engines landed + deferred request protocol closed-loop
-**Blueprint:** v5.62 target (`BLUEPRINT.md`); codebase milestone **v5.51**
+**Status:** Deferred → storefront re-bind closed; core engines + quotas + workers stable
+**Blueprint:** v5.62 target (`BLUEPRINT.md`); codebase milestone **v5.52**
 **Date:** 2026-08-11
 
 ## Verification
 - Entry point: `index.ts` → `src/index.ts` + `startBackgroundWorkers()`.
 - Identity remains single `memory_profiles` (Tight Integration Mandate).
 
-## v5.51 Highlights
+## v5.52 Highlights
 
-### Deferred Request Protocol (§4.1.3) — closed loop
-- `processDueDeferred` now **resolves** open intentions when `find_worker` returns providers.
-- Sends FCM push (“Kurukoo found a match”) so the user can reopen chat / WhatsApp and continue storefront.
-- Still increments attempts + next_check when no match; nightly expire remains.
-- Worker log: `checked / matched / notified`.
+### Deferred → economic_request re-bind (§4.1.3 / §55.6)
+- `open_intentions.economic_request_id` links deferred rows to storefront sessions.
+- On deferred match, worker **quotes** the linked `economic_request` (matched → quoted) so resume is not empty.
+- `tryResumeStorefront` / `resumeStorefrontFromRequest` rebuild quote_review / fulfillment / deferred cards without creating a new request.
+- Intent router:
+  - Explicit resume phrases (“continue”, “found a match”, …)
+  - Soft resume on short messages when an open matched request exists
+  - `startStorefrontSession` prefers resume for the same skill over duplicate rows
+- FCM copy nudges: “say continue to review the quote”.
 
-### Prior (v5.50)
-- Living Memory Engine (§4.3) — tiers, keyword MMR, lifecycle, audit.
-- Transaction Orchestration (§33.1.3) — match → quote → escrow → complete.
-- Agentic Storefront (§55.6) — multi-stage cards in chat UI.
-- Hard AI quotas + background workers (orchestration, deferred, memory, purge).
+### Prior (v5.51 / v5.50)
+- Deferred closed-loop match + FCM notify
+- Living Memory Engine, Transaction Orchestration, Agentic Storefront UI, AI quotas, workers
 
 ## Still open vs Blueprint v5.62
 - PSP-backed bill payments & regulated cross-border rails
@@ -28,7 +30,7 @@
 - Redis / PostgreSQL at multi-instance scale
 - Full UK life-admin skill seeding completeness
 - IoT bridge beyond MQTT stub
-- Richer deferred → economic_request re-bind when user returns (storefront can still start fresh)
+- Universal vendor ordering depth (§55.4 catalog / multi-vendor)
 
 ## Env knobs
 | Variable | Purpose |
