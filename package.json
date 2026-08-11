@@ -13,6 +13,7 @@
     "lint": "tsc --noEmit",
     "test:public-routes": "tsx scripts/test-public-routes.ts",
     "test:discovery-routes": "tsx scripts/test-discovery-routes.ts",
+    "test:presence-routes": "tsx scripts/test-presence-routes.ts",
     "audit:css": "node scripts/audit-inline-css.mjs",
     "audit:css:all": "node scripts/audit-css-system.mjs",
     "audit:messaging": "node scripts/audit-messaging-system.mjs",
