@@ -1,6 +1,6 @@
 /**
  * Contract test: admin routes require authenticateAdmin (JWT admin claim).
- * Run: npx tsx scripts/test-admin-routes.ts
+ * Pricing is a separate route boundary and is tested independently.
  */
 import assert from 'node:assert/strict';
 
@@ -12,12 +12,10 @@ const paths = [
   '/api/admin/github/status',
   '/api/admin/analytics',
   '/api/admin/content',
-  '/api/admin/pricing',
   '/api/admin/keep-alive',
 ];
 
 async function main() {
-  // Structural contract: module must export a router and document auth guard.
   const mod = await import('../src/routes/adminRoutes.ts');
   assert.ok(mod.default || mod.adminRoutes, 'adminRoutes export missing');
   const src = await import('node:fs').then((fs) =>
