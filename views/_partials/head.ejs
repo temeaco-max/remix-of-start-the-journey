@@ -53,6 +53,9 @@
     <% (typeof pageStyles !== 'undefined' ? pageStyles : []).forEach(function(href) { %>
     <link rel="stylesheet" href="<%= href %>">
     <% }); %>
+    <% if (typeof reqPath !== 'undefined' && /^\/(?:ng|gh|gb)?\/$/.test(reqPath)) { %>
+    <link rel="stylesheet" href="/css/kurukoo-home.css?v=1.0.0">
+    <% } %>
     <link rel="icon" type="image/svg+xml" href="/assets/brand/favicon.svg">
     <link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
     <link rel="manifest" href="/manifest.json">
