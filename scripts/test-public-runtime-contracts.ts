@@ -45,11 +45,17 @@ try {
     assert.match(await chat.text(), /id="chat-shell"|class="chat-shell"/, `${pathName} must serve the existing chat shell`);
   }
 
+  const explore = await request(base, '/explore');
+  assert.equal(explore.status, 200, 'Explore navigation must render the category index');
+  const exploreHtml = await explore.text();
+  assert.doesNotMatch(exploreHtml, /verified local providers|express delivery|\d+\s+providers|★\s*\d+(?:\.\d+)?/i, 'Explore index must not present unsupported provider, delivery, count, or rating claims');
+  assert.match(exploreHtml, /Explore this category/, 'Explore index must retain a truthful category CTA');
+
   for (const pathName of ['/explore/food', '/explore/groceries', '/explore/repairs-maintenance', '/explore/sports']) {
     const response = await request(base, pathName);
     assert.equal(response.status, 200, `${pathName} must resolve through the canonical Explore route`);
     const html = await response.text();
-    assert.doesNotMatch(html, /undefined\s+(Verified Providers|Rating)/, `${pathName} must not invent missing provider statistics`);
+    assert.doesNotMatch(html, /Verified Providers|★\s*\d+(?:\.\d+)?\s+Rating/, `${pathName} must not invent provider verification or rating statistics`);
     assert.match(html, /Explore related services/, `${pathName} must render the existing category template`);
   }
 
@@ -79,4 +85,4 @@ try {
 }
 
 console.log('Public runtime contract checks passed');
-console.log('Verified: homepage stylesheet and onboarding events, canonical public assets and chat shell, Explore category aliases, truthful category data, public redirects, pricing, and country routes.');
+console.log('Verified: homepage stylesheet and onboarding events, canonical public assets and chat shell, truthful Explore index/category data, public redirects, pricing, and country routes.');
