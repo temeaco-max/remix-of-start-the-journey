@@ -1,4 +1,5 @@
 import { auditEconomicTaxonomy, getDefaultCapabilities, getEconomicCategory, getKnownSkills, ECONOMIC_CATEGORIES, getAllowedEconomicTransitions } from '../src/services/skillFlows.js';
+import { getEconomicRequestDefinition, getMissingRequirements } from '../src/domain/economicRequest.js';
 
 const taxonomy = auditEconomicTaxonomy();
 if (taxonomy.unmapped.length) throw new Error(`Unmapped skills: ${taxonomy.unmapped.join(', ')}`);
@@ -13,7 +14,19 @@ for (const skill of requiredSkills) {
   if (!category) throw new Error(`Missing category for required skill: ${skill}`);
   const capabilities = getDefaultCapabilities(category);
   if (!capabilities.includes('discovery') || !capabilities.includes('completion')) throw new Error(`Incomplete capabilities for ${skill}`);
+  const definition = getEconomicRequestDefinition(skill);
+  if (!definition || definition.category !== category) throw new Error(`Missing request definition for ${skill}`);
+  if (!definition.requirements.length) throw new Error(`Missing requirement schema for ${skill}`);
+  if (!definition.capabilities.length) throw new Error(`Missing capability policy for ${skill}`);
 }
+
+const artist = getEconomicRequestDefinition('verified_artist');
+if (!artist) throw new Error('Artist booking must use the shared economic request definition');
+for (const key of ['artist','event_type','event_date','venue']) {
+  if (!artist.requirements.some((field) => field.key === key)) throw new Error(`Artist requirement schema missing: ${key}`);
+}
+const missingArtist = getMissingRequirements('verified_artist', { artist: 'artist', event_type: 'wedding', event_date: '2026-12-12', venue: 'Lagos' });
+if (missingArtist.length) throw new Error(`Complete artist request reported as incomplete: ${missingArtist.join(', ')}`);
 
 const known = getKnownSkills();
 if (known.length < 100) throw new Error(`Expected broad skill taxonomy, found only ${known.length}`);
@@ -21,4 +34,4 @@ if (!getAllowedEconomicTransitions('requested').includes('awaiting_match')) thro
 if (!getAllowedEconomicTransitions('paid').includes('in_fulfillment')) throw new Error('Paid -> fulfilment transition missing');
 if (!getAllowedEconomicTransitions('fulfilled').includes('completed')) throw new Error('Fulfilled -> completed transition missing');
 
-console.log(`Economic request audit passed: ${taxonomy.categories} categories, ${taxonomy.skills} skills.`);
+console.log(`Economic request audit passed: ${taxonomy.categories} categories, ${taxonomy.skills} skills, shared requirement schemas verified.`);
