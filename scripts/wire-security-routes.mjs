@@ -93,6 +93,12 @@ for (const [from, to] of renames) {
   if (src.includes(from) && !src.includes(to)) src = src.replace(from, to);
 }
 
+// Keep the legacy legal handler type-safe while it remains in the monolith.
+src = src.replace(
+  'const { section } = req.params; const country = \'ng\';',
+  "const section = (req.params as Record<string, string | undefined>).section; const country = 'ng';"
+);
+
 src = src.split('+2348030000000').join('');
 fs.writeFileSync(indexPath, src);
 console.log('Wired extracted public/discovery/presence/content/trust/circle/order/task/user routers.');
