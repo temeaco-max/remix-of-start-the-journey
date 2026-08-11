@@ -4,10 +4,10 @@
  * Reuses economic_requests + find_worker + escrow — no parallel identity tables.
  */
 import crypto from 'crypto';
-import { createEconomicRequest, getEconomicRequest, transitionEconomicRequest, getEconomicCategory, getDefaultCapabilities } from './skillFlows.js';
+import { createEconomicRequest, getEconomicRequest, transitionEconomicRequest, getEconomicCategory } from './skillFlows.js';
 import { find_worker } from './find-worker.js';
 import { lockEscrowForEconomicRequest, completeEconomicRequest } from './tradeEngine.js';
-import { createOpenIntention } from './deferredRequestService.js';
+import { createOpenIntention, getResumableIntention } from './deferredRequestService.js';
 
 export type StorefrontStage =
   | 'intent_extraction'
@@ -45,6 +45,20 @@ const STAGE_PROGRESS: Record<StorefrontStage, number> = {
   complete: 100,
   deferred: 40,
 };
+
+const ACTIVE_RESUME_STATUSES = new Set([
+  'requested',
+  'awaiting_match',
+  'partially_matched',
+  'matched',
+  'quoting',
+  'quoted',
+  'awaiting_confirmation',
+  'reserved',
+  'payment_pending',
+  'paid',
+  'in_fulfillment',
+]);
 
 function requiredSlots(skill: string): Array<{ key: string; label: string; required?: boolean }> {
   const category = getEconomicCategory(skill) || '';
@@ -85,6 +99,147 @@ function missingRequired(fields: Array<{ key: string; required?: boolean }>, req
     });
 }
 
+function cardFromQuoted(req: Awaited<ReturnType<typeof getEconomicRequest>>): StorefrontCard | null {
+  if (!req) return null;
+  const quote = (req.quote || {}) as Record<string, unknown>;
+  const amountMinor =
+    typeof quote.amount_minor === 'number' ? Number(quote.amount_minor) : 500;
+  const providerName = String(quote.provider_name || 'Provider');
+  const rating = Number(quote.rating || 5);
+  return {
+    type: 'agentic_storefront',
+    stage: 'quote_review',
+    skill: req.skill,
+    category: req.category,
+    requestId: req.id,
+    title: 'Provider match',
+    message: `Found **${providerName}** (${rating}★). Quote: **${amountMinor} Points/₦**. Confirm to lock escrow — nothing is paid out until you are satisfied.`,
+    providers: [
+      {
+        phone: String(req.providerPhone || ''),
+        name: providerName,
+        rating,
+        hourly_rate: amountMinor,
+      },
+    ],
+    quote: { amount_minor: amountMinor, currency: String(quote.currency || 'NGN') },
+    actions: [
+      { id: 'confirm_escrow', label: 'Confirm & lock escrow', style: 'primary' },
+      { id: 'cancel', label: 'Cancel', style: 'secondary' },
+    ],
+    escrowProtected: true,
+    progress: STAGE_PROGRESS.quote_review,
+  };
+}
+
+function cardFromFulfillment(req: NonNullable<Awaited<ReturnType<typeof getEconomicRequest>>>): StorefrontCard {
+  return {
+    type: 'agentic_storefront',
+    stage: 'fulfillment',
+    skill: req.skill,
+    category: req.category,
+    requestId: req.id,
+    title: 'Escrow locked',
+    message: 'Payment is held safely. The provider can proceed; funds release after you confirm completion.',
+    actions: [
+      { id: 'confirm_complete', label: 'Mark completed', style: 'primary' },
+      { id: 'dispute', label: 'Report a problem', style: 'danger' },
+    ],
+    escrowProtected: true,
+    progress: STAGE_PROGRESS.fulfillment,
+  };
+}
+
+function cardFromDeferred(req: NonNullable<Awaited<ReturnType<typeof getEconomicRequest>>>): StorefrontCard {
+  return {
+    type: 'agentic_storefront',
+    stage: 'deferred',
+    skill: req.skill,
+    category: req.category,
+    requestId: req.id,
+    title: 'Still looking',
+    message:
+      'Your request is still open. Kurukoo is re-checking for providers. You can cancel or wait for a match notification.',
+    actions: [{ id: 'cancel', label: 'Cancel request', style: 'secondary' }],
+    escrowProtected: true,
+    progress: STAGE_PROGRESS.deferred,
+  };
+}
+
+/** Rebuild a storefront card from an existing economic_request (no new DB row). */
+export async function resumeStorefrontFromRequest(
+  phone: string,
+  requestId: string
+): Promise<StorefrontCard | null> {
+  const req = await getEconomicRequest(requestId);
+  if (!req || req.phone !== phone) return null;
+  if (!ACTIVE_RESUME_STATUSES.has(req.status)) return null;
+
+  if (['quoted', 'awaiting_confirmation', 'matched', 'quoting'].includes(req.status) && req.quote) {
+    return cardFromQuoted(req);
+  }
+  if (['paid', 'in_fulfillment', 'reserved', 'payment_pending'].includes(req.status)) {
+    return cardFromFulfillment(req);
+  }
+  if (['awaiting_match', 'partially_matched', 'requested'].includes(req.status)) {
+    // Re-run match path without recreating the request
+    return advanceStorefront(phone, requestId, req.requirements || {});
+  }
+  return cardFromDeferred(req);
+}
+
+/**
+ * If the user has a resumable open intention or active economic request,
+ * return a storefront card instead of starting a brand-new session.
+ */
+export async function tryResumeStorefront(phone: string, preferredSkill?: string): Promise<StorefrontCard | null> {
+  const intention = await getResumableIntention(phone);
+  if (intention?.economic_request_id) {
+    const resumed = await resumeStorefrontFromRequest(phone, String(intention.economic_request_id));
+    if (resumed) {
+      if (preferredSkill && resumed.skill && preferredSkill !== resumed.skill) {
+        // Different skill requested — do not force-bind
+        return null;
+      }
+      resumed.message =
+        intention.status === 'fulfilled' && intention.resolution === 'provider_matched'
+          ? `Welcome back — a provider matched while you were away. ${resumed.message}`
+          : `Picking up your open request. ${resumed.message}`;
+      return resumed;
+    }
+  }
+
+  // Fallback: scan recent economic_requests for this phone still in flight
+  try {
+    const { getDb } = await import('../database.js');
+    const db = await getDb();
+    const skillFilter = preferredSkill ? preferredSkill.trim().toLowerCase() : null;
+    const stmt = skillFilter
+      ? db.prepare(`
+          SELECT id FROM economic_requests
+          WHERE phone = ? AND lower(skill) = ? AND status IN ('requested','awaiting_match','partially_matched','matched','quoting','quoted','awaiting_confirmation','reserved','payment_pending','paid','in_fulfillment')
+          ORDER BY updated_at DESC LIMIT 1
+        `)
+      : db.prepare(`
+          SELECT id FROM economic_requests
+          WHERE phone = ? AND status IN ('requested','awaiting_match','partially_matched','matched','quoting','quoted','awaiting_confirmation','reserved','payment_pending','paid','in_fulfillment')
+          ORDER BY updated_at DESC LIMIT 1
+        `);
+    if (skillFilter) stmt.bind([phone, skillFilter]);
+    else stmt.bind([phone]);
+    if (stmt.step()) {
+      const id = String(stmt.getAsObject().id || '');
+      stmt.free();
+      if (id) return resumeStorefrontFromRequest(phone, id);
+    } else {
+      stmt.free();
+    }
+  } catch {
+    /* ignore resume scan errors */
+  }
+  return null;
+}
+
 /** Start a storefront session from a classified skill. */
 export async function startStorefrontSession(
   phone: string,
@@ -92,6 +247,11 @@ export async function startStorefrontSession(
   seedRequirements: Record<string, unknown> = {}
 ): Promise<StorefrontCard> {
   const normalized = skill.trim().toLowerCase() || 'find_worker';
+
+  // Prefer resume over duplicate open requests for the same skill
+  const existing = await tryResumeStorefront(phone, normalized);
+  if (existing) return existing;
+
   const category = getEconomicCategory(normalized) || 'gigs-microtasks';
   const fields = requiredSlots(normalized);
   const missing = missingRequired(fields, seedRequirements);
@@ -190,7 +350,6 @@ export async function advanceStorefront(
     };
   }
 
-  // Persist merged requirements via quoting path metadata
   if (action === 'confirm_escrow') {
     const amount =
       typeof (req.quote as any)?.amount_minor === 'number'
@@ -261,6 +420,7 @@ export async function advanceStorefront(
       skill: req.skill,
       location,
       ttlDays: 7,
+      economicRequestId: requestId,
     }).catch(() => null);
     try {
       await transitionEconomicRequest(requestId, 'awaiting_match');
@@ -287,7 +447,7 @@ export async function advanceStorefront(
     if (req.status === 'requested' || req.status === 'awaiting_match') {
       await transitionEconomicRequest(requestId, 'matched', { providerPhone: top.phone });
     }
-    if (['matched', 'partially_matched', 'quoting'].includes(req.status) || req.status === 'requested') {
+    if (['matched', 'partially_matched', 'quoting'].includes(req.status) || req.status === 'requested' || req.status === 'awaiting_match') {
       try {
         await transitionEconomicRequest(requestId, 'quoting');
       } catch { /* */ }
