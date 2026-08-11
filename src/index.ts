@@ -8,6 +8,7 @@
 import express from 'express';
 import { registerLegacyRoutes } from './legacyApp.js';
 import channelRoutes from './routes/channelRoutes.js';
+import circleRoutes from './routes/circleRoutes.js';
 
 const app = express();
 
@@ -25,6 +26,13 @@ app.use(express.json({
 // catch-all. They use the same conversation/channel adapters as the rest of
 // the platform rather than maintaining parallel webhook implementations.
 app.use('/api', channelRoutes);
+
+// Money Circle already has a dedicated authenticated route boundary. Mount it
+// before the legacy implementation so the secure, session-derived identity
+// boundary is the production path. The legacy handlers remain as a fallback
+// during the incremental legacyApp extraction and will be removed once parity
+// integration coverage is complete.
+app.use('/api', circleRoutes);
 
 registerLegacyRoutes(app);
 
