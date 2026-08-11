@@ -33,8 +33,17 @@ if (fs.existsSync(basePath)) {
 
 if (fs.existsSync(conversationPath)) {
     const conversation = fs.readFileSync(conversationPath, 'utf8');
-    for (const required of ['memory_profiles', 'conversationId', 'appendChatMessage']) {
+    for (const required of ['conversationId', 'appendChatMessage']) {
         if (!conversation.includes(required)) failures.push(`Conversation service missing required integration: ${required}`);
+    }
+    // Memory Profile is the canonical identity/context source. Accept either
+    // a direct SQL reference or the canonical memoryProfile service boundary.
+    const hasMemoryProfileBoundary =
+        conversation.includes('memory_profiles') ||
+        conversation.includes("./memoryProfile.js") ||
+        conversation.includes('getProfile(');
+    if (!hasMemoryProfileBoundary) {
+        failures.push('Conversation service missing required integration: memory profile');
     }
 }
 
