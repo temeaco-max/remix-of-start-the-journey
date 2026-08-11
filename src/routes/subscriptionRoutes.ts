@@ -1,8 +1,7 @@
 /**
- * Subscription routes — removes client-trusted identity mutation.
- *
- * ✗ POST { phone, plan }  (unauthenticated body trust)
- * ✓ authenticated session → memory profile → validated plan → confirmed payment → tier
+ * Subscription entitlement boundary.
+ * Identity comes only from the authenticated session; payment references are
+ * metadata and are never accepted as proof of settlement.
  */
 import { Router } from 'express';
 import { authenticateUser, AuthRequest } from '../middleware/auth.js';
@@ -14,24 +13,20 @@ import {
 
 const router = Router();
 
-/**
- * Consumer plan upgrade. Phone is taken from JWT only.
- */
-router.post('/upgrade', authenticateUser, paymentRateLimit, async (req: AuthRequest, res) => {
+router.post('/subscription/upgrade', authenticateUser, paymentRateLimit, async (req: AuthRequest, res) => {
   try {
     const phone = req.user?.phone;
     if (!phone) return res.status(401).json({ error: 'Authentication required' });
+
+    if (req.body?.phone && String(req.body.phone) !== String(phone)) {
+      return res.status(403).json({ error: 'Forbidden: subscription must use authenticated identity' });
+    }
 
     const plan = String(req.body?.plan || '').trim();
     const country = String(req.body?.country || req.body?.locale || 'ng').trim().toLowerCase();
     const payment_ref = req.body?.payment_ref ? String(req.body.payment_ref) : undefined;
 
-    // Ignore any body.phone — identity comes from session only
-    if (req.body?.phone && req.body.phone !== phone) {
-      return res.status(403).json({ error: 'Forbidden: subscription must use authenticated identity' });
-    }
-
-    const result = await upgradeSubscriptionAfterPayment(phone, plan, country, { payment_ref });
+    const result = await upgradeSubscriptionAfterPayment(String(phone), plan, country, { payment_ref });
     if (!result.success) {
       const status = result.payment_required ? 402 : result.error === 'plan_not_found' ? 404 : 400;
       return res.status(status).json(result);
@@ -43,26 +38,19 @@ router.post('/upgrade', authenticateUser, paymentRateLimit, async (req: AuthRequ
   }
 });
 
-/**
- * Provider lead-subscription (Base / Plus / Business).
- */
-router.post('/provider', authenticateUser, paymentRateLimit, async (req: AuthRequest, res) => {
+router.post('/provider/subscribe', authenticateUser, paymentRateLimit, async (req: AuthRequest, res) => {
   try {
     const phone = req.user?.phone;
     if (!phone) return res.status(401).json({ error: 'Authentication required' });
 
-    const tier = String(req.body?.tier || '').trim();
-    const payment_ref = req.body?.payment_ref ? String(req.body.payment_ref) : undefined;
-
-    if (req.body?.phone && req.body.phone !== phone) {
+    if (req.body?.phone && String(req.body.phone) !== String(phone)) {
       return res.status(403).json({ error: 'Forbidden: subscription must use authenticated identity' });
     }
 
-    const result = await subscribeProviderTier(phone, tier, { payment_ref });
-    if (!result.success) {
-      const status = result.payment_required ? 402 : 400;
-      return res.status(status).json(result);
-    }
+    const tier = String(req.body?.tier || '').trim();
+    const payment_ref = req.body?.payment_ref ? String(req.body.payment_ref) : undefined;
+    const result = await subscribeProviderTier(String(phone), tier, { payment_ref });
+    if (!result.success) return res.status(result.payment_required ? 402 : 400).json(result);
     res.json(result);
   } catch (e: any) {
     console.error('Provider subscribe error:', e);
