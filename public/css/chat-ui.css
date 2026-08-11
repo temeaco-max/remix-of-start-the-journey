@@ -1,4 +1,4 @@
-/* Shared chat UX helpers (loaded by chat-ui-enhancements.js) */
+/* Kurukoo chat-ui a11y + soft-gate helpers (loaded by chat-ui-enhancements.js) */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -17,4 +17,42 @@
   width: 1px;
   height: 1px;
   overflow: hidden;
+}
+
+.kurukoo-chat-page .primary-btn,
+.message .primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #d97a5c;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid #d97a5c;
+  min-height: 40px;
+}
+
+.kurukoo-chat-page .secondary-btn,
+.message .secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #2e2e2e;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid #eadfd5;
+  min-height: 40px;
+}
+
+[data-embed-signin-gate] .markdown-body p {
+  margin: 0 0 12px;
+}
+
+[data-embed-signin-gate] .markdown-body p:last-child {
+  margin-bottom: 0;
 }
