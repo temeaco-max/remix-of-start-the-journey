@@ -1,29 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><title>Admin Login</title><link rel="stylesheet" href="/css/site.css"></head>
-<body style="display:flex;justify-content:center;align-items:center;height:100vh;">
-<div class="card" style="width:320px;">
-    <h2>Admin Login</h2>
-    <form id="login-form" style="margin-top:16px;">
-        <input type="text" id="username" placeholder="Username" style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ccc;border-radius:6px;">
-        <input type="password" id="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:16px;border:1px solid #ccc;border-radius:6px;">
-        <button type="submit" class="btn-primary" style="width:100%;">Login</button>
-    </form>
-</div>
-<script>
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const res = await fetch('/api/admin/auth', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username: document.getElementById('username').value, password: document.getElementById('password').value})
-    });
-    const data = await res.json();
-    if(data.success) {
-        localStorage.setItem('kurukoo_admin', data.token);
-        window.location.href = '/admin/dashboard.html';
-    } else { alert('Invalid credentials'); }
-});
-</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title>Admin Login | Kurukoo</title>
+    <link rel="stylesheet" href="/css/site.css">
+    <link rel="stylesheet" href="/css/admin-auth.css">
+</head>
+<body class="admin-auth-page">
+<main class="admin-auth-shell">
+    <section class="admin-auth-card" aria-labelledby="admin-login-title">
+        <div class="admin-auth-brand" aria-label="Kurukoo Admin">
+            <span class="admin-auth-brand-mark" aria-hidden="true">◈</span>
+            <span>Kurukoo Admin</span>
+        </div>
+        <h1 id="admin-login-title">Sign in</h1>
+        <p class="admin-auth-description">Access the operational console for authorised Kurukoo administrators.</p>
+        <form id="login-form" class="admin-auth-form" novalidate>
+            <div class="admin-auth-field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" autocomplete="username" required>
+            </div>
+            <div class="admin-auth-field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" autocomplete="current-password" required>
+            </div>
+            <p id="login-status" class="admin-auth-status" role="alert" aria-live="polite"></p>
+            <button type="submit" id="login-submit" class="btn-primary admin-auth-submit">Sign in</button>
+        </form>
+    </section>
+</main>
+<script src="/admin/login.js" defer></script>
 </body>
 </html>
