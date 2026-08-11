@@ -237,7 +237,6 @@ const pulseRenames = [
   ["app.get('/api/github/diff'", "app.get('/api/github/diff-legacy'"],
   ["app.post('/api/github/pull'", "app.post('/api/github/pull-legacy'"],
   ["app.post('/api/github/push'", "app.post('/api/github/push-legacy'"],
-  // SEO admin → seoAdminRoutes
   ["app.get('/api/admin/seo/dashboard'", "app.get('/api/admin/seo/dashboard-legacy'"],
   ["app.get('/api/admin/seo/health'", "app.get('/api/admin/seo/health-legacy'"],
   ["app.get('/api/admin/seo/settings'", "app.get('/api/admin/seo/settings-legacy'"],
@@ -319,5 +318,72 @@ if (src.includes('subscription_tier = COALESCE(?, subscription_tier)') && !src.i
   );
 }
 
+// --- trust / circle / order (JWT-only identity boundary) ---
+const securityImportBlock = `import trustRoutes from './routes/trustRoutes.js';
+import circleRoutes from './routes/circleRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+`;
+if (!src.includes("from './routes/trustRoutes.js'")) {
+  if (src.includes("from './routes/chatRouter.js'")) {
+    src = src.replace(
+      "import chatRouter from './routes/chatRouter.js';",
+      `import chatRouter from './routes/chatRouter.js';\n${securityImportBlock}`
+    );
+  } else {
+    src = securityImportBlock + src;
+  }
+}
+if (!src.includes("app.use('/api', trustRoutes)")) {
+  if (src.includes("app.use('/api/chat', chatRouter)")) {
+    src = src.replace(
+      "app.use('/api/chat', chatRouter);",
+      `app.use('/api/chat', chatRouter);
+app.use('/api', trustRoutes);
+app.use('/api', circleRoutes);
+app.use('/api', orderRoutes);`
+    );
+  }
+}
+
+// Neutralize legacy money-circle handlers (idempotent)
+if (!src.includes('circleGone')) {
+  const circleLegacy = [
+    ["app.post('/api/circle/create'", "app.post('/api/circle/create-legacy'"],
+    ["app.post('/api/circle/join'", "app.post('/api/circle/join-legacy'"],
+    ["app.post('/api/circle/contribute'", "app.post('/api/circle/contribute-legacy'"],
+    ["app.get('/api/circle/:id'", "app.get('/api/circle-legacy/:id'"],
+    ["app.post('/api/circle/:id/buying-discount'", "app.post('/api/circle-legacy/:id/buying-discount'"],
+    ["app.post('/api/circle/:id/safety-alert'", "app.post('/api/circle-legacy/:id/safety-alert'"],
+  ];
+  for (const [from, to] of circleLegacy) {
+    if (src.includes(from) && !src.includes(to)) src = src.replace(from, to);
+  }
+}
+
+// Neutralize legacy orders list / delivery (prefer orderRoutes)
+if (!src.includes("orders-legacy")) {
+  if (src.includes("app.get('/api/orders'") && !src.includes("app.get('/api/orders-legacy'")) {
+    src = src.replace("app.get('/api/orders'", "app.get('/api/orders-legacy'");
+  }
+  if (src.includes("app.post('/api/orders/:id/delivery-status'") && !src.includes("delivery-status-legacy")) {
+    src = src.replace("app.post('/api/orders/:id/delivery-status'", "app.post('/api/orders/:id/delivery-status-legacy'");
+  }
+}
+
+// Kill demo-phone defaults (identity leak)
+src = src.split("+2348030000000").join("");
+src = src.replace(
+  /const phone = \(req\.query\.phone as string\) \|\| '';/g,
+  "const phone = req.user?.phone ? String(req.user.phone) : '';"
+);
+src = src.replace(
+  /const phone = \(req\.query\.phone as string\) \|\| ;/g,
+  "const phone = req.user?.phone ? String(req.user.phone) : '';"
+);
+src = src.replace(
+  /const phone = \(req\.query\.phone as string\) \|\|\s*;/g,
+  "const phone = req.user?.phone ? String(req.user.phone) : '';"
+);
+
 fs.writeFileSync(indexPath, src);
-console.log('Wired all extracted routers (admin + seoAdmin); neutralized legacy handlers.');
+console.log('Wired all extracted routers (admin + seoAdmin + trust/circle/order); neutralized legacy handlers.');
