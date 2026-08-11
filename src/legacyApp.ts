@@ -76,6 +76,10 @@ import {
     generateFaqsForPageWithAI, generateContentBriefWithAI, generateAltTextForImage, generateSeoTitle, generateSeoDescription
 } from './services/seoService.js';
 
+import { queryGroq } from './services/groqService.js';
+import { createOpenIntention, resolveOpenIntention, getIntentions, incrementAttempt } from './services/deferredRequestService.js';
+import { getOpportunitiesForFeed, actOnOpportunity, dismissOpportunity } from './services/opportunityEngine.js';
+
 export function registerLegacyRoutes(app: express.Application) {
     app.set('trust proxy', 1);
 
@@ -2440,7 +2444,6 @@ app.post('/api/admin/content', authenticateAdmin, async (req: AuthRequest, res) 
     }
 });
 
-import { queryGroq } from './services/groqService.js';
 
 app.post('/api/admin/content/generate', authenticateAdmin, async (req: AuthRequest, res) => {
     try {
@@ -3568,7 +3571,6 @@ app.post('/api/admin/seo/404-log/ignore/:id', authenticateAdmin, async (req: Aut
 // ──────────────────────────────────────────────
 // §4.1.3 Deferred Request Protocol — API routes
 // ──────────────────────────────────────────────
-import { createOpenIntention, resolveOpenIntention, getIntentions, incrementAttempt } from './services/deferredRequestService.js';
 
 app.post('/api/deferred/create', async (req, res) => {
     try {
@@ -3612,7 +3614,6 @@ app.post('/api/deferred/abandon/:phone/:intentionId', async (req, res) => {
 // ──────────────────────────────────────────────
 // §21.3 / §33 — Proactive Opportunity Engine API
 // ──────────────────────────────────────────────
-import { getOpportunitiesForFeed, actOnOpportunity, dismissOpportunity } from './services/opportunityEngine.js';
 
 app.get('/api/opportunities', async (req, res) => {
     try {
