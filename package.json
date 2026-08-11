@@ -1,7 +1,7 @@
 {
   "name": "kurukoo-platform",
   "private": true,
-  "version": "5.52.3",
+  "version": "5.52.4",
   "type": "module",
   "scripts": {
     "dev": "tsx index.ts",
@@ -16,6 +16,8 @@
     "test:discovery-routes": "tsx scripts/test-discovery-routes.ts",
     "test:presence-routes": "tsx scripts/test-presence-routes.ts",
     "test:content-routes": "tsx scripts/test-content-routes.ts",
+    "test:admin-routes": "tsx scripts/test-admin-routes.ts",
+    "test:seo-admin-routes": "tsx scripts/test-seo-admin-routes.ts",
     "audit:css": "node scripts/audit-inline-css.mjs",
     "audit:css:all": "node scripts/audit-css-system.mjs",
     "audit:messaging": "node scripts/audit-messaging-system.mjs",
