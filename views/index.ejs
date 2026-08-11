@@ -1,37 +1,43 @@
-<%- include('_partials/head') %>
-
-<link rel="stylesheet" href="/css/kurukoo-home.css?v=2">
-<main class="ko-home">
-  <header class="ko-nav">
-    <a href="/" class="ko-brand"><span class="ko-mark">K</span> Kurukoo</a>
-    <nav><a href="/chat">Chat</a><a href="/explore">Explore</a><a href="/dashboard.html">PWA</a></nav>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kurukoo</title>
+  <link rel="stylesheet" href="/css/kurukoo-home.css?v=2" />
+  <link rel="stylesheet" href="/css/chat-ui.css?v=1" />
+</head>
+<body class="ko-home">
+  <nav class="ko-nav" aria-label="Primary">
+    <a class="ko-nav__brand" href="/">Kurukoo</a>
+    <ul class="ko-nav__links">
+      <li><a href="/#how">How it works</a></li>
+      <li><a href="/#channels">Channels</a></li>
+      <li><a href="/login">Login</a></li>
+    </ul>
+  </nav>
+  <header class="ko-hero">
+    <h1>Trade with trust across Africa</h1>
+    <p>Escrow, circles, and multi-channel chat — built for real commerce.</p>
   </header>
-
-  <section class="ko-hero">
-    <div class="ko-hero-copy">
-      <span class="ko-eyebrow">MULTI-CHANNEL ECONOMIC OS</span>
-      <h1>One conversation.<br>Every hustle.</h1>
-      <p>Kurukoo coordinates the informal economy through one persistent conversation. Web, PWA, WhatsApp, USSD, SMS and Telegram use the same conversation and memory layer; additional transports can be connected without creating a second assistant.</p>
-      <div class="ko-actions"><a class="ko-primary" href="/chat">Open Kurukoo Chat →</a><a class="ko-secondary" href="tel:*7000%23">Dial *7000#</a></div>
-      <div class="ko-mandate"><span>Memory Profile</span><span>Presence</span><span>Conversation</span><span>Points</span><span>Proactive Intelligence</span></div>
+  <section class="ko-mandate" aria-label="Mandates">
+    <span class="ko-chip">Escrow</span>
+    <span class="ko-chip">Safety circles</span>
+    <span class="ko-chip">Multi-channel</span>
+  </section>
+  <section class="ko-grid" id="how">
+    <article class="ko-card"><h3>Buy safely</h3><p>Funds held until delivery is confirmed.</p></article>
+    <article class="ko-card"><h3>Sell with confidence</h3><p>Verified buyers and dispute support.</p></article>
+    <article class="ko-card"><h3>Chat everywhere</h3><p>Web, WhatsApp, and more in one thread.</p></article>
+  </section>
+  <section class="ko-channels" id="channels">
+    <h2>Channels</h2>
+    <div class="ko-channel-list">
+      <a href="/chat">Web chat</a>
+      <a href="/login">Sign in</a>
     </div>
-    <div class="ko-chat-frame" id="homepage-chat">
-      <iframe class="ko-chat-iframe" title="Kurukoo primary chat" loading="eager" src="/chat/?embed=1"></iframe>
-    </div>
   </section>
-
-  <section class="ko-section">
-    <div><span class="ko-eyebrow">THE PRIMARY INTERFACE</span><h2>Tell Kurukoo what you need.</h2></div>
-    <p>Find a worker. Order food. Book a ride. Offer your skills. Check a price. Coordinate an event. Ask a question. The conversation routes the work behind the scenes.</p>
-  </section>
-
-  <section class="ko-grid">
-    <article><strong>🧠 Memory</strong><p>One Memory Profile per phone. Context follows you across supported channels.</p></article>
-    <article><strong>📡 Presence</strong><p>Shared real-time presence adapts matching and proactive intelligence.</p></article>
-    <article><strong>🪙 Points</strong><p>Points are the continuous economic layer for participation and platform actions.</p></article>
-    <article><strong>🔒 Escrow</strong><p>Provider cards and eligible transactions can be protected by escrow.</p></article>
-  </section>
-
-  <section class="ko-channel"><span class="ko-eyebrow">SUPPORTED TRANSPORTS, ONE CONVERSATION</span><div class="ko-channel-list"><span>Web</span><span>PWA</span><span>WhatsApp</span><span>USSD *7000#</span><span>SMS</span><span>Telegram</span><span>Email — integration pending</span><span>IVR — integration pending</span></div></section>
-</main>
-<%- include('_partials/footer') %>
+  <footer class="ko-footer">© Kurukoo</footer>
+  <script src="/js/kurukoo-primary-chat.js" defer></script>
+</body>
+</html>
