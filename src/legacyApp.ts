@@ -80,7 +80,7 @@ import { queryGroq } from './services/groqService.js';
 import { createOpenIntention, resolveOpenIntention, getIntentions, incrementAttempt } from './services/deferredRequestService.js';
 import { getOpportunitiesForFeed, actOnOpportunity, dismissOpportunity } from './services/opportunityEngine.js';
 
-export function registerLegacyRoutes(app: express.Application) {
+function registerLegacyRoutes(app: express.Application) {
     app.set('trust proxy', 1);
 
 app.use('/api/chat/attachments', express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb' }));
@@ -2341,7 +2341,7 @@ app.get('/api/admin/scam_reports', authenticateAdmin, async (req: AuthRequest, r
     }
 });
 
-export const DEFAULT_ROTATING_BANNER_TEXTS: string[] = [
+const DEFAULT_ROTATING_BANNER_TEXTS: string[] = [
     "One number. One conversation. Tell it what you need or what you can do.",
     "Tell it what you want, anytime, anywhere — always ready to assist.",
     "Your always-on neighborhood guide & helper right in your chat.",
@@ -2355,7 +2355,7 @@ export const DEFAULT_ROTATING_BANNER_TEXTS: string[] = [
     "AI assistive software designed for everyday tasks & life"
 ];
 
-export async function getRotatingBannerTexts(): Promise<string[]> {
+async function getRotatingBannerTexts(): Promise<string[]> {
     try {
         const db = await getDb();
         const stmt = db.prepare(`SELECT body FROM content WHERE slug = 'rotating-banner-texts'`);
