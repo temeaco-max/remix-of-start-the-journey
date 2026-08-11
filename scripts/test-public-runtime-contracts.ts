@@ -33,6 +33,8 @@ try {
   assert.match(homeHtml, /Illustrative conversation/, 'homepage chat preview must be clearly labelled as illustrative');
   assert.match(homeHtml, /Illustrative preview/, 'homepage Nearby Pulse preview must be clearly labelled as illustrative');
   assert.doesNotMatch(homeHtml, /Mama Nkechi|Sola Phone Repairs|Musa Keke Rider|150m away|300m away|200m away|3 okada riders are nearby/, 'homepage must not present unsupported named providers, distances, availability, or activity as live data');
+  assert.match(homeHtml, /href="\/explore\/education"/, 'homepage Education CTA must target the canonical registered category route');
+  assert.doesNotMatch(homeHtml, /\/explore\/education-learning/, 'homepage must not retain the retired Education route');
 
   for (const pathName of ['/dashboard.html', '/css/site.css', '/js/kurukoo-pwa.js']) {
     const response = await request(base, pathName);
