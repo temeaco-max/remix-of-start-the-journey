@@ -29,8 +29,8 @@ export const channelRegistry = {
     sms: async (body: any, _headers: Record<string, any>): Promise<ChannelHandlerResult> => {
         return await handleSmsWebhook(body);
     },
-    email: async (body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> => {
-        return await handleEmailWebhook(body, headers);
+    email: async (body: any, headers: Record<string, any>, rawBody?: string | Buffer): Promise<ChannelHandlerResult> => {
+        return await handleEmailWebhook(body, headers, rawBody?.toString());
     },
     ivr: async (body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> => {
         return await handleIvrWebhook(body, headers);
@@ -52,7 +52,7 @@ export async function dispatchWebhook(
     rawBody?: string | Buffer
 ): Promise<ChannelHandlerResult> {
     const handler = channelRegistry[channel];
-    if (channel === 'whatsapp') {
+    if (channel === 'whatsapp' || channel === 'email') {
         return await (handler as typeof channelRegistry.whatsapp)(body, headers, rawBody);
     }
     return await handler(body, headers);
