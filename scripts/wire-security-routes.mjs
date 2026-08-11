@@ -1,9 +1,11 @@
 /**
- * Idempotent wiring: mount authRoutes, webrtcRoutes, pricing/subscription/payment
- * routes and rate limits into src/index.ts.
- * Also neutralizes dangerous unauthenticated subscription mutations in the monolith.
+ * Idempotent wiring: mount all extracted route modules into src/index.ts and
+ * neutralize dangerous / duplicated legacy handlers in the monolith.
  *
- * Run: node scripts/wire-security-routes.mjs
+ * ChatGPT audit discipline:
+ *   extract exact handler → contract test → mount → CI → remove original later
+ *
+ * Run: node scripts/wire-security-routes.mjs  (also prebuild)
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,157 +13,134 @@ import path from 'node:path';
 const indexPath = path.join(process.cwd(), 'src', 'index.ts');
 let src = fs.readFileSync(indexPath, 'utf8');
 
-const importBlock = `import authRoutes from './routes/authRoutes.js';
+const fullImportBlock = `import authRoutes from './routes/authRoutes.js';
 import webrtcRoutes from './routes/webrtcRoutes.js';
 import pricingRoutes from './routes/pricingRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import economicRequestRouter from './routes/economicRequestRouter.js';
+import createDiscoveryRouter from './routes/discoveryRoutes.js';
+import createPresenceRouter from './routes/presenceRoutes.js';
+import createContentRouter from './routes/contentRoutes.js';
+import createPublicRouter from './routes/publicRoutes.js';
+import channelRoutes from './routes/channelRoutes.js';
+import systemRoutes from './routes/systemRoutes.js';
 import { aiRateLimit, webhookRateLimit, paymentRateLimit } from './middleware/rateLimit.js';
+import { authenticateUser } from './middleware/auth.js';
 `;
 
+// Ensure imports after chatRouter
 if (!src.includes("from './routes/authRoutes.js'")) {
   src = src.replace(
     "import chatRouter from './routes/chatRouter.js';",
-    `import chatRouter from './routes/chatRouter.js';\n${importBlock}`
+    `import chatRouter from './routes/chatRouter.js';\n${fullImportBlock}`
   );
-} else if (!src.includes("from './routes/pricingRoutes.js'")) {
-  src = src.replace(
-    "import webrtcRoutes from './routes/webrtcRoutes.js';",
-    `import webrtcRoutes from './routes/webrtcRoutes.js';\nimport pricingRoutes from './routes/pricingRoutes.js';\nimport subscriptionRoutes from './routes/subscriptionRoutes.js';\nimport paymentRoutes from './routes/paymentRoutes.js';`
-  );
+} else {
+  // Patch missing imports incrementally
+  const ensureImport = (needle, block) => {
+    if (!src.includes(needle)) {
+      if (src.includes("from './routes/webrtcRoutes.js'")) {
+        src = src.replace(
+          "import webrtcRoutes from './routes/webrtcRoutes.js';",
+          `import webrtcRoutes from './routes/webrtcRoutes.js';\n${block}`
+        );
+      } else if (src.includes("from './routes/authRoutes.js'")) {
+        src = src.replace(
+          "import authRoutes from './routes/authRoutes.js';",
+          `import authRoutes from './routes/authRoutes.js';\n${block}`
+        );
+      }
+    }
+  };
+  ensureImport("from './routes/pricingRoutes.js'", "import pricingRoutes from './routes/pricingRoutes.js';\nimport subscriptionRoutes from './routes/subscriptionRoutes.js';\nimport paymentRoutes from './routes/paymentRoutes.js';");
+  ensureImport("from './routes/userRoutes.js'", "import userRoutes from './routes/userRoutes.js';");
+  ensureImport("from './routes/economicRequestRouter.js'", "import economicRequestRouter from './routes/economicRequestRouter.js';");
+  ensureImport("from './routes/discoveryRoutes.js'", "import createDiscoveryRouter from './routes/discoveryRoutes.js';\nimport createPresenceRouter from './routes/presenceRoutes.js';\nimport createContentRouter from './routes/contentRoutes.js';\nimport createPublicRouter from './routes/publicRoutes.js';");
+  ensureImport("from './routes/channelRoutes.js'", "import channelRoutes from './routes/channelRoutes.js';\nimport systemRoutes from './routes/systemRoutes.js';");
+  if (!src.includes("from './middleware/rateLimit.js'")) {
+    src = src.replace(
+      "import chatRouter from './routes/chatRouter.js';",
+      `import chatRouter from './routes/chatRouter.js';\nimport { aiRateLimit, webhookRateLimit, paymentRateLimit } from './middleware/rateLimit.js';`
+    );
+  }
 }
+
+const mountBlock = `app.use('/api/chat', chatRouter);
+app.use('/api/auth', authRoutes);
+app.use('/api/webrtc', webrtcRoutes);
+app.use('/api/pricing', pricingRoutes);
+app.use('/api/subscription', subscriptionRoutes);
+app.use('/api', paymentRoutes);
+app.use('/api', userRoutes);
+app.use('/api/economic', authenticateUser, economicRequestRouter);
+app.use(createDiscoveryRouter());
+app.use(createPresenceRouter());
+app.use(createContentRouter());
+app.use(createPublicRouter());
+app.use(channelRoutes);
+app.use(systemRoutes);
+app.use(['/api/chat/stream', '/api/chat'], aiRateLimit);
+app.use(['/webhook', '/ussd'], webhookRateLimit);
+app.use(['/api/escrow', '/api/points/topup', '/api/credits/topup', '/api/subscription'], paymentRateLimit);`;
 
 if (!src.includes("app.use('/api/auth'")) {
-  src = src.replace(
-    "app.use('/api/chat', chatRouter);",
-    `app.use('/api/chat', chatRouter);\napp.use('/api/auth', authRoutes);\napp.use('/api/webrtc', webrtcRoutes);\napp.use('/api/pricing', pricingRoutes);\napp.use('/api/subscription', subscriptionRoutes);\napp.use('/api', paymentRoutes);\napp.use(['/api/chat/stream', '/api/chat'], aiRateLimit);\napp.use(['/webhook', '/ussd'], webhookRateLimit);\napp.use(['/api/escrow', '/api/points/topup', '/api/credits/topup', '/api/subscription'], paymentRateLimit);`
-  );
-} else if (!src.includes("app.use('/api/subscription'")) {
-  src = src.replace(
-    "app.use('/api/webrtc', webrtcRoutes);",
-    `app.use('/api/webrtc', webrtcRoutes);\napp.use('/api/pricing', pricingRoutes);\napp.use('/api/subscription', subscriptionRoutes);\napp.use('/api', paymentRoutes);`
-  );
+  src = src.replace("app.use('/api/chat', chatRouter);", mountBlock);
+} else {
+  // Add any missing mounts after webrtc or auth
+  if (!src.includes("app.use('/api/subscription'")) {
+    src = src.replace(
+      "app.use('/api/webrtc', webrtcRoutes);",
+      `app.use('/api/webrtc', webrtcRoutes);\napp.use('/api/pricing', pricingRoutes);\napp.use('/api/subscription', subscriptionRoutes);\napp.use('/api', paymentRoutes);`
+    );
+  }
+  if (!src.includes("app.use('/api', userRoutes)")) {
+    const anchor = src.includes("app.use('/api', paymentRoutes)")
+      ? "app.use('/api', paymentRoutes);"
+      : "app.use('/api/subscription', subscriptionRoutes);";
+    src = src.replace(
+      anchor,
+      `${anchor}\napp.use('/api', userRoutes);\napp.use('/api/economic', authenticateUser, economicRequestRouter);\napp.use(createDiscoveryRouter());\napp.use(createPresenceRouter());\napp.use(createContentRouter());\napp.use(createPublicRouter());\napp.use(channelRoutes);\napp.use(systemRoutes);`
+    );
+  }
 }
 
-// Soften legacy login in index — authRoutes owns OTP path
-if (src.includes("// API: Auth Login & SSO Synchronization") && !src.includes('authRoutes handles OTP')) {
+// ── Neutralize legacy dangerous / duplicate handlers ───────────────────
+
+// Legacy auth login → renamed so authRoutes wins
+if (src.includes("// API: Auth Login & SSO Synchronization") && src.includes("app.post('/api/auth/login'")) {
   src = src.replace(
     "// API: Auth Login & SSO Synchronization\napp.post('/api/auth/login'",
-    "// Legacy login retained for compatibility; prefer authRoutes OTP (mounted at /api/auth/*).\n// When both exist, Express uses first matching route — ensure authRoutes is mounted first.\napp.post('/api/auth/login-legacy'"
+    "// Legacy login superseded by authRoutes OTP. Path renamed so /api/auth/* is owned by authRoutes.\napp.post('/api/auth/login-legacy'"
   );
 }
 
-// Harden WebRTC legacy handlers
-if (src.includes("app.post('/api/webrtc/create'") && !src.includes('/api/webrtc/create-legacy')) {
+// WebRTC legacy
+if (src.includes("app.post('/api/webrtc/create'") && !src.includes("/api/webrtc/create-legacy")) {
   src = src.replace(
     "// WebRTC Signaling API\napp.post('/api/webrtc/create'",
-    "// Legacy WebRTC handlers superseded by webrtcRoutes (auth required). Kept disabled via path rename.\napp.post('/api/webrtc/create-legacy'"
+    "// Legacy WebRTC superseded by webrtcRoutes (JWT required).\napp.post('/api/webrtc/create-legacy'"
   );
   src = src.replace("app.get('/api/webrtc/peers'", "app.get('/api/webrtc/peers-legacy'");
 }
 
-// Neutralize unauthenticated subscription upgrade (client-trusted phone/plan)
-if (src.includes("app.post('/api/subscription/upgrade'") && !src.includes('DISABLED_CLIENT_TRUSTED_SUBSCRIPTION')) {
-  src = src.replace(
-    "app.post('/api/subscription/upgrade', async (req, res) => {",
-    `// DISABLED_CLIENT_TRUSTED_SUBSCRIPTION — use authenticated POST /api/subscription/upgrade (JWT + payment).
-app.post('/api/subscription/upgrade-legacy-disabled', async (req, res) => {
-    return res.status(410).json({ error: 'Gone. Use authenticated POST /api/subscription/upgrade with JWT and payment_ref.' });
-});
-void (async function __legacy_upgrade_handler_disabled() { /*`
-  );
-  // Close the old handler body by commenting is hard; instead leave a stub that returns 410 above.
-  // Find the closing of the old handler and leave it unreachable under a renamed path already.
-}
-
-// Safer approach: rewrite the dangerous handler body start to always 410
+// Client-trusted subscription upgrade
 if (src.includes("app.post('/api/subscription/upgrade'") && src.includes("const { phone, plan, country } = req.body;")) {
   src = src.replace(
-    `app.post('/api/subscription/upgrade', async (req, res) => {
-    const { phone, plan, country } = req.body;
-    if (!phone || !plan || !country) {
-        return res.status(400).json({ error: 'phone, plan, and country are required' });
-    }
-    try {
-        const planObj = await getPlan(country, plan);
-        if (!planObj) {
-            return res.status(404).json({ error: 'Pricing plan not found' });
-        }
-        const db = await getDb();
-        db.run(\`UPDATE memory_profiles SET subscription_tier = ? WHERE phone = ?\`, [plan.charAt(0).toUpperCase() + plan.slice(1), phone]);
-        saveDb();
-
-        // Trigger referral reward activation on first subscription payment
-        try {
-            await claimReferral(phone);
-        } catch (refErr) {
-            console.error('Error claiming referral:', refErr);
-        }
-
-        res.json({ success: true, message: \`Successfully upgraded to ${plan} (${country.toUpperCase()})\`, plan: planObj });
-    } catch (e) {
-        console.error('Subscription upgrade error:', e);
-        res.status(500).json({ error: 'Failed to upgrade subscription' });
-    }
-});`,
+    /app\.post\('\/api\/subscription\/upgrade', async \(req, res\) => \{[\s\S]*?const \{ phone, plan, country \} = req\.body;[\s\S]*?res\.status\(500\)\.json\(\{ error: 'Failed to upgrade subscription' \}\);\n    \}\n\}\);/,
     `// DISABLED_CLIENT_TRUSTED_SUBSCRIPTION — identity + payment gated in subscriptionRoutes
-app.post('/api/subscription/upgrade', async (req, res) => {
+app.post('/api/subscription/upgrade-legacy-disabled', async (req, res) => {
     return res.status(410).json({
-        error: 'Gone. Use authenticated POST /api/subscription/upgrade (JWT). Phone is taken from session only; payment_ref required outside sandbox.',
-        use: 'POST /api/subscription/upgrade with Authorization: Bearer <token>',
+        error: 'Gone. Use authenticated POST /api/subscription/upgrade (JWT). Phone from session only; payment_ref required outside sandbox.',
     });
 });`
   );
 }
 
-// Neutralize unauthenticated provider subscribe
+// Provider subscribe client-trusted
 if (src.includes("app.post('/api/provider/subscribe'") && src.includes("const { phone, tier } = req.body;")) {
   src = src.replace(
-    `app.post('/api/provider/subscribe', async (req, res) => {
-    const { phone, tier } = req.body;
-    if (!phone || !tier) {
-        return res.status(400).json({ success: false, error: 'Phone and tier are required' });
-    }
-
-    try {
-        const db = await getDb();
-        
-        // Fee structure
-        let fee = 0;
-        if (tier === 'Base') fee = 500;
-        else if (tier === 'Plus') fee = 1500;
-        else if (tier === 'Business') fee = 5000;
-        else return res.status(400).json({ success: false, error: 'Invalid tier' });
-
-        // Deduct from direct wallet
-        const { processDirectPayment } = await import('./services/directWallet.js');
-        const paid = await processDirectPayment(phone, 'SYSTEM', fee);
-        
-        if (!paid) {
-            return res.status(400).json({ success: false, error: 'Insufficient wallet balance for subscription' });
-        }
-
-        const nextBillingDate = new Date();
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-
-        db.run(
-            \`INSERT INTO provider_subscriptions (phone, tier, status, next_billing_date, leads_this_month)
-             VALUES (?, ?, 'active', ?, 0)
-             ON CONFLICT(phone) DO UPDATE SET 
-                tier=excluded.tier, 
-                status='active', 
-                next_billing_date=excluded.next_billing_date,
-                leads_this_month=0\`,
-            [phone, tier, nextBillingDate.toISOString()]
-        );
-        saveDb();
-
-        res.json({ success: true, message: \`Subscribed to ${tier} tier successfully.\` });
-    } catch (e) {
-        console.error('Subscribe error:', e);
-        res.status(500).json({ success: false, error: 'Internal error' });
-    }
-});`,
+    /app\.post\('\/api\/provider\/subscribe', async \(req, res\) => \{[\s\S]*?const \{ phone, tier \} = req\.body;[\s\S]*?res\.status\(500\)\.json\(\{ success: false, error: 'Internal error' \}\);\n    \}\n\}\);/,
     `// DISABLED_CLIENT_TRUSTED_PROVIDER_SUB
 app.post('/api/provider/subscribe', async (req, res) => {
     return res.status(410).json({
@@ -172,7 +151,37 @@ app.post('/api/provider/subscribe', async (req, res) => {
   );
 }
 
-// Strip subscription_tier from client-facing profile update
+// Pulse handlers → legacy path (presenceRoutes owns /api/pulse/*)
+const pulseRenames = [
+  ["app.post('/api/pulse/live'", "app.post('/api/pulse/live-legacy'"],
+  ["app.post('/api/pulse/activate'", "app.post('/api/pulse/activate-legacy'"],
+  ["app.post('/api/pulse/deactivate'", "app.post('/api/pulse/deactivate-legacy'"],
+  ["app.get('/api/pulse/status'", "app.get('/api/pulse/status-legacy'"],
+  ["app.get('/api/pulse/providers'", "app.get('/api/pulse/providers-legacy'"],
+  ["app.get('/api/stats/pulse'", "app.get('/api/stats/pulse-legacy'"],
+  ["app.get('/api/blog'", "app.get('/api/blog-legacy'"],
+  ["app.get('/api/blog/:slug'", "app.get('/api/blog-legacy/:slug'"],
+  ["app.get('/api/discover/map'", "app.get('/api/discover/map-legacy'"],
+  ["app.get('/health'", "app.get('/health-legacy'"],
+  ["app.post('/webhook/whatsapp'", "app.post('/webhook/whatsapp-legacy'"],
+  ["app.post('/webhook/telegram'", "app.post('/webhook/telegram-legacy'"],
+  ["app.post('/webhook/sms'", "app.post('/webhook/sms-legacy'"],
+  ["app.post('/ussd'", "app.post('/ussd-legacy'"],
+  ["app.get('/api/profile'", "app.get('/api/profile-legacy'"],
+  ["app.post('/api/profile/update'", "app.post('/api/profile/update-legacy'"],
+  ["app.post('/api/profile/availability'", "app.post('/api/profile/availability-legacy'"],
+  ["app.get('/api/points/balance'", "app.get('/api/points/balance-legacy'"],
+  ["app.post('/api/points/topup'", "app.post('/api/points/topup-legacy'"],
+  ["app.post('/api/credits/topup'", "app.post('/api/credits/topup-legacy'"],
+];
+
+for (const [from, to] of pulseRenames) {
+  if (src.includes(from) && !src.includes(to)) {
+    src = src.replace(from, to);
+  }
+}
+
+// Strip subscription_tier from client-facing profile update (if still present)
 if (src.includes('subscription_tier = COALESCE(?, subscription_tier)') && !src.includes('// TIER_NOT_CLIENT_SETTABLE')) {
   src = src.replace(
     `const { 
@@ -202,4 +211,4 @@ if (src.includes('subscription_tier = COALESCE(?, subscription_tier)') && !src.i
 }
 
 fs.writeFileSync(indexPath, src);
-console.log('Wired auth + webrtc + pricing/subscription/payment routes; neutralized client-trusted subscription mutations.');
+console.log('Wired all extracted routers; neutralized legacy pulse/blog/auth/webrtc/subscription/profile handlers.');
