@@ -80,12 +80,24 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
 
     const exists = db.prepare(`SELECT event_id FROM email_events WHERE event_id = ? LIMIT 1`);
     exists.bind([id]);
-    if (exists.step()) { exists.free(); return { status: 'duplicate', eventId: id }; }
+    const alreadySeen = exists.step();
     exists.free();
+    if (alreadySeen) {
+        const deliveryState = db.prepare(`SELECT status FROM email_delivery_events WHERE event_id = ? LIMIT 1`);
+        deliveryState.bind([id]);
+        const deliveryStatus = deliveryState.step() ? String(deliveryState.getAsObject().status || '') : '';
+        deliveryState.free();
+        if (deliveryStatus === 'accepted' || deliveryStatus === 'recorded') return { status: 'duplicate', eventId: id };
+        // A prior attempt failed before reaching the provider. Allow Resend's
+        // retry to execute again, using the same event idempotency key.
+    } else {
+        const from = emailAddress(data?.from || body?.from || body?.sender);
+        const incomingMessageId = messageId(body);
+        db.run(`INSERT INTO email_events (event_id, event_type, message_id, sender) VALUES (?, ?, ?, ?)`, [id, eventType, incomingMessageId || null, from || null]);
+    }
 
     const from = emailAddress(data?.from || body?.from || body?.sender);
     const incomingMessageId = messageId(body);
-    db.run(`INSERT INTO email_events (event_id, event_type, message_id, sender) VALUES (?, ?, ?, ?)`, [id, eventType, incomingMessageId || null, from || null]);
 
     if (['email.delivered', 'email.delivery_delayed', 'email.bounced', 'email.complained', 'email.failed'].includes(eventType)) {
         const providerStatus = eventType.replace('email.', '');
@@ -102,9 +114,7 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
 
     const emailId = String(data?.email_id || data?.id || '');
     let received = data;
-    if (emailId && (!data?.text && !data?.html)) {
-        received = await retrieveReceivedEmail(emailId) || data;
-    }
+    if (emailId && (!data?.text && !data?.html)) received = await retrieveReceivedEmail(emailId) || data;
 
     const subject = String(received?.subject || data?.subject || '').trim();
     const text = String(received?.text || received?.plain_text || data?.text || data?.plain_text || '').trim();
@@ -142,6 +152,7 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
     const delivery = await sendEmail(from, /^re:/i.test(subject) ? subject : `Re: ${subject || 'Kurukoo'}`, reply, {
         inReplyTo: incomingMessageId,
         references: threadReferences,
+        idempotencyKey: `email-reply:${id}`,
         tags: { channel: 'email', conversation: 'kurukoo' }
     });
 
