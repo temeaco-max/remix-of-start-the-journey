@@ -15,20 +15,31 @@
     } catch (_) { return true; }
     return false;
   })();
-  const setConnection = (ok, text = ok ? 'Connected' : 'Offline') => { const el = $('connection-status'); if (el) { el.innerHTML = `<span class=\"status-dot\"></span> ${text}`; el.classList.toggle('offline', !ok); } };
+  const setConnection = (ok, text = ok ? 'Connected' : 'Offline') => { const el = $('connection-status'); if (el) { el.innerHTML = `<span class="status-dot"></span> ${text}`; el.classList.toggle('offline', !ok); } };
   const applyTheme = () => { document.body.classList.toggle('dark', state.theme === 'dark'); localStorage.setItem('kurukoo_theme', state.theme); };
   function sanitizeHtml(html) { const doc = new DOMParser().parseFromString(html, 'text/html'); doc.querySelectorAll('script,iframe,object,embed,style,link,form').forEach(n => n.remove()); doc.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => { if (/^on/i.test(a.name) || /^(javascript|data):/i.test(a.value)) n.removeAttribute(a.name); })); return doc.body.innerHTML; }
-  function renderMarkdown(text) { if (!window.marked) return String(text || '').replace(/[&<>]/g, c => ({ '&':'&', '<':'<', '>':'>' }[c])).replace(/\n/g, '<br>'); marked.setOptions({ breaks: true, gfm: true }); return sanitizeHtml(marked.parse(text || '')); }
+  function renderMarkdown(text) { if (!window.marked) return String(text || '').replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c])).replace(/\n/g, '<br>'); marked.setOptions({ breaks: true, gfm: true }); return sanitizeHtml(marked.parse(text || '')); }
   function enhanceCode(root) { root.querySelectorAll('pre code').forEach(block => { if (window.hljs && !block.dataset.highlighted) hljs.highlightElement(block); }); }
-  function escapeAttr(value) { return String(value || '').replace(/&/g,'&').replace(/\"/g,'"').replace(/</g,'<').replace(/>/g,'>'); }
-  function escapeText(value) { return String(value || '').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>'); }
+  function escapeAttr(value) { return String(value || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escapeText(value) { return String(value || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   function showEmbedSignInGate() {
     if (!chatContent || chatContent.querySelector('[data-embed-signin-gate]')) return;
     const gate = document.createElement('div');
     gate.dataset.embedSigninGate = '1';
     gate.className = 'message assistant';
-    gate.innerHTML = `<div class=\"avatar\" aria-hidden=\"true\">K</div><div class=\"message-body\"><div class=\"bubble\"><div class=\"markdown-body\"><p><strong>Sign in to chat with Kurukoo</strong></p><p>Your Memory Profile stays private until you sign in.</p><p><a class=\"primary-btn\" href=\"/login?return=${encodeURIComponent('/chat')}\" target=\"_top\" rel=\"noopener\">Sign in</a> <a class=\"secondary-btn\" href=\"/chat\" target=\"_top\" rel=\"noopener\">Open full chat</a></p></div></div></div>`;
+    gate.innerHTML = `
+      <div class="avatar" aria-hidden="true">K</div>
+      <div class="message-body">
+        <div class="bubble">
+          <div class="markdown-body">
+            <p><strong>Sign in to chat with Kurukoo</strong></p>
+            <p>Your Memory Profile and conversation history stay private until you sign in. Open the full chat to continue.</p>
+            <p><a class="primary-btn" href="/login?return=${encodeURIComponent('/chat')}" target="_top" rel="noopener">Sign in</a>
+            <a class="secondary-btn" href="/chat" target="_top" rel="noopener" style="margin-left:8px">Open full chat</a></p>
+          </div>
+        </div>
+      </div>`;
     chatContent.appendChild(gate);
     if (scroll) scroll.scrollTop = scroll.scrollHeight;
   }
@@ -38,8 +49,11 @@
     if (sessionCheck?.ok) { setConnection(true); return true; }
     setConnection(false, sessionCheck?.status === 401 ? 'Sign in required' : 'Offline');
     if (sessionCheck?.status === 401) {
+      if (isEmbed) {
+        showEmbedSignInGate();
+        return false;
+      }
       const returnTo = `${location.pathname}${location.search}`;
-      if (isEmbed) { showEmbedSignInGate(); return false; }
       window.location.href = `/login?return=${encodeURIComponent(returnTo)}`;
     }
     return false;
@@ -52,13 +66,13 @@
     item.classList.toggle('active', active);
   }
 
-  function createMessage(role, text = '', id = null) {
+  function createMessage(role, text = '', id = null, cardData = null) {
     const wrap = document.createElement('article'); wrap.className = `message ${role}`; if (id) wrap.dataset.messageId = id;
-    const avatar = role === 'assistant' ? '<div class=\"avatar\" aria-hidden=\"true\">K</div>' : '';
-    wrap.innerHTML = `${avatar}<div class=\"message-body\"><div class=\"bubble\"><div class=\"markdown-body\"></div></div><div class=\"message-actions\"></div></div>`;
+    const avatar = role === 'assistant' ? '<div class="avatar" aria-hidden="true">K</div>' : '';
+    wrap.innerHTML = `${avatar}<div class="message-body"><div class="bubble"><div class="markdown-body"></div></div><div class="message-actions"></div></div>`;
     const bubble = wrap.querySelector('.markdown-body'); bubble.innerHTML = renderMarkdown(text); enhanceCode(wrap);
     const actions = wrap.querySelector('.message-actions');
-    actions.innerHTML = role === 'assistant' ? '<button data-action=\"copy\">Copy</button><button data-action=\"regenerate\">Regenerate</button><button data-action=\"delete\">Delete</button>' : '<button data-action=\"copy\">Copy</button><button data-action=\"edit\">Edit</button><button data-action=\"delete\">Delete</button>';
+    actions.innerHTML = role === 'assistant' ? '<button data-action="copy">Copy</button><button data-action="regenerate">Regenerate</button><button data-action="delete">Delete</button>' : '<button data-action="copy">Copy</button><button data-action="edit">Edit</button><button data-action="delete">Delete</button>';
     actions.addEventListener('click', async event => {
       const button = event.target.closest('button'); if (!button) return; const action = button.dataset.action;
       if (action === 'copy') await navigator.clipboard?.writeText(wrap.querySelector('.bubble').innerText);
@@ -66,73 +80,276 @@
       if (action === 'delete') { if (wrap.dataset.messageId) await deleteMessage(Number(wrap.dataset.messageId)); wrap.remove(); }
       if (action === 'regenerate') { const lastUser = [...state.messages].reverse().find(m => m.role === 'user'); if (lastUser) await sendMessage(lastUser.text); }
     });
-    chatContent.appendChild(wrap); scroll.scrollTop = scroll.scrollHeight; return wrap;
+    chatContent.appendChild(wrap); if (cardData) renderCard(cardData, wrap); scroll.scrollTop = scroll.scrollHeight; return wrap;
   }
 
-  async function loadPoints() { try { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const points = Number(data.points || 0); const pb = $('points-balance'); if (pb) pb.querySelector('span').textContent = points; const ip = $('inspector-points'); if (ip) ip.textContent = points; } catch {} }
-  async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}.`; const mc = $('memory-context'); if (mc) mc.textContent = text; } catch {} }
-  async function refreshHistory() {
-    try {
-      const url = new URL('/api/chat/history', location.origin); if (state.conversationId) url.searchParams.set('conversationId', state.conversationId); url.searchParams.set('limit', '60');
-      const res = await fetch(url, { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const list = $('history-list'); if (list) { list.innerHTML = ''; (data.conversations || []).forEach(c => addHistoryItem(c, c.id === state.conversationId)); }
-    } catch { setConnection(false, 'Offline'); }
+  function appendStreamBubble() {
+    $('welcome')?.remove(); const wrap = document.createElement('article'); wrap.className = 'message assistant';
+    wrap.innerHTML = '<div class="avatar" aria-hidden="true">K</div><div class="message-body"><div class="bubble"><div class="markdown-body"></div><div class="thinking" hidden><details><summary>Reasoning completed</summary><div>Kurukoo selected the appropriate response path. Private model reasoning is not exposed.</div></details></div></div><div class="message-actions"><button data-action="copy">Copy</button><button data-action="regenerate">Regenerate</button><button data-action="delete">Delete</button></div></div>';
+    chatContent.appendChild(wrap); return wrap;
   }
-  async function loadConversation(id) { state.conversationId = id; localStorage.setItem('kurukoo_conversation_id', id); }
-  async function deleteMessage(id) { if (!id) return; try { await fetch(`/api/chat/message/${id}`, { method: 'DELETE', credentials: 'same-origin' }); } catch {} }
-  async function sendMessage(raw) {
-    const text = String(raw || input?.value || '').trim(); if (!text || state.busy || !(await ensureIdentity())) return;
-    state.busy = true; if (send) send.disabled = true;
-    try {
-      if (input) input.value = '';
-      createMessage('user', text);
-      const assistant = createMessage('assistant', '…');
-      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ message: text, channel: 'web', conversationId: state.conversationId || undefined }) });
-      if (response.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
-      if (!response.ok || !response.body) throw new Error(`Chat failed (${response.status})`);
-      const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '', full = '';
-      const bubble = assistant.querySelector('.markdown-body');
-      while (true) {
-        const { value, done } = await reader.read(); if (done) break;
-        buffer += decoder.decode(value, { stream: true }); const events = buffer.split('\n\n'); buffer = events.pop() || '';
-        for (const event of events) {
-          const line = event.split('\n').find(x => x.startsWith('data: ')); if (!line) continue;
-          const payload = line.slice(6); if (payload === '[DONE]') continue;
-          let data; try { data = JSON.parse(payload); } catch { continue; }
-          if (data.type === 'conversation') { state.conversationId = data.conversationId; localStorage.setItem('kurukoo_conversation_id', state.conversationId); }
-          if (data.type === 'text') { full += data.content || ''; if (bubble) bubble.innerHTML = renderMarkdown(full); scroll.scrollTop = scroll.scrollHeight; }
-          if (data.type === 'error') throw new Error(data.error || 'Stream error');
-        }
+
+  function addUserMessage(text, id = null) { $('welcome')?.remove(); state.messages.push({ role: 'user', text, id }); return createMessage('user', text, id); }
+
+  function setDeferredStatus(card) {
+    const status = $('deferred-status');
+    if (!status) return;
+    if (!card) { status.hidden = true; return; }
+    if (card.type === 'agentic_storefront') {
+      if (card.stage === 'deferred') {
+        status.hidden = false;
+        status.textContent = '⏳ Request deferred — Kurukoo will re-check for a provider and notify you.';
+      } else if (card.stage === 'fulfillment') {
+        status.hidden = false;
+        status.textContent = '🔒 Escrow locked. Confirm completion when the job is done.';
+      } else if (card.stage === 'slot_fill' || card.stage === 'quote_review') {
+        status.hidden = false;
+        status.textContent = `🛒 Storefront · ${card.stage.replace(/_/g, ' ')} · ${card.progress || 0}%`;
+      } else {
+        status.hidden = true;
       }
-      if (!full && bubble) bubble.textContent = 'I could not complete that request. Please try again.';
-      await refreshHistory(); await loadPoints();
+      return;
+    }
+    if (!['worker_match','service_search','nearby_radar'].includes(card.type)) { status.hidden = true; return; }
+    status.hidden = false;
+    status.textContent = card.type === 'nearby_radar'
+      ? '📡 Searching your shared Nearby Pulse for active providers…'
+      : '🔎 Searching for a verified match. If none is available now, Kurukoo will keep the request open and notify you when a match appears.';
+  }
+
+  function collectStorefrontFields(holder) {
+    const fields = {};
+    holder.querySelectorAll('[data-storefront-field]').forEach(el => {
+      const key = el.getAttribute('data-storefront-field');
+      if (key) fields[key] = el.value.trim();
+    });
+    return fields;
+  }
+
+  async function advanceStorefront(requestId, action, fields, messageEl) {
+    if (!requestId || state.busy) return;
+    state.busy = true;
+    if (send) send.disabled = true;
+    try {
+      const res = await fetch(`/api/chat/economic-requests/storefront/${encodeURIComponent(requestId)}/advance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ action, requirements: fields || {} })
+      });
+      if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not update request');
+      const card = data.card;
+      setDeferredStatus(card);
+      if (card?.requestId) state.activeStorefrontId = card.requestId;
+
+      // Append assistant update with new card
+      const wrap = appendStreamBubble();
+      const output = wrap.querySelector('.markdown-body');
+      output.innerHTML = renderMarkdown(card.message || 'Updated.');
+      renderCard(card, wrap);
+      state.messages.push({ role: 'assistant', text: card.message || '', id: null });
+      scroll.scrollTop = scroll.scrollHeight;
+      await loadPoints();
     } catch (error) {
       setConnection(false, 'Connection issue');
-      createMessage('assistant', `I'm having trouble completing that right now. **Please try again.**\n\n_${escapeText(error.message)}_`);
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(`Could not continue that request. **${escapeText(error.message)}**`);
     } finally {
-      state.busy = false; if (send) send.disabled = false; input?.focus();
+      state.busy = false;
+      if (send) send.disabled = false;
     }
   }
 
+  function renderAgenticStorefront(card, messageEl) {
+    const holder = document.createElement('div');
+    holder.className = 'provider-card agentic-storefront';
+    holder.dataset.requestId = card.requestId || '';
+    holder.dataset.stage = card.stage || '';
+
+    const progress = Math.max(0, Math.min(100, Number(card.progress) || 0));
+    const fieldsHtml = Array.isArray(card.fields) && card.fields.length
+      ? `<div class="storefront-fields">${card.fields.map(f => {
+          const req = f.required ? ' <span class="req">*</span>' : '';
+          return `<label class="storefront-field"><span>${escapeText(f.label || f.key)}${req}</span><input data-storefront-field="${escapeAttr(f.key)}" type="text" value="${escapeAttr(f.value || '')}" placeholder="${escapeAttr(f.label || f.key)}" autocomplete="off" /></label>`;
+        }).join('')}</div>`
+      : '';
+
+    const providersHtml = Array.isArray(card.providers) && card.providers.length
+      ? `<ul class="storefront-providers">${card.providers.map((p, i) => `<li class="${i === 0 ? 'top' : ''}"><strong>${escapeText(p.name || 'Provider')}</strong><span>${Number(p.rating || 0).toFixed(1)}★ · ₦${escapeText(String(p.hourly_rate || 0))}</span></li>`).join('')}</ul>`
+      : '';
+
+    const quoteHtml = card.quote
+      ? `<div class="storefront-quote">Quote: <strong>${escapeText(String(card.quote.amount_minor))} ${escapeText(card.quote.currency || 'NGN')}</strong></div>`
+      : '';
+
+    const actions = Array.isArray(card.actions) ? card.actions : [];
+    const actionsHtml = actions.length
+      ? `<div class="storefront-actions">${actions.map(a => {
+          const style = a.style === 'danger' ? 'danger' : a.style === 'secondary' ? 'secondary' : 'primary';
+          return `<button type="button" class="sf-btn sf-${style}" data-sf-action="${escapeAttr(a.id)}">${escapeText(a.label || a.id)}</button>`;
+        }).join('')}</div>`
+      : '';
+
+    holder.innerHTML = `
+      <div class="storefront-head">
+        <strong>${escapeText(card.title || 'Kurukoo')}</strong>
+        <span class="storefront-stage">${escapeText((card.stage || '').replace(/_/g, ' '))}</span>
+      </div>
+      <div class="storefront-progress" role="progressbar" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"><i style="width:${progress}%"></i></div>
+      ${fieldsHtml}
+      ${providersHtml}
+      ${quoteHtml}
+      ${actionsHtml}
+      ${card.escrowProtected !== false ? '<span class="escrow-badge">🔒 Escrow Protected</span>' : ''}
+    `;
+
+    holder.querySelectorAll('[data-sf-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.getAttribute('data-sf-action');
+        const fields = collectStorefrontFields(holder);
+        if (action === 'start' && !card.requestId) {
+          // Preview-only card: nudge user to send a concrete message
+          sendMessage(`Continue with ${card.skill || 'this request'}`);
+          return;
+        }
+        if (!card.requestId) return;
+        void advanceStorefront(card.requestId, action, fields, messageEl);
+      });
+    });
+
+    // Enter in a field submits primary action
+    holder.querySelectorAll('[data-storefront-field]').forEach(el => {
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const primary = holder.querySelector('.sf-btn.sf-primary');
+          primary?.click();
+        }
+      });
+    });
+
+    messageEl.querySelector('.bubble').appendChild(holder);
+    if (card.requestId) state.activeStorefrontId = card.requestId;
+  }
+
+  function renderCard(card, messageEl) {
+    if (!card || !messageEl) return;
+
+    if (card.type === 'agentic_storefront') {
+      renderAgenticStorefront(card, messageEl);
+      return;
+    }
+
+    const holder = document.createElement('div');
+    holder.className = 'provider-card';
+    if (card.type === 'ride_picker') {
+      holder.innerHTML = '<strong>Choose a ride</strong><div class="quick-actions"><button type="button">🚗 Okada</button><button type="button">🛺 Keke</button><button type="button">🚕 Taxi</button></div><span class="escrow-badge">🔒 Escrow Protected</span>';
+      holder.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => sendMessage(`${btn.textContent.trim()} ride`)));
+    } else if (card.type === 'worker_match' || card.type === 'service_search') {
+      holder.innerHTML = `<strong>${card.category === 'food' ? 'Local food vendors' : 'Verified providers'}</strong><div class="deferred">Searching with your shared Memory Profile and real-time presence.</div><span class="escrow-badge">🔒 Escrow Protected</span>`;
+    } else if (card.type === 'nearby_radar') {
+      holder.innerHTML = '<strong>Nearby Pulse</strong><div class="deferred">Active providers will surface here as Kurukoo matches your request.</div>';
+    } else if (card.type === 'sports_search') {
+      holder.innerHTML = '<strong>Sports network</strong><div class="deferred">Searching leagues, teams, matches and nearby play.</div>';
+    } else if (card.type === 'event_coverage') {
+      holder.innerHTML = '<strong>Event Coverage</strong><div class="deferred">Contributor workflow ready: offer → accept → check-in → capture → moderation → payout.</div>';
+    } else if (card.type === 'security_booking') {
+      holder.innerHTML = '<strong>Vetted security</strong><span class="escrow-badge">🔒 Escrow Protected</span>';
+    } else if (card.type === 'artist_booking') {
+      holder.innerHTML = '<strong>Verified creator booking</strong><div class="deferred">Representation must be verified before Kurukoo presents a booking for confirmation.</div><span class="escrow-badge">🔒 Escrow Protected</span>';
+    } else {
+      holder.innerHTML = `<strong>${escapeAttr(card.category || card.type || 'Kurukoo action')}</strong>`;
+    }
+    messageEl.querySelector('.bubble').appendChild(holder);
+  }
+
+  async function uploadAttachment(file) {
+    const allowed = /^(image\/(png|jpeg|webp|gif)|application\/pdf|video\/mp4|video\/webm)$/i.test(file.type || '');
+    if (!allowed) throw new Error('Unsupported attachment type. Use an image, PDF or supported video.');
+    if (file.size > 25 * 1024 * 1024) throw new Error('Attachment is larger than the 25 MB chat limit.');
+    const reader = new FileReader(); const data = await new Promise((resolve, reject) => { reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
+    const response = await fetch('/api/chat/attachments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ name: file.name, type: file.type || 'application/octet-stream', data }) });
+    if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.error || 'Attachment upload failed'); }
+    return (await response.json()).attachment;
+  }
+
+  async function sendMessage(raw) {
+    const text = String(raw || input.value || '').trim(); if (!text || state.busy || !(await ensureIdentity())) return;
+    state.busy = true; send.disabled = true; setConnection(true); input.value = '';
+    let attachment = state.attached;
+    try {
+      if (attachment instanceof File) { input.placeholder = 'Uploading attachment…'; attachment = await uploadAttachment(attachment); }
+      state.attached = null; $('attachment-preview').hidden = true; $('attachment-preview').textContent = '';
+      const finalText = attachment ? `${text}\n\n[Attachment: ${attachment.name} — ${attachment.type} — ${attachment.url}]` : text;
+      const user = addUserMessage(finalText); const assistant = appendStreamBubble(); const output = assistant.querySelector('.markdown-body'); const thinking = assistant.querySelector('.thinking'); let full = '';
+      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ message: finalText, channel: 'web', conversationId: state.conversationId || undefined, attachment: attachment || undefined }) });
+      if (response.status === 401) { await ensureIdentity(); throw new Error('Your session has expired.'); }
+      if (!response.ok || !response.body) throw new Error(`Chat request failed (${response.status})`);
+      const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const events = buffer.split('\n\n'); buffer = events.pop() || '';
+        for (const event of events) {
+          const line = event.split('\n').find(x => x.startsWith('data: ')); if (!line) continue; const payload = line.slice(6); if (payload === '[DONE]') continue;
+          let data; try { data = JSON.parse(payload); } catch { continue; }
+          if (data.type === 'conversation') { state.conversationId = data.conversationId; localStorage.setItem('kurukoo_conversation_id', state.conversationId); user.dataset.messageId = data.messageId || ''; }
+          if (data.type === 'metadata') updateModelStatus(data);
+          if (data.type === 'thought' && thinking) thinking.hidden = false;
+          if (data.type === 'text') { full += data.content || ''; output.innerHTML = renderMarkdown(full); enhanceCode(assistant); scroll.scrollTop = scroll.scrollHeight; }
+          if (data.type === 'done') {
+            assistant.dataset.messageId = data.messageId || '';
+            setDeferredStatus(data.cardData);
+            if (data.cardData) renderCard(data.cardData, assistant);
+            if (data.cardData?.type === 'agentic_storefront' && data.cardData.requestId) {
+              state.activeStorefrontId = data.cardData.requestId;
+            }
+          }
+          if (data.type === 'error') throw new Error(data.error || 'Stream error');
+        }
+      }
+      state.messages.push({ role: 'user', text: finalText, id: Number(user.dataset.messageId) || null }); state.messages.push({ role: 'assistant', text: full, id: Number(assistant.dataset.messageId) || null });
+      if (!full) output.textContent = 'I could not complete that request. Please try again.';
+      await refreshHistory();
+    } catch (error) { setConnection(false, 'Connection issue'); const bubble = chatContent.querySelector('.message.assistant:last-child .markdown-body'); if (bubble) bubble.innerHTML = renderMarkdown(`I’m having trouble completing that right now. **Please try again.**\n\n_${escapeAttr(error.message)}_`); }
+    finally { state.busy = false; send.disabled = false; input.placeholder = 'Message Kurukoo'; input.focus(); loadPoints(); }
+  }
+
+  function updateModelStatus(data) { const label = $('model-badge'); if (label && data.model) label.textContent = data.model; }
+
+  async function loadPoints() { try { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const points = Number(data.points || 0); $('points-balance').querySelector('span').textContent = points; const ip = $('inspector-points'); if (ip) ip.textContent = points; } catch {} }
+  async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile is shared across channels.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
+
+  async function refreshHistory() {
+    try {
+      const url = new URL('/api/chat/history', location.origin); if (state.conversationId) url.searchParams.set('conversationId', state.conversationId); url.searchParams.set('limit', '60');
+      const res = await fetch(url, { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const list = $('history-list'); list.innerHTML = '';
+      data.conversations.forEach(c => addHistoryItem(c, c.id === state.conversationId));
+      if (data.messages?.length && chatContent.querySelectorAll('.message').length === 0) renderMessages(data.messages);
+    } catch { setConnection(false, 'Offline'); }
+  }
+  function renderMessages(messages) { $('welcome')?.remove(); chatContent.querySelectorAll('.message').forEach(n => n.remove()); state.messages = []; messages.forEach(m => { state.messages.push({ role: m.sender, text: m.content, id: m.id }); createMessage(m.sender === 'user' ? 'user' : 'assistant', m.content || '', m.id, m.card_data ? safeJson(m.card_data) : null); }); scroll.scrollTop = scroll.scrollHeight; }
+  function safeJson(value) { try { return typeof value === 'string' ? JSON.parse(value) : value; } catch { return null; } }
+  async function loadConversation(id) { state.conversationId = id; localStorage.setItem('kurukoo_conversation_id', id); const url = new URL('/api/chat/history', location.origin); url.searchParams.set('conversationId', id); url.searchParams.set('limit', '100'); const res = await fetch(url, { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); renderMessages(data.messages || []); await refreshHistory(); $('chat-sidebar')?.classList.remove('open'); }
+  async function deleteMessage(id) { if (!id) return; try { await fetch(`/api/chat/message/${id}`, { method: 'DELETE', credentials: 'same-origin' }); } catch {} }
+
   function wireQuickActions(root) { if (!root || root.dataset.wired) return; root.dataset.wired = 'true'; root.addEventListener('click', e => { const button = e.target.closest('button[data-prompt]'); if (button) sendMessage(button.dataset.prompt); }); }
   wireQuickActions($('quick-actions')); wireQuickActions($('composer-quick-actions'));
+
   send?.addEventListener('click', () => sendMessage());
   input?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+  $('attach-file')?.addEventListener('click', () => $('file-input')?.click());
+  $('file-input')?.addEventListener('change', e => { const file = e.target.files?.[0] || null; state.attached = file; const preview = $('attachment-preview'); if (file && preview) { preview.hidden = false; preview.textContent = `📎 ${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`; } });
   $('theme-toggle')?.addEventListener('click', () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; applyTheme(); });
   $('open-sidebar')?.addEventListener('click', () => $('chat-sidebar')?.classList.add('open'));
   $('close-sidebar')?.addEventListener('click', () => $('chat-sidebar')?.classList.remove('open'));
   $('memory-toggle')?.addEventListener('click', () => $('chat-inspector')?.classList.toggle('open'));
   $('close-inspector')?.addEventListener('click', () => $('chat-inspector')?.classList.remove('open'));
-  $('new-chat')?.addEventListener('click', async () => {
-    if (!await ensureIdentity()) return;
-    try {
-      const res = await fetch('/api/chat/conversation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ channel: 'web', title: 'New conversation' }) });
-      const data = await res.json(); if (data.conversationId) { state.conversationId = data.conversationId; localStorage.setItem('kurukoo_conversation_id', data.conversationId); }
-    } catch {}
-    state.messages = []; if (chatContent) chatContent.innerHTML = '';
-    refreshHistory();
-  });
+  $('new-chat')?.addEventListener('click', async () => { if (!await ensureIdentity()) return; try { const res = await fetch('/api/chat/conversation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ channel: 'web', title: 'New conversation' }) }); const data = await res.json(); if (data.conversationId) { state.conversationId = data.conversationId; localStorage.setItem('kurukoo_conversation_id', data.conversationId); } } catch {} state.messages = []; state.activeStorefrontId = null; chatContent.innerHTML = ''; const ds = $('deferred-status'); if (ds) ds.hidden = true; renderWelcome(); refreshHistory(); });
   $('topup-points')?.addEventListener('click', () => sendMessage('I want to top up my Points'));
   $('points-balance')?.addEventListener('click', () => sendMessage('Show my Points balance and ways to top up'));
+  $('voice-input')?.addEventListener('click', () => { const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Recognition) return input?.focus(); const recognition = new Recognition(); recognition.lang = 'en-NG'; recognition.onresult = e => { if (input) { input.value = e.results[0][0].transcript; input.dispatchEvent(new Event('input')); } }; recognition.start(); });
+  function renderWelcome() { chatContent.innerHTML = '<div class="welcome" id="welcome"><div class="welcome-mark">K</div><h1>What can I help you get done?</h1><p>One conversation for finding work, buying, earning, coordinating services, and everyday questions.</p><div class="quick-actions" id="quick-actions"><button data-prompt="Book a ride for me">🚗 Ride</button><button data-prompt="Order food near me">🍔 Food</button><button data-prompt="Find a verified repair worker">🔧 Repair</button><button data-prompt="I need emergency help">🏥 Emergency</button><button data-prompt="Help me find a way to earn">⚡ Earn</button></div></div>'; wireQuickActions($('quick-actions')); }
   applyTheme();
   ensureIdentity().then(ok => { if (ok) Promise.all([loadPoints(), loadMemory(), refreshHistory()]); });
 })();
