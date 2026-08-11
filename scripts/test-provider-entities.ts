@@ -12,6 +12,7 @@ const { getDb, saveDb } = await import('../src/database.js');
 const { find_worker } = await import('../src/services/find-worker.js');
 const { createEconomicRequest, getEconomicRequest, transitionEconomicRequest } = await import('../src/services/skillFlows.js');
 const { runOrchestrationPass, lockEscrowForEconomicRequest } = await import('../src/services/tradeEngine.js');
+const { createAIAgent } = await import('../src/services/aiAgentService.js');
 const { isProviderEntityType, normalizeProviderEntityType } = await import('../src/services/providerEntity.js');
 
 const db = await getDb();
@@ -20,6 +21,8 @@ const humanPhone = '+2347000000302';
 const businessPhone = '+2347000000303';
 const authorizedDronePhone = '+2347000000304';
 const unauthorizedDronePhone = '+2347000000305';
+const contributorPhone = '+2347000000306';
+const agentId = 'agent_provider_entity_test';
 
 for (const [phone, name, providerType, verified] of [
   [customerPhone, 'Provider Entity Customer', 'human', 0],
@@ -95,6 +98,38 @@ assert.equal((request?.quote as { source?: string } | undefined)?.source, 'provi
 const escrowAttempt = await lockEscrowForEconomicRequest(requestId);
 assert.equal(escrowAttempt.success, false, 'provider type must not bypass verified-payment and escrow requirements');
 assert.match(escrowAttempt.message, /Verified payment must be completed/, 'escrow must retain the existing payment-evidence gate');
+
+// Contributor status is an independent role on the same profile, not a provider type.
+db.run(
+  `INSERT INTO memory_profiles (phone, name, location, country, is_contributor)
+   VALUES (?, 'Contributor and user', 'Ikeja', 'ng', 1)`,
+  [contributorPhone]
+);
+const contributorProfile = db.exec(`SELECT is_contributor, provider_type FROM memory_profiles WHERE phone = ?`, [contributorPhone])[0]?.values?.[0];
+assert.deepEqual(contributorProfile, [1, 'human'], 'contributors must remain compatible, non-exclusive profile roles rather than a new provider identity');
+
+await createAIAgent({
+  id: agentId,
+  name: 'Provider Entity Test Agent',
+  avatar: 'T',
+  system_prompt: 'Test-only agent; never performs device control.',
+  skills: ['software_test_skill'],
+  tools: ['test_tool'],
+  status: 'active',
+  lga: 'All',
+  concurrency_limit: 1,
+  token_quota_daily: 10,
+  cost_threshold_usd: 0.01,
+  temperature: 0,
+});
+const agentProfile = db.exec(`SELECT provider_type, verified_provider, is_available FROM memory_profiles WHERE phone = ?`, [agentId])[0]?.values?.[0];
+assert.deepEqual(agentProfile, ['software_service', 1, 1], 'AI agents must remain first-class verified actors while mirroring as software_service providers');
+const agentDiscovery = await find_worker({ skill: 'software_test_skill', max: 5 });
+assert.equal(agentDiscovery.providers[0]?.phone, agentId, 'AI-agent skills must remain discoverable through the same canonical skill matcher');
+assert.equal(agentDiscovery.providers[0]?.provider_type, 'software_service', 'canonical discovery must preserve the software-service representation');
+
+const compositionRoot = fs.readFileSync(path.join(process.cwd(), 'src', 'index.ts'), 'utf8');
+assert.doesNotMatch(compositionRoot, /iotBridge|\/api\/iot\/command/, 'no production IoT command route or bridge may be mounted by the composition root');
 
 saveDb(true);
 try { fs.rmSync(dbPath, { force: true }); } catch { /* temporary database cleanup is best-effort */ }

@@ -44,12 +44,12 @@ function mirrorAgentToMemoryProfile(db: any, agent: AIAgent) {
 
     if (!exists) {
         db.run(
-            "INSERT INTO memory_profiles (phone, name, primary_lga, is_available, trust_score, verified_provider) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO memory_profiles (phone, name, primary_lga, is_available, trust_score, verified_provider, provider_type) VALUES (?, ?, ?, ?, ?, ?, 'software_service')",
             [agent.id, agent.name, agent.lga || 'All', agent.status === 'active' ? 1 : 0, 5.0, 1]
         );
     } else {
         db.run(
-            "UPDATE memory_profiles SET name = ?, primary_lga = ?, is_available = ? WHERE phone = ?",
+            "UPDATE memory_profiles SET name = ?, primary_lga = ?, is_available = ?, provider_type = 'software_service' WHERE phone = ?",
             [agent.name, agent.lga || 'All', agent.status === 'active' ? 1 : 0, agent.id]
         );
     }
