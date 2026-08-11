@@ -151,13 +151,19 @@ router.post('/stream', async (req: AuthRequest, res) => {
         } else {
             const routing = await routeIntent(message, phone);
             cardData = routing.cardData;
+            const isStorefront = cardData?.type === 'agentic_storefront';
             if (routing.skill && routing.skill !== 'general_question' && routing.skill !== 'autonomous_agent') {
-                let orderMessage = '';
-                try {
-                    const orderResult = await finalizeOrder(phone, 'lead', { skill: routing.skill });
-                    orderMessage = orderResult.message || '';
-                } catch (error) { console.warn('[Chat] skill finalization deferred:', error); }
-                fullReply = `${routing.reply}${orderMessage ? ` (${orderMessage})` : ''}`.trim();
+                // Agentic storefront already created an economic request — do not also finalizeOrder.
+                if (isStorefront) {
+                    fullReply = routing.reply;
+                } else {
+                    let orderMessage = '';
+                    try {
+                        const orderResult = await finalizeOrder(phone, 'lead', { skill: routing.skill });
+                        orderMessage = orderResult.message || '';
+                    } catch (error) { console.warn('[Chat] skill finalization deferred:', error); }
+                    fullReply = `${routing.reply}${orderMessage ? ` (${orderMessage})` : ''}`.trim();
+                }
                 for (const chunk of chunkText(fullReply)) { sse(res, { type: 'text', content: chunk }); await new Promise(r => setTimeout(r, 8)); }
             } else {
                 for await (const chunk of streamUnifiedAI(message, { phone, threadId: activeConversation })) {
