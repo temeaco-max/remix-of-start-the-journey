@@ -1,5 +1,4 @@
 import { getDb, saveDb } from '../database.js';
-import { addPoints } from './pointsEngine.js';
 import { getCommission } from './commissionService.js';
 import { processDirectPayment } from './directWallet.js';
 
@@ -12,6 +11,13 @@ export async function getLeadCharge(orderType: string): Promise<number> {
     return await getCommission('provider_lead_professional');
 }
 
+/**
+ * Finalise an economic transaction only when the caller has supplied an
+ * explicit execution context. Chat intent detection intentionally lands in
+ * `awaiting_confirmation`; it must never silently select a provider, charge a
+ * wallet, lock escrow, or mark fulfilment complete merely because a user sent
+ * an intent message.
+ */
 export async function finalizeOrder(buyerPhone: string, arg2: string = '', arg3: any = {}, arg4?: any): Promise<{ success: boolean; message: string; orderId?: string }> {
     let providerPhone = '';
     let orderType = '';
@@ -44,6 +50,39 @@ export async function finalizeOrder(buyerPhone: string, arg2: string = '', arg3:
             db.run(`INSERT INTO audit_logs (action, details) VALUES (?, ?)`, ['vendor_order_started', JSON.stringify({ orderId, buyerPhone, next: 'confirm_item_quantity_location' })]);
             saveDb();
             return { success: true, message: 'Vendor order started. Confirm the item, quantity and delivery location before escrow is locked.', orderId };
+        }
+
+        // Intent detection is not customer confirmation. A chat message such as
+        // "I need a mechanic" starts a request but does not authorise a provider
+        // match, payment, escrow, or completion. Explicit execution is retained
+        // for callers that supply a booking mode or amount, or the provider-aware
+        // four-argument form used by operational workflows.
+        const hasExplicitExecution = arg4 !== undefined || !!details.bookingMode || (typeof details.amount === 'number' && details.amount > 0);
+        if (!hasExplicitExecution) {
+            const idempotencyKey = details.idempotencyKey || `request:${buyerPhone}:${orderType}`;
+            const existing = db.prepare('SELECT id, status FROM orders WHERE idempotency_key = ? LIMIT 1');
+            existing.bind([idempotencyKey]);
+            if (existing.step()) {
+                const row = existing.getAsObject(); existing.free();
+                return { success: true, message: `Your ${orderType.replace(/_/g, ' ')} request is already awaiting confirmation.`, orderId: row.id as string };
+            }
+            existing.free();
+            const orderId = `req_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+            db.run(`INSERT INTO orders (id, phone, order_type, provider_phone, amount, status, idempotency_key) VALUES (?, ?, ?, NULL, 0, 'awaiting_confirmation', ?)`, [orderId, buyerPhone, orderType, idempotencyKey]);
+            db.run(`INSERT INTO audit_logs (action, details) VALUES (?, ?)`, ['economic_request_started', JSON.stringify({ orderId, buyerPhone, orderType, next: 'capture_requirements_and_confirm' })]);
+            saveDb();
+            return { success: true, message: 'Request started. I’ll collect the missing details and show you the provider, price and terms before anything is committed.', orderId };
+        }
+
+        const idempotencyKey = details.idempotencyKey || null;
+        if (idempotencyKey) {
+            const existing = db.prepare('SELECT id, status FROM orders WHERE idempotency_key = ?');
+            existing.bind([idempotencyKey]);
+            if (existing.step()) {
+                const row = existing.getAsObject(); existing.free();
+                return { success: true, message: `Order is already in progress. Status: ${row.status}`, orderId: row.id as string };
+            }
+            existing.free();
         }
 
         const stmt = db.prepare(`SELECT s.phone, ps.status, ps.leads_this_month, ps.tier FROM skills s JOIN memory_profiles m ON s.phone = m.phone LEFT JOIN provider_subscriptions ps ON s.phone = ps.phone WHERE s.skill = ? AND s.is_available = 1 AND ps.status = 'active' LIMIT 1`);
