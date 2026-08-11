@@ -1,7 +1,6 @@
 /**
- * Subscription mutations — never trust client phone/plan alone.
- * Flow: authenticated session → validated plan → confirmed payment → tier state.
- * Aligns with ChatGPT security audit extraction boundary.
+ * Subscription mutations — never trust client phone or payment references.
+ * Flow: authenticated session → validated plan → verified payment → tier state.
  */
 import { getDb, saveDb } from '../database.js';
 import { getPlan } from './pricingService.js';
@@ -24,10 +23,6 @@ function normalizeTierName(plan: string): string {
   return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
 }
 
-/**
- * Apply consumer subscription tier only after payment is confirmed by adapter.
- * Caller must already have authenticated the phone (JWT).
- */
 export async function upgradeSubscriptionAfterPayment(
   phone: string,
   plan: string,
@@ -45,25 +40,24 @@ export async function upgradeSubscriptionAfterPayment(
 
   const amountMinor = Number((planObj as any).monthly_price_minor) || 0;
   const provider = process.env.KURUKOO_PAY_PROVIDER || 'sandbox';
-
-  // Production path: real PSP must confirm. Sandbox never auto-grants paid tiers
-  // unless explicitly forced for local QA (FORCE_SANDBOX_SUBSCRIPTION=true).
   let paid = false;
+
   if (amountMinor <= 0) {
     paid = true;
-  } else if (options?.payment_ref && String(options.payment_ref).length >= 8) {
-    // Webhook-confirmed payment reference from regulated PSP (future: verify against ledger)
-    paid = true;
   } else if (provider === 'sandbox' && process.env.FORCE_SANDBOX_SUBSCRIPTION === 'true') {
+    // Explicit QA-only bypass. Never enable this in production.
     paid = true;
   } else {
+    // A payment_ref is metadata, not proof of settlement. The wallet/PSP
+    // adapter must independently confirm ownership, amount, currency, status
+    // and idempotency before value is created.
     paid = await processDirectPayment(phone, 'SYSTEM', amountMinor / 100);
   }
 
   if (!paid) {
     return {
       success: false,
-      message: 'Payment not confirmed. Complete checkout with a regulated provider, then retry with payment_ref.',
+      message: 'Payment not confirmed. Complete checkout with a verified provider before retrying.',
       error: 'payment_required',
       payment_required: true,
       plan: planObj,
@@ -72,10 +66,7 @@ export async function upgradeSubscriptionAfterPayment(
 
   const tier = normalizeTierName(plan);
   const db = await getDb();
-  db.run(`UPDATE memory_profiles SET subscription_tier = ?, updated_at = CURRENT_TIMESTAMP WHERE phone = ?`, [
-    tier,
-    phone,
-  ]);
+  db.run(`UPDATE memory_profiles SET subscription_tier = ?, updated_at = CURRENT_TIMESTAMP WHERE phone = ?`, [tier, phone]);
   saveDb();
 
   try {
@@ -92,10 +83,6 @@ export async function upgradeSubscriptionAfterPayment(
   };
 }
 
-/**
- * Provider lead-subscription tiers (Base / Plus / Business).
- * Requires authenticated phone; charges via wallet adapter (fail-closed in sandbox).
- */
 export async function subscribeProviderTier(
   phone: string,
   tier: string,
@@ -122,15 +109,10 @@ export async function subscribeProviderTier(
   const feeMap: Record<string, number> = { Base: 500, Plus: 1500, Business: 5000 };
   const fee = feeMap[normalized];
 
-  let paid = false;
-  if (options?.payment_ref && String(options.payment_ref).length >= 8) {
-    paid = true;
-  } else {
-    paid = await chargeProviderSubscription(phone, normalized, fee);
-    if (!paid) {
-      paid = await processDirectPayment(phone, 'SYSTEM', fee);
-    }
-  }
+  // Never treat a client payment_ref as proof of settlement. Existing wallet
+  // and provider adapters remain the only sources allowed to confirm payment.
+  let paid = await chargeProviderSubscription(phone, normalized, fee);
+  if (!paid) paid = await processDirectPayment(phone, 'SYSTEM', fee);
 
   if (!paid) {
     return {
@@ -155,11 +137,7 @@ export async function subscribeProviderTier(
         leads_this_month=0`,
     [phone, normalized, nextBillingDate.toISOString()]
   );
-  // Mirror consumer-visible tier for gating that still reads memory_profiles
-  db.run(`UPDATE memory_profiles SET subscription_tier = ?, updated_at = CURRENT_TIMESTAMP WHERE phone = ?`, [
-    normalized,
-    phone,
-  ]);
+  db.run(`UPDATE memory_profiles SET subscription_tier = ?, updated_at = CURRENT_TIMESTAMP WHERE phone = ?`, [normalized, phone]);
   saveDb();
 
   return {
