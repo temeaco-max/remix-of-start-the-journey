@@ -1,11 +1,9 @@
 import express, { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
-import {
-    getSeoPage,
-    getSchemaForPage,
-    getFaqForPage,
-} from '../services/seoService.js';
+import { getSeoPage, getSchemaForPage, getFaqForPage } from '../services/seoService.js';
+import { getDb } from '../database.js';
+import { getAdCampaigns } from '../services/adManager.js';
 
 function getLocale(lang = 'en') {
     const localePath = path.join(process.cwd(), 'locales', `${lang}.json`);
@@ -60,31 +58,28 @@ export function createPublicRouter(): Router {
     router.get('/explore', async (req, res, next) => {
         try {
             const categoriesPath = path.join(process.cwd(), 'content', 'explore', 'categories.json');
-            const categories = fs.existsSync(categoriesPath) ? JSON.parse(fs.readFileSync(categoriesPath, 'utf-8')) : [];
-            await renderPage(req, res, 'explore/index', '/explore', { categories, ads: [] });
-        } catch (error) {
-            next(error);
-        }
+            let categories: any[] = [];
+            if (fs.existsSync(categoriesPath)) categories = JSON.parse(fs.readFileSync(categoriesPath, 'utf-8'));
+            const ads = await getAdCampaigns();
+            await renderPage(req, res, 'explore/index', '/explore', { categories, ads });
+        } catch (error) { next(error); }
     });
 
     router.get('/p/:providerSlug', async (req, res, next) => {
         try {
-            const dbModule = await import('../database.js');
-            const db = await dbModule.getDb();
-            const stmt = db.prepare('SELECT * FROM memory_profiles WHERE profile_slug = ?');
+            const db = await getDb();
+            const stmt = db.prepare(`SELECT * FROM memory_profiles WHERE profile_slug = ?`);
             stmt.bind([req.params.providerSlug]);
             let profile: any = null;
             if (stmt.step()) profile = stmt.getAsObject();
             stmt.free();
             if (!profile) return next();
-
+            const sStmt = db.prepare(`SELECT * FROM skills WHERE phone = ?`);
+            sStmt.bind([profile.phone]);
             const skills: any[] = [];
-            const skillStmt = db.prepare('SELECT * FROM skills WHERE phone = ?');
-            skillStmt.bind([profile.phone]);
-            while (skillStmt.step()) skills.push(skillStmt.getAsObject());
-            skillStmt.free();
+            while (sStmt.step()) skills.push(sStmt.getAsObject());
+            sStmt.free();
             if (!skills.length) return next();
-
             const providerName = String(profile.display_name || profile.name || 'Provider');
             const provider = {
                 name: providerName,
@@ -92,17 +87,28 @@ export function createPublicRouter(): Router {
                 location: String(profile.location || profile.primary_lga || 'Nigeria'),
                 verified: profile.verified_provider === 1,
                 trustScore: Number(profile.trust_score) || 5,
-                skills: skills.map((skill: any) => ({
-                    skill: String(skill.skill || ''),
-                    rating: Number(skill.rating) || 5,
-                    jobsCompleted: Number(skill.jobs_completed) || 0,
-                    hourlyRate: Number(skill.hourly_rate) || 0,
+                skills: skills.map((s: any) => ({
+                    skill: String(s.skill || ''),
+                    rating: Number(s.rating) || 5,
+                    jobsCompleted: Number(s.jobs_completed) || 0,
+                    hourlyRate: Number(s.hourly_rate) || 0,
                 })),
             };
             const reqPath = `/p/${req.params.providerSlug}`;
-            const { seo, schemas, faqs } = await fetchSeoData(reqPath, providerName);
+            let { seo, schemas, faqs } = await fetchSeoData(reqPath, providerName);
+            if (!seo.title || seo.title === 'Kurukoo — Wake up. Get going.') {
+                seo = { ...seo, title: `${providerName} — ${String(skills[0].skill)} in ${provider.location}`, meta_description: `${providerName} offers ${skills.map((s: any) => s.skill).join(', ')} on Kurukoo.` };
+            }
+            schemas = [...schemas, {
+                '@context': 'https://schema.org', '@type': 'LocalBusiness',
+                name: providerName, description: seo.meta_description,
+                url: `https://kurukoo.com${reqPath}`,
+                address: { '@type': 'PostalAddress', addressLocality: provider.location },
+                aggregateRating: { '@type': 'AggregateRating', ratingValue: provider.trustScore.toFixed(1), reviewCount: skills.reduce((sum: number, s: any) => sum + (Number(s.jobs_completed) || 0), 0) },
+            }];
             res.render('provider-profile', { country: 'ng', t: getLocale('en'), shortcode: '*7000#', provider, seo, schemas, faqs, reqPath });
         } catch (error) {
+            console.error('Provider profile error:', error);
             next(error);
         }
     });
@@ -114,7 +120,7 @@ export function createPublicRouter(): Router {
     router.get('/download', async (req, res, next) => { try { await renderPage(req, res, 'download', '/download'); } catch (error) { next(error); } });
     router.get('/about', async (req, res, next) => { try { await renderPage(req, res, 'about'); } catch (error) { next(error); } });
     router.get('/contact', async (req, res, next) => { try { await renderPage(req, res, 'contact'); } catch (error) { next(error); } });
-
+    
     router.get('/help', async (req, res, next) => {
         try {
             await renderPage(req, res, 'help', '/help', {
@@ -128,7 +134,7 @@ export function createPublicRouter(): Router {
     });
 
     router.get('/api-docs', async (req, res, next) => { try { await renderPage(req, res, 'api_docs'); } catch (error) { next(error); } });
-
+    
     router.get('/legal/:section?', async (req, res, next) => {
         try {
             const params = req.params as Record<string, string | undefined>;
