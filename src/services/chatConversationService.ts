@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { getDb, saveDb } from '../database.js';
 import { classifyMessageTier, ensureLivingMemorySchema } from './livingMemoryEngine.js';
+import { getProfile } from './memoryProfile.js';
 
 export interface ChatMessageInput {
   phone: string;
@@ -92,6 +93,12 @@ export async function appendChatMessage(
   input: ChatMessageInput
 ): Promise<{ id: number; conversationId: string }> {
   const db = await dbReady();
+
+  // Memory Profile is the single source of truth for conversation context.
+  // Read it through the canonical service before persisting the message so
+  // every channel observes the same profile boundary and access is auditable.
+  await getProfile(input.phone, 'chatConversation');
+
   const conversationId = await ensureConversation(
     input.phone,
     input.conversationId,
