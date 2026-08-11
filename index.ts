@@ -42,3 +42,7 @@ if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
 console.log(`[Kurukoo Startup] Environment ready. PORT=${process.env.PORT}, PayProvider=${process.env.KURUKOO_PAY_PROVIDER}, CreditEconomy=${process.env.CREDIT_ECONOMY_ENABLED}`);
 
 import './src/index.js';
+
+// Background workers (orchestration, memory lifecycle, deferred, purge)
+import { startBackgroundWorkers } from './src/services/backgroundWorkers.js';
+startBackgroundWorkers();

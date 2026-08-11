@@ -3,6 +3,7 @@ import { querySmolLM2 } from './smolLm2Service.js';
 import { queryGroq, streamGroq } from './groqService.js';
 import { classifyWithFastText, type FastTextResult } from './fastTextService.js';
 import { withMemoryContext, logAiAudit } from './livingMemoryEngine.js';
+import { checkAiQuota, recordAiUsage, type QuotaKind } from './aiQuotaService.js';
 
 export type AIProvider = 'auto' | 'gemini' | 'smollm2' | 'groq' | 'local_intent';
 export interface UnifiedAIOptions {
@@ -11,7 +12,6 @@ export interface UnifiedAIOptions {
   temperature?: number;
   phone?: string;
   threadId?: string;
-  /** Skip living-memory enrichment (e.g. internal tools). */
   skipMemory?: boolean;
 }
 export interface AIResponse {
@@ -24,6 +24,7 @@ export interface AIResponse {
   intent?: string;
   confidence?: number;
   memoryTokens?: number;
+  quotaRemaining?: { simple: number; complex: number; tokens: number };
 }
 export interface AIStreamChunk {
   type: 'thought' | 'text' | 'metadata';
@@ -53,9 +54,9 @@ function cleanThinking(text: string): { text: string; thought?: string } {
   return { text: text.replace(/<think>[\s\S]*?<\/think>/i, '').trim(), thought: 'Reasoning completed.' };
 }
 
-function fallback(intent?: FastTextResult | null): AIResponse {
+function fallback(intent?: FastTextResult | null, quotaNote?: string): AIResponse {
   const label = intent?.intent || 'general_question';
-  const text =
+  let text =
     label === 'ride_request'
       ? 'I can arrange a ride. Tell me your destination and whether you want an Okada, Keke, or Taxi.'
       : label === 'order_food'
@@ -63,6 +64,7 @@ function fallback(intent?: FastTextResult | null): AIResponse {
         : label === 'find_worker'
           ? 'I can find a verified worker. Tell me the job and your location.'
           : 'I’m ready. Tell me what you need, what you can offer, or what you want to get done.';
+  if (quotaNote) text = `${quotaNote}\n\n${text}`;
   return {
     provider: 'Kurukoo Template',
     model: 'template-fallback',
@@ -101,6 +103,10 @@ async function resolveSystemPrompt(
   return { systemPrompt, memoryTokens: working?.tokenEstimate };
 }
 
+function estimatePromptTokens(prompt: string, systemPrompt?: string): number {
+  return Math.ceil(((systemPrompt || '').length + prompt.length) / 4) + 200;
+}
+
 export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions = {}): Promise<AIResponse> {
   const started = Date.now();
   const preferred = options.provider || 'auto';
@@ -120,9 +126,19 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
     };
   }
 
-  // Deterministic action intents: no LLM / no memory cost
   if (preferred === 'auto' && classification && ACTION_INTENTS.has(classification.intent)) {
     return fallback(classification);
+  }
+
+  const isSimple = !classification || SIMPLE_INTENTS.has(classification.intent);
+  const kind: QuotaKind = preferred === 'groq' || (!isSimple && preferred !== 'smollm2') ? 'complex' : 'simple';
+  const tokenEst = estimatePromptTokens(prompt, options.systemPrompt);
+  const quota = await checkAiQuota(options.phone, kind, tokenEst);
+  if (!quota.allowed || quota.downgradeToTemplate) {
+    return {
+      ...fallback(classification, quota.reason ? `⏳ ${quota.reason}. Using a short reply instead.` : undefined),
+      quotaRemaining: quota.remaining,
+    };
   }
 
   const route =
@@ -132,16 +148,21 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
         ? 'groq'
         : preferred === 'smollm2'
           ? 'smollm2'
-          : classification && SIMPLE_INTENTS.has(classification.intent)
+          : isSimple
             ? 'smollm2'
             : 'groq';
 
   const { systemPrompt, memoryTokens } = await resolveSystemPrompt(prompt, options, classification, route);
 
+  const afterSuccess = async (response: AIResponse): Promise<AIResponse> => {
+    await recordAiUsage(options.phone, kind, (memoryTokens || 0) + tokenEst + Math.ceil((response.text || '').length / 4));
+    return { ...response, quotaRemaining: quota.remaining };
+  };
+
   if (preferred === 'gemini') {
     try {
       const result = cleanThinking(await queryGemini(prompt, { systemInstruction: systemPrompt }));
-      return {
+      return afterSuccess({
         provider: 'Gemini',
         model: 'configured-gemini',
         text: result.text,
@@ -151,7 +172,7 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
         intent: classification?.intent,
         confidence: classification?.confidence,
         memoryTokens,
-      };
+      });
     } catch {
       return fallback(classification);
     }
@@ -160,7 +181,7 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
   if (preferred === 'groq') {
     try {
       const result = cleanThinking(await queryGroq(prompt, { systemPrompt }));
-      return {
+      return afterSuccess({
         provider: 'Groq',
         model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
         text: result.text,
@@ -170,7 +191,7 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
         intent: classification?.intent,
         confidence: classification?.confidence,
         memoryTokens,
-      };
+      });
     } catch {
       return fallback(classification);
     }
@@ -179,7 +200,7 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
   if (preferred === 'smollm2') {
     try {
       const result = cleanThinking(await querySmolLM2(prompt, systemPrompt));
-      return {
+      return afterSuccess({
         provider: 'SmolLM2',
         model: 'SmolLM2-1.7B-Instruct',
         text: result.text,
@@ -189,18 +210,17 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
         intent: classification?.intent,
         confidence: classification?.confidence,
         memoryTokens,
-      };
+      });
     } catch {
       return fallback(classification);
     }
   }
 
-  // auto path
-  if (!classification || SIMPLE_INTENTS.has(classification.intent)) {
+  if (isSimple) {
     const key = cacheKey(prompt, systemPrompt);
     const cached = simpleCache.get(key);
     if (cached && cached.expires > Date.now()) {
-      return { ...cached.value, latencyMs: Date.now() - started, memoryTokens };
+      return { ...cached.value, latencyMs: Date.now() - started, memoryTokens, quotaRemaining: quota.remaining };
     }
     try {
       const result = cleanThinking(await querySmolLM2(prompt, systemPrompt));
@@ -216,9 +236,9 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
         memoryTokens,
       };
       cacheSet(key, response);
-      return response;
+      return afterSuccess(response);
     } catch {
-      /* continue to paid fallback */
+      /* continue */
     }
   }
 
@@ -250,9 +270,9 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
           tokenCount: memoryTokens,
         }).catch(() => {});
       }
-      return response;
+      return afterSuccess(response);
     } catch {
-      /* template fallback */
+      /* template */
     }
   }
 
@@ -280,9 +300,26 @@ export async function* streamUnifiedAI(
   }
 
   const simple = !classification || SIMPLE_INTENTS.has(classification.intent);
-  const route = options.provider === 'groq' || (!simple && options.provider !== 'smollm2' && process.env.GROQ_API_KEY)
-    ? 'groq'
-    : 'smollm2';
+  const kind: QuotaKind = !simple ? 'complex' : 'simple';
+  const quota = await checkAiQuota(options.phone, kind, estimatePromptTokens(prompt, options.systemPrompt));
+  if (!quota.allowed || quota.downgradeToTemplate) {
+    const result = fallback(classification, quota.reason ? `⏳ ${quota.reason}` : undefined);
+    yield {
+      type: 'metadata',
+      provider: result.provider,
+      model: result.model,
+      cost: result.cost,
+      intent: result.intent,
+      confidence: result.confidence,
+    };
+    yield { type: 'text', content: result.text };
+    return;
+  }
+
+  const route =
+    options.provider === 'groq' || (!simple && options.provider !== 'smollm2' && process.env.GROQ_API_KEY)
+      ? 'groq'
+      : 'smollm2';
 
   const { systemPrompt } = await resolveSystemPrompt(prompt, options, classification, route);
 
@@ -296,12 +333,15 @@ export async function* streamUnifiedAI(
         intent: classification?.intent,
         confidence: classification?.confidence,
       };
+      let full = '';
       for await (const chunk of streamGroq(prompt, { systemPrompt })) {
+        full += chunk;
         yield { type: 'text', content: chunk };
       }
+      await recordAiUsage(options.phone, 'complex', estimatePromptTokens(prompt, systemPrompt) + Math.ceil(full.length / 4));
       return;
     } catch {
-      /* fallback below */
+      /* fallback */
     }
   }
 
@@ -309,7 +349,7 @@ export async function* streamUnifiedAI(
     const result = await queryUnifiedAI(prompt, {
       ...options,
       systemPrompt,
-      skipMemory: true, // already resolved above
+      skipMemory: true,
       provider: simple ? 'smollm2' : 'auto',
     });
     yield {

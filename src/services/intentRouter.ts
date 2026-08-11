@@ -4,6 +4,7 @@ import { getProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
 import { getDb, saveDb } from '../database.js';
 import { getSkillFlow } from './skillFlows.js';
+import { previewStorefrontCard, startStorefrontSession } from './agenticStorefront.js';
 import type { IntentRoutingResult } from '../types.js';
 
 const ACTION_INTENTS = new Set([
@@ -11,13 +12,22 @@ const ACTION_INTENTS = new Set([
     'event_coverage', 'how_to_video', 'security_booking', 'circle_create', 'artist_booking'
 ]);
 
+const STOREFRONT_INTENTS = new Set([
+    'ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'security_booking'
+]);
+
+function skillForIntent(intent: string): string {
+    if (intent === 'ride_request') return 'okada_rider';
+    if (intent === 'order_food' || intent === 'universal_vendor_order') return 'order_food';
+    if (intent === 'find_worker') return 'find_worker';
+    if (intent === 'security_booking') return 'security_personnel';
+    return intent;
+}
+
 function actionCard(intent: string): any {
-    if (intent === 'ride_request') return { type: 'ride_picker', options: ['Okada', 'Keke', 'Taxi'], escrowProtected: true };
-    if (intent === 'order_food' || intent === 'universal_vendor_order') return { type: 'service_search', category: 'food', escrowProtected: true };
-    if (intent === 'find_worker') return { type: 'worker_match', status: 'searching', escrowProtected: true };
+    if (STOREFRONT_INTENTS.has(intent)) return previewStorefrontCard(skillForIntent(intent));
     if (intent === 'sports_matchmaking') return { type: 'sports_search' };
     if (intent === 'event_coverage') return { type: 'event_coverage', status: 'offer' };
-    if (intent === 'security_booking') return { type: 'security_booking', escrowProtected: true };
     if (intent === 'artist_booking') return { type: 'artist_booking', status: 'verification_required', escrowProtected: true };
     return undefined;
 }
@@ -37,17 +47,6 @@ async function balanceReply(phone?: string): Promise<string> {
     const points = profile?.points_balance ?? 0;
     const location = profile?.location || 'your area';
     return `🪙 **${points} Points**\n\nKurukoo remembers you’re in **${location}**. Your Points stay attached to the same Memory Profile across channels.`;
-}
-
-async function keepAlive(phone?: string): Promise<IntentRoutingResult> {
-    if (phone) {
-        try {
-            const db = await getDb();
-            db.run(`INSERT INTO profile_access_log (phone, service_name, action) VALUES (?, 'Conversation', 'PRESENCE_REFRESH')`, [phone]);
-            saveDb();
-        } catch { /* telemetry must never block chat */ }
-    }
-    return { skill: 'presence_refresh', reply: '🟢 **You’re active.** Kurukoo is keeping your conversation context and presence synchronized across channels.' };
 }
 
 export async function routeIntent(query: string, phone?: string, provider?: AIProvider): Promise<IntentRoutingResult> {
@@ -85,6 +84,21 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
 
     if (classification && ACTION_INTENTS.has(classification.intent)) {
         const flow = await getSkillFlow(classification.intent).catch(() => null);
+
+        // Agentic storefront: open a real economic request when phone is known
+        if (phone && STOREFRONT_INTENTS.has(classification.intent)) {
+            try {
+                const card = await startStorefrontSession(phone, skillForIntent(classification.intent), {});
+                return {
+                    skill: classification.intent,
+                    reply: card.message,
+                    cardData: card,
+                };
+            } catch (e) {
+                console.warn('[Router] storefront start failed, using preview card:', e);
+            }
+        }
+
         const cardData = actionCard(classification.intent);
         let reply = '';
         switch (classification.intent) {
