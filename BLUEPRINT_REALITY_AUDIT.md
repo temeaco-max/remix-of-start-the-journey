@@ -6,9 +6,35 @@ Date: 2026-08-10
 
 Kurukoo's core mandate is feasible if it is treated as a **conversation-first coordination platform**, not as a company that owns every downstream capability. The practical architecture is:
 
-`channel transport -> verified identity -> Memory Profile -> unified conversation -> deterministic skill flow -> provider/payment integrations -> AI only where it adds value`.
+`channel transport -> verified identity -> Memory Profile -> unified conversation -> canonical skill + requirements -> shared Economic Request lifecycle -> provider/payment integrations -> AI only where it adds value`.
 
 The blueprint is strongest when it follows that model. It becomes expensive or operationally risky when it implies Kurukoo should directly operate regulated, capital-intensive or real-time infrastructure.
+
+## Universal economic architecture
+
+Every economic intent must use the same consumer-facing and domain lifecycle:
+
+`conversation -> intent -> requirement capture -> discovery -> availability -> quote -> explicit customer confirmation -> payment/escrow where applicable -> fulfilment -> completion -> rating/dispute/Points/Memory`.
+
+The canonical skill catalogue in `src/services/skillFlows.ts` defines the economic skill and category. Skill-specific requirements and capabilities are configuration/policy within that shared framework; they are not separate product architectures.
+
+Examples include rides, food ordering, keke/okada, repairs, vehicle purchases, tickets, worker hiring, product sourcing and creator/artist booking. A category may require more fields or additional capabilities, but it must still enter the same Economic Request lifecycle.
+
+### Creator / artist rule
+
+Artist and celebrity functionality is **not a privileged economic system**. `verified_artist` is a canonical `events-entertainment` skill and must use the same Economic Request, requirement capture, discovery, availability, quote, confirmation, payment/escrow, fulfilment and dispute machinery as every other economic skill.
+
+Artist-specific logic is permitted only where the real-world transaction genuinely requires it, principally:
+
+- creator/artist identity and representation verification;
+- event-specific requirements such as date, venue, audience and duration;
+- technical rider and travel requirements;
+- negotiated terms/contract handling;
+- provider-side verification and compliance tooling.
+
+The consumer must never be told that an artist is available merely because a profile exists. Representation must be verified, availability must be confirmed, terms must be quoted, and the customer must explicitly confirm before payment or escrow is committed.
+
+The same principle applies to any scarce or regulated provider: specialized verification is a capability/policy, not a reason to create a separate economic request architecture.
 
 ## Feasibility matrix
 
@@ -35,18 +61,18 @@ The blueprint is strongest when it follows that model. It becomes expensive or o
 | Cross-border payments | Medium-low | Partner with regulated rails; do not implement FX custody or money transmission in-house |
 | WebRTC | Medium | Use managed STUN/TURN; introduce only for workflows that genuinely require live media |
 | IoT bridge | Medium-low | Managed MQTT/IoT gateway with strict device allowlists; defer until demand proves it |
-| Celebrity/artist booking | Medium | Treat as verified creator/artist marketplace; never imply direct celebrity access without verified representation |
+| Celebrity/artist booking | Medium | Treat as verified creator/artist marketplace within the universal economic lifecycle; never imply direct celebrity access without verified representation |
 | Programmatic SEO | High | Generate from structured data and approved templates; avoid thin AI pages |
 
 ## Celebrity / creator feature correction
 
-The repository contains an `artistBookingService` and an admin artist surface, but this is not a sufficient basis for promising access to celebrities. The real-world product should be **verified creator/artist booking**.
+The repository contains an `artistBookingService` and an admin artist surface. These are appropriate only as a **policy adapter and provider/admin tooling** around the universal economic system; they must not become a separate consumer booking architecture.
 
 Required lifecycle:
 
-`artist/representative onboarding -> identity + representation verification -> availability/terms -> quote -> customer confirmation -> regulated payment/escrow -> event delivery -> check-in/out -> dispute window -> release`.
+`creator/representative onboarding -> identity + representation verification -> shared requirement capture -> availability/terms -> quote -> customer confirmation -> regulated payment/escrow -> event delivery -> check-in/out -> dispute window -> release`.
 
-A manager name or phone number is not proof of representation. Booking is therefore blocked until the artist profile is explicitly marked verified. The chat now presents this as a verified booking flow rather than a generic "book a celebrity" promise.
+A manager name or phone number is not proof of representation. Booking is therefore blocked until the artist profile is explicitly marked verified. The chat should present this as a verified creator/artist booking request, never as a promise of direct celebrity access.
 
 ## Chat expectations for 2026
 
