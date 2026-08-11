@@ -1,6 +1,8 @@
 import { getDb, saveDb } from '../database.js';
+import { addPoints } from './pointsEngine.js';
 import { getCommission } from './commissionService.js';
 import { processDirectPayment } from './directWallet.js';
+import { createEconomicRequest, getEconomicCategory } from './skillFlows.js';
 
 export async function getLeadCharge(orderType: string): Promise<number> {
     const ot = orderType.toLowerCase();
@@ -33,9 +35,6 @@ export async function finalizeOrder(buyerPhone: string, arg2: string = '', arg3:
         details = arg3 || {};
         orderType = details.skill || arg2 || 'general_service';
 
-        // Blueprint §55.4: vendor ordering is a multi-step agentic flow. The first
-        // pass must not fabricate a provider, payment or completion before the
-        // item/quantity/location are confirmed.
         if (orderType === 'universal_vendor_order') {
             const idempotencyKey = details.idempotencyKey || `vendor:${buyerPhone}:${Date.now()}`;
             const existing = db.prepare('SELECT id, status FROM orders WHERE idempotency_key = ?');
@@ -52,11 +51,12 @@ export async function finalizeOrder(buyerPhone: string, arg2: string = '', arg3:
             return { success: true, message: 'Vendor order started. Confirm the item, quantity and delivery location before escrow is locked.', orderId };
         }
 
-        // Intent detection is not customer confirmation. A chat message such as
-        // "I need a mechanic" starts a request but does not authorise a provider
-        // match, payment, escrow, or completion. Explicit execution is retained
-        // for callers that supply a booking mode or amount, or the provider-aware
-        // four-argument form used by operational workflows.
+        // Non-economic chat skills (balance, radar, life-admin, general AI)
+        // should never become fake orders merely because the chat router uses a
+        // common result shape.
+        const economicCategory = getEconomicCategory(orderType);
+        if (!economicCategory) return { success: true, message: '' };
+
         const hasExplicitExecution = arg4 !== undefined || !!details.bookingMode || (typeof details.amount === 'number' && details.amount > 0);
         if (!hasExplicitExecution) {
             const idempotencyKey = details.idempotencyKey || `request:${buyerPhone}:${orderType}`;
@@ -69,7 +69,8 @@ export async function finalizeOrder(buyerPhone: string, arg2: string = '', arg3:
             existing.free();
             const orderId = `req_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
             db.run(`INSERT INTO orders (id, phone, order_type, provider_phone, amount, status, idempotency_key) VALUES (?, ?, ?, NULL, 0, 'awaiting_confirmation', ?)`, [orderId, buyerPhone, orderType, idempotencyKey]);
-            db.run(`INSERT INTO audit_logs (action, details) VALUES (?, ?)`, ['economic_request_started', JSON.stringify({ orderId, buyerPhone, orderType, next: 'capture_requirements_and_confirm' })]);
+            await createEconomicRequest({ id: orderId, phone: buyerPhone, skill: orderType, requirements: {} });
+            db.run(`INSERT INTO audit_logs (action, details) VALUES (?, ?)`, ['economic_request_started', JSON.stringify({ orderId, buyerPhone, orderType, category: economicCategory, next: 'capture_requirements_and_confirm' })]);
             saveDb();
             return { success: true, message: 'Request started. I’ll collect the missing details and show you the provider, price and terms before anything is committed.', orderId };
         }
