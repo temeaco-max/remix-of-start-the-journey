@@ -9,6 +9,7 @@ import express from 'express';
 import { registerLegacyRoutes } from './legacyApp.js';
 import channelRoutes from './routes/channelRoutes.js';
 import circleRoutes from './routes/circleRoutes.js';
+import economicRequestRouter from './routes/economicRequestRouter.js';
 
 const app = express();
 
@@ -33,6 +34,12 @@ app.use('/api', channelRoutes);
 // during the incremental legacyApp extraction and will be removed once parity
 // integration coverage is complete.
 app.use('/api', circleRoutes);
+
+// Economic requests already have a canonical route boundary backed by
+// skillFlows + the shared agentic storefront/trade engine. Mount it before the
+// legacy implementation so new economic traffic does not create a parallel
+// request lifecycle in legacyApp.ts.
+app.use('/api/economic-requests', economicRequestRouter);
 
 registerLegacyRoutes(app);
 
