@@ -1,42 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kurukoo</title>
-  <link rel="stylesheet" href="/css/kurukoo-home.css?v=2" />
-  <link rel="stylesheet" href="/css/chat-ui.css?v=1" />
-</head>
-<body class="ko-home">
-  <nav class="ko-nav" aria-label="Primary">
-    <a class="ko-nav__brand" href="/">Kurukoo</a>
-    <ul class="ko-nav__links">
-      <li><a href="/#how">How it works</a></li>
-      <li><a href="/#channels">Channels</a></li>
-      <li><a href="/login">Login</a></li>
-    </ul>
-  </nav>
-  <header class="ko-hero">
-    <h1>Trade with trust across Africa</h1>
-    <p>Escrow, circles, and multi-channel chat — built for real commerce.</p>
-  </header>
-  <section class="ko-mandate" aria-label="Mandates">
-    <span class="ko-chip">Escrow</span>
-    <span class="ko-chip">Safety circles</span>
-    <span class="ko-chip">Multi-channel</span>
-  </section>
-  <section class="ko-grid" id="how">
-    <article class="ko-card"><h3>Buy safely</h3><p>Funds held until delivery is confirmed.</p></article>
-    <article class="ko-card"><h3>Sell with confidence</h3><p>Verified buyers and dispute support.</p></article>
-    <article class="ko-card"><h3>Chat everywhere</h3><p>Web, WhatsApp, and more in one thread.</p></article>
-  </section>
-  <section class="ko-channels" id="channels">
-    <h2>Channels</h2>
-    <div class="ko-channel-list">
-      <a href="/chat">Web chat</a>
-      <a href="/login">Sign in</a>
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+
+<main class="home-page">
+  <section class="home-hero section">
+    <div class="container home-hero__grid">
+      <div class="home-hero__copy">
+        <span class="eyebrow">Your everyday, sorted.</span>
+        <h1>The trusted neighbor who knows everyone.</h1>
+        <p class="home-hero__lead">Meet Kurukoo — a conversational utility that helps you find trusted people, get everyday things done, offer your skills, and discover useful opportunities nearby.</p>
+        <div class="home-hero__actions">
+          <a class="btn btn-primary home-cta" href="/chat">Start chatting</a>
+          <a class="btn btn-outline home-cta" href="tel:*7000%23">Dial *7000#</a>
+        </div>
+        <p class="home-trust"><span>★</span> Trusted by communities across Africa <span>•</span> No app download required <span>•</span> Privacy first</p>
+      </div>
+      <div class="home-chat-card" aria-label="Example Kurukoo conversation">
+        <div class="home-chat-card__top"><span class="home-avatar">K</span><div><strong>Kurukoo</strong><small>Your local helper</small></div><span class="home-online">●</span></div>
+        <div class="home-chat-card__body">
+          <div class="chat-bubble chat-bubble--user">I need a plumber today. My kitchen tap is leaking.</div>
+          <div class="chat-bubble chat-bubble--assistant">I can help. I found verified plumbers nearby. What area are you in?</div>
+          <div class="chat-bubble chat-bubble--user">Ikeja.</div>
+          <div class="chat-result"><div><span class="result-icon">🔧</span><div><strong>Verified plumber nearby</strong><small>Available today · Quote before work</small></div></div><span class="result-arrow">→</span></div>
+        </div>
+        <div class="home-chat-card__footer">One conversation. Real-world coordination.</div>
+      </div>
     </div>
   </section>
-  <footer class="ko-footer">© Kurukoo</footer>
-</body>
-</html>
+
+  <section class="home-roles section" id="how">
+    <div class="container">
+      <div class="section-heading"><span class="eyebrow">One conversation. Every role.</span><h2>What do you want to do today?</h2><p>Ask naturally. Kurukoo captures what you need, finds the right people or products, and helps coordinate the next step.</p></div>
+      <div class="home-role-grid">
+        <article class="home-role-card"><span class="role-number">01</span><span class="role-icon">🙋🏾</span><h3>Request a service</h3><p>Need a ride, repair, delivery, food, a worker, or something else? Tell Kurukoo what you need and let the conversation fill in the details.</p><a href="/chat?prompt=Hi%2C%20I%20need%20help%20with%20something" class="text-link">Request a service <span>→</span></a></article>
+        <article class="home-role-card"><span class="role-number">02</span><span class="role-icon">🛠️</span><h3>Offer your skills</h3><p>Ride, repair, cook, build, deliver, design, teach, sell or help. List your skills once and let Kurukoo help people find you.</p><a href="/chat?prompt=Hi%2C%20I%20want%20to%20offer%20my%20skills" class="text-link">Offer your skills <span>→</span></a></article>
+        <article class="home-role-card"><span class="role-number">03</span><span class="role-icon">🏪</span><h3>Grow my business</h3><p>Turn your products and services into a discoverable local offering without forcing you into a complicated dashboard.</p><a href="/chat?prompt=Hi%2C%20I%20want%20to%20grow%20my%20business%20on%20Kurukoo" class="text-link">Grow my business <span>→</span></a></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-profile section">
+    <div class="container home-split">
+      <div class="section-heading section-heading--left"><span class="eyebrow">A helper that learns</span><h2>A little more about you, every day.</h2><p>No forms to fill out before you can be useful. Kurukoo builds a shared Memory Profile from your conversations so repeat tasks become easier.</p></div>
+      <div class="home-feature-list">
+        <article><span>01</span><div><h3>Your profile lives and grows</h3><p>Preferences, trusted providers, typical needs and useful context can travel with you across conversations and channels.</p></div></article>
+        <article><span>02</span><div><h3>Just talk naturally</h3><p>Type or speak the way you normally would. Kurukoo turns the conversation into structured requests without making you navigate a maze of forms.</p></div></article>
+        <article><span>03</span><div><h3>Always looking out for you</h3><p>When appropriate, Kurukoo can surface nearby services, reminders and earning opportunities that fit your context.</p></div></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-pulse section" id="channels">
+    <div class="container">
+      <div class="section-heading"><span class="eyebrow">Nearby Pulse</span><h2>See what's happening near you.</h2><p>Discover providers, services, opportunities and useful local activity. Exact locations stay private.</p></div>
+      <div class="pulse-preview">
+        <div class="pulse-map" role="img" aria-label="Illustrated preview of nearby Kurukoo providers">
+          <span class="map-grid map-grid--one"></span><span class="map-grid map-grid--two"></span><span class="map-road map-road--one"></span><span class="map-road map-road--two"></span>
+          <div class="map-pin map-pin--one"><span>🍊</span><small>Mama Nkechi</small></div>
+          <div class="map-pin map-pin--two"><span>🔧</span><small>Sola Repairs</small></div>
+          <div class="map-pin map-pin--three"><span>🛵</span><small>Musa Keke</small></div>
+          <div class="map-pin map-pin--four"><span>🤖</span><small>Kurukoo Agent</small></div>
+          <div class="map-center"><span>◎</span><strong>You</strong></div>
+        </div>
+        <div class="pulse-panel"><span class="eyebrow">Nearby now</span><h3>Useful people and services, not just pins.</h3><div class="pulse-item"><span>🟢</span><div><strong>Mama Nkechi</strong><small>Fresh oranges · 150m away</small></div></div><div class="pulse-item"><span>🔧</span><div><strong>Sola Phone Repairs</strong><small>Open now · 300m away</small></div></div><div class="pulse-item"><span>🛵</span><div><strong>Musa Keke Rider</strong><small>Available · 200m away</small></div></div><a href="/discover" class="btn btn-primary pulse-button">Explore the full map <span>→</span></a><small class="privacy-note">Your exact location is never shared. Pins are privacy-fuzzed and you control when you go live.</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-capabilities section">
+    <div class="container">
+      <div class="section-heading"><span class="eyebrow">One economic conversation</span><h2>Everything you need, one conversation away.</h2><p>Start with what you want. Kurukoo works out the requirements and routes the request through the right skill and economic flow.</p></div>
+      <div class="capability-grid">
+        <a href="/explore/food" class="capability-card"><span>🍜</span><strong>Order Food</strong></a>
+        <a href="/explore/groceries" class="capability-card"><span>🛒</span><strong>Get Groceries</strong></a>
+        <a href="/explore/errands" class="capability-card"><span>🏃🏾</span><strong>Get Errands Done</strong></a>
+        <a href="/explore/logistics" class="capability-card"><span>📦</span><strong>Logistics &amp; Delivery</strong></a>
+        <a href="/explore/logistics" class="capability-card"><span>📮</span><strong>Send Parcels</strong></a>
+        <a href="/explore/errands" class="capability-card"><span>⛽</span><strong>Fuel Delivered</strong></a>
+        <a href="/discover" class="capability-card"><span>🛵</span><strong>Get a Ride</strong></a>
+        <a href="/explore/repairs-maintenance" class="capability-card"><span>🏠</span><strong>Home Services</strong></a>
+        <a href="/explore/repairs-maintenance" class="capability-card"><span>🔧</span><strong>Appliance Repairs</strong></a>
+        <a href="/explore/solar-energy" class="capability-card"><span>☀️</span><strong>Solar Installation</strong></a>
+        <a href="/explore/automotive-mechanics" class="capability-card"><span>🚗</span><strong>Auto Repair</strong></a>
+        <a href="/explore/health-medical" class="capability-card"><span>🏥</span><strong>Health &amp; Care</strong></a>
+        <a href="/explore/finance-tax" class="capability-card"><span>💰</span><strong>Money Circle</strong></a>
+        <a href="/explore/emergency-dispatch" class="capability-card"><span>🚨</span><strong>Emergency Help</strong></a>
+        <a href="/explore/emergency-dispatch" class="capability-card"><span>🛡️</span><strong>Security</strong></a>
+        <a href="/explore/community" class="capability-card"><span>🚔</span><strong>Safety Alerts</strong></a>
+        <a href="/explore/gigs" class="capability-card"><span>💼</span><strong>Find Work</strong></a>
+        <a href="/explore/classifieds" class="capability-card"><span>🏪</span><strong>Sell Locally</strong></a>
+        <a href="/explore/reach-reference" class="capability-card"><span>📢</span><strong>Reach Customers</strong></a>
+        <a href="/explore/sports-recreation" class="capability-card"><span>⚽</span><strong>Sports &amp; Clubs</strong></a>
+        <a href="/explore/events-entertainment" class="capability-card"><span>👥</span><strong>Community</strong></a>
+        <a href="/explore/price-check" class="capability-card"><span>💲</span><strong>Price Alerts</strong></a>
+        <a href="/explore/government" class="capability-card"><span>📋</span><strong>Key Services</strong></a>
+        <a href="/explore/education-learning" class="capability-card"><span>🎓</span><strong>Education</strong></a>
+        <a href="/explore/communication" class="capability-card"><span>📱</span><strong>Airtime &amp; Data</strong></a>
+        <a href="/resources" class="capability-card"><span>📺</span><strong>Device Guides</strong></a>
+        <a href="/discover" class="capability-card"><span>📅</span><strong>What's Happening</strong></a>
+        <a href="/explore/cravings" class="capability-card"><span>🥭</span><strong>Hawkers Nearby</strong></a>
+        <a href="/explore/spiritual" class="capability-card"><span>🤲🏾</span><strong>Spiritual</strong></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-day section">
+    <div class="container">
+      <div class="section-heading"><span class="eyebrow">A day with Kurukoo</span><h2>From morning move to evening chop.</h2><p>No apps to juggle. No tabs to switch. Just one conversation helping coordinate the day.</p></div>
+      <div class="day-timeline">
+        <article><span>🌅</span><small>6:30 AM</small><h3>Wake up</h3><p>“3 okada riders are nearby. Need a lift?”</p></article>
+        <article><span>🍲</span><small>12:00 PM</small><h3>Lunch break</h3><p>“Fresh oranges are 150m away. Stop by or order?”</p></article>
+        <article><span>🔧</span><small>2:00 PM</small><h3>Get it fixed</h3><p>“I found a verified plumber in Ikeja. Book?”</p></article>
+        <article><span>💰</span><small>4:00 PM</small><h3>Hustle time</h3><p>“New phone-repair job nearby. Want to accept it?”</p></article>
+        <article><span>📦</span><small>6:00 PM</small><h3>Send it</h3><p>“A rider is nearby for your Yaba → VI delivery.”</p></article>
+        <article><span>🌙</span><small>9:00 PM</small><h3>Wind down</h3><p>“Tomorrow’s three errands are queued. Sleep well.”</p></article>
+      </div>
+      <div class="home-bottom-cta"><a class="btn btn-primary" href="/chat">Start your day with Kurukoo <span>→</span></a></div>
+    </div>
+  </section>
+
+  <section class="home-final section">
+    <div class="container"><div class="home-final__inner"><span class="eyebrow">Your everyday, sorted.</span><h2>Tell Kurukoo what you need.</h2><p>One conversation can become a ride, an order, a repair, a job, a booking, a purchase, or simply the answer you were looking for.</p><div class="home-hero__actions"><a class="btn btn-light" href="/chat">Open Chat</a><a class="btn btn-terracotta" href="tel:*7000%23">Dial *7000#</a></div></div></div>
+  </section>
+</main>
+
+<footer class="home-footer"><div class="container home-footer__inner"><div><a class="home-footer__brand" href="/">Kurukoo</a><p>One conversation for everyday economic coordination.</p></div><div class="home-footer__links"><a href="/about">About</a><a href="/help">Help</a><a href="/resources">Resources</a><a href="/legal/privacy">Privacy</a><a href="/legal/terms">Terms</a></div><small>© <%= new Date().getFullYear() %> Kurukoo</small></div></footer>
