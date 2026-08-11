@@ -27,6 +27,7 @@ import createPublicRouter from './routes/publicRoutes.js';
 import channelRoutes from './routes/channelRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import seoAdminRoutes from './routes/seoAdminRoutes.js';
 import { aiRateLimit, webhookRateLimit, paymentRateLimit } from './middleware/rateLimit.js';
 import { authenticateUser } from './middleware/auth.js';
 `;
@@ -38,10 +39,14 @@ if (!src.includes("from './routes/authRoutes.js'")) {
     `import chatRouter from './routes/chatRouter.js';\n${fullImportBlock}`
   );
 } else {
-  // Patch missing imports incrementally
   const ensureImport = (needle, block) => {
     if (!src.includes(needle)) {
-      if (src.includes("from './routes/webrtcRoutes.js'")) {
+      if (src.includes("from './routes/adminRoutes.js'")) {
+        src = src.replace(
+          "import adminRoutes from './routes/adminRoutes.js';",
+          `import adminRoutes from './routes/adminRoutes.js';\n${block}`
+        );
+      } else if (src.includes("from './routes/webrtcRoutes.js'")) {
         src = src.replace(
           "import webrtcRoutes from './routes/webrtcRoutes.js';",
           `import webrtcRoutes from './routes/webrtcRoutes.js';\n${block}`
@@ -60,6 +65,7 @@ if (!src.includes("from './routes/authRoutes.js'")) {
   ensureImport("from './routes/discoveryRoutes.js'", "import createDiscoveryRouter from './routes/discoveryRoutes.js';\nimport createPresenceRouter from './routes/presenceRoutes.js';\nimport createContentRouter from './routes/contentRoutes.js';\nimport createPublicRouter from './routes/publicRoutes.js';");
   ensureImport("from './routes/channelRoutes.js'", "import channelRoutes from './routes/channelRoutes.js';\nimport systemRoutes from './routes/systemRoutes.js';");
   ensureImport("from './routes/adminRoutes.js'", "import adminRoutes from './routes/adminRoutes.js';");
+  ensureImport("from './routes/seoAdminRoutes.js'", "import seoAdminRoutes from './routes/seoAdminRoutes.js';");
   if (!src.includes("from './middleware/rateLimit.js'")) {
     src = src.replace(
       "import chatRouter from './routes/chatRouter.js';",
@@ -83,6 +89,7 @@ app.use(createPublicRouter());
 app.use(channelRoutes);
 app.use(systemRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/seo', seoAdminRoutes);
 app.use(['/api/chat/stream', '/api/chat'], aiRateLimit);
 app.use(['/webhook', '/ussd'], webhookRateLimit);
 app.use(['/api/escrow', '/api/points/topup', '/api/credits/topup', '/api/subscription'], paymentRateLimit);`;
@@ -90,7 +97,6 @@ app.use(['/api/escrow', '/api/points/topup', '/api/credits/topup', '/api/subscri
 if (!src.includes("app.use('/api/auth'")) {
   src = src.replace("app.use('/api/chat', chatRouter);", mountBlock);
 } else {
-  // Add any missing mounts after webrtc or auth
   if (!src.includes("app.use('/api/subscription'")) {
     src = src.replace(
       "app.use('/api/webrtc', webrtcRoutes);",
@@ -114,11 +120,16 @@ if (!src.includes("app.use('/api/auth'")) {
         : "app.use('/api/chat', chatRouter);";
     src = src.replace(adminAnchor, `${adminAnchor}\napp.use('/api/admin', adminRoutes);`);
   }
+  if (!src.includes("app.use('/api/admin/seo'")) {
+    const seoAnchor = src.includes("app.use('/api/admin', adminRoutes)")
+      ? "app.use('/api/admin', adminRoutes);"
+      : 'app.use(systemRoutes);';
+    src = src.replace(seoAnchor, `${seoAnchor}\napp.use('/api/admin/seo', seoAdminRoutes);`);
+  }
 }
 
 // ── Neutralize legacy dangerous / duplicate handlers ───────────────────
 
-// Legacy auth login → renamed so authRoutes wins
 if (src.includes("// API: Auth Login & SSO Synchronization") && src.includes("app.post('/api/auth/login'")) {
   src = src.replace(
     "// API: Auth Login & SSO Synchronization\napp.post('/api/auth/login'",
@@ -126,7 +137,6 @@ if (src.includes("// API: Auth Login & SSO Synchronization") && src.includes("ap
   );
 }
 
-// WebRTC legacy
 if (src.includes("app.post('/api/webrtc/create'") && !src.includes("/api/webrtc/create-legacy")) {
   src = src.replace(
     "// WebRTC Signaling API\napp.post('/api/webrtc/create'",
@@ -135,7 +145,6 @@ if (src.includes("app.post('/api/webrtc/create'") && !src.includes("/api/webrtc/
   src = src.replace("app.get('/api/webrtc/peers'", "app.get('/api/webrtc/peers-legacy'");
 }
 
-// Client-trusted subscription upgrade
 if (src.includes("app.post('/api/subscription/upgrade'") && src.includes("const { phone, plan, country } = req.body;")) {
   src = src.replace(
     /app\.post\('\/api\/subscription\/upgrade', async \(req, res\) => \{[\s\S]*?const \{ phone, plan, country \} = req\.body;[\s\S]*?res\.status\(500\)\.json\(\{ error: 'Failed to upgrade subscription' \}\);\n    \}\n\}\);/,
@@ -148,7 +157,6 @@ app.post('/api/subscription/upgrade-legacy-disabled', async (req, res) => {
   );
 }
 
-// Provider subscribe client-trusted
 if (src.includes("app.post('/api/provider/subscribe'") && src.includes("const { phone, tier } = req.body;")) {
   src = src.replace(
     /app\.post\('\/api\/provider\/subscribe', async \(req, res\) => \{[\s\S]*?const \{ phone, tier \} = req\.body;[\s\S]*?res\.status\(500\)\.json\(\{ success: false, error: 'Internal error' \}\);\n    \}\n\}\);/,
@@ -162,7 +170,6 @@ app.post('/api/provider/subscribe', async (req, res) => {
   );
 }
 
-// Pulse / content / discovery / health / webhooks / profile → legacy path
 const pulseRenames = [
   ["app.post('/api/pulse/live'", "app.post('/api/pulse/live-legacy'"],
   ["app.post('/api/pulse/activate'", "app.post('/api/pulse/activate-legacy'"],
@@ -184,7 +191,6 @@ const pulseRenames = [
   ["app.get('/api/points/balance'", "app.get('/api/points/balance-legacy'"],
   ["app.post('/api/points/topup'", "app.post('/api/points/topup-legacy'"],
   ["app.post('/api/credits/topup'", "app.post('/api/credits/topup-legacy'"],
-  // Admin legacy renames (adminRoutes owns /api/admin/*)
   ["app.post('/api/admin/auth'", "app.post('/api/admin/auth-legacy'"],
   ["app.get('/api/admin/tickets'", "app.get('/api/admin/tickets-legacy'"],
   ["app.post('/api/admin/tickets/reply'", "app.post('/api/admin/tickets/reply-legacy'"],
@@ -231,6 +237,52 @@ const pulseRenames = [
   ["app.get('/api/github/diff'", "app.get('/api/github/diff-legacy'"],
   ["app.post('/api/github/pull'", "app.post('/api/github/pull-legacy'"],
   ["app.post('/api/github/push'", "app.post('/api/github/push-legacy'"],
+  // SEO admin → seoAdminRoutes
+  ["app.get('/api/admin/seo/dashboard'", "app.get('/api/admin/seo/dashboard-legacy'"],
+  ["app.get('/api/admin/seo/health'", "app.get('/api/admin/seo/health-legacy'"],
+  ["app.get('/api/admin/seo/settings'", "app.get('/api/admin/seo/settings-legacy'"],
+  ["app.post('/api/admin/seo/settings'", "app.post('/api/admin/seo/settings-legacy'"],
+  ["app.get('/api/admin/seo/pages'", "app.get('/api/admin/seo/pages-legacy'"],
+  ["app.post('/api/admin/seo/pages'", "app.post('/api/admin/seo/pages-legacy'"],
+  ["app.delete('/api/admin/seo/pages'", "app.delete('/api/admin/seo/pages-legacy'"],
+  ["app.get('/api/admin/seo/faqs'", "app.get('/api/admin/seo/faqs-legacy'"],
+  ["app.post('/api/admin/seo/faqs'", "app.post('/api/admin/seo/faqs-legacy'"],
+  ["app.put('/api/admin/seo/faqs/:id'", "app.put('/api/admin/seo/faqs-legacy/:id'"],
+  ["app.delete('/api/admin/seo/faqs/:id'", "app.delete('/api/admin/seo/faqs-legacy/:id'"],
+  ["app.get('/api/admin/seo/keywords'", "app.get('/api/admin/seo/keywords-legacy'"],
+  ["app.post('/api/admin/seo/keywords'", "app.post('/api/admin/seo/keywords-legacy'"],
+  ["app.delete('/api/admin/seo/keywords/:id'", "app.delete('/api/admin/seo/keywords-legacy/:id'"],
+  ["app.get('/api/admin/seo/redirects'", "app.get('/api/admin/seo/redirects-legacy'"],
+  ["app.post('/api/admin/seo/redirects'", "app.post('/api/admin/seo/redirects-legacy'"],
+  ["app.delete('/api/admin/seo/redirects/:id'", "app.delete('/api/admin/seo/redirects-legacy/:id'"],
+  ["app.get('/api/admin/seo/schemas'", "app.get('/api/admin/seo/schemas-legacy'"],
+  ["app.post('/api/admin/seo/schemas'", "app.post('/api/admin/seo/schemas-legacy'"],
+  ["app.delete('/api/admin/seo/schemas/:id'", "app.delete('/api/admin/seo/schemas-legacy/:id'"],
+  ["app.get('/api/admin/seo/internal-links'", "app.get('/api/admin/seo/internal-links-legacy'"],
+  ["app.post('/api/admin/seo/internal-links'", "app.post('/api/admin/seo/internal-links-legacy'"],
+  ["app.delete('/api/admin/seo/internal-links/:id'", "app.delete('/api/admin/seo/internal-links-legacy/:id'"],
+  ["app.get('/api/admin/seo/backlinks'", "app.get('/api/admin/seo/backlinks-legacy'"],
+  ["app.post('/api/admin/seo/backlinks'", "app.post('/api/admin/seo/backlinks-legacy'"],
+  ["app.delete('/api/admin/seo/backlinks/:id'", "app.delete('/api/admin/seo/backlinks-legacy/:id'"],
+  ["app.get('/api/admin/seo/content-calendar'", "app.get('/api/admin/seo/content-calendar-legacy'"],
+  ["app.post('/api/admin/seo/content-calendar'", "app.post('/api/admin/seo/content-calendar-legacy'"],
+  ["app.put('/api/admin/seo/content-calendar/:id'", "app.put('/api/admin/seo/content-calendar-legacy/:id'"],
+  ["app.delete('/api/admin/seo/content-calendar/:id'", "app.delete('/api/admin/seo/content-calendar-legacy/:id'"],
+  ["app.get('/api/admin/seo/content-briefs'", "app.get('/api/admin/seo/content-briefs-legacy'"],
+  ["app.post('/api/admin/seo/content-briefs'", "app.post('/api/admin/seo/content-briefs-legacy'"],
+  ["app.delete('/api/admin/seo/content-briefs/:id'", "app.delete('/api/admin/seo/content-briefs-legacy/:id'"],
+  ["app.get('/api/admin/seo/404-log'", "app.get('/api/admin/seo/404-log-legacy'"],
+  ["app.post('/api/admin/seo/404-log/ignore/:id'", "app.post('/api/admin/seo/404-log/ignore-legacy/:id'"],
+  ["app.post('/api/admin/seo/generate-alt-text'", "app.post('/api/admin/seo/generate-alt-text-legacy'"],
+  ["app.post('/api/admin/seo/generate-faqs'", "app.post('/api/admin/seo/generate-faqs-legacy'"],
+  ["app.post('/api/admin/seo/generate-brief'", "app.post('/api/admin/seo/generate-brief-legacy'"],
+  ["app.post('/api/admin/seo/run-audit'", "app.post('/api/admin/seo/run-audit-legacy'"],
+  ["app.get('/api/admin/seo/audits'", "app.get('/api/admin/seo/audits-legacy'"],
+  ["app.get('/api/admin/seo/rankings'", "app.get('/api/admin/seo/rankings-legacy'"],
+  ["app.get('/api/admin/seo/orphans'", "app.get('/api/admin/seo/orphans-legacy'"],
+  ["app.get('/api/admin/seo/image-meta'", "app.get('/api/admin/seo/image-meta-legacy'"],
+  ["app.post('/api/admin/seo/image-meta/generate-alt'", "app.post('/api/admin/seo/image-meta/generate-alt-legacy'"],
+  ["app.delete('/api/admin/seo/image-meta/:id'", "app.delete('/api/admin/seo/image-meta-legacy/:id'"],
 ];
 
 for (const [from, to] of pulseRenames) {
@@ -239,7 +291,6 @@ for (const [from, to] of pulseRenames) {
   }
 }
 
-// Strip subscription_tier from client-facing profile update (if still present)
 if (src.includes('subscription_tier = COALESCE(?, subscription_tier)') && !src.includes('// TIER_NOT_CLIENT_SETTABLE')) {
   src = src.replace(
     `const { 
@@ -269,4 +320,4 @@ if (src.includes('subscription_tier = COALESCE(?, subscription_tier)') && !src.i
 }
 
 fs.writeFileSync(indexPath, src);
-console.log('Wired all extracted routers (incl. adminRoutes); neutralized legacy pulse/blog/auth/webrtc/subscription/profile/admin handlers.');
+console.log('Wired all extracted routers (admin + seoAdmin); neutralized legacy handlers.');
