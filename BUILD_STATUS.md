@@ -41,8 +41,16 @@ Artists/creators are **not a separate economic system**. Artist booking is a cat
 - Development/demo providers are not seeded into production databases.
 - CI is read-only and cannot rewrite or push `main`.
 - Customer lifecycle transitions are restricted to customer-owned states; provider/system transitions stay in the service layer.
-- `legacyApp.ts` is a transitional page/SEO boundary rather than a place for new business APIs.
-- `/health` and canonical route modules are wired through the application composition root.
+- `/health` is owned by `src/routes/healthRoutes.ts`.
+- `/`, `/explore`, and `/p/:providerSlug` are owned by `src/routes/publicRoutes.ts`.
+- Referral endpoints remain in the existing authenticated `userRoutes.ts` boundary rather than a legacy module.
+- The composition contract test now fails if `legacyApp` or `registerLegacyRoutes` is reintroduced.
+- `src/legacyApp.ts` has been deleted after its remaining route responsibilities were accounted for.
+- Economic Request user-owned routes now apply explicit `authenticateUser` middleware; orchestration and memory lifecycle endpoints apply explicit `authenticateAdmin` middleware and are covered by HTTP behavior tests.
+- Dynamic provider, opportunity, promotion, and optimistic chat content is rendered through DOM nodes and `textContent`, not untrusted HTML interpolation or inline event attributes.
+- npm is the documented package manager; `package-lock.json` is committed and CI uses `npm ci --ignore-scripts` for reproducible installs.
+- The unused `uuid` and deprecated unused `multer` dependency paths were removed. The active local SmolLM2 path still requires `@huggingface/transformers`, whose transitive `sharp` advisory has no safe npm fix at this time.
+- SQL.js persistence writes to a temporary file before atomic replacement. This improves interrupted-write durability but does not convert the architecture into a multi-instance data store.
 
 ## What is intentionally not claimed as implemented
 
@@ -58,6 +66,9 @@ The application does **not** simulate unavailable real-world infrastructure. In 
 ### P0 — production truth/safety
 - Wire and certify a real PSP/payment adapter before enabling production payment/escrow claims.
 - Add real provider/identity verification adapters and evidence/expiry/revocation semantics.
+- The repository owner must rotate and review the GitHub, Gemini, Hugging Face, and Groq credential types exposed in reachable historical Git history. Rotation cannot be performed by source code or inferred from the current clean tree.
+- Track an upstream `@huggingface/transformers` release that moves `sharp` to a fixed version; do not apply an untested forced override merely to make dependency audit output green.
+- Configure GitHub branch protection for `main` with required build, FastText, and secret-scan checks, pull requests, and review. This repository change cannot enforce a GitHub setting without owner authorization.
 
 ### P1 — architecture and behavioural completeness
 - Finish deleting any genuinely dead legacy route bodies after extraction coverage proves they are unused.
@@ -78,6 +89,6 @@ Do not introduce infrastructure merely because the blueprint names it. Adopt Pos
 
 ## Verification
 
-The merged Economic OS refactor passed the repository CI suite before merge, including lint, build, route tests, CSS audit, messaging audit, skills audit, economic audit, services audit, security audit, email tests, FastText verification and secret scanning.
+The current legacy-boundary removal and its dependent remediation work must pass the full repository CI suite before either is merged to `main`. The dependency audit may retain the documented upstream-only `sharp` advisory until a compatible upstream package releases a safe fix; all other validation must pass.
 
 **Rule for future implementation:** Before creating or changing a file, inspect the current repository implementation and confirm that the intended capability does not already exist. Never introduce a second architecture for a capability that already has a canonical implementation.
