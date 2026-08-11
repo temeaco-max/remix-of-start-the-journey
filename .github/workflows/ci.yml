@@ -23,7 +23,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run lint
       - run: npm run build
-      - run: npm run test:public-routes
+      - run: npm run test:routes
       - run: npm run audit:css:all
       - run: npm run audit:messaging
       - run: npm run audit:skills
