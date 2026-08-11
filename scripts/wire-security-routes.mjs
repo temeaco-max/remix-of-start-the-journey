@@ -1,8 +1,7 @@
 /**
  * Idempotent source wiring for extracted HTTP boundaries.
- * This keeps the migration reversible while routes are incrementally removed
- * from src/index.ts. It runs before TypeScript compilation and never mutates
- * generated dist output.
+ * Temporary migration bridge: source is wired before compilation so generated
+ * production code uses the canonical routers while legacy handlers are being removed.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,6 +12,7 @@ let src = fs.readFileSync(indexPath, 'utf8');
 const imports = [
   "import publicRoutes from './routes/publicRoutes.js';",
   "import discoveryRoutes from './routes/discoveryRoutes.js';",
+  "import presenceRoutes from './routes/presenceRoutes.js';",
   "import contentRoutes from './routes/contentRoutes.js';",
   "import trustRoutes from './routes/trustRoutes.js';",
   "import circleRoutes from './routes/circleRoutes.js';",
@@ -34,6 +34,7 @@ const mountAnchor = "app.use('/api/chat', chatRouter);";
 const mounts = [
   "app.use(publicRoutes);",
   "app.use(discoveryRoutes);",
+  "app.use(presenceRoutes);",
   "app.use(contentRoutes);",
   "app.use('/api', trustRoutes);",
   "app.use('/api', circleRoutes);",
@@ -48,8 +49,6 @@ for (const line of mounts) {
   }
 }
 
-// Legacy handlers are retained only under explicit legacy paths during the
-// extraction window. The canonical extracted routers above own production paths.
 const renames = [
   ["app.get('/web'", "app.get('/web-legacy'"],
   ["app.get('/download'", "app.get('/download-legacy'"],
@@ -94,8 +93,6 @@ for (const [from, to] of renames) {
   if (src.includes(from) && !src.includes(to)) src = src.replace(from, to);
 }
 
-// Remove historical demo identity if it remains in the source.
 src = src.split('+2348030000000').join('');
-
 fs.writeFileSync(indexPath, src);
-console.log('Wired extracted public/discovery/content/trust/circle/order/task/user routers and neutralized migrated legacy paths.');
+console.log('Wired extracted public/discovery/presence/content/trust/circle/order/task/user routers.');
