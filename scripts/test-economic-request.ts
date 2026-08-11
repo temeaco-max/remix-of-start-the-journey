@@ -4,7 +4,10 @@ const taxonomy = auditEconomicTaxonomy();
 if (taxonomy.unmapped.length) throw new Error(`Unmapped skills: ${taxonomy.unmapped.join(', ')}`);
 if (taxonomy.categories !== ECONOMIC_CATEGORIES.length) throw new Error('Economic category count mismatch');
 
-const requiredSkills = ['ride','keke_driver','order_food','buy_car','buy_ticket','repair','find_worker','product_sourcing','security_personnel','verified_artist','football_player','sports_coach'];
+// `ride_request` is the chat intent; the canonical economic skill it resolves to
+// is `okada_rider` (see intentRouter.ts). Keep this audit aligned with the
+// canonical CATEGORY_BY_SKILL catalogue rather than introducing a second alias.
+const requiredSkills = ['okada_rider','keke_driver','order_food','buy_car','buy_ticket','repair','find_worker','product_sourcing','security_personnel','verified_artist','football_player','sports_coach'];
 for (const skill of requiredSkills) {
   const category = getEconomicCategory(skill);
   if (!category) throw new Error(`Missing category for required skill: ${skill}`);
