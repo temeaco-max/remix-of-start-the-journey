@@ -1,23 +1,22 @@
-/* Kurukoo homepage — layout for views/index.ejs (ko-* classes) */
+/* Kurukoo homepage — layout for ko-* classes used by views/index.ejs */
 :root {
   --ko-cream: #fff8f0;
-  --ko-ink: #1a1614;
-  --ko-muted: #6b635c;
   --ko-primary: #d97a5c;
-  --ko-primary-dark: #c46345;
+  --ko-text: #2e2e2e;
+  --ko-muted: #746c66;
   --ko-border: #eadfd5;
   --ko-surface: #ffffff;
-  --ko-chip: #f5ebe3;
+  --ko-shadow: 0 12px 36px rgba(46, 46, 46, 0.08);
   --ko-radius: 18px;
-  --ko-shadow: 0 16px 48px rgba(26, 22, 20, 0.08);
+  --ko-space: clamp(16px, 3vw, 28px);
 }
 
 .ko-home {
-  max-width: 1120px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 clamp(16px, 4vw, 32px) 64px;
-  color: var(--ko-ink);
-  font-family: Inter, system-ui, -apple-system, sans-serif;
+  padding: var(--ko-space);
+  color: var(--ko-text);
+  font-family: Inter, system-ui, sans-serif;
 }
 
 .ko-nav {
@@ -25,29 +24,25 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 0 12px;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: rgba(255, 248, 240, 0.92);
-  backdrop-filter: blur(10px);
+  margin-bottom: 28px;
+  flex-wrap: wrap;
 }
 
 .ko-brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  text-decoration: none;
-  color: inherit;
   font-family: "Space Grotesk", Inter, sans-serif;
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1.25rem;
+  text-decoration: none;
+  color: inherit;
 }
 
 .ko-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
   background: var(--ko-primary);
   color: #fff;
   display: grid;
@@ -57,55 +52,51 @@
 
 .ko-nav nav {
   display: flex;
-  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
 .ko-nav nav a {
   text-decoration: none;
-  color: var(--ko-ink);
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 0.92rem;
+  color: var(--ko-text);
+  padding: 10px 14px;
+  border-radius: 12px;
   font-weight: 500;
 }
 
 .ko-nav nav a:hover {
-  background: var(--ko-chip);
+  background: #f2e5db;
 }
 
 .ko-hero {
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: clamp(24px, 4vw, 48px);
-  align-items: center;
-  padding: 28px 0 48px;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+  margin-bottom: 40px;
 }
 
 .ko-hero-copy h1 {
   font-family: "Space Grotesk", Inter, sans-serif;
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.15;
   margin: 12px 0 16px;
-}
-
-.ko-hero-copy p {
-  color: var(--ko-muted);
-  font-size: 1.05rem;
-  line-height: 1.55;
-  max-width: 42ch;
-  margin: 0 0 20px;
 }
 
 .ko-eyebrow {
   display: inline-block;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ko-primary);
+  color: var(--ko-muted);
+}
+
+.ko-hero-copy p {
+  color: var(--ko-muted);
+  line-height: 1.55;
+  margin: 0 0 20px;
+  max-width: 42ch;
 }
 
 .ko-actions {
@@ -120,31 +111,23 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 10px 18px;
+  padding: 12px 18px;
   border-radius: 12px;
-  text-decoration: none;
   font-weight: 600;
-  font-size: 0.95rem;
+  text-decoration: none;
+  min-height: 44px;
 }
 
 .ko-primary {
   background: var(--ko-primary);
   color: #fff;
-}
-
-.ko-primary:hover {
-  background: var(--ko-primary-dark);
+  border: 1px solid var(--ko-primary);
 }
 
 .ko-secondary {
-  background: transparent;
-  color: var(--ko-ink);
+  background: var(--ko-surface);
+  color: var(--ko-text);
   border: 1px solid var(--ko-border);
-}
-
-.ko-secondary:hover {
-  background: var(--ko-chip);
 }
 
 .ko-mandate {
@@ -154,113 +137,101 @@
 }
 
 .ko-mandate span {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 11px;
+  padding: 8px 12px;
   border-radius: 999px;
-  background: var(--ko-chip);
+  background: #f5ebe3;
   border: 1px solid var(--ko-border);
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--ko-muted);
+  font-size: 0.8125rem;
+  color: var(--ko-text);
 }
 
 .ko-chat-frame {
   background: var(--ko-surface);
   border: 1px solid var(--ko-border);
-  border-radius: 20px;
+  border-radius: var(--ko-radius);
   box-shadow: var(--ko-shadow);
   overflow: hidden;
-  min-height: 480px;
-  height: min(72vh, 640px);
+  min-height: 520px;
 }
 
 .ko-chat-iframe {
   width: 100%;
-  height: 100%;
-  min-height: 480px;
+  height: 560px;
   border: 0;
   display: block;
   background: var(--ko-cream);
 }
 
 .ko-section {
-  padding: 24px 0 8px;
+  margin-bottom: 36px;
 }
 
 .ko-section h2 {
   font-family: "Space Grotesk", Inter, sans-serif;
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
   margin: 8px 0 12px;
-  letter-spacing: -0.02em;
 }
 
 .ko-section p {
   color: var(--ko-muted);
   line-height: 1.55;
-  max-width: 62ch;
-  margin: 0;
+  max-width: 60ch;
 }
 
 .ko-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  padding: 20px 0 32px;
+  gap: 16px;
+  margin-bottom: 40px;
 }
 
 .ko-grid article {
   background: var(--ko-surface);
   border: 1px solid var(--ko-border);
   border-radius: var(--ko-radius);
-  padding: 18px;
-  box-shadow: 0 8px 24px rgba(26, 22, 20, 0.04);
+  padding: 20px;
+  box-shadow: var(--ko-shadow);
 }
 
 .ko-grid article strong {
   display: block;
   font-family: "Space Grotesk", Inter, sans-serif;
-  font-size: 1.05rem;
   margin-bottom: 8px;
 }
 
 .ko-grid article p {
   margin: 0;
   color: var(--ko-muted);
-  font-size: 0.92rem;
-  line-height: 1.45;
+  font-size: 0.9375rem;
+  line-height: 1.5;
 }
 
 .ko-channel {
-  padding: 8px 0 24px;
+  margin-bottom: 48px;
 }
 
 .ko-channel-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .ko-channel-list span {
-  display: inline-flex;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: var(--ko-chip);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f5ebe3;
   border: 1px solid var(--ko-border);
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.875rem;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 900px) {
   .ko-hero {
     grid-template-columns: 1fr;
   }
 
-  .ko-chat-frame,
   .ko-chat-iframe {
-    min-height: 420px;
-    height: 56vh;
+    height: 480px;
   }
 
   .ko-grid {
@@ -268,25 +239,16 @@
   }
 }
 
-@media (max-width: 560px) {
-  .ko-nav {
-    flex-wrap: wrap;
-  }
-
-  .ko-nav nav {
-    width: 100%;
-  }
-
-  .ko-nav nav a {
-    min-height: 44px;
-  }
-
+@media (max-width: 520px) {
   .ko-grid {
     grid-template-columns: 1fr;
   }
 
-  .ko-primary,
-  .ko-secondary {
-    width: 100%;
+  .ko-chat-iframe {
+    height: 420px;
+  }
+
+  .ko-nav nav a {
+    min-height: 44px;
   }
 }
