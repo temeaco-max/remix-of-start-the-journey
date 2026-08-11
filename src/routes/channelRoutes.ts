@@ -1,5 +1,5 @@
 /**
- * Channel webhooks + USSD — extracted from index.ts (ChatGPT audit plan).
+ * Channel webhooks + USSD — extracted from legacyApp during channel consolidation.
  * Single dispatch via channelRegistry; no parallel channel identity stores.
  */
 import { Router } from 'express';
@@ -9,7 +9,8 @@ import { webhookRateLimit } from '../middleware/rateLimit.js';
 const router = Router();
 
 router.post('/webhook/whatsapp', webhookRateLimit, async (req, res) => {
-  const result = await dispatchWebhook('whatsapp', req.body, req.headers as Record<string, any>);
+  const rawBody = (req as any).rawBody;
+  const result = await dispatchWebhook('whatsapp', req.body, req.headers as Record<string, any>, rawBody);
   res.status(200).json(result);
 });
 
@@ -21,6 +22,17 @@ router.post('/webhook/telegram', webhookRateLimit, async (req, res) => {
 router.post('/webhook/sms', webhookRateLimit, async (req, res) => {
   const result = await dispatchWebhook('sms', req.body, req.headers as Record<string, any>);
   res.status(200).json(result);
+});
+
+router.post('/webhook/email', webhookRateLimit, async (req, res) => {
+  const rawBody = (req as any).rawBody;
+  if (!rawBody) return res.status(400).json({ error: 'Raw webhook body unavailable' });
+  try {
+    const result = await dispatchWebhook('email', req.body, req.headers as Record<string, any>, rawBody);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid email webhook' });
+  }
 });
 
 router.post('/ussd', webhookRateLimit, async (req, res) => {
