@@ -1,0 +1,100 @@
+:root {
+  --admin-bg: var(--cream, #FDFCFB);
+  --admin-surface: var(--white, #FFFFFF);
+  --admin-surface-muted: var(--gray-50, #F7F5F2);
+  --admin-border: var(--gray-200, #E2DED7);
+  --admin-text: var(--charcoal, #1A1918);
+  --admin-muted: var(--gray-600, #5C574F);
+  --admin-accent: var(--terracotta, #D97A5C);
+  --admin-accent-hover: #C56548;
+  --admin-sidebar: #24211F;
+  --admin-sidebar-muted: #C9C2B9;
+  --admin-radius: var(--border-radius, 12px);
+  --admin-shadow: 0 8px 24px rgba(26, 25, 24, 0.06);
+}
+
+/* Shared admin foundation. Pages may layer page-specific rules on top. */
+.admin-shell,
+body.admin-shell {
+  min-height: 100vh;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+.admin-shell :where(button, a[role="button"], input[type="submit"], input[type="button"], select) {
+  min-height: 44px;
+}
+
+.admin-shell :where(button, input, textarea, select):focus-visible {
+  outline: 3px solid rgba(217, 122, 92, 0.28);
+  outline-offset: 2px;
+}
+
+.admin-shell :where(.admin-card, .metric-card, .panel-card, .admin-section) {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-shell :where(.btn-action, .btn-primary) {
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: #fff;
+  min-height: 44px;
+}
+
+.admin-shell :where(.btn-action, .btn-primary):hover {
+  background: var(--admin-accent-hover);
+  border-color: var(--admin-accent-hover);
+}
+
+.admin-shell :where(.table-container, .table-scroll, .overflow-table) {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-shell table {
+  min-width: 640px;
+}
+
+@media (max-width: 767px) {
+  .admin-shell :where(.main-content, .admin-content) {
+    margin-left: 0 !important;
+    padding: 16px !important;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .admin-shell :where(.header-bar, .admin-header) {
+    gap: 12px;
+    padding: 14px 16px !important;
+    border-radius: 10px;
+  }
+
+  .admin-shell :where(.stats-grid, .metrics-grid) {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .admin-shell :where(.layout-grid, .dashboard-row) {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+
+  .admin-shell :where(.admin-section, .metric-card, .panel-card) {
+    padding: 18px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell *,
+  .admin-shell *::before,
+  .admin-shell *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
