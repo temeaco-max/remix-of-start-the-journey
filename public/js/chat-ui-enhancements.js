@@ -15,7 +15,7 @@
     if (document.querySelector('link[data-kurukoo-chat-ui]')) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/css/chat-ui.css?v=1.0.0';
+    link.href = '/css/chat-ui.css?v=1.0.1';
     link.dataset.kurukooChatUi = 'true';
     document.head.appendChild(link);
   }
