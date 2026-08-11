@@ -46,7 +46,7 @@
     const state = getState();
     state.messages = Array.from(container.querySelectorAll('.chat-bubble')).slice(-80).map((node) => ({
       sender: node.classList.contains('user') ? 'user' : 'assistant',
-      html: node.innerHTML,
+      text: node.textContent || '',
       at: Date.now()
     }));
     state.updatedAt = Date.now();
@@ -61,9 +61,7 @@
       if (!item || !['user', 'assistant'].includes(item.sender)) return;
       const bubble = document.createElement('div');
       bubble.className = `chat-bubble ${item.sender}`;
-      // Stored content was produced by the legacy chat renderer. Do not turn
-      // arbitrary localStorage strings into executable DOM.
-      bubble.textContent = typeof item.html === 'string' ? item.html.replace(/<[^>]*>/g, '') : '';
+      bubble.textContent = typeof item.text === 'string' ? item.text : '';
       container.appendChild(bubble);
     });
     if (container.lastElementChild) container.scrollTop = container.scrollHeight;
