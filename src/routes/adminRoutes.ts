@@ -5,7 +5,7 @@
  * - All routes except POST /auth require authenticateAdmin.
  * - No client-trusted identity; admin acts on platform data only.
  * - Reuses existing services (aiAgentService, pricingService, commissionService,
- *   analytics, githubService, content, disputes, etc.). No parallel admin DB.
+ *   analytics, content, disputes, etc.). No parallel admin DB.
  *
  * SEO admin (/api/admin/seo/*) stays in index.ts for a follow-up extraction batch.
  */
@@ -26,13 +26,6 @@ import {
 } from '../services/aiAgentService.js';
 import { getAllCommissions, updateCommission } from '../services/commissionService.js';
 import { getAllPricing, updatePlan, createPlan, deletePlan } from '../services/pricingService.js';
-import {
-  getGitHubSyncStatus,
-  listGitHubFiles,
-  getGitHubDiff,
-  pullFromGitHub,
-  pushToGitHub,
-} from '../services/githubService.js';
 import { schedulePost } from '../services/socialScheduler.js';
 import { queryGroq } from '../services/groqService.js';
 
@@ -885,53 +878,6 @@ router.put('/commissions/:id', authenticateAdmin, async (req: AuthRequest, res) 
   }
 });
 
-// ── GitHub workspace ────────────────────────────────────────────────────
 
-router.get('/github/status', authenticateAdmin, async (_req: AuthRequest, res) => {
-  try {
-    const status = await getGitHubSyncStatus();
-    res.json({ success: true, status });
-  } catch (e: any) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-router.get('/github/list', authenticateAdmin, async (req: AuthRequest, res) => {
-  try {
-    const dirPath = (req.query.path as string) || '';
-    const files = await listGitHubFiles(dirPath);
-    res.json({ success: true, path: dirPath, files });
-  } catch (e: any) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-router.get('/github/diff', authenticateAdmin, async (req: AuthRequest, res) => {
-  try {
-    const diff = await getGitHubDiff(req.query.path as string | undefined);
-    res.json({ success: true, diff });
-  } catch (e: any) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-router.post('/github/pull', authenticateAdmin, async (req: AuthRequest, res) => {
-  try {
-    const result = await pullFromGitHub(req.body?.path);
-    res.json(result);
-  } catch (e: any) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-router.post('/github/push', authenticateAdmin, async (req: AuthRequest, res) => {
-  try {
-    const message = req.body?.message || 'Update from Kurukoo Workspace';
-    const result = await pushToGitHub(message, req.body?.path, req.body?.content);
-    res.json(result);
-  } catch (e: any) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
 
 export default router;
