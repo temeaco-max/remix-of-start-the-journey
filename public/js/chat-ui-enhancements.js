@@ -1,4 +1,6 @@
-/* Kurukoo chat UX layer: shared across web/PWA/embedded chat surfaces. */
+/* Kurukoo chat UX layer: shared only with legacy chat surfaces that expose the
+ * chat-messages/chat-input contract. The canonical /chat surface is owned by
+ * kurukoo-primary-chat.js and must not be initialized twice. */
 (function () {
   'use strict';
 
@@ -7,8 +9,16 @@
   function getState() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (_) { return {}; }
   }
+
   function setState(state) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+  }
+
+  function getLegacyChatSurface() {
+    const container = document.getElementById('chat-messages');
+    const input = document.getElementById('chat-input');
+    const form = document.getElementById('chat-form');
+    return container && input && form ? { container, input, form } : null;
   }
 
   function ensureStylesheet() {
@@ -32,9 +42,7 @@
     el.textContent = message;
   }
 
-  function persistVisibleMessages() {
-    const container = document.getElementById('chat-messages');
-    if (!container) return;
+  function persistVisibleMessages(container) {
     const state = getState();
     state.messages = Array.from(container.querySelectorAll('.chat-bubble')).slice(-80).map((node) => ({
       sender: node.classList.contains('user') ? 'user' : 'assistant',
@@ -45,36 +53,38 @@
     setState(state);
   }
 
-  function restoreMessages() {
-    const container = document.getElementById('chat-messages');
-    if (!container || container.children.length) return;
+  function restoreMessages(container) {
+    if (container.children.length) return;
     const state = getState();
     if (!Array.isArray(state.messages)) return;
     state.messages.slice(-40).forEach((item) => {
+      if (!item || !['user', 'assistant'].includes(item.sender)) return;
       const bubble = document.createElement('div');
       bubble.className = `chat-bubble ${item.sender}`;
-      bubble.innerHTML = item.html;
+      // Stored content was produced by the legacy chat renderer. Do not turn
+      // arbitrary localStorage strings into executable DOM.
+      bubble.textContent = typeof item.html === 'string' ? item.html.replace(/<[^>]*>/g, '') : '';
       container.appendChild(bubble);
     });
     if (container.lastElementChild) container.scrollTop = container.scrollHeight;
   }
 
-  function wireChatPersistence() {
-    const container = document.getElementById('chat-messages');
-    if (!container || container.dataset.persistenceWired) return;
+  function wireChatPersistence(container) {
+    if (container.dataset.persistenceWired) return;
     container.dataset.persistenceWired = 'true';
-    restoreMessages();
+    restoreMessages(container);
+    let persistTimer = 0;
     const observer = new MutationObserver(() => {
-      window.clearTimeout(container.__persistTimer);
-      container.__persistTimer = window.setTimeout(persistVisibleMessages, 250);
+      window.clearTimeout(persistTimer);
+      persistTimer = window.setTimeout(() => persistVisibleMessages(container), 250);
     });
     observer.observe(container, { childList: true, subtree: true });
   }
 
-  function improveForm() {
-    const input = document.getElementById('chat-input');
-    const form = document.getElementById('chat-form');
-    if (!input || !form) return;
+  function improveForm(input, form) {
+    if (input.dataset.kurukooEnhanced && form.dataset.kurukooEnhanced) return;
+    input.dataset.kurukooEnhanced = 'true';
+    form.dataset.kurukooEnhanced = 'true';
     input.setAttribute('aria-label', 'Message Kurukoo');
     input.setAttribute('enterkeyhint', 'send');
     input.addEventListener('keydown', (event) => {
@@ -106,7 +116,7 @@
         delete state.updatedAt;
         setState(state);
         const container = document.getElementById('chat-messages');
-        if (container) container.innerHTML = '';
+        if (container) container.replaceChildren();
         announce('Local chat history cleared.');
       },
       saveTitle: function (title) {
@@ -118,16 +128,18 @@
   }
 
   function boot() {
+    const surface = getLegacyChatSurface();
+    if (!surface) return;
     ensureStylesheet();
     exposeUtilities();
-    wireChatPersistence();
-    improveForm();
+    wireChatPersistence(surface.container);
+    improveForm(surface.input, surface.form);
     addHistoryControls();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  // The script is intentionally bootstrapped once. Dynamic chat rendering is
+  // handled by the owning chat application; a document-wide observer here
+  // would repeatedly re-run initialization and can create duplicate work.
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
-
-  const observer = new MutationObserver(boot);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
