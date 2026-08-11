@@ -82,7 +82,7 @@
                 <!-- SSO Login Buttons -->
                 <div class="sso-section">
                     <div class="sso-buttons-stack">
-                        <button type="button" class="sso-btn sso-google" id="sso-google-btn" onclick="handleSSOLogin('Google')">
+                        <button type="button" class="sso-btn sso-google" id="sso-google-btn">
                             <svg class="sso-icon" width="18" height="18" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -92,14 +92,14 @@
                             <span>Continue with Google</span>
                         </button>
 
-                        <button type="button" class="sso-btn sso-telegram" id="sso-telegram-btn" onclick="handleSSOLogin('Telegram')">
+                        <button type="button" class="sso-btn sso-telegram" id="sso-telegram-btn">
                             <svg class="sso-icon" width="18" height="18" viewBox="0 0 24 24" fill="#0088cc">
                                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
                             </svg>
                             <span>Continue with Telegram</span>
                         </button>
 
-                        <button type="button" class="sso-btn sso-apple" id="sso-apple-btn" onclick="handleSSOLogin('Apple')">
+                        <button type="button" class="sso-btn sso-apple" id="sso-apple-btn">
                             <svg class="sso-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.93-2.85-.9.04-1.99.6-2.63 1.35-.57.65-1.06 1.71-.93 2.72 1.01.08 2.03-.51 2.63-1.22z"/>
                             </svg>
@@ -113,7 +113,7 @@
                 </div>
 
                 <!-- Standard Credentials Form -->
-                <form id="kurukoo-login-form" class="auth-form" onsubmit="handleAuthSubmit(event)">
+                <form id="kurukoo-login-form" class="auth-form">
                     <div class="form-group">
                         <label for="login-name" class="form-label">Full Name <span class="label-optional">(optional)</span></label>
                         <input type="text" id="login-name" class="form-input" placeholder="e.g. Chinedu Okafor" autocomplete="name">
@@ -234,6 +234,11 @@
             const radio = document.querySelector(`input[name="auth_goal"][value="${savedGoal}"]`);
             if (radio) radio.checked = true;
         }
+
+        document.getElementById('sso-google-btn')?.addEventListener('click', () => handleSSOLogin('Google'));
+        document.getElementById('sso-telegram-btn')?.addEventListener('click', () => handleSSOLogin('Telegram'));
+        document.getElementById('sso-apple-btn')?.addEventListener('click', () => handleSSOLogin('Apple'));
+        document.getElementById('kurukoo-login-form')?.addEventListener('submit', handleAuthSubmit);
 
         // Switch account button handler
         const switchBtn = document.getElementById('auth-switch-account-btn');

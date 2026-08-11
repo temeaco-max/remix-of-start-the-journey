@@ -10,9 +10,9 @@
                     Wake up. Get going. Nigeria's leading everyday utility platform. One conversation to request anything, offer any skill, grow business, gain employment and earn.
                 </p>
                 <div class="footer-social-list">
-                    <a href="javascript:void(0)" onclick="alert('Coming soon!'); return false;" class="footer-social-item">𝕏</a>
-                    <a href="javascript:void(0)" onclick="alert('Coming soon!'); return false;" class="footer-social-item">📸</a>
-                    <a href="javascript:void(0)" onclick="alert('Coming soon!'); return false;" class="footer-social-item">📘</a>
+                    <a href="#" data-coming-soon class="footer-social-item" aria-label="X social channel coming soon">𝕏</a>
+                    <a href="#" data-coming-soon class="footer-social-item" aria-label="Instagram social channel coming soon">📸</a>
+                    <a href="#" data-coming-soon class="footer-social-item" aria-label="Facebook social channel coming soon">📘</a>
                 </div>
             </div>
             
@@ -56,7 +56,14 @@
 </footer>
 
 <%- include('onboarding-modal') %>
-
+<script>
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-coming-soon]');
+    if (!link) return;
+    event.preventDefault();
+    window.alert('Coming soon!');
+  });
+</script>
 
 </body>
 </html>

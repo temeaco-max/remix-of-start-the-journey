@@ -17,7 +17,7 @@
             <!-- Search & Instant Intent Bar -->
             <div class="explore-search-container">
                 <input type="text" id="explore-search" class="explore-search-input" placeholder="Search service (e.g. plumbing, rider, solar, tailoring)...">
-                <button onclick="filterCategories()" class="explore-search-btn">
+                <button type="button" id="explore-search-btn" class="explore-search-btn">
                     Search
                 </button>
             </div>
@@ -97,6 +97,7 @@
             });
         }
         document.getElementById('explore-search').addEventListener('input', filterCategories);
+        document.getElementById('explore-search-btn').addEventListener('click', filterCategories);
     </script>
 </body>
 </html>
