@@ -160,7 +160,7 @@ router.post('/stream', async (req: AuthRequest, res) => {
                 fullReply = `${routing.reply}${orderMessage ? ` (${orderMessage})` : ''}`.trim();
                 for (const chunk of chunkText(fullReply)) { sse(res, { type: 'text', content: chunk }); await new Promise(r => setTimeout(r, 8)); }
             } else {
-                for await (const chunk of streamUnifiedAI(message, { phone })) {
+                for await (const chunk of streamUnifiedAI(message, { phone, threadId: activeConversation })) {
                     if (chunk.type === 'metadata') sse(res, chunk);
                     else if (chunk.type === 'thought') sse(res, chunk);
                     else if (chunk.type === 'text' && chunk.content) { fullReply += chunk.content; sse(res, chunk); }
