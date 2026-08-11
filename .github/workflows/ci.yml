@@ -25,6 +25,8 @@ jobs:
           from pathlib import Path
           p = Path('src/legacyApp.ts')
           s = p.read_text()
+          if 'export function registerLegacyRoutes(app: express.Application) {' not in s:
+              s = s.replace('function registerLegacyRoutes(app: express.Application) {', 'export function registerLegacyRoutes(app: express.Application) {', 1)
           marker = 'export function registerLegacyRoutes(app: express.Application) {'
           start = s.find(marker)
           if start < 0: raise SystemExit('legacy registration function not found')
@@ -37,6 +39,8 @@ jobs:
                   kept.append(line)
           body = ''.join(kept)
           body = ''.join(line[7:] if line.startswith('export ') else line for line in body.splitlines(True))
+          # Re-add the registration export after removing nested exports.
+          body = 'export function registerLegacyRoutes(app: express.Application) {' + body.split('{', 1)[1]
           p.write_text(prefix + ''.join(imports) + ('\n' if imports else '') + body)
           PY
           git config user.name 'github-actions[bot]'
