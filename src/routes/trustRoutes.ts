@@ -51,9 +51,6 @@ async function getEscrowParties(escrowId: number): Promise<{ buyer: string; prov
 router.post('/dispute/create', authenticateUser, async (req: AuthRequest, res) => {
   const phone = sessionPhone(req);
   if (!phone) return res.status(401).json({ error: 'Authentication required' });
-  if (req.body?.phone && String(req.body.phone) !== phone) {
-    return res.status(403).json({ error: 'Forbidden: phone must match session' });
-  }
   const order_id = req.body?.order_id || req.body?.orderId;
   const reason = req.body?.reason;
   if (!order_id || !reason) return res.status(400).json({ error: 'Missing order_id or reason' });
@@ -68,9 +65,6 @@ router.post('/dispute/create', authenticateUser, async (req: AuthRequest, res) =
 router.post('/disputes', authenticateUser, async (req: AuthRequest, res) => {
   const phone = sessionPhone(req);
   if (!phone) return res.status(401).json({ error: 'Authentication required' });
-  if (req.body?.phone && String(req.body.phone) !== phone) {
-    return res.status(403).json({ error: 'Forbidden: phone must match session' });
-  }
   const order_id = req.body?.order_id || req.body?.orderId;
   const reason = req.body?.reason;
   if (!order_id || !reason) return res.status(400).json({ error: 'Missing order_id or reason' });
@@ -85,9 +79,6 @@ router.post('/disputes', authenticateUser, async (req: AuthRequest, res) => {
 router.post('/scam_reports', authenticateUser, async (req: AuthRequest, res) => {
   const reporter = sessionPhone(req);
   if (!reporter) return res.status(401).json({ error: 'Authentication required' });
-  if (req.body?.reporter_phone && String(req.body.reporter_phone) !== reporter) {
-    return res.status(403).json({ error: 'Forbidden: reporter_phone must match session' });
-  }
   const reported_phone = req.body?.reported_phone;
   const description = req.body?.description;
   if (!reported_phone || !description) return res.status(400).json({ error: 'Missing reported_phone or description' });
@@ -152,9 +143,6 @@ router.post('/dispute/:id/escalate', authenticateUser, async (req: AuthRequest, 
 router.post('/escrow/create', authenticateUser, async (req: AuthRequest, res) => {
   const buyer = sessionPhone(req);
   if (!buyer) return res.status(401).json({ error: 'Authentication required' });
-  if (req.body?.buyer_phone && String(req.body.buyer_phone) !== buyer) {
-    return res.status(403).json({ error: 'Forbidden: buyer_phone must match session' });
-  }
   const provider_phone = req.body?.provider_phone;
   const amount_minor = req.body?.amount_minor;
   const description = req.body?.description || '';

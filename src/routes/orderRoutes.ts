@@ -1,12 +1,14 @@
 /**
- * Orders / delivery boundary — ChatGPT audit extraction.
- * List by JWT phone only; delivery-status requires auth.
- * No default demo phone; no client-trusted phone query.
+ * Order / delivery routes — JWT identity only.
+ * Mounted by wire-security-routes.mjs / index composition.
+ * Identity is always derived from the authenticated session; never from
+ * a client-supplied phone.
  */
 import { Router } from 'express';
 import { authenticateUser, AuthRequest } from '../middleware/auth.js';
 import { getDb } from '../database.js';
 import { updateDeliveryStatus } from '../services/deliveryService.js';
+import { finalizeOrder } from '../services/orderFinalizer.js';
 
 const router = Router();
 
@@ -14,13 +16,10 @@ function sessionPhone(req: AuthRequest): string | null {
   return req.user?.phone ? String(req.user.phone) : null;
 }
 
-/** Past orders for the authenticated user only */
-router.get('/orders', authenticateUser, async (req: AuthRequest, res) => {
+/** List the authenticated user's past orders */
+router.get('/api/orders', authenticateUser, async (req: AuthRequest, res) => {
   const phone = sessionPhone(req);
   if (!phone) return res.status(401).json({ error: 'Authentication required' });
-  if (req.query?.phone && String(req.query.phone) !== phone) {
-    return res.status(403).json({ error: 'Forbidden: phone must match session' });
-  }
   try {
     const db = await getDb();
     const stmt = db.prepare(`SELECT * FROM orders WHERE phone = ? ORDER BY created_at DESC`);
@@ -30,43 +29,84 @@ router.get('/orders', authenticateUser, async (req: AuthRequest, res) => {
     stmt.free();
     res.json(orders);
   } catch (err: any) {
-    console.error('[API Orders] Error retrieving orders:', err);
+    console.error('[OrderRoutes] Error retrieving orders:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-/**
- * Delivery status update — authenticated.
- * Buyer (order phone) only until provider JWT roles exist;
- * service layer validates transitions and order existence.
- */
-router.post('/orders/:id/delivery-status', authenticateUser, async (req: AuthRequest, res) => {
+/** Get a single order owned by the authenticated user */
+router.get('/api/orders/:id', authenticateUser, async (req: AuthRequest, res) => {
   const phone = sessionPhone(req);
   if (!phone) return res.status(401).json({ error: 'Authentication required' });
   const orderId = req.params.id;
-  const status = req.body?.status;
-  const message = req.body?.message;
-  if (!status) return res.status(400).json({ error: 'Status is required' });
   try {
     const db = await getDb();
-    const stmt = db.prepare(`SELECT phone FROM orders WHERE id = ?`);
-    stmt.bind([orderId]);
-    let orderPhone: string | null = null;
-    if (stmt.step()) {
-      const row = stmt.getAsObject() as any;
-      orderPhone = row?.phone ? String(row.phone) : null;
-    }
+    const stmt = db.prepare(`SELECT * FROM orders WHERE id = ? AND phone = ?`);
+    stmt.bind([orderId, phone]);
+    let order: any = null;
+    if (stmt.step()) order = stmt.getAsObject();
     stmt.free();
-    if (!orderPhone) return res.status(404).json({ error: `Order ${orderId} not found` });
-    if (orderPhone !== phone) {
-      return res.status(403).json({ error: 'Forbidden: not order owner' });
-    }
-    const result = await updateDeliveryStatus(String(orderId), String(status), message ? String(message) : undefined);
-    res.json(result);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    res.json(order);
   } catch (err: any) {
-    console.error('[API Orders] delivery-status error:', err);
-    res.status(500).json({ error: err?.message || 'Failed to update delivery status' });
+    console.error('[OrderRoutes] Error fetching order:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/** Create an order via the shared order finalizer (lead/order/booking) */
+router.post('/api/orders', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const { orderType, skill, details } = req.body || {};
+  if (!orderType || !skill) {
+    return res.status(400).json({ error: 'orderType and skill are required' });
+  }
+  try {
+    const result = await finalizeOrder(phone, orderType, { skill, ...(details || {}) });
+    res.status(201).json(result);
+  } catch (err: any) {
+    console.error('[OrderRoutes] Error creating order:', err);
+    res.status(500).json({ error: err.message || 'Failed to create order' });
+  }
+});
+
+/** Update delivery status — provider-driven, validated transition */
+router.post('/api/orders/:id/delivery-status', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const orderId = req.params.id;
+  const { status, message } = req.body || {};
+  if (!status) return res.status(400).json({ error: 'Status is required' });
+  try {
+    await updateDeliveryStatus(orderId, String(status), message ? String(message) : undefined);
+    res.json({ success: true, message: `Order ${orderId} updated to ${status}.` });
+  } catch (err: any) {
+    console.error('[OrderRoutes] Error updating delivery status:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+/** Delivery status lookup for the authenticated user's order */
+router.get('/api/delivery/status', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const orderId = typeof req.query.order_id === 'string' ? req.query.order_id : undefined;
+  if (!orderId) return res.status(400).json({ error: 'order_id is required' });
+  try {
+    const db = await getDb();
+    const stmt = db.prepare(`SELECT id, status, message, updated_at FROM orders WHERE id = ? AND phone = ?`);
+    stmt.bind([orderId, phone]);
+    let order: any = null;
+    if (stmt.step()) order = stmt.getAsObject();
+    stmt.free();
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    res.json({ status: order.status, message: order.message || null, updatedAt: order.updated_at });
+  } catch (err: any) {
+    console.error('[OrderRoutes] Error fetching delivery status:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 export default router;
+export { router as orderRoutes };

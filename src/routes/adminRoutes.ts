@@ -25,6 +25,7 @@ import {
   executeAgentTask,
 } from '../services/aiAgentService.js';
 import { getAllCommissions, updateCommission } from '../services/commissionService.js';
+import { getAllPricing, updatePlan, createPlan, deletePlan } from '../services/pricingService.js';
 import {
   getGitHubSyncStatus,
   listGitHubFiles,
@@ -823,6 +824,47 @@ router.post('/ai-agents/:id/execute', authenticateAdmin, async (req: AuthRequest
 
 // ── Commissions (pricing admin lives under pricingRoutes) ───────────────
 
+// ── Pricing ──────────────────────────────────────────────────────────────
+router.get('/pricing', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try {
+    const plans = await getAllPricing();
+    res.json(plans);
+  } catch (e) {
+    console.error('Error fetching admin pricing:', e);
+    res.status(500).json({ error: 'Failed to fetch admin pricing' });
+  }
+});
+router.put('/pricing/:country/:plan', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { country, plan } = req.params;
+    const success = await updatePlan(country, plan, req.body || {});
+    res.json({ success });
+  } catch (e) {
+    console.error('Error updating pricing plan:', e);
+    res.status(500).json({ error: 'Failed to update pricing plan' });
+  }
+});
+router.post('/pricing', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const success = await createPlan(req.body || {});
+    res.json({ success });
+  } catch (e) {
+    console.error('Error creating pricing plan:', e);
+    res.status(500).json({ error: 'Failed to create pricing plan' });
+  }
+});
+router.delete('/pricing/:country/:plan', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { country, plan } = req.params;
+    const success = await deletePlan(country, plan);
+    res.json({ success });
+  } catch (e) {
+    console.error('Error deleting pricing plan:', e);
+    res.status(500).json({ error: 'Failed to delete pricing plan' });
+  }
+});
+
+// ── Commissions ─────────────────────────────────────────────────────────
 router.get('/commissions', authenticateAdmin, async (_req: AuthRequest, res) => {
   try {
     const list = await getAllCommissions();
