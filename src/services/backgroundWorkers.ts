@@ -19,15 +19,10 @@ import {
 import { purgeExpiredData } from '../database.js';
 import { find_worker } from './find-worker.js';
 import { sendFcmPush } from './pushNotifications.js';
+import { getEconomicRequest, transitionEconomicRequest } from './skillFlows.js';
 
 let started = false;
 const timers: NodeJS.Timeout[] = [];
-
-function ms(envKey: string, fallbackMinutes: number): number {
-  const raw = process.env[envKey];
-  if (raw && Number.isFinite(Number(raw))) return Math.max(15_000, Number(raw) * 1000);
-  return fallbackMinutes * 60 * 1000;
-}
 
 async function safe(label: string, fn: () => Promise<unknown>): Promise<void> {
   try {
@@ -37,15 +32,52 @@ async function safe(label: string, fn: () => Promise<unknown>): Promise<void> {
   }
 }
 
+/** Advance linked economic_request to quoted so storefront resume shows the match. */
+async function quoteLinkedEconomicRequest(
+  economicRequestId: string | null | undefined,
+  provider: { phone: string; name: string; rating: number; hourly_rate: number }
+): Promise<boolean> {
+  if (!economicRequestId) return false;
+  const req = await getEconomicRequest(String(economicRequestId));
+  if (!req) return false;
+  if (!['requested', 'awaiting_match', 'partially_matched', 'matched', 'quoting'].includes(req.status)) {
+    return false;
+  }
+  const amountMinor = provider.hourly_rate > 0 ? Math.round(provider.hourly_rate) : 500;
+  try {
+    if (req.status === 'requested' || req.status === 'awaiting_match' || req.status === 'partially_matched') {
+      try {
+        await transitionEconomicRequest(req.id, 'matched', { providerPhone: provider.phone });
+      } catch { /* may already be matched */ }
+    }
+    try {
+      await transitionEconomicRequest(req.id, 'quoting');
+    } catch { /* */ }
+    await transitionEconomicRequest(req.id, 'quoted', {
+      providerPhone: provider.phone,
+      quote: {
+        amount_minor: amountMinor,
+        currency: 'NGN',
+        provider_name: provider.name,
+        rating: provider.rating,
+      },
+    });
+    return true;
+  } catch (e) {
+    console.warn('[Worker:deferred] quoteLinkedEconomicRequest failed:', e);
+    return false;
+  }
+}
+
 /**
  * Re-check deferred open intentions that are due (Blueprint §4.1.3).
- * On match: resolve intention, notify user via FCM, leave economic_request
- * progression to orchestration / storefront when the user returns.
+ * On match: resolve intention, quote linked economic_request, notify via FCM.
  */
-async function processDueDeferred(): Promise<{ checked: number; matched: number; notified: number }> {
+async function processDueDeferred(): Promise<{ checked: number; matched: number; notified: number; quoted: number }> {
   const due = await getDueIntentions(50);
   let matched = 0;
   let notified = 0;
+  let quoted = 0;
 
   for (const intention of due) {
     const phone = String(intention.phone || '');
@@ -65,6 +97,15 @@ async function processDueDeferred(): Promise<{ checked: number; matched: number;
       matched += 1;
       const top = match.providers[0];
       const note = `Matched ${top.name} (${Number(top.rating || 0).toFixed(1)}★) on deferred re-check`;
+
+      const linkedId = intention.economic_request_id
+        ? String(intention.economic_request_id)
+        : null;
+      if (linkedId) {
+        const ok = await quoteLinkedEconomicRequest(linkedId, top);
+        if (ok) quoted += 1;
+      }
+
       await resolveOpenIntention(
         phone,
         intention.id,
@@ -78,7 +119,7 @@ async function processDueDeferred(): Promise<{ checked: number; matched: number;
       const pushed = await sendFcmPush(
         phone,
         'Kurukoo found a match',
-        `A provider is available for “${skill}”. Open the app or WhatsApp to continue.`,
+        `A provider is available for “${skill}”. Open the app and say “continue” to review the quote.`,
         undefined
       ).catch(() => false);
       if (pushed) notified += 1;
@@ -87,7 +128,7 @@ async function processDueDeferred(): Promise<{ checked: number; matched: number;
     }
   }
 
-  return { checked: due.length, matched, notified };
+  return { checked: due.length, matched, notified, quoted };
 }
 
 export function startBackgroundWorkers(): void {
@@ -111,7 +152,6 @@ export function startBackgroundWorkers(): void {
     ? Math.max(300_000, Number(process.env.KURUKOO_PURGE_INTERVAL_SEC) * 1000)
     : 24 * 60 * 60 * 1000;
 
-  // Orchestration: match + quote + escrow release
   timers.push(
     setInterval(() => {
       void safe('orchestration', async () => {
@@ -125,7 +165,6 @@ export function startBackgroundWorkers(): void {
     }, orchMs)
   );
 
-  // Deferred intentions + expire pass
   timers.push(
     setInterval(() => {
       void safe('deferred', async () => {
@@ -133,14 +172,13 @@ export function startBackgroundWorkers(): void {
         await expireDeferredIntentions();
         if (r.checked || r.matched) {
           console.log(
-            `[Worker:deferred] checked=${r.checked} matched=${r.matched} notified=${r.notified}`
+            `[Worker:deferred] checked=${r.checked} matched=${r.matched} notified=${r.notified} quoted=${r.quoted}`
           );
         }
       });
     }, deferredMs)
   );
 
-  // Memory lifecycle
   timers.push(
     setInterval(() => {
       void safe('memory', async () => {
@@ -155,7 +193,6 @@ export function startBackgroundWorkers(): void {
     }, memoryMs)
   );
 
-  // Data retention purge
   timers.push(
     setInterval(() => {
       void safe('purge', async () => {
@@ -169,7 +206,6 @@ export function startBackgroundWorkers(): void {
 
   for (const t of timers) t.unref?.();
 
-  // Kick once shortly after boot (non-blocking)
   setTimeout(() => {
     void safe('orchestration:boot', () => runOrchestrationPass());
     void safe('memory:boot', async () => {
