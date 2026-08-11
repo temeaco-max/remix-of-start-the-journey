@@ -1,6 +1,8 @@
 /**
- * Payment-related mutations — points top-up and credits.
- * Identity from JWT; rate-limited; does not invent parallel wallet ledgers.
+ * Payment-related mutations — points and credits.
+ * Identity comes from the authenticated session. A client-supplied payment
+ * reference is never treated as proof of payment; production credits remain
+ * disabled until a verified PSP confirmation path exists.
  */
 import { Router } from 'express';
 import { authenticateUser, AuthRequest } from '../middleware/auth.js';
@@ -11,8 +13,9 @@ import { getProfile } from '../services/memoryProfile.js';
 const router = Router();
 
 router.get('/points/balance', authenticateUser, async (req: AuthRequest, res) => {
-  const phone = req.user?.phone || (req.query.phone as string);
-  if (!phone || (req.user?.phone && req.user.phone !== phone)) {
+  const phone = req.user?.phone ? String(req.user.phone) : null;
+  if (!phone) return res.status(401).json({ error: 'Authenticated phone is required' });
+  if (req.query.phone && String(req.query.phone) !== phone) {
     return res.status(403).json({ error: 'Forbidden: You can only view your own balance' });
   }
   try {
@@ -20,94 +23,76 @@ router.get('/points/balance', authenticateUser, async (req: AuthRequest, res) =>
     const profile = await getProfile(phone, 'points_query');
     res.json({
       success: true,
-      phone,
       points: balance,
       tier: profile?.subscription_tier || 'Base',
-      currency: '₦',
+      currency: 'NGN',
     });
   } catch (e: any) {
     res.status(500).json({ error: e.message || 'Failed to fetch points balance' });
   }
 });
 
-/**
- * Points top-up requires auth + payment_ref for non-sandbox.
- * In sandbox, still requires authenticated phone matching JWT.
- */
 router.post('/points/topup', authenticateUser, paymentRateLimit, async (req: AuthRequest, res) => {
-  const phone = req.user?.phone;
-  if (!phone) return res.status(401).json({ error: 'Authentication required' });
-
-  if (req.body?.phone && req.body.phone !== phone) {
+  const phone = req.user?.phone ? String(req.user.phone) : null;
+  if (!phone) return res.status(401).json({ error: 'Authenticated phone is required' });
+  if (req.body?.phone && String(req.body.phone) !== phone) {
     return res.status(403).json({ error: 'Forbidden: top-up must use authenticated identity' });
   }
 
-  const amount_points = req.body?.amount_points;
-  const payment_ref = req.body?.payment_ref;
-  if (!amount_points) {
-    return res.status(400).json({ error: 'amount_points is required' });
+  const points = Number(req.body?.amount_points);
+  if (!Number.isInteger(points) || points <= 0) {
+    return res.status(400).json({ error: 'amount_points must be a positive integer' });
   }
 
   const provider = process.env.KURUKOO_PAY_PROVIDER || 'sandbox';
-  if (provider !== 'sandbox' && (!payment_ref || String(payment_ref).length < 8)) {
-    return res.status(402).json({
-      error: 'payment_ref required from regulated PSP confirmation',
+  if (provider !== 'sandbox') {
+    // Do not convert an arbitrary client payment_ref into money/points.
+    // A PSP verification service must confirm ownership, amount, currency,
+    // status and idempotency before this endpoint can credit the ledger.
+    return res.status(503).json({
+      error: 'Verified payment provider integration is required before production top-ups are enabled',
       payment_required: true,
     });
   }
 
   try {
-    const points = parseInt(amount_points, 10);
-    if (isNaN(points) || points <= 0) {
-      return res.status(400).json({ error: 'Invalid points amount' });
-    }
-    await addPoints(phone, points, `Top-up ref: ${payment_ref || 'sandbox'}`);
+    await addPoints(phone, points, 'Sandbox top-up');
     const newBalance = await getPointsBalance(phone);
-    res.json({
-      success: true,
-      message: `Successfully credited ${points} Points!`,
-      balance: newBalance,
-    });
+    res.json({ success: true, message: `Credited ${points} sandbox Points.`, balance: newBalance });
   } catch (e: any) {
     res.status(500).json({ error: e.message || 'Failed to top up points' });
   }
 });
 
 router.post('/credits/topup', authenticateUser, paymentRateLimit, async (req: AuthRequest, res) => {
-  const phone = req.user?.phone;
-  if (!phone) return res.status(401).json({ error: 'Authentication required' });
-
-  if (req.body?.phone && req.body.phone !== phone) {
+  const phone = req.user?.phone ? String(req.user.phone) : null;
+  if (!phone) return res.status(401).json({ error: 'Authenticated phone is required' });
+  if (req.body?.phone && String(req.body.phone) !== phone) {
     return res.status(403).json({ error: 'Forbidden: credit top-up must use authenticated identity' });
   }
 
   const amount = Number(req.body?.amount);
-  if (!amount || amount <= 0) {
-    return res.status(400).json({ error: 'Valid amount is required' });
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'Valid positive amount is required' });
   }
 
-  const fcmToken = req.body?.fcmToken || req.headers['x-fcm-token'];
+  const provider = process.env.KURUKOO_PAY_PROVIDER || 'sandbox';
+  if (provider !== 'sandbox') {
+    return res.status(503).json({
+      success: false,
+      error: 'Verified payment provider integration is required before production credit top-ups are enabled',
+      payment_required: true,
+    });
+  }
+
   try {
     const profile = await getProfile(phone, 'credit_topup');
-    if (profile?.fcm_token) {
-      if (!fcmToken || fcmToken !== profile.fcm_token) {
-        return res.status(403).json({
-          success: false,
-          error: 'Device session token mismatch or missing. Please re-authenticate.',
-        });
-      }
+    const fcmToken = req.body?.fcmToken || req.headers['x-fcm-token'];
+    if (profile?.fcm_token && (!fcmToken || fcmToken !== profile.fcm_token)) {
+      return res.status(403).json({ success: false, error: 'Device session token mismatch or missing.' });
     }
 
-    const provider = process.env.KURUKOO_PAY_PROVIDER || 'sandbox';
-    if (provider !== 'sandbox' && (!req.body?.payment_ref || String(req.body.payment_ref).length < 8)) {
-      return res.status(402).json({
-        success: false,
-        error: 'payment_ref required from regulated PSP confirmation',
-        payment_required: true,
-      });
-    }
-
-    await addCredits(phone, amount, `Purchased ${amount} credit pack`);
+    await addCredits(phone, amount, 'Sandbox credit top-up');
     res.json({ success: true });
   } catch (e: any) {
     res.status(500).json({ success: false, error: e.message || 'Failed to top up credits' });
