@@ -1,6 +1,8 @@
 /**
- * Idempotent wiring: mount extracted security routers + neutralize legacy handlers.
- * Run: node scripts/wire-security-routes.mjs (also prebuild)
+ * Idempotent source wiring for extracted HTTP boundaries.
+ * This keeps the migration reversible while routes are incrementally removed
+ * from src/index.ts. It runs before TypeScript compilation and never mutates
+ * generated dist output.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,65 +10,66 @@ import path from 'node:path';
 const indexPath = path.join(process.cwd(), 'src', 'index.ts');
 let src = fs.readFileSync(indexPath, 'utf8');
 
-const securityImportBlock = `import trustRoutes from './routes/trustRoutes.js';
-import circleRoutes from './routes/circleRoutes.js';
-import orderRoutes from './routes/orderRoutes.js';
-import taskRoutes from './routes/taskRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-`;
+const imports = [
+  "import publicRoutes from './routes/publicRoutes.js';",
+  "import discoveryRoutes from './routes/discoveryRoutes.js';",
+  "import contentRoutes from './routes/contentRoutes.js';",
+  "import trustRoutes from './routes/trustRoutes.js';",
+  "import circleRoutes from './routes/circleRoutes.js';",
+  "import orderRoutes from './routes/orderRoutes.js';",
+  "import taskRoutes from './routes/taskRoutes.js';",
+  "import userRoutes from './routes/userRoutes.js';",
+];
 
-if (!src.includes("from './routes/trustRoutes.js'")) {
-  if (src.includes("from './routes/chatRouter.js'")) {
-    src = src.replace(
-      "import chatRouter from './routes/chatRouter.js';",
-      `import chatRouter from './routes/chatRouter.js';\n${securityImportBlock}`
-    );
-  } else {
-    src = securityImportBlock + src;
-  }
-} else {
-  for (const line of [
-    "import taskRoutes from './routes/taskRoutes.js';",
-    "import userRoutes from './routes/userRoutes.js';",
-    "import circleRoutes from './routes/circleRoutes.js';",
-    "import orderRoutes from './routes/orderRoutes.js';",
-  ]) {
-    if (!src.includes(line) && src.includes("from './routes/trustRoutes.js'")) {
-      src = src.replace(
-        "import trustRoutes from './routes/trustRoutes.js';",
-        `import trustRoutes from './routes/trustRoutes.js';\n${line}`
-      );
-    }
+const anchorImport = "import chatRouter from './routes/chatRouter.js';";
+for (const line of imports) {
+  if (!src.includes(line)) {
+    src = src.includes(anchorImport)
+      ? src.replace(anchorImport, `${anchorImport}\n${line}`)
+      : `${line}\n${src}`;
   }
 }
 
-if (!src.includes("app.use('/api', trustRoutes)")) {
-  if (src.includes("app.use('/api/chat', chatRouter)")) {
-    src = src.replace(
-      "app.use('/api/chat', chatRouter);",
-      `app.use('/api/chat', chatRouter);
-app.use('/api', trustRoutes);
-app.use('/api', circleRoutes);
-app.use('/api', orderRoutes);
-app.use('/api', taskRoutes);
-app.use('/api', userRoutes);`
-    );
-  }
-} else {
-  if (!src.includes("app.use('/api', taskRoutes)")) {
-    const anchor = src.includes("app.use('/api', orderRoutes)")
-      ? "app.use('/api', orderRoutes);"
-      : "app.use('/api', trustRoutes);";
-    src = src.replace(
-      anchor,
-      `${anchor}
-app.use('/api', taskRoutes);
-app.use('/api', userRoutes);`
-    );
+const mountAnchor = "app.use('/api/chat', chatRouter);";
+const mounts = [
+  "app.use(publicRoutes);",
+  "app.use(discoveryRoutes);",
+  "app.use(contentRoutes);",
+  "app.use('/api', trustRoutes);",
+  "app.use('/api', circleRoutes);",
+  "app.use('/api', orderRoutes);",
+  "app.use('/api', taskRoutes);",
+  "app.use('/api', userRoutes);",
+];
+
+for (const line of mounts) {
+  if (!src.includes(line) && src.includes(mountAnchor)) {
+    src = src.replace(mountAnchor, `${mountAnchor}\n${line}`);
   }
 }
 
+// Legacy handlers are retained only under explicit legacy paths during the
+// extraction window. The canonical extracted routers above own production paths.
 const renames = [
+  ["app.get('/web'", "app.get('/web-legacy'"],
+  ["app.get('/download'", "app.get('/download-legacy'"],
+  ["app.get('/about'", "app.get('/about-legacy'"],
+  ["app.get('/contact'", "app.get('/contact-legacy'"],
+  ["app.get('/help'", "app.get('/help-legacy'"],
+  ["app.get('/api-docs'", "app.get('/api-docs-legacy'"],
+  ["app.get('/legal/:section?'", "app.get('/legal-legacy/:section?'"],
+  ["app.get('/blog'", "app.get('/blog-legacy'"],
+  ["app.get('/careers'", "app.get('/careers-legacy'"],
+  ["app.get('/discover'", "app.get('/discover-legacy'"],
+  ["app.get('/login'", "app.get('/login-legacy'"],
+  ["app.get('/for-you'", "app.get('/for-you-legacy'"],
+  ["app.get('/resources/:slug'", "app.get('/resources-legacy/:slug'"],
+  ["app.get('/resources'", "app.get('/resources-legacy'"],
+  ["app.get('/partners'", "app.get('/partners-legacy'"],
+  ["app.get('/advertise'", "app.get('/advertise-legacy'"],
+  ["app.get('/api/discover/map'", "app.get('/api/discover/map-legacy'"],
+  ["app.get('/api/blog/:slug'", "app.get('/api/blog-legacy/:slug'"],
+  ["app.get('/api/blog'", "app.get('/api/blog-legacy'"],
   ["app.post('/api/referral/code'", "app.post('/api/referral/code-legacy'"],
   ["app.post('/api/referral/claim'", "app.post('/api/referral/claim-legacy'"],
   ["app.post('/api/referral/share-reward'", "app.post('/api/referral/share-reward-legacy'"],
@@ -91,7 +94,8 @@ for (const [from, to] of renames) {
   if (src.includes(from) && !src.includes(to)) src = src.replace(from, to);
 }
 
+// Remove historical demo identity if it remains in the source.
 src = src.split('+2348030000000').join('');
 
 fs.writeFileSync(indexPath, src);
-console.log('Wired trust/circle/order/task/user routers; neutralized legacy identity handlers.');
+console.log('Wired extracted public/discovery/content/trust/circle/order/task/user routers and neutralized migrated legacy paths.');
