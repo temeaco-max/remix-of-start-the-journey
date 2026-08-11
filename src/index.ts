@@ -1,7 +1,6 @@
 /**
  * Kurukoo composition root.
- * The legacy route/bootstrap implementation is preserved in legacyApp.ts
- * during the final extraction migration so no production behavior is lost.
- * Route boundaries can now be removed from legacyApp.ts independently.
+ * Legacy route/bootstrap implementation is preserved in legacyApp.ts during
+ * incremental extraction so production behavior is not lost.
  */
 import './legacyApp.js';
