@@ -1,4 +1,5 @@
 import express, { Router } from 'express';
+import fs from 'fs';
 import path from 'path';
 import {
     getSeoPage,
@@ -11,9 +12,9 @@ function getLocale(lang = 'en') {
     const fallbackPath = path.join(process.cwd(), 'locales', 'en.json');
 
     try {
-        const filePath = require('fs').existsSync(localePath) ? localePath : fallbackPath;
-        if (require('fs').existsSync(filePath)) {
-            return JSON.parse(require('fs').readFileSync(filePath, 'utf-8'));
+        const filePath = fs.existsSync(localePath) ? localePath : fallbackPath;
+        if (fs.existsSync(filePath)) {
+            return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
         }
     } catch {
         // Fall through to the minimal default locale.
@@ -48,34 +49,19 @@ export function createPublicRouter(): Router {
         });
     };
 
-    router.get('/web', async (req, res) => {
+    router.get('/web', async (_req, res) => {
         res.sendFile(path.join(process.cwd(), 'public', 'dashboard.html'));
     });
 
     router.get('/download', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'download', '/download');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'download', '/download'); } catch (error) { next(error); }
     });
-
     router.get('/about', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'about');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'about'); } catch (error) { next(error); }
     });
-
     router.get('/contact', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'contact');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'contact'); } catch (error) { next(error); }
     });
-
     router.get('/help', async (req, res, next) => {
         try {
             await renderPage(req, res, 'help', '/help', {
@@ -85,101 +71,40 @@ export function createPublicRouter(): Router {
                     { title: 'Payments', body: 'Manage your credits and withdraw earnings.' },
                 ],
             });
-        } catch (error) {
-            next(error);
-        }
+        } catch (error) { next(error); }
     });
-
     router.get('/api-docs', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'api_docs');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'api_docs'); } catch (error) { next(error); }
     });
-
     router.get('/legal/:section?', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'legal', '/legal', {
-                section: req.params.section || 'privacy',
-            });
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'legal', '/legal', { section: req.params.section || 'privacy' }); } catch (error) { next(error); }
     });
-
     router.get('/blog', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'blog');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'blog'); } catch (error) { next(error); }
     });
-
     router.get('/careers', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'careers');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'careers'); } catch (error) { next(error); }
     });
-
     router.get('/discover', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'discover');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'discover'); } catch (error) { next(error); }
     });
-
     router.get('/login', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'login');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'login'); } catch (error) { next(error); }
     });
-
     router.get('/for-you', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'for-you');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'for-you'); } catch (error) { next(error); }
     });
-
     router.get('/resources', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'resources/index');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'resources/index'); } catch (error) { next(error); }
     });
-
     router.get('/resources/:slug', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'resources/article', `/resources/${req.params.slug}`, {
-                slug: req.params.slug,
-            });
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'resources/article', `/resources/${req.params.slug}`, { slug: req.params.slug }); } catch (error) { next(error); }
     });
-
     router.get('/partners', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'partners');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'partners'); } catch (error) { next(error); }
     });
-
     router.get('/advertise', async (req, res, next) => {
-        try {
-            await renderPage(req, res, 'advertise');
-        } catch (error) {
-            next(error);
-        }
+        try { await renderPage(req, res, 'advertise'); } catch (error) { next(error); }
     });
 
     return router;
