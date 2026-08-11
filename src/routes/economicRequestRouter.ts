@@ -23,6 +23,8 @@ import {
   getWorkingContextInspector,
   ensureLivingMemorySchema,
 } from '../services/livingMemoryEngine.js';
+import { startStorefrontSession, advanceStorefront } from '../services/agenticStorefront.js';
+import { getAiQuotaStatus } from '../services/aiQuotaService.js';
 
 const router = Router();
 
@@ -131,6 +133,48 @@ router.get('/skills/:skill/flow', async (req: AuthRequest, res) => {
   });
 });
 
+/** Agentic storefront: start a guided multi-stage flow. */
+router.post('/storefront/start', async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  const skill = typeof req.body?.skill === 'string' ? req.body.skill.trim().toLowerCase() : 'find_worker';
+  const requirements = cleanRequirements(req.body?.requirements);
+  try {
+    const card = await startStorefrontSession(phone, skill, requirements);
+    res.status(201).json({ success: true, card });
+  } catch (error) {
+    console.error('[Storefront] start failed:', error);
+    res.status(500).json({ success: false, error: 'Unable to start storefront session' });
+  }
+});
+
+/** Agentic storefront: advance stages / confirm escrow / complete. */
+router.post('/storefront/:id/advance', async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  const requestId = String(req.params.id || '');
+  const action = typeof req.body?.action === 'string' ? req.body.action : undefined;
+  const patch = cleanRequirements(req.body?.requirements || req.body?.fields);
+  try {
+    const card = await advanceStorefront(phone, requestId, patch, action);
+    res.json({ success: true, card });
+  } catch (error) {
+    console.error('[Storefront] advance failed:', error);
+    res.status(500).json({ success: false, error: 'Unable to advance storefront' });
+  }
+});
+
+router.get('/ai-quota', async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const status = await getAiQuotaStatus(phone);
+    res.json({ success: true, quota: status });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Unable to load AI quota' });
+  }
+});
+
 router.post('/', async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   const skill = typeof req.body?.skill === 'string' ? req.body.skill.trim().toLowerCase() : '';
@@ -195,7 +239,6 @@ router.post('/:id/transition', async (req: AuthRequest, res) => {
   }
 });
 
-/** Lock escrow after user confirms quote (payment_pending / paid path). */
 router.post('/:id/escrow', async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
@@ -211,7 +254,6 @@ router.post('/:id/escrow', async (req: AuthRequest, res) => {
   res.status(result.success ? 200 : 409).json(result);
 });
 
-/** Mark request fulfilled/completed after delivery confirmation. */
 router.post('/:id/complete', async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
@@ -225,7 +267,6 @@ router.post('/:id/complete', async (req: AuthRequest, res) => {
   res.status(result.success ? 200 : 409).json(result);
 });
 
-/** Worker: match + quote open requests + release eligible escrow. */
 router.post('/orchestration/run', async (_req: AuthRequest, res) => {
   try {
     const result = await runOrchestrationPass();
@@ -236,7 +277,6 @@ router.post('/orchestration/run', async (_req: AuthRequest, res) => {
   }
 });
 
-/** Living Memory lifecycle jobs (cron-friendly). */
 router.post('/memory/lifecycle', async (req: AuthRequest, res) => {
   try {
     await ensureLivingMemorySchema();
@@ -252,7 +292,6 @@ router.post('/memory/lifecycle', async (req: AuthRequest, res) => {
   }
 });
 
-/** Inspect recent working-context audits for the authenticated user. */
 router.get('/memory/inspector', async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
