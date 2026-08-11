@@ -2101,6 +2101,14 @@ The platform uses a skills‑based matching engine, with select categories. USSD
 
 ## 45. Provider Operation Modes & Skill Dimensions
 
+### 45.0 Provider Entity Model and Fulfillment Boundary
+
+> **A Kurukoo provider is an entity capable of fulfilling an Economic Request; it may be human, business, software service, vehicle, robot, drone, or other authorized autonomous asset.**
+
+Provider identity is entity-type agnostic. A provider's declared skill rows remain its capability source of truth; availability is recorded through the existing profile and skill availability fields; service area uses the existing location and service-radius fields; and `operation_mode` records the current fulfillment mode. Provider type alone never grants authorization, verification, payment, escrow, dispute, delivery, or lifecycle privileges.
+
+The canonical path remains `Economic Request → provider discovery → provider capability match → quote → acceptance → fulfillment → completion → escrow/reward/dispute`. Human and business providers use the current fulfillment path. Autonomous assets are a supported provider concept, **not** a claim of integrated autonomous hardware control. Kurukoo does not currently control drones, vehicles, or robots; obtain autonomous telemetry; perform autonomous flight; or integrate with a live robotics or aviation provider. Any future execution adapter is an external integration boundary and must satisfy the same authorization, payment evidence, escrow, dispute, delivery, skill, and audit controls as every other provider.
+
 ### 45.1 Operation Modes
 
 Providers can set their operation mode during skill registration:

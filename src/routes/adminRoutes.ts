@@ -28,6 +28,7 @@ import { getAllCommissions, updateCommission } from '../services/commissionServi
 import { getAllPricing, updatePlan, createPlan, deletePlan } from '../services/pricingService.js';
 import { schedulePost } from '../services/socialScheduler.js';
 import { queryGroq } from '../services/groqService.js';
+import { isProviderEntityType } from '../services/providerEntity.js';
 
 const router = Router();
 
@@ -290,7 +291,7 @@ router.get('/users', authenticateAdmin, async (req: AuthRequest, res) => {
 
     const selectParams = [...params, limit, offset];
     const selectStmt = db.prepare(`
-            SELECT phone, name, location, country, subscription_tier, wallet_balance_minor, points_balance, verified_provider, is_available, is_contributor, fcm_token
+            SELECT phone, name, location, country, subscription_tier, wallet_balance_minor, points_balance, verified_provider, provider_type, is_available, is_contributor, fcm_token
             FROM memory_profiles
             ${whereClause}
             ORDER BY phone DESC
@@ -336,6 +337,12 @@ router.post('/users/bulk-update', authenticateAdmin, async (req: AuthRequest, re
     } else if (action === 'is_available') {
       query = `UPDATE memory_profiles SET is_available = ? WHERE phone IN (${placeholders})`;
       updateVal = parseInt(String(value), 10) ? 1 : 0;
+    } else if (action === 'provider_type') {
+      if (!isProviderEntityType(value)) {
+        return res.status(400).json({ error: 'Invalid provider type specified' });
+      }
+      query = `UPDATE memory_profiles SET provider_type = ? WHERE phone IN (${placeholders})`;
+      updateVal = value;
     } else if (action === 'add_points') {
       const pointsToAdd = parseInt(String(value), 10) || 0;
       query = `UPDATE memory_profiles SET points_balance = points_balance + ? WHERE phone IN (${placeholders})`;

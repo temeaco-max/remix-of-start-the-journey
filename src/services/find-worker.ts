@@ -1,4 +1,5 @@
 import { getDb } from '../database.js';
+import { normalizeProviderEntityType, type ProviderEntityType } from './providerEntity.js';
 
 export interface ProviderMatch {
     phone: string;
@@ -11,6 +12,7 @@ export interface ProviderMatch {
     operation_mode: string;
     service_radius_km: number;
     verified: boolean;
+    provider_type: ProviderEntityType;
     distance_km?: number;
 }
 
@@ -22,9 +24,10 @@ export interface FindWorkerResult {
 /**
  * Canonical provider discovery for Economic Requests.
  * A provider is only presented as verified when the provider's Memory Profile
- * explicitly carries verified_provider=1 or the category-specific skill has
- * verified_artist=1. A supplied location is a hard service-area constraint;
- * this module deliberately does not invent geocoded distance data.
+ * explicitly carries verified_provider=1. Existing human artist providers may
+ * also use the category-specific verified_artist=1 compatibility path. A supplied
+ * location is a hard service-area constraint; this module deliberately does not
+ * invent geocoded distance data, telemetry, availability, or quotes.
  */
 export async function find_worker(options: { skill: string; location?: string; max?: number }): Promise<FindWorkerResult> {
     const db = await getDb();
@@ -42,12 +45,18 @@ export async function find_worker(options: { skill: string; location?: string; m
         SELECT s.phone, s.skill, s.rating, s.jobs_completed, s.hourly_rate,
                s.operation_mode, s.service_radius_km,
                s.verified_artist,
-               p.name, p.location, p.verified_provider
+               p.name, p.location, p.verified_provider, p.provider_type
         FROM skills s
         LEFT JOIN memory_profiles p ON p.phone = s.phone
         WHERE lower(s.skill) = lower(?)
           AND s.is_available = 1
-          AND (COALESCE(p.verified_provider, 0) = 1 OR COALESCE(s.verified_artist, 0) = 1)
+          AND (
+            COALESCE(p.verified_provider, 0) = 1
+            OR (
+              COALESCE(p.provider_type, 'human') = 'human'
+              AND COALESCE(s.verified_artist, 0) = 1
+            )
+          )
           ${locationClause}
         ORDER BY s.rating DESC, s.jobs_completed DESC
         LIMIT ?
@@ -71,6 +80,7 @@ export async function find_worker(options: { skill: string; location?: string; m
             operation_mode: String(r.operation_mode ?? 'stationary'),
             service_radius_km: Number(r.service_radius_km ?? 0),
             verified: Boolean(Number(r.verified_provider ?? 0) || Number(r.verified_artist ?? 0)),
+            provider_type: normalizeProviderEntityType(r.provider_type),
         });
     }
     stmt.free();
