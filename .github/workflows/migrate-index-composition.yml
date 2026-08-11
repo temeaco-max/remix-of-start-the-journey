@@ -1,0 +1,128 @@
+name: One-time index composition migration
+
+on:
+  push:
+    paths:
+      - '.github/workflows/migrate-index-composition.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: ${{ !contains(github.event.head_commit.message, '[index-migration]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Transform index into composition root
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp src/index.ts src/legacyApp.ts
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('src/legacyApp.ts')
+          s = p.read_text()
+          marker = "const app = express();\napp.set('trust proxy', 1);\nconst PORT = Number(process.env.PORT) || 3000;"
+          if marker not in s:
+              raise SystemExit('legacy app marker not found')
+          s = s.replace(marker, "export function registerLegacyRoutes(app: express.Application) {\n    app.set('trust proxy', 1);", 1)
+          listen = "\napp.listen(PORT, '0.0.0.0', async () => {"
+          i = s.find(listen)
+          if i < 0:
+              raise SystemExit('legacy app.listen block not found')
+          s = s[:i] + "\n}\n"
+          s = s.replace("const { section } = req.params;", "const section = (req.params as Record<string, string | undefined>).section;", 1)
+          p.write_text(s)
+          PY
+
+          cat > src/startup/backgroundServices.ts <<'EOF'
+          import { purgeExpiredData } from '../services/dataRetention.js';
+          import { seedDemoAdCampaigns } from '../services/adManager.js';
+          import { startSessionManagerScheduler } from '../services/sessionManager.js';
+          import { startContactSyncService } from '../services/contactSyncService.js';
+          import { startDeliveryStatusService } from '../services/deliveryService.js';
+          import { runEscrowPass } from '../services/tradeEngine.js';
+
+          export async function startBackgroundServices(): Promise<void> {
+              try { startSessionManagerScheduler(); }
+              catch (error) { console.error('Failed to start keep-alive scheduler:', error); }
+
+              try { await seedDemoAdCampaigns(); }
+              catch (error) { console.error('Error seeding demo ad campaigns:', error); }
+
+              try { await startContactSyncService(); }
+              catch (error) { console.error('Failed to start contact sync service:', error); }
+
+              try { await startDeliveryStatusService(); }
+              catch (error) { console.error('Failed to start delivery status service:', error); }
+
+              purgeExpiredData().catch((error) => console.error('Error running initial data retention purge:', error));
+              setInterval(() => {
+                  purgeExpiredData().catch((error) => console.error('Error running daily data retention purge:', error));
+              }, 24 * 60 * 60 * 1000);
+
+              const logHeartbeat = () => {
+                  const mem = process.memoryUsage();
+                  console.log(`[Heartbeat] Server healthy. Memory usage: RSS ${(mem.rss / 1024 / 1024).toFixed(2)} MB, Heap ${(mem.heapUsed / 1024 / 1024).toFixed(2)}/${(mem.heapTotal / 1024 / 1024).toFixed(2)} MB.`);
+              };
+              logHeartbeat();
+              setInterval(logHeartbeat, 5 * 60 * 1000);
+
+              setTimeout(() => {
+                  runEscrowPass().catch((error) => console.error('Error running initial escrow pass:', error));
+              }, 30000);
+              setInterval(() => {
+                  runEscrowPass().catch((error) => console.error('Error running daily escrow pass:', error));
+              }, 24 * 60 * 60 * 1000);
+          }
+          EOF
+
+          cat > src/index.ts <<'EOF'
+          import dotenv from 'dotenv';
+          import express from 'express';
+          import { getDb } from './database.js';
+          import { registerLegacyRoutes } from './legacyApp.js';
+          import { startBackgroundServices } from './startup/backgroundServices.js';
+
+          dotenv.config();
+          if (!process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
+          if (!process.env.CREDIT_ECONOMY_ENABLED) process.env.CREDIT_ECONOMY_ENABLED = 'true';
+
+          const PORT = Number(process.env.PORT) || 3000;
+
+          export function createApp() {
+              const app = express();
+              app.set('trust proxy', 1);
+              registerLegacyRoutes(app);
+              return app;
+          }
+
+          const app = createApp();
+          app.listen(PORT, '0.0.0.0', async () => {
+              await getDb();
+              console.log(`Kurukoo server running on port ${PORT}`);
+              await startBackgroundServices();
+          });
+          EOF
+
+          node -e "const fs=require('fs'); const p='package.json'; const x=JSON.parse(fs.readFileSync(p)); delete x.scripts.prebuild; fs.writeFileSync(p, JSON.stringify(x,null,2)+'\\n')"
+          rm -f scripts/wire-security-routes.mjs
+
+      - name: Validate TypeScript before commit
+        run: |
+          npm install --no-audit --no-fund
+          npm run lint
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f .github/workflows/migrate-index-composition.yml
+          git add src/index.ts src/legacyApp.ts src/startup/backgroundServices.ts package.json scripts/wire-security-routes.mjs .github/workflows/migrate-index-composition.yml
+          git commit -m 'refactor: make index composition-only [index-migration]'
+          git push
