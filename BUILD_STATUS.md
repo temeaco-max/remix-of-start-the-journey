@@ -1,30 +1,51 @@
-# Kurukoo v5.41 — Build Status
+# Kurukoo v5.50 — Build Status
 
-**Status:** Production-aligned & Type-checked
-**Blueprint:** v5.41 (`BLUEPRINT.md`)
-**Date:** 2026-07-31
+**Status:** Core engines landed (Living Memory · Orchestration · Agentic Storefront · AI Quotas · Workers)
+**Blueprint:** v5.62 target (`BLUEPRINT.md`); codebase milestone **v5.50**
+**Date:** 2026-08-11
 
 ## Verification
-- `npm run lint` (`tsc --noEmit`): **PASS — 0 errors** (TypeScript strict, NodeNext ESM).
-- `npm install`: clean (145 packages; FastText CLI optional — template fallback automatic).
-- Entry point: `index.ts` → bootstraps `src/index.ts` (the Express app).
+- Entry point: `index.ts` → `src/index.ts` + `startBackgroundWorkers()`.
+- Identity remains single `memory_profiles` (Tight Integration Mandate).
 
-## v5.41 Highlights (verified in code)
-- **First-Class AI Agents (§21a):** `ai_agents` table + `src/services/aiAgentService.ts` (482 lines)
-  + full `/api/admin/ai-agents` REST CRUD/clone/execute + `public/admin/ai-agents.html` visual console.
-- **Points naming consistency (§7):** `src/services/pointsEngine.ts` (renamed from `creditEngine`),
-  `POINTS_COMPLIANCE.md` (renamed from `CREDIT_COMPLIANCE.md`). Points balance lives on `memory_profiles.points_balance`.
-- **Verified Artist Booking (§43):** `src/services/artistBookingService.ts` — verification request/approve/reject,
-  escrow `cooling_off → confirmed → completed` state machine with 24-hour cooling-off + cron transition helper.
-- **Unified skill-flow engine (§4):** ONE generic `find_worker` handler; `src/ussd/menus.ts` is the only USSD module.
-- **Privacy Bridge (§41):** `privacy_bridge` table + `src/services/privacyBridge.ts` — proxy-number allocation,
-  real-number masking, mapping release/rotation.
-- **Tight Integration Mandate:** zero legacy `providers`/`riders`/`agents` identity tables; single `memory_profiles`.
+## v5.50 Highlights (this series of commits)
 
-## Repository Hygiene (this pass)
-- Removed 10 orphaned root scratch/patch scripts (`patch_*.cjs/.js`, `check_db.*`, `fix_ai_agent.cjs`, `test_agents.ts`, `test_profile.js`).
-- Removed stale/fabricated test artifacts (`.kurukoo-agent-test-log.json`, `.kurukoo-blueprint-test-results.json`, `.kurukoo-blueprint-test-plan.md`).
-- Removed duplicate `scripts/copyAssets.mjs` (identical to `scripts/copy-public.mjs`).
-- Removed 4 empty (0-byte) unreferenced `public/audio/welcome_*.mp3` placeholders.
-- Rebranded stale "Xentrix"/"Credits" references across `.md`/`metadata.json` to Kurukoo/Points.
-- Rebuilt audit reports (`MASTER_AUDIT_RESULTS.md`, `FINAL_AUDIT_REPORT.md`, `BUILD_REPORT.md`, `CHANGES.md`, `BUILD_STATUS.md`, `KURUKOO_REFERENCE.md`, `README.md`) to reflect the actual v5.41 codebase.
+### Living Memory Engine (§4.3)
+- `src/services/livingMemoryEngine.ts` — tiers (stable / episodic / open_intention / recent_tail), keyword MMR, token budgets, `ai_audit_log`, decay/prune/crystallize.
+- Wired into `unifiedAiEngine` via `withMemoryContext` when `phone` is present.
+- Chat messages tagged with `memory_tier` / `thread_id`.
+
+### Transaction Orchestration (§33.1.3)
+- `src/services/tradeEngine.ts` — match → quote → escrow lock → complete → cooling-off release against `economic_requests` FSM in `skillFlows.ts`.
+- APIs: `POST .../orchestration/run`, `.../:id/escrow`, `.../:id/complete`.
+
+### Agentic Storefront (§55.6 / §55.4)
+- `src/services/agenticStorefront.ts` — multi-stage conversation cards.
+- Intent router starts real sessions for ride / food / worker / security.
+- Chat UI (`public/js/kurukoo-primary-chat.js`) renders fields, providers, quote, progress, action buttons → `storefront/:id/advance`.
+
+### Hard AI quotas
+- `src/services/aiQuotaService.ts` — per-user daily simple/complex/token budgets + global complex/min soft ceiling.
+- Enforced in `unifiedAiEngine` with template fallback when exceeded.
+
+### Background workers
+- `src/services/backgroundWorkers.ts` — orchestration, deferred expiry, memory lifecycle, data purge.
+- Disable with `KURUKOO_WORKERS=0`.
+
+### Prior (v5.41) still in place
+- Points economy (§7), Privacy Bridge, artist booking, AI agents admin, unified channels, SEO service.
+
+## Still open vs Blueprint v5.62
+- PSP-backed bill payments & regulated cross-border rails
+- Embedding-based MMR (keyword only at launch)
+- Redis / PostgreSQL at multi-instance scale
+- Full UK life-admin skill seeding completeness
+- IoT bridge beyond MQTT stub
+
+## Env knobs
+| Variable | Purpose |
+|----------|---------|
+| `KURUKOO_WORKERS` | `0` disables background workers |
+| `KURUKOO_ORCHESTRATION_INTERVAL_SEC` | Orchestration cadence |
+| `AI_QUOTA_SIMPLE_PER_DAY` / `COMPLEX` / `TOKENS_PER_DAY` | AI budgets |
+| `AI_QUOTA_HARD_BLOCK` | `false` soft-fails to template |
