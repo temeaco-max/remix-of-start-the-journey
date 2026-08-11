@@ -9,14 +9,14 @@ if (!production) defaults.KURUKOO_PAY_PROVIDER = 'sandbox';
 for (const [key, value] of Object.entries(defaults)) if (!process.env[key]) process.env[key] = value;
 
 const secretKeys = [
-  'JWT_SECRET', 'GITHUB_TOKEN', 'GEMINI_API_KEY', 'HUGGINGFACE_API_KEY', 'GROQ_API_KEY',
+  'JWT_SECRET', 'GEMINI_API_KEY', 'HUGGINGFACE_API_KEY', 'GROQ_API_KEY',
   'WHATSAPP_TOKEN', 'TELEGRAM_BOT_TOKEN', 'STRIPE_SECRET_KEY', 'MOMO_API_KEY', 'PAGA_API_KEY', 'AFRICASTALKING_API_KEY'
 ];
 
 // Never print secret values. Production fails closed for security-critical secrets.
 for (const key of secretKeys) {
   if (!process.env[key]) {
-    if (production && ['JWT_SECRET', 'GITHUB_TOKEN'].includes(key)) throw new Error(`[Kurukoo Startup] Missing required production secret: ${key}`);
+    if (production && key === 'JWT_SECRET') throw new Error(`[Kurukoo Startup] Missing required production secret: ${key}`);
     console.warn(`[Kurukoo Startup] Secret not configured: ${key}`);
   }
 }
