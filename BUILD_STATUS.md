@@ -1,28 +1,29 @@
-# Kurukoo v5.52 — Build Status
+# Kurukoo v5.52.1 — Build Status
 
-**Status:** Deferred → storefront re-bind closed; core engines + quotas + workers stable
-**Blueprint:** v5.62 target (`BLUEPRINT.md`); codebase milestone **v5.52**
+**Status:** Security audit continuation applied (OTP auth routes, WhatsApp HMAC, rate limits, WebRTC auth routes)
+**Blueprint:** v5.62 target (`BLUEPRINT.md`); codebase milestone **v5.52.1**
 **Date:** 2026-08-11
 
 ## Verification
 - Entry point: `index.ts` → `src/index.ts` + `startBackgroundWorkers()`.
 - Identity remains single `memory_profiles` (Tight Integration Mandate).
+- Run `npm run wire:security` (also on `prebuild`) to mount new routers into `src/index.ts`.
 
-## v5.52 Highlights
+## v5.52.1 Security continuation (ChatGPT audit plan)
 
-### Deferred → economic_request re-bind (§4.1.3 / §55.6)
-- `open_intentions.economic_request_id` links deferred rows to storefront sessions.
-- On deferred match, worker **quotes** the linked `economic_request` (matched → quoted) so resume is not empty.
-- `tryResumeStorefront` / `resumeStorefrontFromRequest` rebuild quote_review / fulfillment / deferred cards without creating a new request.
-- Intent router:
-  - Explicit resume phrases (“continue”, “found a match”, …)
-  - Soft resume on short messages when an open matched request exists
-  - `startStorefrontSession` prefers resume for the same skill over duplicate rows
-- FCM copy nudges: “say continue to review the quote”.
+See `SECURITY_AUDIT_STATUS.md` for full matrix.
 
-### Prior (v5.51 / v5.50)
-- Deferred closed-loop match + FCM notify
-- Living Memory Engine, Transaction Orchestration, Agentic Storefront UI, AI quotas, workers
+### Shipped in this pass
+- OTP auth service + `/api/auth/request-otp` + `/verify-otp` (JWT only after OTP)
+- Hardened `/api/auth/login` (no bare-phone JWT unless `OTP_LEGACY_LOGIN=true`)
+- WhatsApp `X-Hub-Signature-256` verification when `WHATSAPP_APP_SECRET` is set
+- Shared rate limiters (auth / AI / webhook / payment)
+- Authenticated WebRTC signalling router (`/api/webrtc/*`)
+- Gitleaks CI already present; `.env.example` remains placeholder-only
+
+### Prior (v5.52)
+- Deferred → economic_request re-bind
+- Living Memory Engine, Transaction Orchestration, Agentic Storefront, AI quotas, workers
 
 ## Still open vs Blueprint v5.62
 - PSP-backed bill payments & regulated cross-border rails
@@ -30,13 +31,15 @@
 - Redis / PostgreSQL at multi-instance scale
 - Full UK life-admin skill seeding completeness
 - IoT bridge beyond MQTT stub
-- Universal vendor ordering depth (§55.4 catalog / multi-vendor)
+- Universal vendor ordering depth (§55.4)
+- Finish splitting monolithic `src/index.ts`
 
 ## Env knobs
 | Variable | Purpose |
 |----------|---------|
+| `JWT_SECRET` | Required ≥32 chars |
+| `WHATSAPP_APP_SECRET` | Meta webhook HMAC |
+| `OTP_LEGACY_LOGIN` | Dev-only bare-phone login |
+| `OTP_DEBUG` | Expose OTP in non-prod responses |
 | `KURUKOO_WORKERS` | `0` disables background workers |
-| `KURUKOO_ORCHESTRATION_INTERVAL_SEC` | Orchestration cadence |
-| `KURUKOO_DEFERRED_INTERVAL_SEC` | Deferred re-check cadence (default 2h) |
-| `AI_QUOTA_SIMPLE_PER_DAY` / `COMPLEX` / `TOKENS_PER_DAY` | AI budgets |
-| `AI_QUOTA_HARD_BLOCK` | `false` soft-fails to template |
+| `AI_QUOTA_*` | AI budgets |

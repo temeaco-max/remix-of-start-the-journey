@@ -1,10 +1,11 @@
 {
   "name": "kurukoo-platform",
   "private": true,
-  "version": "5.50.0",
+  "version": "5.52.1",
   "type": "module",
   "scripts": {
     "dev": "tsx index.ts",
+    "prebuild": "node scripts/wire-security-routes.mjs",
     "build": "tsc && npm run copy:public && npm run optimize:css",
     "copy:public": "node scripts/copy-public.mjs",
     "optimize:css": "node scripts/optimize-css.mjs",
@@ -27,6 +28,7 @@
     "test:ai": "tsx scripts/test-ai-pipeline.ts",
     "fasttext:build": "node scripts/build-fasttext.mjs",
     "fasttext:test": "tsx scripts/test-fasttext.ts",
+    "wire:security": "node scripts/wire-security-routes.mjs",
     "postinstall": "fasttext --help >/dev/null 2>&1 && echo 'FastText is available' || echo 'FastText CLI not found. Install with: brew install fasttext (macOS) or apt-get install fasttext (Linux). Using template fallback until model is available.'"
   },
   "dependencies": {
