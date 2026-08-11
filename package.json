@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "tsx index.ts",
-    "prebuild": "node scripts/wire-security-routes.mjs",
     "build": "tsc && npm run copy:public && npm run optimize:css",
     "copy:public": "node scripts/copy-public.mjs",
     "optimize:css": "node scripts/optimize-css.mjs",
