@@ -1,6 +1,7 @@
 /** Kurukoo composition root. */
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
-import { registerLegacyRoutes } from './legacyApp.js';
 import channelRoutes from './routes/channelRoutes.js';
 import circleRoutes from './routes/circleRoutes.js';
 import economicRequestRouter from './routes/economicRequestRouter.js';
@@ -18,8 +19,11 @@ import pricingRoutes from './routes/pricingRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
 
-// Production must never inherit a sandbox payment default from a legacy module.
+// Development/test defaults only. Production must not silently select sandbox.
+if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
+if (!process.env.CREDIT_ECONOMY_ENABLED) process.env.CREDIT_ECONOMY_ENABLED = 'true';
 if (process.env.NODE_ENV === 'production' && process.env.KURUKOO_PAY_PROVIDER === 'sandbox') delete process.env.KURUKOO_PAY_PROVIDER;
+console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT || 3000}, Pay Provider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}`);
 
 const app = express();
 app.use(express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb', verify: (req, _res, buf) => { (req as any).rawBody = Buffer.from(buf); } }));
@@ -33,11 +37,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRouter);
 app.use('/api', orderRoutes);
 
-// Health check must remain in the composition root.
-app.get('/health', (req, res) => {
-    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
 app.use('/', healthRoutes);
 app.use('/', presenceRoutes);
 app.use('/', discoveryRoutes);
@@ -46,13 +45,7 @@ app.use('/', publicRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api', subscriptionRoutes);
 
-// Remaining legacy/public routes are still registered incrementally. Existing
-// boundaries above intentionally stay mounted first so duplicate legacy
-// handlers cannot become the primary implementation. Routes not covered by an
-// existing canonical module remain owned by legacyApp until parity is proven.
-registerLegacyRoutes(app);
-
-const port = 3000;
+const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 
 export { app };
