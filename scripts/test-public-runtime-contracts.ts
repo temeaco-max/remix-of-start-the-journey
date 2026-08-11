@@ -41,6 +41,16 @@ try {
     assert.equal(response.status, 200, `${pathName} must be served by the canonical public asset boundary`);
   }
 
+  const adminLogin = await request(base, '/admin/login');
+  assert.equal(adminLogin.status, 200, 'extensionless admin login entry must resolve to the deployed admin login asset');
+  assert.match(await adminLogin.text(), /id="login-form"/, 'extensionless admin login entry must serve the canonical admin login form');
+
+  const login = await request(base, '/login');
+  assert.equal(login.status, 200, 'login entry must render');
+  const loginHtml = await login.text();
+  assert.doesNotMatch(loginHtml, /automated escrow|instant verified payouts|NDPA 2023 .*Compliant|AES-256 encrypted/i, 'login copy must not make unsupported payment or compliance claims');
+  assert.match(loginHtml, /verified payment is available/, 'login copy must describe payment and escrow conditionally');
+
   for (const pathName of ['/chat', '/chat/']) {
     const chat = await request(base, pathName);
     assert.equal(chat.status, 200, `${pathName} must resolve for the homepage, PWA embed, manifest shortcut, and service-worker shell`);
