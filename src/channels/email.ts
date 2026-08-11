@@ -9,8 +9,8 @@ function emailAddress(value: unknown): string {
     return (match?.[1] || raw).trim();
 }
 
-function eventId(body: any): string {
-    return String(body?.data?.email_id || body?.email_id || body?.id || body?.data?.message_id || body?.message_id || crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex'));
+function eventId(body: any, headers: Record<string, any>): string {
+    return String(headers['svix-id'] || headers['Svix-Id'] || body?.data?.email_id || body?.email_id || body?.id || body?.data?.message_id || body?.message_id || crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex'));
 }
 
 function messageId(body: any): string | undefined {
@@ -50,13 +50,30 @@ function verifyWebhook(rawBody: string, headers: Record<string, any>): boolean {
     return timingSafeEqualHexOrBase64(expected, provided);
 }
 
+async function retrieveReceivedEmail(emailId: string): Promise<any | null> {
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    if (!apiKey || !emailId) return null;
+    const response = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
+    });
+    if (!response.ok) throw new Error(`Unable to retrieve received email (${response.status})`);
+    return await response.json();
+}
+
+function headerValue(headers: any, name: string): string | undefined {
+    if (!headers || typeof headers !== 'object') return undefined;
+    const key = Object.keys(headers).find(k => k.toLowerCase() === name.toLowerCase());
+    const value = key ? headers[key] : undefined;
+    return Array.isArray(value) ? value.join(' ') : (value ? String(value) : undefined);
+}
+
 export async function handleEmailWebhook(body: any, headers: Record<string, any>, rawBody?: string) {
     const raw = rawBody || JSON.stringify(body);
     if (!verifyWebhook(raw, headers)) throw new Error('Invalid email webhook signature');
 
     const eventType = String(body?.type || 'email.received').toLowerCase();
     const data = body?.data || body;
-    const id = eventId(body);
+    const id = eventId(body, headers);
     const db = await getDb();
     db.run(`CREATE TABLE IF NOT EXISTS email_events (event_id TEXT PRIMARY KEY, event_type TEXT NOT NULL, message_id TEXT, sender TEXT, received_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
     db.run(`CREATE TABLE IF NOT EXISTS email_delivery_events (event_id TEXT PRIMARY KEY, phone TEXT, provider TEXT, provider_id TEXT, status TEXT NOT NULL, error TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
@@ -70,7 +87,6 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
     const incomingMessageId = messageId(body);
     db.run(`INSERT INTO email_events (event_id, event_type, message_id, sender) VALUES (?, ?, ?, ?)`, [id, eventType, incomingMessageId || null, from || null]);
 
-    // Provider lifecycle events are part of delivery state, not chat messages.
     if (['email.delivered', 'email.delivery_delayed', 'email.bounced', 'email.complained', 'email.failed'].includes(eventType)) {
         const providerStatus = eventType.replace('email.', '');
         const providerId = String(data?.email_id || data?.id || incomingMessageId || id);
@@ -84,9 +100,25 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
         return { status: 'ignored', reason: `unsupported_event:${eventType}` };
     }
 
-    const subject = String(data?.subject || body?.subject || '').trim();
-    const text = String(data?.text || data?.plain_text || body?.text || body?.body || '').trim();
-    if (!from || !text) throw new Error('Email sender and body are required');
+    const emailId = String(data?.email_id || data?.id || '');
+    let received = data;
+    if (emailId && (!data?.text && !data?.html)) {
+        received = await retrieveReceivedEmail(emailId) || data;
+    }
+
+    const subject = String(received?.subject || data?.subject || '').trim();
+    const text = String(received?.text || received?.plain_text || data?.text || data?.plain_text || '').trim();
+    const html = String(received?.html || data?.html || '').trim();
+    if (!from || (!text && !html)) throw new Error('Email sender and body are required');
+
+    const headersFromProvider = received?.headers || data?.headers || {};
+    const referencesHeader = headerValue(headersFromProvider, 'references');
+    const inReplyToHeader = headerValue(headersFromProvider, 'in-reply-to');
+    const threadReferences = [
+        ...(referencesHeader ? referencesHeader.split(/\s+/) : []),
+        ...(inReplyToHeader ? [inReplyToHeader] : []),
+        ...(incomingMessageId ? [incomingMessageId] : [])
+    ].filter(Boolean);
 
     const lookup = db.prepare(`SELECT phone FROM memory_profiles WHERE lower(email) = lower(?) LIMIT 1`);
     lookup.bind([from]);
@@ -98,14 +130,18 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
         return { status: 'ignored', reason: 'unlinked_email_identity' };
     }
 
-    const inbound = subject ? `Subject: ${subject}\n\n${text}` : text;
-    db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'user', ?, 'email')`, [phone, inbound]);
+    const attachmentMeta = Array.isArray(received?.attachments || data?.attachments)
+        ? (received?.attachments || data?.attachments).map((a: any) => ({ id: a.id, filename: a.filename, content_type: a.content_type, size: a.size }))
+        : [];
+    const bodyText = text || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const inbound = subject ? `Subject: ${subject}\n\n${bodyText}` : bodyText;
+    db.run(`INSERT INTO messages (phone, sender, content, channel, card_data) VALUES (?, 'user', ?, 'email', ?)`, [phone, inbound, attachmentMeta.length ? JSON.stringify({ type: 'email_attachments', attachments: attachmentMeta }) : null]);
 
-    const routing = await routeIntent(text, phone);
+    const routing = await routeIntent(bodyText, phone);
     const reply = routing.reply || 'I received your message and will continue here in Kurukoo.';
     const delivery = await sendEmail(from, /^re:/i.test(subject) ? subject : `Re: ${subject || 'Kurukoo'}`, reply, {
         inReplyTo: incomingMessageId,
-        references: [incomingMessageId].filter(Boolean) as string[],
+        references: threadReferences,
         tags: { channel: 'email', conversation: 'kurukoo' }
     });
 
@@ -117,6 +153,7 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
         status: delivery.ok ? 'success' : 'accepted_for_retry',
         response: reply,
         delivery,
-        conversation: { phone, channel: 'email' }
+        conversation: { phone, channel: 'email' },
+        attachments: attachmentMeta
     };
 }
