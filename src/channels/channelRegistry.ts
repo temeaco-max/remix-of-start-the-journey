@@ -18,9 +18,9 @@ export interface ChannelHandlerResult {
  * memory, intent and economic actions remain in the shared platform layer.
  */
 export const channelRegistry = {
-    whatsapp: async (body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> => {
-        const signature = headers['x-hub-signature-256'] || '';
-        return await handleWhatsAppWebhook(body, signature);
+    whatsapp: async (body: any, headers: Record<string, any>, rawBody?: string | Buffer): Promise<ChannelHandlerResult> => {
+        const signature = headers['x-hub-signature-256'] || headers['X-Hub-Signature-256'] || '';
+        return await handleWhatsAppWebhook(body, String(signature), rawBody);
     },
     telegram: async (body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> => {
         const secretToken = headers['x-telegram-bot-api-secret-token'] || '';
@@ -45,7 +45,15 @@ export const channelRegistry = {
 
 export type ChannelName = keyof typeof channelRegistry;
 
-export async function dispatchWebhook(channel: ChannelName, body: any, headers: Record<string, any>): Promise<ChannelHandlerResult> {
+export async function dispatchWebhook(
+    channel: ChannelName,
+    body: any,
+    headers: Record<string, any>,
+    rawBody?: string | Buffer
+): Promise<ChannelHandlerResult> {
     const handler = channelRegistry[channel];
+    if (channel === 'whatsapp') {
+        return await (handler as typeof channelRegistry.whatsapp)(body, headers, rawBody);
+    }
     return await handler(body, headers);
 }

@@ -1,7 +1,27 @@
+import crypto from 'crypto';
 import { getDb, saveDb } from '../database.js';
 import { routeIntent } from '../services/intentRouter.js';
 import { appendChatMessage } from '../services/chatConversationService.js';
 import { updateSessionInteraction } from '../services/sessionManager.js';
+
+/** Verify Meta X-Hub-Signature-256 (security audit #8). */
+export function verifyWhatsAppSignature(rawBody: string | Buffer, signatureHeader: string): boolean {
+    const appSecret = process.env.WHATSAPP_APP_SECRET;
+    if (!appSecret) {
+        // Fail closed in production; allow local dev without secret
+        if (process.env.NODE_ENV === 'production') return false;
+        console.warn('[WhatsApp] WHATSAPP_APP_SECRET not set — signature check skipped (non-production)');
+        return true;
+    }
+    if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false;
+    const expected = signatureHeader.slice('sha256='.length);
+    const digest = crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
+    try {
+        return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(digest, 'hex'));
+    } catch {
+        return false;
+    }
+}
 
 async function sendWhatsAppTypingIndicator(phone: string, status: 'typing' | 'stopped', phoneNumberId?: string): Promise<void> {
     try {
@@ -33,8 +53,17 @@ async function sendWhatsAppMessage(phone: string, text: string, phoneNumberId?: 
     } catch (err) { console.warn('[WhatsApp API] Failed to send message:', err); return null; }
 }
 
-export async function handleWhatsAppWebhook(body: any, signature: string): Promise<{ status: string; [key: string]: any }> {
+export async function handleWhatsAppWebhook(body: any, signature: string, rawBody?: string | Buffer): Promise<{ status: string; [key: string]: any }> {
     try {
+        if (rawBody !== undefined) {
+            const ok = verifyWhatsAppSignature(typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8'), signature || '');
+            if (!ok) return { status: 'error', error: 'invalid_signature' };
+        } else if (process.env.NODE_ENV === 'production' && process.env.WHATSAPP_APP_SECRET) {
+            // Without raw body we cannot verify — reject in production when secret is configured
+            const ok = verifyWhatsAppSignature(JSON.stringify(body || {}), signature || '');
+            if (!ok) return { status: 'error', error: 'invalid_signature' };
+        }
+
         const entry = body?.entry?.[0];
         const change = entry?.changes?.[0];
         const value = change?.value;
@@ -57,6 +86,7 @@ export async function handleWhatsAppWebhook(body: any, signature: string): Promi
         const messages = value?.messages;
         if (!Array.isArray(messages) || !messages.length) {
             if (body?.phone && (body?.status || body?.whatsapp_msg_id)) {
+                if (process.env.NODE_ENV === 'production') return { status: 'ignored' };
                 const db = await getDb();
                 const targetPhone = String(body.phone).trim();
                 if (!targetPhone) return { status: 'ignored' };
