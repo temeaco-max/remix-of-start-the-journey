@@ -3,7 +3,7 @@
  *
  * The legacy route implementation remains isolated in legacyApp.ts while the
  * composition root owns the actual Express application, webhook ordering,
- * canonical economic boundaries, and server lifecycle.
+ * canonical route boundaries, and server lifecycle.
  */
 import express from 'express';
 import { registerLegacyRoutes } from './legacyApp.js';
@@ -11,6 +11,8 @@ import channelRoutes from './routes/channelRoutes.js';
 import circleRoutes from './routes/circleRoutes.js';
 import economicRequestRouter from './routes/economicRequestRouter.js';
 import adminRoutes from './routes/adminRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 const app = express();
 
@@ -24,8 +26,8 @@ app.use(express.json({
     }
 }));
 
-// Canonical channel boundary. It owns the provider webhook adapters and USSD
-// entry point rather than allowing legacyApp.ts to maintain duplicates.
+// Canonical channel boundary. It owns provider webhook adapters and USSD entry
+// points instead of maintaining parallel implementations in legacyApp.ts.
 app.use('/api', channelRoutes);
 
 // Canonical authenticated Money Circle boundary.
@@ -35,9 +37,16 @@ app.use('/api', circleRoutes);
 // agentic storefront/trade engine.
 app.use('/api/economic-requests', economicRequestRouter);
 
-// Canonical admin boundary. It already owns authentication and platform/admin
-// services; mounting it here makes it the production path before legacyApp.
+// Canonical authenticated platform/admin boundary.
 app.use('/api/admin', adminRoutes);
+
+// Canonical payment/points boundary. It intentionally keeps production
+// top-ups disabled until a verified PSP confirmation path exists.
+app.use('/api', paymentRoutes);
+
+// Canonical user/profile/privacy/referral/rating boundary. Identity is derived
+// from the authenticated session rather than client-supplied ownership fields.
+app.use('/api', userRoutes);
 
 // Remaining legacy/public routes are still registered incrementally. Existing
 // boundaries above intentionally stay mounted first so duplicate legacy
