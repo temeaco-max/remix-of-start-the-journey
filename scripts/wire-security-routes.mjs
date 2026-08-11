@@ -26,6 +26,7 @@ import createContentRouter from './routes/contentRoutes.js';
 import createPublicRouter from './routes/publicRoutes.js';
 import channelRoutes from './routes/channelRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import { aiRateLimit, webhookRateLimit, paymentRateLimit } from './middleware/rateLimit.js';
 import { authenticateUser } from './middleware/auth.js';
 `;
@@ -58,6 +59,7 @@ if (!src.includes("from './routes/authRoutes.js'")) {
   ensureImport("from './routes/economicRequestRouter.js'", "import economicRequestRouter from './routes/economicRequestRouter.js';");
   ensureImport("from './routes/discoveryRoutes.js'", "import createDiscoveryRouter from './routes/discoveryRoutes.js';\nimport createPresenceRouter from './routes/presenceRoutes.js';\nimport createContentRouter from './routes/contentRoutes.js';\nimport createPublicRouter from './routes/publicRoutes.js';");
   ensureImport("from './routes/channelRoutes.js'", "import channelRoutes from './routes/channelRoutes.js';\nimport systemRoutes from './routes/systemRoutes.js';");
+  ensureImport("from './routes/adminRoutes.js'", "import adminRoutes from './routes/adminRoutes.js';");
   if (!src.includes("from './middleware/rateLimit.js'")) {
     src = src.replace(
       "import chatRouter from './routes/chatRouter.js';",
@@ -80,6 +82,7 @@ app.use(createContentRouter());
 app.use(createPublicRouter());
 app.use(channelRoutes);
 app.use(systemRoutes);
+app.use('/api/admin', adminRoutes);
 app.use(['/api/chat/stream', '/api/chat'], aiRateLimit);
 app.use(['/webhook', '/ussd'], webhookRateLimit);
 app.use(['/api/escrow', '/api/points/topup', '/api/credits/topup', '/api/subscription'], paymentRateLimit);`;
@@ -102,6 +105,14 @@ if (!src.includes("app.use('/api/auth'")) {
       anchor,
       `${anchor}\napp.use('/api', userRoutes);\napp.use('/api/economic', authenticateUser, economicRequestRouter);\napp.use(createDiscoveryRouter());\napp.use(createPresenceRouter());\napp.use(createContentRouter());\napp.use(createPublicRouter());\napp.use(channelRoutes);\napp.use(systemRoutes);`
     );
+  }
+  if (!src.includes("app.use('/api/admin'")) {
+    const adminAnchor = src.includes('app.use(systemRoutes)')
+      ? 'app.use(systemRoutes);'
+      : src.includes('app.use(channelRoutes)')
+        ? 'app.use(channelRoutes);'
+        : "app.use('/api/chat', chatRouter);";
+    src = src.replace(adminAnchor, `${adminAnchor}\napp.use('/api/admin', adminRoutes);`);
   }
 }
 
@@ -151,7 +162,7 @@ app.post('/api/provider/subscribe', async (req, res) => {
   );
 }
 
-// Pulse handlers → legacy path (presenceRoutes owns /api/pulse/*)
+// Pulse / content / discovery / health / webhooks / profile → legacy path
 const pulseRenames = [
   ["app.post('/api/pulse/live'", "app.post('/api/pulse/live-legacy'"],
   ["app.post('/api/pulse/activate'", "app.post('/api/pulse/activate-legacy'"],
@@ -173,6 +184,53 @@ const pulseRenames = [
   ["app.get('/api/points/balance'", "app.get('/api/points/balance-legacy'"],
   ["app.post('/api/points/topup'", "app.post('/api/points/topup-legacy'"],
   ["app.post('/api/credits/topup'", "app.post('/api/credits/topup-legacy'"],
+  // Admin legacy renames (adminRoutes owns /api/admin/*)
+  ["app.post('/api/admin/auth'", "app.post('/api/admin/auth-legacy'"],
+  ["app.get('/api/admin/tickets'", "app.get('/api/admin/tickets-legacy'"],
+  ["app.post('/api/admin/tickets/reply'", "app.post('/api/admin/tickets/reply-legacy'"],
+  ["app.post('/api/admin/disputes/resolve'", "app.post('/api/admin/disputes/resolve-legacy'"],
+  ["app.post('/api/admin/disputes/escalate'", "app.post('/api/admin/disputes/escalate-legacy'"],
+  ["app.get('/api/admin/stats'", "app.get('/api/admin/stats-legacy'"],
+  ["app.get('/api/admin/keep-alive-analytics'", "app.get('/api/admin/keep-alive-analytics-legacy'"],
+  ["app.get('/api/admin/analytics/trends'", "app.get('/api/admin/analytics/trends-legacy'"],
+  ["app.get('/api/admin/analytics/sales'", "app.get('/api/admin/analytics/sales-legacy'"],
+  ["app.get('/api/admin/users'", "app.get('/api/admin/users-legacy'"],
+  ["app.post('/api/admin/users/bulk-update'", "app.post('/api/admin/users/bulk-update-legacy'"],
+  ["app.get('/api/admin/skill-flows'", "app.get('/api/admin/skill-flows-legacy'"],
+  ["app.post('/api/admin/skill-flows'", "app.post('/api/admin/skill-flows-legacy'"],
+  ["app.delete('/api/admin/skill-flows/:skill'", "app.delete('/api/admin/skill-flows-legacy/:skill'"],
+  ["app.get('/api/admin/pulse-sessions'", "app.get('/api/admin/pulse-sessions-legacy'"],
+  ["app.get('/api/admin/artists'", "app.get('/api/admin/artists-legacy'"],
+  ["app.post('/api/admin/artists/verify'", "app.post('/api/admin/artists/verify-legacy'"],
+  ["app.get('/api/admin/referrals'", "app.get('/api/admin/referrals-legacy'"],
+  ["app.get('/api/admin/revenue'", "app.get('/api/admin/revenue-legacy'"],
+  ["app.get('/api/admin/marketing'", "app.get('/api/admin/marketing-legacy'"],
+  ["app.get('/api/admin/social'", "app.get('/api/admin/social-legacy'"],
+  ["app.post('/api/admin/social'", "app.post('/api/admin/social-legacy'"],
+  ["app.get('/api/admin/partnerships'", "app.get('/api/admin/partnerships-legacy'"],
+  ["app.post('/api/admin/verify_provider'", "app.post('/api/admin/verify_provider-legacy'"],
+  ["app.get('/api/admin/scam_reports'", "app.get('/api/admin/scam_reports-legacy'"],
+  ["app.get('/api/admin/content'", "app.get('/api/admin/content-legacy'"],
+  ["app.get('/api/admin/content/:slug'", "app.get('/api/admin/content-legacy/:slug'"],
+  ["app.post('/api/admin/content'", "app.post('/api/admin/content-legacy'"],
+  ["app.post('/api/admin/content/generate'", "app.post('/api/admin/content/generate-legacy'"],
+  ["app.get('/api/admin/future_plans'", "app.get('/api/admin/future_plans-legacy'"],
+  ["app.get('/api/admin/settings'", "app.get('/api/admin/settings-legacy'"],
+  ["app.post('/api/admin/settings'", "app.post('/api/admin/settings-legacy'"],
+  ["app.get('/api/admin/ai-agents'", "app.get('/api/admin/ai-agents-legacy'"],
+  ["app.get('/api/admin/ai-agents/:id'", "app.get('/api/admin/ai-agents-legacy/:id'"],
+  ["app.post('/api/admin/ai-agents'", "app.post('/api/admin/ai-agents-legacy'"],
+  ["app.put('/api/admin/ai-agents/:id'", "app.put('/api/admin/ai-agents-legacy/:id'"],
+  ["app.delete('/api/admin/ai-agents/:id'", "app.delete('/api/admin/ai-agents-legacy/:id'"],
+  ["app.post('/api/admin/ai-agents/:id/clone'", "app.post('/api/admin/ai-agents-legacy/:id/clone'"],
+  ["app.post('/api/admin/ai-agents/:id/execute'", "app.post('/api/admin/ai-agents-legacy/:id/execute'"],
+  ["app.get('/api/admin/commissions'", "app.get('/api/admin/commissions-legacy'"],
+  ["app.put('/api/admin/commissions/:id'", "app.put('/api/admin/commissions-legacy/:id'"],
+  ["app.get('/api/github/status'", "app.get('/api/github/status-legacy'"],
+  ["app.get('/api/github/list'", "app.get('/api/github/list-legacy'"],
+  ["app.get('/api/github/diff'", "app.get('/api/github/diff-legacy'"],
+  ["app.post('/api/github/pull'", "app.post('/api/github/pull-legacy'"],
+  ["app.post('/api/github/push'", "app.post('/api/github/push-legacy'"],
 ];
 
 for (const [from, to] of pulseRenames) {
@@ -211,4 +269,4 @@ if (src.includes('subscription_tier = COALESCE(?, subscription_tier)') && !src.i
 }
 
 fs.writeFileSync(indexPath, src);
-console.log('Wired all extracted routers; neutralized legacy pulse/blog/auth/webrtc/subscription/profile handlers.');
+console.log('Wired all extracted routers (incl. adminRoutes); neutralized legacy pulse/blog/auth/webrtc/subscription/profile/admin handlers.');
