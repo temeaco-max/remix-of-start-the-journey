@@ -57,6 +57,56 @@ export function createPublicRouter(): Router {
         }
     });
 
+    router.get('/explore', async (req, res, next) => {
+        try {
+            const categoriesPath = path.join(process.cwd(), 'content', 'explore', 'categories.json');
+            const categories = fs.existsSync(categoriesPath) ? JSON.parse(fs.readFileSync(categoriesPath, 'utf-8')) : [];
+            await renderPage(req, res, 'explore/index', '/explore', { categories, ads: [] });
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    router.get('/p/:providerSlug', async (req, res, next) => {
+        try {
+            const dbModule = await import('../database.js');
+            const db = await dbModule.getDb();
+            const stmt = db.prepare('SELECT * FROM memory_profiles WHERE profile_slug = ?');
+            stmt.bind([req.params.providerSlug]);
+            let profile: any = null;
+            if (stmt.step()) profile = stmt.getAsObject();
+            stmt.free();
+            if (!profile) return next();
+
+            const skills: any[] = [];
+            const skillStmt = db.prepare('SELECT * FROM skills WHERE phone = ?');
+            skillStmt.bind([profile.phone]);
+            while (skillStmt.step()) skills.push(skillStmt.getAsObject());
+            skillStmt.free();
+            if (!skills.length) return next();
+
+            const providerName = String(profile.display_name || profile.name || 'Provider');
+            const provider = {
+                name: providerName,
+                initials: providerName.charAt(0).toUpperCase(),
+                location: String(profile.location || profile.primary_lga || 'Nigeria'),
+                verified: profile.verified_provider === 1,
+                trustScore: Number(profile.trust_score) || 5,
+                skills: skills.map((skill: any) => ({
+                    skill: String(skill.skill || ''),
+                    rating: Number(skill.rating) || 5,
+                    jobsCompleted: Number(skill.jobs_completed) || 0,
+                    hourlyRate: Number(skill.hourly_rate) || 0,
+                })),
+            };
+            const reqPath = `/p/${req.params.providerSlug}`;
+            const { seo, schemas, faqs } = await fetchSeoData(reqPath, providerName);
+            res.render('provider-profile', { country: 'ng', t: getLocale('en'), shortcode: '*7000#', provider, seo, schemas, faqs, reqPath });
+        } catch (error) {
+            next(error);
+        }
+    });
+
     router.get('/web', async (_req, res) => {
         res.sendFile(path.join(process.cwd(), 'public', 'dashboard.html'));
     });
@@ -64,7 +114,7 @@ export function createPublicRouter(): Router {
     router.get('/download', async (req, res, next) => { try { await renderPage(req, res, 'download', '/download'); } catch (error) { next(error); } });
     router.get('/about', async (req, res, next) => { try { await renderPage(req, res, 'about'); } catch (error) { next(error); } });
     router.get('/contact', async (req, res, next) => { try { await renderPage(req, res, 'contact'); } catch (error) { next(error); } });
-    
+
     router.get('/help', async (req, res, next) => {
         try {
             await renderPage(req, res, 'help', '/help', {
@@ -78,7 +128,7 @@ export function createPublicRouter(): Router {
     });
 
     router.get('/api-docs', async (req, res, next) => { try { await renderPage(req, res, 'api_docs'); } catch (error) { next(error); } });
-    
+
     router.get('/legal/:section?', async (req, res, next) => {
         try {
             const params = req.params as Record<string, string | undefined>;
