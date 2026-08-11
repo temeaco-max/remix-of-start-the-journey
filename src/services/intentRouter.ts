@@ -2,9 +2,8 @@ import { classifyWithFastText } from './fastTextService.js';
 import { queryUnifiedAI, type AIProvider } from './unifiedAiEngine.js';
 import { getProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
-import { getDb, saveDb } from '../database.js';
 import { getSkillFlow } from './skillFlows.js';
-import { previewStorefrontCard, startStorefrontSession } from './agenticStorefront.js';
+import { previewStorefrontCard, startStorefrontSession, tryResumeStorefront } from './agenticStorefront.js';
 import type { IntentRoutingResult } from '../types.js';
 
 const ACTION_INTENTS = new Set([
@@ -49,6 +48,10 @@ async function balanceReply(phone?: string): Promise<string> {
     return `🪙 **${points} Points**\n\nKurukoo remembers you’re in **${location}**. Your Points stay attached to the same Memory Profile across channels.`;
 }
 
+function isResumePhrase(q: string): boolean {
+    return /\b(continue|resume|open request|my request|the match|found a match|provider matched|pick up|where we left|deferred request|continue with)\b/.test(q);
+}
+
 export async function routeIntent(query: string, phone?: string, provider?: AIProvider): Promise<IntentRoutingResult> {
     const q = query.trim().toLowerCase();
     if (!q) return { skill: 'general_question', reply: 'Tell me what you need.' };
@@ -56,6 +59,22 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     if (q === 'reset onboarding') return { skill: 'general_question', reply: 'Onboarding reset is available from your profile settings.' };
     if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone) };
     if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
+
+    // Explicit resume after FCM / deferred match notification
+    if (phone && isResumePhrase(q)) {
+        try {
+            const resumed = await tryResumeStorefront(phone);
+            if (resumed) {
+                return {
+                    skill: resumed.skill || 'find_worker',
+                    reply: resumed.message,
+                    cardData: resumed,
+                };
+            }
+        } catch (e) {
+            console.warn('[Router] resume failed:', e);
+        }
+    }
 
     if (q.includes('book an artist') || q.includes('book a musician') || q.includes('book a dj') || q.includes('book a celebrity') || q.includes('hire an artist')) {
         const flow = await getSkillFlow('artist_booking').catch(() => null);
@@ -85,10 +104,11 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     if (classification && ACTION_INTENTS.has(classification.intent)) {
         const flow = await getSkillFlow(classification.intent).catch(() => null);
 
-        // Agentic storefront: open a real economic request when phone is known
+        // Agentic storefront: resume first, else open a real economic request when phone is known
         if (phone && STOREFRONT_INTENTS.has(classification.intent)) {
             try {
-                const card = await startStorefrontSession(phone, skillForIntent(classification.intent), {});
+                const skill = skillForIntent(classification.intent);
+                const card = await startStorefrontSession(phone, skill, {});
                 return {
                     skill: classification.intent,
                     reply: card.message,
@@ -114,6 +134,20 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
             default: reply = flowReply(classification.intent, flow);
         }
         return { skill: classification.intent, reply, cardData };
+    }
+
+    // Soft resume: if user has an open matched request and message is short/vague, offer it
+    if (phone && q.split(/\s+/).length <= 6) {
+        try {
+            const resumed = await tryResumeStorefront(phone);
+            if (resumed && (resumed.stage === 'quote_review' || resumed.stage === 'fulfillment' || resumed.stage === 'deferred')) {
+                return {
+                    skill: resumed.skill || 'find_worker',
+                    reply: resumed.message,
+                    cardData: resumed,
+                };
+            }
+        } catch { /* ignore */ }
     }
 
     const ai = await queryUnifiedAI(query, { provider, phone });
