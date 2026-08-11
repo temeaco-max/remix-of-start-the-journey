@@ -1,40 +1,133 @@
 /**
- * Money / safety circle routes — JWT identity only.
+ * Money / safety circle boundary — ChatGPT audit extraction.
+ * Identity from JWT only; no client-trusted phone for create/join/contribute.
  */
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
+import { authenticateUser, AuthRequest } from '../middleware/auth.js';
+import {
+  createMoneyCircle,
+  joinMoneyCircle,
+  recordContribution,
+  getCircleDetails,
+  processBuyingCircleDiscount,
+  broadcastSafetyCircleAlert,
+} from '../services/moneyCircle.js';
 
 const router = Router();
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const user = (req as any).user;
-  if (!user?.phone && !user?.id) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
+function sessionPhone(req: AuthRequest): string | null {
+  return req.user?.phone ? String(req.user.phone) : null;
 }
 
-router.use(requireAuth);
-
-router.get('/api/circles', async (req, res) => {
-  const phone = (req as any).user?.phone;
-  res.json({ circles: [], phone });
+/** Create circle — creator is always the authenticated session phone */
+router.post('/circle/create', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  if (req.body?.creator_phone && String(req.body.creator_phone) !== phone) {
+    return res.status(403).json({ error: 'Forbidden: creator_phone must match session' });
+  }
+  const name = req.body?.name;
+  const target_amount = req.body?.target_amount;
+  const mode = req.body?.mode || 'Standard';
+  if (!name || target_amount === undefined || target_amount === null) {
+    return res.status(400).json({ error: 'Missing required parameters (name, target_amount)' });
+  }
+  try {
+    const circleId = await createMoneyCircle(
+      String(name),
+      phone,
+      parseFloat(String(target_amount)),
+      mode
+    );
+    res.json({ success: true, circleId, message: `Money Circle "${name}" created successfully.` });
+  } catch {
+    res.status(500).json({ error: 'Failed to create Money Circle' });
+  }
 });
 
-router.post('/api/circles', async (req, res) => {
-  res.status(201).json({ ok: true });
+router.post('/circle/join', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  if (req.body?.phone && String(req.body.phone) !== phone) {
+    return res.status(403).json({ error: 'Forbidden: phone must match session' });
+  }
+  const circle_id = req.body?.circle_id;
+  if (!circle_id) {
+    return res.status(400).json({ error: 'Missing required parameters (circle_id)' });
+  }
+  try {
+    const success = await joinMoneyCircle(parseInt(String(circle_id), 10), phone);
+    if (success) {
+      res.json({ success: true, message: `Joined circle ${circle_id} successfully.` });
+    } else {
+      res.status(404).json({ error: 'Money Circle not found' });
+    }
+  } catch {
+    res.status(500).json({ error: 'Failed to join Money Circle' });
+  }
 });
 
-router.get('/api/circles/:id', async (req, res) => {
-  res.json({ circle: null, id: req.params.id });
+router.post('/circle/contribute', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  if (req.body?.phone && String(req.body.phone) !== phone) {
+    return res.status(403).json({ error: 'Forbidden: phone must match session' });
+  }
+  const circle_id = req.body?.circle_id;
+  const amount = req.body?.amount;
+  if (!circle_id || amount === undefined || amount === null) {
+    return res.status(400).json({ error: 'Missing required parameters (circle_id, amount)' });
+  }
+  try {
+    const success = await recordContribution(
+      parseInt(String(circle_id), 10),
+      phone,
+      parseFloat(String(amount))
+    );
+    res.json({ success, message: `Recorded contribution of ${amount} for circle ${circle_id}.` });
+  } catch {
+    res.status(500).json({ error: 'Failed to record contribution' });
+  }
 });
 
-router.post('/api/circles/:id/join', async (req, res) => {
-  res.json({ joined: true });
+router.get('/circle/:id', authenticateUser, async (req: AuthRequest, res) => {
+  const circleId = parseInt(req.params.id, 10);
+  if (isNaN(circleId)) return res.status(400).json({ error: 'Invalid circle ID' });
+  try {
+    const details = await getCircleDetails(circleId);
+    if (!details) return res.status(404).json({ error: 'Money Circle not found' });
+    res.json({ success: true, circle: details });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch Money Circle details' });
+  }
 });
 
-router.get('/api/safety-circles', async (req, res) => {
-  res.json({ safetyCircles: [] });
+router.post('/circle/:id/buying-discount', authenticateUser, async (req: AuthRequest, res) => {
+  const circleId = parseInt(req.params.id, 10);
+  if (isNaN(circleId)) return res.status(400).json({ error: 'Invalid circle ID' });
+  try {
+    const result = await processBuyingCircleDiscount(circleId);
+    res.json(result);
+  } catch {
+    res.status(500).json({ error: 'Failed to process buying discount' });
+  }
+});
+
+router.post('/circle/:id/safety-alert', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  if (req.body?.phone && String(req.body.phone) !== phone) {
+    return res.status(403).json({ error: 'Forbidden: phone must match session' });
+  }
+  const circleId = parseInt(req.params.id, 10);
+  if (isNaN(circleId)) return res.status(400).json({ error: 'Invalid circle ID' });
+  const alertType = String(req.body?.alert_type || req.body?.type || 'general');
+  try {
+    const result = await broadcastSafetyCircleAlert(circleId, phone, alertType);
+    res.json(result);
+  } catch {
+    res.status(500).json({ error: 'Failed to broadcast safety alert' });
+  }
 });
 
 export default router;
-export { router as circleRoutes };

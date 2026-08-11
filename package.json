@@ -1,7 +1,7 @@
 {
   "name": "kurukoo-platform",
   "private": true,
-  "version": "5.52.10",
+  "version": "5.52.11",
   "type": "module",
   "scripts": {
     "dev": "tsx index.ts",
