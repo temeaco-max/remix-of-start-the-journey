@@ -162,7 +162,7 @@ router.post('/escrow/release', authenticateUser, async (req: AuthRequest, res) =
     const success = await releaseEscrow(parseInt(String(escrow_id), 10));
     res.json({ success, message: 'Escrow released to provider.' });
   } catch {
-    res.status(500).json({ error: 'Failed to refund escrow' });
+    res.status(500).json({ error: 'Failed to release escrow' });
   }
 });
 
