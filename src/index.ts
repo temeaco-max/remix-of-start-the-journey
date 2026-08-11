@@ -52,7 +52,7 @@ app.use('/api', subscriptionRoutes);
 // existing canonical module remain owned by legacyApp until parity is proven.
 registerLegacyRoutes(app);
 
-const port = Number(process.env.PORT || 3000);
+const port = 3000;
 const host = process.env.HOST || '0.0.0.0';
 
 export { app };
