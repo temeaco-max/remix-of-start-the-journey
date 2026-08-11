@@ -48,8 +48,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/site.css?v=1.2.0">
+    <% if (typeof reqPath !== 'undefined' && /^\/(?:ng|gh|gb)?\/?$/.test(reqPath)) { %>
+    <link rel="stylesheet" href="/css/kurukoo-home.css?v=1.0.0">
+    <% } %>
     <link rel="icon" type="image/svg+xml" href="/assets/brand/favicon.svg">
     <link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
     <link rel="manifest" href="/manifest.json">
@@ -74,7 +77,14 @@
             const toast = document.createElement('div');
             toast.id = 'sw-update-toast';
             toast.className = 'pwa-update-toast';
-            toast.innerHTML = '<span>A new version is available. Refresh to update.</span><button onclick="window.location.reload()" class="pwa-refresh-btn">Refresh</button>';
+            const message = document.createElement('span');
+            message.textContent = 'A new version is available. Refresh to update.';
+            const refresh = document.createElement('button');
+            refresh.type = 'button';
+            refresh.className = 'pwa-refresh-btn';
+            refresh.textContent = 'Refresh';
+            refresh.addEventListener('click', () => window.location.reload());
+            toast.append(message, refresh);
             document.body.appendChild(toast);
         }
         window.KurukooChat = window.KurukooChat || {
