@@ -40,7 +40,7 @@ function actionCard(intent: string): any {
     if (STOREFRONT_INTENTS.has(intent)) return previewStorefrontCard(skillForIntent(intent));
     if (intent === 'sports_matchmaking') return { type: 'sports_search' };
     if (intent === 'event_coverage') return { type: 'event_coverage', status: 'offer' };
-    if (intent === 'artist_booking') return { type: 'artist_booking', status: 'verification_required', escrowProtected: true };
+    if (intent === 'artist_booking') return previewStorefrontCard('verified_artist');
     return undefined;
 }
 
@@ -108,6 +108,12 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
 
     if (q.includes('book an artist') || q.includes('book a musician') || q.includes('book a dj') || q.includes('book a celebrity') || q.includes('hire an artist')) {
         const flow = await getSkillFlow('verified_artist').catch(() => null);
+        if (phone) {
+            try {
+                const card = await startStorefrontSession(phone, 'verified_artist', {});
+                return { skill: 'verified_artist', reply: card.message, cardData: card };
+            } catch (e) { console.warn('[Router] artist storefront start failed:', e); }
+        }
         return {
             skill: 'verified_artist',
             reply: '🎤 I can coordinate a creator/artist booking, but I’ll only present verified representatives and the booking terms before any escrow is funded. Tell me the artist/act, event date, venue/city, expected set or appearance, and budget.',
@@ -117,6 +123,10 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
 
     const directSkill = matchCanonicalSkill(q);
     if (directSkill && phone) {
+        try {
+            const card = await startStorefrontSession(phone, directSkill, {});
+            return { skill: directSkill, reply: card.message, cardData: card };
+        } catch (e) { console.warn('[Router] storefront start failed, using canonical skill prompt:', e); }
         const category = getEconomicCategory(directSkill);
         const flow = await getSkillFlow(directSkill).catch(() => null);
         return {
@@ -154,6 +164,13 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
             } catch (e) { console.warn('[Router] storefront start failed, using preview card:', e); }
         }
 
+        if (phone && classification.intent === 'artist_booking') {
+            try {
+                const card = await startStorefrontSession(phone, 'verified_artist', {});
+                return { skill: 'verified_artist', reply: card.message, cardData: card };
+            } catch (e) { console.warn('[Router] artist storefront start failed:', e); }
+        }
+
         const cardData = actionCard(classification.intent);
         let reply = '';
         switch (classification.intent) {
@@ -173,9 +190,15 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     }
 
     // If FastText produced a canonical skill label directly, route it through the
-    // same economic path instead of falling through to a generic AI answer.
+    // same economic storefront path instead of falling through to a generic AI answer.
     if (classification?.intent && getEconomicCategory(classification.intent)) {
         const skill = classification.intent;
+        if (phone) {
+            try {
+                const card = await startStorefrontSession(phone, skill, {});
+                return { skill, reply: card.message, cardData: card };
+            } catch (e) { console.warn('[Router] canonical storefront start failed:', e); }
+        }
         const flow = await getSkillFlow(skill).catch(() => null);
         return { skill, reply: flowReply(skill, flow), cardData: { type: 'economic_request', skill, category: getEconomicCategory(skill), ...(flow ? { flow } : {}) } };
     }
