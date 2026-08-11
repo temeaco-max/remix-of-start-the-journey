@@ -19,6 +19,8 @@ const imports = [
   "import orderRoutes from './routes/orderRoutes.js';",
   "import taskRoutes from './routes/taskRoutes.js';",
   "import userRoutes from './routes/userRoutes.js';",
+  "import paymentRoutes from './routes/paymentRoutes.js';",
+  "import subscriptionRoutes from './routes/subscriptionRoutes.js';",
 ];
 
 const anchorImport = "import chatRouter from './routes/chatRouter.js';";
@@ -41,6 +43,8 @@ const mounts = [
   "app.use('/api', orderRoutes);",
   "app.use('/api', taskRoutes);",
   "app.use('/api', userRoutes);",
+  "app.use('/api', paymentRoutes);",
+  "app.use('/api/subscription', subscriptionRoutes);",
 ];
 
 for (const line of mounts) {
@@ -87,6 +91,11 @@ const renames = [
   ["app.post('/api/disputes'", "app.post('/api/disputes-legacy'"],
   ["app.post('/api/scam_reports'", "app.post('/api/scam_reports-legacy'"],
   ["app.post('/api/escrow/create'", "app.post('/api/escrow/create-legacy'"],
+  ["app.post('/api/points/topup'", "app.post('/api/points/topup-legacy'"],
+  ["app.get('/api/points/balance'", "app.get('/api/points/balance-legacy'"],
+  ["app.post('/api/credits/topup'", "app.post('/api/credits/topup-legacy'"],
+  ["app.post('/api/subscription/upgrade'", "app.post('/api/subscription/upgrade-legacy'"],
+  ["app.post('/api/provider/subscribe'", "app.post('/api/provider/subscribe-legacy'"],
 ];
 
 for (const [from, to] of renames) {
@@ -101,4 +110,4 @@ src = src.replace(
 
 src = src.split('+2348030000000').join('');
 fs.writeFileSync(indexPath, src);
-console.log('Wired extracted public/discovery/presence/content/trust/circle/order/task/user routers.');
+console.log('Wired extracted public/discovery/presence/content/trust/circle/order/task/user/payment/subscription routers.');
