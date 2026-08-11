@@ -44,7 +44,7 @@ const mounts = [
   "app.use('/api', taskRoutes);",
   "app.use('/api', userRoutes);",
   "app.use('/api', paymentRoutes);",
-  "app.use('/api/subscription', subscriptionRoutes);",
+  "app.use('/api', subscriptionRoutes);",
 ];
 
 for (const line of mounts) {
@@ -102,7 +102,6 @@ for (const [from, to] of renames) {
   if (src.includes(from) && !src.includes(to)) src = src.replace(from, to);
 }
 
-// Keep the legacy legal handler type-safe while it remains in the monolith.
 src = src.replace(
   'const { section } = req.params; const country = \'ng\';',
   "const section = (req.params as Record<string, string | undefined>).section; const country = 'ng';"
