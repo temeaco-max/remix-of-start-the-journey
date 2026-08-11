@@ -2,7 +2,7 @@ import { classifyWithFastText } from './fastTextService.js';
 import { queryUnifiedAI, type AIProvider } from './unifiedAiEngine.js';
 import { getProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
-import { getSkillFlow } from './skillFlows.js';
+import { getEconomicCategory, getKnownSkills, getSkillFlow } from './skillFlows.js';
 import { previewStorefrontCard, startStorefrontSession, tryResumeStorefront } from './agenticStorefront.js';
 import type { IntentRoutingResult } from '../types.js';
 
@@ -15,11 +15,24 @@ const STOREFRONT_INTENTS = new Set([
     'ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'security_booking'
 ]);
 
+const CANONICAL_ALIASES: Array<[RegExp, string]> = [
+    [/\b(buy|purchase|get)\b.*\b(car|vehicle)\b|\b(car|vehicle)\b.*\b(buy|purchase)\b/, 'buy_car'],
+    [/\b(buy|purchase|get)\b.*\btickets?\b|\btickets?\b.*\b(buy|purchase|get)\b/, 'buy_ticket'],
+    [/\b(phone|device|laptop|computer|screen)\b.*\brepair\b|\brepair\b.*\b(phone|device|laptop|computer|screen)\b/, 'repair'],
+    [/\b(source|source me|find|procure)\b.*\b(product|products|goods|item)\b/, 'product_sourcing'],
+    [/\b(bodyguard|security guard|security personnel|private security)\b/, 'security_personnel'],
+    [/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician)\b/, 'find_worker'],
+    [/\b(order|get|buy)\b.*\b(food|meal|rice|groceries|groceries?)\b/, 'order_food'],
+    [/\b(ride|okada|keke|taxi|cab)\b/, 'okada_rider'],
+    [/\b(book|hire|need|get)\b.*\b(artist|musician|dj|celebrity|performer|creator)\b/, 'verified_artist'],
+];
+
 function skillForIntent(intent: string): string {
     if (intent === 'ride_request') return 'okada_rider';
     if (intent === 'order_food' || intent === 'universal_vendor_order') return 'order_food';
     if (intent === 'find_worker') return 'find_worker';
     if (intent === 'security_booking') return 'security_personnel';
+    if (intent === 'artist_booking') return 'verified_artist';
     return intent;
 }
 
@@ -31,13 +44,39 @@ function actionCard(intent: string): any {
     return undefined;
 }
 
+function requirementPrompt(category: string | null, skill: string): string {
+    switch (category) {
+        case 'transport-mobility': return 'Where are you going, when do you need it, and do you have a vehicle preference?';
+        case 'food-drink': return 'What do you want, where should it be delivered or collected, and when?';
+        case 'repairs-maintenance': return 'What needs fixing, where are you, and how urgent is it?';
+        case 'events-entertainment': return 'What is the event, date, location, expected audience, and budget?';
+        case 'automotive-mechanics': return 'What vehicle or service do you need, where are you, and when?';
+        case 'classifieds-marketplace': return 'What exactly are you looking for, your budget, and your preferred area?';
+        case 'gigs-microtasks': return 'What needs to be done, where, when, and what budget or rate do you have?';
+        case 'professional-services': return 'What outcome do you need, where are you, and what deadline or budget applies?';
+        case 'sports-recreation': return 'Which sport or activity, where, when, and how many people are involved?';
+        case 'health-medical': return 'What service do you need, where are you, and how soon do you need help?';
+        default: return `Tell me what you need for ${skill.replace(/_/g, ' ')}, where you need it, and when.`;
+    }
+}
+
 function flowReply(intent: string, flow: Awaited<ReturnType<typeof getSkillFlow>>): string {
-    if (!flow) return `I can help with ${intent.replace(/_/g, ' ')}.`;
+    if (!flow) return `I can help with ${intent.replace(/_/g, ' ')}. ${requirementPrompt(getEconomicCategory(intent), intent)}`;
     const action = flow.post_match_action || 'match a suitable provider';
     const questions = flow.question_set ? flow.question_set.replace(/[\[\]{}]/g, '').trim() : '';
     return questions
         ? `I can help with this. ${questions} I’ll use the Kurukoo flow to ${action.toLowerCase()} and show you the next step before anything is committed.`
-        : `I can help with this. I’ll use the Kurukoo flow to ${action.toLowerCase()} and show you the next step before anything is committed.`;
+        : `I can help with this. ${requirementPrompt(flow.category || getEconomicCategory(intent), intent)} I’ll use the Kurukoo flow to ${action.toLowerCase()} and show you the next step before anything is committed.`;
+}
+
+function matchCanonicalSkill(query: string): string | null {
+    for (const [pattern, skill] of CANONICAL_ALIASES) if (pattern.test(query)) return skill;
+    const skills = getKnownSkills().filter(skill => skill.length >= 4);
+    for (const skill of skills) {
+        const phrase = skill.replace(/_/g, ' ').toLowerCase();
+        if (query.includes(phrase)) return skill;
+    }
+    return null;
 }
 
 async function balanceReply(phone?: string): Promise<string> {
@@ -60,28 +99,30 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone) };
     if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
 
-    // Explicit resume after FCM / deferred match notification
     if (phone && isResumePhrase(q)) {
         try {
             const resumed = await tryResumeStorefront(phone);
-            if (resumed) {
-                return {
-                    skill: resumed.skill || 'find_worker',
-                    reply: resumed.message,
-                    cardData: resumed,
-                };
-            }
-        } catch (e) {
-            console.warn('[Router] resume failed:', e);
-        }
+            if (resumed) return { skill: resumed.skill || 'find_worker', reply: resumed.message, cardData: resumed };
+        } catch (e) { console.warn('[Router] resume failed:', e); }
     }
 
     if (q.includes('book an artist') || q.includes('book a musician') || q.includes('book a dj') || q.includes('book a celebrity') || q.includes('hire an artist')) {
-        const flow = await getSkillFlow('artist_booking').catch(() => null);
+        const flow = await getSkillFlow('verified_artist').catch(() => null);
         return {
-            skill: 'artist_booking',
+            skill: 'verified_artist',
             reply: '🎤 I can coordinate a creator/artist booking, but I’ll only present verified representatives and the booking terms before any escrow is funded. Tell me the artist/act, event date, venue/city, expected set or appearance, and budget.',
-            cardData: actionCard('artist_booking') || flow ? { ...(actionCard('artist_booking') || {}), flow } : undefined
+            cardData: { ...(actionCard('artist_booking') || {}), flow }
+        };
+    }
+
+    const directSkill = matchCanonicalSkill(q);
+    if (directSkill && phone) {
+        const category = getEconomicCategory(directSkill);
+        const flow = await getSkillFlow(directSkill).catch(() => null);
+        return {
+            skill: directSkill,
+            reply: flowReply(directSkill, flow),
+            cardData: { type: 'economic_request', skill: directSkill, category, ...(flow ? { flow } : {}) }
         };
     }
 
@@ -102,21 +143,15 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     console.info(`[Kurukoo Router] intent=${classification?.intent || 'general_question'} confidence=${classification?.confidence?.toFixed(2) || 'n/a'}`);
 
     if (classification && ACTION_INTENTS.has(classification.intent)) {
-        const flow = await getSkillFlow(classification.intent).catch(() => null);
+        const flowSkill = skillForIntent(classification.intent);
+        const flow = await getSkillFlow(flowSkill).catch(() => null);
 
-        // Agentic storefront: resume first, else open a real economic request when phone is known
         if (phone && STOREFRONT_INTENTS.has(classification.intent)) {
             try {
                 const skill = skillForIntent(classification.intent);
                 const card = await startStorefrontSession(phone, skill, {});
-                return {
-                    skill: classification.intent,
-                    reply: card.message,
-                    cardData: card,
-                };
-            } catch (e) {
-                console.warn('[Router] storefront start failed, using preview card:', e);
-            }
+                return { skill, reply: card.message, cardData: card };
+            } catch (e) { console.warn('[Router] storefront start failed, using preview card:', e); }
         }
 
         const cardData = actionCard(classification.intent);
@@ -130,23 +165,25 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
             case 'event_coverage': reply = '📸 I can help coordinate event coverage. Tell me the event location, date, and what you need captured.'; break;
             case 'how_to_video': reply = '🎥 Tell me what you want to learn. I can turn a practical guide into a structured how-to video workflow.'; break;
             case 'security_booking': reply = '🛡️ Tell me the location, date/time, and duration. I’ll route a vetted security booking with escrow protection.'; break;
-            case 'circle_create': reply = flowReply(classification.intent, flow); break;
-            default: reply = flowReply(classification.intent, flow);
+            case 'artist_booking': reply = '🎤 I can coordinate a verified creator/artist booking. Tell me the act, date, venue, duration and budget.'; break;
+            case 'circle_create': reply = flowReply(flowSkill, flow); break;
+            default: reply = flowReply(flowSkill, flow);
         }
-        return { skill: classification.intent, reply, cardData };
+        return { skill: flowSkill, reply, cardData };
     }
 
-    // Soft resume: if user has an open matched request and message is short/vague, offer it
+    // If FastText produced a canonical skill label directly, route it through the
+    // same economic path instead of falling through to a generic AI answer.
+    if (classification?.intent && getEconomicCategory(classification.intent)) {
+        const skill = classification.intent;
+        const flow = await getSkillFlow(skill).catch(() => null);
+        return { skill, reply: flowReply(skill, flow), cardData: { type: 'economic_request', skill, category: getEconomicCategory(skill), ...(flow ? { flow } : {}) } };
+    }
+
     if (phone && q.split(/\s+/).length <= 6) {
         try {
             const resumed = await tryResumeStorefront(phone);
-            if (resumed && (resumed.stage === 'quote_review' || resumed.stage === 'fulfillment' || resumed.stage === 'deferred')) {
-                return {
-                    skill: resumed.skill || 'find_worker',
-                    reply: resumed.message,
-                    cardData: resumed,
-                };
-            }
+            if (resumed && (resumed.stage === 'quote_review' || resumed.stage === 'fulfillment' || resumed.stage === 'deferred')) return { skill: resumed.skill || 'find_worker', reply: resumed.message, cardData: resumed };
         } catch { /* ignore */ }
     }
 
