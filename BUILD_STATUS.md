@@ -6,6 +6,20 @@
 **Current main merge:** `a940503976db3a364f2eabcb82ff3d7ddf51c00e`
 **Merged PR:** #1 — `fix: enforce truthful Economic OS lifecycle`
 
+## 2026-08-11 convergence verification
+
+**Candidate branch:** `fix/convergence-release-readiness`
+**Integration target:** `integration/near-completion` — **not `main`**
+**Verified commit:** `93ede899a46340ce027a84a574c25c88262a33b6`
+
+This convergence candidate assembles the reviewed security, lifecycle, dispute/escrow, public-route, navigation/onboarding, canonical chat, CSS-token, DOM-safety, and homepage/Explore truthfulness work. It removes the deployable GitHub workspace service and all corresponding `/api/admin/github/*` routes, tests, and maintenance-script mutation patterns. The built application uses one canonical chat client; the unused legacy client was deleted.
+
+The final clean-build verification completed `npm ci --ignore-scripts`, `npm run lint`, `npm run clean && npm run build`, `npm run test:routes`, `npm run audit:security`, `npm run audit:services`, `npm run audit:skills`, `npm run audit:messaging`, `npm run audit:css`, `npm run test:chat-dom-safety`, and `npm run test:email`. The public production runtime was exercised on the built server: homepage, onboarding, `/chat` and `/chat/`, Explore, a category detail page, Discover, the PWA dashboard, pricing, country routes, content/legal routes, and all internal homepage navigation/CTA destinations returned their expected rendered or redirected results. Responsive captures at 360px, 390px, 768px, 1024px, and 1280px showed no visible initial-viewport overflow or clipped primary CTA.
+
+> **Integration status:** Suitable for a pull request into `integration/near-completion`; it is not a claim that external production infrastructure is configured or that `main` should be merged.
+
+Known non-blocking validation debt is documented rather than hidden: the non-strict CSS audit reports 217 legacy inline-style occurrences across 13 files; the production dependency audit reports two high-severity `sharp`/`@huggingface/transformers` advisories with no currently safe npm fix. These require follow-up but did not invalidate the assembled route, lifecycle, or public-runtime contracts.
+
 ## Current architecture
 
 ```text

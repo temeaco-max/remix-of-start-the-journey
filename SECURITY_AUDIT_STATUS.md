@@ -4,6 +4,20 @@
 **Blueprint:** `BLUEPRINT.md` v5.62  
 **Current architecture:** canonical route boundaries under `src/routes/*`; `src/index.ts` is composition/startup only.
 
+## 2026-08-11 convergence verification
+
+**Candidate branch:** `fix/convergence-release-readiness`
+**Integration target:** `integration/near-completion` — **not `main`**
+**Verified commit:** `93ede899a46340ce027a84a574c25c88262a33b6`
+
+The convergence candidate passed the final security, economic authorization, route/lifecycle, service, skills, messaging, chat DOM-safety, email-signature, build, and lint checks. It also removes `src/services/githubService.ts`, all `/api/admin/github/*` administrative workspace endpoints, their route test expectation, and obsolete maintenance-script mutations, leaving no tracked workspace service or endpoint signature.
+
+The final public-runtime checks confirmed that homepage and Explore preview content does not use fabricated named providers, provider counts, ratings, distances, availability, or transaction activity. The homepage Education CTA was corrected to the registered `/explore/education` route, and a runtime regression test protects both that link and the truthful Explore index/category contract.
+
+> **Security release posture:** This branch is safe to propose for integration into `integration/near-completion`; it does not satisfy the separate requirement for external PSP, provider verification, identity verification, notification, and owner-side credential-rotation readiness.
+
+The non-strict CSS audit still reports 217 legacy inline-style findings across 13 files. The production `npm audit --omit=dev` reports two high-severity advisory paths through `@huggingface/transformers` → `sharp`; npm reports no safe automated fix. Both are recorded for follow-up rather than masked.
+
 ## Current status
 
 | Area | Status | Current implementation |
