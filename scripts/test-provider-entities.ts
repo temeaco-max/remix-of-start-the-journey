@@ -23,6 +23,7 @@ const authorizedDronePhone = '+2347000000304';
 const unauthorizedDronePhone = '+2347000000305';
 const contributorPhone = '+2347000000306';
 const agentId = 'agent_provider_entity_test';
+const externalPlatformPhone = '+2347000000307';
 
 for (const [phone, name, providerType, verified] of [
   [customerPhone, 'Provider Entity Customer', 'human', 0],
@@ -30,6 +31,7 @@ for (const [phone, name, providerType, verified] of [
   [businessPhone, 'Business Plumber', 'business', 1],
   [authorizedDronePhone, 'Authorized Delivery Asset', 'drone', 1],
   [unauthorizedDronePhone, 'Unverified Delivery Asset', 'drone', 0],
+  [externalPlatformPhone, 'External Platform Test Provider', 'external_platform', 1],
 ] as const) {
   db.run(
     `INSERT INTO memory_profiles (phone, name, location, country, provider_type, verified_provider)
@@ -43,18 +45,20 @@ db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, job
 db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode) VALUES (?, 'delivery', 1, 4500, 4.9, 4, 'delivery')`, [authorizedDronePhone]);
 // A category-specific human verification marker must not authorize a non-human entity.
 db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode, verified_artist) VALUES (?, 'delivery', 1, 100, 5, 99, 'delivery', 1)`, [unauthorizedDronePhone]);
+db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode) VALUES (?, 'external_fulfillment_test', 1, 5000, 4.6, 1, 'stationary')`, [externalPlatformPhone]);
 
 assert.equal(isProviderEntityType('drone'), true, 'drone must be a constrained provider entity type');
+assert.equal(isProviderEntityType('external_platform'), true, 'external platforms must be a constrained provider entity type');
 assert.equal(isProviderEntityType('invented_asset'), false, 'unknown provider types must be rejected');
 assert.equal(normalizeProviderEntityType('invented_asset'), 'human', 'legacy/invalid provider types must normalize safely');
 
 const persistedTypes = db.exec(
-  `SELECT phone, provider_type FROM memory_profiles WHERE phone IN (?, ?, ?) ORDER BY phone`,
-  [humanPhone, businessPhone, authorizedDronePhone]
+  `SELECT phone, provider_type FROM memory_profiles WHERE phone IN (?, ?, ?, ?) ORDER BY phone`,
+  [humanPhone, businessPhone, authorizedDronePhone, externalPlatformPhone]
 )[0]?.values || [];
 assert.deepEqual(
   persistedTypes.map((row: unknown[]) => row[1]),
-  ['human', 'business', 'drone'],
+  ['human', 'business', 'drone', 'external_platform'],
   'provider type must persist without changing existing human records'
 );
 
@@ -79,6 +83,10 @@ assert.deepEqual(
 assert.equal(deliveries.providers[0]?.provider_type, 'drone', 'authorized autonomous provider type must be represented in discovery');
 assert.equal(deliveries.providers[0]?.distance_km, undefined, 'discovery must not fabricate location or telemetry data');
 assert.equal(deliveries.providers[0]?.hourly_rate, 4500, 'discovery must use the declared provider rate rather than fabricate a quote');
+
+const externalPlatformDiscovery = await find_worker({ skill: 'external_fulfillment_test', max: 5 });
+assert.equal(externalPlatformDiscovery.providers[0]?.phone, externalPlatformPhone, 'a verified external platform must use the same canonical skill matcher');
+assert.equal(externalPlatformDiscovery.providers[0]?.provider_type, 'external_platform', 'external platform representation must remain explicit in discovery');
 
 const requestId = 'provider-entity-delivery-request';
 await createEconomicRequest({

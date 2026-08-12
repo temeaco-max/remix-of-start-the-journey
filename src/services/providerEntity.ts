@@ -6,6 +6,7 @@ export const PROVIDER_ENTITY_TYPES = [
   'robot',
   'drone',
   'autonomous_asset',
+  'external_platform',
 ] as const;
 
 export type ProviderEntityType = typeof PROVIDER_ENTITY_TYPES[number];
