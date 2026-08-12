@@ -94,7 +94,8 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
   display: flex; 
   justify-content: space-between; 
   align-items: center;
-  padding: 15px 0;
+  padding-top: 15px;
+  padding-bottom: 15px;
   position: relative;
   gap: 12px;
 }
@@ -113,17 +114,22 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
 .logo span { color: #000000; }
 .nav-links { 
   display: flex;
-    gap: 18px;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-width: 0;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
 }
 .nav-link { 
   font-weight: 500; 
   font-size: 0.95rem; 
   position: relative;
-  padding: 4px 0;
+  padding: 6px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 .nav-link::after {
   content: '';
@@ -1248,7 +1254,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
 }
 
 @media (max-width: 768px) {
-  .navbar-inner { padding: 12px 0; }
+  .navbar-inner { padding-top: 12px; padding-bottom: 12px; }
   .hero {
     padding-top: 40px;
     padding-bottom: 48px;
@@ -1320,7 +1326,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
 
 .help-search {
   max-width: 800px;
-  margin: -40px auto 0;
+  margin: 0px auto 0;
   position: relative;
   z-index: 10;
 }
@@ -2543,7 +2549,7 @@ table td, .admin-table td {
 }
 .logo-text {
   display: block;
-  height: 32px;
+  height: 26px;
   width: auto;
 }
 .nav-link-dropdown-toggle {
@@ -2621,13 +2627,16 @@ table td, .admin-table td {
     /* Platform Mega & Simple Dropdown Styles */
     .nav-dropdown-container {
         position: relative;
+        display: inline-flex;
+        align-items: center;
+        height: 100%;
     }
     .mega-dropdown {
         display: none;
         position: absolute;
         top: 100%;
         left: 50%;
-        transform: translateX(-50%) translateY(12px);
+        transform: translateX(-50%) translateY(4px);
         width: 760px;
         background: var(--cream);
         border: 1px solid rgba(217, 122, 92, 0.2);
@@ -2636,14 +2645,14 @@ table td, .admin-table td {
         padding: 24px;
         z-index: 1000;
         transform-origin: top center;
-        animation: navFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: navFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     .simple-dropdown {
         display: none;
         position: absolute;
         top: 100%;
         left: 50%;
-        transform: translateX(-50%) translateY(10px);
+        transform: translateX(-50%) translateY(4px);
         min-width: 280px;
         background: var(--cream);
         border: 1px solid rgba(217, 122, 92, 0.2);
@@ -2653,6 +2662,18 @@ table td, .admin-table td {
         z-index: 1000;
         transform-origin: top center;
         animation: navFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    /* Invisible Hover Bridge to keep dropdown active when moving cursor from trigger to menu */
+    .mega-dropdown::before,
+    .simple-dropdown::before {
+        content: '';
+        position: absolute;
+        top: -16px;
+        left: -12px;
+        right: -12px;
+        height: 22px;
+        background: transparent;
+        z-index: 10;
     }
     @media (min-width: 993px) {
         .nav-dropdown-container:hover .mega-dropdown,
@@ -3126,8 +3147,8 @@ table td, .admin-table td {
     }
 
     @keyframes navFadeIn {
-        from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-        to { opacity: 1; transform: translateX(-50%) translateY(12px); }
+        from { opacity: 0; transform: translateX(-50%) translateY(0); }
+        to { opacity: 1; transform: translateX(-50%) translateY(4px); }
     }
     @keyframes slideDownMenu {
         from { opacity: 0; transform: translateY(-10px); }
@@ -4696,7 +4717,7 @@ table td, .admin-table td {
 /* Page Layout & Component Utility Classes */
 .page-container {
   max-width: 1200px;
-  margin: 40px auto;
+  margin: 32px auto;
   padding: 0 20px;
 }
 .page-header-center {
@@ -4843,7 +4864,7 @@ table td, .admin-table td {
 .blog-hero {
   background: var(--charcoal);
   color: var(--cream);
-  padding-top: 160px;
+  padding-top: 100px;
   padding-bottom: 100px;
 }
 .blog-badge {
@@ -4941,6 +4962,34 @@ table td, .admin-table td {
   margin: 0 auto;
 }
 
+/* Network Page */
+.network-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin: 60px 0;
+}
+.network-card {
+    padding: 32px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    text-align: center;
+}
+.network-icon {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+.network-vision {
+    background: var(--terracotta);
+    color: var(--white);
+    padding: 80px 40px;
+    border-radius: var(--border-radius-lg);
+    text-align: center;
+}
+.network-vision h2 { color: var(--white); margin-bottom: 16px; }
+.network-vision p { color: var(--white); margin-bottom: 32px; max-width: 600px; margin-left: auto; margin-right: auto; }
+.vision-actions { display: flex; gap: 16px; justify-content: center; }
 
 /* Advertise, Discover & Resources Page Classes */
 .advertise-main {
@@ -5763,8 +5812,8 @@ table td, .admin-table td {
 .help-hero {
   background: var(--electric-blue);
   color: var(--white);
-  padding-top: 160px;
-  padding-bottom: 120px;
+  padding-top: 100px;
+  padding-bottom: 100px;
 }
 .help-title {
   color: var(--white);
@@ -5831,8 +5880,8 @@ table td, .admin-table td {
 /* Contact Page Specific */
 .contact-hero {
   background: var(--gray-100);
-  padding-top: 160px;
-  padding-bottom: 80px;
+  padding-top: 100px;
+  padding-bottom: 100px;
 }
 .contact-title {
   font-size: 4rem;
@@ -5889,7 +5938,7 @@ table td, .admin-table td {
 .page-hero-careers {
   background: var(--terracotta);
   color: var(--cream);
-  padding-top: 160px;
+  padding-top: 100px;
   padding-bottom: 100px;
 }
 .page-hero-title {
@@ -5995,7 +6044,7 @@ table td, .admin-table td {
 }
 .explore-container {
   max-width: 1200px;
-  margin: 40px auto;
+  margin: 32px auto;
   padding: 0 20px;
 }
 .explore-header-section {
