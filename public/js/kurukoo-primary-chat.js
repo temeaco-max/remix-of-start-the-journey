@@ -160,6 +160,56 @@
     }
   }
 
+  async function startKnownOffer(offerId) {
+    if (!offerId || state.busy) return;
+    state.busy = true;
+    if (send) send.disabled = true;
+    try {
+      const res = await fetch(`/api/chat/economic-requests/offers/${encodeURIComponent(offerId)}/start`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: '{}'
+      });
+      if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not start request from that offer');
+      const card = data.card;
+      setDeferredStatus(card);
+      if (card?.requestId) state.activeStorefrontId = card.requestId;
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(card.message || 'Offer selected.');
+      renderCard(card, wrap);
+      state.messages.push({ role: 'assistant', text: card.message || '', id: null });
+      scroll.scrollTop = scroll.scrollHeight;
+      await loadPoints();
+    } catch (error) {
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(`Could not select that offer. **${escapeText(error.message)}**`);
+    } finally { state.busy = false; if (send) send.disabled = false; }
+  }
+
+  async function selectDeliveryCandidate(requestId, providerPhone) {
+    if (!requestId || !providerPhone || state.busy) return;
+    state.busy = true;
+    if (send) send.disabled = true;
+    try {
+      const res = await fetch(`/api/chat/economic-requests/${encodeURIComponent(requestId)}/delivery-selection`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ providerPhone })
+      });
+      if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not select delivery provider');
+      const card = data.card;
+      setDeferredStatus(card);
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(card.message || 'Delivery provider selected.');
+      renderCard(card, wrap);
+      state.messages.push({ role: 'assistant', text: card.message || '', id: null });
+      scroll.scrollTop = scroll.scrollHeight;
+    } catch (error) {
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(`Could not select that delivery provider. **${escapeText(error.message)}**`);
+    } finally { state.busy = false; if (send) send.disabled = false; }
+  }
+
   function makeElement(tag, className = '', text = '') {
     const element = document.createElement(tag);
     if (className) element.className = className;
@@ -206,6 +256,52 @@
         fields.appendChild(label);
       });
       holder.appendChild(fields);
+    }
+
+    if (Array.isArray(card.knownOffers) && card.knownOffers.length) {
+      const offers = makeElement('section', 'storefront-known-offers');
+      offers.appendChild(makeElement('strong', '', 'Known seller offers'));
+      const list = makeElement('ul', 'storefront-offers-list');
+      card.knownOffers.forEach(offer => {
+        const item = makeElement('li');
+        const details = makeElement('div');
+        const price = Number(offer.priceMinor);
+        const amount = Number.isInteger(price) ? `${price} ${String(offer.currency || 'NGN')}` : 'Price pending confirmation';
+        details.append(
+          makeElement('strong', '', offer.description || 'Seller offer'),
+          makeElement('span', '', `${String(offer.sellerName || 'Verified seller')} · ${amount}`)
+        );
+        if (offer.availabilityNote) details.appendChild(makeElement('small', '', String(offer.availabilityNote)));
+        const button = makeElement('button', 'sf-btn sf-primary', 'Choose offer');
+        button.type = 'button';
+        button.addEventListener('click', () => { void startKnownOffer(String(offer.id || '')); });
+        item.append(details, button);
+        list.appendChild(item);
+      });
+      offers.appendChild(list);
+      holder.appendChild(offers);
+    }
+
+    if (Array.isArray(card.deliveryCandidates) && card.deliveryCandidates.length) {
+      const candidates = makeElement('section', 'storefront-delivery-candidates');
+      candidates.appendChild(makeElement('strong', '', 'Verified delivery options'));
+      const list = makeElement('ul', 'storefront-offers-list');
+      card.deliveryCandidates.forEach(provider => {
+        const item = makeElement('li');
+        const details = makeElement('div');
+        const rating = Number(provider.rating || 0).toFixed(1);
+        details.append(
+          makeElement('strong', '', provider.name || 'Delivery provider'),
+          makeElement('span', '', `${rating}★ · listed rate ${String(provider.hourly_rate || 0)} NGN`)
+        );
+        const button = makeElement('button', 'sf-btn sf-primary', 'Choose delivery');
+        button.type = 'button';
+        button.addEventListener('click', () => { void selectDeliveryCandidate(card.requestId, String(provider.phone || '')); });
+        item.append(details, button);
+        list.appendChild(item);
+      });
+      candidates.appendChild(list);
+      holder.appendChild(candidates);
     }
 
     if (Array.isArray(card.providers) && card.providers.length) {

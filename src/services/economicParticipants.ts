@@ -1,5 +1,7 @@
+import crypto from 'crypto';
 import { getDb, saveDb } from '../database.js';
-import { getEconomicRequest } from './skillFlows.js';
+import { createEconomicRequest, getEconomicRequest, type EconomicRequest } from './skillFlows.js';
+import { find_worker, type FindWorkerResult } from './find-worker.js';
 
 export const ECONOMIC_PARTICIPANT_ROLES = [
   'seller',
@@ -26,6 +28,11 @@ export const ECONOMIC_PARTICIPANT_STATUSES = [
 
 export type EconomicParticipantStatus = typeof ECONOMIC_PARTICIPANT_STATUSES[number];
 
+export const ECONOMIC_OFFER_STATUSES = ['available', 'unavailable', 'reserved', 'withdrawn', 'expired'] as const;
+export type EconomicOfferStatus = typeof ECONOMIC_OFFER_STATUSES[number];
+export const ECONOMIC_OFFER_PROVENANCE = ['seller_created', 'externally_sourced', 'affiliate_derived', 'conversationally_created'] as const;
+export type EconomicOfferProvenance = typeof ECONOMIC_OFFER_PROVENANCE[number];
+
 export interface EconomicOffer {
   id: string;
   requestId: string;
@@ -36,7 +43,13 @@ export interface EconomicOffer {
   source: string;
   availabilityNote: string | null;
   externalSource: string | null;
+  status: EconomicOfferStatus;
+  provenance: EconomicOfferProvenance;
+  mediaReference: string | null;
+  externalUrl: string | null;
+  originOfferId: string | null;
   createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface EconomicParticipant {
@@ -52,6 +65,8 @@ export interface EconomicParticipant {
 
 const ROLE_SET = new Set<string>(ECONOMIC_PARTICIPANT_ROLES);
 const STATUS_SET = new Set<string>(ECONOMIC_PARTICIPANT_STATUSES);
+const OFFER_STATUS_SET = new Set<string>(ECONOMIC_OFFER_STATUSES);
+const OFFER_PROVENANCE_SET = new Set<string>(ECONOMIC_OFFER_PROVENANCE);
 
 function cleanText(value: unknown, field: string, maxLength = 1000): string {
   if (typeof value !== 'string' || !value.trim()) throw new Error(`${field} is required`);
@@ -93,6 +108,18 @@ function normalizeStatus(value: unknown): EconomicParticipantStatus {
   return status as EconomicParticipantStatus;
 }
 
+function normalizeOfferStatus(value: unknown): EconomicOfferStatus {
+  const status = cleanText(value, 'Offer status', 64);
+  if (!OFFER_STATUS_SET.has(status)) throw new Error('Unsupported offer status');
+  return status as EconomicOfferStatus;
+}
+
+function normalizeOfferProvenance(value: unknown): EconomicOfferProvenance {
+  const provenance = cleanText(value, 'Offer provenance', 64);
+  if (!OFFER_PROVENANCE_SET.has(provenance)) throw new Error('Unsupported offer provenance');
+  return provenance as EconomicOfferProvenance;
+}
+
 function offerFromRow(row: any): EconomicOffer {
   return {
     id: String(row.id),
@@ -104,7 +131,13 @@ function offerFromRow(row: any): EconomicOffer {
     source: String(row.source),
     availabilityNote: row.availability_note ? String(row.availability_note) : null,
     externalSource: row.external_source ? String(row.external_source) : null,
+    status: String(row.status || 'available') as EconomicOfferStatus,
+    provenance: String(row.provenance || 'conversationally_created') as EconomicOfferProvenance,
+    mediaReference: row.media_reference ? String(row.media_reference) : null,
+    externalUrl: row.external_url ? String(row.external_url) : null,
+    originOfferId: row.origin_offer_id ? String(row.origin_offer_id) : null,
     createdAt: row.created_at ? String(row.created_at) : null,
+    updatedAt: row.updated_at ? String(row.updated_at) : null,
   };
 }
 
@@ -160,6 +193,11 @@ export async function attachEconomicOffer(input: {
   source: string;
   availabilityNote?: string | null;
   externalSource?: string | null;
+  status?: EconomicOfferStatus;
+  provenance?: EconomicOfferProvenance;
+  mediaReference?: string | null;
+  externalUrl?: string | null;
+  originOfferId?: string | null;
 }): Promise<EconomicOffer> {
   await requireRequestOwner(cleanText(input.requestId, 'Request id', 128), cleanText(input.ownerPhone, 'Owner phone', 128));
   const sellerPhone = cleanText(input.sellerPhone, 'Seller phone', 128);
@@ -168,8 +206,8 @@ export async function attachEconomicOffer(input: {
   if (priceMinor !== null && (!Number.isInteger(priceMinor) || priceMinor < 0)) throw new Error('Offer price must be a non-negative integer amount in minor units');
   const db = await getDb();
   db.run(
-    `INSERT INTO economic_offers (id,request_id,seller_phone,description,price_minor,currency,source,availability_note,external_source)
-     VALUES (?,?,?,?,?,?,?,?,?)
+    `INSERT INTO economic_offers (id,request_id,seller_phone,description,price_minor,currency,source,availability_note,external_source,status,provenance,media_reference,external_url,origin_offer_id,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
      ON CONFLICT(request_id) DO UPDATE SET
        id=excluded.id,
        seller_phone=excluded.seller_phone,
@@ -178,7 +216,13 @@ export async function attachEconomicOffer(input: {
        currency=excluded.currency,
        source=excluded.source,
        availability_note=excluded.availability_note,
-       external_source=excluded.external_source`,
+       external_source=excluded.external_source,
+       status=excluded.status,
+       provenance=excluded.provenance,
+       media_reference=excluded.media_reference,
+       external_url=excluded.external_url,
+       origin_offer_id=excluded.origin_offer_id,
+       updated_at=CURRENT_TIMESTAMP`,
     [
       cleanText(input.id, 'Offer id', 128),
       input.requestId,
@@ -189,6 +233,11 @@ export async function attachEconomicOffer(input: {
       cleanText(input.source, 'Offer source', 128),
       cleanOptionalText(input.availabilityNote, 'Availability note'),
       cleanOptionalText(input.externalSource, 'External source'),
+      input.status === undefined ? 'available' : normalizeOfferStatus(input.status),
+      input.provenance === undefined ? 'conversationally_created' : normalizeOfferProvenance(input.provenance),
+      cleanOptionalText(input.mediaReference, 'Offer media reference'),
+      cleanOptionalText(input.externalUrl, 'Offer external URL'),
+      cleanOptionalText(input.originOfferId, 'Origin offer id', 128),
     ],
   );
   saveDb();
@@ -230,6 +279,165 @@ export async function addEconomicParticipant(input: {
   return (await getEconomicParticipants(requestId)).find((participant) => participant.role === role && participant.providerPhone === providerPhone)!;
 }
 
+export interface KnownEconomicOffer extends EconomicOffer {
+  sellerName: string;
+  sellerVerified: boolean;
+}
+
+function knownOfferFromRow(row: any): KnownEconomicOffer {
+  return {
+    ...offerFromRow(row),
+    sellerName: String(row.seller_name || 'Verified seller'),
+    sellerVerified: Number(row.verified_provider || 0) === 1,
+  };
+}
+
+function offerSearchTerms(query: string): string[] {
+  return Array.from(new Set(query.toLowerCase().match(/[a-z0-9]{3,}/g) || []))
+    .filter((term) => !new Set(['want', 'need', 'with', 'from', 'that', 'this', 'listing', 'offer']).has(term))
+    .slice(0, 8);
+}
+
+/**
+ * Resolve an offer only from verified sellers and only while the seller has
+ * explicitly marked it available. This is a commercial reference lookup, not
+ * an inventory or external marketplace connector.
+ */
+export async function searchKnownEconomicOffers(query: string, limit = 5): Promise<KnownEconomicOffer[]> {
+  const terms = offerSearchTerms(query);
+  if (!terms.length) return [];
+  const db = await getDb();
+  const stmt = db.prepare(`
+    SELECT e.*, m.name AS seller_name, m.verified_provider
+    FROM economic_offers e
+    JOIN memory_profiles m ON m.phone=e.seller_phone
+    WHERE e.status='available' AND COALESCE(m.verified_provider, 0)=1
+    ORDER BY e.updated_at DESC, e.created_at DESC
+    LIMIT 50
+  `);
+  const matches: Array<{ offer: KnownEconomicOffer; score: number }> = [];
+  while (stmt.step()) {
+    const row = stmt.getAsObject();
+    const offer = knownOfferFromRow(row);
+    const haystack = `${offer.description} ${offer.sellerName} ${offer.source} ${offer.availabilityNote || ''}`.toLowerCase();
+    const score = terms.reduce((total, term) => total + (haystack.includes(term) ? 1 : 0), 0);
+    if (score > 0) matches.push({ offer, score });
+  }
+  stmt.free();
+  return matches
+    .sort((a, b) => b.score - a.score || String(b.offer.updatedAt || '').localeCompare(String(a.offer.updatedAt || '')))
+    .slice(0, Math.min(Math.max(limit, 1), 10))
+    .map(({ offer }) => offer);
+}
+
+async function getKnownEconomicOffer(id: string): Promise<KnownEconomicOffer | null> {
+  const db = await getDb();
+  const stmt = db.prepare(`
+    SELECT e.*, m.name AS seller_name, m.verified_provider
+    FROM economic_offers e
+    JOIN memory_profiles m ON m.phone=e.seller_phone
+    WHERE e.id=? AND e.status='available' AND COALESCE(m.verified_provider, 0)=1
+    LIMIT 1
+  `);
+  stmt.bind([cleanText(id, 'Offer id', 128)]);
+  const row = stmt.step() ? stmt.getAsObject() : null;
+  stmt.free();
+  return row ? knownOfferFromRow(row) : null;
+}
+
+/**
+ * Start one canonical product-sourcing request from a known offer, snapshotting
+ * the commercial reference onto the buyer's request. It does not reserve stock,
+ * dispatch delivery, or create seller/delivery split settlement.
+ */
+export async function startKnownOfferEconomicRequest(input: {
+  buyerPhone: string;
+  offerId: string;
+  deliveryRequired?: boolean;
+  deliveryLocation?: string;
+  quantity?: string;
+}): Promise<{ request: EconomicRequest; offer: EconomicOffer; seller: EconomicParticipant }> {
+  const buyerPhone = cleanText(input.buyerPhone, 'Buyer phone', 128);
+  const sourceOffer = await getKnownEconomicOffer(input.offerId);
+  if (!sourceOffer) throw new Error('Known available offer not found');
+  const request = await createEconomicRequest({
+    id: crypto.randomUUID(),
+    phone: buyerPhone,
+    skill: 'product_sourcing',
+    requirements: {
+      product: sourceOffer.description,
+      quantity: cleanOptionalText(input.quantity, 'Quantity', 128) || undefined,
+      location: cleanOptionalText(input.deliveryLocation, 'Delivery location', 500) || undefined,
+      offer_id: sourceOffer.id,
+      seller_reference: sourceOffer.sellerPhone,
+      delivery_required: input.deliveryRequired === true ? 'yes' : input.deliveryRequired === false ? 'no' : 'unknown',
+      offer_status: sourceOffer.status,
+    },
+  });
+  const offer = await attachEconomicOffer({
+    requestId: request.id,
+    ownerPhone: buyerPhone,
+    id: crypto.randomUUID(),
+    sellerPhone: sourceOffer.sellerPhone,
+    description: sourceOffer.description,
+    priceMinor: sourceOffer.priceMinor,
+    currency: sourceOffer.currency,
+    source: 'known_offer_reference',
+    availabilityNote: sourceOffer.availabilityNote,
+    externalSource: sourceOffer.externalSource,
+    status: sourceOffer.status,
+    provenance: sourceOffer.provenance,
+    mediaReference: sourceOffer.mediaReference,
+    externalUrl: sourceOffer.externalUrl,
+    originOfferId: sourceOffer.id,
+  });
+  const seller = await addEconomicParticipant({
+    requestId: request.id,
+    ownerPhone: buyerPhone,
+    role: 'seller',
+    providerPhone: sourceOffer.sellerPhone,
+    capability: 'seller_offer',
+    status: 'offered',
+    evidence: {
+      offer_reference: sourceOffer.id,
+      offer_provenance: sourceOffer.provenance,
+      availability_statement: sourceOffer.availabilityNote || 'No availability statement supplied',
+      integration_status: 'not_configured',
+    },
+  });
+  return { request: (await getEconomicRequest(request.id))!, offer, seller };
+}
+
+/** Return verified providers who declare the existing delivery capability. */
+export async function getDeliveryCandidates(input: { requestId: string; ownerPhone: string; max?: number }): Promise<FindWorkerResult> {
+  const requestId = cleanText(input.requestId, 'Request id', 128);
+  await requireRequestOwner(requestId, cleanText(input.ownerPhone, 'Owner phone', 128));
+  const request = await getEconomicRequest(requestId);
+  const location = typeof request?.requirements.location === 'string' ? request.requirements.location : undefined;
+  return find_worker({ skill: 'delivery', location, max: Math.min(Math.max(input.max || 5, 1), 10) });
+}
+
+/** Record a buyer choice from the existing verified delivery-provider matches. */
+export async function selectDeliveryCandidate(input: { requestId: string; ownerPhone: string; providerPhone: string }): Promise<EconomicParticipant> {
+  const candidates = await getDeliveryCandidates({ requestId: input.requestId, ownerPhone: input.ownerPhone, max: 10 });
+  const provider = candidates.providers.find((candidate) => candidate.phone === cleanText(input.providerPhone, 'Delivery provider phone', 128));
+  if (!provider) throw new Error('Delivery provider is not an eligible current match');
+  return addEconomicParticipant({
+    requestId: input.requestId,
+    ownerPhone: input.ownerPhone,
+    role: 'delivery_provider',
+    providerPhone: provider.phone,
+    capability: 'delivery',
+    status: 'selected',
+    evidence: {
+      selected_by: 'buyer',
+      matching_skill: 'delivery',
+      provider_listed_rate_minor: provider.hourly_rate > 0 ? Math.round(provider.hourly_rate) : null,
+      integration_status: 'not_configured',
+    },
+  });
+}
+
 export async function getEconomicOffer(requestId: string): Promise<EconomicOffer | null> {
   const db = await getDb();
   const stmt = db.prepare('SELECT * FROM economic_offers WHERE request_id=? LIMIT 1');
@@ -255,14 +463,17 @@ export async function getEconomicParticipants(requestId: string): Promise<Econom
  */
 export async function updateEconomicParticipant(input: {
   requestId: string;
-  ownerPhone: string;
+  ownerPhone?: string;
+  actorPhone?: string;
   role: EconomicParticipantRole;
   providerPhone: string;
   status?: EconomicParticipantStatus;
   evidence?: Record<string, unknown>;
 }): Promise<EconomicParticipant> {
   const requestId = cleanText(input.requestId, 'Request id', 128);
-  await requireRequestOwner(requestId, cleanText(input.ownerPhone, 'Owner phone', 128));
+  const actorPhone = cleanText(input.actorPhone ?? input.ownerPhone, 'Authenticated actor phone', 128);
+  const request = await getEconomicRequest(requestId);
+  if (!request) throw new Error('Economic request not found');
   const role = normalizeRole(input.role);
   const providerPhone = cleanText(input.providerPhone, 'Provider phone', 128);
   const db = await getDb();
@@ -271,8 +482,26 @@ export async function updateEconomicParticipant(input: {
   const row = existing.step() ? existing.getAsObject() : null;
   existing.free();
   if (!row) throw new Error('Economic participant not found');
+  const isOwner = request.phone === actorPhone;
+  const isDirectParticipant = role !== 'agent' && providerPhone === actorPhone;
+  if (!isOwner && !isDirectParticipant) throw new Error('Request ownership or participant identity is required');
   const status = input.status === undefined ? String(row.status) as EconomicParticipantStatus : normalizeStatus(input.status);
-  const evidence = { ...parseEvidence(row.evidence_json), ...cleanEvidence(input.evidence) };
+  const priorEvidence = parseEvidence(row.evidence_json);
+  const priorSubmissions = Array.isArray(priorEvidence._submissions) ? priorEvidence._submissions.slice(-19) : [];
+  const evidence = {
+    ...priorEvidence,
+    ...cleanEvidence(input.evidence),
+    _submissions: [
+      ...priorSubmissions,
+      {
+        actor_phone: actorPhone,
+        actor_scope: isOwner ? 'request_owner' : 'participant',
+        submitted_at: new Date().toISOString(),
+        status,
+        verification: 'submitted_unverified',
+      },
+    ],
+  };
   db.run(
     'UPDATE economic_participants SET status=?, evidence_json=? WHERE id=?',
     [status, JSON.stringify(evidence), Number(row.id)],

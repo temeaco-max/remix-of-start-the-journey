@@ -10,12 +10,13 @@ process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 
 const { getDb, saveDb } = await import('../src/database.js');
 const { createEconomicRequest, getEconomicRequest, transitionEconomicRequest } = await import('../src/services/skillFlows.js');
-const { attachEconomicOffer, addEconomicParticipant, getEconomicRequestCoordination, updateEconomicParticipant } = await import('../src/services/economicParticipants.js');
+const { attachEconomicOffer, addEconomicParticipant, getEconomicRequestCoordination, updateEconomicParticipant, searchKnownEconomicOffers, startKnownOfferEconomicRequest, getDeliveryCandidates, selectDeliveryCandidate } = await import('../src/services/economicParticipants.js');
 const { lockEscrowForEconomicRequest, runEscrowPass } = await import('../src/services/tradeEngine.js');
 const { createDispute } = await import('../src/services/disputeResolution.js');
 const { resumeStorefrontFromRequest } = await import('../src/services/agenticStorefront.js');
 const { createAIAgent } = await import('../src/services/aiAgentService.js');
 const { createOpenIntention } = await import('../src/services/deferredRequestService.js');
+const { routeIntent } = await import('../src/services/intentRouter.js');
 
 const db = await getDb();
 const buyerPhone = '+2347000010101';
@@ -78,13 +79,50 @@ const offer = await attachEconomicOffer({
   ownerPhone: buyerPhone,
   id: 'offer-solar-lantern',
   sellerPhone,
-  description: 'One verified seller-offered solar lantern',
+  description: "Ada's blue generator",
   priceMinor: 7000,
   currency: 'NGN',
   source: 'seller_declared',
-  availabilityNote: 'Availability requires seller confirmation.',
+  availabilityNote: 'Seller states the generator is available; confirmation is still required.',
+  status: 'available',
+  provenance: 'seller_created',
+  mediaReference: 'seller-submitted-generator-photo-reference',
+  externalUrl: 'https://example.invalid/ada-generator-reference',
 });
 assert.equal(offer.priceMinor, 7000, 'the durable offer preserves the seller-listed product price');
+assert.equal(offer.provenance, 'seller_created', 'the offer retains its constrained seller-created provenance');
+
+const knownOffers = await searchKnownEconomicOffers("I want Ada's blue generator", 3);
+assert.equal(knownOffers.length, 1, 'an explicitly referenced known seller offer can be found without a global marketplace');
+assert.equal(knownOffers[0]?.sellerPhone, sellerPhone, 'known-offer lookup exposes the verified seller reference only to the canonical service');
+const routedOffer = await routeIntent("I want Ada's blue generator", buyerPhone);
+assert.equal(routedOffer.cardData?.type, 'agentic_storefront', 'explicit listing language receives the existing storefront card primitive');
+assert.equal((routedOffer.cardData as any)?.knownOffers?.[0]?.id, offer.id, 'the chat projection presents only the matched known offer candidate');
+const knownRequest = await startKnownOfferEconomicRequest({ buyerPhone, offerId: offer.id, deliveryRequired: true, deliveryLocation: 'Ikeja' });
+assert.equal(knownRequest.request.skill, 'product_sourcing', 'known offer selection starts one canonical product-sourcing request');
+assert.equal(knownRequest.request.requirements.delivery_required, 'yes', 'the buyer delivery preference is stored as request context, not a second lifecycle');
+assert.equal(knownRequest.seller.role, 'seller', 'known offer selection records the verified seller participant');
+assert.equal(knownRequest.offer.originOfferId, offer.id, 'the selected request snapshots the known offer reference for auditability');
+const deliveryCandidates = await getDeliveryCandidates({ requestId: knownRequest.request.id, ownerPhone: buyerPhone });
+assert.equal(deliveryCandidates.providers.some((provider) => provider.phone === deliveryPhone), true, 'delivery candidates reuse existing verified skill matching');
+const selectedDelivery = await selectDeliveryCandidate({ requestId: knownRequest.request.id, ownerPhone: buyerPhone, providerPhone: deliveryPhone });
+assert.equal(selectedDelivery.status, 'selected', 'buyer selection records one delivery participant without altering the primary provider field');
+const participantHandover = await updateEconomicParticipant({
+  requestId: knownRequest.request.id,
+  actorPhone: sellerPhone,
+  role: 'seller',
+  providerPhone: sellerPhone,
+  status: 'handed_over',
+  evidence: { handover_receipt: 'seller-submitted-handover-001' },
+});
+assert.equal(participantHandover.evidence.handover_receipt, 'seller-submitted-handover-001', 'the seller can submit its own handover evidence');
+assert.equal(Array.isArray(participantHandover.evidence._submissions), true, 'server records evidence submission attribution rather than trusting an asserted actor');
+assert.equal((participantHandover.evidence._submissions as any[])[0]?.actor_phone, sellerPhone, 'participant evidence includes the authenticated submitter recorded by the service');
+await assert.rejects(
+  () => updateEconomicParticipant({ requestId: knownRequest.request.id, actorPhone: intruderPhone, role: 'seller', providerPhone: sellerPhone, status: 'handed_over', evidence: { forged: true } }),
+  /ownership or participant identity/i,
+  'an unrelated user cannot submit seller evidence',
+);
 
 await assert.rejects(
   () => addEconomicParticipant({
