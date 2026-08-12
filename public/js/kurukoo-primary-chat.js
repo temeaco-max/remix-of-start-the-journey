@@ -102,7 +102,7 @@
       } else if (card.stage === 'fulfillment') {
         status.hidden = false;
         status.textContent = '🔒 Escrow locked. Confirm completion when the job is done.';
-      } else if (card.stage === 'slot_fill' || card.stage === 'quote_review') {
+      } else if (['slot_fill', 'quote_review', 'offer_review', 'delivery_selection', 'seller_handover', 'delivery_in_progress'].includes(card.stage)) {
         status.hidden = false;
         status.textContent = `🛒 Storefront · ${card.stage.replace(/_/g, ' ')} · ${card.progress || 0}%`;
       } else {
@@ -226,6 +226,35 @@
       const quote = makeElement('div', 'storefront-quote', 'Quote: ');
       quote.appendChild(makeElement('strong', '', `${String(card.quote.amount_minor)} ${String(card.quote.currency || 'NGN')}`));
       holder.appendChild(quote);
+    }
+
+    if (card.offer && typeof card.offer === 'object') {
+      const offer = makeElement('section', 'storefront-offer');
+      offer.appendChild(makeElement('strong', '', 'Seller offer'));
+      offer.appendChild(makeElement('p', '', String(card.offer.description || 'Offer details are unavailable.')));
+      const price = Number(card.offer.priceMinor);
+      const amount = Number.isInteger(price) ? `${price} ${String(card.offer.currency || 'NGN')}` : 'Price pending confirmation';
+      offer.appendChild(makeElement('span', 'storefront-offer-price', `Listed item price: ${amount}`));
+      if (card.offer.availabilityNote) offer.appendChild(makeElement('small', '', String(card.offer.availabilityNote)));
+      holder.appendChild(offer);
+    }
+
+    if (Array.isArray(card.participants) && card.participants.length) {
+      const coordination = makeElement('section', 'storefront-coordination');
+      coordination.appendChild(makeElement('strong', '', 'Coordination participants'));
+      const participants = makeElement('ul', 'storefront-participants');
+      card.participants.forEach(participant => {
+        const item = makeElement('li');
+        const role = String(participant.role || 'participant').replace(/_/g, ' ');
+        const status = String(participant.status || 'invited').replace(/_/g, ' ');
+        item.append(
+          makeElement('strong', '', role),
+          makeElement('span', '', `${status} · ${String(participant.capability || 'coordination detail pending')}`)
+        );
+        participants.appendChild(item);
+      });
+      coordination.appendChild(participants);
+      holder.appendChild(coordination);
     }
 
     const actions = Array.isArray(card.actions) ? card.actions : [];

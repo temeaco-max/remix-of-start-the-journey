@@ -26,6 +26,14 @@ import {
 } from '../services/livingMemoryEngine.js';
 import { startStorefrontSession, advanceStorefront } from '../services/agenticStorefront.js';
 import { getAiQuotaStatus } from '../services/aiQuotaService.js';
+import {
+  addEconomicParticipant,
+  attachEconomicOffer,
+  getEconomicRequestCoordination,
+  updateEconomicParticipant,
+  type EconomicParticipantRole,
+  type EconomicParticipantStatus,
+} from '../services/economicParticipants.js';
 
 const router = Router();
 
@@ -149,6 +157,80 @@ router.post('/', authenticateUser, async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('[EconomicRequest] create failed:', error);
     res.status(500).json({ success: false, error: 'Unable to create economic request' });
+  }
+});
+
+router.post('/:id/offer', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const offer = await attachEconomicOffer({
+      requestId: String(req.params.id || ''),
+      ownerPhone: phone,
+      id: typeof req.body?.id === 'string' ? req.body.id : crypto.randomUUID(),
+      sellerPhone: req.body?.sellerPhone,
+      description: req.body?.description,
+      priceMinor: req.body?.priceMinor,
+      currency: req.body?.currency,
+      source: req.body?.source,
+      availabilityNote: req.body?.availabilityNote,
+      externalSource: req.body?.externalSource,
+    });
+    res.status(201).json({ success: true, offer });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to attach offer';
+    const status = /ownership|not found/.test(message) ? 404 : 422;
+    res.status(status).json({ success: false, error: message });
+  }
+});
+
+router.post('/:id/participants', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const participant = await addEconomicParticipant({
+      requestId: String(req.params.id || ''),
+      ownerPhone: phone,
+      role: req.body?.role as EconomicParticipantRole,
+      providerPhone: req.body?.providerPhone,
+      capability: req.body?.capability,
+      status: req.body?.status as EconomicParticipantStatus | undefined,
+      evidence: req.body?.evidence,
+    });
+    res.status(201).json({ success: true, participant });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to add participant';
+    const status = /ownership|not found/.test(message) ? 404 : /verified provider/.test(message) ? 409 : 422;
+    res.status(status).json({ success: false, error: message });
+  }
+});
+
+router.get('/:id/participants', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  const request = await getEconomicRequest(String(req.params.id || ''));
+  if (!request || request.phone !== phone) return res.status(404).json({ success: false, error: 'Economic request not found' });
+  const coordination = await getEconomicRequestCoordination(request.id);
+  res.json({ success: true, ...coordination });
+});
+
+router.post('/:id/participants/:role/evidence', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const participant = await updateEconomicParticipant({
+      requestId: String(req.params.id || ''),
+      ownerPhone: phone,
+      role: String(req.params.role || '') as EconomicParticipantRole,
+      providerPhone: req.body?.providerPhone,
+      status: req.body?.status as EconomicParticipantStatus | undefined,
+      evidence: req.body?.evidence,
+    });
+    res.json({ success: true, participant });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to update participant evidence';
+    const status = /ownership|not found/.test(message) ? 404 : 422;
+    res.status(status).json({ success: false, error: message });
   }
 });
 
