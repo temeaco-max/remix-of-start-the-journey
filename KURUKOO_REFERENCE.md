@@ -3,7 +3,7 @@
 ## Architecture Overview
 - **Backend:** Node.js, Express 4, TypeScript (`src/index.ts`, `src/database.ts` → `kurukoo.sqlite` via `sql.js`).
 - **Entry:** root `index.ts` validates env then bootstraps `src/index.js` (the Express app).
-- **Frontend PWA:** Vanilla HTML/CSS/JS (`public/dashboard.html`, `public/js/kurukoo-chat.js`, `public/js/app.js`).
+- **Frontend PWA:** Vanilla HTML/CSS/JS (`public/dashboard.html`, `public/js/kurukoo-primary-chat.js`, `public/js/kurukoo-workspace.js`).
 - **Public Website:** EJS templates (`views/index.ejs`, `views/pricing.ejs`, `views/explore/index.ejs`, `views/explore/category.ejs`, …) with shared partials (`views/_partials/*`).
 - **AI Intent Pipeline:** Regex → FastText (`models/kurukoo_intent.bin`, `src/services/fastTextService.ts`) → Groq (`src/services/groqService.ts`, Llama-3.1-8B-Instant) → Template fallback (`src/services/intentRouter.ts`).
 - **Environment Variables:** `KURUKOO_PAY_PROVIDER`, `CREDIT_ECONOMY_ENABLED`, `DB_PATH`, `GROQ_API_KEY`, `WHATSAPP_TOKEN`, etc. (see `.env.example`).
@@ -80,7 +80,7 @@ Any future cross-device QR must contain a short-lived, single-use opaque server 
 | QR acquisition | `public/start`, `public/referral-qr`, `public/js/kurukoo-qr.js`, `referralService.ts` |
 
 ## Admin Console (`public/admin/*`)
-17 pages: `ai-agents`, `artists`, `celebrity`, `commissions`, `content`, `dashboard`, `future`, `login`, `marketing`, `partnerships`, `pricing`, `referrals`, `revenue`, `scam`, `social`, `users`, `analytics` — backed by `/api/admin/*` routes.
+13 pages: `ai-agents`, `commissions`, `content`, `dashboard`, `login`, `marketing`, `partnerships`, `pricing`, `referrals`, `revenue`, `social`, `users`, `analytics` — backed by `/api/admin/*` routes.
 
 Artist/celebrity admin pages are operational tooling for verification, compliance and provider management. They do not define a separate consumer economic architecture.
 
@@ -88,3 +88,10 @@ Artist/celebrity admin pages are operational tooling for verification, complianc
 - `npm run dev` → `tsx index.ts`
 - `npm run build` → `tsc && npm run copy:public` (copies `public/`, `views/`, `locales/` into `dist/`)
 - `npm run lint` → `tsc --noEmit` (passes with 0 errors under strict/NodeNext)
+
+## Web Voice and QR Contextual Entry
+
+- **Web Voice** is a browser realtime interface inside the canonical `/chat` conversation. It uses a short-lived server-provisioned Live token when the owner has enabled and configured the provider; it stores text transcripts in the normal `messages` table as `web_voice` and never stores raw audio or a permanent provider credential.
+- Voice uses the same guest-first identity progression, `intentRouter`, FastText classifier, skill metadata, Economic Request lifecycle, memory, reminders, Points, storefront cards, and safety boundaries as text. It is not a telephone, IVR, WhatsApp, Telegram, or separate voice product.
+- **QR** is a safe contextual entry bridge. `QrContext` and `/start` route physical signage, referrals, contributor/network invitations, offers, products, locations, and channel invitations into the same `/chat` conversation. QR is not authentication, payment, Points, referral reward, channel connectivity, or a separate request engine.
+- `POST /api/qr/activate` persists the contextual greeting in the existing conversation. `POST /api/qr/generate` requires the authenticated owner for personal referral QR generation. Scan alone never awards Points; qualified referral reward remains owned by the existing referral and Points services.

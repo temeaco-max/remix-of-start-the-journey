@@ -9,11 +9,20 @@
   --gray-200: #E2DED7;
   --gray-400: #A8A196;
   --gray-600: #5C574F;
+  --surface-warm: #F7F3EE;
+  --surface-soft: #F8ECE7;
+  --surface-dark: #1F1C1A;
+  --text-on-dark: #FFFFFF;
+  --text-on-primary: #FFFFFF;
+  --danger: #9A3F2B;
+  --success: #2E7D32;
+  --focus-ring: rgba(30, 136, 229, 0.42);
+  --focus-ring-offset: 3px;
   --border-radius-sm: 6px;
   --border-radius: 12px;
   --border-radius-lg: 20px;
   --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Cormorant Garamond', serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-heading: 'Plus Jakarta Sans', sans-serif;
   --container-max-width: 1280px;
   --transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
@@ -37,7 +46,7 @@ body {
 }
 
 h1, .display-font { 
-  font-family: var(--font-display); 
+  font-family: var(--font-heading); 
   font-weight: 500;
   letter-spacing: -0.01em;
 }
@@ -51,6 +60,13 @@ h2, h3, h4 {
 }
 
 a { color: inherit; text-decoration: none; transition: var(--transition); }
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: var(--focus-ring-offset); }
+button, input, select, textarea { font: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; opacity: .65; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
 
 /* Layout Components */
 .container {
@@ -655,6 +671,8 @@ a { color: inherit; text-decoration: none; transition: var(--transition); }
 .goal-chip-box:hover {
   border-color: rgba(217, 122, 92, 0.4);
 }
+
+.otp-resend-btn { margin-top: 12px; font-size: 13px; }
 
 /* Auth Submit Button */
 .auth-submit-btn {
@@ -9440,3 +9458,11 @@ body.dark-mode .quick-chip {
 
 
 
+
+/* Footer Supplementary Classes */
+.footer-desc { max-width: 300px; margin-bottom: 20px; color: var(--gray-600); }
+.footer-cta-box { margin-top: 20px; }
+
+/* Resources hub: shared presentation, never embedded in templates. */
+.resources-hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:40px;margin:60px 0}.resource-hub-section h2{font-size:1.25rem;margin-bottom:24px;border-bottom:2px solid var(--terracotta);display:inline-block;padding-bottom:8px}.resource-links{display:flex;flex-direction:column;gap:12px}.hub-link{display:flex;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--white);border:1px solid var(--gray-200);border-radius:8px;font-size:.95rem;text-decoration:none;color:var(--charcoal)}.hub-link:hover{border-color:var(--terracotta)}.latest-guides-section{margin-top:80px;padding-top:60px;border-top:1px solid var(--gray-200)}.latest-guides-section h2{margin-bottom:32px}.resources-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}.resource-card-cat{color:var(--terracotta)}
+@media(max-width:640px){.resources-hub-grid{gap:24px;margin:40px 0}.latest-guides-section{margin-top:48px;padding-top:40px}.resources-grid{grid-template-columns:1fr}}

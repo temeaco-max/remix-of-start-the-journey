@@ -120,3 +120,36 @@ Do not introduce infrastructure merely because the blueprint names it. Adopt Pos
 The current legacy-boundary removal and its dependent remediation work must pass the full repository CI suite before either is merged to `main`. The dependency audit may retain the documented upstream-only `sharp` advisory until a compatible upstream package releases a safe fix; all other validation must pass.
 
 **Rule for future implementation:** Before creating or changing a file, inspect the current repository implementation and confirm that the intended capability does not already exist. Never introduce a second architecture for a capability that already has a canonical implementation.
+
+## Current integration: Web Voice and QR contextual entry
+
+The current integration branch adds browser Web Voice to the canonical `/chat` relationship and QR/deep-link contextual entry through `QrContext`, `/start`, `/api/qr/activate`, `/api/qr/generate`, and `/referral-qr/`. Voice uses the normal conversation, guest-first identity flow, FastText/intent router, skills, Economic Request lifecycle, memory, reminders, Points, safety, and structured chat cards; it is not a phone, IVR, channel, or separate request product. QR opens the normal chat with a contextual greeting and may continue through text or voice; it is not authentication, payment, a Points award, a referral-reward engine, a channel adapter, or an economic action.
+
+A real browser Live session remains conditional on owner-managed provider configuration and applicable quota. When unavailable, the chat remains functional by text and reports a plain-language voice fallback. QR referral attribution is registered only after the existing OTP success and is still qualified and rewarded solely by the existing referral and Points services.
+
+
+## Current integration: Bounded Autonomous Agent Runtime
+
+The current `integration/main-convergence-audit` branch adds **one** feature-flagged Kurukoo Autonomous Agent Runtime. It persists owner-scoped goals and concise operational events, creates goals only after the canonical conversation/intent/storefront path, evaluates owned Economic Request state through a restricted tool registry, and re-enters due goals and existing deferred intentions through the established background-service lifecycle. It does not introduce a second AI, memory, task, provider, workflow, payment, referral, voice, QR, or Economic Request system.
+
+| Surface | Current status | Truthful boundary |
+|---|---|---|
+| `agent_goals` and timeline events | Implemented | SQLite persistence is suitable for the current single-instance deployment; every goal is phone-owned and events carry only action, result, evidence, and state metadata. |
+| Chat and inspector | Implemented | An eligible authenticated conversation can create one idempotent goal; the inspector shows a concise objective/timeline and allows cancellation. |
+| Web Voice continuity | Implemented | The existing `route_user_intent` voice tool now creates the same bounded conversation goal after canonical intent routing; it does not create a voice-specific request, memory, or workflow. |
+| Memory and request observation | Implemented | Existing bounded Living Memory and owned canonical request reads are used through the tool registry. |
+| Waiting and deferred re-entry | Implemented | Existing background services process due goals and existing open intentions when the runtime flag is enabled. |
+| Autonomous re-check | Implemented but disabled by default | Only existing eligible unresolved requests may be rechecked, and only when the low-risk flag is explicitly enabled. |
+| Payment, escrow, dispatch, emergency, deletion, arbitrary tools | Intentionally unavailable | Existing confirmation, authorization, connector, and safety boundaries remain mandatory. |
+| Reminder/proactive/provider/contributor/QR/channel event adapters | Backend dependent | Existing systems remain authoritative; each source needs a reviewed adapter, ownership check, evidence policy, and user-preference policy before it may wake a goal. |
+| Multi-instance worker coordination | Backend dependent | A shared queue/lease is required before horizontally scaled workers can process due goals. |
+
+The feature remains inactive unless `KURUKOO_AGENT_ENABLED=true`. Limits are controlled by `KURUKOO_AGENT_MAX_ACTIONS_PER_CYCLE`, `KURUKOO_AGENT_MAX_RETRIES`, `KURUKOO_AGENT_MAX_CONCURRENT_GOALS`, `KURUKOO_AGENT_COOLDOWN_SECONDS`, and `KURUKOO_AGENT_AUTONOMOUS_LOW_RISK`. With the flag disabled, Kurukoo continues operating as the normal conversational assistant.
+
+### Stripe UK Collection Adapter — Blueprint §52.2 / PA-5
+
+The Blueprint-designated diaspora collection rail is now implemented as a **fail-closed Stripe adapter**. An authenticated owner may begin a PaymentIntent only for an owned, currently quoted canonical Economic Request. The adapter uses a stable request-and-amount idempotency key, sends only a non-sensitive Economic Request reference as provider metadata, and returns only the PaymentIntent client secret to that authenticated user. A client-side success assertion never changes Kurukoo state.
+
+Stripe webhook processing uses the raw request body, a timestamped `Stripe-Signature` HMAC check, a five-minute replay window, provider event de-duplication, and amount/currency/request-reference parity before it records `payment_verified` and advances the existing Economic Request. The internal escrow ledger is created only after that verified transition. Reconciliation failures remove the event marker and return a retryable server failure rather than losing an authoritative payment event.
+
+This adapter is **not activated** until `KURUKOO_PAY_PROVIDER=stripe`, `STRIPE_SECRET_KEY`, and `STRIPE_WEBHOOK_SECRET` are deployed as server secrets and a public HTTPS webhook endpoint is registered. The Blueprint’s OPay/Moniepoint Nigerian settlement rail, FX-locking, regulated escrow custody, payout/KYC onboarding, and cross-border compliance remain separate production certifications; no code path claims that Stripe collection alone creates live payout, regulated escrow, or fulfilment.

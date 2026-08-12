@@ -1,92 +1,51 @@
 <%- include('_partials/head') %>
 <%- include('_partials/nav') %>
 
-<main>
-    <section class="section pricing-hero-section">
-        <div class="container text-center">
-            <h1 class="pricing-title">Simple, Transparent Pricing</h1>
-            <p class="pricing-subtitle">
-                One subscription unlocks everything. No hidden costs. Tell Kurukoo what you need or what you can do.
-            </p>
-        </div>
+<main class="container page-container">
+    <section class="section-heading">
+        <span class="eyebrow">Access &amp; Economic Requests</span>
+        <h1>Start with a conversation</h1>
+        <p class="lead">Web Chat is the active entry point. Kurukoo records a request and presents only the next action supported by the relevant provider, identity, and payment boundary.</p>
     </section>
 
-    <section class="section container">
-        <div class="grid grid-3 pricing-grid">
-            <div class="card pricing-card base-pricing-card pricing-card-base">
-                <div>
-                    <h3 class="pricing-card-title">Base</h3>
-                    <div class="price"><%= t.currency %><%= t.pricing.base %><span>/mo</span></div>
-                    <ul class="features-list">
-                        <li>✓ 30 Daily Points included</li>
-                        <li>✓ Full access to living chat & memory</li>
-                        <li>✓ Default Nearby Radar discovery</li>
-                        <li>✓ Access to all 45 service verticals</li>
-                        <li>✓ Web App (PWA) — 100% Free daily access</li>
-                        <li>⚠ WhatsApp &amp; USSD (deducts 1 Point/session to cover carrier/Meta fees)</li>
-                    </ul>
-                </div>
-                <a href="https://wa.me/2347000" class="btn w-full font-bold mt-24">Start on Base</a>
-            </div>
-            
-            <div class="card pricing-card featured featured-pricing-card pricing-card-base">
-                <div>
-                    <span class="pricing-badge">RECOMMENDED</span>
-                    <h3 class="pricing-card-title">Plus</h3>
-                    <div class="price"><%= t.currency %><%= t.pricing.plus %><span>/mo</span></div>
-                    <ul class="features-list">
-                        <li>✓ 60 Daily Points included</li>
-                        <li>✓ Priority Provider Matching</li>
-                        <li>✓ Default Nearby Radar discovery</li>
-                        <li>✓ 1 Free Listing Boost per month</li>
-                        <li>✓ SMS Fallback Notifications</li>
-                        <li>✓ Proactive Opportunity Nudges</li>
-                        <li>✓ **Zero-fee WhatsApp &amp; USSD access** (fees fully covered)</li>
-                    </ul>
-                </div>
-                <a href="https://wa.me/2347000" class="btn btn-primary w-full font-bold mt-24">Choose Plus</a>
-            </div>
-            
-            <div class="card pricing-card base-pricing-card pricing-card-base">
-                <div>
-                    <h3 class="pricing-card-title">Business</h3>
-                    <div class="price"><%= t.currency %><%= t.pricing.business %><span>/mo</span></div>
-                    <ul class="features-list">
-                        <li>✓ 120 Daily Points included</li>
-                        <li>✓ Verified Business Storefront</li>
-                        <li>✓ Sales & Lead Analytics</li>
-                        <li>✓ 10 Free Listing Boosts per month</li>
-                        <li>✓ Priority Search Placement</li>
-                        <li>✓ Bulk Product Catalogue Import</li>
-                        <li>✓ **Zero-fee WhatsApp &amp; USSD access** (fees fully covered)</li>
-                    </ul>
-                </div>
-                <a href="https://wa.me/2347000" class="btn w-full font-bold mt-24">Choose Business</a>
-            </div>
-        </div>
+    <section class="access-grid" aria-label="Current access and economic boundaries">
+        <article class="access-card">
+            <h2>Web Chat access</h2>
+            <p>There is no published paid subscription or self-service upgrade in this deployment. You can begin a request in Web Chat without choosing a plan.</p>
+            <a href="/chat" class="btn btn-primary">Start in Web Chat</a>
+        </article>
+
+        <article class="access-card">
+            <h2>Points</h2>
+            <p>Points are an internal application concept. Where a request flow uses them, the applicable balance and action are shown in the product rather than promised on this public page.</p>
+        </article>
+
+        <article class="access-card">
+            <h2>Payment &amp; escrow</h2>
+            <p>Economic Requests can model a payment and escrow lifecycle, but a payment service provider is not configured for this deployment. No public page should imply that a charge, payout, or escrow release can be completed here.</p>
+        </article>
+
+        <article class="access-card">
+            <h2>Providers &amp; businesses</h2>
+            <p>Provider and business participation is assessed through the request and onboarding flows. Verification, matching, lead access, and catalogue availability are not granted by selecting a public plan.</p>
+        </article>
     </section>
 
-    <section class="section container pricing-faq-section">
-        <h2 class="text-center mb-12">Frequently Asked Questions</h2>
-        <div class="flex-col gap-8 pricing-faq-wrapper">
-            <div>
-                <h4 class="pricing-faq-title">What are Points?</h4>
-                <p class="pricing-faq-text">Points are Kurukoo's internal loyalty tokens. They are used to request services, boost your visibility, or unlock provider leads. You earn Points through daily engagement, completed jobs, and referrals.</p>
-            </div>
-            <div>
-                <h4 class="pricing-faq-title">How does Kurukoo learn my routine?</h4>
-                <p class="pricing-faq-text">There are no complex forms to fill. Every chat updates your single private living memory profile dynamically. Over time, Kurukoo remembers your usual services, preferred locations, and skills.</p>
-            </div>
-            <div>
-                <h4 class="pricing-faq-title">Why do WhatsApp and USSD deduct Points on the Base tier?</h4>
-                <p class="pricing-faq-text">Meta charges a standard commercial session fee of ₦9.28 for each 24-hour conversation window on WhatsApp Business, and telecom carriers levy session charges on USSD shortcodes (*7000#). To keep Kurukoo sustainable, we deduct 1 Point per daily active session on the Base tier to offset these costs. On our **Plus** and **Business** tiers, these costs are 100% absorbed by your subscription.</p>
-            </div>
-            <div>
-                <h4 class="pricing-faq-title">Is the Web App (PWA) free to use?</h4>
-                <p class="pricing-faq-text">Yes! The **Kurukoo Progressive Web App (PWA)** is completely free of any messaging session fees. It is the highly recommended and most interactive channel for smart devices, offering detailed maps, instant messaging, and state caching without incurring any WhatsApp or USSD carrier billing overheads.</p>
-            </div>
-        </div>
+    <section class="access-note">
+        <h2>How an eligible request proceeds</h2>
+        <p>Describe the need in Web Chat. Kurukoo evaluates the request, preserves the conversation through any required sign-in step, and presents a provider, quote, payment, or fulfilment action only when the necessary integration and data are available.</p>
     </section>
 </main>
+
+<style>
+.access-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 48px 0; }
+.access-card { padding: 28px; background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--border-radius); }
+.access-card h2 { margin-bottom: 12px; font-size: 1.25rem; }
+.access-card p { color: var(--gray-600); margin-bottom: 20px; }
+.access-note { padding: 36px; background: var(--gray-50); border-radius: var(--border-radius-lg); margin-bottom: 48px; }
+.access-note h2 { margin-bottom: 12px; }
+.access-note p { max-width: 760px; color: var(--gray-600); }
+@media (max-width: 720px) { .access-grid { grid-template-columns: 1fr; } .access-card, .access-note { padding: 24px; } }
+</style>
 
 <%- include('_partials/footer') %>

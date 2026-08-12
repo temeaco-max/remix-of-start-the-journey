@@ -1,141 +1,29 @@
-/* Kurukoo Voice — free browser voice adapter.
- * Keeps voice inside the existing /chat conversation. No audio is stored and
- * no second conversation/request engine is created. A future realtime adapter
- * can replace this transport without changing the chat domain.
- */
-(function () {
-  'use strict';
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const input = document.getElementById('message-input');
+(() => {
   const button = document.getElementById('voice-input');
-  const send = document.getElementById('send-message');
-  if (!input || !button) return;
-
-  let recognition = null;
-  let listening = false;
-  let speaking = false;
-  let finalTranscript = '';
-
-  function setState(state) {
-    button.dataset.voiceState = state;
-    button.setAttribute('aria-pressed', state === 'listening' ? 'true' : 'false');
-    const labels = {
-      idle: 'Start voice input',
-      listening: 'Stop listening',
-      unavailable: 'Voice input unavailable'
-    };
-    button.setAttribute('aria-label', labels[state] || labels.idle);
-    button.title = labels[state] || labels.idle;
-    button.classList.toggle('is-listening', state === 'listening');
-  }
-
-  function stopSpeech() {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    speaking = false;
-  }
-
-  function speakAssistant(text) {
-    if (!text || !('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return;
-    stopSpeech();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.onstart = function () { speaking = true; };
-    utterance.onend = function () { speaking = false; };
-    utterance.onerror = function () { speaking = false; };
-    window.speechSynthesis.speak(utterance);
-  }
-
-  function sendCurrentTranscript() {
-    const text = finalTranscript.trim();
-    if (!text) return;
-    input.value = text;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    if (send) send.click();
-    finalTranscript = '';
-  }
-
-  if (!SpeechRecognition) {
-    setState('unavailable');
-    return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.lang = document.documentElement.lang || navigator.language || 'en-GB';
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
-
-  recognition.onstart = function () {
-    listening = true;
-    finalTranscript = '';
-    stopSpeech();
-    setState('listening');
-  };
-
-  recognition.onresult = function (event) {
-    let interim = '';
-    for (let i = event.resultIndex; i < event.results.length; i += 1) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) finalTranscript += transcript + ' ';
-      else interim += transcript;
-    }
-    input.value = (finalTranscript + interim).trim();
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  };
-
-  recognition.onerror = function (event) {
-    listening = false;
-    setState('idle');
-    if (event.error !== 'aborted' && event.error !== 'no-speech') {
-      input.placeholder = 'Voice unavailable — type to continue';
-      window.setTimeout(function () { input.placeholder = 'Message Kurukoo'; }, 3000);
-    }
-  };
-
-  recognition.onend = function () {
-    listening = false;
-    setState('idle');
-    sendCurrentTranscript();
-  };
-
-  button.addEventListener('click', function () {
-    if (listening) {
-      recognition.stop();
-      return;
-    }
-    stopSpeech();
-    try { recognition.start(); } catch (_) { setState('idle'); }
-  });
-
-  // Speak newly rendered assistant messages without creating a voice thread.
-  const content = document.getElementById('chat-content');
-  if (content && 'speechSynthesis' in window) {
-    const seen = new WeakSet();
-    const observer = new MutationObserver(function (mutations) {
-      mutations.forEach(function (mutation) {
-        mutation.addedNodes.forEach(function (node) {
-          if (!(node instanceof Element)) return;
-          const candidates = [node].concat(Array.from(node.querySelectorAll ? node.querySelectorAll('[data-role="assistant"], .assistant-message, .message-assistant') : []));
-          candidates.forEach(function (candidate) {
-            if (seen.has(candidate)) return;
-            const role = candidate.getAttribute && candidate.getAttribute('data-role');
-            const text = (candidate.innerText || '').trim();
-            if (role === 'assistant' && text && text.length < 4000) {
-              seen.add(candidate);
-              speakAssistant(text);
-            }
-          });
-        });
-      });
-    });
-    observer.observe(content, { childList: true, subtree: true });
-  }
-
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) stopSpeech();
-  });
-
+  if (!button) return;
+  const status = document.getElementById('voice-status');
+  const end = document.getElementById('voice-end');
+  const phases = new Set(['idle','requesting_permission','connecting','listening','thinking','speaking','interrupted','ending','ended','error','unavailable']);
+  const state = { mode: 'idle', sessionId: '', session: null, stream: null, audioContext: null, processor: null, playback: new Set(), idleTimer: null, idleMs: 120000, model: '', stopped: false };
+  const labels = { idle: 'Voice', requesting_permission: 'Allow microphone access…', connecting: 'Connecting…', listening: 'Listening…', thinking: 'Thinking…', speaking: 'Speaking…', interrupted: 'Interrupted', ending: 'Ending voice…', ended: 'Voice ended', error: "Voice isn’t available right now. You can continue chatting by text.", unavailable: "Voice isn’t available right now. You can continue chatting by text.", disconnected: "Voice isn’t available right now. You can continue chatting by text." };
+  const emit = (type, detail = {}) => document.dispatchEvent(new CustomEvent('kurukoo:voice', { detail: { type, ...detail } }));
+  const setState = (mode, message) => { if (!phases.has(mode)) mode = 'error'; state.mode = mode; const active = ['requesting_permission','connecting', 'listening', 'thinking', 'speaking', 'interrupted', 'ending'].includes(mode); button.setAttribute('aria-pressed', String(active)); button.dataset.voiceState = mode; button.setAttribute('aria-label', labels[mode] || labels.idle); if (end) end.hidden = !active; if (status) { status.hidden = mode === 'idle'; status.textContent = message || labels[mode] || labels.idle; status.dataset.state = mode; } };
+  const encodePcm = (samples) => { const out = new Uint8Array(samples.length * 2); const view = new DataView(out.buffer); for (let i = 0; i < samples.length; i += 1) view.setInt16(i * 2, Math.max(-1, Math.min(1, samples[i])) * 0x7fff, true); let text = ''; out.forEach(byte => { text += String.fromCharCode(byte); }); return btoa(text); };
+  const decodePcm = (base64) => { const binary = atob(base64); const out = new Int16Array(binary.length / 2); for (let i = 0; i < out.length; i += 1) out[i] = (binary.charCodeAt(i * 2) | (binary.charCodeAt(i * 2 + 1) << 8)); return out; };
+  const resample = (input, fromRate, toRate) => { if (fromRate === toRate) return input; const ratio = fromRate / toRate; const size = Math.round(input.length / ratio); const output = new Float32Array(size); for (let i = 0; i < size; i += 1) { const at = i * ratio; const low = Math.floor(at); const high = Math.min(low + 1, input.length - 1); output[i] = input[low] + (input[high] - input[low]) * (at - low); } return output; };
+  const resetIdle = () => { clearTimeout(state.idleTimer); state.idleTimer = setTimeout(() => stop('idle_timeout'), state.idleMs); };
+  const saveTranscript = async (role, content) => { const text = String(content || '').trim(); if (!text || !state.sessionId) return; const response = await fetch('/api/voice/transcript', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: state.sessionId, role, content: text }) }).catch(() => null); const data = response?.ok ? await response.json().catch(() => null) : null; emit('transcript', { role, text, messageId: data?.messageId, conversationId: data?.conversationId }); };
+  const stopPlayback = () => { state.playback.forEach(source => { try { source.stop(); } catch {} }); state.playback.clear(); };
+  const playAudio = (base64) => { if (!base64 || !state.audioContext) return; stopPlayback(); const pcm = decodePcm(base64); const buffer = state.audioContext.createBuffer(1, pcm.length, 24000); const channel = buffer.getChannelData(0); for (let i = 0; i < pcm.length; i += 1) channel[i] = pcm[i] / 0x8000; const source = state.audioContext.createBufferSource(); source.buffer = buffer; source.connect(state.audioContext.destination); source.onended = () => state.playback.delete(source); state.playback.add(source); source.start(); setState('speaking'); };
+  const toolResponse = async (call) => { const name = call?.name; const args = call?.args || {}; const response = await fetch('/api/voice/tools', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: state.sessionId, name, args }) }); const result = response.ok ? await response.json() : { result: { ok: false, message: 'Kurukoo could not complete that action.' } }; state.session?.sendToolResponse?.({ functionResponses: [{ id: call?.id, name, response: result.result }] }); if (result.result?.reply) { await saveTranscript('assistant', result.result.reply); emit('card', { cardData: result.result.cardData, text: result.result.reply }); } };
+  const handleLiveMessage = async (message) => { resetIdle(); const content = message?.serverContent; const inputText = content?.inputTranscription?.text; const outputText = content?.outputTranscription?.text; if (inputText) await saveTranscript('user', inputText); if (outputText) { await saveTranscript('assistant', outputText); emit('assistant_text', { text: outputText }); } const audio = content?.modelTurn?.parts?.find(part => part?.inlineData?.mimeType?.startsWith('audio/pcm'))?.inlineData?.data; if (audio) playAudio(audio); const calls = message?.toolCall?.functionCalls || []; for (const call of calls) await toolResponse(call); if (content?.turnComplete && state.mode !== 'speaking') setState('listening'); };
+  const openMic = async () => { state.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }); state.audioContext = new AudioContext(); await state.audioContext.resume(); const source = state.audioContext.createMediaStreamSource(state.stream); state.processor = state.audioContext.createScriptProcessor(4096, 1, 1); state.processor.onaudioprocess = event => { if (!state.session || state.mode === 'muted') return; if (state.playback.size) { stopPlayback(); setState('interrupted'); } const pcm = resample(event.inputBuffer.getChannelData(0), state.audioContext.sampleRate, 16000); state.session.sendRealtimeInput({ media: { mimeType: 'audio/pcm;rate=16000', data: encodePcm(pcm) } }); resetIdle(); }; source.connect(state.processor); state.processor.connect(state.audioContext.destination); };
+  const connect = async () => { if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext) { setState('unavailable'); throw new Error(labels.unavailable); } const statusResponse = await fetch('/api/voice/status', { credentials: 'same-origin' }).catch(() => null); const availability = statusResponse?.ok ? await statusResponse.json().catch(() => null) : null; if (!availability?.voice?.available) { setState('unavailable'); throw new Error(labels.unavailable); } setState('requesting_permission'); await openMic(); setState('connecting'); const requestedConversationId = localStorage.getItem('kurukoo_conversation_id') || undefined; const response = await fetch('/api/voice/session', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId: requestedConversationId }) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || labels.error); state.sessionId = data.voice.sessionId; state.model = data.voice.model; state.idleMs = Math.max(30000, Number(data.voice.idleTimeoutSeconds || 120) * 1000); localStorage.setItem('kurukoo_conversation_id', data.voice.conversationId); emit('conversation', { conversationId: data.voice.conversationId }); const sdk = await import('https://cdn.jsdelivr.net/npm/@google/genai@2.16.0/+esm'); const client = new sdk.GoogleGenAI({ apiKey: data.voice.token }); state.session = await client.live.connect({ model: data.voice.model, config: data.voice.clientConfig, callbacks: { onopen: () => setState('listening'), onmessage: handleLiveMessage, onerror: () => { setState('error'); stop('provider_error'); }, onclose: () => { if (!state.stopped) { setState('disconnected'); cleanup(); } } } }); resetIdle(); };
+  const cleanup = () => { clearTimeout(state.idleTimer); stopPlayback(); try { state.processor?.disconnect(); } catch {} state.processor = null; state.stream?.getTracks().forEach(track => track.stop()); state.stream = null; state.audioContext?.close?.(); state.audioContext = null; try { state.session?.close?.(); } catch {} state.session = null; state.sessionId = ''; };
+  async function stop(reason = 'client_disconnect') { if (state.stopped) return; state.stopped = true; setState('ending'); const id = state.sessionId; cleanup(); if (id) fetch('/api/voice/end', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: id, reason }) }).catch(() => {}); setState('ended'); setTimeout(() => setState('idle'), 250); state.stopped = false; }
+  button.addEventListener('click', async () => { if (state.session || ['requesting_permission','connecting','listening','thinking','speaking','interrupted'].includes(state.mode)) return stop('user_end'); try { await connect(); } catch (error) { const denied = error?.name === 'NotAllowedError'; setState(denied ? 'unavailable' : 'error', denied ? "Microphone access is blocked. You can continue chatting by text." : labels.error); cleanup(); } });
+  end?.addEventListener('click', () => stop('user_end'));
+  document.addEventListener('visibilitychange', () => { if (document.hidden && state.session) stop('page_hidden'); });
+  window.addEventListener('pagehide', () => { if (state.session) stop('page_unload'); });
   setState('idle');
 })();

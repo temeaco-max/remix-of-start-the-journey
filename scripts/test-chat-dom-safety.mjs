@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const source = fs.readFileSync(path.join(__dirname, '../public/js/kurukoo-primary-chat.js'), 'utf8');
+const shell = fs.readFileSync(path.join(__dirname, '../public/chat/index.html'), 'utf8');
+const chatCss = fs.readFileSync(path.join(__dirname, '../public/css/kurukoo-chat.css'), 'utf8');
 const storefrontStart = source.indexOf('function renderAgenticStorefront');
 const storefrontEnd = source.indexOf('function renderCard', storefrontStart);
 assert.ok(storefrontStart >= 0 && storefrontEnd > storefrontStart, 'agentic storefront renderer must remain present');
@@ -17,6 +19,23 @@ assert.match(storefront, /\.setAttribute\(/, 'storefront renderer must set progr
 assert.doesNotMatch(storefront, /innerHTML\s*=/, 'storefront renderer must not interpolate card data into innerHTML');
 assert.doesNotMatch(storefront, /style=["'][^"']*width/, 'storefront renderer must not emit inline progress styles');
 assert.match(source, /function renderMarkdown\(text\).*sanitizeHtml/s, 'sanitized Markdown rendering must remain available for genuine message content');
-assert.match(source, /output\.innerHTML\s*=\s*renderMarkdown\(full\)/, 'streaming Markdown must continue through its existing sanitization boundary');
+assert.match(source, /setMarkdown\(output, full\)/, 'streaming Markdown must continue through its sanitizer-backed DOM helper');
+assert.match(source, /function setMarkdown\(el, text\)[\s\S]*renderMarkdown\(text\)[\s\S]*replaceChildren/, 'Markdown helper must sanitize before replacing rendered DOM content');
+assert.match(shell, /aria-controls="chat-inspector"/, 'context inspector toggle must declare its controlled region');
+assert.match(shell, /id="inspector-feedback"[^>]*role="status"/, 'Native Assistance feedback must be announced to assistive technology');
+assert.match(shell, /id="native-assistance-status"[^>]*role="status"/, 'primary chat must announce proactive Native Assistance status');
+assert.match(source, /function setInspectorOpen\(/, 'context inspector must have a responsive open-state controller');
+assert.match(source, /async function nativeAction\(/, 'Native Assistance actions must use a shared error-aware request helper');
+assert.match(source, /\/api\/safety\/contacts\/.*\/revoke/, 'context inspector must expose owner-scoped safety contact revocation');
+assert.match(source, /function updateNativeAssistanceStatus\(/, 'primary chat must derive proactive Native Assistance status from canonical state');
+assert.match(source, /no contact is notified automatically/, 'safety status must preserve the non-emergency delivery boundary');
+assert.match(source, /function setTypingStatus\(/, 'chat must own a reusable live typing-status renderer');
+assert.match(source, /data\.type === 'status'.*setTypingStatus/s, 'stream status events must drive the typing indicator');
+assert.match(source, /data-kurukoo-typing/, 'typing presence must remain transient rather than becoming a saved message');
+assert.match(source, /aria-live.*polite/, 'typing presence must be announced accessibly');
+assert.match(source, /message-arrived/, 'streamed assistant content must receive the enhanced arrival state');
+assert.match(chatCss, /\.typing-indicator/, 'typing indicator must have dedicated shared chat styles');
+assert.match(chatCss, /kurukoo-message-bubble-in/, 'new message bubbles must have a dedicated arrival animation');
+assert.match(chatCss, /prefers-reduced-motion:reduce/, 'typing and message arrival motion must honor user motion preferences');
 
-console.log('Chat DOM-safety contract passed: storefront card data uses DOM APIs; sanitized Markdown remains intact.');
+console.log('Chat DOM-safety contract passed: storefront cards use DOM APIs, Markdown remains sanitized, and live typing/message-arrival controls are accessible and error-aware.');
