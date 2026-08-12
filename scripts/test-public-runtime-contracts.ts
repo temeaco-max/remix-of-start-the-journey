@@ -30,6 +30,7 @@ try {
   assert.match(homeHtml, /data-onboarding-goal="buyer"/, 'homepage navigation must declare its onboarding goal');
   const homeBodyHtml = homeHtml.slice(homeHtml.indexOf('<body'));
   assert.doesNotMatch(homeBodyHtml, /onclick=|onsubmit=/, 'homepage navigation and onboarding must use controller-bound events rather than inline handlers');
+  assert.match(homeHtml, /Tell Kurukoo what you need\. Kurukoo figures out who or what can fulfil it\./, 'homepage must retain the canonical fulfillment-orchestration tagline');
   assert.match(homeHtml, /Illustrative conversation/, 'homepage chat preview must be clearly labelled as illustrative');
   assert.match(homeHtml, /Illustrative preview/, 'homepage Nearby Pulse preview must be clearly labelled as illustrative');
   assert.doesNotMatch(homeHtml, /Mama Nkechi|Sola Phone Repairs|Musa Keke Rider|150m away|300m away|200m away|3 okada riders are nearby/, 'homepage must not present unsupported named providers, distances, availability, or activity as live data');
