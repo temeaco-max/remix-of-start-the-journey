@@ -92,7 +92,18 @@
             if (activeLayers[layer] !== false) {
                 const item = document.createElement('div');
                 item.className = 'discover-list-item-node';
-                item.innerHTML = `<span class="dot-indicator" style="background-color: ${color};"></span><div><div class="item-title-bold">${name}</div><div class="item-detail-muted">${detail||''}</div></div>`;
+                const indicator = document.createElement('span');
+                indicator.className = 'dot-indicator';
+                indicator.style.backgroundColor = color;
+                const text = document.createElement('div');
+                const title = document.createElement('div');
+                title.className = 'item-title-bold';
+                title.textContent = String(name || 'Activity');
+                const detailText = document.createElement('div');
+                detailText.className = 'item-detail-muted';
+                detailText.textContent = String(detail || '');
+                text.append(title, detailText);
+                item.append(indicator, text);
                 list.appendChild(item);
             }
         });

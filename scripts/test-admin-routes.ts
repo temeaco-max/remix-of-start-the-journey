@@ -9,7 +9,6 @@ const paths = [
   '/api/admin/disputes',
   '/api/admin/users',
   '/api/admin/ai-agents',
-  '/api/admin/github/status',
   '/api/admin/analytics',
   '/api/admin/content',
   '/api/admin/keep-alive',

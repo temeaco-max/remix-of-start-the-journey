@@ -36,7 +36,7 @@
             <p><strong>Sign in to chat with Kurukoo</strong></p>
             <p>Your Memory Profile and conversation history stay private until you sign in. Open the full chat to continue.</p>
             <p><a class="primary-btn" href="/login?return=${encodeURIComponent('/chat')}" target="_top" rel="noopener">Sign in</a>
-            <a class="secondary-btn" href="/chat" target="_top" rel="noopener" style="margin-left:8px">Open full chat</a></p>
+            <a class="secondary-btn" href="/chat" target="_top" rel="noopener" class="embed-open-chat">Open full chat</a></p>
           </div>
         </div>
       </div>`;
@@ -102,7 +102,7 @@
       } else if (card.stage === 'fulfillment') {
         status.hidden = false;
         status.textContent = '🔒 Escrow locked. Confirm completion when the job is done.';
-      } else if (card.stage === 'slot_fill' || card.stage === 'quote_review') {
+      } else if (['slot_fill', 'quote_review', 'offer_review', 'delivery_selection', 'seller_handover', 'delivery_in_progress'].includes(card.stage)) {
         status.hidden = false;
         status.textContent = `🛒 Storefront · ${card.stage.replace(/_/g, ' ')} · ${card.progress || 0}%`;
       } else {
@@ -143,8 +143,6 @@
       const card = data.card;
       setDeferredStatus(card);
       if (card?.requestId) state.activeStorefrontId = card.requestId;
-
-      // Append assistant update with new card
       const wrap = appendStreamBubble();
       const output = wrap.querySelector('.markdown-body');
       output.innerHTML = renderMarkdown(card.message || 'Updated.');
@@ -162,70 +160,229 @@
     }
   }
 
+  async function startKnownOffer(offerId) {
+    if (!offerId || state.busy) return;
+    state.busy = true;
+    if (send) send.disabled = true;
+    try {
+      const res = await fetch(`/api/chat/economic-requests/offers/${encodeURIComponent(offerId)}/start`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: '{}'
+      });
+      if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not start request from that offer');
+      const card = data.card;
+      setDeferredStatus(card);
+      if (card?.requestId) state.activeStorefrontId = card.requestId;
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(card.message || 'Offer selected.');
+      renderCard(card, wrap);
+      state.messages.push({ role: 'assistant', text: card.message || '', id: null });
+      scroll.scrollTop = scroll.scrollHeight;
+      await loadPoints();
+    } catch (error) {
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(`Could not select that offer. **${escapeText(error.message)}**`);
+    } finally { state.busy = false; if (send) send.disabled = false; }
+  }
+
+  async function selectDeliveryCandidate(requestId, providerPhone) {
+    if (!requestId || !providerPhone || state.busy) return;
+    state.busy = true;
+    if (send) send.disabled = true;
+    try {
+      const res = await fetch(`/api/chat/economic-requests/${encodeURIComponent(requestId)}/delivery-selection`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ providerPhone })
+      });
+      if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not select delivery provider');
+      const card = data.card;
+      setDeferredStatus(card);
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(card.message || 'Delivery provider selected.');
+      renderCard(card, wrap);
+      state.messages.push({ role: 'assistant', text: card.message || '', id: null });
+      scroll.scrollTop = scroll.scrollHeight;
+    } catch (error) {
+      const wrap = appendStreamBubble();
+      wrap.querySelector('.markdown-body').innerHTML = renderMarkdown(`Could not select that delivery provider. **${escapeText(error.message)}**`);
+    } finally { state.busy = false; if (send) send.disabled = false; }
+  }
+
+  function makeElement(tag, className = '', text = '') {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text) element.textContent = String(text);
+    return element;
+  }
+
   function renderAgenticStorefront(card, messageEl) {
-    const holder = document.createElement('div');
-    holder.className = 'provider-card agentic-storefront';
-    holder.dataset.requestId = card.requestId || '';
-    holder.dataset.stage = card.stage || '';
+    const holder = makeElement('div', 'provider-card agentic-storefront');
+    holder.dataset.requestId = String(card.requestId || '');
+    holder.dataset.stage = String(card.stage || '');
 
     const progress = Math.max(0, Math.min(100, Number(card.progress) || 0));
-    const fieldsHtml = Array.isArray(card.fields) && card.fields.length
-      ? `<div class="storefront-fields">${card.fields.map(f => {
-          const req = f.required ? ' <span class="req">*</span>' : '';
-          return `<label class="storefront-field"><span>${escapeText(f.label || f.key)}${req}</span><input data-storefront-field="${escapeAttr(f.key)}" type="text" value="${escapeAttr(f.value || '')}" placeholder="${escapeAttr(f.label || f.key)}" autocomplete="off" /></label>`;
-        }).join('')}</div>`
-      : '';
+    const progressClass = Math.round(progress / 10) * 10;
+    const head = makeElement('div', 'storefront-head');
+    head.append(
+      makeElement('strong', '', card.title || 'Kurukoo'),
+      makeElement('span', 'storefront-stage', String(card.stage || '').replace(/_/g, ' '))
+    );
+    holder.appendChild(head);
 
-    const providersHtml = Array.isArray(card.providers) && card.providers.length
-      ? `<ul class="storefront-providers">${card.providers.map((p, i) => `<li class="${i === 0 ? 'top' : ''}"><strong>${escapeText(p.name || 'Provider')}</strong><span>${Number(p.rating || 0).toFixed(1)}★ · ₦${escapeText(String(p.hourly_rate || 0))}</span></li>`).join('')}</ul>`
-      : '';
+    const progressBar = makeElement('div', 'storefront-progress');
+    progressBar.setAttribute('role', 'progressbar');
+    progressBar.setAttribute('aria-valuenow', String(progress));
+    progressBar.setAttribute('aria-valuemin', '0');
+    progressBar.setAttribute('aria-valuemax', '100');
+    progressBar.appendChild(makeElement('i', `storefront-progress-meter progress-${progressClass}`));
+    holder.appendChild(progressBar);
 
-    const quoteHtml = card.quote
-      ? `<div class="storefront-quote">Quote: <strong>${escapeText(String(card.quote.amount_minor))} ${escapeText(card.quote.currency || 'NGN')}</strong></div>`
-      : '';
+    if (Array.isArray(card.fields) && card.fields.length) {
+      const fields = makeElement('div', 'storefront-fields');
+      card.fields.forEach(field => {
+        const key = String(field.key || '');
+        const label = makeElement('label', 'storefront-field');
+        const labelText = makeElement('span', '', field.label || key);
+        if (field.required) labelText.appendChild(makeElement('span', 'req', '*'));
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.dataset.storefrontField = key;
+        input.value = String(field.value || '');
+        input.placeholder = String(field.label || key);
+        input.autocomplete = 'off';
+        label.append(labelText, input);
+        fields.appendChild(label);
+      });
+      holder.appendChild(fields);
+    }
+
+    if (Array.isArray(card.knownOffers) && card.knownOffers.length) {
+      const offers = makeElement('section', 'storefront-known-offers');
+      offers.appendChild(makeElement('strong', '', 'Known seller offers'));
+      const list = makeElement('ul', 'storefront-offers-list');
+      card.knownOffers.forEach(offer => {
+        const item = makeElement('li');
+        const details = makeElement('div');
+        const price = Number(offer.priceMinor);
+        const amount = Number.isInteger(price) ? `${price} ${String(offer.currency || 'NGN')}` : 'Price pending confirmation';
+        details.append(
+          makeElement('strong', '', offer.description || 'Seller offer'),
+          makeElement('span', '', `${String(offer.sellerName || 'Verified seller')} · ${amount}`)
+        );
+        if (offer.availabilityNote) details.appendChild(makeElement('small', '', String(offer.availabilityNote)));
+        const button = makeElement('button', 'sf-btn sf-primary', 'Choose offer');
+        button.type = 'button';
+        button.addEventListener('click', () => { void startKnownOffer(String(offer.id || '')); });
+        item.append(details, button);
+        list.appendChild(item);
+      });
+      offers.appendChild(list);
+      holder.appendChild(offers);
+    }
+
+    if (Array.isArray(card.deliveryCandidates) && card.deliveryCandidates.length) {
+      const candidates = makeElement('section', 'storefront-delivery-candidates');
+      candidates.appendChild(makeElement('strong', '', 'Verified delivery options'));
+      const list = makeElement('ul', 'storefront-offers-list');
+      card.deliveryCandidates.forEach(provider => {
+        const item = makeElement('li');
+        const details = makeElement('div');
+        const rating = Number(provider.rating || 0).toFixed(1);
+        details.append(
+          makeElement('strong', '', provider.name || 'Delivery provider'),
+          makeElement('span', '', `${rating}★ · listed rate ${String(provider.hourly_rate || 0)} NGN`)
+        );
+        const button = makeElement('button', 'sf-btn sf-primary', 'Choose delivery');
+        button.type = 'button';
+        button.addEventListener('click', () => { void selectDeliveryCandidate(card.requestId, String(provider.phone || '')); });
+        item.append(details, button);
+        list.appendChild(item);
+      });
+      candidates.appendChild(list);
+      holder.appendChild(candidates);
+    }
+
+    if (Array.isArray(card.providers) && card.providers.length) {
+      const providers = makeElement('ul', 'storefront-providers');
+      card.providers.forEach((provider, index) => {
+        const item = makeElement('li', index === 0 ? 'top' : '');
+        const rating = Number(provider.rating || 0).toFixed(1);
+        item.append(
+          makeElement('strong', '', provider.name || 'Provider'),
+          makeElement('span', '', `${rating}★ · ₦${String(provider.hourly_rate || 0)}`)
+        );
+        providers.appendChild(item);
+      });
+      holder.appendChild(providers);
+    }
+
+    if (card.quote) {
+      const quote = makeElement('div', 'storefront-quote', 'Quote: ');
+      quote.appendChild(makeElement('strong', '', `${String(card.quote.amount_minor)} ${String(card.quote.currency || 'NGN')}`));
+      holder.appendChild(quote);
+    }
+
+    if (card.offer && typeof card.offer === 'object') {
+      const offer = makeElement('section', 'storefront-offer');
+      offer.appendChild(makeElement('strong', '', 'Seller offer'));
+      offer.appendChild(makeElement('p', '', String(card.offer.description || 'Offer details are unavailable.')));
+      const price = Number(card.offer.priceMinor);
+      const amount = Number.isInteger(price) ? `${price} ${String(card.offer.currency || 'NGN')}` : 'Price pending confirmation';
+      offer.appendChild(makeElement('span', 'storefront-offer-price', `Listed item price: ${amount}`));
+      if (card.offer.availabilityNote) offer.appendChild(makeElement('small', '', String(card.offer.availabilityNote)));
+      holder.appendChild(offer);
+    }
+
+    if (Array.isArray(card.participants) && card.participants.length) {
+      const coordination = makeElement('section', 'storefront-coordination');
+      coordination.appendChild(makeElement('strong', '', 'Coordination participants'));
+      const participants = makeElement('ul', 'storefront-participants');
+      card.participants.forEach(participant => {
+        const item = makeElement('li');
+        const role = String(participant.role || 'participant').replace(/_/g, ' ');
+        const status = String(participant.status || 'invited').replace(/_/g, ' ');
+        item.append(
+          makeElement('strong', '', role),
+          makeElement('span', '', `${status} · ${String(participant.capability || 'coordination detail pending')}`)
+        );
+        participants.appendChild(item);
+      });
+      coordination.appendChild(participants);
+      holder.appendChild(coordination);
+    }
 
     const actions = Array.isArray(card.actions) ? card.actions : [];
-    const actionsHtml = actions.length
-      ? `<div class="storefront-actions">${actions.map(a => {
-          const style = a.style === 'danger' ? 'danger' : a.style === 'secondary' ? 'secondary' : 'primary';
-          return `<button type="button" class="sf-btn sf-${style}" data-sf-action="${escapeAttr(a.id)}">${escapeText(a.label || a.id)}</button>`;
-        }).join('')}</div>`
-      : '';
-
-    holder.innerHTML = `
-      <div class="storefront-head">
-        <strong>${escapeText(card.title || 'Kurukoo')}</strong>
-        <span class="storefront-stage">${escapeText((card.stage || '').replace(/_/g, ' '))}</span>
-      </div>
-      <div class="storefront-progress" role="progressbar" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"><i style="width:${progress}%"></i></div>
-      ${fieldsHtml}
-      ${providersHtml}
-      ${quoteHtml}
-      ${actionsHtml}
-      ${card.escrowProtected !== false ? '<span class="escrow-badge">🔒 Escrow Protected</span>' : ''}
-    `;
-
-    holder.querySelectorAll('[data-sf-action]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const action = btn.getAttribute('data-sf-action');
-        const fields = collectStorefrontFields(holder);
-        if (action === 'start' && !card.requestId) {
-          // Preview-only card: nudge user to send a concrete message
-          sendMessage(`Continue with ${card.skill || 'this request'}`);
-          return;
-        }
-        if (!card.requestId) return;
-        void advanceStorefront(card.requestId, action, fields, messageEl);
+    if (actions.length) {
+      const actionGroup = makeElement('div', 'storefront-actions');
+      actions.forEach(action => {
+        const style = action.style === 'danger' ? 'danger' : action.style === 'secondary' ? 'secondary' : 'primary';
+        const button = makeElement('button', `sf-btn sf-${style}`, action.label || action.id || 'Continue');
+        button.type = 'button';
+        button.dataset.sfAction = String(action.id || '');
+        button.addEventListener('click', () => {
+          const actionId = button.dataset.sfAction || '';
+          const fields = collectStorefrontFields(holder);
+          if (actionId === 'start' && !card.requestId) {
+            sendMessage(`Continue with ${card.skill || 'this request'}`);
+            return;
+          }
+          if (!card.requestId || !actionId) return;
+          void advanceStorefront(card.requestId, actionId, fields, messageEl);
+        });
+        actionGroup.appendChild(button);
       });
-    });
+      holder.appendChild(actionGroup);
+    }
 
-    // Enter in a field submits primary action
-    holder.querySelectorAll('[data-storefront-field]').forEach(el => {
-      el.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          const primary = holder.querySelector('.sf-btn.sf-primary');
-          primary?.click();
+    if (card.escrowProtected !== false) holder.appendChild(makeElement('span', 'escrow-badge', '🔒 Escrow Protected'));
+
+    holder.querySelectorAll('[data-storefront-field]').forEach(field => {
+      field.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          holder.querySelector('.sf-btn.sf-primary')?.click();
         }
       });
     });
@@ -236,12 +393,7 @@
 
   function renderCard(card, messageEl) {
     if (!card || !messageEl) return;
-
-    if (card.type === 'agentic_storefront') {
-      renderAgenticStorefront(card, messageEl);
-      return;
-    }
-
+    if (card.type === 'agentic_storefront') { renderAgenticStorefront(card, messageEl); return; }
     const holder = document.createElement('div');
     holder.className = 'provider-card';
     if (card.type === 'ride_picker') {
@@ -301,9 +453,7 @@
             assistant.dataset.messageId = data.messageId || '';
             setDeferredStatus(data.cardData);
             if (data.cardData) renderCard(data.cardData, assistant);
-            if (data.cardData?.type === 'agentic_storefront' && data.cardData.requestId) {
-              state.activeStorefrontId = data.cardData.requestId;
-            }
+            if (data.cardData?.type === 'agentic_storefront' && data.cardData.requestId) state.activeStorefrontId = data.cardData.requestId;
           }
           if (data.type === 'error') throw new Error(data.error || 'Stream error');
         }
@@ -316,14 +466,13 @@
   }
 
   function updateModelStatus(data) { const label = $('model-badge'); if (label && data.model) label.textContent = data.model; }
-
-  async function loadPoints() { try { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const points = Number(data.points || 0); $('points-balance').querySelector('span').textContent = points; const ip = $('inspector-points'); if (ip) ip.textContent = points; } catch {} }
+  async function loadPoints() { try { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const points = Number(data.points || 0); const balance = $('points-balance')?.querySelector('span'); if (balance) balance.textContent = points; const ip = $('inspector-points'); if (ip) ip.textContent = points; } catch {} }
   async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile is shared across channels.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
 
   async function refreshHistory() {
     try {
       const url = new URL('/api/chat/history', location.origin); if (state.conversationId) url.searchParams.set('conversationId', state.conversationId); url.searchParams.set('limit', '60');
-      const res = await fetch(url, { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const list = $('history-list'); list.innerHTML = '';
+      const res = await fetch(url, { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const list = $('history-list'); if (!list) return; list.innerHTML = '';
       data.conversations.forEach(c => addHistoryItem(c, c.id === state.conversationId));
       if (data.messages?.length && chatContent.querySelectorAll('.message').length === 0) renderMessages(data.messages);
     } catch { setConnection(false, 'Offline'); }
@@ -335,7 +484,6 @@
 
   function wireQuickActions(root) { if (!root || root.dataset.wired) return; root.dataset.wired = 'true'; root.addEventListener('click', e => { const button = e.target.closest('button[data-prompt]'); if (button) sendMessage(button.dataset.prompt); }); }
   wireQuickActions($('quick-actions')); wireQuickActions($('composer-quick-actions'));
-
   send?.addEventListener('click', () => sendMessage());
   input?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
   $('attach-file')?.addEventListener('click', () => $('file-input')?.click());

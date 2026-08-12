@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { type AuthRequest } from '../middleware/auth.js';
+import { authenticateAdmin, authenticateUser, type AuthRequest } from '../middleware/auth.js';
 import {
   ECONOMIC_CATEGORIES,
   getEconomicCategory,
@@ -26,6 +26,18 @@ import {
 } from '../services/livingMemoryEngine.js';
 import { startStorefrontSession, advanceStorefront } from '../services/agenticStorefront.js';
 import { getAiQuotaStatus } from '../services/aiQuotaService.js';
+import {
+  addEconomicParticipant,
+  attachEconomicOffer,
+  getEconomicRequestCoordination,
+  updateEconomicParticipant,
+  searchKnownEconomicOffers,
+  startKnownOfferEconomicRequest,
+  getDeliveryCandidates,
+  selectDeliveryCandidate,
+  type EconomicParticipantRole,
+  type EconomicParticipantStatus,
+} from '../services/economicParticipants.js';
 
 const router = Router();
 
@@ -85,7 +97,7 @@ router.get('/skills/:skill/flow', async (req: AuthRequest, res) => {
   });
 });
 
-router.post('/storefront/start', async (req: AuthRequest, res) => {
+router.post('/storefront/start', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   const skill = typeof req.body?.skill === 'string' ? req.body.skill.trim().toLowerCase() : 'find_worker';
@@ -99,7 +111,7 @@ router.post('/storefront/start', async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/storefront/:id/advance', async (req: AuthRequest, res) => {
+router.post('/storefront/:id/advance', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   const requestId = String(req.params.id || '');
@@ -114,7 +126,7 @@ router.post('/storefront/:id/advance', async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/ai-quota', async (req: AuthRequest, res) => {
+router.get('/ai-quota', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   try {
@@ -125,7 +137,7 @@ router.get('/ai-quota', async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/', async (req: AuthRequest, res) => {
+router.post('/', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   const skill = typeof req.body?.skill === 'string' ? req.body.skill.trim().toLowerCase() : '';
   const category = getEconomicCategory(skill);
@@ -152,7 +164,146 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/:id', async (req: AuthRequest, res) => {
+router.get('/offers/search', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const offers = await searchKnownEconomicOffers(String(req.query.q || ''), Number(req.query.limit) || 5);
+    res.json({ success: true, offers });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to search known offers';
+    res.status(422).json({ success: false, error: message });
+  }
+});
+
+router.post('/offers/:offerId/start', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const result = await startKnownOfferEconomicRequest({
+      buyerPhone: phone,
+      offerId: String(req.params.offerId || ''),
+      deliveryRequired: typeof req.body?.deliveryRequired === 'boolean' ? req.body.deliveryRequired : undefined,
+      deliveryLocation: typeof req.body?.deliveryLocation === 'string' ? req.body.deliveryLocation : undefined,
+      quantity: typeof req.body?.quantity === 'string' ? req.body.quantity : undefined,
+    });
+    const card = await advanceStorefront(phone, result.request.id, {}, 'view_offer');
+    res.status(201).json({ success: true, request: result.request, card });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to start a request from this offer';
+    res.status(/not found/.test(message) ? 404 : 422).json({ success: false, error: message });
+  }
+});
+
+router.post('/:id/offer', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const offer = await attachEconomicOffer({
+      requestId: String(req.params.id || ''),
+      ownerPhone: phone,
+      id: typeof req.body?.id === 'string' ? req.body.id : crypto.randomUUID(),
+      sellerPhone: req.body?.sellerPhone,
+      description: req.body?.description,
+      priceMinor: req.body?.priceMinor,
+      currency: req.body?.currency,
+      source: req.body?.source,
+      availabilityNote: req.body?.availabilityNote,
+      externalSource: req.body?.externalSource,
+      status: req.body?.status,
+      provenance: req.body?.provenance,
+      mediaReference: req.body?.mediaReference,
+      externalUrl: req.body?.externalUrl,
+      originOfferId: req.body?.originOfferId,
+    });
+    res.status(201).json({ success: true, offer });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to attach offer';
+    const status = /ownership|not found/.test(message) ? 404 : 422;
+    res.status(status).json({ success: false, error: message });
+  }
+});
+
+router.post('/:id/participants', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const participant = await addEconomicParticipant({
+      requestId: String(req.params.id || ''),
+      ownerPhone: phone,
+      role: req.body?.role as EconomicParticipantRole,
+      providerPhone: req.body?.providerPhone,
+      capability: req.body?.capability,
+      status: req.body?.status as EconomicParticipantStatus | undefined,
+      evidence: req.body?.evidence,
+    });
+    res.status(201).json({ success: true, participant });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to add participant';
+    const status = /ownership|not found/.test(message) ? 404 : /verified provider/.test(message) ? 409 : 422;
+    res.status(status).json({ success: false, error: message });
+  }
+});
+
+router.get('/:id/delivery-candidates', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const result = await getDeliveryCandidates({ requestId: String(req.params.id || ''), ownerPhone: phone, max: Number(req.query.limit) || 5 });
+    res.json({ success: true, providers: result.providers });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to find delivery providers';
+    res.status(/ownership|not found/.test(message) ? 404 : 422).json({ success: false, error: message });
+  }
+});
+
+router.post('/:id/delivery-selection', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const participant = await selectDeliveryCandidate({
+      requestId: String(req.params.id || ''),
+      ownerPhone: phone,
+      providerPhone: req.body?.providerPhone,
+    });
+    const card = await advanceStorefront(phone, String(req.params.id || ''), {}, 'review_delivery_options');
+    res.json({ success: true, participant, card });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to select delivery provider';
+    res.status(/ownership|not found/.test(message) ? 404 : 422).json({ success: false, error: message });
+  }
+});
+
+router.get('/:id/participants', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  const request = await getEconomicRequest(String(req.params.id || ''));
+  if (!request || request.phone !== phone) return res.status(404).json({ success: false, error: 'Economic request not found' });
+  const coordination = await getEconomicRequestCoordination(request.id);
+  res.json({ success: true, ...coordination });
+});
+
+router.post('/:id/participants/:role/evidence', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = phoneFrom(req);
+  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  try {
+    const participant = await updateEconomicParticipant({
+      requestId: String(req.params.id || ''),
+      actorPhone: phone,
+      role: String(req.params.role || '') as EconomicParticipantRole,
+      providerPhone: req.body?.providerPhone,
+      status: req.body?.status as EconomicParticipantStatus | undefined,
+      evidence: req.body?.evidence,
+    });
+    res.json({ success: true, participant });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to update participant evidence';
+    const status = /ownership|not found/.test(message) ? 404 : 422;
+    res.status(status).json({ success: false, error: message });
+  }
+});
+
+router.get('/:id', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   const request = await getEconomicRequest(String(req.params.id || ''));
@@ -160,7 +311,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
   res.json({ success: true, request });
 });
 
-router.post('/:id/transition', async (req: AuthRequest, res) => {
+router.post('/:id/transition', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   const request = await getEconomicRequest(String(req.params.id || ''));
@@ -171,7 +322,7 @@ router.post('/:id/transition', async (req: AuthRequest, res) => {
   // Customers may only request customer-owned lifecycle transitions. Provider/system
   // transitions are performed by the orchestration/payment/provider services.
   const customerAllowed = new Set<EconomicRequestStatus>([
-    'awaiting_confirmation', 'reserved', 'cancelled', 'disputed', 'completed',
+    'awaiting_confirmation', 'reserved', 'cancelled', 'completed',
   ]);
   if (!customerAllowed.has(status)) {
     return res.status(403).json({ success: false, error: 'This lifecycle transition is performed by the economic service layer.' });
@@ -189,7 +340,7 @@ router.post('/:id/transition', async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/:id/escrow', async (req: AuthRequest, res) => {
+router.post('/:id/escrow', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   const request = await getEconomicRequest(String(req.params.id || ''));
@@ -199,7 +350,7 @@ router.post('/:id/escrow', async (req: AuthRequest, res) => {
   res.status(result.success ? 200 : 409).json(result);
 });
 
-router.post('/:id/complete', async (req: AuthRequest, res) => {
+router.post('/:id/complete', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   const request = await getEconomicRequest(String(req.params.id || ''));
@@ -209,7 +360,7 @@ router.post('/:id/complete', async (req: AuthRequest, res) => {
   res.status(result.success ? 200 : 409).json(result);
 });
 
-router.post('/orchestration/run', async (_req: AuthRequest, res) => {
+router.post('/orchestration/run', authenticateAdmin, async (_req: AuthRequest, res) => {
   try {
     const result = await runOrchestrationPass();
     res.json({ success: true, result });
@@ -219,7 +370,7 @@ router.post('/orchestration/run', async (_req: AuthRequest, res) => {
   }
 });
 
-router.post('/memory/lifecycle', async (req: AuthRequest, res) => {
+router.post('/memory/lifecycle', authenticateAdmin, async (req: AuthRequest, res) => {
   try {
     await ensureLivingMemorySchema();
     const job = String(req.body?.job || 'all');
@@ -234,7 +385,7 @@ router.post('/memory/lifecycle', async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/memory/inspector', async (req: AuthRequest, res) => {
+router.get('/memory/inspector', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   try {

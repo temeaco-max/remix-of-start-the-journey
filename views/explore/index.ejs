@@ -11,13 +11,13 @@
                 What do you need today?
             </h1>
             <p class="explore-subtitle">
-                Browse 45+ everyday utility services, verified local providers, express delivery, and instant assistance. One private conversation or tap gets it sorted.
+                Browse everyday service categories and start a private conversation to describe what you need. Kurukoo helps you coordinate the next step.
             </p>
 
             <!-- Search & Instant Intent Bar -->
             <div class="explore-search-container">
                 <input type="text" id="explore-search" class="explore-search-input" placeholder="Search service (e.g. plumbing, rider, solar, tailoring)...">
-                <button onclick="filterCategories()" class="explore-search-btn">
+                <button type="button" id="explore-search-btn" class="explore-search-btn">
                     Search
                 </button>
             </div>
@@ -54,8 +54,8 @@
                             <p class="explore-category-desc"><%= cat.description.substring(0, 85) %>...</p>
                         </div>
                         <div class="explore-category-footer">
-                            <span><%= cat.providerCount %> providers</span>
-                            <span>★ <%= cat.avgRating %></span>
+                            <span>Explore this category</span>
+                            <span aria-hidden="true">→</span>
                         </div>
                     </a>
 
@@ -97,6 +97,7 @@
             });
         }
         document.getElementById('explore-search').addEventListener('input', filterCategories);
+        document.getElementById('explore-search-btn').addEventListener('click', filterCategories);
     </script>
 </body>
 </html>

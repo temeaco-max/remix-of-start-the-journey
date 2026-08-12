@@ -232,11 +232,6 @@ const pulseRenames = [
   ["app.post('/api/admin/ai-agents/:id/execute'", "app.post('/api/admin/ai-agents-legacy/:id/execute'"],
   ["app.get('/api/admin/commissions'", "app.get('/api/admin/commissions-legacy'"],
   ["app.put('/api/admin/commissions/:id'", "app.put('/api/admin/commissions-legacy/:id'"],
-  ["app.get('/api/github/status'", "app.get('/api/github/status-legacy'"],
-  ["app.get('/api/github/list'", "app.get('/api/github/list-legacy'"],
-  ["app.get('/api/github/diff'", "app.get('/api/github/diff-legacy'"],
-  ["app.post('/api/github/pull'", "app.post('/api/github/pull-legacy'"],
-  ["app.post('/api/github/push'", "app.post('/api/github/push-legacy'"],
   // SEO admin → seoAdminRoutes
   ["app.get('/api/admin/seo/dashboard'", "app.get('/api/admin/seo/dashboard-legacy'"],
   ["app.get('/api/admin/seo/health'", "app.get('/api/admin/seo/health-legacy'"],

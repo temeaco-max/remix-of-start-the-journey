@@ -2,6 +2,9 @@ node_modules/
 build/
 dist/
 coverage/
+*.sqlite
+*.sqlite-*
+.*.sqlite.*.tmp
 .DS_Store
 *.log
 .env
@@ -9,3 +12,32 @@ coverage/
 .env.*
 !.env.example
 !.env.template
+
+# Generated/local audit output
+.css-audit-results.json
+.kurukoo-agent-test-log.json
+
+# Local AI Studio / agent workspace state — never commit to Kurukoo
+.ai-studio/
+.google-ai-studio/
+.ai-studio-workspace/
+ai-studio/
+.github-workspace/
+.github-sync/
+github-workspace/
+github-sync/
+
+# Local GitHub/agent credentials and token material
+.jwt/
+*.jwt
+*.jwt.json
+.jwt-secret
+.jwt-secret*
+.github-token
+.github-token*
+github-token*
+
+# Local workspace archives and temporary exports
+repo-main.zip
+*.workspace.zip
+*.workspace.tar

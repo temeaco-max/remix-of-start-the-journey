@@ -66,12 +66,19 @@
         <div class="container text-center">
             <h2>Stay in the loop.</h2>
             <p class="newsletter-desc">Get the latest stories and product updates delivered to your inbox.</p>
-            <form class="input-group newsletter-form" onsubmit="event.preventDefault(); alert('Subscribed!');">
+            <form id="newsletter-form" class="input-group newsletter-form">
                 <input type="email" placeholder="Your email address" required>
                 <button type="submit" class="btn btn-primary">Subscribe</button>
             </form>
         </div>
     </section>
 </main>
+
+<script>
+  document.getElementById('newsletter-form')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    window.alert('Subscribed!');
+  });
+</script>
 
 <%- include('_partials/footer') %>
