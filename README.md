@@ -20,7 +20,7 @@ Kurukoo is an AI-powered everyday utility platform that gives every user a singl
 | Authorization | User-owned Economic Request endpoints apply explicit `authenticateUser` middleware. Orchestration and memory-maintenance routes require explicit `authenticateAdmin` middleware. |
 | Database | `sql.js` runs in-process and persists to `kurukoo.sqlite` (override with `DB_PATH`). Writes use a same-directory temporary file and atomic replacement, but the model remains single-process. |
 | Rate limiting | In-memory process-local limits are appropriate only for the single-instance launch model. |
-| Channels | WhatsApp webhook (`src/channels/whatsapp.ts`), USSD (`src/ussd/menus.ts`), and the PWA (`public/dashboard.html`). |
+| Channels | Web Chat is active; WhatsApp, Telegram, SMS, USSD, Email, FCM, and Voice remain adapter boundaries whose readiness depends on truthful configuration. |
 | Front end | EJS public pages (`views/`) and vanilla JavaScript PWA (`public/`). Dynamic provider, opportunity, promotion, and chat text is rendered with DOM nodes and `textContent`. |
 
 ## Quick Start
@@ -34,6 +34,8 @@ npm run lint                # TypeScript type-check
 npm run build               # type-check + public asset copy + CSS optimization
 npm run test:routes         # canonical route and ownership contracts
 npm run audit:security      # static safety invariants + HTTP authorization behavior
+npm run pilot:readiness      # read-only readiness report; never prints secrets
+npm run test:pilot-readiness # missing-credential and production/dev-auth regression
 ```
 
 When intentionally changing dependencies, use `npm install`, commit both `package.json` and `package-lock.json`, and run the validation suite before opening a pull request.
@@ -48,7 +50,7 @@ The normal browser login page identifies when this mode is active. An authentica
 
 The current launch architecture is intentionally cost-effective but has clear boundaries. Do not run multiple application replicas against the `sql.js` file or assume process-local rate limits coordinate across replicas. Move to PostgreSQL and Redis when high availability, concurrent multi-instance writes, distributed rate limiting/presence, or sustained marketplace-scale traffic is required.
 
-Payment, regulated escrow, real provider/identity verification, malware-scanned object storage, and provider-console credential rotation remain external operational requirements. The application must not claim that a database record, indicative rate, sandbox payment, or profile is proof of an external financial, verification, or availability event.
+Payment, regulated escrow, real provider/identity verification, malware-scanned object storage, external FCM delivery, and provider-console credential rotation remain external operational requirements. Repository-side chat attachments are owner-bound, stored outside public static paths, expiry-cleaned, deletable, size/type validated, and inaccessible across users; binary malware scanning and object-storage activation remain deployment requirements. The application must not claim that a database record, indicative rate, sandbox payment, or profile is proof of an external financial, verification, or availability event.
 
 ## Security notes
 

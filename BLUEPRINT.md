@@ -4273,7 +4273,7 @@ These principles are mandatory and govern every build decision:
 - ⚠️ Transaction Orchestration Engine — `tradeEngine.ts` exists but implements **old arbitrage model**, needs complete rewrite to escrow-based flow (see §33.1.3 developer note)
 - ⚠️ Agent Network — `commissionService.ts` exists; catalog scraper and soft-claim merge not implemented
 - ⚠️ UK Life-Admin Skills — 60+ skills seeded in `skillFlows.ts` as stubs; external API integrations not built
-- ⚠️ KuruTrust Trust Ledger — `trust_score` column exists; hash chain ledger and Twitter bot not implemented; trust score formula needs implementation (see §15.1)
+- ℹ️ Historical KuruTrust note — the current `develop` tree now implements `calculateTrustScoreValue()`, `trust_score_ledger`, recalculation, dispute-fault updates, daily recalculation, public projection, and dedicated tests. The score remains a bounded evidence summary; it is not identity verification, KYC, provider availability, payment safety, or a guaranteed outcome. Hash-chain/Twitter-bot concepts remain blueprint-only.
 - ⚠️ WebRTC — `webrtcSignalling.ts` is a 12-line stub; full signalling, STUN/TURN, data channels needed (see §32.11)
 - ⚠️ IoT Bridge — `iotBridge.ts` is a 19-line stub; MQTT broker integration needed (see §32.12)
 

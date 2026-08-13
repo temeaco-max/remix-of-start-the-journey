@@ -38,6 +38,19 @@ export async function ensureChatSchema(db: any): Promise<void> {
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_chat_meta_conversation ON chat_message_meta(conversation_id, message_id DESC);`);
+  db.run(`CREATE TABLE IF NOT EXISTS chat_attachments (
+    id TEXT PRIMARY KEY,
+    phone TEXT NOT NULL,
+    stored_path TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    sha256 TEXT NOT NULL,
+    message_id INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    expires_at TEXT NOT NULL
+  );`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_chat_attachments_owner_expiry ON chat_attachments(phone, expires_at);`);
   try {
     await ensureLivingMemorySchema();
   } catch {

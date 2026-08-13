@@ -1,16 +1,16 @@
 # Kurukoo — Current Build Status
 
-**Status:** Economic OS safety/consolidation refactor merged to `main`; follow-up hardening and real-world integration work continues.
+**Status:** Pilot-readiness hardening is implemented on `develop`; external provider activation remains deployment-dependent.
 **Blueprint:** `BLUEPRINT.md` v5.62 (with the current implementation clarifications below)
-**Date:** 2026-08-11
-**Current main merge:** `a940503976db3a364f2eabcb82ff3d7ddf51c00e`
-**Merged PR:** #1 — `fix: enforce truthful Economic OS lifecycle`
+**Date:** 2026-08-14
+**Current branch:** `develop` (the repository owner controls promotion to production branches)
+**Current convergence commit:** See `git log -1` on `develop`.
 
 ## 2026-08-11 convergence verification
 
-**Candidate branch:** `fix/convergence-release-readiness`
-**Integration target:** `integration/near-completion` — **not `main`**
-**Verified commit:** `93ede899a46340ce027a84a574c25c88262a33b6`
+**Historical candidate:** `fix/convergence-release-readiness`
+**Historical integration target:** `integration/near-completion` — retained as historical context, not current branch state.
+**Current verification target:** `develop`.
 
 This convergence candidate assembles the reviewed security, lifecycle, dispute/escrow, public-route, navigation/onboarding, canonical chat, CSS-token, DOM-safety, and homepage/Explore truthfulness work. It removes the deployable GitHub workspace service and all corresponding `/api/admin/github/*` routes, tests, and maintenance-script mutation patterns. The built application uses one canonical chat client; the unused legacy client was deleted.
 
@@ -100,8 +100,8 @@ The application does **not** simulate unavailable real-world infrastructure. In 
 - Finish deleting any genuinely dead legacy route bodies after extraction coverage proves they are unused.
 - Complete universal catalogue/inventory matching for catalogue-bearing skills using the existing provider/product data model rather than creating per-skill ordering systems.
 - Expand economic integration tests so each canonical category proves the same lifecycle with category-specific requirements.
-- Implement the Blueprint §15.1 multi-factor trust-score recalculation and `trust_ledger` audit record on provider completion, dispute resolution, and the documented daily pass; the current profile field alone is not evidence that the formula runs.
-- Strengthen attachment storage/access controls before production-scale media uploads.
+- Extend the implemented Trust Score lifecycle only when new evidence rules are approved; the current formula, `trust_score_ledger`, recalculation service, dispute-fault hook, daily worker, public boundary, and dedicated tests are active. Trust Score is not identity verification, KYC, provider availability, payment safety, or a guaranteed outcome.
+- Continue operational review of private attachment retention and external malware/object-storage controls before production-scale media uploads; repository-side owner binding, private storage, expiry cleanup, deletion, size/type validation, and cross-user protection are implemented.
 - Keep CSS, messaging, services, skills, security and economic audits behavioural rather than presence-only where practical.
 - Keep documentation aligned with the implementation; stale historical claims must not be treated as current architecture.
 - Add a real FCM provider and channel fallback/receipt workflow before treating deferred-match or session nudges as delivered notifications.

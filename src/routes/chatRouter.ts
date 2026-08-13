@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { authenticateUser, optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';
-import { getDb } from '../database.js';
+import { getDb, saveDb } from '../database.js';
 import { deleteChatMessage, listChatConversations, listChatMessages, clearChatConversation, ensureConversation, appendChatMessage } from '../services/chatConversationService.js';
 import { migrateGuestSessionToAccount } from '../services/guestSessionMigration.js';
 import { applyQrReferralAttribution } from '../services/qrContextService.js';
@@ -123,6 +123,91 @@ router.post('/conversation', optionalAuthenticateUser, async (req: AuthRequest, 
 
 router.delete('/message/:id', async (req: AuthRequest, res) => { const phone = userPhone(req); const id = Number(req.params.id); if (!phone || !Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid message ID' }); try { const deleted = await deleteChatMessage(phone, id); if (!deleted) return res.status(404).json({ error: 'Message not found' }); res.json({ success: true }); } catch (error) { console.error('[Chat] message delete failed:', error); res.status(500).json({ error: 'Unable to delete message' }); } });
 router.delete('/conversation/:id', async (req: AuthRequest, res) => { const phone = userPhone(req); const conversationId = String(req.params.id || ''); if (!phone || !conversationId) return res.status(400).json({ error: 'Invalid conversation ID' }); try { const deleted = await clearChatConversation(phone, conversationId); res.json({ success: true, deleted }); } catch (error) { console.error('[Chat] conversation delete failed:', error); res.status(500).json({ error: 'Unable to delete conversation' }); } });
-router.post('/attachments', async (req: AuthRequest, res) => { const phone = userPhone(req); if (!phone) return res.status(401).json({ error: 'Authenticated phone is required' }); const { name, type, data } = req.body || {}; if (typeof name !== 'string' || typeof type !== 'string' || typeof data !== 'string') return res.status(400).json({ error: 'name, type and data are required' }); const allowed = new Set(['image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','video/mp4','video/webm']); if (!allowed.has(type)) return res.status(415).json({ error: 'Unsupported attachment type' }); const raw = data.replace(/^data:[^;]+;base64,/, ''); const bytes = Buffer.byteLength(raw, 'base64'); const limit = type.startsWith('video/') ? 25 * 1024 * 1024 : 10 * 1024 * 1024; if (bytes > limit) return res.status(413).json({ error: `Attachment exceeds ${Math.floor(limit / 1024 / 1024)}MB limit` }); const safeExt = path.extname(name).toLowerCase().replace(/[^a-z0-9.]/g, '').slice(0, 8) || '.bin'; const dir = process.env.CHAT_UPLOAD_DIR || path.join(process.cwd(), 'public', 'uploads', 'chat'); await fs.mkdir(dir, { recursive: true }); const filename = `${crypto.createHash('sha256').update(`${phone}:${Date.now()}:${Math.random()}`).digest('hex').slice(0,32)}${safeExt}`; await fs.writeFile(path.join(dir, filename), Buffer.from(raw, 'base64'), { flag: 'wx' }); res.json({ success: true, attachment: { url: `/uploads/chat/${filename}`, name: name.slice(0,160), type, size: bytes } }); });
+async function ensurePrivateAttachmentTable(db: any) {
+  db.run(`CREATE TABLE IF NOT EXISTS chat_attachments (id TEXT PRIMARY KEY, phone TEXT NOT NULL, stored_path TEXT NOT NULL, original_name TEXT NOT NULL, mime_type TEXT NOT NULL, size_bytes INTEGER NOT NULL, sha256 TEXT NOT NULL, message_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL)`);
+  db.run('CREATE INDEX IF NOT EXISTS idx_chat_attachments_owner_expiry ON chat_attachments(phone, expires_at)');
+}
+function privateAttachmentDir(): string {
+  const configured = process.env.CHAT_UPLOAD_DIR?.trim();
+  const fallback = path.join(process.cwd(), 'storage', 'chat');
+  if (!configured) return fallback;
+  const resolved = path.resolve(configured);
+  const publicRoot = path.resolve(process.cwd(), 'public');
+  return resolved === publicRoot || resolved.startsWith(`${publicRoot}${path.sep}`) ? fallback : resolved;
+}
+async function cleanupExpiredAttachments(db: any) {
+  const stmt = db.prepare(`SELECT id, stored_path FROM chat_attachments WHERE expires_at <= CURRENT_TIMESTAMP`);
+  const expired: Array<{ id: string; stored_path: string }> = [];
+  while (stmt.step()) expired.push(stmt.getAsObject() as any);
+  stmt.free();
+  for (const attachment of expired) { try { await fs.unlink(attachment.stored_path); } catch {} db.run('DELETE FROM chat_attachments WHERE id=?', [attachment.id]); }
+  if (expired.length) saveDb();
+}
+
+router.post('/attachments', async (req: AuthRequest, res) => {
+  const phone = userPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authenticated phone is required' });
+  const { name, type, data } = req.body || {};
+  if (typeof name !== 'string' || typeof type !== 'string' || typeof data !== 'string') return res.status(400).json({ error: 'name, type and data are required' });
+  const allowed = new Set(['image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','video/mp4','video/webm']);
+  if (!allowed.has(type)) return res.status(415).json({ error: 'Unsupported attachment type' });
+  const raw = data.replace(/^data:[^;]+;base64,/, '');
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(raw) || raw.length % 4 === 1) return res.status(400).json({ error: 'Attachment data is not valid base64' });
+  const buffer = Buffer.from(raw, 'base64');
+  const bytes = buffer.byteLength;
+  const limit = type.startsWith('video/') ? 25 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (!bytes || bytes > limit) return res.status(413).json({ error: `Attachment exceeds ${Math.floor(limit / 1024 / 1024)}MB limit` });
+  const safeName = name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 160) || 'attachment';
+  const safeExt = path.extname(safeName).toLowerCase().replace(/[^a-z0-9.]/g, '').slice(0, 8) || '.bin';
+  const dir = privateAttachmentDir();
+  await fs.mkdir(dir, { recursive: true });
+  const id = crypto.randomUUID();
+  const storedPath = path.join(dir, `${id}${safeExt}`);
+  const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+  const db = await getDb();
+  await ensurePrivateAttachmentTable(db);
+  await cleanupExpiredAttachments(db);
+  await fs.writeFile(storedPath, buffer, { flag: 'wx' });
+  db.run(`INSERT INTO chat_attachments(id, phone, stored_path, original_name, mime_type, size_bytes, sha256, expires_at) VALUES(?,?,?,?,?,?,?,datetime('now','+30 days'))`, [id, phone, storedPath, safeName, type, bytes, sha256]);
+  saveDb();
+  res.status(201).json({ success: true, attachment: { id, url: `/api/chat/attachments/${id}`, name: safeName, type, size: bytes, expiresInDays: 30 } });
+});
+
+router.get('/attachments/:id', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = userPhone(req);
+  const id = String(req.params.id || '');
+  if (!phone || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(404).end();
+  const db = await getDb();
+  await ensurePrivateAttachmentTable(db);
+  await cleanupExpiredAttachments(db);
+  const stmt = db.prepare('SELECT stored_path, original_name, mime_type, size_bytes FROM chat_attachments WHERE id=? AND phone=? AND expires_at>CURRENT_TIMESTAMP LIMIT 1');
+  stmt.bind([id, phone]);
+  const row = stmt.step() ? stmt.getAsObject() as any : null;
+  stmt.free();
+  if (!row) return res.status(404).end();
+  const resolved = path.resolve(String(row.stored_path));
+  if (!resolved.startsWith(path.resolve(privateAttachmentDir()) + path.sep)) return res.status(404).end();
+  res.type(String(row.mime_type));
+  res.setHeader('Content-Disposition', `inline; filename="${String(row.original_name).replace(/["\r\n]/g, '')}"`);
+  res.setHeader('Content-Length', String(row.size_bytes));
+  res.sendFile(resolved);
+});
+
+router.delete('/attachments/:id', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = userPhone(req);
+  const id = String(req.params.id || '');
+  if (!phone || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(404).end();
+  const db = await getDb();
+  await ensurePrivateAttachmentTable(db);
+  const stmt = db.prepare('SELECT stored_path FROM chat_attachments WHERE id=? AND phone=? LIMIT 1');
+  stmt.bind([id, phone]);
+  const row = stmt.step() ? stmt.getAsObject() as any : null;
+  stmt.free();
+  if (!row) return res.status(404).end();
+  try { await fs.unlink(String(row.stored_path)); } catch {}
+  db.run('DELETE FROM chat_attachments WHERE id=? AND phone=?', [id, phone]);
+  saveDb();
+  res.json({ success: true });
+});
 
 export default router;

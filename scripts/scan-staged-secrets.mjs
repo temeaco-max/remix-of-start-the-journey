@@ -17,7 +17,7 @@ const tokenPatterns = [
   /AIza[0-9A-Za-z_-]{20,}/,
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
 ];
-const assignmentPattern = /^\s*[A-Z][A-Z0-9_]*(?:TOKEN|SECRET|API_KEY|PASSWORD|PRIVATE_KEY)\s*=\s*(?!\s*(?:['"])?(?:stub|example|replace_me|your_[a-z_]+|<[^>]+>)(?:['"])?\s*$)\S+/i;
+const assignmentPattern = /^\s*[A-Z][A-Z0-9_]*(?:TOKEN|SECRET|API_KEY|PASSWORD|PRIVATE_KEY)\s*=\s*(?!\s*(?:['"])?(?:stub|example|replace_me|change_me|your_[a-z_]+|<[^>]+>)(?:['"])?\s*$)\S+/i;
 const matches = additions.filter((line) => tokenPatterns.some((pattern) => pattern.test(line)) || assignmentPattern.test(line));
 
 if (matches.length) {
