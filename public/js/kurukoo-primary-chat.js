@@ -133,8 +133,11 @@
   async function ensureIdentity() {
     const sessionCheck = await fetch('/api/auth/me', { credentials: 'same-origin' }).catch(() => null);
     if (sessionCheck?.ok) {
+      const sessionData = await sessionCheck.json().catch(() => ({}));
       setConnection(true);
       state.isGuest = false;
+      const testBanner = $('development-test-banner');
+      if (testBanner) testBanner.hidden = sessionData.developmentTestAccount !== true;
       return true;
     }
 

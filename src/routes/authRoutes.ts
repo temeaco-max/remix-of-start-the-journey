@@ -7,6 +7,7 @@ import { applyQrReferralAttribution } from '../services/qrContextService.js';
 import { requestPhoneOtp, verifyPhoneOtp } from '../services/otpAuthService.js';
 import { authRateLimit } from '../middleware/rateLimit.js';
 import { authenticateUser, AuthRequest } from '../middleware/auth.js';
+import { developmentTestOtpLabel, getConfiguredTestName, getDevelopmentTestAuthStatus, isDevelopmentTestIdentity, verifyDevelopmentTestOtp } from '../services/devTestAuthService.js';
 
 const router = Router();
 const AUTH_COOKIE = 'kurukoo_auth';
@@ -43,7 +44,12 @@ export async function upsertProfile(phone: string, name?: string, email?: string
 
 router.post('/request-otp', authRateLimit, async (req, res) => {
   try {
-    const result = await requestPhoneOtp(String(req.body?.phone || '').trim());
+    const phone = String(req.body?.phone || '').trim();
+    const testStatus = getDevelopmentTestAuthStatus();
+    if (testStatus.active && isDevelopmentTestIdentity(phone)) {
+      return res.json({ success: true, testMode: true, message: 'Development test authentication is active. Use the displayed test code.', devCode: developmentTestOtpLabel() });
+    }
+    const result = await requestPhoneOtp(phone);
     if (!result.success) return res.status(400).json(result);
     res.json(result);
   } catch (e) {
@@ -57,11 +63,13 @@ router.post('/verify-otp', authRateLimit, async (req, res) => {
     const phone = String(req.body?.phone || '').trim();
     const code = String(req.body?.code || '').trim();
     const guestPhone = String(req.body?.guestPhone || '').trim();
-    const result = await verifyPhoneOtp(phone, code);
+    const developmentResult = verifyDevelopmentTestOtp(phone, code);
+    const result = developmentResult || await verifyPhoneOtp(phone, code);
     if (!result.success || !result.phone) return res.status(401).json(result);
 
     const userPhone = result.phone;
-    await upsertProfile(userPhone, req.body?.name, req.body?.email, req.body?.goal);
+    const profileName = developmentResult?.testMode ? getConfiguredTestName() : req.body?.name;
+    await upsertProfile(userPhone, profileName, req.body?.email, req.body?.goal);
 
     if (guestPhone.startsWith('anon_')) {
       try {
@@ -74,7 +82,7 @@ router.post('/verify-otp', authRateLimit, async (req, res) => {
 
     const token = issueUserToken(userPhone);
     setAuthCookie(res, token, guestPhone.startsWith('anon_'));
-    res.json({ success: true, phone: userPhone, token, message: 'Authenticated' });
+    res.json({ success: true, phone: userPhone, token, message: developmentResult?.testMode ? 'Development test identity authenticated' : 'Authenticated', ...(developmentResult?.testMode ? { testMode: true } : {}) });
   } catch (e: any) {
     console.error('verify-otp error:', e);
     res.status(500).json({ success: false, message: e.message || 'Verification failed' });
@@ -120,6 +128,9 @@ router.post('/logout', (_req, res) => {
   res.json({ success: true });
 });
 
-router.get('/me', authenticateUser, async (req: AuthRequest, res) => { res.json({ success: true, user: req.user }); });
+router.get('/me', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = String(req.user?.phone || '');
+  res.json({ success: true, user: req.user, developmentTestAccount: isDevelopmentTestIdentity(phone), testAuth: getDevelopmentTestAuthStatus() });
+});
 
 export default router;

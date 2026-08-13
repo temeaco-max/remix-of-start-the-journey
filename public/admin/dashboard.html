@@ -642,7 +642,7 @@
         <div class="header-bar">
             <div class="logo" style="font-weight: 700; font-size: 20px;"><span>Kurukoo</span> Admin Console</div>
             <nav style="display: flex; gap: 8px; align-items: center;">
-                <a href="/dashboard.html" target="_blank" style="padding:8px 16px; border:1px solid #E5E2DE; border-radius:8px; text-decoration:none; color:#1A1A1A;">View Live App</a>
+                <a href="/dashboard.html" target="_blank" style="padding:8px 16px; border:1px solid #E5E2DE; border-radius:8px; text-decoration:none; color:#1A1A1A;">View Live App</a><button type="button" onclick="openDevelopmentTestChat()" style="padding:8px 16px;border:1px solid #E5B87A;border-radius:8px;background:#FFF4DD;color:#6D4B1F;cursor:pointer;">Open Test Chat</button><button type="button" onclick="resetDevelopmentTestChat()" style="padding:8px 16px;border:1px solid #E5E2DE;border-radius:8px;background:#fff;cursor:pointer;">Reset Test Chat</button>
             </nav>
         </div>
 
@@ -1017,6 +1017,22 @@
     </div>
 
     <script>
+        async function adminTestChatRequest(path, method = 'GET') {
+            const token = localStorage.getItem('kurukoo_admin') || '';
+            const response = await fetch(path, { method, headers: { 'x-admin-token': token, 'Content-Type': 'application/json' }, credentials: 'same-origin' });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) throw new Error(data.error || 'Development test Chat is unavailable.');
+            return data;
+        }
+        async function openDevelopmentTestChat() {
+            try { const data = await adminTestChatRequest('/api/admin/test-chat'); window.location.assign(data.redirect || '/chat?test_mode=1'); }
+            catch (error) { window.alert(error.message || 'Development test Chat is unavailable.'); }
+        }
+        async function resetDevelopmentTestChat() {
+            if (!window.confirm('Reset only the configured development test Chat state? Financial, escrow, payment, order, and dispute records will be preserved.')) return;
+            try { await adminTestChatRequest('/api/admin/test-chat/reset', 'POST'); window.alert('Development test Chat state reset.'); }
+            catch (error) { window.alert(error.message || 'Unable to reset development test Chat.'); }
+        }
         // Load initial console data
         function loadConsoleData() {
             // Load stats

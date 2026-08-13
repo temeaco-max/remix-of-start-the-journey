@@ -38,6 +38,12 @@ npm run audit:security      # static safety invariants + HTTP authorization beha
 
 When intentionally changing dependencies, use `npm install`, commit both `package.json` and `package-lock.json`, and run the validation suite before opening a pull request.
 
+## Controlled development/test Chat
+
+Kurukoo includes an explicit development/test authentication mode for exercising the real canonical Chat without a live OTP delivery provider. Enable it only outside production by setting `KURUKOO_DEV_AUTH=true`, `KURUKOO_TEST_PHONE` to the designated test identity, and optionally `KURUKOO_TEST_NAME`. The deterministic code `111111` is accepted only for that configured phone while `NODE_ENV` is not `production`; it is not stored as an OTP record, is never accepted in production, and does not bypass provider verification, payment, escrow, Economic Request ownership, or other execution boundaries.
+
+The normal browser login page identifies when this mode is active. An authenticated admin can use **Open Test Chat** in the admin console, which issues the normal HttpOnly Kurukoo user session for the configured test identity and redirects to `/chat`. The Chat then uses the same conversation, Memory Profile, Living Memory, routing, skill, native-assistance, Economic Request, deferred-request, agent, notification, and response-persistence services as every other user. **Reset Test Chat** clears test conversation, reminder, behavioral, OTP, and agent state while preserving economic requests, orders, escrow, payments, and disputes.
+
 ## Production transition points
 
 The current launch architecture is intentionally cost-effective but has clear boundaries. Do not run multiple application replicas against the `sql.js` file or assume process-local rate limits coordinate across replicas. Move to PostgreSQL and Redis when high availability, concurrent multi-instance writes, distributed rate limiting/presence, or sustained marketplace-scale traffic is required.

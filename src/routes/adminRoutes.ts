@@ -28,6 +28,8 @@ import { getAllPricing, updatePlan, createPlan, deletePlan } from '../services/p
 import { schedulePost } from '../services/socialScheduler.js';
 import { queryGroq } from '../services/groqService.js';
 import { isProviderEntityType } from '../services/providerEntity.js';
+import { issueUserToken } from './authRoutes.js';
+import { getConfiguredTestName, getConfiguredTestPhone, getDevelopmentTestAuthStatus } from '../services/devTestAuthService.js';
 
 const router = Router();
 
@@ -50,6 +52,51 @@ router.post('/auth', (req, res) => {
     return res.json({ success: true, token });
   }
   return res.status(401).json({ success: false, error: 'Invalid credentials' });
+});
+
+// ── Controlled development/test Chat access ─────────────────────────────
+
+function setDevelopmentUserCookie(res: any, token: string): void {
+  if (process.env.NODE_ENV === 'production') return;
+  res.setHeader('Set-Cookie', `kurukoo_auth=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+}
+
+router.get('/test-chat', authenticateAdmin, async (_req: AuthRequest, res) => {
+  const status = getDevelopmentTestAuthStatus();
+  if (!status.active || !status.configured) return res.status(404).json({ success: false, error: 'Development test authentication is not enabled or configured' });
+  const phone = getConfiguredTestPhone();
+  const token = issueUserToken(phone);
+  setDevelopmentUserCookie(res, token);
+  res.json({ success: true, testMode: true, phone, name: getConfiguredTestName(), redirect: '/chat?test_mode=1' });
+});
+
+router.post('/test-chat/reset', authenticateAdmin, async (_req: AuthRequest, res) => {
+  const status = getDevelopmentTestAuthStatus();
+  if (!status.active || !status.configured) return res.status(404).json({ success: false, error: 'Development test authentication is not enabled or configured' });
+  const phone = getConfiguredTestPhone();
+  try {
+    const db = await getDb();
+    const messageStmt = db.prepare('SELECT id FROM messages WHERE phone = ?');
+    messageStmt.bind([phone]);
+    const messageIds: number[] = [];
+    while (messageStmt.step()) messageIds.push(Number(messageStmt.getAsObject().id));
+    messageStmt.free();
+    for (const id of messageIds) db.run('DELETE FROM chat_message_meta WHERE message_id = ?', [id]);
+    db.run('DELETE FROM messages WHERE phone = ?', [phone]);
+    for (const statement of [
+      ['DELETE FROM reminders WHERE phone = ?', [phone]],
+      ['DELETE FROM user_behavior_signals WHERE phone = ?', [phone]],
+      ['DELETE FROM phone_otps WHERE phone = ?', [phone]],
+    ] as Array<[string, unknown[]]>) { try { db.run(statement[0], statement[1]); } catch {} }
+    try { db.run('DELETE FROM agent_goal_events WHERE goal_id IN (SELECT id FROM agent_goals WHERE phone = ?)', [phone]); } catch {}
+    try { db.run('DELETE FROM agent_goals WHERE phone = ?', [phone]); } catch {}
+    db.run("UPDATE memory_profiles SET name = ?, preferences = ?, wallet_balance_minor = COALESCE(wallet_balance_minor, 30) WHERE phone = ?", [getConfiguredTestName(), JSON.stringify({ goal: 'buyer', onboarding_complete: false, development_test_account: true }), phone]);
+    saveDb();
+    res.json({ success: true, testMode: true, phone, preserved: ['economic_requests', 'orders', 'escrow', 'payments', 'disputes'] });
+  } catch (error) {
+    console.error('[AdminTestChat] reset failed:', error);
+    res.status(500).json({ success: false, error: 'Unable to reset development test state' });
+  }
 });
 
 // ── Platform Stats / Observability ──────────────────────────────────────
