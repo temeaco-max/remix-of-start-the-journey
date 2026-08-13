@@ -1,4 +1,5 @@
 import { getDb, saveDb } from '../database.js';
+import { decryptData, encryptData } from './memoryProfile.js';
 
 export async function isOnboarding(phone: string): Promise<boolean> {
     const db = await getDb();
@@ -7,7 +8,7 @@ export async function isOnboarding(phone: string): Promise<boolean> {
     let onboarding = false;
     if (stmt.step()) {
         const obj = stmt.getAsObject();
-        const prefs = obj.preferences ? JSON.parse(obj.preferences) : {};
+        const prefs = obj.preferences ? JSON.parse(decryptData(String(obj.preferences))) : {};
         if (prefs.onboarding_complete !== true) {
             onboarding = true;
         }
@@ -25,7 +26,7 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
     if (stmt.step()) {
         const obj = stmt.getAsObject();
         name = obj.name;
-        prefs = obj.preferences ? JSON.parse(obj.preferences) : {};
+        prefs = obj.preferences ? JSON.parse(decryptData(String(obj.preferences))) : {};
     }
     stmt.free();
 
@@ -33,7 +34,7 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
 
     if (step === 'start') {
         prefs.onboarding_step = 'ask_intent';
-        db.run(`UPDATE memory_profiles SET name = ?, preferences = ? WHERE phone = ?`, [text, JSON.stringify(prefs), phone]);
+        db.run(`UPDATE memory_profiles SET name = ?, preferences = ? WHERE phone = ?`, [text, encryptData(JSON.stringify(prefs)), phone]);
         saveDb();
         return {
             reply: `Nice to meet you, ${text}! Are you here to find services, earn from your skills, or both?`,
@@ -42,7 +43,7 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
     } else if (step === 'ask_intent') {
         prefs.onboarding_step = 'ask_skills';
         prefs.primary_intent = text;
-        db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [JSON.stringify(prefs), phone]);
+        db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
         saveDb();
         return {
             reply: `Excellent choice! What kind of work or skills can you do? (e.g. plumber, baker, driver, coder, or reply 'none' if you only want to find services)`,
@@ -53,7 +54,7 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
         if (cleanSkill.includes('ride') || cleanSkill.includes('find') || cleanSkill.includes('help') || cleanSkill.includes('support') || cleanSkill === 'none') {
             prefs.onboarding_complete = true;
             prefs.onboarding_step = 'done';
-            db.run(`UPDATE memory_profiles SET wallet_balance_minor = wallet_balance_minor + 20, preferences = ? WHERE phone = ?`, [JSON.stringify(prefs), phone]);
+            db.run(`UPDATE memory_profiles SET wallet_balance_minor = wallet_balance_minor + 20, preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
             saveDb();
             return {
                 reply: `🎉 Account activated automatically with 20 Credits onboarding bonus! Processing your request: "${text}"...`,
@@ -66,7 +67,7 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
             // Register skill
             db.run(`INSERT OR IGNORE INTO skills (phone, skill, source, confidence, is_available) VALUES (?, ?, 'explicit', 1.0, 1)`, [phone, cleanSkill]);
         }
-        db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [JSON.stringify(prefs), phone]);
+        db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
         saveDb();
         return {
             reply: `Almost done! To secure your identity and activate your account, please reply with the word CONFIRM (or type any request to proceed).`,
@@ -83,7 +84,7 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
             }
 
             // Reward 20 credits activation gift
-            db.run(`UPDATE memory_profiles SET wallet_balance_minor = wallet_balance_minor + 20, preferences = ? WHERE phone = ?`, [JSON.stringify(prefs), phone]);
+            db.run(`UPDATE memory_profiles SET wallet_balance_minor = wallet_balance_minor + 20, preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
             saveDb();
             return {
                 reply: `🎉 Congratulations! Your Kurukoo account is now fully active.${exploreMention} We have credited 20 Credits to your balance as an onboarding bonus.`,
@@ -103,7 +104,7 @@ export async function onboardNewUser(phone: string): Promise<string> {
     const db = await getDb();
     db.run(`INSERT OR IGNORE INTO memory_profiles (phone, name) VALUES (?, ?)`, [phone, 'New User']);
     const prefs = { onboarding_step: 'start', onboarding_complete: false };
-    db.run(`UPDATE memory_profiles SET name = 'New User', preferences = ? WHERE phone = ?`, [JSON.stringify(prefs), phone]);
+    db.run(`UPDATE memory_profiles SET name = 'New User', preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
     saveDb();
     return `Welcome to Kurukoo! I am your AI assistant to help you request anything and earn from your skills. Let's get you set up in 3 simple steps.\n\nFirst, what is your name?`;
 }

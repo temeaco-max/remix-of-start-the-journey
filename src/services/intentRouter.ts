@@ -1,11 +1,12 @@
 import { queryUnifiedAI, type AIProvider } from './unifiedAiEngine.js';
-import { getProfile } from './memoryProfile.js';
+import { getProfile, updateProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
 import { getContextualIntentSuggestions, getEconomicCategory, getKnownSkills, getSkillFlow } from './skillFlows.js';
 import { classifyWithFastText } from './fastTextService.js';
-import { previewStorefrontCard, startStorefrontSession, tryResumeStorefront } from './agenticStorefront.js';
+import { advanceStorefront, previewStorefrontCard, startStorefrontSession, tryResumeStorefront } from './agenticStorefront.js';
 import { searchKnownEconomicOffers } from './economicParticipants.js';
-import { createReminder } from './reminderService.js';
+import { cancelReminder, createReminder, listReminders } from './reminderService.js';
+import { cancelAgentGoal, listAgentGoals } from './agentRuntime.js';
 import { matchAdCampaigns } from './adManager.js';
 import type { IntentRoutingResult } from '../types.js';
 
@@ -13,6 +14,7 @@ const ACTION_INTENTS = new Set(['ride_request', 'order_food', 'find_worker', 'un
 const STOREFRONT_INTENTS = new Set(['ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'security_booking']);
 
 const CANONICAL_ALIASES: Array<[RegExp, string]> = [
+  [/\b(jollof|fried rice|meal for|food for)\b/, 'order_food'],
   [/\b(buy|purchase|get)\b.*\b(car|vehicle)\b|\b(car|vehicle)\b.*\b(buy|purchase)\b/, 'buy_car'],
   [/\b(buy|purchase|get)\b.*\btickets?\b|\btickets?\b.*\b(buy|purchase|get)\b/, 'buy_ticket'],
   [/\b(phone|device|laptop|computer|screen)\b.*\brepair\b|\brepair\b.*\b(phone|device|laptop|computer|screen)\b/, 'repair'],
@@ -106,12 +108,12 @@ function parseReminderQuery(q: string): { dueAt: string; title: string; displayT
     }
   }
   
-  const abs = q.match(/^remind me\s+(?:(every\s+day|every\s+week|daily|weekly)?\s*)?(?:on\s+([a-z]+)\s+)?(?:(tomorrow|today)\s+)?(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+(?:to\s+)?(.+)$/i);
+  const abs = q.match(/^remind me\s+(?:(every\s+day|every\s+week|daily|weekly)?\s*)?(?:on\s+([a-z]+)\s+)?(?:(tomorrow|today)\s+)?(?:(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+)?(?:to\s+)?(.+)$/i);
   if (abs) {
     const recurrence = abs[1]?.toLowerCase();
     const day = abs[2]?.toLowerCase();
     const relative = abs[3]?.toLowerCase();
-    let hour = Number(abs[4]);
+    let hour = Number(abs[4] || 9);
     const min = Number(abs[5] || 0);
     const meridiem = abs[6]?.toLowerCase();
     
@@ -132,7 +134,7 @@ function parseReminderQuery(q: string): { dueAt: string; title: string; displayT
     }
     if (d.getTime() <= Date.now() && !day && !relative) d.setDate(d.getDate() + 1);
     
-    return { dueAt: d.toISOString(), title: abs[7].trim(), displayTime: `${d.toLocaleString()}${recurrence ? ` (${recurrence})` : ''}` };
+    return { dueAt: d.toISOString(), title: abs[7].trim(), displayTime: `${relative || day ? `${relative || day} at ` : ''}${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${recurrence ? ` (${recurrence})` : ''}` };
   }
   return null;
 }
@@ -147,10 +149,98 @@ function decorateCardWithSuggestions(card: any, intent: string) {
   return suggestions.length ? { ...(card || {}), suggestions } : card;
 }
 
+function extractFollowUpPatch(q: string, skill: string): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  if (skill === 'find_worker') {
+    const location = q.match(/\b(?:in|at)\s+([a-z][a-z\s-]{2,40})$/i)?.[1] || (q.includes('ikeja') ? 'Ikeja' : undefined);
+    if (location) patch.location = location.trim().replace(/[.!?]+$/, '');
+    if (/\b(tomorrow|today|tonight|evening|morning|afternoon|this week)\b/i.test(q)) patch.time = q.trim();
+    if (!location && !patch.time && /^(the )?(bathroom|kitchen|roof|car|phone|fridge|sink)\b/i.test(q)) patch.service = q.trim().replace(/[.!?]+$/, '');
+  }
+  if (skill === 'order_food') {
+    const quantity = q.match(/\bfor\s+(\d+)\s*(?:people|persons)?\b/i)?.[1];
+    if (quantity) patch.quantity = quantity;
+    const items = q.replace(/\bfor\s+\d+\s*(?:people|persons)?\b/i, '').trim().replace(/[.!?]+$/, '');
+    if (items && !/^(in|at)\b/i.test(items)) patch.items = items;
+    const location = q.match(/\b(?:in|at)\s+([a-z][a-z\s-]{2,40})$/i)?.[1];
+    if (location) patch.location = location.trim().replace(/[.!?]+$/, '');
+  }
+  return patch;
+}
+
+async function applyFollowUpSlot(phone: string, q: string): Promise<IntentRoutingResult | null> {
+  const active = await tryResumeStorefront(phone);
+  if (!active?.requestId) return null;
+  const patch = extractFollowUpPatch(q, active.skill);
+  if (!Object.keys(patch).length) return null;
+  const card = await advanceStorefront(phone, active.requestId, patch);
+  return { skill: active.skill, reply: card.message, cardData: card };
+}
+
+async function handleExplicitMemory(phone: string, q: string): Promise<IntentRoutingResult | null> {
+  const remember = q.match(/^remember that\s+(.+)$/i);
+  if (remember) {
+    const statement = remember[1].trim();
+    const profile = await getProfile(phone, 'conversation_memory');
+    const preferences = { ...(profile?.preferences || {}) };
+    if (/\b(prefer|want|like)\b.*\b(short|simple|concise|brief)\b/i.test(statement)) preferences.response_style = 'concise';
+    else if (/\bevening\b.*\breminder/i.test(statement)) preferences.reminder_time_preference = 'evening';
+    else return { skill: 'memory', reply: 'I can remember preferences such as how you like answers or when you prefer reminders. Tell me that preference in a specific way.' };
+    await updateProfile(phone, 'conversation_memory', { preferences });
+    return { skill: 'memory', reply: 'Got it. I’ll keep that preference with your Kurukoo Memory Profile.' };
+  }
+  if (/^(what do you remember about me|what do you know about me)\??$/i.test(q)) {
+    const profile = await getProfile(phone, 'conversation_memory');
+    const preferences = profile?.preferences || {};
+    const items = [preferences.response_style === 'concise' ? 'you prefer short, simple answers' : '', preferences.reminder_time_preference === 'evening' ? 'you prefer evening reminders' : ''].filter(Boolean);
+    return { skill: 'memory', reply: items.length ? `I remember that ${items.join(' and ')}.` : 'I do not have any saved preferences for you yet.' };
+  }
+  return null;
+}
+
 export async function routeIntent(query: string, phone?: string, provider?: AIProvider): Promise<IntentRoutingResult> {
   const q = query.trim().toLowerCase();
   if (!q) return { skill: 'general_question', reply: 'Tell me what you need.' };
 
+  if (phone) {
+    const memoryResult = await handleExplicitMemory(phone, q);
+    if (memoryResult) return memoryResult;
+  }
+  if (/^(what is kurukoo|what does kurukoo do|explain kurukoo)\??$/i.test(q)) {
+    const profile = phone ? await getProfile(phone, 'conversation_explanation') : null;
+    const concise = profile?.preferences?.response_style === 'concise';
+    return { skill: 'general_question', reply: concise ? 'Kurukoo is one conversation for everyday help: it can answer questions, remember preferences, set reminders, coordinate verified services, and keep requests moving without pretending a payment or provider action happened.' : 'Kurukoo is an everyday utility assistant in one conversation. It can answer questions, remember preferences, set reminders, coordinate verified services and products, and keep requests moving through truthful states before any payment or external action.' };
+  }
+  if (phone && /^(what have you been doing for me|what are you doing for me)\??$/i.test(q)) {
+    const [reminders, active, goals] = await Promise.all([listReminders(phone), tryResumeStorefront(phone), listAgentGoals(phone)]);
+    const parts = [];
+    if (reminders.length) parts.push(`one active reminder (${reminders[0].title})`);
+    if (active) parts.push(`an open ${active.skill.replace(/_/g, ' ')} request (${active.stage})`);
+    const activeGoal = goals.find(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status));
+    if (activeGoal) parts.push(`a bounded follow-up goal (${activeGoal.status})`);
+    return { skill: 'general_question', reply: parts.length ? `Right now I’m tracking ${parts.join(', ')}. I have not claimed a provider, price, payment, or external action unless the relevant evidence is recorded.` : 'Nothing is actively running for you right now. I can answer a question, remember a preference, set a reminder, or help coordinate a request.' };
+  }
+  if (phone && /^cancel\s+(the\s+)?reminder\b/.test(q)) {
+    const reminders = await listReminders(phone);
+    const reminder = reminders[0];
+    if (!reminder) return { skill: 'reminder', reply: 'There is no active reminder to cancel.' };
+    const cancelled = await cancelReminder(phone, String(reminder.id));
+    return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminder.title}**.` : 'I could not cancel that reminder.' };
+  }
+  if (phone && /^(cancel that|stop following|stop checking)\b/.test(q)) {
+    const goals = await listAgentGoals(phone);
+    const activeGoal = goals.find(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status));
+    if (activeGoal) {
+      const cancelled = await cancelAgentGoal(phone, activeGoal.id);
+      return { skill: 'autonomous_agent', reply: cancelled?.summary || 'I stopped following up on that objective.', cardData: { type: 'agent_goal', goal: cancelled } };
+    }
+    const active = await tryResumeStorefront(phone);
+    if (active?.requestId) {
+      const card = await advanceStorefront(phone, active.requestId, {}, 'cancel');
+      return { skill: active.skill, reply: card.message, cardData: card };
+    }
+    return { skill: 'general_question', reply: 'There is no active follow-up for me to cancel.' };
+  }
   if (/^remind me\b/.test(q)) {
     if (!phone || phone.startsWith('anon_')) return { skill: 'reminder', reply: 'I can save that reminder as soon as you sign in, so it stays with your Kurukoo profile.' };
     const reminder = parseReminderQuery(q);
@@ -166,6 +256,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   }
 
   if (q === 'reset onboarding') return { skill: 'general_question', reply: 'Onboarding reset is available from your profile settings.' };
+  if (/^(ask the community|share with the community|post to the community)\b/i.test(q)) return { skill: 'topic', reply: 'I can help you draft a community Topic. Nothing from this private conversation will be shared automatically; review the draft and choose what to publish.', cardData: { type: 'topic_draft', status: 'review_required', privacy: 'private_by_default', source: 'explicit_user_request', content: '' } };
   if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone) };
   if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
 
@@ -192,6 +283,11 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     }
   }
 
+  if (phone && q.length <= 80 && !matchCanonicalSkill(q) && !/^(continue|ask the community|keep checking)\b/.test(q)) {
+    const followUp = await applyFollowUpSlot(phone, q);
+    if (followUp) return followUp;
+  }
+
   if (phone && (/\b(listing|offer)\b/.test(q) || /\b[a-z][a-z-]{1,40}['’]s\b/.test(q))) {
     try {
       const offers = await searchKnownEconomicOffers(query, 3);
@@ -204,7 +300,9 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   const directSkill = matchCanonicalSkill(q);
   if (directSkill && phone) {
     try {
-      const card = await startStorefrontSession(phone, directSkill, {});
+      const worker = q.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician)\b/i)?.[1];
+      const seed = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
+      const card = await startStorefrontSession(phone, directSkill, seed);
       return { skill: directSkill, reply: card.message, cardData: decorateCardWithSuggestions(card, directSkill) };
     } catch (e) {
       console.warn('[Router] storefront start failed:', e);

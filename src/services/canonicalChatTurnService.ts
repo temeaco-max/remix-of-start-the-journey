@@ -1,5 +1,5 @@
-import { getDb } from '../database.js';
 import { appendChatMessage } from './chatConversationService.js';
+import { getProfile } from './memoryProfile.js';
 import { isOnboarding, handleOnboardingInput } from './progressiveOnboarding.js';
 import { routeIntent } from './intentRouter.js';
 import { getAuthState, setAuthState, handleConversationalAuth } from './conversationalAuthService.js';
@@ -46,15 +46,8 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   const isGuest = phone.startsWith('anon_');
   const authState = isGuest ? await getAuthState(phone) : { state: 'none' as const, data: {} };
 
-  const db = await getDb();
-  const profileStmt = db.prepare('SELECT preferences FROM memory_profiles WHERE phone = ?');
-  profileStmt.bind([phone]);
-  let prefs: any = {};
-  if (profileStmt.step()) {
-    const obj = profileStmt.getAsObject();
-    prefs = obj.preferences ? JSON.parse(String(obj.preferences)) : {};
-  }
-  profileStmt.free();
+  const profile = await getProfile(phone, 'canonical_chat_turn');
+  const prefs: any = profile?.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};
   const safetyState = prefs.safety_capture_state || 'none';
 
   if (isGuest && authState.state !== 'none') {
@@ -73,7 +66,8 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   } else {
     const routing = await routeIntent(message, phone);
     cardData = routing.cardData;
-    agentGoal = !isGuest ? await createConversationGoal({
+    const explicitAgentIntent = routing.skill === 'autonomous_agent' || /\b(keep checking|keep looking|monitor|watch for|tell me when|let me know when|check again)\b/i.test(message);
+    agentGoal = !isGuest && explicitAgentIntent ? await createConversationGoal({
       phone,
       conversationId: userMessage.conversationId,
       skill: routing.skill,

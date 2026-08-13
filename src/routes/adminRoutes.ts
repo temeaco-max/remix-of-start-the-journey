@@ -28,8 +28,9 @@ import { getAllPricing, updatePlan, createPlan, deletePlan } from '../services/p
 import { schedulePost } from '../services/socialScheduler.js';
 import { queryGroq } from '../services/groqService.js';
 import { isProviderEntityType } from '../services/providerEntity.js';
-import { issueUserToken } from './authRoutes.js';
+import { issueUserToken, upsertProfile } from './authRoutes.js';
 import { getConfiguredTestName, getConfiguredTestPhone, getDevelopmentTestAuthStatus } from '../services/devTestAuthService.js';
+import { getProfile, updateProfile } from '../services/memoryProfile.js';
 
 const router = Router();
 
@@ -65,6 +66,9 @@ router.get('/test-chat', authenticateAdmin, async (_req: AuthRequest, res) => {
   const status = getDevelopmentTestAuthStatus();
   if (!status.active || !status.configured) return res.status(404).json({ success: false, error: 'Development test authentication is not enabled or configured' });
   const phone = getConfiguredTestPhone();
+  await upsertProfile(phone, getConfiguredTestName(), '', 'buyer');
+  const profile = await getProfile(phone, 'admin_test_chat');
+  if (profile && profile.preferences?.onboarding_complete !== true) await updateProfile(phone, 'admin_test_chat', { name: getConfiguredTestName(), preferences: { ...(profile.preferences || {}), onboarding_complete: true, development_test_account: true } });
   const token = issueUserToken(phone);
   setDevelopmentUserCookie(res, token);
   res.json({ success: true, testMode: true, phone, name: getConfiguredTestName(), redirect: '/chat?test_mode=1' });
@@ -75,6 +79,7 @@ router.post('/test-chat/reset', authenticateAdmin, async (_req: AuthRequest, res
   if (!status.active || !status.configured) return res.status(404).json({ success: false, error: 'Development test authentication is not enabled or configured' });
   const phone = getConfiguredTestPhone();
   try {
+    await upsertProfile(phone, getConfiguredTestName(), '', 'buyer');
     const db = await getDb();
     const messageStmt = db.prepare('SELECT id FROM messages WHERE phone = ?');
     messageStmt.bind([phone]);
@@ -90,7 +95,7 @@ router.post('/test-chat/reset', authenticateAdmin, async (_req: AuthRequest, res
     ] as Array<[string, unknown[]]>) { try { db.run(statement[0], statement[1]); } catch {} }
     try { db.run('DELETE FROM agent_goal_events WHERE goal_id IN (SELECT id FROM agent_goals WHERE phone = ?)', [phone]); } catch {}
     try { db.run('DELETE FROM agent_goals WHERE phone = ?', [phone]); } catch {}
-    db.run("UPDATE memory_profiles SET name = ?, preferences = ?, wallet_balance_minor = COALESCE(wallet_balance_minor, 30) WHERE phone = ?", [getConfiguredTestName(), JSON.stringify({ goal: 'buyer', onboarding_complete: false, development_test_account: true }), phone]);
+    await updateProfile(phone, 'admin_test_chat', { name: getConfiguredTestName(), preferences: { goal: 'buyer', onboarding_complete: true, development_test_account: true, test_state_reset_at: new Date().toISOString() } });
     saveDb();
     res.json({ success: true, testMode: true, phone, preserved: ['economic_requests', 'orders', 'escrow', 'payments', 'disputes'] });
   } catch (error) {

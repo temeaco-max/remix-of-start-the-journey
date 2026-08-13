@@ -23,7 +23,8 @@ function releaseLocal() { localBusy = false; }
 
 export async function querySmolLM2(prompt: string, systemPrompt?: string): Promise<string> {
   const input = buildPrompt(prompt, systemPrompt);
-  if (process.env.KURUKOO_SMOLLM2_LOCAL !== 'false') {
+  // Local Transformers inference is heavyweight and must be explicitly enabled. The safe default is the bounded fallback below.
+  if (process.env.KURUKOO_SMOLLM2_LOCAL === 'true') {
     try {
       await acquireLocal();
       try {
