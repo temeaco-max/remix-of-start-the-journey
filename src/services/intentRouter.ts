@@ -18,7 +18,7 @@ const CANONICAL_ALIASES: Array<[RegExp, string]> = [
   [/\b(buy|purchase|get)\b.*\b(car|vehicle)\b|\b(car|vehicle)\b.*\b(buy|purchase)\b/, 'buy_car'],
   [/\b(buy|purchase|get)\b.*\btickets?\b|\btickets?\b.*\b(buy|purchase|get)\b/, 'buy_ticket'],
   [/\b(phone|device|laptop|computer|screen)\b.*\brepair\b|\brepair\b.*\b(phone|device|laptop|computer|screen)\b/, 'repair'],
-  [/\b(source|source me|find|procure)\b.*\b(product|products|goods|item)\b/, 'product_sourcing'],
+  [/\b(source|source me|find|procure)\b.*\b(product|products|goods|item)\b|\b(phone\s+charger|charger|replacement\s+part|spare\s+part|phone\s+accessory)\b/, 'product_sourcing'],
   [/\b(bodyguard|security guard|security personnel|private security)\b/, 'security_personnel'],
   [/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician)\b/, 'find_worker'],
   [/\b(order|get|buy)\b.*\b(food|meal|rice|groceries|groceries?)\b/, 'order_food'],
@@ -300,10 +300,21 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   const directSkill = matchCanonicalSkill(q);
   if (directSkill && phone) {
     try {
+      if (directSkill === 'product_sourcing') {
+        const offers = await searchKnownEconomicOffers(query, 3);
+        if (offers.length) {
+          return {
+            skill: directSkill,
+            reply: `I found ${offers.length === 1 ? 'one known seller offer' : `${offers.length} known seller offers`} matching that product. Choose one to continue through the existing Economic Request flow.`,
+            cardData: { type: 'agentic_storefront', stage: 'offer_review', skill: directSkill, title: 'Known seller offers', message: 'These are verified seller references, not a stock or payment confirmation.', knownOffers: offers, escrowProtected: false, progress: 55 },
+          };
+        }
+      }
       const worker = q.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician)\b/i)?.[1];
-      const seed = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
+      const seed = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
       const card = await startStorefrontSession(phone, directSkill, seed);
-      return { skill: directSkill, reply: card.message, cardData: decorateCardWithSuggestions(card, directSkill) };
+      const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message;
+      return { skill: directSkill, reply, cardData: decorateCardWithSuggestions(card, directSkill) };
     } catch (e) {
       console.warn('[Router] storefront start failed:', e);
     }

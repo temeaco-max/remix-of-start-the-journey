@@ -111,13 +111,15 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
 
     // --- Type C: Open Intention follow-ups / Re-order suggestions ---
     for (const intention of activeOpenIntentions) {
+        const continuationId = intention.economic_request_id ? String(intention.economic_request_id) : String(intention.id);
+        const prompt = `Continue with my ${String(intention.skill || intention.intent || 'request')} request`;
         rawOpportunities.push({
             phone,
             type: 'market_intel',
             title: `Follow-up: ${intention.intent}`,
-            subtitle: `Still looking for assistance with "${intention.intent}"? Tap to notify nearby verified providers.`,
-            ctaText: 'Check Providers',
-            ctaLink: '/explore',
+            subtitle: `Still looking for assistance with "${intention.intent}"? Continue in Chat to review the supported next step.`,
+            ctaText: 'Continue in Chat',
+            ctaLink: `/chat?requestId=${encodeURIComponent(continuationId)}&prompt=${encodeURIComponent(prompt)}`,
             urgency: 1.0, // Urgent follow-up
             businessValue: 0.6
         });
@@ -315,22 +317,19 @@ export async function actOnOpportunity(id: number, phone: string): Promise<{ suc
     }
 
     // 2. Perform type-specific actions
-    let actionMessage = 'Action completed successfully!';
-    if (opp.type === 'reward' && opp.status !== 'acted') {
-        // Trigger +1 Credit reward!
-        await addCredits(phone, 1, 'Daily Engagement Reward');
-        actionMessage = 'Daily reward claimed! +1 Credit added to your balance.';
+    if (opp.status === 'acted') return { success: true, message: 'This opportunity was already opened.' };
+    if (opp.type !== 'reward') {
+        return { success: true, message: 'This opportunity is ready in Chat. No external action has been claimed.' };
     }
 
-    // 3. Update opportunity status to 'acted'
+    await addCredits(phone, 1, 'Daily Engagement Reward');
     db.run(`
-        UPDATE proactive_opportunities 
+        UPDATE proactive_opportunities
         SET status = 'acted', updated_at = ?
-        WHERE id = ? AND phone = ?
+        WHERE id = ? AND phone = ? AND status != 'acted'
     `, [now, id, phone]);
     saveDb();
-
-    return { success: true, message: actionMessage };
+    return { success: true, message: 'Daily reward claimed! +1 Credit added to your balance.' };
 }
 
 /**
