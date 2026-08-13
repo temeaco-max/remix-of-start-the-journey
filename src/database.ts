@@ -154,7 +154,7 @@ function initTables(database: any) {
     CREATE TABLE IF NOT EXISTS scam_reports (id INTEGER PRIMARY KEY AUTOINCREMENT, reporter_phone TEXT, reported_phone TEXT, description TEXT, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS social_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, content TEXT, scheduled_time TEXT, status TEXT DEFAULT 'pending');
     CREATE TABLE IF NOT EXISTS partnerships (id INTEGER PRIMARY KEY AUTOINCREMENT, company TEXT, contact TEXT, status TEXT, next_action TEXT, due_date TEXT, notes TEXT);
-    CREATE TABLE IF NOT EXISTS micro_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, description TEXT, skill_tag TEXT, credits_reward INTEGER, status TEXT DEFAULT 'available', assigned_to TEXT);
+    CREATE TABLE IF NOT EXISTS micro_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, description TEXT, skill_tag TEXT, credits_reward INTEGER, status TEXT DEFAULT 'available', assigned_to TEXT, source_type TEXT, source_id TEXT, verification_kind TEXT, submitted_result TEXT, moderation_note TEXT, approved_by TEXT, approved_at TEXT);
     CREATE TABLE IF NOT EXISTS service_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, options TEXT);
     CREATE TABLE IF NOT EXISTS success_stories (id INTEGER PRIMARY KEY AUTOINCREMENT, story_text TEXT, category TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, used INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS badges (phone TEXT, badge_type TEXT, awarded_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(phone, badge_type));
@@ -163,8 +163,81 @@ function initTables(database: any) {
     CREATE TABLE IF NOT EXISTS pricing (plan TEXT, country TEXT, monthly_price_minor INTEGER, currency TEXT, credits_per_month INTEGER, features TEXT, active INTEGER DEFAULT 1, PRIMARY KEY(plan, country));
     CREATE TABLE IF NOT EXISTS provider_subscriptions (phone TEXT PRIMARY KEY, tier TEXT NOT NULL, status TEXT NOT NULL, next_billing_date TEXT NOT NULL, leads_this_month INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS commission_config (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT UNIQUE, rate_minor INTEGER, description TEXT, active INTEGER DEFAULT 1);
+    CREATE TABLE IF NOT EXISTS topics (
+      id TEXT PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE,
+      author_phone TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      type TEXT NOT NULL,
+      category TEXT,
+      skills_json TEXT NOT NULL DEFAULT '[]',
+      city TEXT,
+      lga TEXT,
+      status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('draft','submitted','public','restricted','removed')),
+      moderation_note TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      published_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_topics_publication ON topics(status, published_at, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_topics_author_updated ON topics(author_phone, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_topics_category_publication ON topics(category, status, published_at);
+    CREATE TABLE IF NOT EXISTS topic_idempotency_keys (
+      author_phone TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      topic_id TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(author_phone, idempotency_key),
+      FOREIGN KEY(topic_id) REFERENCES topics(id)
+    );
+    CREATE TABLE IF NOT EXISTS topic_replies (
+      id TEXT PRIMARY KEY,
+      topic_id TEXT NOT NULL,
+      author_phone TEXT NOT NULL,
+      body TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('submitted','public','restricted','removed')),
+      moderation_note TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(topic_id) REFERENCES topics(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_topic_replies_topic_status_created ON topic_replies(topic_id, status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_topic_replies_author_updated ON topic_replies(author_phone, updated_at);
+    CREATE TABLE IF NOT EXISTS topic_reports (
+      id TEXT PRIMARY KEY,
+      target_type TEXT NOT NULL CHECK(target_type IN ('topic','reply')),
+      target_id TEXT NOT NULL,
+      reporter_phone TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      detail TEXT,
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed')),
+      moderation_note TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_topic_reports_status_created ON topic_reports(status, created_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_topic_reports_open_reporter_target ON topic_reports(reporter_phone, target_type, target_id) WHERE status='open';
+    CREATE TABLE IF NOT EXISTS topic_resource_links (
+      topic_id TEXT NOT NULL,
+      resource_slug TEXT NOT NULL,
+      created_by TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(topic_id, resource_slug),
+      FOREIGN KEY(topic_id) REFERENCES topics(id),
+      FOREIGN KEY(resource_slug) REFERENCES content(slug)
+    );
   `);
-  
+  for (const migration of [
+    'ALTER TABLE micro_tasks ADD COLUMN source_type TEXT',
+    'ALTER TABLE micro_tasks ADD COLUMN source_id TEXT',
+    'ALTER TABLE micro_tasks ADD COLUMN verification_kind TEXT',
+    'ALTER TABLE micro_tasks ADD COLUMN submitted_result TEXT',
+    'ALTER TABLE micro_tasks ADD COLUMN moderation_note TEXT',
+    'ALTER TABLE micro_tasks ADD COLUMN approved_by TEXT',
+    'ALTER TABLE micro_tasks ADD COLUMN approved_at TEXT',
+  ]) { try { database.run(migration); } catch { /* column already exists */ } }
+  database.run("CREATE INDEX IF NOT EXISTS idx_micro_tasks_source ON micro_tasks(source_type, source_id)");
   database.run("CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone)");
   database.run("CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)");
   

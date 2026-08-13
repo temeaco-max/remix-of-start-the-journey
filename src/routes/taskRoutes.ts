@@ -4,9 +4,9 @@
  * by the underlying task service.
  */
 import { Router } from 'express';
-import { authenticateUser, AuthRequest } from '../middleware/auth.js';
+import { authenticateAdmin, authenticateUser, AuthRequest } from '../middleware/auth.js';
 import { bookAppointment } from '../services/appointmentService.js';
-import { getAvailableTasks, acceptTask, completeTask } from '../services/microTasks.js';
+import { createTopicVerificationTask, getAvailableTasks, acceptTask, completeTask, moderateTopicVerificationTask } from '../services/microTasks.js';
 
 const router = Router();
 
@@ -18,6 +18,22 @@ function positiveInteger(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
+
+router.post('/admin/tasks/topic-verification', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const task = await createTopicVerificationTask({ topicId: String(req.body?.topicId || ''), verificationKind: String(req.body?.verificationKind || ''), creditsReward: Number(req.body?.creditsReward) });
+    res.status(201).json({ task: { ...task, sourceType: 'topic', sourceId: String((task as any)?.source_id || req.body?.topicId) } });
+  } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to create Topic verification task' }); }
+});
+
+router.post('/admin/tasks/:id/moderate', authenticateAdmin, async (req: AuthRequest, res) => {
+  const taskId = positiveInteger(req.params.id);
+  if (!taskId) return res.status(400).json({ error: 'A positive task id is required' });
+  try {
+    const task = await moderateTopicVerificationTask(taskId, String(req.user?.phone || req.user?.username || 'admin'), String(req.body?.decision || ''), req.body?.note);
+    res.json({ task });
+  } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to moderate task' }); }
+});
 
 router.post('/appointments/book', authenticateUser, async (req: AuthRequest, res) => {
   const phone = sessionPhone(req);
@@ -83,7 +99,7 @@ router.post('/tasks/complete', authenticateUser, async (req: AuthRequest, res) =
   const result = typeof req.body?.result === 'string' ? req.body.result : '';
   try {
     const response = await completeTask(phone, taskId, result);
-    res.json(response);
+    res.status((response as any).sourceType === 'topic' ? 201 : 200).json(response);
   } catch {
     res.status(500).json({ error: 'Failed to complete task' });
   }

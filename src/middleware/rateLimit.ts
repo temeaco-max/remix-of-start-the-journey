@@ -80,6 +80,22 @@ export const paymentRateLimit = createRateLimiter({
   message: 'Payment rate limit exceeded',
 });
 
+/** Shared community-content mutations */
+export const topicMutationRateLimit = createRateLimiter({
+  windowMs: 60_000,
+  max: 20,
+  keyPrefix: 'topic-mutation',
+  message: 'Topic mutation rate limit exceeded',
+});
+
+/** Reports are stricter because they enter moderation workflow */
+export const topicReportRateLimit = createRateLimiter({
+  windowMs: 60_000,
+  max: 10,
+  keyPrefix: 'topic-report',
+  message: 'Topic report rate limit exceeded',
+});
+
 // Periodic cleanup to avoid unbounded Map growth
 setInterval(() => {
   const now = Date.now();

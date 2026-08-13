@@ -244,6 +244,7 @@ Sitemap: https://kurukoo.com/sitemap.xml
 Sitemap: https://kurukoo.com/sitemap-pages.xml
 Sitemap: https://kurukoo.com/sitemap-categories.xml
 Sitemap: https://kurukoo.com/sitemap-blog.xml
+Sitemap: https://kurukoo.com/sitemap-topics.xml
 `;
     }
     return txt;
@@ -276,6 +277,9 @@ export async function getSitemapIndex(): Promise<string> {
    </sitemap>
    <sitemap>
       <loc>https://kurukoo.com/sitemap-blog.xml</loc>
+   </sitemap>
+   <sitemap>
+      <loc>https://kurukoo.com/sitemap-topics.xml</loc>
    </sitemap>
 </sitemapindex>`;
 }
@@ -321,7 +325,8 @@ export async function getSeoPage(urlPath: string) {
             canonical_url: `https://kurukoo.com${urlPath}`,
             og_title: 'Kurukoo — Wake Up. Get Going.',
             og_description: 'Request services, offer your skills, and connect with trusted providers in your everyday chat.',
-            og_image: 'https://kurukoo.com/assets/icon-512.png'
+            og_image: 'https://kurukoo.com/assets/icon-512.png',
+            robots_directive: 'index,follow'
         };
     }
     return page;

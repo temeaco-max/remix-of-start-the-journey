@@ -10,6 +10,7 @@
     %>
     <title><%= seoTitle %></title>
     <meta name="description" content="<%= seoDesc %>">
+    <meta name="robots" content="<%= (typeof seo !== 'undefined' && seo.robots_directive) ? seo.robots_directive : 'index,follow' %>">
     <link rel="canonical" href="<%= seoCanonical %>">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">

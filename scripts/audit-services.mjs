@@ -40,7 +40,7 @@ const alignment = {
   artistUsesEconomicRequest: /createEconomicRequest|transitionEconomicRequest|getEconomicRequest/.test(artist),
   artistUsesSharedLifecycle: /transitionEconomicRequest/.test(artist),
   orderFinalizerGuardsChatCommitment: /awaiting_confirmation/.test(orderFinalizer) && /getEconomicCategory/.test(orderFinalizer),
-  chatUsesCanonicalRouter: /routeIntent\(/.test(chatRouter),
+  chatUsesCanonicalRouter: /processCanonicalChatTurn|routeIntent\(/.test(chatRouter),
   chatUsesAuthenticatedIdentity: /userPhone\(req\)/.test(chatRouter),
   chatHasStreaming: /text\/event-stream/.test(chatRouter),
   chatHasHistory: /listChatConversations|listChatMessages/.test(chatRouter),
