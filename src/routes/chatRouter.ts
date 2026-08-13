@@ -5,16 +5,11 @@ import crypto from 'crypto';
 import { authenticateUser, optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';
 import { getDb } from '../database.js';
 import { deleteChatMessage, listChatConversations, listChatMessages, clearChatConversation, ensureConversation, appendChatMessage } from '../services/chatConversationService.js';
-import { isOnboarding, handleOnboardingInput } from '../services/progressiveOnboarding.js';
-import { routeIntent } from '../services/intentRouter.js';
-import { getAuthState, setAuthState, handleConversationalAuth } from '../services/conversationalAuthService.js';
-import { handleSafetyContactInput, setSafetyCaptureState } from '../services/safetyService.js';
-import { finalizeOrder } from '../services/orderFinalizer.js';
 import { migrateGuestSessionToAccount } from '../services/guestSessionMigration.js';
 import { applyQrReferralAttribution } from '../services/qrContextService.js';
+import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 import { streamUnifiedAI } from '../services/unifiedAiEngine.js';
 import economicRequestRouter from './economicRequestRouter.js';
-import { createConversationGoal } from '../services/agentRuntime.js';
 
 const router = Router();
 
@@ -60,132 +55,31 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
   let fullReply = '';
   let cardData: any = null;
   let activeConversation = conversationId;
-  const isGuest = phone.startsWith('anon_');
 
   try {
-    const savedUser = await appendChatMessage({ phone, sender: 'user', content: message, channel, conversationId, metadata: attachment ? { attachment } : undefined });
-    activeConversation = savedUser.conversationId;
-    sse(res, { type: 'conversation', conversationId: activeConversation, messageId: savedUser.id });
-    // The web client consumes stream status events in the existing real-time response
-    // channel; no second conversation or transport is introduced for typing presence.
+    const turn = await processCanonicalChatTurn({ phone, message, channel, conversationId, attachment });
+    activeConversation = turn.conversationId;
+    fullReply = turn.reply;
+    cardData = turn.cardData;
+    sse(res, { type: 'conversation', conversationId: activeConversation, messageId: turn.userMessageId });
     sse(res, { type: 'status', status: 'typing', label: 'Kurukoo is typing…' });
-
-    // Handle conversational auth for guests
-    const authState = isGuest ? await getAuthState(phone) : { state: 'none' };
-    
-    // Check for safety capture state
-    const db = await getDb();
-    const profileStmt = db.prepare('SELECT preferences FROM memory_profiles WHERE phone = ?');
-    profileStmt.bind([phone]);
-    let prefs: any = {};
-    if (profileStmt.step()) {
-      const obj = profileStmt.getAsObject();
-      prefs = obj.preferences ? JSON.parse(String(obj.preferences)) : {};
+    if (turn.authSuccess) {
+      const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+      res.setHeader('Set-Cookie', [
+        'kurukoo_auth=' + encodeURIComponent(turn.authSuccess.token) + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800' + secure,
+        'kurukoo_guest_id=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + secure
+      ]);
+      await migrateGuestSessionToAccount(phone, turn.authSuccess.phone);
+      await applyQrReferralAttribution(phone, turn.authSuccess.phone).catch(() => undefined);
+      sse(res, { type: 'auth_success', phone: turn.authSuccess.phone });
     }
-    profileStmt.free();
-    const safetyState = prefs.safety_capture_state || 'none';
-
-    if (isGuest && authState.state !== 'none') {
-      const authResult = await handleConversationalAuth(phone, message);
-      fullReply = authResult.reply;
-      cardData = authResult.cardData;
-      
-      if (authResult.authenticated && authResult.token && authResult.phone) {
-        // Authenticated! Issue cookies and migrate.
-        const token = authResult.token;
-        const userPhoneValue = authResult.phone;
-        const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-        res.setHeader('Set-Cookie', [
-          `kurukoo_auth=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${secure}`,
-          `kurukoo_guest_id=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`
-        ]);
-        
-        await migrateGuestSessionToAccount(phone, userPhoneValue);
-        await applyQrReferralAttribution(phone, userPhoneValue).catch(() => undefined);
-        
-        sse(res, { type: 'auth_success', phone: userPhoneValue });
-      }
-      
-      for (const chunk of chunkText(fullReply)) {
-        sse(res, { type: 'text', content: chunk });
-        await new Promise(r => setTimeout(r, 8));
-      }
-    } else if (!isGuest && safetyState !== 'none') {
-      const safetyResult = await handleSafetyContactInput(phone, message);
-      fullReply = safetyResult.reply;
-      cardData = safetyResult.cardData;
-      for (const chunk of chunkText(fullReply)) {
-        sse(res, { type: 'text', content: chunk });
-        await new Promise(r => setTimeout(r, 8));
-      }
-    } else if (!isGuest && await isOnboarding(phone)) {
-      const onboarding = await handleOnboardingInput(phone, message);
-      fullReply = onboarding.reply;
-      cardData = onboarding.cardData;
-      for (const chunk of chunkText(fullReply)) {
-        sse(res, { type: 'text', content: chunk });
-        await new Promise(r => setTimeout(r, 8));
-      }
-    } else {
-      const routing = await routeIntent(message, phone);
-      cardData = routing.cardData;
-      const agentGoal = !isGuest ? await createConversationGoal({
-        phone,
-        conversationId: activeConversation,
-        skill: routing.skill,
-        objective: message,
-        economicRequestId: typeof cardData?.requestId === 'string' ? cardData.requestId : undefined,
-        source: channel === 'web_qr' ? 'qr' : 'conversation',
-      }) : null;
-      if (agentGoal) sse(res, { type: 'agent_goal', goal: { id: agentGoal.id, status: agentGoal.status, objective: agentGoal.objective, summary: agentGoal.summary, autonomy: agentGoal.autonomy, economicRequestId: agentGoal.economicRequestId || null } });
-
-      if (routing.skill && routing.skill !== 'general_question' && routing.skill !== 'autonomous_agent') {
-        if (isGuest) {
-          // Start conversational identity flow
-          await setAuthState(phone, 'awaiting_name', { intent: routing.skill, continuationCard: cardData });
-          fullReply = `${routing.reply}\n\nI can help with that. Before I save this for you, let's create your Kurukoo profile. What's your name?`;
-          cardData = {
-            type: 'auth_in_chat_start',
-            title: 'Create Your Profile',
-            message: 'Your request is captured. Tell me your name to continue.',
-            continuationCard: routing.cardData
-          };
-        } else if (cardData?.type === 'safety_contact_capture') {
-          await setSafetyCaptureState(phone, 'awaiting_phone', { name: cardData.name });
-          fullReply = routing.reply;
-        } else if (cardData?.type === 'agentic_storefront' || routing.skill === 'reminder') {
-          // Native assistance remains in the shared conversation but must not
-          // create an Economic Request, lead charge, or order.
-          fullReply = routing.reply;
-        } else {
-          let orderMessage = '';
-          try {
-            const orderResult = await finalizeOrder(phone, 'lead', { skill: routing.skill });
-            orderMessage = orderResult.message || '';
-          } catch (error) {
-            console.warn('[Chat] skill finalization deferred:', error);
-          }
-          fullReply = `${routing.reply}${orderMessage ? ` (${orderMessage})` : ''}`.trim();
-        }
-        for (const chunk of chunkText(fullReply)) {
-          sse(res, { type: 'text', content: chunk });
-          await new Promise(r => setTimeout(r, 8));
-        }
-      } else {
-        sse(res, { type: 'status', status: 'thinking', label: 'Kurukoo is considering the best next step…' });
-        for await (const chunk of streamUnifiedAI(message, { phone, threadId: activeConversation })) {
-          if (chunk.type === 'metadata' || chunk.type === 'thought') sse(res, chunk);
-          else if (chunk.type === 'text' && chunk.content) {
-            fullReply += chunk.content;
-            sse(res, chunk);
-          }
-        }
-      }
+    if (turn.agentGoal) sse(res, { type: 'agent_goal', goal: turn.agentGoal });
+    for (const chunk of chunkText(fullReply)) {
+      sse(res, { type: 'text', content: chunk });
+      await new Promise(r => setTimeout(r, 8));
     }
-
-    const savedAssistant = await appendChatMessage({ phone, sender: 'assistant', content: fullReply.trim(), channel, conversationId: activeConversation, cardData, metadata: { ai: true } });
     sse(res, { type: 'status', status: 'complete' });
-    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, messageId: savedAssistant.id });
+    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation });
     sse(res, '[DONE]');
     res.end();
   } catch (error: any) {

@@ -1,11 +1,10 @@
-import { routeIntent } from '../services/intentRouter.js';
-import { appendChatMessage } from '../services/chatConversationService.js';
 import { recordChannelUsage } from '../services/channelUsageService.js';
 
 export interface ChannelWebhookResult {
     status: string;
     response?: string;
     conversationId?: string;
+    cardData?: any;
     [key: string]: any;
 }
 
@@ -27,50 +26,30 @@ export abstract class BaseChannelHandler {
 
             const { phone, text, meta } = parsed;
             await this.onStart(meta);
-
-            // All channels share the same conversation ledger and Memory Profile identity.
-            const userMessage = await appendChatMessage({
-                phone,
-                sender: 'user',
-                content: text,
-                channel: this.channelName,
-                metadata: { channel: this.channelName, inbound: true, ...meta }
-            });
-
-            const routing = await routeIntent(text, phone);
-            const reply = `${routing.reply}`;
+            const { processCanonicalChatTurn } = await import('../services/canonicalChatTurnService.js');
+            const turn = await processCanonicalChatTurn({ phone, message: text, channel: this.channelName });
 
             await recordChannelUsage({
                 phone,
                 channel: this.channelName,
                 direction: 'inbound',
                 units: 1,
-                conversationId: userMessage.conversationId,
-                metadata: { source: 'shared-channel-handler' }
+                conversationId: turn.conversationId,
+                metadata: { source: 'canonical-chat-turn' },
             });
 
-            await appendChatMessage({
-                phone,
-                sender: 'assistant',
-                content: reply,
-                channel: this.channelName,
-                conversationId: userMessage.conversationId,
-                cardData: routing.cardData,
-                metadata: { channel: this.channelName, outbound: true }
-            });
-
-            await this.sendReply(phone, reply, meta);
+            await this.sendReply(phone, turn.reply, { ...meta, cardData: turn.cardData, conversationId: turn.conversationId });
             await recordChannelUsage({
                 phone,
                 channel: this.channelName,
                 direction: 'outbound',
                 units: 1,
-                conversationId: userMessage.conversationId,
-                metadata: { source: 'shared-channel-handler', delivery: 'completed' }
+                conversationId: turn.conversationId,
+                metadata: { source: 'canonical-chat-turn', delivery: 'completed' },
             });
             await this.onComplete(meta);
 
-            return { status: 'success', response: reply, conversationId: userMessage.conversationId };
+            return { status: 'success', response: turn.reply, conversationId: turn.conversationId, cardData: turn.cardData };
         } catch (e) {
             console.error(`[${this.channelName} Webhook] Error:`, e);
             return { status: 'error' };

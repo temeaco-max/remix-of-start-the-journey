@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { routeIntent } from '../services/intentRouter.js';
+import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 import { getDb, saveDb } from '../database.js';
 import { sendEmail } from '../services/emailService.js';
 
@@ -145,10 +145,13 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
         : [];
     const bodyText = text || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const inbound = subject ? `Subject: ${subject}\n\n${bodyText}` : bodyText;
-    db.run(`INSERT INTO messages (phone, sender, content, channel, card_data) VALUES (?, 'user', ?, 'email', ?)`, [phone, inbound, attachmentMeta.length ? JSON.stringify({ type: 'email_attachments', attachments: attachmentMeta }) : null]);
-
-    const routing = await routeIntent(bodyText, phone);
-    const reply = routing.reply || 'I received your message and will continue here in Kurukoo.';
+    const turn = await processCanonicalChatTurn({
+        phone,
+        message: inbound,
+        channel: 'email',
+        attachment: attachmentMeta.length ? { type: 'email_attachments', attachments: attachmentMeta } : undefined,
+    });
+    const reply = turn.reply || 'I received your message and will continue here in Kurukoo.';
     const delivery = await sendEmail(from, /^re:/i.test(subject) ? subject : `Re: ${subject || 'Kurukoo'}`, reply, {
         inReplyTo: incomingMessageId,
         references: threadReferences,
@@ -157,7 +160,6 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
     });
 
     db.run(`INSERT OR REPLACE INTO email_delivery_events (event_id, phone, provider, provider_id, status, error) VALUES (?, ?, ?, ?, ?, ?)`, [id, phone, delivery.provider, delivery.id || null, delivery.ok ? 'accepted' : 'failed', delivery.error || null]);
-    if (delivery.ok) db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'assistant', ?, 'email')`, [phone, reply]);
     saveDb();
 
     return {

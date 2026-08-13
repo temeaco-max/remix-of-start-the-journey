@@ -1,5 +1,4 @@
-import { routeIntent } from '../services/intentRouter.js';
-import { getDb, saveDb } from '../database.js';
+import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 
 function xmlEscape(value: string): string {
     return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -20,14 +19,7 @@ export async function handleIvrWebhook(body: any, headers: Record<string, any>) 
     if (!phone) throw new Error('IVR caller identity is required');
     if (!text) return { status: 'success', contentType: 'application/xml', response: voiceXml('Welcome to Kurukoo. Tell me what you need, or press a key after the tone.', true) };
 
-    const db = await getDb();
-    db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'user', ?, 'ivr')`, [phone, text]);
-    saveDb();
-
-    const routing = await routeIntent(text, phone);
-    const reply = routing.reply || 'I can help with rides, food, repairs, work, payments and nearby services.';
-    db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'assistant', ?, 'ivr')`, [phone, reply]);
-    saveDb();
-
-    return { status: 'success', contentType: 'application/xml', response: voiceXml(reply) };
+    const turn = await processCanonicalChatTurn({ phone, message: text, channel: 'ivr' });
+    const reply = turn.reply || 'I can help with rides, food, repairs, work, payments and nearby services.';
+    return { status: 'success', contentType: 'application/xml', response: voiceXml(reply), conversationId: turn.conversationId };
 }

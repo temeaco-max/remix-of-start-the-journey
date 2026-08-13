@@ -1,14 +1,11 @@
 import crypto from 'crypto';
 import { getDb, saveDb } from '../database.js';
-import { routeIntent } from '../services/intentRouter.js';
-import { appendChatMessage } from '../services/chatConversationService.js';
 import { updateSessionInteraction } from '../services/sessionManager.js';
 
 /** Verify Meta X-Hub-Signature-256 (security audit #8). */
 export function verifyWhatsAppSignature(rawBody: string | Buffer, signatureHeader: string): boolean {
     const appSecret = process.env.WHATSAPP_APP_SECRET;
     if (!appSecret) {
-        // Fail closed in production; allow local dev without secret
         if (process.env.NODE_ENV === 'production') return false;
         console.warn('[WhatsApp] WHATSAPP_APP_SECRET not set — signature check skipped (non-production)');
         return true;
@@ -32,7 +29,7 @@ async function sendWhatsAppTypingIndicator(phone: string, status: 'typing' | 'st
         await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messaging_product: 'whatsapp', status, to: recipient })
+            body: JSON.stringify({ messaging_product: 'whatsapp', status, to: recipient }),
         });
     } catch (err) { console.warn(`[WhatsApp Typing] Failed to send ${status} status:`, err); }
 }
@@ -46,7 +43,7 @@ async function sendWhatsAppMessage(phone: string, text: string, phoneNumberId?: 
         const res = await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: recipient, type: 'text', text: { body: text } })
+            body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: recipient, type: 'text', text: { body: text } }),
         });
         const data = await res.json() as any;
         return data?.messages?.[0]?.id || null;
@@ -59,7 +56,6 @@ export async function handleWhatsAppWebhook(body: any, signature: string, rawBod
             const ok = verifyWhatsAppSignature(typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8'), signature || '');
             if (!ok) return { status: 'error', error: 'invalid_signature' };
         } else if (process.env.NODE_ENV === 'production' && process.env.WHATSAPP_APP_SECRET) {
-            // Without raw body we cannot verify — reject in production when secret is configured
             const ok = verifyWhatsAppSignature(JSON.stringify(body || {}), signature || '');
             if (!ok) return { status: 'error', error: 'invalid_signature' };
         }
@@ -107,28 +103,14 @@ export async function handleWhatsAppWebhook(body: any, signature: string, rawBod
 
         await sendWhatsAppTypingIndicator(phone, 'typing', phoneNumberId);
         await updateSessionInteraction(phone);
-
-        const userMessage = await appendChatMessage({
+        const { processCanonicalChatTurn } = await import('../services/canonicalChatTurnService.js');
+        const turn = await processCanonicalChatTurn({
             phone,
-            sender: 'user',
-            content: text,
+            message: text,
             channel: 'whatsapp',
-            metadata: { channel: 'whatsapp', inbound: true, whatsapp_message_id: msg.id, signature }
+            attachment: msg.image || msg.document || msg.video,
         });
-
-        const routing = await routeIntent(text, phone);
-        const reply = `${routing.reply}`;
-        const wamid = await sendWhatsAppMessage(phone, reply, phoneNumberId);
-
-        await appendChatMessage({
-            phone,
-            sender: 'assistant',
-            content: reply,
-            channel: 'whatsapp',
-            conversationId: userMessage.conversationId,
-            cardData: routing.cardData,
-            metadata: { channel: 'whatsapp', outbound: true, whatsapp_message_id: wamid }
-        });
+        const wamid = await sendWhatsAppMessage(phone, turn.reply, phoneNumberId);
 
         if (wamid) {
             const db = await getDb();
@@ -137,7 +119,7 @@ export async function handleWhatsAppWebhook(body: any, signature: string, rawBod
         }
 
         await sendWhatsAppTypingIndicator(phone, 'stopped', phoneNumberId);
-        return { status: 'success', conversationId: userMessage.conversationId };
+        return { status: 'success', conversationId: turn.conversationId, response: turn.reply, cardData: turn.cardData };
     } catch (e) {
         console.error('WhatsApp webhook error:', e);
         return { status: 'error' };
