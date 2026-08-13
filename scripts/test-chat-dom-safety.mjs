@@ -37,5 +37,12 @@ assert.match(source, /message-arrived/, 'streamed assistant content must receive
 assert.match(chatCss, /\.typing-indicator/, 'typing indicator must have dedicated shared chat styles');
 assert.match(chatCss, /kurukoo-message-bubble-in/, 'new message bubbles must have a dedicated arrival animation');
 assert.match(chatCss, /prefers-reduced-motion:reduce/, 'typing and message arrival motion must honor user motion preferences');
+assert.match(shell, /id="stop-generation"[^>]*aria-label="Stop generation"/, 'composer must expose an accessible stop-generation control');
+assert.match(source, /makeIcon\s*=|const makeIcon/, 'message actions must use the native SVG icon system');
+assert.match(source, /message-action-btn/, 'message actions must use restrained icon affordances');
+assert.match(source, /AbortController/, 'streaming must support user-requested cancellation');
+assert.match(source, /function renderAttachmentPreview\(/, 'attachments must have an accessible preview/removal surface');
+assert.match(chatCss, /\.message-action-btn/, 'message action buttons must have a dedicated touch-safe style');
+assert.match(chatCss, /min-height:42px/, 'primary Chat actions must remain usable on touch devices');
 
-console.log('Chat DOM-safety contract passed: storefront cards use DOM APIs, Markdown remains sanitized, and live typing/message-arrival controls are accessible and error-aware.');
+console.log('Chat DOM-safety contract passed: sanitized cards, accessible streaming, native icon actions, stop generation, and attachment affordances remain covered.');

@@ -1,14 +1,14 @@
 (() => {
   const state = {
     conversationId: localStorage.getItem('kurukoo_conversation_id') || '',
-    messages: [], busy: false, attached: null,
+    messages: [], busy: false, attached: null, controller: null,
     theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     activeStorefrontId: null,
     nativeAssistance: { reminders: [], checkIns: [] },
     pinnedMessages: []
   };
   const $ = id => document.getElementById(id);
-  const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message');
+  const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
   const pinStorageKey = () => `kurukoo_pins_${state.conversationId || 'draft'}`;
   function savePinnedMessages() { try { localStorage.setItem(pinStorageKey(), JSON.stringify(state.pinnedMessages)); } catch {} }
   function loadPinnedMessages() { try { const parsed = JSON.parse(localStorage.getItem(pinStorageKey()) || '[]'); state.pinnedMessages = Array.isArray(parsed) ? parsed.slice(0, 12) : []; } catch { state.pinnedMessages = []; } renderPinnedMessages(); }
@@ -23,6 +23,22 @@
     if (text) el.textContent = text;
     return el;
   };
+  const makeIcon = (name, label = '') => {
+    const icon = document.createElement('svg');
+    icon.className = 'k-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    const use = document.createElement('use');
+    use.setAttribute('href', `/icons/kurukoo-icons.svg#${name}`);
+    icon.appendChild(use);
+    if (label) icon.setAttribute('data-icon-label', label);
+    return icon;
+  };
+  function setComposerBusy(busy) {
+    state.busy = busy;
+    if (send) { send.hidden = busy; send.disabled = busy; }
+    if (stop) stop.hidden = !busy;
+    if (input) input.setAttribute('aria-busy', String(busy));
+  }
 
   const setConnection = (ok, text = ok ? 'Connected' : 'Offline') => { 
     const el = $('connection-status'); 
@@ -179,10 +195,11 @@
     bubble.appendChild(md);
     
     const actions = makeElement('div', 'message-actions');
-    const buttons = role === 'assistant' ? [['pin', 'Pin'], ['copy', 'Copy'], ['regenerate', 'Regenerate'], ['delete', 'Delete']] : [['pin', 'Pin'], ['copy', 'Copy'], ['edit', 'Edit'], ['delete', 'Delete']];
-    buttons.forEach(([act, lab]) => {
-      const btn = makeElement('button', '', lab);
-      btn.dataset.action = act;
+    const buttons = role === 'assistant' ? [['pin', 'Pin', 'saved'], ['copy', 'Copy', 'copy'], ['regenerate', 'Retry', 'retry'], ['delete', 'Delete', 'trash']] : [['pin', 'Pin', 'saved'], ['copy', 'Copy', 'copy'], ['edit', 'Edit', 'edit'], ['delete', 'Delete', 'trash']];
+    buttons.forEach(([act, lab, iconName]) => {
+      const btn = makeElement('button', 'message-action-btn');
+      btn.type = 'button'; btn.dataset.action = act; btn.setAttribute('aria-label', lab); btn.title = lab;
+      btn.appendChild(makeIcon(iconName, lab));
       actions.appendChild(btn);
     });
     
@@ -235,8 +252,8 @@
     bubble.appendChild(thinking);
     
     const actions = makeElement('div', 'message-actions');
-    [['copy', 'Copy'], ['regenerate', 'Regenerate'], ['delete', 'Delete']].forEach(([act, lab]) => {
-      const btn = makeElement('button', '', lab); btn.dataset.action = act; actions.appendChild(btn);
+    [['copy', 'Copy', 'copy'], ['regenerate', 'Retry', 'retry'], ['delete', 'Delete', 'trash']].forEach(([act, lab, iconName]) => {
+      const btn = makeElement('button', 'message-action-btn'); btn.type = 'button'; btn.dataset.action = act; btn.setAttribute('aria-label', lab); btn.title = lab; btn.appendChild(makeIcon(iconName, lab)); actions.appendChild(btn);
     });
     
     body.append(bubble, actions);
@@ -730,14 +747,14 @@
 
   async function sendMessage(raw) {
     const text = String(raw || input.value || '').trim(); if (!text || state.busy || !(await ensureIdentity())) return;
-    state.busy = true; send.disabled = true; setConnection(true); input.value = '';
+    state.controller = new AbortController(); setComposerBusy(true); setConnection(true); input.value = '';
     let attachment = state.attached;
     try {
       if (attachment instanceof File) { input.placeholder = 'Uploading attachment…'; attachment = await uploadAttachment(attachment); }
       state.attached = null; $('attachment-preview').hidden = true; $('attachment-preview').textContent = '';
       const finalText = attachment ? `${text}\n\n[Attachment: ${attachment.name} — ${attachment.type} — ${attachment.url}]` : text;
       const user = addUserMessage(finalText); const assistant = appendStreamBubble(); const output = assistant.querySelector('.markdown-body'); const thinking = assistant.querySelector('.thinking'); let full = '';
-      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ message: finalText, channel: 'web', conversationId: state.conversationId || undefined, attachment: attachment || undefined }) });
+      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', signal: state.controller?.signal, body: JSON.stringify({ message: finalText, channel: 'web', conversationId: state.conversationId || undefined, attachment: attachment || undefined }) });
       if (response.status === 401) { await ensureIdentity(); throw new Error('Your session has expired.'); }
       if (!response.ok || !response.body) throw new Error(`Chat request failed (${response.status})`);
       const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '';
@@ -776,11 +793,12 @@
       state.messages.push({ role: 'user', text: finalText, id: Number(user.dataset.messageId) || null }); state.messages.push({ role: 'assistant', text: full, id: Number(assistant.dataset.messageId) || null });
       if (!full) output.textContent = 'I could not complete that request. Please try again.';
       await refreshHistory();
-    } catch (error) { 
+    } catch (error) {
+      if (error?.name === 'AbortError') { setConnection(true); setTypingStatus('complete'); assistant.hidden = false; assistant.classList.remove('message-streaming'); assistant.classList.add('message-arrived'); if (!full) setMarkdown(output, 'Generation stopped.'); return; }
       setConnection(false, 'Connection issue'); setTypingStatus('error'); assistant.hidden = false; assistant.classList.remove('message-streaming'); assistant.classList.add('message-arrived');
       const bubble = chatContent.querySelector('.message.assistant:last-child .markdown-body'); 
       if (bubble) setMarkdown(bubble, `I’m having trouble completing that right now. **Please try again.**\n\n_${escapeAttr(error.message)}_`); 
-    } finally { setTypingStatus('complete'); state.busy = false; send.disabled = false; input.placeholder = 'Message Kurukoo'; input.focus(); loadPoints(); loadReminders(); loadSafety(); loadAgentGoal(); }
+    } finally { state.controller = null; setTypingStatus('complete'); setComposerBusy(false); input.placeholder = 'Message Kurukoo'; input.focus(); loadPoints(); loadReminders(); loadSafety(); loadAgentGoal(); }
   }
 
   function updateModelStatus(data) { const label = $('model-badge'); if (label && data.model) label.textContent = data.model; }
@@ -942,8 +960,24 @@
     }
   });
 
+  function renderAttachmentPreview(file) {
+    const preview = $('attachment-preview'); if (!preview) return;
+    preview.replaceChildren();
+    if (!file) { preview.hidden = true; return; }
+    preview.hidden = false;
+    preview.appendChild(makeIcon('attach', 'Attachment'));
+    const details = makeElement('span'); details.className = 'attachment-name'; details.textContent = file.name;
+    const meta = makeElement('span', 'attachment-meta', `${file.type || 'file'} · ${Math.max(1, Math.round(file.size / 1024))} KB`);
+    const remove = makeElement('button', 'attachment-remove'); remove.type = 'button'; remove.setAttribute('aria-label', 'Remove attachment'); remove.title = 'Remove attachment'; remove.appendChild(makeIcon('close', 'Remove attachment'));
+    remove.addEventListener('click', () => { state.attached = null; if ($('file-input')) $('file-input').value = ''; renderAttachmentPreview(null); });
+    preview.append(details, meta, remove);
+  }
+  $('attach-file')?.addEventListener('click', () => $('file-input')?.click());
+  $('file-input')?.addEventListener('change', event => { const file = event.target.files?.[0]; state.attached = file || null; renderAttachmentPreview(state.attached); });
+  input?.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 180)}px`; if (!state.busy && send) send.disabled = !input.value.trim(); });
   input?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
   send?.addEventListener('click', () => sendMessage());
+  stop?.addEventListener('click', () => { state.controller?.abort(); });
   $('new-chat')?.addEventListener('click', async () => { 
     if (!await ensureIdentity()) return; 
     try { 
