@@ -22,7 +22,7 @@
             <div class="resource-card-cat text-terracotta">${data.category||'Guide'}</div>
             <h1 class="article-title-h1">${data.title}</h1>
             <div class="article-date-meta">${data.updated_at ? 'Updated ' + new Date(data.updated_at).toLocaleDateString() : ''}</div>
-            <div class="article-body-text">${data.body || data.excerpt || ''}</div>`;
+            <div class="article-body-text">${data.body || data.excerpt || ''}</div><div class="article-chat-cta"><p>Want help applying this guide?</p><a class="workspace-button" href="/chat?resourceSlug=${encodeURIComponent(slug)}&prompt=${encodeURIComponent(`Help me with this guide: ${data.title || slug}`)}">Ask Kurukoo</a></div>`;
     } catch(e) {
         body.innerHTML = '<div class="muted-info-text">Could not load this guide.</div>';
     }

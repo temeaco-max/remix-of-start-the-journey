@@ -38,8 +38,14 @@ async function progressLinkedEconomicRequest(economicRequestId: string | null | 
   const req = await getEconomicRequest(String(economicRequestId));
   if (!req || !['requested', 'awaiting_match', 'partially_matched', 'matched', 'quoting'].includes(req.status)) return 'not_eligible';
   try {
-    if (req.status === 'requested' || req.status === 'awaiting_match' || req.status === 'partially_matched') {
+    let currentStatus = req.status;
+    if (currentStatus === 'requested') {
+      await transitionEconomicRequest(req.id, 'awaiting_match', { providerPhone: provider.phone });
+      currentStatus = 'awaiting_match';
+    }
+    if (['awaiting_match', 'partially_matched'].includes(currentStatus)) {
       await transitionEconomicRequest(req.id, 'matched', { providerPhone: provider.phone });
+      currentStatus = 'matched';
     }
     const amountMinor = Math.round(Number(provider.hourly_rate));
     if (!Number.isInteger(amountMinor) || amountMinor <= 0) return 'matched_without_quote';
@@ -82,7 +88,9 @@ export async function processDueDeferred(): Promise<{ checked: number; matched: 
             await markPartiallyMatched(phone, intention.id, note).catch(() => null);
           });
         }
-        const pushed = await sendFcmPush(phone, 'Kurukoo found a match', `A provider is available for "${skill}". Open the app and say "continue" to review the quote.`, undefined).catch(() => false);
+        const requestId = intention.economic_request_id ? String(intention.economic_request_id) : '';
+        const chatLink = `/chat?requestId=${encodeURIComponent(requestId || String(intention.id))}&prompt=${encodeURIComponent(`Continue with my ${skill} request`)}`;
+        const pushed = await sendFcmPush(phone, 'Kurukoo found a match', `A provider is available for "${skill}". Open Chat to review the next supported step.`, chatLink).catch(() => false);
         if (pushed) notified += 1;
       } else {
         await incrementAttempt(phone, intention.id);

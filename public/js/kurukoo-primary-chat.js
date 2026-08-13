@@ -997,6 +997,25 @@
     window.location.assign('/');
   });
 
+  function hydrateChatDeepLink() {
+    const params = new URLSearchParams(window.location.search);
+    const conversationId = params.get('conversationId');
+    const prompt = params.get('prompt');
+    const providerSlug = params.get('providerSlug');
+    const topicSlug = params.get('topicSlug');
+    const resourceSlug = params.get('resourceSlug');
+    const requestId = params.get('requestId');
+    if (conversationId) { state.conversationId = conversationId.slice(0, 160); localStorage.setItem('kurukoo_conversation_id', state.conversationId); }
+    const contextParts = [];
+    if (providerSlug) contextParts.push(`Provider context: ${providerSlug}`);
+    if (topicSlug) contextParts.push(`Topic context: ${topicSlug}`);
+    if (resourceSlug) contextParts.push(`Resource context: ${resourceSlug}`);
+    if (requestId) contextParts.push(`Request context: ${requestId}`);
+    const contextBanner = $('qr-context-banner');
+    if (contextBanner && contextParts.length) { contextBanner.textContent = `${contextParts.join(' · ')}. Kurukoo will keep this context with the conversation.`; contextBanner.hidden = false; }
+    if (prompt && input) { input.value = prompt.slice(0, 12000); input.dispatchEvent(new Event('input', { bubbles: true })); }
+  }
+
   function renderWelcome() {
     const welcome = makeElement('div', 'welcome'); welcome.id = 'welcome';
     const mark = makeElement('div', 'welcome-mark');
@@ -1015,6 +1034,7 @@
   }
 
   applyTheme();
+  hydrateChatDeepLink();
   ensureIdentity().then(ok => { 
     if (ok) {
       Promise.all([loadPoints(), loadMemory(), loadReminders(), loadSafety(), loadAgentGoal(), refreshHistory()]);

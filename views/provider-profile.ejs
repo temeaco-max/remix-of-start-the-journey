@@ -48,7 +48,7 @@
         <p class="banner-cta-p">
             Start a request in Web Chat. Kurukoo will preserve the provider reference and present the next supported action only after the required checks.
         </p>
-        <a href="/chat?prompt=I%20want%20to%20request%20a%20service%20from%20<%= encodeURIComponent(provider.name) %>"
+        <a href="/chat?prompt=<%= encodeURIComponent(`I want to request a service from ${provider.name}`) %>&providerSlug=<%= encodeURIComponent(provider.slug || provider.id || provider.phone || provider.name) %>"
            class="btn-wa-green">
             &rightarrow;&nbsp;Start in Web Chat
         </a>

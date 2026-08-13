@@ -82,11 +82,17 @@
         if (!features.length) list.innerHTML = '<div class="muted-info-text">No active activity in this area yet.</div>';
 
         features.forEach(f => {
-            const { layer, name, detail, lat, lng } = f.properties || {};
+            const { layer, name, detail } = f.properties || {};
+            const [lng, lat] = Array.isArray(f.geometry?.coordinates) ? f.geometry.coordinates : [];
             const color = colorFor[layer] || '#888';
-            if (lat && lng && activeLayers[layer] !== false) {
+            if (Number.isFinite(lat) && Number.isFinite(lng) && activeLayers[layer] !== false) {
                 const g = layerGroups[layer] || (layerGroups[layer] = L.layerGroup());
-                L.circleMarker([lat,lng], { radius: 8, color, fillColor: color, fillOpacity: 0.8 }).bindPopup(`<strong>${name}</strong><br/>${detail||''}`).addTo(g);
+                const popup = document.createElement('div');
+                const popupTitle = document.createElement('strong'); popupTitle.textContent = String(name || 'Activity');
+                const popupDetail = document.createElement('div'); popupDetail.textContent = String(detail || '');
+                const popupLink = document.createElement('a'); popupLink.href = `/chat?prompt=${encodeURIComponent(`Tell me more about ${name || 'this nearby activity'}`)}`; popupLink.textContent = 'Ask Kurukoo'; popupLink.target = '_top';
+                popup.append(popupTitle, popupDetail, popupLink);
+                L.circleMarker([lat,lng], { radius: 8, color, fillColor: color, fillOpacity: 0.8 }).bindPopup(popup).addTo(g);
                 if (activeLayers[layer]) g.addTo(map);
             }
             if (activeLayers[layer] !== false) {
@@ -103,6 +109,9 @@
                 detailText.className = 'item-detail-muted';
                 detailText.textContent = String(detail || '');
                 text.append(title, detailText);
+                const ask = document.createElement('a');
+                ask.className = 'discover-chat-link'; ask.href = `/chat?prompt=${encodeURIComponent(`Tell me more about ${name || 'this nearby activity'}`)}`; ask.textContent = 'Ask Kurukoo';
+                text.appendChild(ask);
                 item.append(indicator, text);
                 list.appendChild(item);
             }
