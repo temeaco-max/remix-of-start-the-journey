@@ -83,6 +83,13 @@
   }
   $('radar-toggle')?.addEventListener('click', () => setRadarActive(!state.radarActive));
   setRadarActive(state.radarActive);
+  const moreToggle = $('sidebar-more-toggle'); const moreItems = $('sidebar-more-items');
+  moreToggle?.addEventListener('click', () => {
+    const expanded = moreToggle.getAttribute('aria-expanded') === 'true';
+    moreToggle.setAttribute('aria-expanded', String(!expanded));
+    if (moreItems) moreItems.hidden = expanded;
+    moreToggle.classList.toggle('is-expanded', !expanded);
+  });
 
   function setTypingStatus(status = 'complete', label = '') {
     const active = status === 'typing' || status === 'thinking';
