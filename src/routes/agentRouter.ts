@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import { authenticateAdmin, authenticateUser, type AuthRequest } from '../middleware/auth.js';
-import { agentRuntimeStatus, cancelAgentGoal, getAgentGoal, goalTimeline, listAgentGoalEvents, listAgentGoals, pauseAgentGoal, resumeAgentGoal } from '../services/agentRuntime.js';
+import { agentRuntimeStatus, cancelAgentGoal, getAgentGoal, goalTimeline, listAgentGoalEvents, listAgentGoals, listAgentWorkerRuns, pauseAgentGoal, resumeAgentGoal } from '../services/agentRuntime.js';
 
 const router = Router();
 
 function phone(req: AuthRequest): string | null { return req.user?.phone ? String(req.user.phone) : null; }
 
 router.get('/status', authenticateAdmin, (_req, res) => res.json({ success: true, runtime: agentRuntimeStatus() }));
+
+router.get('/runs', authenticateAdmin, async (req, res) => {
+  const parsed = Number(req.query.limit || 20);
+  res.json({ success: true, runs: await listAgentWorkerRuns(Number.isFinite(parsed) ? parsed : 20) });
+});
 
 router.get('/goals', authenticateUser, async (req: AuthRequest, res) => {
   const owner = phone(req); if (!owner) return res.status(401).json({ error: 'Authentication required' });

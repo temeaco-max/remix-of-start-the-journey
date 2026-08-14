@@ -82,3 +82,10 @@ The Chat shell is a protected interface contract and currently includes central 
 The repository is **type-correct and structurally coherent**, with strong authorization and safety boundaries. The key correctness gaps are not broad syntax failures; they are operational completeness gaps: user control endpoints, worker health and shutdown, persistent cycle observability, synchronized plan progress, and consolidated connector-evidence readiness.
 
 The next implementation phase should address those gaps without weakening consent or exposing high-risk tools. Full autonomous production deployment remains conditional on real external credentials, verified callbacks/webhooks, payment/KYC/affiliate providers, notification delivery, connector evidence, and an explicit operator activation decision.
+
+
+## Remediation tranche — durable worker auditability
+
+The next completion tranche added a durable `agent_worker_runs` ledger to the existing autonomous runtime schema. Successful and failed worker cycles now persist bounded start/completion timestamps, due-goal and updated-goal counts, status, and a sanitized error field. Administrators can inspect recent records through the admin-only `GET /api/agent/runs` endpoint, while the existing `GET /api/agent/status` endpoint continues to expose current in-memory health. This closes the previous post-restart auditability gap without creating a second runtime or exposing user data.
+
+The implementation was compiled and verified with the autonomous runtime regression, Chat DOM-safety contract, production guard regression, and repository diff checks. The updated maturity assessment is **7.6/10**: worker lifecycle and auditability are now strong, while provider configuration, external delivery, payment/KYC/affiliate activation, and explicit skill-flow depth remain deployment prerequisites rather than code defects.

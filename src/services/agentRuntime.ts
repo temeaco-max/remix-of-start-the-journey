@@ -108,6 +108,36 @@ export function markAgentWorkerStopped(): void {
   workerHealth.cycleRunning = false;
 }
 
+export type AgentWorkerRun = {
+  id: number;
+  startedAt: string;
+  completedAt?: string;
+  status: 'running' | 'completed' | 'failed';
+  dueGoalCount: number;
+  updatedGoalCount: number;
+  error?: string;
+};
+
+export async function recordAgentWorkerRun(input: Omit<AgentWorkerRun, 'id'>): Promise<void> {
+  await ensureAgentRuntimeSchema();
+  const db = await getDb();
+  db.run(`INSERT INTO agent_worker_runs (started_at, completed_at, status, due_goal_count, updated_goal_count, error) VALUES (?, ?, ?, ?, ?, ?)`, [input.startedAt, input.completedAt || null, input.status, input.dueGoalCount, input.updatedGoalCount, input.error || null]);
+  saveDb();
+}
+
+export async function listAgentWorkerRuns(limit = 20): Promise<AgentWorkerRun[]> {
+  await ensureAgentRuntimeSchema();
+  const db = await getDb();
+  const stmt = db.prepare(`SELECT * FROM agent_worker_runs ORDER BY id DESC LIMIT ?`);
+  stmt.bind([Math.max(1, Math.min(100, limit))]);
+  const runs: AgentWorkerRun[] = [];
+  while (stmt.step()) {
+    const row = stmt.getAsObject() as any;
+    runs.push({ id: Number(row.id), startedAt: String(row.started_at || ''), completedAt: row.completed_at ? String(row.completed_at) : undefined, status: String(row.status) as AgentWorkerRun['status'], dueGoalCount: Number(row.due_goal_count || 0), updatedGoalCount: Number(row.updated_goal_count || 0), error: row.error ? String(row.error) : undefined });
+  }
+  stmt.free();
+  return runs;
+}
 
 export async function ensureAgentRuntimeSchema(): Promise<void> {
   const db = await getDb();
@@ -148,11 +178,21 @@ export async function ensureAgentRuntimeSchema(): Promise<void> {
     idempotency_key TEXT UNIQUE,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
+  db.run(`CREATE TABLE IF NOT EXISTS agent_worker_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    status TEXT NOT NULL,
+    due_goal_count INTEGER NOT NULL DEFAULT 0,
+    updated_goal_count INTEGER NOT NULL DEFAULT 0,
+    error TEXT
+  )`);
   const eventColumns = db.exec(`PRAGMA table_info(agent_goal_events)`)[0]?.values?.map((row: any[]) => String(row[1])) || [];
   for (const [name, declaration] of Object.entries({ action: "TEXT DEFAULT 'legacy'", tool: 'TEXT', result: "TEXT DEFAULT ''", evidence: 'TEXT', detail: 'TEXT', idempotency_key: 'TEXT' })) if (!eventColumns.includes(name)) { try { db.run(`ALTER TABLE agent_goal_events ADD COLUMN ${name} ${declaration}`); } catch {} }
   db.run(`CREATE INDEX IF NOT EXISTS idx_agent_goals_phone_status ON agent_goals(phone, status, updated_at DESC)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_agent_goals_due ON agent_goals(status, next_action_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_agent_goal_events_goal ON agent_goal_events(goal_id, created_at DESC)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_agent_worker_runs_started ON agent_worker_runs(started_at DESC)`);
   saveDb();
 }
 

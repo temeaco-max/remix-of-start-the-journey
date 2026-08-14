@@ -3,7 +3,7 @@ import { seedDemoAdCampaigns } from '../services/adManager.js';
 import { startContactSyncService } from '../services/contactSyncService.js';
 import { startDeliveryStatusService } from '../services/deliveryService.js';
 import { runEscrowPass } from '../services/tradeEngine.js';
-import { markAgentWorkerCycleCompleted, markAgentWorkerCycleFailed, markAgentWorkerCycleStarted, markAgentWorkerStarted, markAgentWorkerStopped, notifyGoalIfNeeded, reenterDueDeferredGoals, runDueAgentGoals } from '../services/agentRuntime.js';
+import { markAgentWorkerCycleCompleted, markAgentWorkerCycleFailed, markAgentWorkerCycleStarted, markAgentWorkerStarted, markAgentWorkerStopped, notifyGoalIfNeeded, recordAgentWorkerRun, reenterDueDeferredGoals, runDueAgentGoals } from '../services/agentRuntime.js';
 
 const backgroundTimers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
 let backgroundServicesStarted = false;
@@ -27,14 +27,17 @@ export async function startBackgroundServices(): Promise<void> {
         markAgentWorkerStarted();
         const runAgentFollowUp = async () => {
             if (!markAgentWorkerCycleStarted()) return;
+            const startedAt = new Date().toISOString();
             try {
                 const dueGoals = await runDueAgentGoals();
                 const deferredGoals = await reenterDueDeferredGoals();
                 const updates = [...dueGoals, ...deferredGoals];
                 for (const goal of updates) await notifyGoalIfNeeded(goal);
                 markAgentWorkerCycleCompleted(dueGoals.length + deferredGoals.length, updates.length);
+                await recordAgentWorkerRun({ startedAt, completedAt: new Date().toISOString(), status: 'completed', dueGoalCount: dueGoals.length + deferredGoals.length, updatedGoalCount: updates.length });
             } catch (error) {
                 markAgentWorkerCycleFailed(error);
+                await recordAgentWorkerRun({ startedAt, completedAt: new Date().toISOString(), status: 'failed', dueGoalCount: 0, updatedGoalCount: 0, error: String(error instanceof Error ? error.message : error).slice(0, 500) });
                 throw error;
             }
         };

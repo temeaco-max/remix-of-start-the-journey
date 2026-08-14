@@ -182,3 +182,8 @@ The central Chat workspace loader and Nearby radar renderer must not assign fetc
 The right inspector's Current objective card may expose Pause, Resume, and Stop follow-up actions for an authenticated, owner-scoped goal. These controls use the existing `/api/agent/goals/:id/{pause|resume|cancel}` endpoints, retain the active central surface, and update the card in place. Pause changes the goal to a non-due waiting state with an evidence event; Resume schedules the next bounded check; Stop follow-up cancels the goal. Destructive cancellation must not be inferred from a generic navigation action.
 
 The Chat client must not expose persistent autonomous-goal controls to guests, must not show a goal as connected or active without the authenticated timeline response, and must display provider/channel limitations truthfully. Runtime readiness is an admin concern and is represented through the admin-only status endpoint; it includes both activation flags and worker health telemetry rather than a vague connected badge. No user-facing surface may claim external delivery, payment, stock, dispatch, or fulfilment unless the canonical provider or request authority returned that state.
+
+
+## Worker history boundary
+
+Worker history is an admin-only operational surface. The Chat client may show the current authenticated goal state and user controls, but it must not expose worker-run records, internal cycle counts, stack traces, or provider credentials to ordinary users. Administrative runtime views may consume `/api/agent/status` and `/api/agent/runs` to distinguish disabled, idle, completed, and failed cycles without presenting provider-gated capabilities as connected.
