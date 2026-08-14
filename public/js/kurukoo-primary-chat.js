@@ -75,10 +75,10 @@
   }
   async function renderWorkspaceSurface(view) {
     if (!chatContent || !surfacePaths[view]) return;
-    state.surfaceView = view; updateSurfaceHeader(view); updateSurfaceContext(view);
+    state.surfaceView = view; updateSurfaceHeader(view); updateSurfaceContext(view); loadNearbyInspector(view);
     const surface = makeElement('section', 'workspace-surface'); surface.dataset.surfaceView = view;
     const heading = makeElement('div', 'surface-heading'); heading.append(makeElement('h1', '', surfaceTitles[view] || 'Workspace'));
-    if (view === 'tasks') { const ask = makeElement('button', 'workspace-button secondary ask-cta'); ask.type = 'button'; const mark = makeElement('span', 'ask-mark'); const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.svg'; image.alt = ''; image.setAttribute('aria-hidden', 'true'); mark.append(image); ask.append(mark, makeElement('span', '', 'Ask')); ask.addEventListener('click', () => input?.focus()); heading.append(ask); }
+    { const ask = makeElement('button', 'workspace-button secondary ask-cta'); ask.type = 'button'; const mark = makeElement('span', 'ask-mark'); const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.svg'; image.alt = ''; image.setAttribute('aria-hidden', 'true'); mark.append(image); ask.append(mark, makeElement('span', '', 'Ask')); ask.addEventListener('click', () => input?.focus()); heading.append(ask); }
     surface.append(heading); const body = makeElement('div', 'surface-body'); body.append(makeElement('div', 'surface-loading', 'Loading…')); surface.append(body); chatContent.replaceChildren(surface); scroll.scrollTop = 0;
     try {
       if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
@@ -1115,6 +1115,33 @@
       row.appendChild(action); list.appendChild(row);
     });
   }
+  function renderNearbyInspector(features = [], active = false) {
+    const list = document.getElementById('radar-list'); const label = document.getElementById('nearby-context-label');
+    if (!list) return;
+    if (label) label.textContent = active ? 'Happening now' : 'Nearby';
+    list.replaceChildren();
+    const items = Array.isArray(features) ? features.slice(0, 5) : [];
+    if (!items.length) { list.appendChild(makeElement('div', 'empty-state', active ? 'No active activity is available in this area yet.' : 'Ask Kurukoo what is nearby when local discovery is useful.')); return; }
+    items.forEach((feature) => {
+      const props = feature?.properties || {};
+      const row = makeElement('div', 'radar-list-item');
+      const title = makeElement('strong', '', String(props.name || 'Nearby activity'));
+      const detail = makeElement('small', '', String(props.detail || 'Activity data available'));
+      row.append(title, detail); list.appendChild(row);
+    });
+  }
+  async function loadNearbyInspector(view = state.surfaceView) {
+    const list = document.getElementById('radar-list'); if (!list) return;
+    if (view !== 'discover') { renderNearbyInspector([], false); return; }
+    if (!navigator.geolocation) { renderNearbyInspector([], true); return; }
+    try {
+      const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 2500, maximumAge: 300000 }));
+      const { latitude, longitude } = position.coords;
+      const url = new URL('/api/discover/map', location.origin); url.searchParams.set('lat', String(latitude)); url.searchParams.set('lng', String(longitude)); url.searchParams.set('radius', '10000'); url.searchParams.set('layers', 'mobile,stationary,agents,emergency,deals,events');
+      const response = await fetch(url, { credentials: 'same-origin' }); if (!response.ok) throw new Error('Nearby activity unavailable');
+      const data = await response.json(); renderNearbyInspector(data.features || [], true);
+    } catch { renderNearbyInspector([], true); }
+  }
   async function loadProactiveInspector() {
     const card = document.getElementById('proactive-context-card'); if (!card) return;
     try { const response = await fetch('/api/proactive/feed', { credentials: 'same-origin' }); if (!response.ok) throw new Error('Proactive feed unavailable'); const data = await response.json(); renderProactiveInspector(data.opportunities || []); } catch { renderProactiveInspector([]); }
@@ -1490,6 +1517,7 @@
       await refreshHistory();
       await Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadTaskContext(), loadReminders(), loadSafety(), loadAgentGoal()]);
     loadProactiveInspector();
+    loadNearbyInspector(state.surfaceView);
       if (!state.conversationId) renderWelcome();
     }
   });

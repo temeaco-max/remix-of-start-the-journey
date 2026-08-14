@@ -487,3 +487,9 @@ body.dark .message.user .bubble{background:#fff!important;color:#242824!importan
 
 /* Surface-aware inspector choreography: cards stage before the rail commits its new state. */
 .chat-inspector .inspector-card.is-context-leaving,.chat-inspector .inspector-discovery-stack.is-context-leaving{opacity:0;transform:translateY(5px);pointer-events:none}.chat-inspector .inspector-card.is-context-entering,.chat-inspector .inspector-discovery-stack.is-context-entering{opacity:1;transform:translateY(0)}.chat-inspector.is-swapping{overflow:hidden}.chat-inspector .inspector-card,.chat-inspector .inspector-discovery-stack{will-change:opacity,transform}@media(prefers-reduced-motion:reduce){.chat-inspector .inspector-card,.chat-inspector .inspector-discovery-stack{transition:none!important;transform:none!important}.chat-inspector .inspector-card.is-context-leaving,.chat-inspector .inspector-discovery-stack.is-context-leaving{opacity:0}}
+
+
+/* Compact, truthful right-rail request and Discover activity presentation. */
+.chat-inspector .context-intro p{margin:6px 0 0;font-size:11px;line-height:1.38;max-width:28ch;overflow-wrap:anywhere}
+.chat-inspector .radar-list{display:grid;gap:7px}.chat-inspector .radar-list-item{display:grid;gap:2px;padding:7px 0;border-bottom:1px solid var(--chat-border)}.chat-inspector .radar-list-item:last-child{border-bottom:0}.chat-inspector .radar-list-item strong{font-size:11px;line-height:1.3;overflow-wrap:anywhere}.chat-inspector .radar-list-item small{font-size:10px;line-height:1.3;color:var(--chat-muted);overflow-wrap:anywhere}.discover-layout-map-only{display:block}.discover-layout-map-only .discover-map-box{width:100%;min-height:460px}
+@media(max-width:760px){.chat-inspector .context-intro p{max-width:none}.discover-layout-map-only .discover-map-box{min-height:360px}}

@@ -109,3 +109,20 @@ The Tasks surface may render a Community activity section from the existing publ
 The right inspector may render Suggested next steps from the authenticated `/api/proactive/feed` endpoint. The endpoint delegates to `getOpportunitiesForFeed`, which is owner-scoped and excludes dismissed records. The card is context-filtered to Requests, Tasks, Discover, Daily Picks, and Cart via `data-context-card`; it is hidden on non-fitting surfaces. CTAs preserve the engine-provided destination and are not relabeled as completed actions.
 
 The workspace EJS template must tolerate missing campaign data by treating an absent campaign collection as empty. This keeps central Tasks and other non-ad surfaces renderable while preserving the admin-managed campaign rule for promotional placements.
+
+
+## Discover activity and shared Ask placement
+
+Discover keeps the map and layer controls in the central surface. Its `Happening now` activity list is not duplicated in the central content; the existing right-rail Nearby card becomes `Happening now` while Discover is active and is populated from the existing `/api/discover/map` projection. The activity list is read-only, privacy-preserving, capped to a compact set of items, and shows an empty state when geolocation or nearby data is unavailable.
+
+Every central surface receives the same logo → Ask action in the generated surface heading, in the same right-aligned position. The fetched page header is still removed before insertion, so the surface cannot create a second Ask button or a second header action.
+
+The Current request inspector copy is intentionally concise: `Request details and next actions appear here as Kurukoo works.` The redundant `Web Chat · other channels are shown only when connected` line beneath the composer is removed; the footer retains only the safety disclaimer.
+
+## Header and product-flow boundary
+
+The Chat header should reserve space for high-frequency, low-risk context controls. Good candidates are the existing Cart and Points actions, Notifications, Context, and overflow menu, followed only by capability-aware actions such as Call, Video, Storefront, or channel messaging when that capability is actually enabled. A disabled integration must not be represented as an active icon.
+
+Product requests enter through natural language and are classified into `order_food`, `universal_vendor_order`, `find_worker`, or the shared product-sourcing path. The agent returns an `agentic_storefront` card containing only authoritative fields such as requirements, known seller offers, delivery candidates, provider references, indicative quotes, execution state, and bounded actions. A known offer can start one Economic Request; the card does not imply stock, availability, confirmed price, payment, or fulfilment until those authorities return their state.
+
+A conservative product card should support progressive disclosure: show item/offer title, seller, price only if sourced, availability note, provenance/state, and one primary action such as Choose offer, with optional delivery choice and details expansion. Cart is a review surface, not proof of inventory or a checkout. The current implementation has request/offer, provider, delivery, Economic Request, payment-reference, escrow, completion, delivery-status, and dispute boundaries, but it is not a complete consumer product checkout: there is no fully implemented product catalog-to-cart-to-payment flow covering inventory reservation, confirmed quote, payment, delivery dispatch, and final fulfilment end to end. Product ordering should therefore remain marked as `ready to continue` or `awaiting confirmation` until those integrations are verified.

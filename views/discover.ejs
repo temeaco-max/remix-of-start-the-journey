@@ -25,13 +25,7 @@
         <button class="layer-chip" data-layer="events">🟣 Events</button>
     </div>
 
-    <div class="discover-layout">
-        <aside class="discover-sidebar">
-            <h3 class="discover-sidebar-title">Happening now</h3>
-            <div id="discover-list" class="discover-list-box">
-                <div class="muted-info-text">Loading nearby activity…</div>
-            </div>
-        </aside>
+    <div class="discover-layout discover-layout-map-only">
         <div id="discover-map" class="discover-map-box"></div>
     </div>
 
@@ -69,7 +63,7 @@
             const data = await res.json();
             render(data);
         } catch(e) {
-            document.getElementById('discover-list').innerHTML = '<div class="muted-info-text">Could not load map data.</div>';
+            const list = document.getElementById('discover-list'); if (list) list.innerHTML = '<div class="muted-info-text">Could not load map data.</div>';
         }
     }
 
@@ -77,6 +71,7 @@
         Object.values(layerGroups).forEach(g => map.removeLayer(g));
         Object.keys(layerGroups).forEach(k => delete layerGroups[k]);
         const list = document.getElementById('discover-list');
+        if (!list) return;
         list.innerHTML = '';
         const features = data && data.features ? data.features : [];
         if (!features.length) list.innerHTML = '<div class="muted-info-text">No active activity in this area yet.</div>';
