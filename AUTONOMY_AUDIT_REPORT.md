@@ -94,3 +94,12 @@ The implementation was compiled and verified with the autonomous runtime regress
 ## Post-ledger verification
 
 The full `npm run test:routes` suite passed after the durable worker-ledger change. This covered composition, public routes and runtime contracts, Chat workspace routing, voice, QR, autonomous runtime, payment boundaries, channel parity and usage, network Chat, Topics, attachments, fresh databases, pilot readiness, discovery, presence, content, trust, disputes, circles, orders, admin/SEO, tasks, provider entities, multi-party requests, execution boundaries, native assistance, authentication, development guards, and economic lifecycle behavior.
+
+
+## Deterministic failure-hardening tranche
+
+The platform now treats missing or invalid security and AI prerequisites as explicit states rather than normal fallback paths. Production memory encryption requires `MEMORY_ENCRYPTION_KEY`; OTP signing requires the production JWT secret; QR signing requires `QR_CONTEXT_SECRET` or JWT configuration; cryptographic failures no longer return plaintext; malformed encrypted profile payloads no longer become empty objects; and development JWT fallback material is now ephemeral per process rather than a shared hardcoded secret.
+
+The Gemini adapter no longer generates synthetic dispatch, pricing, booking, payment, or provider claims when the API is unavailable. It now exposes typed `GeminiProviderError` failures for missing configuration, failed requests, empty responses, and invalid prompts. Deterministic intent classification and canonical domain flows remain responsible for supported local routing, while provider-dependent generation fails visibly and safely.
+
+This tranche passed build, lint, QR integration, authentication, autonomous runtime, Chat DOM-safety, production guard, AI smoke, and the complete route/lifecycle suite. The remaining fallback audit items are intentionally lower-priority legacy or development-only paths and should be migrated under the same contract rather than hidden behind broad catches.

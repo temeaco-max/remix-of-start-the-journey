@@ -45,7 +45,9 @@ export function parseQrContext(input: Record<string, unknown>): QrContext | null
 }
 
 function secret(): string {
-  return process.env.QR_CONTEXT_SECRET || process.env.JWT_SECRET || 'kurukoo-qr-development-context';
+  const configured = String(process.env.QR_CONTEXT_SECRET || process.env.JWT_SECRET || '').trim();
+  if (!configured && process.env.NODE_ENV === 'production') throw new Error('[Kurukoo Security] QR_CONTEXT_SECRET or JWT_SECRET must be configured in production.');
+  return configured || 'development-only-qr-context-secret';
 }
 
 export function signQrContext(context: QrContext, expiresAt = Date.now() + 7 * 86400_000): string {

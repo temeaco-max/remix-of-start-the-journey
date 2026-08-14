@@ -5509,3 +5509,10 @@ Production activation remains conditional on a real JWT secret of at least 32 ch
 ## §21b.5 Durable worker auditability
 
 Each autonomous worker cycle persists a bounded record in `agent_worker_runs`, including start and completion timestamps, completed or failed status, due-goal count, updated-goal count, and a sanitized error message when applicable. The admin-only `GET /api/agent/runs` endpoint exposes a limited recent history for incident review and post-restart diagnosis. This ledger complements, rather than replaces, the current in-memory `/api/agent/status` telemetry and does not expose user goal content or provider secrets.
+
+
+## §21b.6 Deterministic implementation and fallback policy
+
+Kurukoo implementations must prefer explicit contracts over broad fallback behavior. Missing credentials, invalid encrypted state, unavailable AI providers, failed payment or delivery adapters, and unsupported capabilities must produce typed, observable, user-safe failures or truthful setup states. They must not silently return plaintext, empty profile objects, fabricated dispatch or pricing claims, fake provider connectivity, or apparently completed actions.
+
+Development-only compatibility is permitted only when it is explicitly scoped to non-production execution and cannot reuse shared production secrets. Production startup remains fail-closed for security-critical configuration. Deterministic FastText intent classification and canonical domain authorities remain available for supported flows; provider-dependent generation is not replaced by synthetic action claims when the provider is unavailable.

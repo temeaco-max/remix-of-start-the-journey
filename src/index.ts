@@ -1,12 +1,13 @@
 /** Kurukoo composition root. */
+import crypto from 'node:crypto';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const production = process.env.NODE_ENV === 'production';
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   if (production) throw new Error('[Kurukoo Startup] JWT_SECRET must be configured with at least 32 characters in production.');
-  process.env.JWT_SECRET = 'development_only_super_secret_safe_and_long_jwt_key_fallback';
-  console.warn('[Kurukoo Startup] Using the development JWT fallback; configure JWT_SECRET before deployment.');
+  process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
+  console.warn('[Kurukoo Startup] JWT_SECRET is absent; using an ephemeral development-only secret. Configure JWT_SECRET before deployment.');
 }
 
 import express from 'express';

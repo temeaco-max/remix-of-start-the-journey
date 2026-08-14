@@ -30,7 +30,9 @@ function normalizePhone(phone: string): string {
 }
 
 function hashCode(code: string, phone: string): string {
-  return crypto.createHmac('sha256', process.env.JWT_SECRET || 'otp-dev').update(`${phone}:${code}`).digest('hex');
+  const configured = String(process.env.JWT_SECRET || '').trim();
+  if (!configured && process.env.NODE_ENV === 'production') throw new Error('[Kurukoo Security] JWT_SECRET must be configured before OTP signing.');
+  return crypto.createHmac('sha256', configured || 'development-only-otp-secret').update(`${phone}:${code}`).digest('hex');
 }
 
 function generateCode(): string {

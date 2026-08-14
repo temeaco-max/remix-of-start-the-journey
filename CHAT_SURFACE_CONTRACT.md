@@ -187,3 +187,8 @@ The Chat client must not expose persistent autonomous-goal controls to guests, m
 ## Worker history boundary
 
 Worker history is an admin-only operational surface. The Chat client may show the current authenticated goal state and user controls, but it must not expose worker-run records, internal cycle counts, stack traces, or provider credentials to ordinary users. Administrative runtime views may consume `/api/agent/status` and `/api/agent/runs` to distinguish disabled, idle, completed, and failed cycles without presenting provider-gated capabilities as connected.
+
+
+## Deterministic failure presentation
+
+The Chat surface must prefer a truthful, bounded error state over a synthetic fallback response. If a provider-dependent action cannot run, the user must see that the capability is unavailable or requires setup, with a clear next step when one exists. The client must not claim that a provider was dispatched, a price was checked live, a payment was completed, a reminder was delivered externally, or an account was connected unless the canonical authority returned evidence. Development-only compatibility must never be presented as production capability.

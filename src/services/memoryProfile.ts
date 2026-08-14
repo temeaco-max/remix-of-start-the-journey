@@ -2,37 +2,37 @@ import crypto from 'crypto';
 import { getDb, saveDb } from '../database.js';
 
 const ALGORITHM = 'aes-256-cbc';
+
+function parseProfileJson(value: string, field: string): any {
+    try { return JSON.parse(value); }
+    catch (error) { throw new Error(`[Kurukoo Security] Invalid encrypted ${field} profile data.`, { cause: error }); }
+}
 const getSecretKey = () => {
-    const raw = process.env.MEMORY_ENCRYPTION_KEY || 'kurukoo-secret-encryption-key-32bytes!';
-    return crypto.createHash('sha256').update(raw).digest();
+    const raw = String(process.env.MEMORY_ENCRYPTION_KEY || '').trim();
+    if (!raw && process.env.NODE_ENV === 'production') throw new Error('[Kurukoo Security] MEMORY_ENCRYPTION_KEY must be configured in production.');
+    return crypto.createHash('sha256').update(raw || 'development-only-memory-key').digest();
 };
 
 export function encryptData(text: string): string {
     if (!text) return text;
-    try {
-        const iv = crypto.randomBytes(16);
-        const cipher = crypto.createCipheriv(ALGORITHM, getSecretKey(), iv);
-        let encrypted = cipher.update(text, 'utf8', 'hex');
-        encrypted += cipher.final('hex');
-        return iv.toString('hex') + ':' + encrypted;
-    } catch (e) {
-        return text;
-    }
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(ALGORITHM, getSecretKey(), iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
 }
 
 export function decryptData(encryptedText: string): string {
     if (!encryptedText || !encryptedText.includes(':')) return encryptedText;
-    try {
-        const parts = encryptedText.split(':');
-        const iv = Buffer.from(parts[0], 'hex');
-        const encrypted = parts[1];
-        const decipher = crypto.createDecipheriv(ALGORITHM, getSecretKey(), iv);
-        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        return decrypted;
-    } catch (e) {
-        return encryptedText;
-    }
+    const parts = encryptedText.split(':');
+    const looksEncrypted = /^[a-f0-9]{32}$/i.test(parts[0] || '');
+    if (!looksEncrypted) return encryptedText;
+    if (parts.length !== 2 || !/^[a-f0-9]+$/i.test(parts[1])) throw new Error('[Kurukoo Security] Invalid encrypted profile payload.');
+    const iv = Buffer.from(parts[0], 'hex');
+    const decipher = crypto.createDecipheriv(ALGORITHM, getSecretKey(), iv);
+    let decrypted = decipher.update(parts[1], 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
 }
 
 export async function logProfileAccess(phone: string, serviceName: string, action: 'read' | 'write') {
@@ -59,19 +59,11 @@ export async function getProfile(phone: string, serviceName: string = 'system') 
     if (profile) {
         if (profile.preferences) {
             const decryptedPrefs = decryptData(profile.preferences);
-            try {
-                profile.preferences = JSON.parse(decryptedPrefs);
-            } catch (e) {
-                profile.preferences = {};
-            }
+            profile.preferences = parseProfileJson(decryptedPrefs, 'preferences');
         }
         if (profile.behavior_patterns) {
             const decryptedPatterns = decryptData(profile.behavior_patterns);
-            try {
-                profile.behavior_patterns = JSON.parse(decryptedPatterns);
-            } catch (e) {
-                profile.behavior_patterns = {};
-            }
+            profile.behavior_patterns = parseProfileJson(decryptedPatterns, 'behavior_patterns');
         }
     }
     return profile;
