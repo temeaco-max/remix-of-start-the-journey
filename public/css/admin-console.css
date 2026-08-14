@@ -100,3 +100,146 @@ body.admin-shell {
     animation-duration: 0.01ms !important;
   }
 }
+
+
+.admin-shell .runtime-readiness-card {
+  padding: 22px;
+  margin: 0 0 24px;
+}
+
+.admin-shell .runtime-readiness-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-shell .admin-eyebrow {
+  margin: 0 0 6px;
+  color: var(--admin-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-shell .runtime-readiness-header h3 {
+  margin: 0;
+}
+
+.admin-shell .admin-muted {
+  color: var(--admin-muted);
+}
+
+.admin-shell .runtime-readiness-header .admin-muted {
+  max-width: 620px;
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.admin-shell .runtime-state {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.admin-shell .runtime-state-loading {
+  background: var(--admin-surface-muted);
+  color: var(--admin-muted);
+}
+
+.admin-shell .runtime-state-ready {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.admin-shell .runtime-state-blocked {
+  background: #fff1ed;
+  color: var(--admin-danger);
+}
+
+.admin-shell .runtime-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.admin-shell .runtime-readiness-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: var(--admin-surface-muted);
+}
+
+.admin-shell .runtime-readiness-item span {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.admin-shell .runtime-readiness-item strong {
+  overflow-wrap: anywhere;
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-size: 14px;
+}
+
+.admin-shell .runtime-readiness-note {
+  margin: 14px 0 0;
+  font-size: 12px;
+}
+
+@media (max-width: 767px) {
+  .admin-shell .runtime-readiness-header {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-shell .runtime-readiness-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-shell .runtime-readiness-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.admin-shell .agent-avatar {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 24px;
+  vertical-align: middle;
+}
+
+.admin-shell .agent-id {
+  color: var(--admin-muted);
+}
+
+.admin-shell .agent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.admin-shell .btn-dark {
+  background: var(--admin-sidebar);
+}
+
+.admin-shell .btn-danger {
+  background: var(--admin-danger);
+}
+
+.admin-shell .btn-dark:hover,
+.admin-shell .btn-danger:hover {
+  filter: brightness(.92);
+}

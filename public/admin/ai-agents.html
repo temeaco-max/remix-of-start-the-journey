@@ -6,6 +6,7 @@
     <title>Kurukoo AI Agents Console</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/site.css">
+    <link rel="stylesheet" href="/css/admin-console.css">
     <style>
         body {
             background-color: #FFF8F0;
@@ -174,7 +175,7 @@
         }
     </style>
 </head>
-<body>
+<body class="admin-shell">
 
     <header class="header-bar">
         <div class="logo">
@@ -209,6 +210,24 @@
                 <button class="btn" id="toggle-routing-btn" onclick="toggleRoutingEngine()">Toggle Engine</button>
             </div>
         </div>
+
+        <section class="admin-card runtime-readiness-card" aria-labelledby="runtime-readiness-title">
+            <div class="runtime-readiness-header">
+                <div>
+                    <p class="admin-eyebrow">Deployment control</p>
+                    <h3 id="runtime-readiness-title">Autonomous runtime readiness</h3>
+                    <p class="admin-muted">The worker stays disabled until the deployment flags, evidence boundaries, connector prerequisites, and notification path are ready.</p>
+                </div>
+                <span id="runtime-overall-badge" class="runtime-state runtime-state-loading" aria-live="polite">Checking…</span>
+            </div>
+            <div id="runtime-readiness-grid" class="runtime-readiness-grid" aria-live="polite">
+                <div class="runtime-readiness-item"><span>Runtime</span><strong>Checking…</strong></div>
+                <div class="runtime-readiness-item"><span>Autonomous worker</span><strong>Checking…</strong></div>
+                <div class="runtime-readiness-item"><span>Concurrency</span><strong>Checking…</strong></div>
+                <div class="runtime-readiness-item"><span>Notifications</span><strong>Checking…</strong></div>
+            </div>
+            <p id="runtime-readiness-note" class="admin-muted runtime-readiness-note">Readiness is sourced from the protected deployment status endpoints.</p>
+        </section>
 
         <div class="card">
             <h3>Active AI Agent Fleet</h3>
@@ -306,40 +325,65 @@
         let currentTestingAgentId = null;
 
         async function loadAgents() {
-            const res = await fetch('/api/admin/ai-agents');
+            const res = await fetch('/api/admin/ai-agents', { credentials: 'same-origin' });
             const agents = await res.json();
             const tbody = document.getElementById('agent-table-body');
-            tbody.innerHTML = '';
+            tbody.replaceChildren();
 
-            if (agents.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7">No AI agents configured yet.</td></tr>';
+            if (!Array.isArray(agents) || agents.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 7;
+                cell.textContent = 'No AI agents configured yet.';
+                row.appendChild(cell);
+                tbody.appendChild(row);
                 return;
             }
 
+            const cell = (value, className = '') => {
+                const node = document.createElement('td');
+                if (className) node.className = className;
+                node.textContent = String(value ?? '');
+                return node;
+            };
+            const actionButton = (label, className, handler) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = `btn btn-sm ${className}`.trim();
+                button.textContent = label;
+                button.addEventListener('click', handler);
+                return button;
+            };
+
             agents.forEach(agent => {
                 const tr = document.createElement('tr');
-                const badgeClass = agent.status === 'active' ? 'badge-active' : 'badge-paused';
-                const usage = `${agent.tokens_used_today || 0} / ${agent.token_quota_daily}`;
-
-                tr.innerHTML = `
-                    <td>
-                        <span style="font-size: 24px; margin-right: 8px;">${agent.avatar || '🤖'}</span>
-                        <strong>${agent.name}</strong><br>
-                        <small style="color:#666;">${agent.id}</small>
-                    </td>
-                    <td>${(agent.skills || []).join(', ')}</td>
-                    <td><span class="badge ${badgeClass}">${agent.status.toUpperCase()}</span></td>
-                    <td>${agent.lga || 'All'}</td>
-                    <td>${usage}</td>
-                    <td>${agent.temperature}</td>
-                    <td>
-                        <button class="btn btn-sm" onclick="togglePause('${agent.id}', '${agent.status}')">${agent.status === 'active' ? 'Pause' : 'Resume'}</button>
-                        <button class="btn btn-sm btn-secondary" onclick="openTestPanel('${agent.id}', '${agent.name}')">Test</button>
-                        <button class="btn btn-sm" onclick="editAgent('${agent.id}')">Edit</button>
-                        <button class="btn btn-sm" style="background: #333;" onclick="cloneAgentPrompt('${agent.id}', '${agent.name}')">Clone</button>
-                        <button class="btn btn-sm" style="background: #C62828;" onclick="deleteAgent('${agent.id}')">Delete</button>
-                    </td>
-                `;
+                const identity = document.createElement('td');
+                const avatar = document.createElement('span');
+                avatar.className = 'agent-avatar';
+                avatar.textContent = agent.avatar || '🤖';
+                const name = document.createElement('strong');
+                name.textContent = String(agent.name || agent.id || 'Unnamed agent');
+                const id = document.createElement('small');
+                id.className = 'agent-id';
+                id.textContent = String(agent.id || '');
+                identity.append(avatar, name, document.createElement('br'), id);
+                const status = document.createElement('span');
+                status.className = `badge ${agent.status === 'active' ? 'badge-active' : 'badge-paused'}`;
+                status.textContent = String(agent.status || 'unknown').toUpperCase();
+                const statusCell = document.createElement('td');
+                statusCell.appendChild(status);
+                const actions = document.createElement('td');
+                actions.className = 'agent-actions';
+                const idValue = String(agent.id || '');
+                const nameValue = String(agent.name || idValue);
+                actions.append(
+                    actionButton(agent.status === 'active' ? 'Pause' : 'Resume', '', () => togglePause(idValue, agent.status)),
+                    actionButton('Test', 'btn-secondary', () => openTestPanel(idValue, nameValue)),
+                    actionButton('Edit', '', () => editAgent(idValue)),
+                    actionButton('Clone', 'btn-dark', () => cloneAgentPrompt(idValue, nameValue)),
+                    actionButton('Delete', 'btn-danger', () => deleteAgent(idValue))
+                );
+                tr.append(identity, cell((agent.skills || []).join(', ')), statusCell, cell(agent.lga || 'All'), cell(`${agent.tokens_used_today || 0} / ${agent.token_quota_daily}`), cell(agent.temperature), actions);
                 tbody.appendChild(tr);
             });
         }
@@ -506,9 +550,62 @@
             }
         }
 
+        function readinessLabel(state) {
+            return String(state || 'UNKNOWN').replaceAll('_', ' ').toLowerCase().replace(/(^|\\s)\\S/g, letter => letter.toUpperCase());
+        }
+
+        function renderRuntimeItem(label, value) {
+            const item = document.createElement('div');
+            item.className = 'runtime-readiness-item';
+            const name = document.createElement('span');
+            name.textContent = label;
+            const state = document.createElement('strong');
+            state.textContent = value;
+            item.append(name, state);
+            return item;
+        }
+
+        async function loadRuntimeReadiness() {
+            const badge = document.getElementById('runtime-overall-badge');
+            const grid = document.getElementById('runtime-readiness-grid');
+            const note = document.getElementById('runtime-readiness-note');
+            try {
+                const [runtimeResponse, readinessResponse] = await Promise.all([
+                    fetch('/api/agent/status', { credentials: 'same-origin' }),
+                    fetch('/api/admin/pilot-readiness', { credentials: 'same-origin' })
+                ]);
+                if (!runtimeResponse.ok || !readinessResponse.ok) throw new Error('Protected readiness data unavailable');
+                const runtimePayload = await runtimeResponse.json();
+                const readiness = await readinessResponse.json();
+                const runtime = runtimePayload.runtime || {};
+                const agent = readiness.categories?.AGENT || {};
+                const channels = readiness.categories?.CHANNELS || {};
+                const runtimeState = runtime.enabled ? 'Ready' : 'Disabled';
+                const autonomousState = runtime.autonomous ? 'Enabled' : 'Gated';
+                const concurrencyState = runtime.enabled ? `${runtime.maxConcurrentGoals || 0} goal limit` : 'Inactive';
+                const notificationsState = channels.FCM?.state === 'READY' || channels.FCM?.state === 'EXTERNAL_DEPENDENCY' ? 'Internal + external ready' : 'Internal queue only';
+                grid.replaceChildren(
+                    renderRuntimeItem('Runtime', runtimeState),
+                    renderRuntimeItem('Autonomous worker', autonomousState),
+                    renderRuntimeItem('Concurrency', concurrencyState),
+                    renderRuntimeItem('Notifications', notificationsState)
+                );
+                const fullyReady = runtime.enabled && runtime.autonomous && agent.concurrencyLimits?.state !== 'PENDING';
+                badge.textContent = fullyReady ? 'Ready' : 'Gated';
+                badge.className = `runtime-state ${fullyReady ? 'runtime-state-ready' : 'runtime-state-blocked'}`;
+                note.textContent = fullyReady ? 'Bounded low-risk execution is enabled; external connector and payment actions remain evidence-gated.' : 'Autonomous execution is not active in this deployment. Enable both runtime flags only after connector evidence, notification preferences, and provider prerequisites are verified.';
+            } catch (error) {
+                badge.textContent = 'Unavailable';
+                badge.className = 'runtime-state runtime-state-blocked';
+                grid.replaceChildren(renderRuntimeItem('Runtime', 'Status unavailable'));
+                note.textContent = error instanceof Error ? error.message : 'Protected readiness data unavailable.';
+            }
+        }
+
         window.onload = () => {
             loadAgents();
             loadRoutingMode();
+            loadRuntimeReadiness();
         };
     </script>
 </body>

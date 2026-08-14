@@ -5,7 +5,10 @@
   const layerButtons = document.querySelectorAll('[data-layer]');
   const render = (label = 'Nearby activity') => {
     if (!list) return;
-    list.innerHTML = '<div class="k-row"><span>' + label + '</span><span class="k-muted">Live data appears here</span></div>';
+    const row = document.createElement('div'); row.className = 'k-row';
+    const title = document.createElement('span'); title.textContent = label;
+    const detail = document.createElement('span'); detail.className = 'k-muted'; detail.textContent = 'Live data appears here';
+    row.append(title, detail); list.replaceChildren(row);
   };
   refresh?.addEventListener('click', async () => {
     render('Refreshing nearby activity…');

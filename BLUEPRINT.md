@@ -5483,3 +5483,12 @@ The existing Chat surface is protected by contract. No redesign of its header, c
 Controlled operator demo notifications are not seeded into test databases, preventing demo data from contaminating notification, readiness, and admin-observability contracts.
 
 Deployment remains fail-closed for missing production JWT configuration and remains explicit about external prerequisites: provider channel credentials/callbacks, payment webhooks, FCM/email adapters, affiliate providers, KYC verification, and autonomous connector evidence must be configured and tested before production activation.
+
+
+## Completion milestone — runtime observability and secure rendering
+
+The autonomous administration surface now includes a shared-token, responsive **Autonomous runtime readiness** panel. It reads the protected `/api/agent/status` and `/api/admin/pilot-readiness` authorities and distinguishes Runtime, Autonomous worker, Concurrency, and Notifications states. It never presents autonomous execution as ready when the deployment flags or external prerequisites are absent.
+
+The AI Agents console now renders agent names, skills, identifiers, status badges, usage, and action controls through safe DOM construction rather than interpolated HTML or data-bearing inline event handlers. The panel uses the shared `admin-console.css` token system, responsive grids, keyboard-visible focus states, and compact mobile breakpoints.
+
+The central Chat workspace loader and the Nearby radar renderer no longer assign fetched or dynamic content through `innerHTML`. Workspace templates are cloned as DOM nodes, scripts are removed before activation, and links are wired through the existing surface contract. Dynamic radar labels are inserted with `textContent`. The protected Chat behavior, surface routing, composer, message actions, inspector, and visual system remain unchanged.

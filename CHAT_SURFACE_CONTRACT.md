@@ -166,3 +166,12 @@ The proactive right rail must consume the authoritative opportunity feed without
 Advertising is an admin-controlled mutation. Campaign creation requires an approved non-empty asset and explicit disclosure. Public rendering accepts only active, scheduled campaigns with `asset_status=approved` and a valid local `/assets/` or validated HTTPS image URL. Placeholder, dummy, data-URI, and known stock-placeholder assets are excluded. Campaign disclosure, advertiser identity, CTA, destination, placement, and targeting remain data fields from the campaign authority rather than client-created claims.
 
 The runtime status endpoint is administrative observability and must not disclose activation flags or worker limits to unauthenticated callers. User goal and timeline routes remain authenticated and owner-scoped. The Chat shell retains its existing header, composer, central surface, inspector, responsive, and accessibility contracts during these backend hardening changes.
+
+
+## Completion milestone: secure rendering and runtime observability
+
+The autonomous administration surface includes a shared-token, responsive Autonomous runtime readiness panel. It reads the protected `/api/agent/status` and `/api/admin/pilot-readiness` authorities and distinguishes Runtime, Autonomous worker, Concurrency, and Notifications states. It must never present autonomous execution as ready when feature flags or external prerequisites are absent.
+
+The AI Agents console renders agent names, skills, identifiers, status badges, usage, and action controls through safe DOM construction. Agent-provided values must not be interpolated into HTML or inline event-handler strings. The console uses the shared `admin-console.css` token system, responsive grids, keyboard-visible focus states, and compact mobile breakpoints.
+
+The central Chat workspace loader and Nearby radar renderer must not assign fetched or dynamic content through `innerHTML`. Workspace templates are cloned as DOM nodes, scripts are removed before activation, and links are wired through the existing surface contract. Dynamic radar labels use `textContent`. This security rule must preserve the existing Chat header, composer, central surface routing, message actions, inspector, responsive behavior, and visual language.
