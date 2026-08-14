@@ -6,7 +6,7 @@ import { classifyWithFastText } from './fastTextService.js';
 import { advanceStorefront, previewStorefrontCard, startStorefrontSession, tryResumeStorefront } from './agenticStorefront.js';
 import { searchKnownEconomicOffers } from './economicParticipants.js';
 import { cancelReminder, createReminder, listReminders } from './reminderService.js';
-import { cancelAgentGoal, listAgentGoals } from './agentRuntime.js';
+import { cancelAgentGoal, listAgentGoals, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
 import { generateReferralCode } from './referralService.js';
 import type { IntentRoutingResult } from '../types.js';
 import { extractConversationalEntities, validateConversationalEntities } from './conversationalExtraction.js';
@@ -200,7 +200,7 @@ async function handleExplicitMemory(phone: string, q: string): Promise<IntentRou
 }
 
 export async function routeIntent(query: string, phone?: string, provider?: AIProvider): Promise<IntentRoutingResult> {
-  const q = query.trim().toLowerCase();
+  const q = query.trim().toLowerCase().replace(/[.!?]+$/, '');
   if (!q) return { skill: 'general_question', reply: 'Tell me what you need.' };
 
   if (phone) {
@@ -212,7 +212,28 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const concise = profile?.preferences?.response_style === 'concise';
     return { skill: 'general_question', reply: concise ? 'Kurukoo is one conversation for everyday help: it can answer questions, remember preferences, set reminders, coordinate verified services, and keep requests moving without pretending a payment or provider action happened.' : 'Kurukoo is an everyday utility assistant in one conversation. It can answer questions, remember preferences, set reminders, coordinate verified services and products, and keep requests moving through truthful states before any payment or external action.' };
   }
-  if (phone && /^(what have you been doing for me|what are you doing for me)\??$/i.test(q)) {
+  if (/^explain the difference between (?:a )?reminder and (?:an )?agent(?: simply)?\??$/i.test(q)) {
+    return { skill: 'general_question', reply: 'A reminder is a scheduled nudge for you. A bounded agent is an explicit follow-up that can re-check an owned request under limited permissions, report its actual status, and pause or stop when you ask.' };
+  }
+  if (/^(i(?:'|’)ve|i have|i just)(?: just)? moved\b|^i(?:'|’)m in\b|^i am in\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'Welcome to the area. I can help you understand a problem, find a verified service, set a reminder, or answer a question. Tell me what you would like to get done; I will not create a request from your location alone.' };
+  }
+  if (/\bbathroom\b.*\bleak|\bleak(?:ing)?\b.*\bbathroom\b/i.test(q) && !/\b(?:need|find|hire|book|arrange|get me)\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'A bathroom leak often points to a plumbing, seal, drain, or shower fitting issue. I can help narrow it down first. Is the water coming from the shower, a pipe, or a fixture, and which area are you in?' };
+  }
+  if (/\b(?:don['’]t|do not) know whether i need\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'A plumber is a likely starting point, but I do not need to create a request yet. Is the leak only during the shower, is there visible damage, and which area should I use if you decide to find someone?' };
+  }
+  if (/^it only happens when i use the shower\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'That pattern suggests the shower fitting, drain, seal, or nearby plumbing may be involved. If you want, tell me your area and whether water reaches the floor or wall; then I can suggest the next supported step.' };
+  }
+  if (/^what do you suggest\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'Based on what you described, start by checking the shower fitting, drain, and seal for the source of the water. If there is visible damage or the leak is worsening, tell me your area and I can help you decide whether to open a plumber request; I will not create one without your confirmation.' };
+  }
+  if (/^what are my options\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'Your options depend on what you want to do: I can answer a question, remember a preference, set a reminder, coordinate a verified service, or explain a public Kurukoo business surface. Tell me which outcome you want and I will show the next supported step.' };
+  }
+  if (phone && /^(what have you been doing(?: for me)?|what are you doing(?: for me)?)\??$/i.test(q)) {
     const [reminders, active, goals] = await Promise.all([listReminders(phone), tryResumeStorefront(phone), listAgentGoals(phone)]);
     const parts = [];
     if (reminders.length) parts.push(`one active reminder (${reminders[0].title})`);
@@ -221,6 +242,24 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     if (activeGoal) parts.push(`a bounded follow-up goal (${activeGoal.status})`);
     return { skill: 'general_question', reply: parts.length ? `Right now I’m tracking ${parts.join(', ')}. I have not claimed a provider, price, payment, or external action unless the relevant evidence is recorded.` : 'Nothing is actively running for you right now. I can answer a question, remember a preference, set a reminder, or help coordinate a request.' };
   }
+  if (phone && /^(pause|pause that|pause it|stop temporarily)\b/.test(q)) {
+    const goals = await listAgentGoals(phone);
+    const goal = goals.find(item => ['active', 'waiting', 'needs_user', 'blocked'].includes(item.status));
+    if (goal) {
+      const paused = await pauseAgentGoal(phone, goal.id);
+      return { skill: 'autonomous_agent', reply: paused?.summary || 'Paused that bounded follow-up. Nothing else will run until you resume it.', cardData: { type: 'agent_goal', goal: paused } };
+    }
+    return { skill: 'general_question', reply: 'There is no active bounded agent follow-up to pause.' };
+  }
+  if (phone && /^(resume|resume that|resume it|continue checking)\b/.test(q)) {
+    const goals = await listAgentGoals(phone, true);
+    const goal = goals.find(item => ['waiting', 'active', 'needs_user', 'blocked'].includes(item.status) && /paused|follow-up|check/i.test(item.summary || item.objective));
+    if (goal) {
+      const resumed = await resumeAgentGoal(phone, goal.id);
+      return { skill: 'autonomous_agent', reply: resumed?.summary || 'Resumed that bounded follow-up.', cardData: { type: 'agent_goal', goal: resumed } };
+    }
+    return { skill: 'general_question', reply: 'I could not find a paused bounded agent follow-up to resume.' };
+  }
   if (phone && /^cancel\s+(the\s+)?reminder\b/.test(q)) {
     const reminders = await listReminders(phone);
     const reminder = reminders[0];
@@ -228,12 +267,17 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const cancelled = await cancelReminder(phone, String(reminder.id));
     return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminder.title}**.` : 'I could not cancel that reminder.' };
   }
-  if (phone && /^(cancel that|stop following|stop checking)\b/.test(q)) {
+  if (phone && /^(cancel that|cancel it|stop following|stop checking)\b/.test(q)) {
     const goals = await listAgentGoals(phone);
     const activeGoal = goals.find(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status));
     if (activeGoal) {
       const cancelled = await cancelAgentGoal(phone, activeGoal.id);
       return { skill: 'autonomous_agent', reply: cancelled?.summary || 'I stopped following up on that objective.', cardData: { type: 'agent_goal', goal: cancelled } };
+    }
+    const reminders = await listReminders(phone);
+    if (reminders.length && !/^(stop following|stop checking)\b/.test(q)) {
+      const cancelled = await cancelReminder(phone, String(reminders[0].id));
+      return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminders[0].title}**.` : 'I could not cancel that reminder.' };
     }
     const active = await tryResumeStorefront(phone);
     if (active?.requestId) {
@@ -401,13 +445,6 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const cardData = decorateCardWithSuggestions(actionCard(classification.intent), flowSkill) || suggestionCard(flowSkill);
     const reply = flowReply(flowSkill, flow);
     return { skill: flowSkill, reply, cardData, classificationSource: classification.source, intentConfidence: classification.confidence };
-  }
-
-  if (phone && q.split(/\s+/).length <= 6) {
-    try {
-      const resumed = await tryResumeStorefront(phone);
-      if (resumed && ['quote_review', 'fulfillment', 'deferred', 'offer_review', 'delivery_selection', 'seller_handover', 'delivery_in_progress'].includes(resumed.stage)) return { skill: resumed.skill || 'find_worker', reply: resumed.message, cardData: resumed };
-    } catch {}
   }
 
   const ai = await queryUnifiedAI(query, { provider, phone });

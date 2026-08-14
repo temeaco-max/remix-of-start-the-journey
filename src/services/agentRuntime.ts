@@ -279,6 +279,22 @@ export async function reenterDueDeferredGoals(limit = maxActions()): Promise<Age
   return outcomes;
 }
 
+export async function pauseAgentGoal(phone: string, goalId: string): Promise<AgentGoal | null> {
+  const goal = await getAgentGoal(phone, goalId);
+  if (!goal || ['completed', 'cancelled', 'failed', 'expired'].includes(goal.status)) return goal;
+  const updated = await updateGoal(goal, { status: 'waiting', summary: 'Paused at your request. No further checks will run until you resume it.', nextActionAt: undefined });
+  await recordEvent(updated, 'paused_by_user', 'success', updated.summary || '', { idempotencyKey: `goal:${goalId}:pause` });
+  return updated;
+}
+
+export async function resumeAgentGoal(phone: string, goalId: string): Promise<AgentGoal | null> {
+  const goal = await getAgentGoal(phone, goalId);
+  if (!goal || ['completed', 'cancelled', 'failed', 'expired'].includes(goal.status)) return goal;
+  const updated = await updateGoal(goal, { status: goal.economicRequestId ? 'active' : 'needs_user', summary: goal.economicRequestId ? 'Resumed. Kurukoo will re-check the existing request through the bounded runtime.' : 'Resumed, but more request details are still required.', nextActionAt: goal.economicRequestId ? nextTime() : undefined });
+  await recordEvent(updated, 'resumed_by_user', 'success', updated.summary || '', { idempotencyKey: `goal:${goalId}:resume:${updated.updatedAt}` });
+  return updated;
+}
+
 export async function cancelAgentGoal(phone: string, goalId: string): Promise<AgentGoal | null> {
   const goal = await getAgentGoal(phone, goalId);
   if (!goal || ['completed', 'cancelled', 'failed', 'expired'].includes(goal.status)) return goal;

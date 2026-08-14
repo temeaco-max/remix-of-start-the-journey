@@ -27,6 +27,19 @@ for (const actor of actors) {
   assert.deepEqual(profile, [actor.phone], `missing seeded actor ${actor.id}`);
 }
 
+const moved = await routeIntent("I've just moved to Ikeja.", actors[0].phone);
+assert.equal(moved.skill, 'general_question');
+assert.equal(moved.canonicalAction, undefined);
+const leak = await routeIntent('My bathroom is leaking.', actors[0].phone);
+assert.equal(leak.skill, 'general_question');
+assert.equal(leak.canonicalAction, undefined);
+const uncertain = await routeIntent("I don't know whether I need a plumber or something else.", actors[0].phone);
+assert.equal(uncertain.skill, 'general_question');
+assert.equal(uncertain.canonicalAction, undefined);
+const shower = await routeIntent('It only happens when I use the shower.', actors[0].phone);
+assert.equal(shower.skill, 'general_question');
+assert.equal(shower.canonicalAction, undefined);
+
 const routed = await routeIntent('I need a painter in Ikeja next Saturday morning with a budget of ₦25,000', actors[0].phone);
 assert.equal(routed.skill, 'find_worker');
 assert.equal(routed.extractionSource, 'deterministic');

@@ -143,7 +143,8 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     reply = result.reply;
     cardData = result.cardData;
   } else {
-    const continued = await continueActiveRequest(phone, input.conversationId, message);
+    const controlCommand = /^(pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\b/i.test(message.trim());
+    const continued = controlCommand ? null : await continueActiveRequest(phone, input.conversationId, message);
     const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
     classificationSource = routing.classificationSource;
     intentConfidence = routing.intentConfidence;

@@ -6,6 +6,11 @@ let localPipeline: any = null;
 let localPipelinePromise: Promise<any> | null = null;
 let hfClient: HfInference | null = null;
 let localBusy = false;
+let lastInferenceSource: 'local' | 'huggingface' | 'fallback' = 'fallback';
+
+export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'huggingface' | 'fallback'; available: boolean } {
+  return { model: MODEL_NAME, source: lastInferenceSource, available: lastInferenceSource !== 'fallback' };
+}
 
 async function getLocalPipeline(): Promise<any> {
   if (localPipeline) return localPipeline;
@@ -32,16 +37,17 @@ export async function querySmolLM2(prompt: string, systemPrompt?: string): Promi
         const output = await generator(input, { max_new_tokens: Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), temperature: 0.2, do_sample: true, return_full_text: false });
         const first = Array.isArray(output) ? output[0] : output;
         const text = typeof first === 'object' && first && 'generated_text' in first ? String(first.generated_text || '').trim() : '';
-        if (text) return text.replace(/<\|im_end\|>[\s\S]*$/g, '').trim();
+        if (text) { lastInferenceSource = 'local'; return text.replace(/<\|im_end\|>[\s\S]*$/g, '').trim(); }
       } finally { releaseLocal(); }
     } catch (err: any) { console.warn('[SmolLM2] Local inference failed:', err?.message || err); releaseLocal(); }
   }
   if (process.env.HUGGINGFACE_API_KEY || process.env.HF_API_KEY) {
     try {
       const response = await getHfClient().textGeneration({ model: MODEL_NAME, inputs: input, parameters: { max_new_tokens: Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), temperature: 0.2, return_full_text: false } });
-      if (response?.generated_text) return response.generated_text.trim();
+      if (response?.generated_text) { lastInferenceSource = 'huggingface'; return response.generated_text.trim(); }
     } catch (err: any) { console.warn('[SmolLM2] HF serverless inference failed:', err?.message || err); }
   }
+  lastInferenceSource = 'fallback';
   return getFallbackResponse(prompt);
 }
 

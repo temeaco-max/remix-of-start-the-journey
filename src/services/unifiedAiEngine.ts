@@ -1,5 +1,5 @@
 import { queryGemini } from './geminiService.js';
-import { querySmolLM2 } from './smolLm2Service.js';
+import { getSmolLM2RuntimeStatus, querySmolLM2 } from './smolLm2Service.js';
 import { queryGroq, streamGroq } from './groqService.js';
 import { classifyWithFastText, type FastTextResult } from './fastTextService.js';
 import { withMemoryContext, logAiAudit } from './livingMemoryEngine.js';
@@ -196,9 +196,10 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
   if (preferred === 'smollm2') {
     try {
       const result = cleanThinking(await querySmolLM2(prompt, systemPrompt));
+      const runtime = getSmolLM2RuntimeStatus();
       return afterSuccess({
-        provider: 'SmolLM2',
-        model: 'SmolLM2-1.7B-Instruct',
+        provider: runtime.available ? 'SmolLM2' : 'Kurukoo Template',
+        model: runtime.available ? 'SmolLM2-1.7B-Instruct' : 'template-fallback',
         text: result.text,
         thought: result.thought,
         latencyMs: Date.now() - started,
@@ -220,9 +221,10 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
     }
     try {
       const result = cleanThinking(await querySmolLM2(prompt, systemPrompt));
+      const runtime = getSmolLM2RuntimeStatus();
       const response: AIResponse = {
-        provider: 'SmolLM2',
-        model: 'SmolLM2-1.7B-Instruct',
+        provider: runtime.available ? 'SmolLM2' : 'Kurukoo Template',
+        model: runtime.available ? 'SmolLM2-1.7B-Instruct' : 'template-fallback',
         text: result.text,
         thought: result.thought,
         latencyMs: Date.now() - started,

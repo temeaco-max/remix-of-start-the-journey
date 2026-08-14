@@ -124,7 +124,8 @@ export async function appendChatMessage(
     input.phone,
     input.conversationId,
     'unified',
-    input.sender === 'user' ? input.content.slice(0, 80) : undefined
+    input.sender === 'user' ? input.content.slice(0, 80) : undefined,
+    input.sender === 'user' && !input.conversationId && ['web', 'web_qr'].includes(input.channel || 'web')
   );
 
   db.run(`INSERT INTO messages (phone, sender, content, channel, card_data, memory_tier, memory_status, relevance_score, thread_id) VALUES (?, ?, ?, ?, ?, 'episodic', 'active', 0.55, ?)`, [
