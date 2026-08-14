@@ -27,6 +27,7 @@
     "test:multi-party": "tsx scripts/test-multi-party-economic-request.ts",
     "test:execution-boundary": "tsx scripts/test-execution-boundary.ts",
     "test:native-assistance": "tsx scripts/test-native-assistance.ts",
+    "test:behavioral-chat": "tsx scripts/test-behavioral-chat-matrix.ts",
     "test:notification-queue": "tsx scripts/test-notification-queue.ts",
     "test:skill-flows": "tsx scripts/test-skill-flows.ts",
     "test:conversation-workspace": "tsx scripts/test-conversation-workspace.ts",

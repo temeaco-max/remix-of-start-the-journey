@@ -20,7 +20,7 @@ const CANONICAL_ALIASES: Array<[RegExp, string]> = [
   [/\b(phone|device|laptop|computer|screen)\b.*\brepair\b|\brepair\b.*\b(phone|device|laptop|computer|screen)\b/, 'repair'],
   [/\b(source|source me|find|procure)\b.*\b(product|products|goods|item)\b|\b(phone\s+charger|charger|replacement\s+part|spare\s+part|phone\s+accessory)\b/, 'product_sourcing'],
   [/\b(bodyguard|security guard|security personnel|private security)\b/, 'security_personnel'],
-  [/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder)\b/, 'find_worker'],
+  [/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/, 'find_worker'],
   [/\b(order|get|buy)\b.*\b(food|meal|rice|groceries|groceries?)\b/, 'order_food'],
   [/\b(okada|motorbike|motorcycle)\b/, 'okada_rider'],
   [/\bkeke|tricycle\b/, 'keke_driver'],
@@ -317,6 +317,19 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   }
 
   const directSkill = matchCanonicalSkill(q);
+  if (directSkill === 'event_coverage' && phone) {
+    return {
+      skill: 'event_coverage',
+      reply: 'I can help you prepare event evidence for review. Share the event, location, date, and what you personally observed; your submission remains a contributor record and does not verify a provider or create a payment request.',
+      cardData: { type: 'event_coverage', status: 'offer', mode: 'contributor_evidence', moderation: 'required', privateByDefault: true },
+    };
+  }
+  if (directSkill === 'national_events' && phone) {
+    return { skill: 'national_events', reply: 'I can show public event information and daily picks. I will not imply attendance, availability, booking, or payment.', cardData: { type: 'events_list', status: 'public_information' } };
+  }
+  if (directSkill === 'sports_matchmaking' && phone) {
+    return { skill: 'sports_matchmaking', reply: 'I can help coordinate a sports activity. Tell me the sport, location, timing, and number of participants; no participant or venue is confirmed until the supported flow records it.', cardData: { type: 'sports_search', status: 'coordination_needed' } };
+  }
   if (directSkill && phone) {
     try {
       if (directSkill === 'product_sourcing') {
@@ -329,7 +342,8 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
           };
         }
       }
-      const worker = q.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder)\b/i)?.[1];
+      const workerMatch = q.match(/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/i)?.[1];
+      const worker = workerMatch ? (/^plumb/i.test(workerMatch) ? 'plumber' : /^electri/i.test(workerMatch) ? 'electrician' : /^paint/i.test(workerMatch) ? 'painter' : /^decorat/i.test(workerMatch) ? 'decorator' : /^til/i.test(workerMatch) ? 'tiler' : /^roof/i.test(workerMatch) ? 'roofer' : workerMatch.toLowerCase()) : undefined;
       const seed = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'verified_artist' ? { event_type: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
       const card = await startStorefrontSession(phone, directSkill, seed);
       const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message;

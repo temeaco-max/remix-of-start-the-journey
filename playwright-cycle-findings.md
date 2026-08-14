@@ -64,3 +64,25 @@ Observed and repaired defects:
 - The active `Cancel request` control could be blocked by the composer busy guard. Cancellation remains allowed while another turn is marked busy. Direct API and rebuilt Playwright state converged to `Cancelled`, with no payment claimed.
 
 The full route regression suite, skill taxonomy audit, messaging audit, security/economic audit, pilot readiness, production guards, WhatsApp boundary, attachment boundary, fresh database, and Chat DOM-safety checks passed after the repairs.
+
+## Deep behavioural continuation evidence — 2026-08-14
+
+The new isolated canonical matrix passed six representative scenarios after repair: customer natural worker/correction/cancellation flow, ambiguous ride clarification, provider capability consent, seller product boundary, contributor event evidence, and emergency triage. The matrix now persists the same owner-scoped request across multi-message turns and cancels the bounded agent goal.
+
+A live Playwright retest on the rebuilt runtime confirmed that `Guy I need somebody to paint my place` is recognized as `painter`, not a generic worker request with a missing service. Chat rendered an active slot-fill card with `painter` already populated and only `Location` required. The next live step is to enter a natural location and verify the same request advances rather than opening a duplicate.
+
+Live Playwright continuation retest: after `Guy I need somebody to paint my place`, the Chat card prefilled `painter` and required only Location. Sending the separate natural-language follow-up `Ibadan.` advanced the same request to `No verified available provider matched yet`, `Still looking`, and `Deferred`. The original slot card remained visible as historical/superseded, and no second request was opened. This verifies the actor → natural language → clarification → state accumulation → deferred outcome loop in the browser.
+
+Live Playwright contributor check: in a fresh conversation, `I can provide evidence for an event listing` produced the non-economic `Event coverage request` card. The response explicitly says the submission is a contributor record, does not verify a provider or create a payment request, and that contributor participation and any resulting payment require separate confirmation. No Economic Request storefront was rendered.
+
+Live Playwright ride lifecycle: a fresh conversation and `I need a ride tomorrow` produced one `ride_request` agentic storefront in slot-fill with explicit Pickup location, Destination, and When requirements plus Continue/Cancel controls. The next step will verify a natural cancellation message closes this request with no payment or duplicate state.
+
+Live Playwright cancellation check: in a fresh ride conversation, `Cancel this request` was interpreted against the active request, produced `Request cancelled. No payment was taken.`, rendered a `Cancelled` complete card, and left no active request. This confirms natural cancellation closes the same request and preserves the historical slot card without claiming payment.
+
+## Deep actor and category convergence cycle — final evidence
+
+The repository behavioural matrix is now registered as `npm run test:behavioral-chat` and passes 6/6 scenarios on isolated post-onboarding actors: customer painter correction and cancellation, ambiguous ride clarification, provider capability consent, seller product boundary, contributor event coverage, safety triage, and bounded agent-goal creation/cancellation. The canonical matrix confirms no active requests remain in its isolated database after cleanup.
+
+The final route suite passed after these repairs. Skill-flow validation passed 22/22 valid seeded flows. The complete readiness set passed: 205 seeded skills, 46 economic categories, messaging architecture across six transports, security and economic authorization boundaries, pilot production guards, attachment ownership/privacy, Topics convergence, agent runtime, WhatsApp parity, network-to-Chat convergence, and fresh-database bootstrap.
+
+The full canonical skill sweep completed without errors. Its non-storefront rows are intentional safety/public-information/community boundaries: emergency prompts return explicit 112 triage without a card, while public event and community paths must not imply booking, payment, provider verification, or fulfilment. The live browser cases independently verified contributor event evidence, painter natural-language continuation, ride slot-fill, and natural cancellation.
