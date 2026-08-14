@@ -90,6 +90,32 @@
     if (moreItems) moreItems.hidden = expanded;
     moreToggle.classList.toggle('is-expanded', !expanded);
   });
+  const fallbackSponsoredAds = [
+    { id: 'kurukoo-local-service', image: '/assets/chat/sponsored-local-service.jpg', alt: 'Local service professional preparing a package and tools in a neighborhood setting', disclosure: 'Sponsored' },
+    { id: 'kurukoo-home-repair', image: '/assets/chat/sponsored-home-repair.jpg', alt: 'Home repair professional inspecting an apartment doorway with a toolkit', disclosure: 'Sponsored' },
+    { id: 'kurukoo-fresh-market', image: '/assets/chat/sponsored-fresh-market.jpg', alt: 'Fresh produce seller arranging vegetables at a neighborhood market stall', disclosure: 'Sponsored' }
+  ];
+  let sponsoredAds = Array.isArray(window.KURUKOO_SPONSORED_ADS) && window.KURUKOO_SPONSORED_ADS.length ? window.KURUKOO_SPONSORED_ADS : fallbackSponsoredAds;
+  let sponsoredIndex = -1;
+  function renderSponsoredAd() {
+    const card = $('sidebar-promo'); const image = card?.querySelector('img'); const tag = card?.querySelector('.sidebar-sponsored-tag');
+    if (!card || !image || !sponsoredAds.length) return;
+    sponsoredIndex = (sponsoredIndex + 1) % sponsoredAds.length;
+    const ad = sponsoredAds[sponsoredIndex];
+    image.src = String(ad.image || fallbackSponsoredAds[0].image); image.alt = String(ad.alt || ad.title || 'Sponsored local service');
+    if (tag) tag.textContent = String(ad.disclosure || 'Sponsored');
+    card.dataset.adId = String(ad.id || sponsoredIndex);
+  }
+  async function loadSponsoredAds() {
+    try {
+      const res = await fetch('/api/chat/sponsored', { credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.campaigns) && data.campaigns.length) sponsoredAds = data.campaigns;
+    } catch {}
+    renderSponsoredAd();
+    window.setInterval(() => { if (document.visibilityState === 'visible') renderSponsoredAd(); }, 6500);
+  }
+  loadSponsoredAds();
 
   function setTypingStatus(status = 'complete', label = '') {
     const active = status === 'typing' || status === 'thinking';
@@ -959,8 +985,7 @@
   async function loadPoints() { try { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const points = Number(data.points || 0); const balance = $('points-balance')?.querySelector('span'); if (balance) balance.textContent = points; const ip = $('inspector-points'); if (ip) ip.textContent = points; } catch {} }
   function renderNotifications(notifications = []) {
     const list = $('notifications-list'); const summary = $('notifications-summary');
-    if (!list) return;
-    list.replaceChildren();
+    if (list) list.replaceChildren();
     const items = Array.isArray(notifications) ? notifications : [];
     const unreadItems = items.filter(item => item?.status === 'unread');
     const unread = unreadItems.length;
@@ -969,6 +994,7 @@
     const badge = $('notification-badge');
     if (badge) { badge.textContent = unread > 99 ? '99+' : String(unread); badge.hidden = unread === 0; }
     if (summary) summary.textContent = unread ? `${unread} unread notification${unread === 1 ? '' : 's'} in your internal Kurukoo inbox.` : 'Your internal Kurukoo inbox is up to date.';
+    if (!list) return;
     if (!items.length) { list.appendChild(makeElement('div', 'empty-state', 'No notifications yet.')); return; }
     items.forEach(item => {
       const row = makeElement('div', 'notification-list-item');
@@ -1161,7 +1187,7 @@
   }
 
   $('memory-toggle')?.addEventListener('click', () => setInspectorOpen(!$('chat-inspector')?.classList.contains('open')));
-  $('notification-toggle')?.addEventListener('click', async () => { await loadNotifications(); setInspectorOpen(true, 'notifications-card'); });
+  $('notification-toggle')?.addEventListener('click', async () => { await loadNotifications(); $('notification-toggle')?.setAttribute('aria-expanded', 'false'); });
   $('close-inspector')?.addEventListener('click', () => setInspectorOpen(false));
 
   function setInspectorCollapsed(collapsed) {
