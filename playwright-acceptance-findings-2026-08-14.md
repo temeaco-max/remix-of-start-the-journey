@@ -40,3 +40,15 @@ The pass found and repaired several defects. New web turns without a supplied co
 The final live pass showed grounded request progress, truthful no-provider/no-payment language, durable memory, reminder creation and cancellation, agent pause/resume/cancel behavior, and status reporting. FastText remained real for classified intents. SmolLM2 was reported only when a local or Hugging Face inference actually succeeded; unavailable inference was labeled `Kurukoo Template` / `template-fallback` rather than falsely presented as SmolLM2.
 
 Automated verification passed for lint, the Chat-first rebuild regression, agent runtime, behavioral Chat matrix, FastText/router, WhatsApp/SMS parity, network convergence, conversation-first authentication, the full route/actor remainder, and responsive runtime widths 360–1440px with no viewport overflow. Payments and external delivery remained sandbox or unconfigured throughout.
+
+
+## Canonical sidebar More menu — 2026-08-14
+
+The Chat sidebar now exposes a labeled horizontal-dots `More` button directly above the hidden secondary navigation. In normal mode the accessibility tree shows Conversation, Requests, Reminders, Saved & offers, Cart, and More; Points, Tasks, Daily Picks, and Discover are absent from the visible tree because the controlled group is hidden. After opening the mobile drawer and activating More, the button exposes `aria-expanded="true"` and the tree reveals Points, Tasks, Daily Picks, and Discover as 44px-tall touch targets. The mobile drawer remains within the viewport and retains the existing labeled Open/Close sidebar controls.
+
+The same canonical navigation structure and More interaction are now used by Chat, server-rendered workspace pages, the legacy Request Hub dashboard, and Settings. The shared workspace script controls expansion and automatically opens the group when a secondary item is active. The shared CSS covers focus-visible outlines, hover/open state, collapsed sidebars, and mobile target sizing.
+
+
+## Cross-page sidebar verification
+
+The live Settings page now exposes a `complementary "Kurukoo workspace"` with the same Requests, Conversation, Reminders, Saved & offers, Cart, More, Memory, Safety, Settings, Help, and Log out structure. Its More button is visible with the remaining group hidden by default, matching the Chat drawer behavior. The former emoji-based legacy navigation is no longer rendered on Settings or Request Hub.

@@ -212,6 +212,23 @@
     const collapsed = workspaceSidebar?.classList.toggle('is-collapsed');
     localStorage.setItem('kurukoo_workspace_collapsed', collapsed ? '1' : '0');
   });
+
+  const moreToggle = qs('#workspace-more');
+  const moreItems = qs('#workspace-more-items');
+  const moreHasActiveItem = Boolean(moreItems?.querySelector('.active, .workspace-link.active'));
+  const setMoreOpen = (open) => {
+    if (!moreToggle || !moreItems) return;
+    moreToggle.setAttribute('aria-expanded', String(open));
+    moreItems.hidden = !open;
+    moreToggle.classList.toggle('is-open', open);
+  };
+  moreToggle?.addEventListener('click', () => setMoreOpen(moreItems.hidden));
+  setMoreOpen(moreHasActiveItem);
+
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('#workspace-more-items a, #workspace-more-items .workspace-link');
+    if (link) setMoreOpen(true);
+  });
   if (workspaceSidebar && localStorage.getItem('kurukoo_workspace_collapsed') === '1') workspaceSidebar.classList.add('is-collapsed');
   qs('#workspace-open')?.addEventListener('click', () => workspaceSidebar?.classList.add('open'));
   workspaceSidebar?.addEventListener('click', (event) => { if (event.target.closest('a')) workspaceSidebar.classList.remove('open'); });
