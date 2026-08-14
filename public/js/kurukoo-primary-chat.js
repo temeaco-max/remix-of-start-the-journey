@@ -82,7 +82,7 @@
     surface.append(heading); const body = makeElement('div', 'surface-body'); body.append(makeElement('div', 'surface-loading', 'Loading…')); surface.append(body); chatContent.replaceChildren(surface); scroll.scrollTop = 0;
     try {
       if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
-      const res = await fetch(surfacePaths[view], { credentials: 'same-origin' }); if (!res.ok) throw new Error('Workspace view unavailable'); const html = await res.text(); const doc = new DOMParser().parseFromString(html, 'text/html'); const source = doc.querySelector('.workspace-content, main, .workspace-main'); if (!source) throw new Error('Workspace content unavailable');       body.innerHTML = source.innerHTML; body.querySelector('.workspace-header')?.remove(); body.querySelectorAll('script').forEach(script => script.remove()); body.querySelectorAll('a[href]').forEach(link => { const href = link.getAttribute('href') || ''; const mapped = Object.entries(surfacePaths).find(([, path]) => href === path || href.startsWith(`${path}?`)); if (mapped) { link.dataset.surfaceView = mapped[0]; link.removeAttribute('href'); } }); wireSurfaceActions(body);
+      const res = await fetch(surfacePaths[view], { credentials: 'same-origin' }); if (!res.ok) throw new Error('Workspace view unavailable'); const html = await res.text(); const doc = new DOMParser().parseFromString(html, 'text/html'); const source = doc.querySelector('.workspace-content, main, .workspace-main'); if (!source) throw new Error('Workspace content unavailable');       body.innerHTML = source.innerHTML; body.querySelector('.workspace-header')?.remove(); body.querySelector('[data-tasks-activity]') && loadTasksActivity(); body.querySelectorAll('script').forEach(script => script.remove()); body.querySelectorAll('a[href]').forEach(link => { const href = link.getAttribute('href') || ''; const mapped = Object.entries(surfacePaths).find(([, path]) => href === path || href.startsWith(`${path}?`)); if (mapped) { link.dataset.surfaceView = mapped[0]; link.removeAttribute('href'); } }); wireSurfaceActions(body);
     } catch (error) { body.replaceChildren(renderSurfaceFallback(view, error.message || undefined)); }
   }
   async function loadConversation(conversationId) { if (!conversationId) return; state.surfaceView = null; updateSurfaceHeader(null); updateSurfaceContext(null); state.conversationId = conversationId; localStorage.setItem('kurukoo_conversation_id', conversationId); try { const url = new URL('/api/chat/history', location.origin); url.searchParams.set('conversationId', conversationId); url.searchParams.set('limit', '60'); const res = await fetch(url, { credentials: 'same-origin' }); const data = await res.json(); state.messages = (data.messages || []).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.content, id: m.id })); renderMessages(data.messages || []); refreshHistory(); } catch { setConnection(false, 'Offline'); } }
@@ -1069,6 +1069,56 @@
       list.appendChild(row);
     });
   }
+  function renderTasksActivity(topics = []) {
+    const list = document.querySelector('[data-topics-activity]');
+    const status = document.querySelector('[data-tasks-activity-status]');
+    if (!list) return;
+    list.replaceChildren();
+    const items = Array.isArray(topics) ? topics.filter((topic) => topic && topic.title) .slice(0, 5) : [];
+    if (status) status.textContent = items.length ? `${items.length} recent` : 'No new activity';
+    if (!items.length) {
+      const empty = makeElement('div', 'empty-workspace compact');
+      empty.append(makeElement('p', 'topic-activity-empty', 'No recent public Topics match this view yet.'));
+      list.appendChild(empty);
+      return;
+    }
+    items.forEach((topic) => {
+      const row = makeElement('article', 'topic-activity-item');
+      const meta = makeElement('div', 'topic-activity-meta', [String(topic.type || 'Topic').replace(/_/g, ' '), topic.city || topic.lga || 'Community'].filter(Boolean).join(' · '));
+      const title = makeElement('h3', 'topic-activity-title', String(topic.title));
+      const body = makeElement('p', 'topic-activity-body', String(topic.body || 'Community Topic').slice(0, 150));
+      const link = makeElement('button', 'workspace-text-action topic-activity-link', 'Open Topic');
+      link.type = 'button'; link.dataset.topicSlug = String(topic.slug || '');
+      link.addEventListener('click', () => { if (topic.slug) window.location.href = `/topics/${encodeURIComponent(topic.slug)}`; });
+      row.append(meta, title, body, link); list.appendChild(row);
+    });
+  }
+  async function loadTasksActivity() {
+    if (!document.querySelector('[data-topics-activity]')) return;
+    try {
+      const url = new URL('/api/topics', location.origin); url.searchParams.set('limit', '5');
+      const response = await fetch(url, { credentials: 'same-origin' });
+      if (!response.ok) throw new Error('Topics unavailable');
+      const data = await response.json(); renderTasksActivity(data.topics || []);
+    } catch { renderTasksActivity([]); }
+  }
+  function renderProactiveInspector(opportunities = []) {
+    const card = document.getElementById('proactive-context-card'); const list = document.getElementById('proactive-context-list');
+    if (!card || !list) return;
+    const items = Array.isArray(opportunities) ? opportunities.filter((item) => item && item.title && item.status !== 'dismissed').slice(0, 3) : [];
+    list.replaceChildren(); card.hidden = !items.length;
+    items.forEach((item) => {
+      const row = makeElement('article', 'proactive-context-item');
+      row.append(makeElement('strong', 'proactive-context-title', String(item.title)), makeElement('p', 'proactive-context-copy', String(item.subtitle || 'Available in Chat.').slice(0, 130)));
+      const action = makeElement('button', 'workspace-text-action proactive-context-action', String(item.ctaText || 'Open in Chat')); action.type = 'button';
+      action.addEventListener('click', () => { const link = String(item.ctaLink || '/chat'); window.location.href = link.startsWith('/') ? link : '/chat'; });
+      row.appendChild(action); list.appendChild(row);
+    });
+  }
+  async function loadProactiveInspector() {
+    const card = document.getElementById('proactive-context-card'); if (!card) return;
+    try { const response = await fetch('/api/proactive/feed', { credentials: 'same-origin' }); if (!response.ok) throw new Error('Proactive feed unavailable'); const data = await response.json(); renderProactiveInspector(data.opportunities || []); } catch { renderProactiveInspector([]); }
+  }
   async function loadTaskContext() {
     const list = $('task-context-list'); if (!list) return;
     try {
@@ -1439,6 +1489,7 @@
     if (ok) {
       await refreshHistory();
       await Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadTaskContext(), loadReminders(), loadSafety(), loadAgentGoal()]);
+    loadProactiveInspector();
       if (!state.conversationId) renderWelcome();
     }
   });

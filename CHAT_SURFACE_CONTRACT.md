@@ -98,3 +98,14 @@ The acceptance scenario is: open Tasks; send `Please check my current task statu
 ## Advert and workspace representation
 
 Sponsored cards in the left rail, Daily Picks in the right rail, and promotion cards inside Daily Picks are fed from active admin-managed campaigns. Generated local-economy and diaspora creatives are approved assets with audience, disclosure, placement, category, priority, destination, and CTA metadata. No legacy placeholder image URL may be used when an active managed asset exists.
+
+
+## Typography and contextual activity additions
+
+Central surfaces use the shared responsive type scale. The Chat-generated surface title and workspace hero/panel headings use bounded `clamp()` values, balanced wrapping, and `overflow-wrap:anywhere`. Header-copy and panel-heading containers use `min-width:0` so long titles cannot expand the central grid. Task card headings remain compact, and narrow layouts step down the scale without creating horizontal overflow.
+
+The Tasks surface may render a Community activity section from the existing public Topics authority. The client requests `/api/topics?limit=5` and renders only returned public Topic records. Each row shows the source type/location metadata, title, short body excerpt, and an Open Topic action. An empty result must show `No recent public Topics match this view yet.`; the UI must not fabricate topics or call them personalized when the source provides no matching records.
+
+The right inspector may render Suggested next steps from the authenticated `/api/proactive/feed` endpoint. The endpoint delegates to `getOpportunitiesForFeed`, which is owner-scoped and excludes dismissed records. The card is context-filtered to Requests, Tasks, Discover, Daily Picks, and Cart via `data-context-card`; it is hidden on non-fitting surfaces. CTAs preserve the engine-provided destination and are not relabeled as completed actions.
+
+The workspace EJS template must tolerate missing campaign data by treating an absent campaign collection as empty. This keeps central Tasks and other non-ad surfaces renderable while preserving the admin-managed campaign rule for promotional placements.

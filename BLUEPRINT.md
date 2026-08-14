@@ -5424,3 +5424,14 @@ Task workspace presentation uses compact headings for Verify a location, Update 
 Sponsored and Daily Picks imagery are admin-managed campaign assets, not frontend-only placeholders. Active campaigns carry image, audience, disclosure, placement, category, priority, destination, and CTA metadata. Sponsored cards may rotate between demographic-aware informal-economy and diaspora creatives; Daily Picks and workspace promotions must consume the same managed campaign feed. Legacy placeholder URLs are excluded.
 
 Responsive behavior must preserve the central-surface contract at desktop, tablet, and mobile widths: grids collapse, the header action remains reachable, inspector transitions remain legible, toasts stay inside the central content area, and the composer remains available after a surface action or background response.
+
+
+## Typography, Topics Activity, and Proactive Context — August 2026
+
+Central workspace headings now use the shared responsive type scale rather than display-sized task typography. Surface titles use a bounded `clamp()` scale with balanced wrapping and `overflow-wrap:anywhere`; hero and panel headings use a smaller shared scale; task card headings remain compact. Header-copy and panel-heading containers explicitly allow shrinking so long localized titles do not force horizontal overflow. At narrow widths, the title scale steps down while the Ask action remains reachable and status pills remain on one line.
+
+The Tasks surface includes a truthful Community activity section titled `Topics you may care about`. It reads published public Topics from the existing Topics authority through `/api/topics`, displays up to five recent items with type, community location, title, excerpt, and an Open Topic action, and explicitly shows an empty state when no public Topics are available. It does not generate or imply personalized interest when the source has no matching data.
+
+The right inspector includes a Suggested next steps card backed by the Proactive Opportunity Engine through the authenticated `/api/proactive/feed` boundary. The feed exposes only owner-scoped, non-dismissed opportunity records and preserves their authoritative title, subtitle, CTA, status, and destination. The card is context-filtered to Requests, Tasks, Discover, Daily Picks, and Cart; it is hidden for Memory, Safety, Settings, Connect, Points, and other surfaces where the suggestions are not contextually appropriate.
+
+Workspace templates must always receive a defined campaign collection, including an empty array for non-ad surfaces. A missing campaign collection must never prevent Tasks or another central surface from rendering. Admin-managed advert assets remain the only valid source for promotional imagery; Topics and Proactive cards must not be used as covert advertising.
