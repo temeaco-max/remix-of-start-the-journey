@@ -4,7 +4,9 @@ dotenv.config();
 
 const production = process.env.NODE_ENV === 'production';
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  process.env.JWT_SECRET = 'super_secret_safe_and_long_jwt_key_32_chars_fallback';
+  if (production) throw new Error('[Kurukoo Startup] JWT_SECRET must be configured with at least 32 characters in production.');
+  process.env.JWT_SECRET = 'development_only_super_secret_safe_and_long_jwt_key_fallback';
+  console.warn('[Kurukoo Startup] Using the development JWT fallback; configure JWT_SECRET before deployment.');
 }
 
 import express from 'express';
