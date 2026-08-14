@@ -19,6 +19,14 @@ for (const [input, expected] of cases) {
   }
 }
 
+const generalQuestion = classifyWithFastText('What should I know before using Kurukoo?');
+if (!generalQuestion || generalQuestion.intent !== 'general_question') {
+  failed++;
+  console.error(`[AI TEST] FAIL: general question routed to ${generalQuestion?.intent || 'unknown'}`);
+} else {
+  console.log(`[AI TEST] PASS: general question -> ${generalQuestion.intent} (${generalQuestion.confidence?.toFixed(2) || 'n/a'})`);
+}
+
 const response = await queryUnifiedAI('What should I know before using Kurukoo?', { provider: 'smollm2' });
 if (!response.text) {
   failed++;

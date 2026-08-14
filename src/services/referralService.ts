@@ -37,19 +37,29 @@ export async function findReferrerByCode(code: string): Promise<string | null> {
 }
 
 export async function trackReferral(referrerPhone: string, referredPhone: string, referralCode: string): Promise<void> {
+    const normalizedCode = String(referralCode || '').trim().toUpperCase();
+    if (!referrerPhone || !referredPhone || referrerPhone === referredPhone || !normalizedCode) return;
+    const owner = await findReferrerByCode(normalizedCode);
+    if (!owner || owner !== referrerPhone) return;
     const db = await getDb();
-    db.run(`INSERT OR IGNORE INTO referrals (referrer_phone, referred_phone, referral_code, status, created_at) VALUES (?, ?, ?, 'registered', CURRENT_TIMESTAMP)`, [referrerPhone, referredPhone, referralCode]);
+    const existing = db.prepare(`SELECT id FROM referrals WHERE referred_phone = ? LIMIT 1`);
+    existing.bind([referredPhone]);
+    const alreadyTracked = existing.step();
+    existing.free();
+    if (alreadyTracked) return;
+    db.run(`INSERT INTO referrals (referrer_phone, referred_phone, referral_code, status, created_at) VALUES (?, ?, ?, 'registered', CURRENT_TIMESTAMP)`, [referrerPhone, referredPhone, normalizedCode]);
     saveDb();
 }
 
 export async function claimReferral(referredPhone: string): Promise<boolean> {
     const db = await getDb();
-    const stmt = db.prepare(`SELECT * FROM referrals WHERE referred_phone = ? AND status = 'registered'`);
+    const stmt = db.prepare(`SELECT * FROM referrals WHERE referred_phone = ? AND status = 'registered' LIMIT 1`);
     stmt.bind([referredPhone]);
-    const referral = stmt.getAsObject();
+    let referral: any = null;
+    if (stmt.step()) referral = stmt.getAsObject();
     stmt.free();
-    if (referral && referral.referrer_phone) {
-        db.run(`UPDATE referrals SET status = 'subscribed' WHERE referred_phone = ?`, [referredPhone]);
+    if (referral?.referrer_phone) {
+        db.run(`UPDATE referrals SET status = 'subscribed' WHERE referred_phone = ? AND status = 'registered'`, [referredPhone]);
         await addCredits(referral.referrer_phone as string, 200, `Referral reward for subscription of ${referredPhone}`);
         saveDb();
         return true;

@@ -159,7 +159,8 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
             phone,
             type: 'daily_pick',
             title: ad.title as string,
-            subtitle: ad.desc as string,
+            subtitle: `${String(ad.disclosure || 'Sponsored').trim()} · ${String(ad.desc || '')}`,
+
             ctaText: 'Ask in Web Chat',
             ctaLink: `/chat?prompt=${encodeURIComponent(`I am interested in ${String(ad.title || 'this offer')}`)}`,
             urgency: 0.5,

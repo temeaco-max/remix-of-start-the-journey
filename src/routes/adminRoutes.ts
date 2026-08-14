@@ -32,7 +32,7 @@ import { issueUserToken, upsertProfile } from './authRoutes.js';
 import { getConfiguredTestName, getConfiguredTestPhone, getDevelopmentTestAuthStatus } from '../services/devTestAuthService.js';
 import { getProfile, updateProfile } from '../services/memoryProfile.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
-import { getAdCampaigns } from '../services/adManager.js';
+import { createAdCampaign, getAdCampaigns } from '../services/adManager.js';
 
 const router = Router();
 
@@ -307,6 +307,24 @@ router.post('/disputes/escalate', authenticateAdmin, async (req: AuthRequest, re
 router.get('/ads', authenticateAdmin, async (_req: AuthRequest, res) => {
   try { res.json(await getAdCampaigns()); }
   catch { res.status(500).json({ error: 'Unable to load advertising campaigns' }); }
+});
+
+router.post('/ads', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const body = req.body || {};
+    const title = String(body.title || '').trim().slice(0, 160);
+    const desc = String(body.desc || '').trim().slice(0, 1000);
+    const imageUrl = String(body.imageUrl || '').trim().slice(0, 500);
+    const targetKeyword = String(body.targetKeyword || '').trim().toLowerCase().slice(0, 80);
+    const creditsBudget = Number(body.creditsBudget);
+    if (!title || !desc || !targetKeyword || !Number.isFinite(creditsBudget) || creditsBudget <= 0) {
+      return res.status(400).json({ success: false, error: 'Title, description, target keyword, and a positive credits budget are required.' });
+    }
+    const result = await createAdCampaign({ title, desc, imageUrl, targetKeyword, creditsBudget: Math.floor(creditsBudget) });
+    res.status(201).json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || 'Unable to create advertising campaign' });
+  }
 });
 
 router.get('/pilot-readiness', authenticateAdmin, async (_req: AuthRequest, res) => {

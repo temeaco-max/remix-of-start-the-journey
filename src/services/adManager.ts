@@ -9,12 +9,45 @@ export interface AdCampaign {
     creditsBudget: number;
     creditsSpent: number;
     status: string;
+    campaignType?: string;
+    disclosure?: string;
+    placement?: string;
+    category?: string;
+    country?: string;
+    region?: string;
+    startAt?: string;
+    expiresAt?: string;
+    frequencyCap?: number;
+    impressions?: number;
+    clicks?: number;
     createdAt: string;
     updatedAt: string;
 }
 
+function ensureAdSchema(db: any): void {
+    const columns = new Set<string>();
+    for (const row of db.exec('PRAGMA table_info(ad_campaigns)')[0]?.values || []) columns.add(String(row[1]));
+    const additions: Array<[string, string]> = [
+        ['campaign_type', "TEXT DEFAULT 'demo_internal'"],
+        ['disclosure', "TEXT DEFAULT 'Kurukoo demo'"],
+        ['placement', "TEXT DEFAULT 'public_discovery'"],
+        ['category', "TEXT DEFAULT 'community'"],
+        ['country', "TEXT DEFAULT 'NG'"],
+        ['region', "TEXT DEFAULT ''"],
+        ['start_at', 'TEXT'],
+        ['expires_at', 'TEXT'],
+        ['frequency_cap', 'INTEGER DEFAULT 3'],
+        ['impressions', 'INTEGER DEFAULT 0'],
+        ['clicks', 'INTEGER DEFAULT 0'],
+    ];
+    for (const [name, definition] of additions) if (!columns.has(name)) db.run(`ALTER TABLE ad_campaigns ADD COLUMN ${name} ${definition}`);
+    db.run(`UPDATE ad_campaigns SET campaign_type=COALESCE(campaign_type, 'demo_internal'), disclosure=COALESCE(disclosure, 'Kurukoo demo advertisement'), placement=COALESCE(placement, 'public_discovery'), category=COALESCE(category, 'community'), country=COALESCE(country, 'NG'), region=COALESCE(region, ''), frequency_cap=COALESCE(frequency_cap, 3), impressions=COALESCE(impressions, 0), clicks=COALESCE(clicks, 0)`);
+}
+
+
 export async function getAdCampaigns(): Promise<AdCampaign[]> {
     const db = await getDb();
+    ensureAdSchema(db);
     const rows = db.exec(`SELECT * FROM ad_campaigns`);
     if (rows.length === 0) return [];
     
@@ -33,8 +66,9 @@ export async function getAdCampaigns(): Promise<AdCampaign[]> {
 
 export async function createAdCampaign(campaign: Omit<AdCampaign, 'id' | 'creditsSpent' | 'status' | 'createdAt' | 'updatedAt'>): Promise<any> {
     const db = await getDb();
+    ensureAdSchema(db);
     db.run(
-        `INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget) VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, campaign_type, disclosure, placement) VALUES (?, ?, ?, ?, ?, 'demo_internal', 'Kurukoo demo advertisement', 'public_discovery')`,
         [campaign.title, campaign.desc, campaign.imageUrl, campaign.targetKeyword, campaign.creditsBudget]
     );
     saveDb();
@@ -43,6 +77,7 @@ export async function createAdCampaign(campaign: Omit<AdCampaign, 'id' | 'credit
 
 export async function spendAdCampaign(id: number, cost: number = 2): Promise<boolean> {
     const db = await getDb();
+    ensureAdSchema(db);
     const campaignRows = db.exec(`SELECT credits_budget, credits_spent FROM ad_campaigns WHERE id = ?`, [id]);
     if (campaignRows.length === 0) return false;
 
@@ -60,6 +95,7 @@ export async function spendAdCampaign(id: number, cost: number = 2): Promise<boo
 
 export async function matchAdCampaigns(query: string): Promise<AdCampaign[]> {
     const db = await getDb();
+    ensureAdSchema(db);
     const allCampaigns = await getAdCampaigns();
     const cleanQuery = query.toLowerCase();
 
@@ -75,13 +111,14 @@ export async function matchAdCampaigns(query: string): Promise<AdCampaign[]> {
 
 export async function seedDemoAdCampaigns(): Promise<void> {
     const db = await getDb();
+    ensureAdSchema(db);
     const existing = db.exec(`SELECT count(*) FROM ad_campaigns`);
     if (existing[0].values[0][0] === 0) {
         db.run(`
             INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget) VALUES 
-            ('Premium Jasmine Rice (50kg)', 'Get premium quality jasmine rice delivered to your doorstep.', 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400', 'rice', 50),
-            ('Swift Okada Riders Ibadan', 'Request Ibadan fast local okada. 10% discount on first ride today.', 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&q=80&w=400', 'ride', 100),
-            ('Dugbe Bakers Association', 'Get hot, freshly baked Ibadan soft bread delivered to your area.', 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400', 'bread', 80)
+            ('[Kurukoo demo] Premium Jasmine Rice (50kg)', 'Get premium quality jasmine rice delivered to your doorstep.', 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400', 'rice', 50),
+            ('[Kurukoo demo] Swift Okada Riders Ibadan', 'Request Ibadan fast local okada. 10% discount on first ride today.', 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&q=80&w=400', 'ride', 100),
+            ('[Kurukoo demo] Dugbe Bakers Association', 'Get hot, freshly baked Ibadan soft bread delivered to your area.', 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400', 'bread', 80)
         `);
         saveDb();
         console.log('Demo ad campaigns seeded successfully');

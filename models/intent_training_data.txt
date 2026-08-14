@@ -1,3 +1,15 @@
+__label__general_question What should I know before using Kurukoo
+__label__general_question How does Kurukoo work
+__label__general_question Tell me about Kurukoo
+__label__general_question What can I use Kurukoo for
+__label__general_question Explain the Kurukoo platform
+__label__general_question I want to learn more about this service
+__label__general_question How do I get started on Kurukoo
+__label__general_question What is this app for
+__label__general_question Can you give me an overview
+__label__general_question What does Kurukoo help people do
+__label__general_question Tell me the basics please
+__label__general_question I have a question about the platform
 __label__check_balance Check my credit balance
 __label__check_balance How many credits do I have left
 __label__check_balance Show wallet balance
@@ -84,6 +96,18 @@ __label__find_worker I need someone to paint my place
 __label__find_worker Please connect me with a painter for my house
 __label__find_worker Get a handyman to repair my broken appliance
 __label__find_worker Find me a technician near my location
+__label__sports_matchmaking Help me find a football match this weekend
+__label__sports_matchmaking Find a football game to join near me
+__label__sports_matchmaking I want to play football with other people
+__label__sports_matchmaking Help me meet players for a match
+__label__sports_matchmaking Find a basketball game around my area
+__label__sports_matchmaking I need teammates for football
+__label__sports_matchmaking Connect me to sports players nearby
+__label__sports_matchmaking Abeg find football people to play with
+__label__sports_matchmaking Arrange a local sports match for me
+__label__sports_matchmaking Where can I join a five aside game
+__label__sports_matchmaking Find me a tennis partner
+__label__sports_matchmaking I want to join a basketball team
 __label__pay_bill Pay electricity bill utility DSTV
 __label__pay_bill Pay my power bill NEPA Eko Disco
 __label__pay_bill Settle my DSTV GoTV subscription

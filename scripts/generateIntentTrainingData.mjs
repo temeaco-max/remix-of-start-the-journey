@@ -2,6 +2,20 @@ import fs from 'fs';
 import path from 'path';
 
 const trainingData = [
+    // ── general_question ──
+    { text: 'What should I know before using Kurukoo', label: 'general_question' },
+    { text: 'How does Kurukoo work', label: 'general_question' },
+    { text: 'Tell me about Kurukoo', label: 'general_question' },
+    { text: 'What can I use Kurukoo for', label: 'general_question' },
+    { text: 'Explain the Kurukoo platform', label: 'general_question' },
+    { text: 'I want to learn more about this service', label: 'general_question' },
+    { text: 'How do I get started on Kurukoo', label: 'general_question' },
+    { text: 'What is this app for', label: 'general_question' },
+    { text: 'Can you give me an overview', label: 'general_question' },
+    { text: 'What does Kurukoo help people do', label: 'general_question' },
+    { text: 'Tell me the basics please', label: 'general_question' },
+    { text: 'I have a question about the platform', label: 'general_question' },
+
     // ── check_balance (13) ──
     { text: 'Check my credit balance', label: 'check_balance' },
     { text: 'How many credits do I have left', label: 'check_balance' },
@@ -102,6 +116,20 @@ const trainingData = [
     { text: 'Please connect me with a painter for my house', label: 'find_worker' },
     { text: 'Get a handyman to repair my broken appliance', label: 'find_worker' },
     { text: 'Find me a technician near my location', label: 'find_worker' },
+
+    // ── sports_matchmaking ──
+    { text: 'Help me find a football match this weekend', label: 'sports_matchmaking' },
+    { text: 'Find a football game to join near me', label: 'sports_matchmaking' },
+    { text: 'I want to play football with other people', label: 'sports_matchmaking' },
+    { text: 'Help me meet players for a match', label: 'sports_matchmaking' },
+    { text: 'Find a basketball game around my area', label: 'sports_matchmaking' },
+    { text: 'I need teammates for football', label: 'sports_matchmaking' },
+    { text: 'Connect me to sports players nearby', label: 'sports_matchmaking' },
+    { text: 'Abeg find football people to play with', label: 'sports_matchmaking' },
+    { text: 'Arrange a local sports match for me', label: 'sports_matchmaking' },
+    { text: 'Where can I join a five aside game', label: 'sports_matchmaking' },
+    { text: 'Find me a tennis partner', label: 'sports_matchmaking' },
+    { text: 'I want to join a basketball team', label: 'sports_matchmaking' },
 
     // ── pay_bill (13) ──
     { text: 'Pay electricity bill utility DSTV', label: 'pay_bill' },

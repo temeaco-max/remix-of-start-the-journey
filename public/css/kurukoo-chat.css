@@ -321,3 +321,15 @@ body.dark .auth-gate-card {
 @media (min-width:1101px){.chat-content{width:min(calc(100% - 64px),820px)}}
 @media (prefers-reduced-motion:reduce){.message-actions,.composer,.message-action-btn,.composer-btn,.send-btn,.sf-btn,.quick-actions button,.composer-quick-actions button,.suggestion-btn{transition:none}}
 :focus-visible{outline:2px solid color-mix(in srgb,var(--chat-primary) 72%,#fff);outline-offset:2px}
+
+/* Canonical internal notifications in the Chat context panel. */
+.notification-toggle{position:relative;}
+.notification-toggle:focus-visible,.icon-btn:focus-visible,.composer-btn:focus-visible,.send-btn:focus-visible{outline:2px solid color-mix(in srgb,var(--chat-primary) 52%,transparent);outline-offset:2px;}
+.notification-badge{position:absolute;top:3px;right:3px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--chat-red);color:#fff;font:700 9px/15px var(--font-heading);text-align:center;box-shadow:0 0 0 2px var(--chat-surface);}
+.notification-list-item{display:grid;gap:4px;padding:10px 0;border-top:1px solid var(--chat-border);font-size:12px;line-height:1.4;}
+.notification-list-item:first-child{border-top:0;}
+.notification-list-item[data-status="unread"]{padding-left:8px;border-left:3px solid var(--chat-primary);}
+.notification-list-item strong{color:var(--chat-charcoal);font-size:12px;}
+.notification-list-item span{color:var(--chat-muted);}
+.notification-list-item small{color:var(--chat-muted);font-size:10px;}
+@media(max-width:560px){.header-right{gap:5px}.notification-toggle,.notification-toggle + .icon-btn{width:40px;height:40px}.notification-badge{top:1px;right:1px;}}

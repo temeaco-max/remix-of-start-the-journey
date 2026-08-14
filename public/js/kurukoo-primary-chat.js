@@ -847,6 +847,39 @@
 
   function updateModelStatus(data) { const label = $('model-badge'); if (label && data.model) label.textContent = data.model; }
   async function loadPoints() { try { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const points = Number(data.points || 0); const balance = $('points-balance')?.querySelector('span'); if (balance) balance.textContent = points; const ip = $('inspector-points'); if (ip) ip.textContent = points; } catch {} }
+  function renderNotifications(notifications = []) {
+    const list = $('notifications-list'); const summary = $('notifications-summary');
+    if (!list) return;
+    list.replaceChildren();
+    const items = Array.isArray(notifications) ? notifications : [];
+    const unread = items.filter(item => item?.status === 'unread').length;
+    const badge = $('notification-badge');
+    if (badge) { badge.textContent = unread > 99 ? '99+' : String(unread); badge.hidden = unread === 0; }
+    if (summary) summary.textContent = unread ? `${unread} unread notification${unread === 1 ? '' : 's'} in your internal Kurukoo inbox.` : 'Your internal Kurukoo inbox is up to date.';
+    if (!items.length) { list.appendChild(makeElement('div', 'empty-state', 'No notifications yet.')); return; }
+    items.forEach(item => {
+      const row = makeElement('div', 'notification-list-item');
+      row.dataset.status = String(item.status || 'read');
+      const title = makeElement('strong', '', String(item.title || 'Kurukoo update'));
+      const body = makeElement('span', '', String(item.body || ''));
+      const meta = makeElement('small', '', `${String(item.delivery_state || 'queued')} · ${String(item.created_at || '')}`);
+      row.append(title, body, meta);
+      if (item.status === 'unread') {
+        const read = makeElement('button', 'text-btn', 'Mark read'); read.type = 'button';
+        read.addEventListener('click', async () => {
+          read.disabled = true;
+          try {
+            const response = await fetch(`/api/notifications/${encodeURIComponent(item.id)}/read`, { method: 'POST', credentials: 'same-origin' });
+            if (!response.ok) throw new Error('Unable to mark notification read');
+            await loadNotifications();
+          } catch { read.disabled = false; }
+        });
+        row.appendChild(read);
+      }
+      list.appendChild(row);
+    });
+  }
+  async function loadNotifications() { try { const res = await fetch('/api/notifications?limit=20', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); renderNotifications(data.notifications || []); } catch {} }
   async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile remains attached to your account.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
 
   function renderAgentGoal(goal, events = []) {
@@ -978,11 +1011,21 @@
   function setInspectorOpen(open, target = null) {
     const inspector = $('chat-inspector'); if (!inspector) return;
     inspector.classList.toggle('open', open);
+    $('memory-toggle')?.setAttribute('aria-expanded', String(open));
+    $('notification-toggle')?.setAttribute('aria-expanded', String(open && target === 'notifications-card'));
     if (target) {
       inspector.querySelectorAll('.inspector-card').forEach(card => card.hidden = true);
       const targetCard = $(target); if (targetCard) targetCard.hidden = false;
+    } else if (open) {
+      inspector.querySelectorAll('.inspector-card').forEach(card => card.hidden = false);
     }
+    localStorage.setItem('kurukoo_chat_inspector_open', open ? '1' : '0');
   }
+
+  $('memory-toggle')?.addEventListener('click', () => setInspectorOpen(!$('chat-inspector')?.classList.contains('open')));
+  $('notification-toggle')?.addEventListener('click', async () => { await loadNotifications(); setInspectorOpen(true, 'notifications-card'); });
+  $('close-inspector')?.addEventListener('click', () => setInspectorOpen(false));
+  if (localStorage.getItem('kurukoo_chat_inspector_open') === '1') setInspectorOpen(true);
 
   const wireQuickActions = (root) => {
     root.querySelectorAll('button[data-prompt]').forEach(btn => {
@@ -1099,7 +1142,7 @@
   hydrateChatDeepLink();
   ensureIdentity().then(ok => { 
     if (ok) {
-      Promise.all([loadPoints(), loadMemory(), loadReminders(), loadSafety(), loadAgentGoal(), refreshHistory()]);
+      Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadReminders(), loadSafety(), loadAgentGoal(), refreshHistory()]);
       if (!state.conversationId) renderWelcome();
     }
   });

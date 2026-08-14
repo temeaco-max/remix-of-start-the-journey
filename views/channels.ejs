@@ -1,6 +1,6 @@
 <%- include('_partials/head', { pageStyles: ['/css/kurukoo-channel-page.css'] }) %>
 <%- include('_partials/nav') %>
-<% const statuses = channelStatuses || {}; const label = (key) => String(statuses[key]?.state || 'NOT_CONFIGURED').replaceAll('_', ' '); %>
+<% const statuses = typeof channelStatuses === 'object' && channelStatuses ? channelStatuses : {}; const label = (key) => String(statuses[key]?.state || 'NOT_CONFIGURED').replaceAll('_', ' '); %>
 <main class="container page-container">
   <section class="page-header-center"><span class="badge-pill">Channels</span><h1 class="page-title">One Kurukoo relationship, different access points.</h1><p class="page-desc">Every channel uses the same identity, conversation, memory and request authorities. The page reports the actual deployment state; it never treats an adapter as connected merely because code exists.</p></section>
   <section class="channel-group"><h2 class="channel-group-title">Available now</h2><div class="channel-cards"><article class="channel-card available"><div class="channel-icon">W</div><span class="channel-state active">READY</span><h3>Web Chat</h3><p>Start a conversation, review request details, manage reminders and continue protected actions when identity is required.</p><a href="/chat" class="btn btn-primary btn-sm">Start chatting</a></article></div></section>

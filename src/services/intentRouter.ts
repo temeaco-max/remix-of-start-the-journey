@@ -7,7 +7,6 @@ import { advanceStorefront, previewStorefrontCard, startStorefrontSession, tryRe
 import { searchKnownEconomicOffers } from './economicParticipants.js';
 import { cancelReminder, createReminder, listReminders } from './reminderService.js';
 import { cancelAgentGoal, listAgentGoals } from './agentRuntime.js';
-import { matchAdCampaigns } from './adManager.js';
 import type { IntentRoutingResult } from '../types.js';
 
 const ACTION_INTENTS = new Set(['ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'sports_matchmaking', 'event_coverage', 'how_to_video', 'security_booking', 'circle_create', 'artist_booking', 'national_events']);
@@ -389,14 +388,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   const ai = await queryUnifiedAI(query, { provider, phone });
   const cardData: any = ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model } : undefined;
 
-  const ads = await matchAdCampaigns(query);
-  const sponsored = ads.map(ad => ({ title: ad.title, desc: ad.desc, keyword: ad.targetKeyword }));
-
-  if (sponsored.length > 0) {
-    const finalCard = cardData || { type: 'intent_suggestions', intent: 'general_question', suggestions: [] };
-    finalCard.sponsored = sponsored;
-    return { skill: 'general_question', reply: ai.text, cardData: finalCard };
-  }
-
+  // Private conversations never use message text as hidden advertising targeting.
+  // Sponsored inventory is resolved only by the public opportunity/placement authority.
   return { skill: 'general_question', reply: ai.text, cardData };
 }
