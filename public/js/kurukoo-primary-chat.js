@@ -1281,9 +1281,10 @@
 
   applyTheme();
   hydrateChatDeepLink();
-  ensureIdentity().then(ok => { 
+  ensureIdentity().then(async ok => { 
     if (ok) {
-      Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadReminders(), loadSafety(), loadAgentGoal(), refreshHistory()]);
+      await refreshHistory();
+      await Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadReminders(), loadSafety(), loadAgentGoal()]);
       if (!state.conversationId) renderWelcome();
     }
   });
