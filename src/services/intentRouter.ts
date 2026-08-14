@@ -20,7 +20,7 @@ const CANONICAL_ALIASES: Array<[RegExp, string]> = [
   [/\b(phone|device|laptop|computer|screen)\b.*\brepair\b|\brepair\b.*\b(phone|device|laptop|computer|screen)\b/, 'repair'],
   [/\b(source|source me|find|procure)\b.*\b(product|products|goods|item)\b|\b(phone\s+charger|charger|replacement\s+part|spare\s+part|phone\s+accessory)\b/, 'product_sourcing'],
   [/\b(bodyguard|security guard|security personnel|private security)\b/, 'security_personnel'],
-  [/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician)\b/, 'find_worker'],
+  [/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder)\b/, 'find_worker'],
   [/\b(order|get|buy)\b.*\b(food|meal|rice|groceries|groceries?)\b/, 'order_food'],
   [/\b(okada|motorbike|motorcycle)\b/, 'okada_rider'],
   [/\bkeke|tricycle\b/, 'keke_driver'],
@@ -310,7 +310,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
           };
         }
       }
-      const worker = q.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician)\b/i)?.[1];
+      const worker = q.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder)\b/i)?.[1];
       const seed = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
       const card = await startStorefrontSession(phone, directSkill, seed);
       const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message;

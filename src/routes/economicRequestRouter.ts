@@ -26,6 +26,7 @@ import {
   ensureLivingMemorySchema,
 } from '../services/livingMemoryEngine.js';
 import { startStorefrontSession, advanceStorefront } from '../services/agenticStorefront.js';
+import { appendChatMessage } from '../services/chatConversationService.js';
 import { getAiQuotaStatus } from '../services/aiQuotaService.js';
 import {
   addEconomicParticipant,
@@ -124,8 +125,18 @@ router.post('/storefront/:id/advance', authenticateUser, async (req: AuthRequest
   const requestId = String(req.params.id || '');
   const action = typeof req.body?.action === 'string' ? req.body.action : undefined;
   const patch = cleanRequirements(req.body?.requirements || req.body?.fields);
+  const conversationId = typeof req.body?.conversationId === 'string' ? req.body.conversationId.trim() : undefined;
   try {
     const card = await advanceStorefront(phone, requestId, patch, action);
+    await appendChatMessage({
+      phone,
+      sender: 'assistant',
+      content: card.message || 'Request state updated.',
+      channel: 'web',
+      conversationId,
+      cardData: card,
+      metadata: { source: 'storefront_advance', requestId },
+    });
     res.json({ success: true, card });
   } catch (error) {
     console.error('[Storefront] advance failed:', error);

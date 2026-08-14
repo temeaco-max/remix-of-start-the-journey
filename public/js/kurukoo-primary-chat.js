@@ -300,6 +300,20 @@
     return fields;
   }
 
+  function markStorefrontStepSuperseded(messageEl, label = 'Submitted — see the latest request state below.') {
+    const holder = messageEl?.querySelector('.agentic-storefront');
+    if (!holder || !holder.querySelector('[data-storefront-field]') || holder.dataset.superseded === 'true') return;
+    holder.dataset.superseded = 'true';
+    holder.classList.add('storefront-superseded');
+    holder.setAttribute('aria-label', 'Previous request step');
+    holder.querySelectorAll('button, input, textarea, select').forEach(control => {
+      control.disabled = true;
+      control.setAttribute('aria-disabled', 'true');
+    });
+    const note = makeElement('small', 'storefront-superseded-note', label);
+    holder.appendChild(note);
+  }
+
   async function advanceStorefront(requestId, action, fields, messageEl) {
     if (!requestId || state.busy) return;
     state.busy = true;
@@ -309,12 +323,13 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ action, requirements: fields || {} })
+        body: JSON.stringify({ action, requirements: fields || {}, conversationId: state.conversationId || undefined })
       });
       if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.error || 'Could not update request');
       const card = data.card;
+      markStorefrontStepSuperseded(messageEl);
       setDeferredStatus(card);
       if (card?.requestId) state.activeStorefrontId = card.requestId;
       const wrap = appendStreamBubble();
@@ -904,13 +919,31 @@
     loadAgentGoal();
   }
 
+  async function reconcileHistoricalStorefrontCards(entries) {
+    await Promise.all(entries.map(async ({ messageEl, cardData }) => {
+      if (!cardData?.requestId || !messageEl?.querySelector('[data-storefront-field]')) return;
+      try {
+        const response = await fetch(`/api/chat/economic-requests/${encodeURIComponent(cardData.requestId)}`, { credentials: 'same-origin' });
+        if (!response.ok) return;
+        const data = await response.json().catch(() => ({}));
+        const status = String(data.request?.status || '');
+        if (status && status !== 'requested') {
+          markStorefrontStepSuperseded(messageEl, `Request is ${status.replace(/_/g, ' ')} — review the latest state below.`);
+        }
+      } catch {}
+    }));
+  }
+
   function renderMessages(messages) {
     chatContent.replaceChildren();
+    const entries = [];
     messages.forEach(m => {
       let cardData = null;
       if (m.card_data) try { cardData = JSON.parse(m.card_data); } catch {}
-      createMessage(m.sender === 'user' ? 'user' : 'assistant', m.content, m.id, cardData, false);
+      const messageEl = createMessage(m.sender === 'user' ? 'user' : 'assistant', m.content, m.id, cardData, false);
+      entries.push({ messageEl, cardData });
     });
+    void reconcileHistoricalStorefrontCards(entries);
   }
 
   function setInspectorOpen(open, target = null) {
