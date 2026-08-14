@@ -5409,3 +5409,18 @@ All Sponsored, Daily Picks, discovery, workspace promotion, and inline promotion
 ### Rebuild checklist
 
 A rebuild must preserve the single central surface renderer, the shared composer mounting point, surface-action interception, the compact hierarchy, the logo → Ask CTA order, the header menu order with Delete last, responsive one-column behavior, closeable top-right agent notifications, and admin-backed image campaign loading. Any new workspace page must be added to `surfacePaths`, `surfaceTitles`, the Chat navigation action, and the responsive/shared-style contract before it is exposed as a dashboard destination.
+
+
+## Current Chat Surface UX Contract — August 2026
+
+The Kurukoo Chat shell is the canonical user workspace. Conversation remains mounted while Tasks, Requests, Discover, Connect, Topics, Cart, Points, Reminders, Saved & offers, Daily Picks, Memory, Safety & Check-ins, and Settings replace only the central content surface. The Chat header changes from `Agent` to the active surface title and reveals a compact back icon. A loaded surface must not add a second Back to conversation control, a duplicate Your Kurukoo kicker, or a generic workspace explanation beneath the header.
+
+The right context rail is surface-aware. It stages relevant inspector cards before committing the new state, using a short opacity/translation transition and then hiding cards that are not relevant. Tasks emphasizes Current request, Tasks, and Reminders. Discover and Daily Picks emphasize nearby/discovery content. Memory and Settings emphasize profile context. Safety exposes personal safety controls. Conversation restores the general context set. The transition must not invent data, must preserve card accessibility, and must honor reduced-motion preferences.
+
+In-place continuation is a core behavior: if the user sends a message while a workspace is active, the workspace remains visible, the composer stays available, and the agent response is surfaced as a top-right toast inside the Chat content area. The toast has a close control, a bounded lifetime, an unread/header notification relationship, and a needs-response state when the user must act. Dismissing the toast does not navigate away or destroy the active surface.
+
+Task workspace presentation uses compact headings for Verify a location, Update a price, Confirm an incident, and Was your recent request resolved?. Task category cards retain individual borders but do not sit inside an additional outer bordered panel. The logo-plus-Ask action appears at the right side of the Tasks title in the central surface.
+
+Sponsored and Daily Picks imagery are admin-managed campaign assets, not frontend-only placeholders. Active campaigns carry image, audience, disclosure, placement, category, priority, destination, and CTA metadata. Sponsored cards may rotate between demographic-aware informal-economy and diaspora creatives; Daily Picks and workspace promotions must consume the same managed campaign feed. Legacy placeholder URLs are excluded.
+
+Responsive behavior must preserve the central-surface contract at desktop, tablet, and mobile widths: grids collapse, the header action remains reachable, inspector transitions remain legible, toasts stay inside the central content area, and the composer remains available after a surface action or background response.

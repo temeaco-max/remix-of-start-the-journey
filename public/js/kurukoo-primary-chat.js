@@ -47,17 +47,28 @@
     const inspector = $('chat-inspector'); if (!inspector) return;
     const title = $('inspector-title'); if (title) title.textContent = view ? (surfaceTitles[view] || 'Context') : 'Context';
     inspector.setAttribute('aria-label', view ? `${surfaceTitles[view] || 'Workspace'} context` : 'Conversation context');
+    if (state.surfaceContextTimer) window.clearTimeout(state.surfaceContextTimer);
     inspector.classList.add('is-swapping');
-    window.setTimeout(() => {
-      const cards = inspector.querySelectorAll('[data-context-card]');
+    const cards = Array.from(inspector.querySelectorAll('[data-context-card]'));
+    const goal = $('agent-goal-card');
+    if (goal && !goal.dataset.contextCard) cards.push(goal);
+    cards.forEach(card => {
+      const tokens = String(card.dataset.contextCard || '').split(/\s+/).filter(Boolean);
+      const relevant = card.id === 'agent-goal-card'
+        ? (!view || (['tasks','requests','reminders'].includes(view) && card.dataset.goalAvailable === 'true'))
+        : (!view || tokens.includes('all') || tokens.includes(view));
+      card.hidden = false;
+      card.classList.toggle('is-context-leaving', !relevant);
+      card.classList.toggle('is-context-entering', relevant);
+    });
+    state.surfaceContextTimer = window.setTimeout(() => {
       cards.forEach(card => {
-        const tokens = String(card.dataset.contextCard || 'all').split(/\s+/);
-        card.hidden = Boolean(view) && !tokens.includes('all') && !tokens.includes(view);
+        const leaving = card.classList.contains('is-context-leaving');
+        if (leaving) card.hidden = true;
+        card.classList.remove('is-context-leaving', 'is-context-entering');
       });
-      const goal = $('agent-goal-card'); if (goal && view) goal.hidden = !['tasks','requests','reminders'].includes(view) || goal.dataset.goalAvailable !== 'true';
-      const discovery = $('discovery-context-card'); if (discovery && view) discovery.hidden = !['discover','daily-picks','requests','cart'].includes(view);
       inspector.classList.remove('is-swapping');
-    }, 120);
+    }, 220);
   }
   function leaveWorkspaceSurface() {
     state.surfaceView = null; updateSurfaceHeader(null); updateSurfaceContext(null); chatContent.replaceChildren(); if (state.messages.length) renderMessages(state.messages); else renderWelcome();

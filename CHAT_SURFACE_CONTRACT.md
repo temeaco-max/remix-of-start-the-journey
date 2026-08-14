@@ -86,3 +86,15 @@ When a workspace surface is active, the Chat header displays the active surface 
 The right inspector adapts to the active surface through `data-context-card` tokens and transitions between states with a short opacity/translation swap. Tasks shows request context, task status, and reminders; Discover shows discovery and nearby context; Memory and Settings show profile context; Safety shows safety controls; and the default conversation view restores the general context set. Cards must remain truthful and hidden when they are not relevant to the active surface.
 
 Task card headings use the compact shared workspace type scale. `Verify a location`, `Update a price`, `Confirm an incident`, and `Was your recent request resolved?` must not use display-sized typography inside the central Chat surface.
+
+## Inspector transition and in-place task execution
+
+The right inspector is a contextual companion to the active central surface. Surface changes stage relevant cards with `is-context-entering` and `is-context-leaving`, allow the transition to settle, then hide irrelevant cards. This prevents a hard visual jump when moving between Conversation, Tasks, Discover, or another workspace. All transitions use the existing Chat tokens and stop transforming when the user prefers reduced motion.
+
+When Tasks is active, the user can send a message without returning to Conversation. The client captures the active surface, keeps the workspace mounted, streams the agent response in the background, and publishes a bounded top-right `Kurukoo update` toast. The toast can be dismissed independently, expires automatically, and must never reset `state.surfaceView`, replace the task cards, or disable the composer after the stream finishes.
+
+The acceptance scenario is: open Tasks; send `Please check my current task status`; confirm the Tasks title, task cards, right-rail Tasks/Reminders context, and composer remain present; confirm the top-right agent update appears; dismiss or wait for expiry; confirm Tasks remains active and the composer is ready for another message.
+
+## Advert and workspace representation
+
+Sponsored cards in the left rail, Daily Picks in the right rail, and promotion cards inside Daily Picks are fed from active admin-managed campaigns. Generated local-economy and diaspora creatives are approved assets with audience, disclosure, placement, category, priority, destination, and CTA metadata. No legacy placeholder image URL may be used when an active managed asset exists.
