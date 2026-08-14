@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
+const isolatedDbPath = path.join(os.tmpdir(), `kurukoo-agent-runtime-${process.pid}-${Date.now()}.sqlite`);
+process.env.DB_PATH = isolatedDbPath;
+process.on('exit', () => { try { fs.rmSync(isolatedDbPath, { force: true }); } catch {} });
 process.env.KURUKOO_AGENT_ENABLED = 'true';
 process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK = 'true';
 process.env.KURUKOO_AGENT_MAX_ACTIONS_PER_CYCLE = '2';
