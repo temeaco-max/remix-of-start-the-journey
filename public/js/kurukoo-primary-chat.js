@@ -67,6 +67,7 @@
     state.surfaceView = view; updateSurfaceHeader(view); updateSurfaceContext(view);
     const surface = makeElement('section', 'workspace-surface'); surface.dataset.surfaceView = view;
     const heading = makeElement('div', 'surface-heading'); heading.append(makeElement('h1', '', surfaceTitles[view] || 'Workspace'));
+    if (view === 'tasks') { const ask = makeElement('button', 'workspace-button secondary ask-cta'); ask.type = 'button'; const mark = makeElement('span', 'ask-mark'); const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.svg'; image.alt = ''; image.setAttribute('aria-hidden', 'true'); mark.append(image); ask.append(mark, makeElement('span', '', 'Ask')); ask.addEventListener('click', () => input?.focus()); heading.append(ask); }
     surface.append(heading); const body = makeElement('div', 'surface-body'); body.append(makeElement('div', 'surface-loading', 'Loading…')); surface.append(body); chatContent.replaceChildren(surface); scroll.scrollTop = 0;
     try {
       if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
