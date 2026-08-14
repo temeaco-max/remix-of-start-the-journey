@@ -5,7 +5,7 @@
     theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     activeStorefrontId: null,
     nativeAssistance: { reminders: [], checkIns: [] },
-    pinnedMessages: [], surfaceView: null, notifiedNotificationIds: new Set()
+    pinnedMessages: [], surfaceView: null, notifiedNotificationIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') === '1'
   };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
@@ -67,10 +67,22 @@
   const setConnection = (ok, text = ok ? 'Connected' : 'Offline') => {
     const el = $('connection-status');
     if (el) {
-      el.replaceChildren(makeElement('span', 'status-dot'), document.createTextNode(` ${text}`));
+      const pulse = makeElement('span', `presence-pulse${state.radarActive && ok ? ' is-active' : ''}`); pulse.setAttribute('aria-hidden', 'true');
+      el.replaceChildren(pulse, makeElement('span', 'status-dot'), makeElement('span', '', String(text).toLowerCase()));
       el.classList.toggle('offline', !ok);
     }
+    const pulse = $('header-presence-pulse'); if (pulse) pulse.classList.toggle('is-active', state.radarActive && ok);
+    const label = $('connection-label'); if (label) label.textContent = String(text).toLowerCase();
   };
+  function setRadarActive(active) {
+    state.radarActive = Boolean(active); localStorage.setItem('kurukoo_radar_enabled', state.radarActive ? '1' : '0');
+    const toggle = $('radar-toggle'); if (toggle) { toggle.setAttribute('aria-pressed', String(state.radarActive)); toggle.classList.toggle('is-active', state.radarActive); }
+    const status = $('radar-status'); if (status) status.textContent = state.radarActive ? 'Active' : 'Inactive';
+    const pulse = $('header-presence-pulse'); if (pulse) pulse.classList.toggle('is-active', state.radarActive && !$('connection-status')?.classList.contains('offline'));
+    const header = $('connection-status'); if (header) header.classList.toggle('radar-active', state.radarActive);
+  }
+  $('radar-toggle')?.addEventListener('click', () => setRadarActive(!state.radarActive));
+  setRadarActive(state.radarActive);
 
   function setTypingStatus(status = 'complete', label = '') {
     const active = status === 'typing' || status === 'thinking';
