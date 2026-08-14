@@ -1018,6 +1018,24 @@
       list.appendChild(row);
     });
   }
+  async function loadTaskContext() {
+    const list = $('task-context-list'); if (!list) return;
+    try {
+      const res = await fetch('/api/tasks', { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('Unable to load tasks');
+      const payload = await res.json();
+      const tasks = Array.isArray(payload) ? payload : (Array.isArray(payload.tasks) ? payload.tasks : []);
+      list.replaceChildren();
+      if (!tasks.length) { list.appendChild(makeElement('div', 'empty-state', 'No pending tasks right now.')); return; }
+      tasks.slice(0, 4).forEach(task => {
+        const row = makeElement('div', 'task-context-row');
+        const status = String(task.status || 'pending').replace(/_/g, ' ');
+        const title = String(task.title || task.description || task.name || `Task #${task.id || '—'}`);
+        row.append(makeElement('span', 'task-context-dot'), makeElement('span', 'task-context-copy', title), makeElement('small', 'task-context-status', status));
+        list.appendChild(row);
+      });
+    } catch { list.replaceChildren(makeElement('div', 'empty-state', 'Tasks are unavailable right now.')); }
+  }
   async function loadNotifications() { try { const res = await fetch('/api/notifications?limit=20', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); renderNotifications(data.notifications || []); } catch {} }
   function personalizeQuickActions(profile = {}) {
     const location = String(profile.location || profile.primary_lga || '').trim();
@@ -1368,7 +1386,7 @@
   ensureIdentity().then(async ok => {
     if (ok) {
       await refreshHistory();
-      await Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadReminders(), loadSafety(), loadAgentGoal()]);
+      await Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadTaskContext(), loadReminders(), loadSafety(), loadAgentGoal()]);
       if (!state.conversationId) renderWelcome();
     }
   });
