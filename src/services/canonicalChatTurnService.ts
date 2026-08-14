@@ -87,6 +87,12 @@ export interface CanonicalChatTurnResult {
   agentGoal?: { id: string; status: string; objective: string; summary?: string; autonomy?: string; economicRequestId?: string };
   classificationSource?: 'fasttext' | 'rules' | 'fallback';
   intentConfidence?: number;
+  modelProvider?: string;
+  model?: string;
+  extractionSource?: 'deterministic' | 'generative' | 'none';
+  extractedEntities?: Record<string, unknown>;
+  canonicalAction?: string;
+  progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete';
 }
 
 /** The single server-side authority for a Kurukoo conversational turn. */
@@ -110,6 +116,12 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   let agentGoal: any = null;
   let classificationSource: 'fasttext' | 'rules' | 'fallback' | undefined;
   let intentConfidence: number | undefined;
+  let modelProvider: string | undefined;
+  let model: string | undefined;
+  let extractionSource: 'deterministic' | 'generative' | 'none' | undefined;
+  let extractedEntities: Record<string, unknown> | undefined;
+  let canonicalAction: string | undefined;
+  let progressStage: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete' | undefined;
   const isGuest = phone.startsWith('anon_');
   const authState = isGuest ? await getAuthState(phone) : { state: 'none' as const, data: {} };
 
@@ -135,6 +147,12 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
     classificationSource = routing.classificationSource;
     intentConfidence = routing.intentConfidence;
+    modelProvider = routing.modelProvider;
+    model = routing.model;
+    extractionSource = routing.extractionSource;
+    extractedEntities = routing.extractedEntities;
+    canonicalAction = routing.canonicalAction;
+    progressStage = routing.progressStage;
     cardData = routing.cardData;
     const explicitAgentIntent = routing.skill === 'autonomous_agent' || /\b(keep checking|keep looking|monitor|watch for|tell me when|let me know when|check again)\b/i.test(message);
     agentGoal = !isGuest && explicitAgentIntent ? await createConversationGoal({
@@ -176,6 +194,12 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     agentGoal,
     classificationSource,
     intentConfidence,
+    modelProvider,
+    model,
+    extractionSource,
+    extractedEntities,
+    canonicalAction,
+    progressStage,
   });
 }
 
@@ -189,6 +213,12 @@ async function persistTurn(args: {
   agentGoal?: any;
   classificationSource?: 'fasttext' | 'rules' | 'fallback';
   intentConfidence?: number;
+  modelProvider?: string;
+  model?: string;
+  extractionSource?: 'deterministic' | 'generative' | 'none';
+  extractedEntities?: Record<string, unknown>;
+  canonicalAction?: string;
+  progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete';
 }): Promise<CanonicalChatTurnResult> {
   await appendChatMessage({
     phone: args.phone,
@@ -209,6 +239,12 @@ async function persistTurn(args: {
     agentGoal: args.agentGoal,
     classificationSource: args.classificationSource,
     intentConfidence: args.intentConfidence,
+    modelProvider: args.modelProvider,
+    model: args.model,
+    extractionSource: args.extractionSource,
+    extractedEntities: args.extractedEntities,
+    canonicalAction: args.canonicalAction,
+    progressStage: args.progressStage,
   };
 }
 

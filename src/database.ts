@@ -13,6 +13,7 @@ export async function getDb() {
     initTables(db);
     initEconomicParticipantTables(db);
     initExecutionTables(db);
+    seedCanonicalOperatorState(db);
     auditAppointmentSkillFlows(db);
     saveDb();
   } else {
@@ -20,6 +21,7 @@ export async function getDb() {
     initTables(db);
     initEconomicParticipantTables(db);
     initExecutionTables(db);
+    seedCanonicalOperatorState(db);
     seedSkillFlows(db);
     if (process.env.NODE_ENV !== 'production') {
       seedDemoProviders(db);
@@ -469,4 +471,90 @@ export async function setSystemSetting(key: string, value: string): Promise<void
   const database = await getDb();
   database.run("INSERT OR REPLACE INTO system_settings(key,value) VALUES(?,?)", [key, value]);
   saveDb();
+}
+
+export interface OperatorActorDefinition {
+  id: string;
+  role: 'customer' | 'provider' | 'seller' | 'contributor' | 'business' | 'agent_owner';
+  phone: string;
+  name: string;
+  description: string;
+}
+
+export const CANONICAL_OPERATOR_PHONE = process.env.KURUKOO_OPERATOR_PHONE || '+2348000000001';
+
+const OPERATOR_ACTORS: OperatorActorDefinition[] = [
+  { id: 'customer', role: 'customer', phone: '+2348000000101', name: 'Kurukoo Customer Actor', description: 'Customer request, memory, reminders and Points state.' },
+  { id: 'provider', role: 'provider', phone: '+2348000000102', name: 'Kurukoo Provider Actor', description: 'Provider skills, availability and presence state.' },
+  { id: 'seller', role: 'seller', phone: '+2348000000103', name: 'Kurukoo Seller Actor', description: 'Seller/product sourcing and offer review state.' },
+  { id: 'contributor', role: 'contributor', phone: '+2348000000104', name: 'Kurukoo Contributor Actor', description: 'Contributor evidence and community Topic state.' },
+  { id: 'business', role: 'business', phone: '+2348000000105', name: 'Kurukoo Business Actor', description: 'Business advertising and subscription state.' },
+  { id: 'agent_owner', role: 'agent_owner', phone: '+2348000000106', name: 'Kurukoo Agent Owner', description: 'Bounded agent ownership and lifecycle state.' },
+];
+
+export function getOperatorActorDefinitions(): OperatorActorDefinition[] {
+  return OPERATOR_ACTORS.map(actor => ({ ...actor }));
+}
+
+export function getCanonicalOperatorIdentity(): OperatorActorDefinition {
+  return { id: 'operator', role: 'customer', phone: CANONICAL_OPERATOR_PHONE, name: process.env.KURUKOO_OPERATOR_NAME || 'Kurukoo Super Admin Operator', description: 'User #1 operator with normal authenticated Chat and platform state.' };
+}
+
+function ensureSeedProfile(database: any, phone: string, name: string, role: string, extra: Record<string, unknown> = {}): void {
+  const preferences = JSON.stringify({ seeded_operator_state: true, actor_role: role, onboarding_complete: true, ...extra });
+  const existing = database.exec('SELECT phone FROM memory_profiles WHERE phone = ?', [phone]);
+  if (existing[0]?.values?.length) {
+    database.run('UPDATE memory_profiles SET name = ?, location = COALESCE(NULLIF(location, \'\'), \'Ikeja\'), country = COALESCE(NULLIF(country, \'\'), \'ng\'), preferences = COALESCE(preferences, ?) WHERE phone = ?', [name, preferences, phone]);
+  } else {
+    database.run(`INSERT INTO memory_profiles (phone, name, location, primary_lga, country, subscription_tier, points_balance, wallet_balance_minor, preferences, behavior_patterns, is_available, is_contributor, verified_provider, provider_type)
+      VALUES (?, ?, 'Ikeja', 'Ikeja', 'ng', 'Base', 120, 120, ?, '{}', ?, ?, ?, ?)`, [phone, name, preferences, role === 'provider' ? 1 : 0, role === 'contributor' ? 1 : 0, role === 'provider' ? 1 : 0, role === 'business' || role === 'seller' ? 'business' : 'human']);
+  }
+}
+
+export function seedCanonicalOperatorState(database: any): void {
+  const operator = getCanonicalOperatorIdentity();
+  ensureSeedProfile(database, operator.phone, operator.name, 'super_admin', { operator_user_number: 1 });
+  for (const actor of OPERATOR_ACTORS) ensureSeedProfile(database, actor.phone, actor.name, actor.role, { test_actor: true, actor_context_id: actor.id });
+
+  database.run(`CREATE TABLE IF NOT EXISTS reminders (id TEXT PRIMARY KEY, phone TEXT NOT NULL, title TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', due_at TEXT NOT NULL, recurrence TEXT, status TEXT NOT NULL DEFAULT 'scheduled', created_at TEXT DEFAULT CURRENT_TIMESTAMP, sent_at TEXT)`);
+  database.run(`CREATE TABLE IF NOT EXISTS internal_notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, link TEXT, status TEXT NOT NULL DEFAULT 'unread', delivery_state TEXT NOT NULL DEFAULT 'queued', provider_reference TEXT, failure_reason TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+  database.run(`CREATE TABLE IF NOT EXISTS chat_conversations (id TEXT PRIMARY KEY, phone TEXT NOT NULL, title TEXT, channel TEXT DEFAULT 'unified', created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+  database.run(`CREATE TABLE IF NOT EXISTS chat_message_meta (message_id INTEGER PRIMARY KEY, conversation_id TEXT NOT NULL, metadata TEXT, attachment_url TEXT, attachment_name TEXT, attachment_type TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+  database.run(`CREATE TABLE IF NOT EXISTS agent_goals (id TEXT PRIMARY KEY, phone TEXT NOT NULL, conversation_id TEXT, economic_request_id TEXT, source TEXT NOT NULL, goal_type TEXT NOT NULL, objective TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active', priority INTEGER NOT NULL DEFAULT 50, autonomy TEXT NOT NULL DEFAULT 'assist', next_action_at TEXT, completed_at TEXT, failure_reason TEXT, summary TEXT, plan_json TEXT, risk_level TEXT DEFAULT 'read_only', confirmation_required INTEGER DEFAULT 0, expires_at TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+  database.run(`CREATE TABLE IF NOT EXISTS agent_goal_events (id INTEGER PRIMARY KEY AUTOINCREMENT, goal_id TEXT NOT NULL, action TEXT NOT NULL, tool TEXT, result TEXT NOT NULL, evidence TEXT, detail TEXT, idempotency_key TEXT UNIQUE, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+
+  const conversationId = 'operator-seeded-conversation';
+  const existingConversation = database.exec('SELECT id FROM chat_conversations WHERE id = ?', [conversationId]);
+  if (!existingConversation[0]?.values?.length) {
+    database.run('INSERT INTO chat_conversations (id, phone, title, channel) VALUES (?, ?, ?, ?)', [conversationId, operator.phone, 'Operator seeded Chat', 'web']);
+    const first = database.exec('SELECT id FROM messages WHERE phone = ? AND content = ?', [operator.phone, 'Welcome to your canonical Kurukoo operator Chat.']);
+    if (!first[0]?.values?.length) {
+      database.run('INSERT INTO messages (phone, sender, content, channel, card_data) VALUES (?, ?, ?, ?, ?)', [operator.phone, 'assistant', 'Welcome to your canonical Kurukoo operator Chat.', 'web', JSON.stringify({ type: 'seeded_operator_state', clearlySeeded: true })]);
+      database.run('INSERT INTO messages (phone, sender, content, channel, card_data) VALUES (?, ?, ?, ?, ?)', [operator.phone, 'user', 'Remember that I prefer short answers.', 'web', JSON.stringify({ type: 'seeded_operator_state', clearlySeeded: true })]);
+    }
+  }
+
+  const reminder = database.exec('SELECT id FROM reminders WHERE phone = ? AND title = ?', [operator.phone, 'Review the operator acceptance queue']);
+  if (!reminder[0]?.values?.length) database.run('INSERT INTO reminders (id, phone, title, note, due_at, status) VALUES (?, ?, ?, ?, datetime(\'now\', \'+1 day\'), \'scheduled\')', ['operator-seeded-reminder', operator.phone, 'Review the operator acceptance queue', 'Seeded controlled operator state; safe to delete.',]);
+  const notification = database.exec('SELECT id FROM internal_notifications WHERE phone = ? AND title = ?', [operator.phone, 'Seeded operator state']);
+  if (!notification[0]?.values?.length) database.run('INSERT INTO internal_notifications (phone, title, body, link) VALUES (?, ?, ?, ?)', [operator.phone, 'Seeded operator state', 'This notification is controlled demo data for User #1.', '/chat']);
+  if (!database.exec('SELECT id FROM credit_transactions WHERE phone = ? AND description = ?', [operator.phone, 'Seeded operator Points balance'])[0]?.values?.length) database.run('INSERT INTO credit_transactions (phone, amount, type, description) VALUES (?, ?, ?, ?)', [operator.phone, 120, 'seeded_operator', 'Seeded operator Points balance']);
+}
+
+export function resetOperatorActorState(database: any, phone: string): void {
+  const actor = OPERATOR_ACTORS.find(item => item.phone === phone);
+  if (!actor) throw new Error('Unknown controlled actor');
+  for (const statement of [
+    ['DELETE FROM messages WHERE phone = ?', [phone]],
+    ['DELETE FROM chat_message_meta WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE phone = ?)', [phone]],
+    ['DELETE FROM chat_conversations WHERE phone = ?', [phone]],
+    ['DELETE FROM reminders WHERE phone = ?', [phone]],
+    ['DELETE FROM internal_notifications WHERE phone = ?', [phone]],
+    ['DELETE FROM credit_transactions WHERE phone = ? AND type = \'seeded_operator\'', [phone]],
+    ['DELETE FROM agent_goal_events WHERE goal_id IN (SELECT id FROM agent_goals WHERE phone = ?)', [phone]],
+    ['DELETE FROM agent_goals WHERE phone = ?', [phone]],
+    ['DELETE FROM economic_requests WHERE phone = ?', [phone]],
+  ] as Array<[string, unknown[]]>) { try { database.run(statement[0], statement[1]); } catch {} }
+  ensureSeedProfile(database, actor.phone, actor.name, actor.role, { test_actor: true, actor_context_id: actor.id, reset_at: new Date().toISOString() });
+  saveDb(true);
 }

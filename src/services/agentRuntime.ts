@@ -79,7 +79,9 @@ export async function ensureAgentRuntimeSchema(): Promise<void> {
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
   const goalColumns = db.exec(`PRAGMA table_info(agent_goals)`)[0]?.values?.map((row: any[]) => String(row[1])) || [];
-  for (const [name, declaration] of Object.entries({ plan_json: 'TEXT', risk_level: "TEXT DEFAULT 'read_only'", confirmation_required: 'INTEGER DEFAULT 0', expires_at: 'TEXT' })) if (!goalColumns.includes(name)) db.run(`ALTER TABLE agent_goals ADD COLUMN ${name} ${declaration}`);
+  for (const [name, declaration] of Object.entries({ conversation_id: 'TEXT', economic_request_id: 'TEXT', source: "TEXT DEFAULT 'conversation'", goal_type: "TEXT DEFAULT 'general'", priority: 'INTEGER DEFAULT 50', autonomy: "TEXT DEFAULT 'assist'", next_action_at: 'TEXT', completed_at: 'TEXT', failure_reason: 'TEXT', summary: 'TEXT', plan_json: 'TEXT', risk_level: "TEXT DEFAULT 'read_only'", confirmation_required: 'INTEGER DEFAULT 0', expires_at: 'TEXT' })) if (!goalColumns.includes(name)) { try { db.run(`ALTER TABLE agent_goals ADD COLUMN ${name} ${declaration}`); } catch {} }
+  try { db.run("UPDATE agent_goals SET goal_type = COALESCE(NULLIF(goal_type, ''), skill, 'general') WHERE goal_type IS NULL OR goal_type = ''"); } catch {}
+  try { db.run("UPDATE agent_goals SET source = COALESCE(NULLIF(source, ''), 'conversation') WHERE source IS NULL OR source = ''"); } catch {}
   db.run(`CREATE TABLE IF NOT EXISTS agent_goal_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     goal_id TEXT NOT NULL,
@@ -91,6 +93,8 @@ export async function ensureAgentRuntimeSchema(): Promise<void> {
     idempotency_key TEXT UNIQUE,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
+  const eventColumns = db.exec(`PRAGMA table_info(agent_goal_events)`)[0]?.values?.map((row: any[]) => String(row[1])) || [];
+  for (const [name, declaration] of Object.entries({ action: "TEXT DEFAULT 'legacy'", tool: 'TEXT', result: "TEXT DEFAULT ''", evidence: 'TEXT', detail: 'TEXT', idempotency_key: 'TEXT' })) if (!eventColumns.includes(name)) { try { db.run(`ALTER TABLE agent_goal_events ADD COLUMN ${name} ${declaration}`); } catch {} }
   db.run(`CREATE INDEX IF NOT EXISTS idx_agent_goals_phone_status ON agent_goals(phone, status, updated_at DESC)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_agent_goals_due ON agent_goals(status, next_action_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_agent_goal_events_goal ON agent_goal_events(goal_id, created_at DESC)`);

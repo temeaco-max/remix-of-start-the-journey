@@ -48,4 +48,10 @@ export interface IntentRoutingResult {
     cardData?: any;
     classificationSource?: 'fasttext' | 'rules' | 'fallback';
     intentConfidence?: number;
+    modelProvider?: string;
+    model?: string;
+    extractionSource?: 'deterministic' | 'generative' | 'none';
+    extractedEntities?: Record<string, unknown>;
+    canonicalAction?: string;
+    progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete';
 }

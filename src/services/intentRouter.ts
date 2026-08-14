@@ -9,6 +9,7 @@ import { cancelReminder, createReminder, listReminders } from './reminderService
 import { cancelAgentGoal, listAgentGoals } from './agentRuntime.js';
 import { generateReferralCode } from './referralService.js';
 import type { IntentRoutingResult } from '../types.js';
+import { extractConversationalEntities, validateConversationalEntities } from './conversationalExtraction.js';
 
 const ACTION_INTENTS = new Set(['ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'sports_matchmaking', 'event_coverage', 'how_to_video', 'security_booking', 'circle_create', 'artist_booking', 'national_events', 'subscription', 'advertising', 'autonomous_agent', 'referral', 'nearby_pulse_start', 'nearby_pulse_stop']);
 const STOREFRONT_INTENTS = new Set(['ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'security_booking']);
@@ -317,6 +318,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   }
 
   const directSkill = matchCanonicalSkill(q);
+  const extractedEntities = validateConversationalEntities(extractConversationalEntities(query, directSkill || undefined), directSkill || undefined);
   if (directSkill === 'event_coverage' && phone) {
     return {
       skill: 'event_coverage',
@@ -344,10 +346,17 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       }
       const workerMatch = q.match(/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/i)?.[1];
       const worker = workerMatch ? (/^plumb/i.test(workerMatch) ? 'plumber' : /^electri/i.test(workerMatch) ? 'electrician' : /^paint/i.test(workerMatch) ? 'painter' : /^decorat/i.test(workerMatch) ? 'decorator' : /^til/i.test(workerMatch) ? 'tiler' : /^roof/i.test(workerMatch) ? 'roofer' : workerMatch.toLowerCase()) : undefined;
-      const seed = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'verified_artist' ? { event_type: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
+      const seed: Record<string, unknown> = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'verified_artist' ? { event_type: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
+      if (extractedEntities.location) seed.location = extractedEntities.location;
+      if (extractedEntities.date) seed.date = extractedEntities.date;
+      if (extractedEntities.time) seed.time = extractedEntities.time;
+      if (extractedEntities.budget !== undefined) seed.budget = extractedEntities.budget;
+      if (extractedEntities.quantity !== undefined) seed.quantity = extractedEntities.quantity;
+      if (extractedEntities.product) seed.product = extractedEntities.product;
       const card = await startStorefrontSession(phone, directSkill, seed);
       const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message;
-      return { skill: directSkill, reply, cardData: decorateCardWithSuggestions(card, directSkill) };
+      const progressStage = card.stage === 'slot_fill' || card.stage === 'intent_extraction' ? 'understanding' : ['catalog_match', 'offer_review', 'quote_review'].includes(card.stage) ? 'checking' : card.stage === 'complete' ? 'complete' : 'coordinating';
+      return { skill: directSkill, reply, cardData: { ...decorateCardWithSuggestions(card, directSkill), extractedEntities, extractionSource: 'deterministic', canonicalAction: 'economic_request.start', progressStage }, extractedEntities: extractedEntities as Record<string, unknown>, extractionSource: 'deterministic', canonicalAction: 'economic_request.start', progressStage };
     } catch (e) {
       console.warn('[Router] storefront start failed:', e);
     }
@@ -406,5 +415,6 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
 
   // Private conversations never use message text as hidden advertising targeting.
   // Sponsored inventory is resolved only by the public opportunity/placement authority.
-  return { skill: 'general_question', reply: ai.text, cardData };
+  const generalEntities = validateConversationalEntities(extractConversationalEntities(query, classification?.intent), classification?.intent);
+  return { skill: 'general_question', reply: ai.text, cardData, modelProvider: ai.provider, model: ai.model, extractionSource: Object.keys(generalEntities).length > 1 ? 'deterministic' : 'none', extractedEntities: generalEntities as Record<string, unknown>, progressStage: 'complete' };
 }

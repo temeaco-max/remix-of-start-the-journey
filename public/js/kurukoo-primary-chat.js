@@ -154,6 +154,14 @@
       state.isGuest = false;
       const testBanner = $('development-test-banner');
       if (testBanner) testBanner.hidden = sessionData.developmentTestAccount !== true;
+      const contextBanner = $('session-context-banner');
+      const context = sessionData.sessionContext || {};
+      if (contextBanner && (context.operator || context.testActor)) {
+        contextBanner.hidden = false;
+        contextBanner.textContent = context.testActor
+          ? `Controlled Test As: ${context.actorRole || context.actorContextId || 'actor'} · isolated state · no production user data`
+          : 'Canonical User #1 operator Chat · normal authenticated platform state';
+      }
       return true;
     }
 

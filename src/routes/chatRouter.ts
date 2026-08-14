@@ -63,6 +63,7 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
     cardData = turn.cardData;
     sse(res, { type: 'conversation', conversationId: activeConversation, messageId: turn.userMessageId });
     sse(res, { type: 'status', status: 'typing', label: 'Kurukoo is typing…' });
+    if (turn.progressStage && turn.progressStage !== 'complete') sse(res, { type: 'progress', stage: turn.progressStage, label: turn.progressStage === 'understanding' ? 'Understanding your request…' : turn.progressStage === 'checking' ? 'Checking the available Kurukoo state…' : turn.progressStage === 'coordinating' ? 'Preparing the next supported step…' : 'Preparing your request…', grounded: true });
     if (turn.authSuccess) {
       const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
       res.setHeader('Set-Cookie', [
@@ -79,7 +80,7 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
       await new Promise(r => setTimeout(r, 8));
     }
     sse(res, { type: 'status', status: 'complete' });
-    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, diagnostics: turn.classificationSource ? { classificationSource: turn.classificationSource, intentConfidence: turn.intentConfidence } : undefined });
+    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, diagnostics: { classificationSource: turn.classificationSource, intentConfidence: turn.intentConfidence, modelProvider: turn.modelProvider, model: turn.model, extractionSource: turn.extractionSource, extractedEntities: turn.extractedEntities, canonicalAction: turn.canonicalAction, progressStage: turn.progressStage } });
     sse(res, '[DONE]');
     res.end();
   } catch (error: any) {

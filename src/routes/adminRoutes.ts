@@ -12,7 +12,7 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { authenticateAdmin, AuthRequest } from '../middleware/auth.js';
-import { getDb, saveDb, getSystemSetting, setSystemSetting } from '../database.js';
+import { getDb, saveDb, getSystemSetting, setSystemSetting, getCanonicalOperatorIdentity, getOperatorActorDefinitions, resetOperatorActorState, CANONICAL_OPERATOR_PHONE } from '../database.js';
 import { getCategoryTrends, getGeographicDensity, getMarketIntelData } from '../services/analyticsEngine.js';
 import {
   getAllAIAgents,
@@ -59,9 +59,14 @@ router.post('/auth', (req, res) => {
 
 // ── Controlled development/test Chat access ─────────────────────────────
 
+function setUserCookie(res: any, token: string): void {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `kurukoo_auth=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${secure}`);
+}
+
 function setDevelopmentUserCookie(res: any, token: string): void {
   if (process.env.NODE_ENV === 'production') return;
-  res.setHeader('Set-Cookie', `kurukoo_auth=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+  setUserCookie(res, token);
 }
 
 router.get('/test-chat', authenticateAdmin, async (_req: AuthRequest, res) => {
@@ -104,6 +109,47 @@ router.post('/test-chat/reset', authenticateAdmin, async (_req: AuthRequest, res
     console.error('[AdminTestChat] reset failed:', error);
     res.status(500).json({ success: false, error: 'Unable to reset development test state' });
   }
+});
+
+// ── Canonical User #1 operator Chat and isolated Test As contexts ─────────
+router.get('/operator/state', authenticateAdmin, async (_req: AuthRequest, res) => {
+  const operator = getCanonicalOperatorIdentity();
+  const actors = getOperatorActorDefinitions();
+  const db = await getDb();
+  const rows = actors.map(actor => {
+    const profile = db.exec('SELECT phone, name, location, subscription_tier, points_balance, is_available, is_contributor, provider_type, preferences FROM memory_profiles WHERE phone = ?', [actor.phone])[0]?.values?.[0];
+    return { ...actor, exists: Boolean(profile), profile: profile ? { phone: profile[0], name: profile[1], location: profile[2], subscriptionTier: profile[3], points: profile[4], available: Boolean(profile[5]), contributor: Boolean(profile[6]), providerType: profile[7] } : null };
+  });
+  res.json({ success: true, operator, actors: rows, testBoundary: 'explicit_operator_session_claim' });
+});
+
+router.get('/operator/chat', authenticateAdmin, async (_req: AuthRequest, res) => {
+  const operator = getCanonicalOperatorIdentity();
+  await upsertProfile(operator.phone, operator.name, '', 'super_admin');
+  const token = issueUserToken(operator.phone, { operatorPhone: operator.phone, operatorSession: true, actorRole: 'super_admin', actorContextId: 'operator' });
+  setUserCookie(res, token);
+  res.json({ success: true, operator, redirect: '/chat?operator=1', session: { operator: true, phone: operator.phone, actorRole: 'super_admin' } });
+});
+
+router.get('/operator/actors', authenticateAdmin, async (_req: AuthRequest, res) => {
+  res.json({ success: true, actors: getOperatorActorDefinitions().map(actor => ({ ...actor, testOnly: true, identityBoundary: 'isolated_actor_context' })) });
+});
+
+router.post('/operator/actors/:actorId/chat', authenticateAdmin, async (req: AuthRequest, res) => {
+  const actor = getOperatorActorDefinitions().find(item => item.id === String(req.params.actorId || ''));
+  if (!actor) return res.status(404).json({ success: false, error: 'Unknown controlled actor' });
+  await upsertProfile(actor.phone, actor.name, '', actor.role);
+  const token = issueUserToken(actor.phone, { operatorPhone: CANONICAL_OPERATOR_PHONE, operatorSession: true, testActor: true, actorRole: actor.role, actorContextId: actor.id });
+  setUserCookie(res, token);
+  res.json({ success: true, actor, testOnly: true, identityBoundary: 'isolated_actor_context', resetEndpoint: `/api/admin/operator/actors/${actor.id}/reset`, redirect: `/chat?test_actor=${encodeURIComponent(actor.id)}` });
+});
+
+router.post('/operator/actors/:actorId/reset', authenticateAdmin, async (req: AuthRequest, res) => {
+  const actor = getOperatorActorDefinitions().find(item => item.id === String(req.params.actorId || ''));
+  if (!actor) return res.status(404).json({ success: false, error: 'Unknown controlled actor' });
+  const db = await getDb();
+  resetOperatorActorState(db, actor.phone);
+  res.json({ success: true, actor, reset: true, preserved: ['operator_identity', 'other_actor_contexts', 'production_user_data'] });
 });
 
 // ── Platform Stats / Observability ──────────────────────────────────────

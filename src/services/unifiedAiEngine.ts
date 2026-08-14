@@ -126,10 +126,6 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
     };
   }
 
-  if (preferred === 'auto' && classification && ACTION_INTENTS.has(classification.intent)) {
-    return fallback(classification);
-  }
-
   const isSimple = !classification || SIMPLE_INTENTS.has(classification.intent);
   const kind: QuotaKind = preferred === 'groq' || (!isSimple && preferred !== 'smollm2') ? 'complex' : 'simple';
   const tokenEst = estimatePromptTokens(prompt, options.systemPrompt);
@@ -284,20 +280,6 @@ export async function* streamUnifiedAI(
   options: UnifiedAIOptions = {}
 ): AsyncGenerator<AIStreamChunk> {
   const classification = classifyWithFastText(prompt);
-
-  if (classification && ACTION_INTENTS.has(classification.intent)) {
-    const result = fallback(classification);
-    yield {
-      type: 'metadata',
-      provider: result.provider,
-      model: result.model,
-      cost: result.cost,
-      intent: result.intent,
-      confidence: result.confidence,
-    };
-    yield { type: 'text', content: result.text };
-    return;
-  }
 
   const simple = !classification || SIMPLE_INTENTS.has(classification.intent);
   const kind: QuotaKind = !simple ? 'complex' : 'simple';

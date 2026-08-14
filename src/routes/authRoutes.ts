@@ -18,8 +18,16 @@ export function getJwtSecret(): string {
   return secret;
 }
 
-export function issueUserToken(phone: string): string {
-  return jwt.sign({ phone, role: 'user' }, getJwtSecret(), { expiresIn: '30d', algorithm: 'HS256' });
+export interface UserTokenClaims {
+  operatorPhone?: string;
+  operatorSession?: boolean;
+  testActor?: boolean;
+  actorRole?: string;
+  actorContextId?: string;
+}
+
+export function issueUserToken(phone: string, claims: UserTokenClaims = {}): string {
+  return jwt.sign({ phone, role: 'user', ...claims }, getJwtSecret(), { expiresIn: '30d', algorithm: 'HS256' });
 }
 
 function setAuthCookie(res: any, token: string, clearGuest = false): void {
@@ -130,7 +138,7 @@ router.post('/logout', (_req, res) => {
 
 router.get('/me', authenticateUser, async (req: AuthRequest, res) => {
   const phone = String(req.user?.phone || '');
-  res.json({ success: true, user: req.user, developmentTestAccount: isDevelopmentTestIdentity(phone), testAuth: getDevelopmentTestAuthStatus() });
+  res.json({ success: true, user: req.user, developmentTestAccount: isDevelopmentTestIdentity(phone), testAuth: getDevelopmentTestAuthStatus(), sessionContext: { operator: req.user?.operatorSession === true, testActor: req.user?.testActor === true, actorRole: req.user?.actorRole || null, actorContextId: req.user?.actorContextId || null, operatorPhone: req.user?.operatorPhone || null } });
 });
 
 export default router;

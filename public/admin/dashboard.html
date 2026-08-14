@@ -642,7 +642,7 @@
         <div class="header-bar">
             <div class="logo" style="font-weight: 700; font-size: 20px;"><span>Kurukoo</span> Admin Console</div>
             <nav style="display: flex; gap: 8px; align-items: center;">
-                <a href="/dashboard.html" target="_blank" style="padding:8px 16px; border:1px solid #E5E2DE; border-radius:8px; text-decoration:none; color:#1A1A1A;">View Live App</a><button type="button" onclick="openDevelopmentTestChat()" style="padding:8px 16px;border:1px solid #E5B87A;border-radius:8px;background:#FFF4DD;color:#6D4B1F;cursor:pointer;">Open Test Chat</button><button type="button" onclick="resetDevelopmentTestChat()" style="padding:8px 16px;border:1px solid #E5E2DE;border-radius:8px;background:#fff;cursor:pointer;">Reset Test Chat</button>
+                <a href="/dashboard.html" target="_blank" style="padding:8px 16px; border:1px solid #E5E2DE; border-radius:8px; text-decoration:none; color:#1A1A1A;">View Live App</a><button type="button" onclick="openOperatorChat()" aria-label="Open my canonical operator Chat" style="padding:8px 16px;border:1px solid #9BC5A5;border-radius:8px;background:#EDF8EF;color:#245B2E;cursor:pointer;">Open my Chat</button><button type="button" onclick="openActorChat()" aria-label="Open Chat as a controlled test actor" style="padding:8px 16px;border:1px solid #E5B87A;border-radius:8px;background:#FFF4DD;color:#6D4B1F;cursor:pointer;">Test as actor</button><button type="button" onclick="resetActorChat()" aria-label="Reset a controlled test actor Chat" style="padding:8px 16px;border:1px solid #E5E2DE;border-radius:8px;background:#fff;cursor:pointer;">Reset actor</button>
             </nav>
         </div>
 
@@ -1028,14 +1028,31 @@
             if (!response.ok || !data.success) throw new Error(data.error || 'Development test Chat is unavailable.');
             return data;
         }
+        async function openOperatorChat() {
+            try { const data = await adminTestChatRequest('/api/admin/operator/chat'); window.location.assign(data.redirect || '/chat?operator=1'); }
+            catch (error) { window.alert(error.message || 'Canonical operator Chat is unavailable.'); }
+        }
+        async function openActorChat() {
+            const actorId = window.prompt('Enter a controlled actor id: customer, provider, seller, contributor, business, or agent_owner', 'customer');
+            if (!actorId) return;
+            try { const data = await adminTestChatRequest(`/api/admin/operator/actors/${encodeURIComponent(actorId)}/chat`, 'POST'); window.location.assign(data.redirect || `/chat?test_actor=${encodeURIComponent(actorId)}`); }
+            catch (error) { window.alert(error.message || 'Controlled actor Chat is unavailable.'); }
+        }
+        async function resetActorChat() {
+            const actorId = window.prompt('Reset which controlled actor?', 'customer');
+            if (!actorId) return;
+            if (!window.confirm(`Reset only the isolated ${actorId} actor state? Operator and production user data are preserved.`)) return;
+            try { await adminTestChatRequest(`/api/admin/operator/actors/${encodeURIComponent(actorId)}/reset`, 'POST'); window.alert(`The isolated ${actorId} actor state was reset.`); }
+            catch (error) { window.alert(error.message || 'Unable to reset controlled actor Chat.'); }
+        }
         async function openDevelopmentTestChat() {
             try { const data = await adminTestChatRequest('/api/admin/test-chat'); window.location.assign(data.redirect || '/chat?test_mode=1'); }
-            catch (error) { window.alert(error.message || 'Development test Chat is unavailable.'); }
+            catch (error) { window.alert(error.message || 'Legacy development test Chat is unavailable.'); }
         }
         async function resetDevelopmentTestChat() {
-            if (!window.confirm('Reset only the configured development test Chat state? Financial, escrow, payment, order, and dispute records will be preserved.')) return;
-            try { await adminTestChatRequest('/api/admin/test-chat/reset', 'POST'); window.alert('Development test Chat state reset.'); }
-            catch (error) { window.alert(error.message || 'Unable to reset development test Chat.'); }
+            if (!window.confirm('Reset only the legacy development test Chat state? Financial, escrow, payment, order, and dispute records will be preserved.')) return;
+            try { await adminTestChatRequest('/api/admin/test-chat/reset', 'POST'); window.alert('Legacy development test Chat state reset.'); }
+            catch (error) { window.alert(error.message || 'Unable to reset legacy development test Chat.'); }
         }
         // Load initial console data
         function loadConsoleData() {

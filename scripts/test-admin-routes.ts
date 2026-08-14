@@ -14,6 +14,11 @@ const paths = [
   '/api/admin/stats',
   '/api/admin/pilot-readiness',
   '/api/admin/ads',
+  '/api/admin/operator/state',
+  '/api/admin/operator/chat',
+  '/api/admin/operator/actors',
+  '/api/admin/operator/actors/:actorId/chat',
+  '/api/admin/operator/actors/:actorId/reset',
 ];
 
 async function main() {
@@ -23,6 +28,9 @@ async function main() {
     fs.promises.readFile(new URL('../src/routes/adminRoutes.ts', import.meta.url), 'utf8')
   );
   assert.match(src, /authenticateAdmin/, 'adminRoutes must use authenticateAdmin');
+  assert.match(src, /operatorSession: true/, 'operator Chat must issue an explicit operator session claim');
+  assert.match(src, /testActor: true/, 'Test As must issue an explicit actor claim');
+  assert.match(src, /isolated_actor_context/, 'Test As must disclose the isolated actor boundary');
   assert.doesNotMatch(src, /\\+2348030000000/, 'no demo phone in admin routes');
   for (const p of paths) {
     assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
