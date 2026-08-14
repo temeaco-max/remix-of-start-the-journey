@@ -4,7 +4,7 @@ import { isOnboarding, handleOnboardingInput } from './progressiveOnboarding.js'
 import { routeIntent } from './intentRouter.js';
 import { getAuthState, setAuthState, handleConversationalAuth } from './conversationalAuthService.js';
 import { handleSafetyContactInput, setSafetyCaptureState } from './safetyService.js';
-import { createConversationGoal } from './agentRuntime.js';
+import { cancelAgentGoal, createConversationGoal, goalTimeline, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { getEconomicRequest } from './skillFlows.js';
 import type { IntentRoutingResult } from '../types.js';
@@ -159,9 +159,21 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     reply = result.reply;
     cardData = result.cardData;
   } else {
-    if (isGuest && authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message)) {
+    const controlAction = message.trim().match(/^(pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\b/i)?.[1].toLowerCase() || '';
+    if (!isGuest && controlAction) {
+      const timeline = await goalTimeline(phone, input.conversationId);
+      if (!timeline.goal) {
+        reply = 'There is no active autonomous objective to control in this conversation.';
+      } else {
+        const updated = controlAction.startsWith('pause') ? await pauseAgentGoal(phone, timeline.goal.id) : controlAction.startsWith('resume') ? await resumeAgentGoal(phone, timeline.goal.id) : await cancelAgentGoal(phone, timeline.goal.id);
+        agentGoal = updated;
+        reply = updated?.summary || 'The autonomous objective state was updated.';
+        progressStage = 'ready';
+      }
+    } else if (isGuest && authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message)) {
       await setAuthState(phone, 'none');
     }
+    if (!(!isGuest && controlAction)) {
     const controlCommand = /^(pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\b/i.test(message.trim());
     const continued = controlCommand ? null : await continueActiveRequest(phone, input.conversationId, message);
     const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
@@ -202,6 +214,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       // Native assistance remains native. Economic Requests are created and
       // advanced only by canonical request services invoked by the router.
       reply = routing.reply;
+    }
     }
   }
 

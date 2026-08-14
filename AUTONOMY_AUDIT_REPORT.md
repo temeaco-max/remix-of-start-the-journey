@@ -103,3 +103,10 @@ The platform now treats missing or invalid security and AI prerequisites as expl
 The Gemini adapter no longer generates synthetic dispatch, pricing, booking, payment, or provider claims when the API is unavailable. It now exposes typed `GeminiProviderError` failures for missing configuration, failed requests, empty responses, and invalid prompts. Deterministic intent classification and canonical domain flows remain responsible for supported local routing, while provider-dependent generation fails visibly and safely.
 
 This tranche passed build, lint, QR integration, authentication, autonomous runtime, Chat DOM-safety, production guard, AI smoke, and the complete route/lifecycle suite. The remaining fallback audit items are intentionally lower-priority legacy or development-only paths and should be migrated under the same contract rather than hidden behind broad catches.
+
+
+## Red-team core-wiring tranche
+
+The canonical Chat authority now handles authenticated natural-language `pause that`, `resume that`, `cancel that`, `stop following`, and `stop checking` commands directly against the owner-scoped autonomous goal for the current conversation. These commands no longer fall through into ordinary intent routing, and their persisted state is covered by a dedicated regression scenario.
+
+Economic commission lookup now fails with a typed configuration error when no active commission exists or the stored rate is invalid; it no longer silently applies an arbitrary numeric fee. The behavioral-chat matrix is also registered under both the implementation script name and its documented matrix name, removing a verification-command wiring defect discovered during red-team execution.

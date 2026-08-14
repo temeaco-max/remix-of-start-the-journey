@@ -1,5 +1,12 @@
 import { getDb, saveDb } from '../database.js';
 
+export class CommissionConfigurationError extends Error {
+    constructor(type: string) {
+        super(`No active commission configuration exists for ${type}.`);
+        this.name = 'CommissionConfigurationError';
+    }
+}
+
 export async function getAllCommissions() {
     const db = await getDb();
     const stmt = db.prepare(`SELECT id, type, rate_minor, description, active FROM commission_config`);
@@ -15,11 +22,13 @@ export async function getCommission(type: string): Promise<number> {
     const db = await getDb();
     const stmt = db.prepare(`SELECT rate_minor FROM commission_config WHERE type = ? AND active = 1`);
     stmt.bind([type]);
-    let rate = 30; // default fallback
-    if (stmt.step()) {
-        rate = stmt.getAsObject().rate_minor as number;
+    if (!stmt.step()) {
+        stmt.free();
+        throw new CommissionConfigurationError(type);
     }
+    const rate = Number(stmt.getAsObject().rate_minor);
     stmt.free();
+    if (!Number.isFinite(rate) || rate < 0) throw new CommissionConfigurationError(type);
     return rate;
 }
 

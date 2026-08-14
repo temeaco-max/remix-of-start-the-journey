@@ -5516,3 +5516,10 @@ Each autonomous worker cycle persists a bounded record in `agent_worker_runs`, i
 Kurukoo implementations must prefer explicit contracts over broad fallback behavior. Missing credentials, invalid encrypted state, unavailable AI providers, failed payment or delivery adapters, and unsupported capabilities must produce typed, observable, user-safe failures or truthful setup states. They must not silently return plaintext, empty profile objects, fabricated dispatch or pricing claims, fake provider connectivity, or apparently completed actions.
 
 Development-only compatibility is permitted only when it is explicitly scoped to non-production execution and cannot reuse shared production secrets. Production startup remains fail-closed for security-critical configuration. Deterministic FastText intent classification and canonical domain authorities remain available for supported flows; provider-dependent generation is not replaced by synthetic action claims when the provider is unavailable.
+
+
+## §21b.7 Red-team core wiring rules
+
+The canonical Chat turn is the only authority for conversational autonomous controls. Authenticated natural-language pause, resume, stop-following, stop-checking, and cancel commands must resolve the current conversation’s owner-scoped goal and must not be sent through ordinary intent routing after a control action is recognized.
+
+Economic configuration is authoritative data, not an optional fallback. Missing or invalid active commission configuration must stop the affected economic operation with a typed error; the system must never substitute an arbitrary fee. Verification commands must remain registered and executable under the names documented for operators.

@@ -192,3 +192,8 @@ Worker history is an admin-only operational surface. The Chat client may show th
 ## Deterministic failure presentation
 
 The Chat surface must prefer a truthful, bounded error state over a synthetic fallback response. If a provider-dependent action cannot run, the user must see that the capability is unavailable or requires setup, with a clear next step when one exists. The client must not claim that a provider was dispatched, a price was checked live, a payment was completed, a reminder was delivered externally, or an account was connected unless the canonical authority returned evidence. Development-only compatibility must never be presented as production capability.
+
+
+## Autonomous command and economic failure contract
+
+When an authenticated user writes a direct autonomous control command, the Chat surface must show the resulting persisted goal state in the current conversation and must not create a duplicate intent or economic request. If economic configuration is missing or invalid, the central surface must present a truthful setup or failure state and must not display an arbitrary commission, apparent completion, or payment-ready result.
