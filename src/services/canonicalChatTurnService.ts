@@ -20,6 +20,11 @@ function isNewGuestRequestAfterAuthPrompt(message: string): boolean {
   return /[?]/.test(text) || /^(also\b|can you\b|could you\b|would you\b|what\b|how\b|where\b|when\b|why\b|i\s+(?:need|want|would like|am looking|can)|help\b|give me\b|find\b|show\b|compare\b|plan\b|remind\b|get\b|book\b|check\b)/i.test(text);
 }
 
+function isStandaloneName(message: string): boolean {
+  const text = message.trim();
+  return text.length >= 2 && text.length <= 60 && /^[A-Za-z][A-Za-z .'-]*$/.test(text) && !/\b(?:need|want|find|book|repair|plumber|ride|food|help|remind|compare|plan|venue|service)\b/i.test(text);
+}
+
 function extractRequirementPatch(message: string, card: any, current: any): Record<string, unknown> {
   const text = message.trim();
   const fields = Array.isArray(card?.fields) ? card.fields : [];
@@ -130,16 +135,21 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   let progressStage: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete' | undefined;
   const isGuest = phone.startsWith('anon_');
   const authState = isGuest ? await getAuthState(phone) : { state: 'none' as const, data: {} };
+  const standaloneNameAuth = isGuest && authState.state === 'none' && isStandaloneName(message);
 
   const profile = await getProfile(phone, 'canonical_chat_turn');
   const prefs: any = profile?.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};
   const safetyState = prefs.safety_capture_state || 'none';
 
-  if (isGuest && authState.state !== 'none' && !(authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message))) {
+  if (isGuest && (authState.state !== 'none' || standaloneNameAuth) && !(authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message))) {
+    if (standaloneNameAuth) await setAuthState(phone, 'awaiting_name', {});
     const result = await handleConversationalAuth(phone, message);
     reply = result.reply;
     cardData = result.cardData;
-    if (result.authenticated && result.token && result.phone) authSuccess = { phone: result.phone, token: result.token };
+    if (result.authenticated && result.token && result.phone) {
+      authSuccess = { phone: result.phone, token: result.token };
+      if (!result.cardData) reply = `${result.reply}\n\nWhat would you like to get done today?`;
+    }
   } else if (!isGuest && safetyState !== 'none') {
     const result = await handleSafetyContactInput(phone, message);
     reply = result.reply;
@@ -182,9 +192,10 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       await setAuthState(phone, 'awaiting_name', { intent: routing.skill, continuationCard: cardData });
       reply = `${routing.reply}\n\nIf you want Kurukoo to save or continue this request, tell me your name and I’ll take you through sign-in.`;
       cardData = {
-        type: 'auth_in_chat_start',
-        title: 'Sign in to continue',
-        message: 'Your request is preserved. Tell me your name if you want to save or continue it.',
+        type: 'auth_conversation',
+        step: 'name',
+        title: 'A quick introduction',
+        message: 'I’m Kurukoo. Tell me your name and I’ll keep this conversation connected while we continue your request.',
         continuationCard: routing.cardData,
       };
     } else {

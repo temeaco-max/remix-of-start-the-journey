@@ -186,12 +186,30 @@
 
     if (sessionCheck?.status === 401) {
       state.isGuest = true;
-      setConnection(true, 'Guest Mode');
+      setConnection(true, 'guest');
       return true;
     }
 
     setConnection(false, 'Offline');
     return false;
+  }
+
+  async function startGuestAuth() {
+    if (!state.isGuest) return;
+    try { await fetch('/api/chat/auth/start', { method: 'POST', credentials: 'same-origin' }); } catch {}
+  }
+
+  function renderWelcomeAuth(welcome) {
+    if (!state.isGuest || welcome.querySelector('.welcome-auth')) return;
+    const auth = makeElement('section', 'welcome-auth');
+    const heading = makeElement('div', 'welcome-auth-heading');
+    heading.append(makeIcon('chat', 'Your name'), makeElement('strong', '', 'Hi, I’m Kurukoo'));
+    auth.append(heading, makeElement('p', 'welcome-auth-copy', 'Tell me your name first. I’ll then verify your phone in this conversation so I can keep your requests connected.'));
+    const form = document.createElement('form'); form.className = 'welcome-auth-form';
+    const name = document.createElement('input'); name.type = 'text'; name.name = 'name'; name.autocomplete = 'name'; name.placeholder = 'Your name'; name.required = true;
+    const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'auth-conversation-submit'; submit.setAttribute('aria-label', 'Continue with your name'); submit.title = 'Continue'; submit.appendChild(makeIcon('send', 'Continue'));
+    form.append(name, submit); form.addEventListener('submit', event => { event.preventDefault(); const value = name.value.trim(); if (value) sendMessage(value); });
+    auth.appendChild(form); welcome.appendChild(auth); name.focus();
   }
 
   function addHistoryItem(conversation, active = false) {
@@ -661,17 +679,25 @@
     if (card.type === 'intent_suggestions') return renderSuggestions(card.suggestions, messageEl, card.sponsored);
     if (card.type === 'ai_metadata') return updateModelStatus(card);
 
-    if (card.type === 'auth_otp_input') {
-      const holder = makeElement('div', 'auth-otp-card');
-      holder.appendChild(makeElement('strong', '', 'Verification code'));
-      const input = document.createElement('input');
-      input.type = 'text'; input.inputMode = 'numeric'; input.pattern = '[0-9]*'; input.maxLength = 6; input.placeholder = '123456';
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(input.value); });
-      holder.appendChild(input);
-      messageEl.querySelector('.bubble').appendChild(holder);
+    if (card.type === 'auth_otp_input' || card.type === 'auth_conversation') {
+      const step = card.type === 'auth_otp_input' ? 'otp' : String(card.step || 'name');
+      const holder = makeElement('div', 'auth-conversation-card');
+      holder.dataset.authStep = step;
+      const header = makeElement('div', 'auth-conversation-heading');
+      header.append(makeIcon(step === 'otp' ? 'safety' : step === 'phone' ? 'channels' : 'chat', 'Authentication step'), makeElement('strong', '', step === 'name' ? 'Start with your name' : step === 'phone' ? 'Add your phone number' : 'Verify your number'));
+      const copy = makeElement('p', 'auth-conversation-copy', step === 'name' ? 'I’ll use this to keep your conversation connected.' : step === 'phone' ? `Thanks${card.name ? `, ${card.name}` : ''}. Your number stays attached to this verification step.` : 'Enter the six-digit code sent to your phone.');
+      const form = document.createElement('form'); form.className = 'auth-conversation-form';
+      const input = document.createElement('input'); input.type = step === 'otp' ? 'text' : step === 'phone' ? 'tel' : 'text'; input.inputMode = step === 'otp' || step === 'phone' ? 'numeric' : 'text'; input.autocomplete = step === 'name' ? 'name' : step === 'phone' ? 'tel' : 'one-time-code'; input.maxLength = step === 'otp' ? 6 : 120; input.placeholder = step === 'name' ? 'Your name' : step === 'phone' ? '080… or +234…' : '6-digit code'; input.required = true;
+      const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'auth-conversation-submit'; submit.setAttribute('aria-label', step === 'otp' ? 'Verify code' : 'Continue'); submit.title = step === 'otp' ? 'Verify code' : 'Continue'; submit.appendChild(makeIcon('send', submit.title));
+      form.append(input, submit);
+      form.addEventListener('submit', event => { event.preventDefault(); const value = input.value.trim(); if (!value) return; sendMessage(value); });
+      holder.append(header, copy, form);
+      if (step === 'otp' && card.devCode) holder.appendChild(makeElement('small', 'auth-conversation-dev-code', `Development code: ${card.devCode}`));
+      messageEl.querySelector('.bubble')?.appendChild(holder);
       input.focus();
       return;
     }
+
 
     if (card.type === 'safety_contact_capture') {
       const holder = makeElement('div', 'safety-capture-card');
@@ -690,8 +716,7 @@
     }
 
     if (card.type === 'auth_gate' || card.type === 'auth_in_chat_start') {
-      // Authentication is intentionally communicated inline by the assistant;
-      // the former profile-creation card is retired from the Chat surface.
+      renderCard({ ...card, type: 'auth_conversation', step: card.step || 'name' }, messageEl);
       return;
       const gate = document.createElement('div');
       gate.className = 'auth-gate-card';
@@ -910,7 +935,28 @@
     });
   }
   async function loadNotifications() { try { const res = await fetch('/api/notifications?limit=20', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); renderNotifications(data.notifications || []); } catch {} }
-  async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile remains attached to your account.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
+  function personalizeQuickActions(profile = {}) {
+    const location = String(profile.location || profile.primary_lga || '').trim();
+    const preferences = profile.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};
+    const goal = String(preferences.goal || profile.goal || '').toLowerCase();
+    const actions = [
+      { prompt: location ? `What is useful to know near ${location}?` : 'Help me find something nearby', label: location ? 'Explore nearby' : 'Explore nearby', icon: 'discover' },
+      { prompt: goal.includes('provider') || goal.includes('work') ? 'Help me find work or a service opportunity' : 'I need something sourced', label: goal.includes('provider') || goal.includes('work') ? 'Find work' : 'Source something', icon: 'work' },
+      { prompt: 'Set a reminder', label: 'Reminder', icon: 'reminder' },
+      { prompt: 'Help me stay safe', label: 'Safety', icon: 'safety' },
+      { prompt: 'I need to get somewhere', label: 'Get somewhere', icon: 'ride' },
+    ];
+    document.querySelectorAll('.quick-actions, .composer-quick-actions').forEach(root => {
+      const buttons = Array.from(root.querySelectorAll('button[data-prompt]'));
+      actions.forEach((action, index) => {
+        const button = buttons[index]; if (!button) return;
+        button.dataset.prompt = action.prompt; button.dataset.personalized = location || goal ? 'profile' : 'default';
+        button.replaceChildren(makeIcon(action.icon, ''), document.createTextNode(action.label));
+      });
+    });
+  }
+
+  async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; personalizeQuickActions(profile); const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile remains attached to your account.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
 
   function renderAgentGoal(goal, events = []) {
     const card = $('agent-goal-card'); const status = $('agent-goal-status'); const summary = $('agent-goal-summary'); const list = $('agent-goal-events'); const cancel = $('agent-goal-cancel');
@@ -1230,6 +1276,7 @@
     welcome.appendChild(qa);
     chatContent.replaceChildren(welcome);
     wireQuickActions($('quick-actions'));
+    if (state.isGuest) { void startGuestAuth().finally(() => renderWelcomeAuth(welcome)); }
   }
 
   applyTheme();

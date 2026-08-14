@@ -51,9 +51,10 @@ try {
   assert.ok(completeIndex > firstTextIndex, 'Typing status must complete before the final stream payload');
   const conversationId = String(conversation?.conversationId || '');
   assert.ok(conversationId, 'Guest conversation should have a persistent ID');
-  const guestCard = done?.cardData as { type?: string; message?: string; continuationCard?: { type?: string } } | undefined;
+  const guestCard = done?.cardData as { type?: string; step?: string; message?: string; continuationCard?: { type?: string } } | undefined;
   const guestReply = guestEvents.filter(event => event.type === 'text').map(event => String(event.content || '')).join('');
-  assert.ok(['auth_gate', 'auth_in_chat_start'].includes(guestCard?.type || ''), 'Economic requests should present an identity gate before protected actions');
+  assert.equal(guestCard?.type, 'auth_conversation', 'Economic requests should present the compact conversational auth form before protected actions');
+  assert.equal(guestCard?.step, 'name', 'Protected guest requests should begin with the name step');
   assert.ok(guestReply.match(/tell me your name.*sign-in/i), 'Guest identity gates must describe the next action without repeating profile creation');
   assert.doesNotMatch(guestReply, /create your kurukoo profile/i, 'Guest identity gates must not repeat the retired profile-creation prompt');
   assert.doesNotMatch(guestReply, /connect with providers/i, 'Guest identity gates must not promise provider connection');

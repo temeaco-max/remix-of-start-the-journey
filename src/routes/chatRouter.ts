@@ -8,13 +8,26 @@ import { deleteChatMessage, listChatConversations, listChatMessages, clearChatCo
 import { migrateGuestSessionToAccount } from '../services/guestSessionMigration.js';
 import { applyQrReferralAttribution } from '../services/qrContextService.js';
 import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
+import { getAuthState, setAuthState } from '../services/conversationalAuthService.js';
 import { streamUnifiedAI } from '../services/unifiedAiEngine.js';
 import economicRequestRouter from './economicRequestRouter.js';
 
 const router = Router();
 
-// Authentication is owned exclusively by /api/auth. Keep retired chat-scoped auth paths
-// visibly absent rather than allowing another middleware to report an authorization error.
+// Start the compact in-chat identity conversation for a guest without creating a
+// second auth system. Existing phone/OTP progress is never overwritten.
+router.post('/auth/start', optionalAuthenticateUser, async (req: AuthRequest, res) => {
+  const phone = userPhone(req, res);
+  if (!phone) return res.status(401).json({ error: 'Guest session is unavailable' });
+  if (!phone.startsWith('anon_')) return res.json({ success: true, authenticated: true });
+  const current = await getAuthState(phone);
+  if (current.state === 'none') await setAuthState(phone, 'awaiting_name', {});
+  res.json({ success: true, state: current.state === 'none' ? 'awaiting_name' : current.state });
+});
+
+// Authentication is otherwise owned exclusively by /api/auth. Keep retired
+// chat-scoped auth paths visibly absent rather than allowing another middleware
+// to report an authorization error.
 router.all('/auth/*', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
 function getGuestPhone(req: any, res: any): string {
@@ -50,7 +63,6 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
-  res.flushHeaders?.();
 
   let fullReply = '';
   let cardData: any = null;
@@ -61,9 +73,6 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
     activeConversation = turn.conversationId;
     fullReply = turn.reply;
     cardData = turn.cardData;
-    sse(res, { type: 'conversation', conversationId: activeConversation, messageId: turn.userMessageId });
-    sse(res, { type: 'status', status: 'typing', label: 'Kurukoo is typing…' });
-    if (turn.progressStage && turn.progressStage !== 'complete') sse(res, { type: 'progress', stage: turn.progressStage, label: turn.progressStage === 'understanding' ? 'Understanding your request…' : turn.progressStage === 'checking' ? 'Checking the available Kurukoo state…' : turn.progressStage === 'coordinating' ? 'Preparing the next supported step…' : 'Preparing your request…', grounded: true });
     if (turn.authSuccess) {
       const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
       res.setHeader('Set-Cookie', [
@@ -72,8 +81,12 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
       ]);
       await migrateGuestSessionToAccount(phone, turn.authSuccess.phone);
       await applyQrReferralAttribution(phone, turn.authSuccess.phone).catch(() => undefined);
-      sse(res, { type: 'auth_success', phone: turn.authSuccess.phone });
     }
+    res.flushHeaders?.();
+    sse(res, { type: 'conversation', conversationId: activeConversation, messageId: turn.userMessageId });
+    sse(res, { type: 'status', status: 'typing', label: 'Kurukoo is typing…' });
+    if (turn.progressStage && turn.progressStage !== 'complete') sse(res, { type: 'progress', stage: turn.progressStage, label: turn.progressStage === 'understanding' ? 'Understanding your request…' : turn.progressStage === 'checking' ? 'Checking the available Kurukoo state…' : turn.progressStage === 'coordinating' ? 'Preparing the next supported step…' : 'Preparing your request…', grounded: true });
+    if (turn.authSuccess) sse(res, { type: 'auth_success', phone: turn.authSuccess.phone });
     if (turn.agentGoal) sse(res, { type: 'agent_goal', goal: turn.agentGoal });
     for (const chunk of chunkText(fullReply)) {
       sse(res, { type: 'text', content: chunk });
