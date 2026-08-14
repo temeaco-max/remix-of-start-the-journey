@@ -5,7 +5,7 @@
     theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     activeStorefrontId: null,
     nativeAssistance: { reminders: [], checkIns: [] },
-    pinnedMessages: []
+    pinnedMessages: [], surfaceView: null, notifiedNotificationIds: new Set()
   };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
@@ -36,6 +36,27 @@
     if (label) icon.setAttribute('data-icon-label', label);
     return icon;
   };
+  const surfacePaths = { cart: '/cart', points: '/points', requests: '/requests', reminders: '/reminders', saved: '/saved', tasks: '/tasks', 'daily-picks': '/daily-picks', discover: '/discover', connect: '/channels', memory: '/memory', safety: '/safety', settings: '/settings', topics: '/topics' };
+  const surfaceTitles = { cart: 'Cart', points: 'Points', requests: 'Requests', reminders: 'Reminders', saved: 'Saved & offers', tasks: 'Tasks', 'daily-picks': 'Daily Picks', discover: 'Discover', connect: 'Connect', memory: 'Memory', safety: 'Safety & check-ins', settings: 'Settings', topics: 'Topics' };
+  function renderSurfaceFallback(view, message = 'This workspace view is not available yet.') {
+    const body = makeElement('div', 'surface-empty'); body.append(makeIcon('info', 'Information'), makeElement('h3', surfaceTitles[view] || 'Workspace'), makeElement('p', message)); return body;
+  }
+  async function renderWorkspaceSurface(view) {
+    if (!chatContent || !surfacePaths[view]) return;
+    state.surfaceView = view;
+    const surface = makeElement('section', 'workspace-surface'); surface.dataset.surfaceView = view;
+    const bar = makeElement('div', 'surface-toolbar'); const back = makeElement('button', 'surface-back', 'Back to conversation'); back.type = 'button'; back.append(makeIcon('chevron-left', 'Back')); back.addEventListener('click', () => { state.surfaceView = null; chatContent.replaceChildren(); if (state.messages.length) renderMessages(state.messages); else renderWelcome(); });
+    bar.append(back, makeElement('span', 'surface-kicker', 'Kurukoo workspace')); surface.append(bar);
+    const heading = makeElement('div', 'surface-heading'); heading.append(makeElement('h1', '', surfaceTitles[view] || 'Workspace'), makeElement('p', '', 'This view stays inside your conversation workspace.'));
+    surface.append(heading); const body = makeElement('div', 'surface-body'); body.append(makeElement('div', 'surface-loading', 'Loading…')); surface.append(body); chatContent.replaceChildren(surface); scroll.scrollTop = 0;
+    try {
+      if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
+      const res = await fetch(surfacePaths[view], { credentials: 'same-origin' }); if (!res.ok) throw new Error('Workspace view unavailable'); const html = await res.text(); const doc = new DOMParser().parseFromString(html, 'text/html'); const source = doc.querySelector('.workspace-content, main, .workspace-main'); if (!source) throw new Error('Workspace content unavailable');       body.innerHTML = source.innerHTML; body.querySelectorAll('script').forEach(script => script.remove()); body.querySelectorAll('a[href]').forEach(link => { const href = link.getAttribute('href') || ''; const mapped = Object.entries(surfacePaths).find(([, path]) => href === path || href.startsWith(`${path}?`)); if (mapped) { link.dataset.surfaceView = mapped[0]; link.removeAttribute('href'); } }); wireSurfaceActions(body);
+    } catch (error) { body.replaceChildren(renderSurfaceFallback(view, error.message || undefined)); }
+  }
+  async function loadConversation(conversationId) { if (!conversationId) return; state.surfaceView = null; state.conversationId = conversationId; localStorage.setItem('kurukoo_conversation_id', conversationId); try { const url = new URL('/api/chat/history', location.origin); url.searchParams.set('conversationId', conversationId); url.searchParams.set('limit', '60'); const res = await fetch(url, { credentials: 'same-origin' }); const data = await res.json(); state.messages = (data.messages || []).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.content, id: m.id })); renderMessages(data.messages || []); refreshHistory(); } catch { setConnection(false, 'Offline'); } }
+  function wireSurfaceActions(root = document) { root.querySelectorAll('[data-surface-view]').forEach(action => { if (action.dataset.surfaceWired === '1') return; action.dataset.surfaceWired = '1'; action.addEventListener('click', event => { event.preventDefault(); renderWorkspaceSurface(action.dataset.surfaceView); }); }); }
+
   function setComposerBusy(busy) {
     state.busy = busy;
     if (send) { send.hidden = busy; send.disabled = busy; }
@@ -218,11 +239,11 @@
     const list = $('history-list'); if (!list || !conversation?.id) return;
     let item = list.querySelector(`[data-conversation-id="${CSS.escape(conversation.id)}"]`);
     if (!item) {
-      item = document.createElement('button'); item.type = 'button'; item.className = 'history-item';
-      item.dataset.conversationId = conversation.id; item.textContent = conversation.title || 'New conversation';
-      item.addEventListener('click', () => loadConversation(conversation.id));
-      list.appendChild(item);
+      item = document.createElement('button'); item.type = 'button'; item.className = 'history-item'; item.dataset.conversationId = conversation.id;
+      item.addEventListener('click', () => loadConversation(conversation.id)); list.appendChild(item);
     }
+    item.replaceChildren(); item.append(makeElement('span', 'history-title', conversation.title || 'New conversation'));
+    try { const pins = JSON.parse(localStorage.getItem(`kurukoo_pins_${conversation.id}`) || '[]'); if (Array.isArray(pins) && pins.length) { const pin = makeIcon('saved', 'Pinned'); pin.classList.add('history-pin-indicator'); pin.setAttribute('aria-label', 'Pinned references'); item.appendChild(pin); } } catch {}
     item.classList.toggle('active', active);
   }
 
@@ -922,7 +943,10 @@
     if (!list) return;
     list.replaceChildren();
     const items = Array.isArray(notifications) ? notifications : [];
-    const unread = items.filter(item => item?.status === 'unread').length;
+    const unreadItems = items.filter(item => item?.status === 'unread');
+    const unread = unreadItems.length;
+    const toastRegion = $('chat-toast-region');
+    unreadItems.filter(item => item?.id && !state.notifiedNotificationIds.has(item.id)).slice(0, 3).forEach(item => { state.notifiedNotificationIds.add(item.id); if (!toastRegion) return; const toast = makeElement('div', 'chat-toast'); toast.append(makeIcon('alert', 'Notification'), makeElement('div', '', `${String(item.title || 'Kurukoo update')}\n${String(item.body || '')}`)); toastRegion.appendChild(toast); setTimeout(() => toast.remove(), 5200); });
     const badge = $('notification-badge');
     if (badge) { badge.textContent = unread > 99 ? '99+' : String(unread); badge.hidden = unread === 0; }
     if (summary) summary.textContent = unread ? `${unread} unread notification${unread === 1 ? '' : 's'} in your internal Kurukoo inbox.` : 'Your internal Kurukoo inbox is up to date.';
@@ -971,7 +995,7 @@
     });
   }
 
-  async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; if (!state.displayName && profile.name) state.displayName = String(profile.name); personalizeQuickActions(profile); const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile remains attached to your account.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
+  async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; if (!state.displayName && profile.name) state.displayName = String(profile.name); const memoryStatus = $('sidebar-memory-status'); if (memoryStatus) memoryStatus.textContent = profile.location || profile.name ? 'In use' : 'Ready'; personalizeQuickActions(profile); const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile remains attached to your account.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
 
   function renderAgentGoal(goal, events = []) {
     const card = $('agent-goal-card'); const status = $('agent-goal-status'); const summary = $('agent-goal-summary'); const list = $('agent-goal-events'); const cancel = $('agent-goal-cancel');
@@ -1065,7 +1089,7 @@
     loadPinnedMessages();
     try {
       const url = new URL('/api/chat/history', location.origin); if (state.conversationId) url.searchParams.set('conversationId', state.conversationId); url.searchParams.set('limit', '60');
-      const res = await fetch(url, { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const list = $('history-list'); if (!list) return; list.replaceChildren();
+      const res = await fetch(url, { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); if (data.messages?.length) state.messages = data.messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.content, id: m.id })); const list = $('history-list'); if (!list) return; list.replaceChildren();
       data.conversations.forEach(c => addHistoryItem(c, c.id === state.conversationId));
       if (data.messages?.length && chatContent.querySelectorAll('.message').length === 0) renderMessages(data.messages);
     } catch { setConnection(false, 'Offline'); }
@@ -1098,6 +1122,9 @@
     });
     void reconcileHistoricalStorefrontCards(entries);
   }
+
+  document.addEventListener('click', event => { const action = event.target.closest('[data-surface-view]'); if (action && action.dataset.surfaceWired !== '1') { event.preventDefault(); renderWorkspaceSurface(action.dataset.surfaceView); } });
+  wireSurfaceActions();
 
   function setInspectorOpen(open, target = null) {
     const inspector = $('chat-inspector'); if (!inspector) return;
