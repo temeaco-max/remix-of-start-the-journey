@@ -7,6 +7,7 @@ import { handleSafetyContactInput, setSafetyCaptureState } from './safetyService
 import { createConversationGoal } from './agentRuntime.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { getEconomicRequest } from './skillFlows.js';
+import type { IntentRoutingResult } from '../types.js';
 
 function parseCardData(row: any): any | null {
   if (!row?.card_data) return null;
@@ -84,6 +85,8 @@ export interface CanonicalChatTurnResult {
   cardData?: any;
   authSuccess?: { phone: string; token: string };
   agentGoal?: { id: string; status: string; objective: string; summary?: string; autonomy?: string; economicRequestId?: string };
+  classificationSource?: 'fasttext' | 'rules' | 'fallback';
+  intentConfidence?: number;
 }
 
 /** The single server-side authority for a Kurukoo conversational turn. */
@@ -105,6 +108,8 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   let cardData: any = undefined;
   let authSuccess: { phone: string; token: string } | undefined;
   let agentGoal: any = null;
+  let classificationSource: 'fasttext' | 'rules' | 'fallback' | undefined;
+  let intentConfidence: number | undefined;
   const isGuest = phone.startsWith('anon_');
   const authState = isGuest ? await getAuthState(phone) : { state: 'none' as const, data: {} };
 
@@ -127,7 +132,9 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     cardData = result.cardData;
   } else {
     const continued = await continueActiveRequest(phone, input.conversationId, message);
-    const routing = continued || await routeIntent(message, phone);
+    const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
+    classificationSource = routing.classificationSource;
+    intentConfidence = routing.intentConfidence;
     cardData = routing.cardData;
     const explicitAgentIntent = routing.skill === 'autonomous_agent' || /\b(keep checking|keep looking|monitor|watch for|tell me when|let me know when|check again)\b/i.test(message);
     agentGoal = !isGuest && explicitAgentIntent ? await createConversationGoal({
@@ -167,6 +174,8 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     cardData,
     authSuccess,
     agentGoal,
+    classificationSource,
+    intentConfidence,
   });
 }
 
@@ -178,6 +187,8 @@ async function persistTurn(args: {
   cardData?: any;
   authSuccess?: { phone: string; token: string };
   agentGoal?: any;
+  classificationSource?: 'fasttext' | 'rules' | 'fallback';
+  intentConfidence?: number;
 }): Promise<CanonicalChatTurnResult> {
   await appendChatMessage({
     phone: args.phone,
@@ -196,6 +207,8 @@ async function persistTurn(args: {
     cardData: args.cardData,
     authSuccess: args.authSuccess,
     agentGoal: args.agentGoal,
+    classificationSource: args.classificationSource,
+    intentConfidence: args.intentConfidence,
   };
 }
 

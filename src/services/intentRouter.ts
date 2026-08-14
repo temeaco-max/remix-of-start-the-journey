@@ -7,9 +7,10 @@ import { advanceStorefront, previewStorefrontCard, startStorefrontSession, tryRe
 import { searchKnownEconomicOffers } from './economicParticipants.js';
 import { cancelReminder, createReminder, listReminders } from './reminderService.js';
 import { cancelAgentGoal, listAgentGoals } from './agentRuntime.js';
+import { generateReferralCode } from './referralService.js';
 import type { IntentRoutingResult } from '../types.js';
 
-const ACTION_INTENTS = new Set(['ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'sports_matchmaking', 'event_coverage', 'how_to_video', 'security_booking', 'circle_create', 'artist_booking', 'national_events']);
+const ACTION_INTENTS = new Set(['ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'sports_matchmaking', 'event_coverage', 'how_to_video', 'security_booking', 'circle_create', 'artist_booking', 'national_events', 'subscription', 'advertising', 'autonomous_agent', 'referral', 'nearby_pulse_start', 'nearby_pulse_stop']);
 const STOREFRONT_INTENTS = new Set(['ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'security_booking']);
 
 const CANONICAL_ALIASES: Array<[RegExp, string]> = [
@@ -363,19 +364,34 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
 
   const classification = classifyWithFastText(query);
   if (classification && ACTION_INTENTS.has(classification.intent)) {
+    const source = { classificationSource: classification.source, intentConfidence: classification.confidence } as const;
+    if (classification.intent === 'subscription') return { skill: 'subscription', reply: 'I can show the available Consumer and Provider plans. Payment and entitlement activation remain separate, sandbox-gated steps.', cardData: { type: 'subscription_plans', status: 'information_only', destination: '/pricing' }, ...source };
+    if (classification.intent === 'advertising') return { skill: 'advertising', reply: 'Kurukoo advertising uses disclosed public placements only. I can take you to the advertiser guidance and campaign entry surface; no private Chat text is used for hidden targeting.', cardData: { type: 'advertising_info', status: 'public_only', destination: '/advertise' }, ...source };
+    if (classification.intent === 'referral') {
+      const code = phone && !phone.startsWith('anon_') ? await generateReferralCode(phone) : null;
+      return { skill: 'referral', reply: code ? `Your referral link is ready through the Referral QR surface. Share it only with people you choose; reward eligibility is recorded by the referral authority.` : 'Sign in first and I can create your owner-scoped referral link.', cardData: { type: 'referral', status: code ? 'ready' : 'sign_in_required', destination: '/referral-qr/' }, ...source };
+    }
+    if (classification.intent === 'autonomous_agent') {
+      if (!phone || phone.startsWith('anon_')) return { skill: 'autonomous_agent', reply: 'Sign in first to review or create your owner-scoped bounded agents.', cardData: { type: 'agent_goals', status: 'sign_in_required' }, ...source };
+      const goals = await listAgentGoals(phone);
+      const active = goals.filter(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status));
+      return { skill: 'autonomous_agent', reply: active.length ? `You have ${active.length} bounded agent ${active.length === 1 ? 'goal' : 'goals'} in progress. I can show their status, activity and controls without claiming completion.` : 'You do not have an active bounded agent goal yet. Ask me to keep checking a specific request and I will show the required confirmation and limits.', cardData: { type: 'agent_goals', status: active.length ? 'active' : 'empty', goals: active }, ...source };
+    }
+    if (classification.intent === 'circle_create') return { skill: 'circle_create', reply: 'I can help you set up or join a Money Circle. Confirm the members, contribution cadence and rules before anything is recorded; no funds move from this conversation alone.', cardData: { type: 'money_circle', status: 'setup_required', destination: '/chat?prompt=Set%20up%20a%20Money%20Circle' }, ...source };
+    if (classification.intent === 'nearby_pulse_start' || classification.intent === 'nearby_pulse_stop') return { skill: classification.intent, reply: classification.intent === 'nearby_pulse_start' ? 'Go Live shares only the presence details you approve for Nearby and Radar, subject to the existing presence authority and duration controls. Confirm your location and skill before activation.' : 'I can turn off your Go Live presence through the existing Pulse authority. No hidden background sharing is claimed.', cardData: { type: 'nearby_pulse', status: classification.intent === 'nearby_pulse_start' ? 'consent_required' : 'stop_available' }, ...source };
     const flowSkill = skillForIntent(classification.intent);
     const flow = await getSkillFlow(flowSkill).catch(() => null);
     if (phone && STOREFRONT_INTENTS.has(classification.intent)) {
       try {
         const card = await startStorefrontSession(phone, flowSkill, {});
-        return { skill: flowSkill, reply: card.message, cardData: card };
+        return { skill: flowSkill, reply: card.message, cardData: card, classificationSource: classification.source, intentConfidence: classification.confidence };
       } catch (e) {
         console.warn('[Router] storefront start failed:', e);
       }
     }
     const cardData = decorateCardWithSuggestions(actionCard(classification.intent), flowSkill) || suggestionCard(flowSkill);
     const reply = flowReply(flowSkill, flow);
-    return { skill: flowSkill, reply, cardData };
+    return { skill: flowSkill, reply, cardData, classificationSource: classification.source, intentConfidence: classification.confidence };
   }
 
   if (phone && q.split(/\s+/).length <= 6) {

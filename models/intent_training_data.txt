@@ -49,6 +49,12 @@ __label__circle_create Create a group contribution thrift plan
 __label__circle_create I want to save money in a circle group
 __label__circle_create Open an ajo savings group with my colleagues
 __label__circle_create Begin a money circle for weekly savings
+__label__circle_create Create a Money Circle
+__label__circle_create Set up a money circle
+__label__circle_create How do I create a money circle
+__label__circle_create Start an ajo savings circle
+__label__circle_create Create an esusu group
+__label__circle_create Abeg help me start an ajo group
 __label__ride_request Book an okada ride to Bodija
 __label__ride_request I need a keke or taxi now
 __label__ride_request Get me a ride to the airport
@@ -162,4 +168,39 @@ __label__referral I want to send my referral code to a friend
 __label__referral Refer friends and get free points
 __label__referral Give me my referral invite code
 __label__referral I want to invite my contacts to Kurukoo
+__label__referral How do referrals work
+__label__referral How can I refer someone
+__label__referral Explain the referral rewards
+__label__referral Where is my referral link
+__label__referral Abeg show me my invite link
 __label__referral Share referral link and earn bonus credits
+__label__subscription What subscriptions are available
+__label__subscription Show me Kurukoo subscription plans
+__label__subscription How much is the provider plan
+__label__subscription I want to upgrade my Kurukoo membership
+__label__subscription Which plan can I use for my business
+__label__subscription Abeg show me the subscription options
+__label__advertising How can I advertise on Kurukoo
+__label__advertising I want to promote my business
+__label__advertising Show me the advertising options
+__label__advertising How do I create a campaign
+__label__advertising I want to reach customers through Kurukoo
+__label__advertising Help me place a sponsored promotion
+__label__advertising How can I advertise on Kurukoo
+__label__advertising How do I advertise my business on Kurukoo
+__label__advertising I want to run an advert on Kurukoo
+__label__advertising Show me the Kurukoo advertiser page
+__label__advertising I want to promote my shop on Kurukoo
+__label__advertising Abeg help me advertise my business
+__label__autonomous_agent Show me my agents
+__label__autonomous_agent Create an agent to keep checking for a plumber
+__label__autonomous_agent What is my agent doing
+__label__autonomous_agent Pause my agent goal
+__label__autonomous_agent Resume the agent that is monitoring my request
+__label__autonomous_agent Cancel my autonomous agent
+__label__view_balance How do I earn Points on Kurukoo
+__label__view_balance Show my Points balance and history
+__label__view_balance Can I top up my Points
+__label__nearby_pulse_start Turn on Go Live for Nearby Pulse
+__label__nearby_pulse_start How do I appear on Nearby Radar
+__label__nearby_pulse_stop Switch off my live provider status

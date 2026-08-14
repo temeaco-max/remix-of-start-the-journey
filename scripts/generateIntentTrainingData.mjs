@@ -60,6 +60,12 @@ const trainingData = [
     { text: 'I want to save money in a circle group', label: 'circle_create' },
     { text: 'Open an ajo savings group with my colleagues', label: 'circle_create' },
     { text: 'Begin a money circle for weekly savings', label: 'circle_create' },
+    { text: 'Create a Money Circle', label: 'circle_create' },
+    { text: 'Set up a money circle', label: 'circle_create' },
+    { text: 'How do I create a money circle', label: 'circle_create' },
+    { text: 'Start an ajo savings circle', label: 'circle_create' },
+    { text: 'Create an esusu group', label: 'circle_create' },
+    { text: 'Abeg help me start an ajo group', label: 'circle_create' },
 
     // ── ride_request (13) ──
     { text: 'Book an okada ride to Bodija', label: 'ride_request' },
@@ -192,7 +198,52 @@ const trainingData = [
     { text: 'Refer friends and get free points', label: 'referral' },
     { text: 'Give me my referral invite code', label: 'referral' },
     { text: 'I want to invite my contacts to Kurukoo', label: 'referral' },
+    { text: 'How do referrals work', label: 'referral' },
+    { text: 'How can I refer someone', label: 'referral' },
+    { text: 'Explain the referral rewards', label: 'referral' },
+    { text: 'Where is my referral link', label: 'referral' },
+    { text: 'Abeg show me my invite link', label: 'referral' },
     { text: 'Share referral link and earn bonus credits', label: 'referral' },
+
+    // ── subscription ──
+    { text: 'What subscriptions are available', label: 'subscription' },
+    { text: 'Show me Kurukoo subscription plans', label: 'subscription' },
+    { text: 'How much is the provider plan', label: 'subscription' },
+    { text: 'I want to upgrade my Kurukoo membership', label: 'subscription' },
+    { text: 'Which plan can I use for my business', label: 'subscription' },
+    { text: 'Abeg show me the subscription options', label: 'subscription' },
+
+    // ── advertising ──
+    { text: 'How can I advertise on Kurukoo', label: 'advertising' },
+    { text: 'I want to promote my business', label: 'advertising' },
+    { text: 'Show me the advertising options', label: 'advertising' },
+    { text: 'How do I create a campaign', label: 'advertising' },
+    { text: 'I want to reach customers through Kurukoo', label: 'advertising' },
+    { text: 'Help me place a sponsored promotion', label: 'advertising' },
+    { text: 'How can I advertise on Kurukoo', label: 'advertising' },
+    { text: 'How do I advertise my business on Kurukoo', label: 'advertising' },
+    { text: 'I want to run an advert on Kurukoo', label: 'advertising' },
+    { text: 'Show me the Kurukoo advertiser page', label: 'advertising' },
+    { text: 'I want to promote my shop on Kurukoo', label: 'advertising' },
+    { text: 'Abeg help me advertise my business', label: 'advertising' },
+
+    // ── autonomous_agent ──
+    { text: 'Show me my agents', label: 'autonomous_agent' },
+    { text: 'Create an agent to keep checking for a plumber', label: 'autonomous_agent' },
+    { text: 'What is my agent doing', label: 'autonomous_agent' },
+    { text: 'Pause my agent goal', label: 'autonomous_agent' },
+    { text: 'Resume the agent that is monitoring my request', label: 'autonomous_agent' },
+    { text: 'Cancel my autonomous agent', label: 'autonomous_agent' },
+
+    // ── points ──
+    { text: 'How do I earn Points on Kurukoo', label: 'view_balance' },
+    { text: 'Show my Points balance and history', label: 'view_balance' },
+    { text: 'Can I top up my Points', label: 'view_balance' },
+
+    // ── nearby pulse ──
+    { text: 'Turn on Go Live for Nearby Pulse', label: 'nearby_pulse_start' },
+    { text: 'How do I appear on Nearby Radar', label: 'nearby_pulse_start' },
+    { text: 'Switch off my live provider status', label: 'nearby_pulse_stop' },
 ];
 
 const outputDir = path.join(process.cwd(), 'models');

@@ -135,6 +135,13 @@ function classifyWithMemory(query: string): FastTextResult | null {
     return { intent: best, confidence: Math.min(0.95, Math.max(0.70, score)), source: 'fallback' };
 }
 
+function correctKnownDomainCollision(query: string, result: FastTextResult | null): FastTextResult | null {
+    if (/\b(advertis(?:e|ing)?|advert|campaign|sponsored|promotion|promote)\b/i.test(query) && result?.intent !== 'advertising') {
+        return { intent: 'advertising', confidence: 0.99, source: 'rules' };
+    }
+    return result;
+}
+
 export function classifyWithFastText(query: string): FastTextResult | null {
     const q = query.trim();
     if (!q) return null;
@@ -145,7 +152,7 @@ export function classifyWithFastText(query: string): FastTextResult | null {
     // The real FastText model is always preferred. Rules are a deterministic safety
     // net for action intents, followed by the training-data fallback when the binary
     // model is unavailable in a development environment.
-    const result = classifyWithBinaryModel(q) || ruleClassify(q) || classifyWithMemory(q);
+    const result = correctKnownDomainCollision(q, classifyWithBinaryModel(q) || ruleClassify(q) || classifyWithMemory(q));
     if (classificationCache.size > 2000) classificationCache.delete(classificationCache.keys().next().value as string);
     classificationCache.set(key, { result, expiresAt: Date.now() + CACHE_TTL_MS });
 

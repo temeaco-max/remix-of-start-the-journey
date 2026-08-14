@@ -37,3 +37,11 @@ The first sweep was performed against a stale production process and reported `/
 The deployed public route sweep was reviewed against the latest local production build. `/discover` returned 304 and rendered the Nearby Pulse surface; `/advertise` returned 304 and disclosed that self-service advertising is unavailable in this deployment. The authenticated `/daily-picks` workspace was entered through the controlled development-auth flow using the synthetic configured test actor.
 
 Daily Picks rendered both the hero text “clearly labelled promotions” and the recommendation disclosure “Sponsored content is always labelled.” Its sponsored panel was visibly labelled “Sponsored,” described itself as a controlled advertisement slot, and showed “No active promotion.” A second sponsored preview card stated “Sponsored,” “Advertisement placement preview,” and “Sponsored content will never interrupt an active conversation.” No unlabelled campaign appeared. The current sandbox therefore has the disclosure implementation visible and truthful, while no active campaign is being claimed.
+
+## Attached finalization implementation: first-party campaigns
+
+The canonical ad manager now owns an idempotent set of eight active Kurukoo first-party campaigns: Ask Kurukoo, Nearby, Topics, Contributors, Agents, Referral, Business, and Channels. Each record has first-party identity, campaign type, disclosure, CTA, destination, placement, category, priority, targeting, schedule fields, and metrics fields. Public Explore and Daily Picks eligibility now filters to active first-party campaigns with valid time windows, while the same model remains available for future external advertisers.
+
+Legacy demo/test records were observed in the first browser query before the public eligibility filter was added. The filter and Daily Picks projection were then repaired. Source and `dist/views/workspace.ejs` contain the new `Public promotions` and `workspace-promo-list` markup. A subsequent browser session appeared to retain the previous placeholder despite the rebuilt distribution containing the new markup; this is being investigated as a browser/server cache or session-state discrepancy before final acceptance.
+
+`npm run lint`, `npm run test:advertising`, `npm run test:public-routes`, and `npm run build` pass after the activation changes.

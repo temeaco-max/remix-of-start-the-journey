@@ -79,7 +79,7 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
       await new Promise(r => setTimeout(r, 8));
     }
     sse(res, { type: 'status', status: 'complete' });
-    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation });
+    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, diagnostics: turn.classificationSource ? { classificationSource: turn.classificationSource, intentConfidence: turn.intentConfidence } : undefined });
     sse(res, '[DONE]');
     res.end();
   } catch (error: any) {

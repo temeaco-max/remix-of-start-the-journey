@@ -151,7 +151,7 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
     }
 
     // --- Type E: Sponsored Daily Picks (Ad campaigns) ---
-    const adsStmt = db.prepare(`SELECT * FROM ad_campaigns WHERE status = 'active' LIMIT 2`);
+    const adsStmt = db.prepare(`SELECT * FROM ad_campaigns WHERE status = 'active' AND first_party = 1 AND (start_at IS NULL OR datetime(start_at) <= datetime('now')) AND (expires_at IS NULL OR datetime(expires_at) > datetime('now')) ORDER BY priority DESC, id DESC LIMIT 3`);
     let adCount = 0;
     while (adsStmt.step()) {
         const ad = adsStmt.getAsObject();
@@ -160,9 +160,8 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
             type: 'daily_pick',
             title: ad.title as string,
             subtitle: `${String(ad.disclosure || 'Sponsored').trim()} · ${String(ad.desc || '')}`,
-
-            ctaText: 'Ask in Web Chat',
-            ctaLink: `/chat?prompt=${encodeURIComponent(`I am interested in ${String(ad.title || 'this offer')}`)}`,
+            ctaText: String(ad.cta_text || 'Learn more'),
+            ctaLink: String(ad.destination || '/chat'),
             urgency: 0.5,
             businessValue: 1.0 // High revenue sponsored ad
         });

@@ -11,6 +11,12 @@ export interface AdCampaign {
     status: string;
     campaignType?: string;
     disclosure?: string;
+    advertiserName?: string;
+    firstParty?: number;
+    ctaText?: string;
+    destination?: string;
+    priority?: number;
+    targeting?: string;
     placement?: string;
     category?: string;
     country?: string;
@@ -28,8 +34,14 @@ function ensureAdSchema(db: any): void {
     const columns = new Set<string>();
     for (const row of db.exec('PRAGMA table_info(ad_campaigns)')[0]?.values || []) columns.add(String(row[1]));
     const additions: Array<[string, string]> = [
-        ['campaign_type', "TEXT DEFAULT 'demo_internal'"],
-        ['disclosure', "TEXT DEFAULT 'Kurukoo demo'"],
+        ['campaign_type', "TEXT DEFAULT 'external'"],
+        ['disclosure', "TEXT DEFAULT 'Sponsored'"],
+        ['advertiser_name', "TEXT DEFAULT ''"],
+        ['first_party', 'INTEGER DEFAULT 0'],
+        ['cta_text', "TEXT DEFAULT 'Learn more'"],
+        ['destination', "TEXT DEFAULT '/chat'"],
+        ['priority', 'INTEGER DEFAULT 0'],
+        ['targeting', "TEXT DEFAULT '{}'"],
         ['placement', "TEXT DEFAULT 'public_discovery'"],
         ['category', "TEXT DEFAULT 'community'"],
         ['country', "TEXT DEFAULT 'NG'"],
@@ -41,7 +53,7 @@ function ensureAdSchema(db: any): void {
         ['clicks', 'INTEGER DEFAULT 0'],
     ];
     for (const [name, definition] of additions) if (!columns.has(name)) db.run(`ALTER TABLE ad_campaigns ADD COLUMN ${name} ${definition}`);
-    db.run(`UPDATE ad_campaigns SET campaign_type=COALESCE(campaign_type, 'demo_internal'), disclosure=COALESCE(disclosure, 'Kurukoo demo advertisement'), placement=COALESCE(placement, 'public_discovery'), category=COALESCE(category, 'community'), country=COALESCE(country, 'NG'), region=COALESCE(region, ''), frequency_cap=COALESCE(frequency_cap, 3), impressions=COALESCE(impressions, 0), clicks=COALESCE(clicks, 0)`);
+    db.run(`UPDATE ad_campaigns SET campaign_type=COALESCE(campaign_type, 'external'), disclosure=COALESCE(disclosure, 'Sponsored'), advertiser_name=COALESCE(advertiser_name, ''), first_party=COALESCE(first_party, 0), cta_text=COALESCE(cta_text, 'Learn more'), destination=COALESCE(destination, '/chat'), priority=COALESCE(priority, 0), targeting=COALESCE(targeting, '{}'), placement=COALESCE(placement, 'public_discovery'), category=COALESCE(category, 'community'), country=COALESCE(country, 'NG'), region=COALESCE(region, ''), frequency_cap=COALESCE(frequency_cap, 3), impressions=COALESCE(impressions, 0), clicks=COALESCE(clicks, 0)`);
 }
 
 
@@ -68,8 +80,8 @@ export async function createAdCampaign(campaign: Omit<AdCampaign, 'id' | 'credit
     const db = await getDb();
     ensureAdSchema(db);
     db.run(
-        `INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, campaign_type, disclosure, placement) VALUES (?, ?, ?, ?, ?, 'demo_internal', 'Kurukoo demo advertisement', 'public_discovery')`,
-        [campaign.title, campaign.desc, campaign.imageUrl, campaign.targetKeyword, campaign.creditsBudget]
+        `INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, campaign_type, disclosure, advertiser_name, first_party, cta_text, destination, placement, category, country, region, start_at, expires_at, frequency_cap, priority, targeting) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [campaign.title, campaign.desc, campaign.imageUrl, campaign.targetKeyword, campaign.creditsBudget, campaign.campaignType || 'external', campaign.disclosure || 'Sponsored', campaign.advertiserName || '', campaign.firstParty ? 1 : 0, campaign.ctaText || 'Learn more', campaign.destination || '/chat', campaign.placement || 'public_discovery', campaign.category || 'community', campaign.country || 'NG', campaign.region || '', campaign.startAt || null, campaign.expiresAt || null, campaign.frequencyCap || 3, campaign.priority || 0, campaign.targeting || '{}']
     );
     saveDb();
     return { success: true, message: 'Ad campaign created successfully' };
@@ -100,8 +112,11 @@ export async function matchAdCampaigns(query: string): Promise<AdCampaign[]> {
     const cleanQuery = query.toLowerCase();
 
     // Return active campaigns whose keywords are found in the query
+    const now = Date.now();
     const matched = allCampaigns.filter(c => {
         if (c.status !== 'active') return false;
+        if (c.startAt && Date.parse(c.startAt) > now) return false;
+        if (c.expiresAt && Date.parse(c.expiresAt) <= now) return false;
         const kw = c.targetKeyword.toLowerCase().trim();
         return kw && cleanQuery.includes(kw);
     });
@@ -112,15 +127,21 @@ export async function matchAdCampaigns(query: string): Promise<AdCampaign[]> {
 export async function seedDemoAdCampaigns(): Promise<void> {
     const db = await getDb();
     ensureAdSchema(db);
-    const existing = db.exec(`SELECT count(*) FROM ad_campaigns`);
-    if (existing[0].values[0][0] === 0) {
-        db.run(`
-            INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget) VALUES 
-            ('[Kurukoo demo] Premium Jasmine Rice (50kg)', 'Get premium quality jasmine rice delivered to your doorstep.', 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400', 'rice', 50),
-            ('[Kurukoo demo] Swift Okada Riders Ibadan', 'Request Ibadan fast local okada. 10% discount on first ride today.', 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&q=80&w=400', 'ride', 100),
-            ('[Kurukoo demo] Dugbe Bakers Association', 'Get hot, freshly baked Ibadan soft bread delivered to your area.', 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400', 'bread', 80)
-        `);
-        saveDb();
-        console.log('Demo ad campaigns seeded successfully');
+    const campaigns = [
+        ['Ask Kurukoo', 'Tell Kurukoo what you need and keep everything in one conversation.', 'chat', 'Open Chat', '/chat', 'public_home', 'community', 100],
+        ['Find useful people and services nearby', 'Explore eligible providers, agents, events and activity around you.', 'nearby', 'Explore Nearby', '/discover', 'public_discovery', 'community', 90],
+        ['Ask the community', 'Share or explore useful local questions, reports and experiences.', 'topics', 'Explore Topics', '/topics', 'public_content', 'community', 80],
+        ['Know something useful? Contribute it.', 'Share evidence and context without presenting it as verified fulfilment.', 'contributor', 'Become a Contributor', '/chat?prompt=I%20want%20to%20contribute%20useful%20local%20information', 'public_content', 'community', 70],
+        ['Let Kurukoo keep work moving', 'Create a bounded agent goal and review its progress, tools and limits.', 'agent', 'Explore Agents', '/chat?prompt=Show%20me%20my%20agents', 'public_workspace', 'agents', 60],
+        ['Bring someone to Kurukoo', 'Invite someone to start a conversation-first Kurukoo relationship.', 'referral', 'Invite a Friend', '/referral-qr/', 'public_workspace', 'community', 50],
+        ['Reach customers through Kurukoo', 'Explore disclosed, controlled business placements using the same campaign authority.', 'business', 'Explore Business', '/advertise', 'public_business', 'business', 40],
+        ['Use Kurukoo where you already are', 'Review the connected access channels and their current readiness.', 'channels', 'Explore Channels', '/channels', 'public_channels', 'channels', 30],
+    ];
+    for (const [title, desc, keyword, cta, destination, placement, category, priority] of campaigns) {
+        const exists = db.exec('SELECT id FROM ad_campaigns WHERE title = ? AND first_party = 1 LIMIT 1', [title]);
+        if (exists.length && exists[0].values.length) continue;
+        db.run(`INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, status, campaign_type, disclosure, advertiser_name, first_party, cta_text, destination, placement, category, country, region, frequency_cap, priority, targeting) VALUES (?, ?, '', ?, 0, 'active', 'first_party', 'Kurukoo promotion', 'Kurukoo', 1, ?, ?, ?, ?, ?, '', 5, ?, ?)`, [title, desc, keyword, cta, destination, placement, category, priority, JSON.stringify({ scope: 'public', safetyExcluded: true })]);
     }
+    saveDb();
+    console.log('First-party Kurukoo campaigns ensured');
 }
