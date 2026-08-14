@@ -5444,3 +5444,14 @@ Connect is the user-facing setup boundary for WhatsApp, Telegram and other chann
 Top up and Subscription belong in the More navigation group and load into the same central Chat surface as Points and other workspace actions. Top up is payment-gated and may explain sandbox versus verified production payment without claiming a completed transaction. Subscription is a conversational plan-review surface; a plan change requires the configured pricing authority and verified payment reference.
 
 Chat message presentation follows the homepage request-preview language as a visual reference: white assistant surfaces with the Kurukoo mark, warm off-white user surfaces rather than green, compact rounded geometry, and quiet icon-only actions that become clearer on hover or focus. This styling must preserve existing streaming, copy, edit, retry, pin, delete, safety and accessibility contracts.
+
+
+## Full Chat-first route and role wiring audit
+
+Operational user surfaces load inside the central Chat shell through the shared `renderWorkspaceSurface` flow. The verified registry covers Requests, Reminders, Saved & offers, Cart, Points, Top up, Subscription, Tasks, Daily Picks, Discover, Connect, Memory, Safety & check-ins, Call, Settings and Topics. Discover, Connect and Topics keep their dedicated server templates but are parsed and injected into the same central shell with the active header, shared composer and contextual inspector.
+
+Central-surface Ask actions activate the existing composer instead of navigating away. Generated surface Ask controls focus the composer directly; imported workspace Ask links now preserve their prompt in the composer, dispatch the normal input event, and focus the field.
+
+Cart is an explicit owner-scoped review boundary. Authoritative Economic Offers are added through `/api/cart/items`, reviewed through `/api/cart`, and removed through the owner-checked delete route. Seller, source, provenance, media, price and external URL data remain attached to the review item. Affiliate destinations are attributed through `/api/cart/affiliate-click` and never represented as a local paid order. Local checkout remains payment-gated and hands off to the canonical Economic Request and payment/escrow boundaries rather than creating a parallel checkout engine.
+
+Consumers, providers, businesses, contributors, channel users, safety users and referral participants converge on the same authenticated identity and Chat surface while retaining their existing service authorities. Provider verification, provider subscriptions, contributor task completion, channel delivery, safety contact notification, referral reward, payment, escrow and fulfillment claims remain gated by their existing evidence and authorization contracts. Guest intent remains conversational but cannot create persistent reminders, orders, cart items, payment records or role-specific data.
