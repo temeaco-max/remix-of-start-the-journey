@@ -9,6 +9,9 @@
   };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
+  const activityStages = ['Working through your request', 'Organising the next step', 'Preparing a clear response'];
+  let activityTimer = null;
+  let activityStageIndex = 0;
   const pinStorageKey = () => `kurukoo_pins_${state.conversationId || 'draft'}`;
   function savePinnedMessages() { try { localStorage.setItem(pinStorageKey(), JSON.stringify(state.pinnedMessages)); } catch {} }
   function loadPinnedMessages() { try { const parsed = JSON.parse(localStorage.getItem(pinStorageKey()) || '[]'); state.pinnedMessages = Array.isArray(parsed) ? parsed.slice(0, 12) : []; } catch { state.pinnedMessages = []; } renderPinnedMessages(); }
@@ -51,7 +54,11 @@
   function setTypingStatus(status = 'complete', label = '') {
     const active = status === 'typing' || status === 'thinking';
     let indicator = chatContent?.querySelector('[data-kurukoo-typing]');
-    if (!active) { indicator?.remove(); return; }
+    if (!active) {
+      if (activityTimer) { clearInterval(activityTimer); activityTimer = null; }
+      indicator?.remove();
+      return;
+    }
     if (!indicator) {
       indicator = document.createElement('article');
       indicator.className = 'typing-indicator message assistant';
@@ -64,9 +71,21 @@
       avatar.appendChild(image);
       const bubble = makeElement('div', 'bubble typing-indicator-bubble');
       const text = makeElement('span', 'typing-indicator-label');
+      const activity = makeElement('span', 'agent-activity-line');
+      activity.setAttribute('aria-hidden', 'true');
+      const orbit = makeElement('span', 'agent-activity-orbit');
+      orbit.append(makeElement('i'), makeElement('i'), makeElement('i'));
+      const stage = makeElement('span', 'agent-activity-stage', activityStages[activityStageIndex]);
+      activity.append(orbit, stage);
       const dots = makeElement('span', 'typing-indicator-dots'); dots.setAttribute('aria-hidden', 'true');
       dots.append(makeElement('i'), makeElement('i'), makeElement('i'));
-      bubble.append(text, dots); indicator.append(avatar, bubble); chatContent?.appendChild(indicator);
+      bubble.append(text, activity, dots); indicator.append(avatar, bubble); chatContent?.appendChild(indicator);
+      activityTimer = setInterval(() => {
+        const current = chatContent?.querySelector('[data-kurukoo-typing] .agent-activity-stage');
+        if (!current) return;
+        activityStageIndex = (activityStageIndex + 1) % activityStages.length;
+        current.textContent = activityStages[activityStageIndex];
+      }, 1800);
     }
     indicator.dataset.status = status;
     const text = indicator.querySelector('.typing-indicator-label');
@@ -805,7 +824,7 @@
       if (attachment instanceof File) { input.placeholder = 'Uploading attachment…'; attachment = await uploadAttachment(attachment); }
       state.attached = null; $('attachment-preview').hidden = true; $('attachment-preview').textContent = '';
       const finalText = attachment ? `${text}\n\n[Attachment: ${attachment.name} — ${attachment.type} — ${attachment.url}]` : text;
-      const user = addUserMessage(finalText); const assistant = appendStreamBubble(); const output = assistant.querySelector('.markdown-body'); const thinking = assistant.querySelector('.thinking'); let full = '';
+      const user = addUserMessage(finalText); const assistant = appendStreamBubble(); const output = assistant.querySelector('.markdown-body'); const thinking = assistant.querySelector('.thinking'); let full = ''; setTypingStatus('thinking');
       const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', signal: state.controller?.signal, body: JSON.stringify({ message: finalText, channel: 'web', conversationId: state.conversationId || undefined, attachment: attachment || undefined }) });
       if (response.status === 401) { await ensureIdentity(); throw new Error('Your session has expired.'); }
       if (!response.ok || !response.body) throw new Error(`Chat request failed (${response.status})`);
