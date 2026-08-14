@@ -1198,11 +1198,12 @@
   async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; if (!state.displayName && profile.name) state.displayName = String(profile.name); const memoryStatus = $('sidebar-memory-status'); if (memoryStatus) memoryStatus.textContent = profile.location || profile.name ? 'In use' : 'Ready'; personalizeQuickActions(profile); const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile remains attached to your account.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
 
   function renderAgentGoal(goal, events = []) {
-    const card = $('agent-goal-card'); const status = $('agent-goal-status'); const summary = $('agent-goal-summary'); const list = $('agent-goal-events'); const cancel = $('agent-goal-cancel');
-    if (!card || !status || !summary || !list || !cancel) return;
+    const card = $('agent-goal-card'); const status = $('agent-goal-status'); const summary = $('agent-goal-summary'); const list = $('agent-goal-events'); const pause = $('agent-goal-pause'); const cancel = $('agent-goal-cancel');
+    if (!card || !status || !summary || !list || !pause || !cancel) return;
     if (!goal) { card.hidden = true; card.dataset.goalAvailable = 'false'; return; }
     card.hidden = false; card.dataset.goalAvailable = 'true'; card.dataset.goalId = String(goal.id || '');
-    status.textContent = String(goal.status || 'checking').replace(/_/g, ' ');
+    const goalStatus = String(goal.status || 'checking');
+    status.textContent = goalStatus.replace(/_/g, ' ');
     summary.textContent = String(goal.summary || goal.objective || 'Kurukoo is checking the current objective.');
     list.replaceChildren();
     (Array.isArray(events) ? events.slice(-4) : []).forEach(event => {
@@ -1211,14 +1212,24 @@
       list.appendChild(row);
     });
     if (!list.childElementCount) list.appendChild(makeElement('div', 'empty-state', 'Kurukoo will show confirmed activity here.'));
-    const stoppable = ['active', 'waiting', 'needs_user', 'blocked'].includes(String(goal.status || ''));
+    const stoppable = ['active', 'waiting', 'needs_user', 'blocked'].includes(goalStatus);
+    const paused = goalStatus === 'waiting' && String(goal.summary || '').toLowerCase().startsWith('paused at your request');
+    pause.hidden = !stoppable;
+    pause.textContent = paused ? 'Resume' : 'Pause';
     cancel.hidden = !stoppable;
-    cancel.onclick = async () => {
-      if (!goal.id) return; cancel.disabled = true;
-      try { const response = await fetch(`/api/agent/goals/${encodeURIComponent(goal.id)}/cancel`, { method: 'POST', credentials: 'same-origin' }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'Could not stop follow-up.'); renderAgentGoal(data.goal, events); }
-      catch (error) { setInspectorFeedback(error.message || 'Could not stop follow-up.', 'error'); }
-      finally { cancel.disabled = false; }
+    const submitGoalAction = async (action, failureMessage) => {
+      if (!goal.id) return;
+      pause.disabled = true; cancel.disabled = true;
+      try {
+        const response = await fetch(`/api/agent/goals/${encodeURIComponent(goal.id)}/${action}`, { method: 'POST', credentials: 'same-origin' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || failureMessage);
+        renderAgentGoal(data.goal, events);
+      } catch (error) { setInspectorFeedback(error.message || failureMessage, 'error'); }
+      finally { pause.disabled = false; cancel.disabled = false; }
     };
+    pause.onclick = () => submitGoalAction(paused ? 'resume' : 'pause', paused ? 'Could not resume follow-up.' : 'Could not pause follow-up.');
+    cancel.onclick = () => submitGoalAction('cancel', 'Could not stop follow-up.');
   }
 
   async function loadAgentGoal() {

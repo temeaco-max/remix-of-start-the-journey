@@ -55,6 +55,60 @@ function maxConcurrent(): number { return Math.max(1, Math.min(50, Number(proces
 function maxRetries(): number { return Math.max(0, Math.min(5, Number(process.env.KURUKOO_AGENT_MAX_RETRIES || 2))); }
 function cooldownMs(): number { return Math.max(5, Math.min(3600, Number(process.env.KURUKOO_AGENT_COOLDOWN_SECONDS || 30))) * 1000; }
 
+type AgentWorkerHealth = {
+  startedAt: string | null;
+  lastCycleStartedAt: string | null;
+  lastCycleCompletedAt: string | null;
+  lastCycleGoalCount: number;
+  lastCycleUpdatedCount: number;
+  lastCycleError: string | null;
+  cycleRunning: boolean;
+  cycleCount: number;
+};
+
+const workerHealth: AgentWorkerHealth = {
+  startedAt: null,
+  lastCycleStartedAt: null,
+  lastCycleCompletedAt: null,
+  lastCycleGoalCount: 0,
+  lastCycleUpdatedCount: 0,
+  lastCycleError: null,
+  cycleRunning: false,
+  cycleCount: 0,
+};
+
+export function markAgentWorkerStarted(): void {
+  workerHealth.startedAt = new Date().toISOString();
+  workerHealth.lastCycleError = null;
+}
+
+export function markAgentWorkerCycleStarted(): boolean {
+  if (workerHealth.cycleRunning) return false;
+  workerHealth.cycleRunning = true;
+  workerHealth.lastCycleStartedAt = new Date().toISOString();
+  workerHealth.lastCycleError = null;
+  return true;
+}
+
+export function markAgentWorkerCycleCompleted(goalCount: number, updatedCount: number): void {
+  workerHealth.cycleRunning = false;
+  workerHealth.lastCycleCompletedAt = new Date().toISOString();
+  workerHealth.lastCycleGoalCount = Math.max(0, goalCount);
+  workerHealth.lastCycleUpdatedCount = Math.max(0, updatedCount);
+  workerHealth.cycleCount += 1;
+}
+
+export function markAgentWorkerCycleFailed(error: unknown): void {
+  workerHealth.cycleRunning = false;
+  workerHealth.lastCycleError = String(error instanceof Error ? error.message : error || 'Unknown worker error').slice(0, 500);
+  workerHealth.cycleCount += 1;
+}
+
+export function markAgentWorkerStopped(): void {
+  workerHealth.cycleRunning = false;
+}
+
+
 export async function ensureAgentRuntimeSchema(): Promise<void> {
   const db = await getDb();
   db.run(`CREATE TABLE IF NOT EXISTS agent_goals (
@@ -339,8 +393,16 @@ export async function notifyGoalIfNeeded(goal: AgentGoal): Promise<void> {
   await sendFcmPush(goal.phone, 'Kurukoo update', message, '/chat/');
 }
 
-export function agentRuntimeStatus(): { enabled: boolean; autonomous: boolean; maxActionsPerCycle: number; maxConcurrentGoals: number; maxRetries: number; cooldownSeconds: number } {
-  return { enabled: enabled(), autonomous: autonomousEnabled(), maxActionsPerCycle: maxActions(), maxConcurrentGoals: maxConcurrent(), maxRetries: maxRetries(), cooldownSeconds: Math.floor(cooldownMs() / 1000) };
+export function agentRuntimeStatus(): { enabled: boolean; autonomous: boolean; maxActionsPerCycle: number; maxConcurrentGoals: number; maxRetries: number; cooldownSeconds: number; worker: AgentWorkerHealth } {
+  return {
+    enabled: enabled(),
+    autonomous: autonomousEnabled(),
+    maxActionsPerCycle: maxActions(),
+    maxConcurrentGoals: maxConcurrent(),
+    maxRetries: maxRetries(),
+    cooldownSeconds: Math.floor(cooldownMs() / 1000),
+    worker: { ...workerHealth },
+  };
 }
 
 export function isEconomicGoalSkill(skill: string): boolean { return ECONOMIC_SKILLS.has(skill); }

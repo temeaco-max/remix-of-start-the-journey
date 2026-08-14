@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateAdmin, authenticateUser, type AuthRequest } from '../middleware/auth.js';
-import { agentRuntimeStatus, cancelAgentGoal, getAgentGoal, goalTimeline, listAgentGoalEvents, listAgentGoals } from '../services/agentRuntime.js';
+import { agentRuntimeStatus, cancelAgentGoal, getAgentGoal, goalTimeline, listAgentGoalEvents, listAgentGoals, pauseAgentGoal, resumeAgentGoal } from '../services/agentRuntime.js';
 
 const router = Router();
 
@@ -18,6 +18,20 @@ router.get('/goals/:id', authenticateUser, async (req: AuthRequest, res) => {
   const goal = await getAgentGoal(owner, String(req.params.id || ''));
   if (!goal) return res.status(404).json({ error: 'Goal not found' });
   res.json({ success: true, goal, events: await listAgentGoalEvents(owner, goal.id) });
+});
+
+router.post('/goals/:id/pause', authenticateUser, async (req: AuthRequest, res) => {
+  const owner = phone(req); if (!owner) return res.status(401).json({ error: 'Authentication required' });
+  const goal = await pauseAgentGoal(owner, String(req.params.id || ''));
+  if (!goal) return res.status(404).json({ error: 'Goal not found' });
+  res.json({ success: true, goal });
+});
+
+router.post('/goals/:id/resume', authenticateUser, async (req: AuthRequest, res) => {
+  const owner = phone(req); if (!owner) return res.status(401).json({ error: 'Authentication required' });
+  const goal = await resumeAgentGoal(owner, String(req.params.id || ''));
+  if (!goal) return res.status(404).json({ error: 'Goal not found' });
+  res.json({ success: true, goal });
 });
 
 router.post('/goals/:id/cancel', authenticateUser, async (req: AuthRequest, res) => {

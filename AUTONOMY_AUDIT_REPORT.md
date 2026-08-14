@@ -1,0 +1,84 @@
+# Kurukoo Autonomous-System Red-Team Audit
+
+**Audit mode:** Read-only source and runtime-contract audit before remediation  
+**Audit baseline:** `6cdb8e0 — Harden runtime observability and secure renderers`  
+**Branch:** `develop`  
+**Scope:** Repository correctness, Chat preservation, autonomous runtime, workers, policy tools, evidence, connectors, notifications, advertising, commerce, authentication, authorization, security, SEO/CMS, responsiveness, and deployment readiness.
+
+## Executive assessment
+
+Kurukoo is a **strong bounded agentic web platform**, but it is not yet an “ultra-autonomous” production machine in the unrestricted sense. The current architecture correctly prioritizes consent, owner scoping, evidence, explicit feature flags, payment confirmation, and fail-closed external integrations. That is the correct mandate-aligned direction.
+
+The read-only audit gives the current system an estimated **7.2/10 autonomous deployment maturity**:
+
+| Area | State | Assessment |
+|---|---|---|
+| Chat-centered user experience | Ready | Central surfaces, composer, inspector, background continuation, and protected message behavior are contract-covered. |
+| TypeScript correctness | Ready | `npm run lint` passed with no type errors. |
+| CSS system | Ready | CSS audit found no exact duplicate top-level blocks, duplicate core tokens, server-template inline styles, or server-template inline handlers. |
+| Route/service composition | Strong | 308 route declarations were detected; one canonical Chat/router boundary is present. |
+| Authentication and authorization | Strong | Economic routes, notifications, runtime status, and owner-scoped goals use explicit authentication boundaries. |
+| Autonomous goal persistence | Strong | Goals, plans, events, idempotency keys, retries, cooldowns, cancellation, and expiry fields exist. |
+| Autonomous tool safety | Strong but narrow | Four policy-declared tools exist; high-risk actions are denied and request ownership is enforced. |
+| Worker lifecycle | Partial | Background execution is flag-gated and overlap-protected, but health, last-run state, graceful shutdown, and operator control are limited. |
+| External connector autonomy | Partial | Connector evidence and provider authorization exist, but most real adapters remain unconfigured or provider-gated. |
+| Notification delivery | Partial | Durable internal inbox and deduplication exist; external FCM/email delivery remains unconfigured. |
+| Product/order autonomy | Partial | Economic Request, offer, payment, escrow, delivery, and dispute boundaries exist; complete catalog/stock/dispatch/fulfilment automation is not universally verified. |
+| Advertising/CMS | Strong | Admin-managed campaigns and approved image/disclosure governance are present. |
+| SEO/content | Strong | Public sitemap and CMS/content route contracts are present and tested. |
+| Deployability | Partial | Production JWT fail-closed behavior exists, but live provider credentials, webhook configuration, KYC, payment, affiliate, and agent runtime activation remain deployment prerequisites. |
+
+> “Ultra autonomy” is interpreted here as **maximum safe, evidence-based autonomy inside explicit user permissions and provider contracts**, not unrestricted access, silent purchasing, arbitrary tool execution, or bypassing consent.
+
+## Repository correctness
+
+The repository baseline was clean before remediation. The latest commit was `6cdb8e0`, the active branch was `develop`, and the tracked-file inventory contained 412 files: 188 TypeScript files, 21 JavaScript files, 32 EJS templates, 30 HTML files, 13 CSS files, and 47 Markdown files. The protected Chat files had no uncommitted modifications at audit start.
+
+TypeScript correctness passed through `npm run lint`. The CSS-system audit passed and reported 353,698 production CSS bytes, no exact duplicate top-level CSS blocks, no duplicate core design tokens, no inline style attributes in server-rendered frontend templates, and no inline event handlers in server-rendered frontend templates.
+
+The security-boundary audit passed, including the economic authorization checks. Service composition reported 81 services, one canonical Chat/router boundary, authenticated identity use, Chat streaming, Chat history, a channel router mounted at the composition root, email webhook presence, and raw webhook capture. It also reported 183 canonical skills without explicit database flows; the code intentionally uses category/default fallback flows for these skills, which is a correctness and product-coverage risk rather than an authorization failure.
+
+## Autonomous runtime findings
+
+### Existing strengths
+
+`src/services/agentRuntime.ts` implements persistent `agent_goals` and `agent_goal_events` tables, plan JSON, risk levels, confirmation flags, expiry, priorities, status transitions, owner scoping, event evidence, unique idempotency keys, cooldowns, bounded action counts, concurrency limits, retry limits, cancellation, and notification preference checks.
+
+`src/services/agentToolRegistry.ts` declares a narrow tool set: request-state reads, bounded memory reads, reminder reads, and an explicitly deployment-gated economic re-check. Tools reject anonymous identities, enforce request ownership, declare risk and authorization, and return evidence strings. High-risk actions are not available.
+
+`src/startup/backgroundServices.ts` activates the worker only when both `KURUKOO_AGENT_ENABLED` and `KURUKOO_AGENT_AUTONOMOUS` are true. It prevents overlapping cycles and processes due goals and deferred intentions through the existing canonical request flow.
+
+### Gaps requiring remediation
+
+| Severity | Gap | Evidence | Consequence |
+|---|---|---|---|
+| High | User pause/resume service functions are not exposed through authenticated routes | `pauseAgentGoal()` and `resumeAgentGoal()` exist, but `src/routes/agentRouter.ts` exposes list, detail, cancel, and timeline only. | Users cannot fully control an active autonomous goal from the API or UI. |
+| High | Worker observability is incomplete | Runtime status reports flags and numeric limits, but not last cycle, current cycle, due-goal count, last error, or worker health. | Operators cannot distinguish “enabled but idle,” “blocked by providers,” and “worker unhealthy.” |
+| High | Worker lifecycle is not graceful | `setInterval` timers are created in `startBackgroundServices()` without a retained handle or shutdown method. | Deploys and restarts cannot explicitly stop or drain autonomous work. |
+| Medium | Autonomous plans are mostly inspection plans | `buildGoalPlan()` creates a request inspection step and optional confirmation wait; execution primarily reads request state. | The system is bounded and safe, but not yet a general autonomous coordinator across all supported skill/service flows. |
+| Medium | Tool-plan state is not fully synchronized | Goal events contain evidence, but plan step statuses/currentStep are not consistently persisted after execution. | Operator and user views can underrepresent actual runtime progress. |
+| Medium | Notification delivery is durable internally but external delivery is not live by default | `sendFcmPush()` persists an internal notification and warns when external FCM is absent. | Autonomous updates do not reach users outside the web session until providers are configured. |
+| Medium | Connector evidence is available in execution services but not summarized in runtime readiness | Provider connector authorization and evidence exist in `executionConnector.ts`; readiness focuses mostly on environment presence. | Operators lack one consolidated “can this action run now?” evidence view. |
+| Medium | Worker cycles have no persistent run ledger | Cycle state exists only in memory (`cycleRunning`). | Post-restart auditability and incident diagnosis are limited. |
+
+## Advertising and CMS findings
+
+Advertising governance is materially strong. Admin campaign creation requires approved image assets and disclosure metadata, public rendering filters for approval, schedule, active state, and valid imagery, and placeholder/dummy assets are rejected. The remaining production limitation is external advertiser and delivery configuration; the repository cannot safely claim a live campaign marketplace without those provider and billing boundaries.
+
+CMS/content and SEO routes are present and tested. The main remaining risk is coverage depth: many canonical skills rely on category/default flows rather than explicit database-backed flow definitions. This should be treated as a controlled fallback, not silently marketed as fully specialized behavior.
+
+## Security and identity findings
+
+The security audit passed its static invariants, including rejection of URL-based JWT/admin tokens, demo phone identities in production paths, browser localStorage auth, legacy route boundaries, unauthenticated Economic Request mutations, and unsafe dynamic renderers in the protected Chat client and Request Hub.
+
+The production JWT fallback is fail-closed for missing or short secrets. Notifications are owner-scoped, deduplicated, and read-state protected. Runtime status is admin-only. No evidence was found in the read-only audit that the existing Chat surface bypasses authenticated identity or creates anonymous persistent records.
+
+## Protected Chat contract
+
+The Chat shell is a protected interface contract and currently includes central workspace routing, context-aware header, adaptive inspector, in-place background execution, Tasks Topics activity, proactive suggestions, Connect, Top up, Subscription, Cart review, message styling, shared Ask actions, and responsive behavior. No Chat changes are authorized merely to increase autonomy. Any remediation must preserve the existing composer, surfaces, right rail, message actions, typography, and navigation choreography.
+
+## Correctness conclusion before remediation
+
+The repository is **type-correct and structurally coherent**, with strong authorization and safety boundaries. The key correctness gaps are not broad syntax failures; they are operational completeness gaps: user control endpoints, worker health and shutdown, persistent cycle observability, synchronized plan progress, and consolidated connector-evidence readiness.
+
+The next implementation phase should address those gaps without weakening consent or exposing high-risk tools. Full autonomous production deployment remains conditional on real external credentials, verified callbacks/webhooks, payment/KYC/affiliate providers, notification delivery, connector evidence, and an explicit operator activation decision.
