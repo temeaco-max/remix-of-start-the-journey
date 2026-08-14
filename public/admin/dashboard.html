@@ -833,6 +833,10 @@
                     <div id="platform-observability-stream" style="font-size: 12px; max-height: 200px; overflow-y: auto; border: 1px solid #E5E2DE; border-radius: 6px; padding: 8px; background: #FFF;">
                         Loading internal metrics...
                     </div>
+                    <h4 style="margin-top: 16px; margin-bottom: 8px; font-size: 13px;">Pilot readiness and external adapters</h4>
+                    <div id="pilot-readiness-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;font-size:11px;">
+                        <div style="border:1px solid #E5E2DE;border-radius:6px;padding:8px;background:#FFF;">Loading readiness...</div>
+                    </div>
                 </div>
 
                 <!-- Dispute Resolution Board -->
@@ -1043,6 +1047,16 @@
                 document.getElementById('stat-credits').innerText = data.credits;
             }).catch(e => console.error('Stats error:', e));
 
+            fetch('/api/admin/pilot-readiness').then(res => res.json()).then(report => {
+                const grid = document.getElementById('pilot-readiness-grid');
+                const categories = report.categories || {};
+                const entries = Object.entries(categories).flatMap(([category, values]) => Object.entries(values || {}).map(([name, value]) => ({ category, name, value })));
+                grid.innerHTML = entries.map(({ category, name, value }) => {
+                    const state = String(value && value.state || 'UNKNOWN');
+                    const colour = state === 'READY' ? '#166534' : state === 'DISABLED' ? '#6B7280' : '#92400E';
+                    return `<div style="border:1px solid #E5E2DE;border-radius:6px;padding:8px;background:#FFF"><strong>${category}</strong><br/><span>${name}</span><br/><b style="color:${colour}">${state.replaceAll('_',' ')}</b></div>`;
+                }).join('') || '<div>No readiness data available.</div>';
+            }).catch(() => { document.getElementById('pilot-readiness-grid').textContent = 'Pilot readiness is temporarily unavailable.'; });
             // Load skill flows
             fetch('/api/admin/skill-flows').then(res=>res.json()).then(flows => {
                 const tbody = document.getElementById('skill-flows-tbody');

@@ -31,6 +31,8 @@ import { isProviderEntityType } from '../services/providerEntity.js';
 import { issueUserToken, upsertProfile } from './authRoutes.js';
 import { getConfiguredTestName, getConfiguredTestPhone, getDevelopmentTestAuthStatus } from '../services/devTestAuthService.js';
 import { getProfile, updateProfile } from '../services/memoryProfile.js';
+import { getPilotReadiness } from '../services/pilotReadiness.js';
+import { getAdCampaigns } from '../services/adManager.js';
 
 const router = Router();
 
@@ -300,6 +302,16 @@ router.post('/disputes/escalate', authenticateAdmin, async (req: AuthRequest, re
     console.error('Error escalating admin dispute:', e);
     res.status(500).json({ error: 'Failed to escalate dispute' });
   }
+});
+
+router.get('/ads', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try { res.json(await getAdCampaigns()); }
+  catch { res.status(500).json({ error: 'Unable to load advertising campaigns' }); }
+});
+
+router.get('/pilot-readiness', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try { res.json(getPilotReadiness()); }
+  catch { res.status(500).json({ error: 'Unable to read pilot readiness' }); }
 });
 
 // ── Stats / analytics ───────────────────────────────────────────────────

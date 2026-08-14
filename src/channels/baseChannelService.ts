@@ -19,6 +19,17 @@ export abstract class BaseChannelHandler {
 
     protected async onComplete(_meta: any): Promise<void> {}
 
+    /** Canonical conversation persistence boundary shared by every external channel. */
+    protected async appendChatMessage(input: { phone: string; message: string; channel: string }): Promise<{ conversationId: string; reply: string; cardData?: any }> {
+        const { processCanonicalChatTurn } = await import('../services/canonicalChatTurnService.js');
+        return processCanonicalChatTurn(input);
+    }
+
+    /** Canonical intent/routing boundary; channel handlers never own a parallel router. */
+    protected async routeIntent(input: { phone: string; message: string; channel: string }): Promise<{ conversationId: string; reply: string; cardData?: any }> {
+        return this.appendChatMessage(input);
+    }
+
     public async handleWebhook(body: any, headers: Record<string, any>): Promise<ChannelWebhookResult> {
         try {
             const parsed = this.parseMessage(body, headers);
@@ -26,8 +37,7 @@ export abstract class BaseChannelHandler {
 
             const { phone, text, meta } = parsed;
             await this.onStart(meta);
-            const { processCanonicalChatTurn } = await import('../services/canonicalChatTurnService.js');
-            const turn = await processCanonicalChatTurn({ phone, message: text, channel: this.channelName });
+            const turn = await this.routeIntent({ phone, message: text, channel: this.channelName });
 
             await recordChannelUsage({
                 phone,

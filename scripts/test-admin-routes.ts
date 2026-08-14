@@ -12,6 +12,8 @@ const paths = [
   '/api/admin/analytics',
   '/api/admin/content',
   '/api/admin/stats',
+  '/api/admin/pilot-readiness',
+  '/api/admin/ads',
 ];
 
 async function main() {

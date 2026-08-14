@@ -151,7 +151,7 @@ try {
     const economicRequests = db.exec(`SELECT COUNT(*) FROM economic_requests`);
     assert.equal(Number(economicRequests[0].values[0][0]), 0, 'Topic interaction must not create an economic request, payment, or fulfilment action');
   }
-  assert.equal(economicTable.length, 0, 'Topic interaction must not initialize the economic request lifecycle');
+  assert.equal(economicTable.length, 1, 'Fresh schema must initialize the Economic Request authority without Topic code owning it');
 
   const indexPage = await fetch(`${baseUrl}/topics`);
   assert.equal(indexPage.status, 200);
