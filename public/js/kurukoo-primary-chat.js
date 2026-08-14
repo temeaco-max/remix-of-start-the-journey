@@ -923,15 +923,29 @@
     return (await response.json()).attachment;
   }
 
+  function pushAgentSurfaceToast(title, detail, needsResponse = false) {
+    const region = $('chat-toast-region'); if (!region) return;
+    const toast = makeElement('div', 'chat-toast chat-toast-agent');
+    const copy = makeElement('div', 'chat-toast-copy'); copy.append(makeElement('strong', '', title || 'Kurukoo update'), makeElement('span', '', String(detail || '').slice(0, 360)));
+    const close = makeElement('button', 'chat-toast-close'); close.type = 'button'; close.setAttribute('aria-label', 'Dismiss Kurukoo update'); close.title = 'Dismiss'; close.append(makeIcon('close', 'Dismiss')); close.addEventListener('click', () => toast.remove());
+    if (needsResponse) toast.dataset.needsResponse = 'true';
+    toast.append(makeIcon('agent', 'Kurukoo'), copy, close); region.appendChild(toast);
+    setTimeout(() => toast.remove(), needsResponse ? 12000 : 7000);
+  }
+  function createBackgroundStreamBubble() {
+    const wrap = makeElement('article', 'message assistant message-streaming'); wrap.hidden = true;
+    const bubble = makeElement('div', 'bubble'); bubble.append(makeElement('div', 'thinking', 'Kurukoo is working…'), makeElement('div', 'markdown-body')); wrap.appendChild(bubble); return wrap;
+  }
   async function sendMessage(raw) {
     const text = String(raw || input.value || '').trim(); if (!text || state.busy || !(await ensureIdentity())) return;
+    const surfaceActive = Boolean(state.surfaceView);
     state.controller = new AbortController(); setComposerBusy(true); setConnection(true); input.value = '';
     let attachment = state.attached;
     try {
       if (attachment instanceof File) { input.placeholder = 'Uploading attachment…'; attachment = await uploadAttachment(attachment); }
       state.attached = null; $('attachment-preview').hidden = true; $('attachment-preview').textContent = '';
       const finalText = attachment ? `${text}\n\n[Attachment: ${attachment.name} — ${attachment.type} — ${attachment.url}]` : text;
-      const user = addUserMessage(finalText); const assistant = appendStreamBubble(); const output = assistant.querySelector('.markdown-body'); const thinking = assistant.querySelector('.thinking'); let full = ''; setTypingStatus('thinking');
+      const user = surfaceActive ? document.createElement('article') : addUserMessage(finalText); const assistant = surfaceActive ? createBackgroundStreamBubble() : appendStreamBubble(); const output = assistant.querySelector('.markdown-body'); const thinking = assistant.querySelector('.thinking'); let full = ''; setTypingStatus('thinking');
       const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', signal: state.controller?.signal, body: JSON.stringify({ message: finalText, channel: 'web', conversationId: state.conversationId || undefined, attachment: attachment || undefined }) });
       if (response.status === 401) { await ensureIdentity(); throw new Error('Your session has expired.'); }
       if (!response.ok || !response.body) throw new Error(`Chat request failed (${response.status})`);
@@ -963,7 +977,8 @@
 
             assistant.dataset.messageId = data.messageId || '';
             setDeferredStatus(data.cardData);
-            if (data.cardData) renderCard(data.cardData, assistant);
+            if (data.cardData && !surfaceActive) renderCard(data.cardData, assistant);
+            if (surfaceActive) pushAgentSurfaceToast(data.cardData?.title || 'Kurukoo update', full || data.cardData?.message || 'Kurukoo has an update for this task.', Boolean(data.cardData?.fields?.length || data.cardData?.needsUser));
             if (data.cardData?.type === 'agentic_storefront' && data.cardData.requestId) state.activeStorefrontId = data.cardData.requestId;
           }
           if (data.type === 'error') throw new Error(data.error || 'Stream error');
@@ -979,8 +994,9 @@
       await refreshHistory();
     } catch (error) {
       if (error?.name === 'AbortError') { setConnection(true); setTypingStatus('complete'); assistant.hidden = false; assistant.classList.remove('message-streaming'); assistant.classList.add('message-arrived'); if (!full) setMarkdown(output, 'Generation stopped.'); return; }
-      setConnection(false, 'Connection issue'); setTypingStatus('error'); assistant.hidden = false; assistant.classList.remove('message-streaming'); assistant.classList.add('message-arrived');
-      const bubble = chatContent.querySelector('.message.assistant:last-child .markdown-body');
+      setConnection(false, 'Connection issue'); setTypingStatus('error'); if (!surfaceActive) { assistant.hidden = false; assistant.classList.remove('message-streaming'); assistant.classList.add('message-arrived'); }
+      if (surfaceActive) pushAgentSurfaceToast('Kurukoo could not finish that', error.message || 'Please try again from the composer.', true);
+      const bubble = surfaceActive ? null : chatContent.querySelector('.message.assistant:last-child .markdown-body');
       if (bubble) setMarkdown(bubble, `I’m having trouble completing that right now. **Please try again.**\n\n_${escapeAttr(error.message)}_`);
     } finally { state.controller = null; setTypingStatus('complete'); setComposerBusy(false); if (state.authStep !== 'none') setAuthComposerStep(state.authStep); else input.placeholder = state.displayName ? 'Tell Kurukoo what you need…' : 'Tell Kurukoo what you need…'; input.focus(); loadPoints(); loadReminders(); loadSafety(); loadAgentGoal(); }
   }
@@ -1158,7 +1174,7 @@
       const url = new URL('/api/chat/history', location.origin); if (state.conversationId) url.searchParams.set('conversationId', state.conversationId); url.searchParams.set('limit', '60');
       const res = await fetch(url, { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); if (data.messages?.length) state.messages = data.messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.content, id: m.id })); const list = $('history-list'); if (!list) return; list.replaceChildren();
       data.conversations.forEach(c => addHistoryItem(c, c.id === state.conversationId));
-      if (data.messages?.length && chatContent.querySelectorAll('.message').length === 0) renderMessages(data.messages);
+      if (!state.surfaceView && data.messages?.length && chatContent.querySelectorAll('.message').length === 0) renderMessages(data.messages);
     } catch { setConnection(false, 'Offline'); }
     loadAgentGoal();
   }

@@ -5374,3 +5374,38 @@ Text, Web Voice, QR contextual entry, and future configured channels converge on
 ### 21b.5 Production requirements
 
 The runtime is feature-flagged off by default. Production activation requires an always-running Kurukoo application worker, policy-reviewed event adapters for each external source, notification preference checks, provider/connector evidence, and configured channel or push adapters before any external delivery claim. The default server worker is suitable for the present SQLite deployment; horizontally scaled production deployment requires a shared queue/lease before multiple worker replicas process the same due goal.
+
+
+---
+
+## v5.64 — Central Chat Surface Contract, Agent Continuation & Campaign Presentation (2026-08-14)
+
+### Central Chat surface is the canonical dashboard container
+
+All user workspace destinations are represented by the `surfacePaths` and `surfaceTitles` maps in `public/js/kurukoo-primary-chat.js`. Chat navigation must load Tasks, Requests, Reminders, Saved & Offers, Cart, Points, Daily Picks, Discover, Connect, Memory, Safety & Check-ins, Settings and Topics into `#chat-content` through `renderWorkspaceSurface(view)`. Workspace routes remain available as server-rendered sources for hydration and direct accessibility, but in the Chat experience their links must be intercepted with `data-surface-view` and must not cause full-page navigation.
+
+The central surface owns one compact return row: **Back to conversation → Your Kurukoo → surface title**. A fetched workspace header must be removed before inserting `.workspace-content` into the surface so the hierarchy is never duplicated. The composer remains mounted below the central surface and is not replaced when a workspace is active.
+
+### Shared visual system and responsive requirements
+
+Central surfaces reuse the existing Kurukoo tokens and classes from `kurukoo-chat.css` and `kurukoo-workspace.css`: `--chat-primary`, `--chat-surface`, `--chat-border`, `--chat-muted`, `--chat-charcoal`, `--chat-font-heading`, and `--chat-font-body`. New surface-specific styling should extend shared selectors rather than create parallel card, typography, or color systems. Typography remains Space Grotesk for headings and Inter for body/interface text. Surfaces must remain usable at 360px and above, reduce multi-column grids to one column on narrow viewports, preserve 44px touch targets, wrap long content, and avoid horizontal overflow.
+
+Workspace actions that return to the agent use the **logo → Ask** order. The existing Kurukoo logo silhouette is not altered; the small robotic treatment is an outer interface accent only, consisting of a restrained ring/sensor detail around the mark.
+
+### Header overflow menu contract
+
+The Chat header overflow menu contains, in order: **Pin**, **Saved & offers**, **Reminders**, and **Delete**. Saved & offers and Reminders use `data-surface-view` and load centrally. Delete is always last because it is destructive; it remains a guarded conversation operation and is not a workspace route.
+
+### In-context agent continuation
+
+When `state.surfaceView` is active and the user submits through the shared composer, the current workspace remains visible. The request continues through `/api/chat/stream` without replacing the active surface. Completion, errors, and user-response requirements are delivered through closeable notifications in `#chat-toast-region`, positioned at the upper-right of the central Chat content area. A notification marked `data-needs-response="true"` remains longer and signals that the next user input is required. Dismissing the notification does not navigate away; the composer is restored and focused in `finally` after every stream.
+
+This is the preferred interaction model for tasks and other workspace actions because it preserves user context while allowing the agent to continue working. The central surface should only be replaced when the user explicitly chooses Back to conversation or another workspace destination.
+
+### Advert and image placement contract
+
+All Sponsored, Daily Picks, discovery, workspace promotion, and inline promotional images must come from active admin-managed campaign records or approved local campaign assets seeded by `src/services/adManager.ts`. Frontend-only placeholder URLs are prohibited. Campaign records carry image URL, placement, category, audience/keyword targeting, disclosure, priority, schedule, destination and CTA metadata. Admin users select approved assets through the campaign image library in `public/admin/dashboard.html`. Diaspora campaigns may target cross-border family support, care coordination, property maintenance, celebrations and local-business support, while local campaigns cover informal-economy services such as food, delivery, tailoring, beauty, repairs and digital work.
+
+### Rebuild checklist
+
+A rebuild must preserve the single central surface renderer, the shared composer mounting point, surface-action interception, the compact hierarchy, the logo → Ask CTA order, the header menu order with Delete last, responsive one-column behavior, closeable top-right agent notifications, and admin-backed image campaign loading. Any new workspace page must be added to `surfacePaths`, `surfaceTitles`, the Chat navigation action, and the responsive/shared-style contract before it is exposed as a dashboard destination.
