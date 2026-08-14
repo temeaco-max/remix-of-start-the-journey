@@ -94,6 +94,14 @@ const trainingData = [
     // §55.3 Sports / Recreation
     { text: 'Book a football pitch for a match', label: 'find_worker' },
     { text: 'Find a sports coach or recreation trainer', label: 'find_worker' },
+    { text: 'Find somebody to repair my fridge', label: 'find_worker' },
+    { text: 'Please get me a technician to fix my refrigerator', label: 'find_worker' },
+    { text: 'Abeg help me find person wey fit repair fridge', label: 'find_worker' },
+    { text: 'Who can fix my freezer around here', label: 'find_worker' },
+    { text: 'I need someone to paint my place', label: 'find_worker' },
+    { text: 'Please connect me with a painter for my house', label: 'find_worker' },
+    { text: 'Get a handyman to repair my broken appliance', label: 'find_worker' },
+    { text: 'Find me a technician near my location', label: 'find_worker' },
 
     // ── pay_bill (13) ──
     { text: 'Pay electricity bill utility DSTV', label: 'pay_bill' },

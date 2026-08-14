@@ -1,4 +1,9 @@
-import { classifyWithFastText } from '../src/services/fastTextService.js';
+import assert from 'node:assert/strict';
+import { classifyWithFastText, getFastTextRuntimeStatus } from '../src/services/fastTextService.js';
+
+const runtime = getFastTextRuntimeStatus();
+assert.equal(runtime.modelState, 'real', `expected a real FastText binary, got ${runtime.modelState}`);
+assert.equal(runtime.realModelPresent, true, 'realModelPresent must be true when the binary is valid');
 
 const cases: Array<[string, string]> = [
   ['I need a taxi to Ikeja', 'ride_request'],
@@ -10,12 +15,15 @@ const cases: Array<[string, string]> = [
 ];
 
 let failures = 0;
+let fastTextSourceCount = 0;
 for (const [query, expected] of cases) {
   const result = classifyWithFastText(query);
   const ok = result?.intent === expected;
+  if (result?.source === 'fasttext') fastTextSourceCount += 1;
   console.log(`${ok ? 'PASS' : 'FAIL'} ${JSON.stringify(query)} -> ${result?.intent || 'unknown'} (${result?.source || 'none'}, ${result?.confidence?.toFixed(2) || 'n/a'})`);
   if (!ok) failures += 1;
 }
 
 if (failures) throw new Error(`FastText intent verification failed for ${failures} sample(s)`);
-console.log('FastText intent verification passed.');
+assert.ok(fastTextSourceCount >= 4, `expected at least four representative routes to use fasttext, got ${fastTextSourceCount}`);
+console.log(`FastText intent verification passed with ${fastTextSourceCount}/${cases.length} real-model sources.`);

@@ -5,6 +5,13 @@ import { execFileSync } from 'child_process';
 import { getDb } from '../database.js';
 
 export interface FastTextResult { intent: string; confidence: number; source?: 'fasttext' | 'rules' | 'fallback'; }
+export type FastTextModelState = 'real' | 'missing' | 'invalid';
+export interface FastTextRuntimeStatus {
+    modelState: FastTextModelState;
+    realModelPresent: boolean;
+    modelPath: string;
+    trainingExamples: number;
+}
 
 let trainingSet: { label: string; tokens: Set<string> }[] = [];
 let fastTextReady = false;
@@ -23,6 +30,22 @@ function isRealBinaryModel(binPath: string): boolean {
         if (stats.size < 100) return false;
         return !fs.readFileSync(binPath).subarray(0, 32).toString('utf8').includes('DUMMY_FASTTEXT');
     } catch { return false; }
+}
+
+function getModelState(binPath: string): FastTextModelState {
+    if (!fs.existsSync(binPath)) return 'missing';
+    return isRealBinaryModel(binPath) ? 'real' : 'invalid';
+}
+
+export function getFastTextRuntimeStatus(rootDir = process.cwd()): FastTextRuntimeStatus {
+    const binPath = path.join(rootDir, 'models', 'kurukoo_intent.bin');
+    const modelState = getModelState(binPath);
+    return {
+        modelState,
+        realModelPresent: modelState === 'real',
+        modelPath: binPath,
+        trainingExamples: trainingSet.length,
+    };
 }
 
 function loadTrainingData(): void {
@@ -47,9 +70,11 @@ function loadTrainingData(): void {
  * and must never block the application process or a cold start.
  */
 export function initializeFastText(): void {
+    classificationCache.clear();
     fastTextReady = isRealBinaryModel(modelPath());
     loadTrainingData();
-    console.log(`[FastText] ready=${fastTextReady}, trainingExamples=${trainingSet.length}`);
+    const status = getFastTextRuntimeStatus();
+    console.log(`[FastText] modelState=${status.modelState}, ready=${fastTextReady}, trainingExamples=${trainingSet.length}`);
 }
 
 initializeFastText();

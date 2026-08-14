@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { isChannelConfigured } from '../channels/channelRegistry.js';
+import { getFastTextRuntimeStatus } from './fastTextService.js';
 
 export const READINESS_STATES = ['READY', 'NOT_CONFIGURED', 'DISABLED', 'EXTERNAL_DEPENDENCY', 'PENDING'] as const;
 export type ReadinessState = typeof READINESS_STATES[number];
@@ -69,6 +70,12 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
   const kyc = env.FF_NIMC_KYC === 'true' && present(env.NIMC_API_KEY) ? item('EXTERNAL_DEPENDENCY', 'KYC feature is enabled but activation depends on the external KYC provider.') : item('NOT_CONFIGURED', 'KYC adapter credentials are not configured.');
   const affiliate = env.FF_AFFILIATE_LINKS === 'true' && present(env.AFFILIATE_PROVIDER) ? item('EXTERNAL_DEPENDENCY', 'Affiliate provider is declared but external activation remains required.') : item('NOT_CONFIGURED', 'No affiliate provider is configured.');
   const advertising = present(env.AD_PROVIDER_API_KEY) ? item('EXTERNAL_DEPENDENCY', 'Advertising provider credentials are present; external activation remains deployment dependent.') : item('NOT_CONFIGURED', 'Self-service advertising is not configured in this deployment.');
+  const fastText = getFastTextRuntimeStatus(rootDir);
+  const fastTextReadiness = fastText.modelState === 'real'
+    ? item('READY', `Real FastText binary is present at ${fastText.modelPath}.`)
+    : item('NOT_CONFIGURED', fastText.modelState === 'missing'
+      ? 'Real FastText binary is absent; rules and training-data fallback remain explicit.'
+      : 'FastText binary is invalid or a placeholder; rules and training-data fallback remain explicit.');
 
   return {
     generatedAt: new Date().toISOString(),
@@ -78,6 +85,7 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
         sqljs: item('READY', 'SQL.js is a declared runtime dependency and is exercised by the repository tests.'),
         securitySecret: secretState(env),
         developmentAuth: devAuthState(env),
+        fastTextModel: fastTextReadiness,
       },
       CHANNELS: {
         Web: item('READY', 'Web Chat is the active first-party channel.'),

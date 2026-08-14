@@ -693,10 +693,15 @@
         body.appendChild(p);
         const btn = makeElement('button', 'primary-btn', 'Tell Kurukoo your name');
         btn.type = 'button';
-        btn.dataset.action = 'focus-input';
+        btn.dataset.action = 'start-profile';
         body.appendChild(btn);
         gate.append(header, body);
-        gate.querySelector('[data-action="focus-input"]')?.addEventListener('click', () => input?.focus());
+        gate.querySelector('[data-action="start-profile"]')?.addEventListener('click', () => {
+          const returnTo = `${window.location.pathname}${window.location.search}`;
+          const params = new URLSearchParams({ return: returnTo });
+          if (state.conversationId) params.set('conversationId', state.conversationId);
+          window.location.assign(`/login?${params.toString()}`);
+        });
       }
       messageEl.querySelector('.bubble').appendChild(gate);
       return;

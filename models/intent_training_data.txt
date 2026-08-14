@@ -76,6 +76,14 @@ __label__find_worker I need a bodyguard for an event tonight
 __label__find_worker Hire private security personnel for my shop
 __label__find_worker Book a football pitch for a match
 __label__find_worker Find a sports coach or recreation trainer
+__label__find_worker Find somebody to repair my fridge
+__label__find_worker Please get me a technician to fix my refrigerator
+__label__find_worker Abeg help me find person wey fit repair fridge
+__label__find_worker Who can fix my freezer around here
+__label__find_worker I need someone to paint my place
+__label__find_worker Please connect me with a painter for my house
+__label__find_worker Get a handyman to repair my broken appliance
+__label__find_worker Find me a technician near my location
 __label__pay_bill Pay electricity bill utility DSTV
 __label__pay_bill Pay my power bill NEPA Eko Disco
 __label__pay_bill Settle my DSTV GoTV subscription
