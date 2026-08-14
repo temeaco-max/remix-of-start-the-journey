@@ -23,3 +23,9 @@ No real payment, external SMS, or hidden private-chat ad targeting was used. The
 At 390×844, the left workspace is intentionally translated off-canvas and the main header exposes `Open sidebar`, `Show notifications`, and an expanded `Show conversation context` control. The context panel appears as an accessible complementary region with `Close context panel`; while open it intercepts clicks on the underlying mobile drawer, which is expected modal overlay behavior. After closing the context panel, the `Open sidebar` interaction succeeded. Mobile controls are exposed with accessible labels, and the drawer navigation retains touch-sized rows.
 
 The mobile snapshot did not expose a horizontal overflow defect in the visible viewport. A final screenshot/console pass remains part of the broader acceptance run.
+
+## Whole-product route smoke
+
+The canonical route inventory contains 46 registered public paths. The initial browser smoke identified two real defects on intentionally nonexistent dynamic slugs: `/p/sample-provider` attempted to query a missing `profile_slug` column, and `/earn/sample` attempted to render a missing `earn` view. Both were repaired. The provider route now uses deployment-independent phone/name slug matching and returns 404 for unknown profiles; valid earn topics redirect to existing Explore category pages and unknown topics return 404.
+
+After rebuild and restart, deterministic HTTP verification returned: `/p/sample-provider` 404, `/earn/sample` 404, `/earn/repairs` 302, `/earn/rides` 302, `/explore/repairs` 200, `/topics/sample` 404, `/resources/sample` 200, and `/advertise` 301. The final browser rerun was attempted but the browser connector timed out while obtaining server configuration; no product failure was inferred from that infrastructure timeout.
