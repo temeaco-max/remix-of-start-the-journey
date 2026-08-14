@@ -28,6 +28,8 @@ export interface AdCampaign {
     clicks?: number;
     createdAt: string;
     updatedAt: string;
+    assetStatus?: 'pending' | 'approved' | 'rejected';
+    approvedBy?: string;
 }
 
 function ensureAdSchema(db: any): void {
@@ -51,11 +53,24 @@ function ensureAdSchema(db: any): void {
         ['frequency_cap', 'INTEGER DEFAULT 3'],
         ['impressions', 'INTEGER DEFAULT 0'],
         ['clicks', 'INTEGER DEFAULT 0'],
+        ['asset_status', "TEXT DEFAULT 'pending'"],
+        ['approved_by', "TEXT DEFAULT ''"],
     ];
     for (const [name, definition] of additions) if (!columns.has(name)) db.run(`ALTER TABLE ad_campaigns ADD COLUMN ${name} ${definition}`);
-    db.run(`UPDATE ad_campaigns SET campaign_type=COALESCE(campaign_type, 'external'), disclosure=COALESCE(disclosure, 'Sponsored'), advertiser_name=COALESCE(advertiser_name, ''), first_party=COALESCE(first_party, 0), cta_text=COALESCE(cta_text, 'Learn more'), destination=COALESCE(destination, '/chat'), priority=COALESCE(priority, 0), targeting=COALESCE(targeting, '{}'), placement=COALESCE(placement, 'public_discovery'), category=COALESCE(category, 'community'), country=COALESCE(country, 'NG'), region=COALESCE(region, ''), frequency_cap=COALESCE(frequency_cap, 3), impressions=COALESCE(impressions, 0), clicks=COALESCE(clicks, 0)`);
+    db.run(`UPDATE ad_campaigns SET campaign_type=COALESCE(campaign_type, 'external'), disclosure=COALESCE(disclosure, 'Sponsored'), advertiser_name=COALESCE(advertiser_name, ''), first_party=COALESCE(first_party, 0), cta_text=COALESCE(cta_text, 'Learn more'), destination=COALESCE(destination, '/chat'), priority=COALESCE(priority, 0), targeting=COALESCE(targeting, '{}'), placement=COALESCE(placement, 'public_discovery'), category=COALESCE(category, 'community'), country=COALESCE(country, 'NG'), region=COALESCE(region, ''), frequency_cap=COALESCE(frequency_cap, 3), impressions=COALESCE(impressions, 0), clicks=COALESCE(clicks, 0), asset_status=COALESCE(asset_status, CASE WHEN first_party = 1 THEN 'approved' ELSE 'pending' END), approved_by=COALESCE(approved_by, '')`);
 }
 
+
+export function isApprovedCampaignAsset(imageUrl: unknown, firstParty = 0): boolean {
+    const image = String(imageUrl || '').trim();
+    if (!image || /unsplash\.com|placehold\.co|placeholder|dummy|data:image/i.test(image)) return false;
+    if (Number(firstParty) === 1) return /^\/assets\/[a-z0-9/_-]+\.(?:jpg|jpeg|png|webp|avif|svg)$/i.test(image);
+    return /^https?:\/\/[a-z0-9.-]+(?:\/[^\s]*)?$/i.test(image) || /^\/assets\/[a-z0-9/_-]+\.(?:jpg|jpeg|png|webp|avif|svg)$/i.test(image);
+}
+
+export function isRenderableCampaign(campaign: Pick<AdCampaign, 'imageUrl' | 'firstParty' | 'assetStatus'>): boolean {
+    return campaign.assetStatus === 'approved' && isApprovedCampaignAsset(campaign.imageUrl, campaign.firstParty);
+}
 
 export async function getAdCampaigns(): Promise<AdCampaign[]> {
     const db = await getDb();
@@ -79,9 +94,12 @@ export async function getAdCampaigns(): Promise<AdCampaign[]> {
 export async function createAdCampaign(campaign: Omit<AdCampaign, 'id' | 'creditsSpent' | 'status' | 'createdAt' | 'updatedAt'>): Promise<any> {
     const db = await getDb();
     ensureAdSchema(db);
+    if (!isApprovedCampaignAsset(campaign.imageUrl, campaign.firstParty)) throw new Error('An approved campaign image asset is required.');
+    const firstParty = campaign.firstParty ? 1 : 0;
+    if (!String(campaign.disclosure || '').trim()) throw new Error('Campaign disclosure is required.');
     db.run(
-        `INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, campaign_type, disclosure, advertiser_name, first_party, cta_text, destination, placement, category, country, region, start_at, expires_at, frequency_cap, priority, targeting) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [campaign.title, campaign.desc, campaign.imageUrl, campaign.targetKeyword, campaign.creditsBudget, campaign.campaignType || 'external', campaign.disclosure || 'Sponsored', campaign.advertiserName || '', campaign.firstParty ? 1 : 0, campaign.ctaText || 'Learn more', campaign.destination || '/chat', campaign.placement || 'public_discovery', campaign.category || 'community', campaign.country || 'NG', campaign.region || '', campaign.startAt || null, campaign.expiresAt || null, campaign.frequencyCap || 3, campaign.priority || 0, campaign.targeting || '{}']
+        `INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, campaign_type, disclosure, advertiser_name, first_party, cta_text, destination, placement, category, country, region, start_at, expires_at, frequency_cap, priority, targeting, asset_status, approved_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [campaign.title, campaign.desc, campaign.imageUrl, campaign.targetKeyword, campaign.creditsBudget, campaign.campaignType || 'external', campaign.disclosure || 'Sponsored', campaign.advertiserName || '', firstParty, campaign.ctaText || 'Learn more', campaign.destination || '/chat', campaign.placement || 'public_discovery', campaign.category || 'community', campaign.country || 'NG', campaign.region || '', campaign.startAt || null, campaign.expiresAt || null, campaign.frequencyCap || 3, campaign.priority || 0, campaign.targeting || '{}', 'approved', firstParty ? 'Kurukoo' : 'admin']
     );
     saveDb();
     return { success: true, message: 'Ad campaign created successfully' };
@@ -145,8 +163,8 @@ export async function seedDemoAdCampaigns(): Promise<void> {
     for (const [title, desc, keyword, cta, destination, placement, category, priority, imageUrl] of campaigns) {
         const exists = db.exec('SELECT id FROM ad_campaigns WHERE title = ? AND first_party = 1 LIMIT 1', [title]);
         const existingId = exists.length && exists[0].values.length ? exists[0].values[0][0] : null;
-        if (existingId) { db.run('UPDATE ad_campaigns SET image_url = ? WHERE id = ?', [imageUrl, existingId]); continue; }
-        db.run(`INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, status, campaign_type, disclosure, advertiser_name, first_party, cta_text, destination, placement, category, country, region, frequency_cap, priority, targeting) VALUES (?, ?, ?, ?, 0, 'active', 'first_party', 'Kurukoo promotion', 'Kurukoo', 1, ?, ?, ?, ?, ?, '', 5, ?, ?)`, [title, desc, imageUrl, keyword, cta, destination, placement, category, priority, JSON.stringify({ scope: 'public', safetyExcluded: true })]);
+        if (existingId) { db.run('UPDATE ad_campaigns SET image_url = ?, asset_status = \'approved\', approved_by = \'Kurukoo\' WHERE id = ?', [imageUrl, existingId]); continue; }
+        db.run(`INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, status, campaign_type, disclosure, advertiser_name, first_party, cta_text, destination, placement, category, country, region, frequency_cap, priority, targeting, asset_status, approved_by) VALUES (?, ?, ?, ?, 0, 'active', 'first_party', 'Kurukoo promotion', 'Kurukoo', 1, ?, ?, ?, ?, ?, '', 5, ?, ?, 'approved', 'Kurukoo')`, [title, desc, imageUrl, keyword, cta, destination, placement, category, priority, JSON.stringify({ scope: 'public', safetyExcluded: true })]);
     }
     saveDb();
     console.log('First-party Kurukoo campaigns ensured');

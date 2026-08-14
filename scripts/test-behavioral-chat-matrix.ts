@@ -8,6 +8,7 @@ process.env.KURUKOO_DEV_AUTH = 'true';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'behavioral-matrix-secret-0123456789';
 process.env.DB_PATH = dbPath;
 process.env.KURUKOO_AGENT_ENABLED = 'true';
+process.env.KURUKOO_AGENT_AUTONOMOUS = 'true';
 process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK = 'true';
 process.env.KURUKOO_AGENT_MAX_ACTIONS_PER_CYCLE = '2';
 process.env.KURUKOO_AGENT_MAX_CONCURRENT_GOALS = '4';

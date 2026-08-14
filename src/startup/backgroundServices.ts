@@ -17,11 +17,16 @@ export async function startBackgroundServices(): Promise<void> {
     setTimeout(() => runEscrowPass().catch((error) => console.error('Error running initial escrow pass:', error)), 30000);
     setInterval(() => runEscrowPass().catch((error) => console.error('Error running daily escrow pass:', error)), 24 * 60 * 60 * 1000);
 
-    if (process.env.KURUKOO_AGENT_ENABLED === 'true') {
+    if (process.env.KURUKOO_AGENT_ENABLED === 'true' && process.env.KURUKOO_AGENT_AUTONOMOUS === 'true') {
         const intervalMs = Math.max(30_000, Math.min(15 * 60_000, Number(process.env.KURUKOO_AGENT_WORKER_INTERVAL_MS || 60_000)));
+        let cycleRunning = false;
         const runAgentFollowUp = async () => {
-            const updates = [...await runDueAgentGoals(), ...await reenterDueDeferredGoals()];
-            for (const goal of updates) await notifyGoalIfNeeded(goal);
+            if (cycleRunning) return;
+            cycleRunning = true;
+            try {
+                const updates = [...await runDueAgentGoals(), ...await reenterDueDeferredGoals()];
+                for (const goal of updates) await notifyGoalIfNeeded(goal);
+            } finally { cycleRunning = false; }
         };
         setTimeout(() => runAgentFollowUp().catch((error) => console.error('Error running Kurukoo agent follow-up:', error)), 5_000);
         setInterval(() => runAgentFollowUp().catch((error) => console.error('Error running Kurukoo agent follow-up:', error)), intervalMs);

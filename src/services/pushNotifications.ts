@@ -26,6 +26,8 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
     // Persist an internal inbox notification even when no external adapter is configured.
     // This is a durable fallback, not evidence that an external delivery occurred.
     try {
+        const duplicate = db.exec(`SELECT id FROM internal_notifications WHERE phone = ? AND title = ? AND body = ? AND COALESCE(link, '') = COALESCE(?, '') AND datetime(created_at) > datetime('now', '-10 minutes') LIMIT 1`, [phone, title, body, clickLink]);
+        if (duplicate[0]?.values?.length) return false;
         db.run(
             `INSERT INTO internal_notifications (phone, title, body, link, status, delivery_state) VALUES (?, ?, ?, ?, 'unread', 'queued')`,
             [phone, title, body, clickLink],
@@ -53,8 +55,8 @@ export async function transitionNotificationDelivery(notificationId: number, del
 export async function getInternalNotifications(phone: string, limit = 20): Promise<Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; created_at: string }>> {
     const db = await ensureNotificationTable();
     const safeLimit = Math.max(1, Math.min(100, Math.floor(Number(limit) || 20)));
-    const stmt = db.prepare(`SELECT id, title, body, link, status, delivery_state, provider_reference, failure_reason, created_at FROM internal_notifications WHERE phone = ? ORDER BY id DESC LIMIT ?`);
-    stmt.bind([phone, safeLimit]);
+    const stmt = db.prepare(`SELECT notification.* FROM internal_notifications notification INNER JOIN (SELECT phone, title, body, COALESCE(link, '') AS link_key, MAX(id) AS latest_id FROM internal_notifications WHERE phone = ? GROUP BY phone, title, body, COALESCE(link, '')) latest ON latest.latest_id = notification.id WHERE notification.phone = ? ORDER BY notification.id DESC LIMIT ?`);
+    stmt.bind([phone, phone, safeLimit]);
     const results: Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; created_at: string }> = [];
     while (stmt.step()) results.push(stmt.getAsObject() as any);
     stmt.free();

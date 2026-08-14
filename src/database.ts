@@ -536,8 +536,10 @@ export function seedCanonicalOperatorState(database: any): void {
 
   const reminder = database.exec('SELECT id FROM reminders WHERE phone = ? AND title = ?', [operator.phone, 'Review the operator acceptance queue']);
   if (!reminder[0]?.values?.length) database.run('INSERT INTO reminders (id, phone, title, note, due_at, status) VALUES (?, ?, ?, ?, datetime(\'now\', \'+1 day\'), \'scheduled\')', ['operator-seeded-reminder', operator.phone, 'Review the operator acceptance queue', 'Seeded controlled operator state; safe to delete.',]);
-  const notification = database.exec('SELECT id FROM internal_notifications WHERE phone = ? AND title = ?', [operator.phone, 'Seeded operator state']);
-  if (!notification[0]?.values?.length) database.run('INSERT INTO internal_notifications (phone, title, body, link) VALUES (?, ?, ?, ?)', [operator.phone, 'Seeded operator state', 'This notification is controlled demo data for User #1.', '/chat']);
+  if (process.env.NODE_ENV !== 'test') {
+    const notification = database.exec('SELECT id FROM internal_notifications WHERE phone = ? AND title = ?', [operator.phone, 'Seeded operator state']);
+    if (!notification[0]?.values?.length) database.run('INSERT INTO internal_notifications (phone, title, body, link) VALUES (?, ?, ?, ?)', [operator.phone, 'Seeded operator state', 'This notification is controlled demo data for User #1.', '/chat']);
+  }
   if (!database.exec('SELECT id FROM credit_transactions WHERE phone = ? AND description = ?', [operator.phone, 'Seeded operator Points balance'])[0]?.values?.length) database.run('INSERT INTO credit_transactions (phone, amount, type, description) VALUES (?, ?, ?, ?)', [operator.phone, 120, 'seeded_operator', 'Seeded operator Points balance']);
 }
 

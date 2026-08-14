@@ -183,7 +183,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
       checkIns = safeObj;
     } catch {}
     try {
-      const notifRes = db.exec("SELECT COUNT(*) FROM internal_notifications WHERE status = 'unread'");
+      const notifRes = db.exec("SELECT COUNT(*) FROM internal_notifications notification WHERE notification.status = 'unread' AND notification.id IN (SELECT MAX(id) FROM internal_notifications GROUP BY phone, title, body, COALESCE(link, ''))");
       notificationsCount = Number(notifRes[0]?.values[0]?.[0] || 0);
     } catch {}
 
@@ -363,10 +363,11 @@ router.post('/ads', authenticateAdmin, async (req: AuthRequest, res) => {
     const imageUrl = String(body.imageUrl || '').trim().slice(0, 500);
     const targetKeyword = String(body.targetKeyword || '').trim().toLowerCase().slice(0, 80);
     const creditsBudget = Number(body.creditsBudget);
-    if (!title || !desc || !targetKeyword || !Number.isFinite(creditsBudget) || creditsBudget <= 0) {
-      return res.status(400).json({ success: false, error: 'Title, description, target keyword, and a positive credits budget are required.' });
+    const disclosure = String(body.disclosure || '').trim().slice(0, 120);
+    if (!title || !desc || !imageUrl || !disclosure || !targetKeyword || !Number.isFinite(creditsBudget) || creditsBudget <= 0) {
+      return res.status(400).json({ success: false, error: 'Title, description, approved image asset, disclosure, target keyword, and a positive credits budget are required.' });
     }
-    const result = await createAdCampaign({ title, desc, imageUrl, targetKeyword, creditsBudget: Math.floor(creditsBudget) });
+    const result = await createAdCampaign({ title, desc, imageUrl, targetKeyword, creditsBudget: Math.floor(creditsBudget), disclosure, advertiserName: String(body.advertiserName || '').trim().slice(0, 160), ctaText: String(body.ctaText || 'Learn more').trim().slice(0, 80), destination: String(body.destination || '/chat').trim().slice(0, 300), placement: String(body.placement || 'public_discovery').trim().slice(0, 80), category: String(body.category || 'community').trim().slice(0, 80), country: String(body.country || 'NG').trim().slice(0, 8), region: String(body.region || '').trim().slice(0, 80), targeting: typeof body.targeting === 'string' ? body.targeting.slice(0, 1200) : JSON.stringify(body.targeting || {}) });
     res.status(201).json(result);
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message || 'Unable to create advertising campaign' });

@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { authenticateUser, type AuthRequest } from '../middleware/auth.js';
+import { authenticateAdmin, authenticateUser, type AuthRequest } from '../middleware/auth.js';
 import { agentRuntimeStatus, cancelAgentGoal, getAgentGoal, goalTimeline, listAgentGoalEvents, listAgentGoals } from '../services/agentRuntime.js';
 
 const router = Router();
 
 function phone(req: AuthRequest): string | null { return req.user?.phone ? String(req.user.phone) : null; }
 
-router.get('/status', (_req, res) => res.json({ success: true, runtime: agentRuntimeStatus() }));
+router.get('/status', authenticateAdmin, (_req, res) => res.json({ success: true, runtime: agentRuntimeStatus() }));
 
 router.get('/goals', authenticateUser, async (req: AuthRequest, res) => {
   const owner = phone(req); if (!owner) return res.status(401).json({ error: 'Authentication required' });

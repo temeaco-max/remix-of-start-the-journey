@@ -49,6 +49,7 @@ const AUTONOMY = new Set<AgentAutonomyLevel>(['observe', 'suggest', 'assist', 'a
 const ECONOMIC_SKILLS = new Set(['ride_request', 'order_food', 'find_worker', 'universal_vendor_order', 'security_booking', 'product_sourcing', 'repair', 'buy_car', 'buy_ticket', 'verified_artist']);
 
 function enabled(): boolean { return process.env.KURUKOO_AGENT_ENABLED === 'true'; }
+function autonomousEnabled(): boolean { return enabled() && process.env.KURUKOO_AGENT_AUTONOMOUS === 'true'; }
 function maxActions(): number { return Math.max(1, Math.min(20, Number(process.env.KURUKOO_AGENT_MAX_ACTIONS_PER_CYCLE || 8))); }
 function maxConcurrent(): number { return Math.max(1, Math.min(50, Number(process.env.KURUKOO_AGENT_MAX_CONCURRENT_GOALS || 5))); }
 function maxRetries(): number { return Math.max(0, Math.min(5, Number(process.env.KURUKOO_AGENT_MAX_RETRIES || 2))); }
@@ -232,7 +233,7 @@ async function evaluateGoal(goal: AgentGoal): Promise<AgentGoal> {
 }
 
 export async function runAgentGoal(goalId: string, phone?: string): Promise<AgentGoal | null> {
-  if (!enabled()) return null;
+  if (!autonomousEnabled()) return null;
   await ensureAgentRuntimeSchema();
   const db = await getDb();
   const stmt = phone ? db.prepare(`SELECT * FROM agent_goals WHERE id=? AND phone=?`) : db.prepare(`SELECT * FROM agent_goals WHERE id=?`);
@@ -252,7 +253,7 @@ export async function runAgentGoal(goalId: string, phone?: string): Promise<Agen
 }
 
 export async function runDueAgentGoals(limit = maxActions()): Promise<AgentGoal[]> {
-  if (!enabled()) return [];
+  if (!autonomousEnabled()) return [];
   await ensureAgentRuntimeSchema();
   const db = await getDb();
   const bounded = Math.max(1, Math.min(maxActions(), limit));
@@ -268,7 +269,7 @@ export async function runDueAgentGoals(limit = maxActions()): Promise<AgentGoal[
 
 /** Existing deferred intentions are event input; the runtime never creates a second deferred protocol. */
 export async function reenterDueDeferredGoals(limit = maxActions()): Promise<AgentGoal[]> {
-  if (!enabled()) return [];
+  if (!autonomousEnabled()) return [];
   const due = await getDueIntentions(limit);
   const outcomes: AgentGoal[] = [];
   for (const intention of due) {
@@ -309,14 +310,37 @@ export async function goalTimeline(phone: string, conversationId?: string): Prom
   return { goal, events: goal ? await listAgentGoalEvents(phone, goal.id) : [] };
 }
 
+async function autonomousNotificationsAllowed(phone: string): Promise<boolean> {
+  const db = await getDb();
+  const row = db.exec('SELECT preferences FROM memory_profiles WHERE phone = ?', [phone])[0]?.values?.[0] as any[] | undefined;
+  if (!row?.[0]) return true;
+  try {
+    const preferences = JSON.parse(String(row[0]));
+    return preferences?.agent_notifications !== false && preferences?.notifications?.agent !== false && preferences?.notifications?.autonomous !== false;
+  } catch { return true; }
+}
+
+async function notificationAlreadyQueued(goal: AgentGoal, key: string): Promise<boolean> {
+  const db = await getDb();
+  const row = db.exec('SELECT id FROM agent_goal_events WHERE goal_id = ? AND idempotency_key = ? LIMIT 1', [goal.id, key])[0]?.values?.[0];
+  return Boolean(row);
+}
+
 export async function notifyGoalIfNeeded(goal: AgentGoal): Promise<void> {
   if (!['needs_user', 'blocked', 'completed'].includes(goal.status)) return;
   const message = goal.summary || 'Kurukoo has an update on an active objective.';
+  const key = `goal:${goal.id}:notification:${goal.status}:${message.slice(0, 160)}`;
+  if (await notificationAlreadyQueued(goal, key)) return;
+  if (!(await autonomousNotificationsAllowed(goal.phone))) {
+    await recordEvent(goal, 'notification_suppressed', 'blocked', 'Autonomous notifications are disabled in the user preferences.', { idempotencyKey: key });
+    return;
+  }
+  await recordEvent(goal, 'notification_queued', 'success', message, { tool: 'notification', evidence: `goal:${goal.id}:${goal.status}`, idempotencyKey: key });
   await sendFcmPush(goal.phone, 'Kurukoo update', message, '/chat/');
 }
 
-export function agentRuntimeStatus(): { enabled: boolean; maxActionsPerCycle: number; maxConcurrentGoals: number; maxRetries: number; cooldownSeconds: number } {
-  return { enabled: enabled(), maxActionsPerCycle: maxActions(), maxConcurrentGoals: maxConcurrent(), maxRetries: maxRetries(), cooldownSeconds: Math.floor(cooldownMs() / 1000) };
+export function agentRuntimeStatus(): { enabled: boolean; autonomous: boolean; maxActionsPerCycle: number; maxConcurrentGoals: number; maxRetries: number; cooldownSeconds: number } {
+  return { enabled: enabled(), autonomous: autonomousEnabled(), maxActionsPerCycle: maxActions(), maxConcurrentGoals: maxConcurrent(), maxRetries: maxRetries(), cooldownSeconds: Math.floor(cooldownMs() / 1000) };
 }
 
 export function isEconomicGoalSkill(skill: string): boolean { return ECONOMIC_SKILLS.has(skill); }

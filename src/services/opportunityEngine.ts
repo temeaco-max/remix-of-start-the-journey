@@ -228,6 +228,8 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
     // Save top three to proactive_opportunities table
     const now = new Date().toISOString();
     for (const opp of topThree) {
+        const existing = db.exec(`SELECT id FROM proactive_opportunities WHERE phone = ? AND type = ? AND title = ? AND status != 'dismissed' AND datetime(created_at) > datetime('now', '-24 hours') LIMIT 1`, [opp.phone, opp.type, opp.title]);
+        if (existing[0]?.values?.length) continue;
         db.run(`
             INSERT INTO proactive_opportunities (phone, type, title, subtitle, cta_text, cta_link, urgency, business_value, status, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sent', ?, ?)
@@ -263,10 +265,17 @@ export async function getOpportunitiesForFeed(phone: string): Promise<any[]> {
     const db = await getDb();
 
     const stmt = db.prepare(`
-        SELECT * FROM proactive_opportunities 
-        WHERE phone = ? AND status != 'dismissed'
-        ORDER BY created_at DESC LIMIT 15
+        SELECT opportunity.* FROM proactive_opportunities opportunity
+        INNER JOIN (
+            SELECT phone, type, title, MAX(id) AS latest_id
+            FROM proactive_opportunities
+            WHERE phone = ? AND status != 'dismissed'
+            GROUP BY phone, type, title
+        ) latest ON latest.latest_id = opportunity.id
+        WHERE opportunity.phone = ? AND opportunity.status != 'dismissed'
+        ORDER BY opportunity.created_at DESC LIMIT 15
     `);
+    stmt.bind([phone, phone]);
     const results: any[] = [];
     while (stmt.step()) {
         const row = stmt.getAsObject();

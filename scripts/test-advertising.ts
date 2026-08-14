@@ -12,7 +12,8 @@ assert.ok(firstParty.every(campaign => String(campaign.disclosure || '').toLower
 assert.ok(firstParty.every(campaign => campaign.ctaText && campaign.destination), 'first-party campaigns require CTA and destination');
 
 const title = `[Kurukoo test] advertising ${Date.now()}`;
-await createAdCampaign({ title, desc: 'Controlled test campaign', imageUrl: '', targetKeyword: 'convergence', creditsBudget: 12 });
+await assert.rejects(() => createAdCampaign({ title: `${title} invalid`, desc: 'Invalid campaign', imageUrl: '', targetKeyword: 'invalid', creditsBudget: 12, disclosure: 'Sponsored invalid campaign' }), /approved campaign image asset/, 'Unapproved campaign assets must be rejected');
+await createAdCampaign({ title, desc: 'Controlled test campaign', imageUrl: '/assets/chat/sponsored-local-service.jpg', targetKeyword: 'convergence', creditsBudget: 12, disclosure: 'Sponsored test campaign' });
 const created = (await getAdCampaigns()).find(campaign => campaign.title === title);
 assert.ok(created, 'admin campaign creation should persist a campaign');
 assert.equal(created?.campaignType, 'external');

@@ -6,6 +6,7 @@ import type { AddressInfo } from 'node:net';
 import jwt from 'jsonwebtoken';
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kurukoo-notifications-'));
+process.env.NODE_ENV = 'test';
 process.env.DB_PATH = path.join(tempDir, 'notifications.sqlite');
 process.env.JWT_SECRET = 'notification-queue-test-secret-0123456789';
 process.env.ADMIN_USERNAME = 'queue-admin';

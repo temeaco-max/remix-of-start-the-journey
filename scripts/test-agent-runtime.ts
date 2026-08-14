@@ -7,6 +7,7 @@ const isolatedDbPath = path.join(os.tmpdir(), `kurukoo-agent-runtime-${process.p
 process.env.DB_PATH = isolatedDbPath;
 process.on('exit', () => { try { fs.rmSync(isolatedDbPath, { force: true }); } catch {} });
 process.env.KURUKOO_AGENT_ENABLED = 'true';
+process.env.KURUKOO_AGENT_AUTONOMOUS = 'true';
 process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK = 'true';
 process.env.KURUKOO_AGENT_MAX_ACTIONS_PER_CYCLE = '2';
 process.env.KURUKOO_AGENT_MAX_CONCURRENT_GOALS = '2';
@@ -60,6 +61,10 @@ const cancelled = await cancelAgentGoal(owner, goal.id);
 assert.equal(cancelled?.status, 'cancelled', 'The user can stop autonomous follow-up');
 assert.equal((await runAgentGoal(goal.id, owner))?.status, 'cancelled', 'Cancelled goals must not resume automatically');
 
+process.env.KURUKOO_AGENT_ENABLED = 'true';
+process.env.KURUKOO_AGENT_AUTONOMOUS = 'false';
+assert.deepEqual(await runDueAgentGoals(), [], 'The worker must remain inactive until the explicit autonomous flag is enabled');
 process.env.KURUKOO_AGENT_ENABLED = 'false';
+process.env.KURUKOO_AGENT_AUTONOMOUS = 'false';
 assert.equal(await createConversationGoal({ phone: owner, skill: 'find_worker', objective: 'Disabled runtime', economicRequestId: request.id }), null, 'Disabled runtime must preserve normal chat behaviour without creating goals');
 console.log('Agent runtime regression passed: persistent owned goals, idempotency, bounded tools, waiting and worker re-entry, cancellation, disabled mode, and high-risk denial.');
