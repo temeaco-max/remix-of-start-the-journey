@@ -8,6 +8,15 @@ import { webhookRateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
 
+router.get('/webhook/whatsapp', (req, res) => {
+  const mode = String(req.query['hub.mode'] || '');
+  const token = String(req.query['hub.verify_token'] || '');
+  const challenge = String(req.query['hub.challenge'] || '');
+  const configured = String(process.env.WHATSAPP_VERIFY_TOKEN || '');
+  if (mode === 'subscribe' && Boolean(configured) && token === configured && challenge) return res.status(200).type('text/plain').send(challenge);
+  return res.status(403).json({ error: 'WhatsApp webhook verification failed' });
+});
+
 router.post('/webhook/whatsapp', webhookRateLimit, async (req, res) => {
   const rawBody = (req as any).rawBody;
   const result = await dispatchWebhook('whatsapp', req.body, req.headers as Record<string, any>, rawBody);

@@ -36,6 +36,9 @@ npm run test:routes         # canonical route and ownership contracts
 npm run audit:security      # static safety invariants + HTTP authorization behavior
 npm run pilot:readiness      # read-only readiness report; never prints secrets
 npm run test:pilot-readiness # missing-credential and production/dev-auth regression
+npm run test:pilot-production-guards # production rejects development OTP/test auth
+npm run test:whatsapp-webhook-boundary # provider-independent WhatsApp challenge boundary
+npm run test:fresh-database # fresh deployment schema and route bootstrap
 ```
 
 When intentionally changing dependencies, use `npm install`, commit both `package.json` and `package-lock.json`, and run the validation suite before opening a pull request.
@@ -62,6 +65,7 @@ Current CI includes build, test, custom audit, FastText, and secret-scan jobs. T
 - `BUILD_STATUS.md` — canonical route ownership and release verification status.
 - `SECURITY_AUDIT_STATUS.md` — security posture, manual operator actions, and scale transition criteria.
 - `ECOSYSTEM.md` — authoritative economic taxonomy.
+- `CONTROLLED_PILOT.md` — exact production environment, release, rollback, and first WhatsApp activation profile.
 - `CACHING.md`, `DATA_RETENTION_POLICY.md`, `POINTS_COMPLIANCE.md`, and `WHATSAPP_CONTINGENCY.md` — operating policies.
 
 ## Stack

@@ -66,7 +66,9 @@
     "pilot:readiness": "tsx scripts/pilot-readiness.ts --json",
     "test:pilot-readiness": "tsx scripts/pilot-readiness.ts",
     "test:attachment-boundary": "tsx scripts/test-attachment-boundary.ts",
-    "test:fresh-database": "tsx scripts/test-fresh-database.ts"
+    "test:fresh-database": "tsx scripts/test-fresh-database.ts",
+    "test:pilot-production-guards": "tsx scripts/test-pilot-production-guards.ts",
+    "test:whatsapp-webhook-boundary": "tsx scripts/test-whatsapp-webhook-boundary.ts"
   },
   "dependencies": {
     "@google/genai": "^2.16.0",
