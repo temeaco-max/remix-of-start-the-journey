@@ -5435,3 +5435,12 @@ The Tasks surface includes a truthful Community activity section titled `Topics 
 The right inspector includes a Suggested next steps card backed by the Proactive Opportunity Engine through the authenticated `/api/proactive/feed` boundary. The feed exposes only owner-scoped, non-dismissed opportunity records and preserves their authoritative title, subtitle, CTA, status, and destination. The card is context-filtered to Requests, Tasks, Discover, Daily Picks, and Cart; it is hidden for Memory, Safety, Settings, Connect, Points, and other surfaces where the suggestions are not contextually appropriate.
 
 Workspace templates must always receive a defined campaign collection, including an empty array for non-ad surfaces. A missing campaign collection must never prevent Tasks or another central surface from rendering. Admin-managed advert assets remain the only valid source for promotional imagery; Topics and Proactive cards must not be used as covert advertising.
+
+
+## Current Chat surface additions: Connect, Top up, Subscription, and messages
+
+Connect is the user-facing setup boundary for WhatsApp, Telegram and other channels. It loads in the central Chat surface and explains setup and verification requirements per adapter; it must never imply a channel is connected merely because an adapter exists in the repository. Its contextual right rail uses a Channel setup card with truthful Web Chat, WhatsApp and Telegram states.
+
+Top up and Subscription belong in the More navigation group and load into the same central Chat surface as Points and other workspace actions. Top up is payment-gated and may explain sandbox versus verified production payment without claiming a completed transaction. Subscription is a conversational plan-review surface; a plan change requires the configured pricing authority and verified payment reference.
+
+Chat message presentation follows the homepage request-preview language as a visual reference: white assistant surfaces with the Kurukoo mark, warm off-white user surfaces rather than green, compact rounded geometry, and quiet icon-only actions that become clearer on hover or focus. This styling must preserve existing streaming, copy, edit, retry, pin, delete, safety and accessibility contracts.
