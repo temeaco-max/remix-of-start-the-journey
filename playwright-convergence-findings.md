@@ -31,3 +31,9 @@ New first-class regressions now exist for subscriptions, Points, and top-ups. Su
 ## Final public UI sweep
 
 The first sweep was performed against a stale production process and reported `/topics` as a 404 even though the current source route existed. After rebuilding and restarting the latest production server on port 3100, `/topics` returned 200 in the live browser. Its accessibility tree exposed the community-context safety disclosure, “Ask Kurukoo first” and “Share a Topic” actions, category/type filters, and moderated publishing language. The live route was therefore a stale-process observation, not a source defect.
+
+## Daily Picks disclosure review
+
+The deployed public route sweep was reviewed against the latest local production build. `/discover` returned 304 and rendered the Nearby Pulse surface; `/advertise` returned 304 and disclosed that self-service advertising is unavailable in this deployment. The authenticated `/daily-picks` workspace was entered through the controlled development-auth flow using the synthetic configured test actor.
+
+Daily Picks rendered both the hero text “clearly labelled promotions” and the recommendation disclosure “Sponsored content is always labelled.” Its sponsored panel was visibly labelled “Sponsored,” described itself as a controlled advertisement slot, and showed “No active promotion.” A second sponsored preview card stated “Sponsored,” “Advertisement placement preview,” and “Sponsored content will never interrupt an active conversation.” No unlabelled campaign appeared. The current sandbox therefore has the disclosure implementation visible and truthful, while no active campaign is being claimed.
