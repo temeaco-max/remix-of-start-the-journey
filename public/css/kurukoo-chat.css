@@ -333,3 +333,34 @@ body.dark .auth-gate-card {
 .notification-list-item span{color:var(--chat-muted);}
 .notification-list-item small{color:var(--chat-muted);font-size:10px;}
 @media(max-width:560px){.header-right{gap:5px}.notification-toggle,.notification-toggle + .icon-btn{width:40px;height:40px}.notification-badge{top:1px;right:1px;}}
+
+
+/* Header conversation overflow actions. */
+.chat-overflow-wrap{position:relative;display:inline-flex;align-items:center}
+.chat-overflow-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:30;display:grid;min-width:190px;padding:6px;border:1px solid var(--chat-border);border-radius:12px;background:var(--chat-surface);box-shadow:0 14px 36px rgba(26,25,24,.16)}
+.chat-overflow-menu[hidden]{display:none}
+.chat-overflow-menu button,.chat-overflow-menu a{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:var(--chat-charcoal);font:600 12px var(--chat-font-body);text-align:left;text-decoration:none;cursor:pointer}
+.chat-overflow-menu button:hover,.chat-overflow-menu button:focus-visible,.chat-overflow-menu a:hover,.chat-overflow-menu a:focus-visible{background:var(--chat-surface-muted);outline:none}
+.chat-overflow-menu .k-icon{width:18px;height:18px;flex:0 0 18px}
+
+/* Desktop right inspector collapse: keep only the brand mark until the collapsed rail is hovered. */
+.inspector-header{position:relative;min-height:62px;display:flex;align-items:center;gap:9px;padding:0 4px}
+.inspector-logo{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;flex:0 0 32px}
+.inspector-logo:hover,.inspector-logo:focus-visible{background:var(--chat-surface-muted);outline:none}
+.inspector-header strong{min-width:0;flex:1}
+.inspector-collapse-button{display:grid;place-items:center}
+.inspector-close-button{display:grid;place-items:center}
+.chat-shell:has(.chat-inspector.is-collapsed){grid-template-columns:270px minmax(0,1fr) 56px}
+.chat-inspector.is-collapsed{padding:0 8px;overflow:hidden}
+.chat-inspector.is-collapsed .inspector-header{justify-content:center;padding:0}
+.chat-inspector.is-collapsed .inspector-header strong,.chat-inspector.is-collapsed .inspector-close-button,.chat-inspector.is-collapsed .inspector-card{display:none}
+.chat-inspector.is-collapsed .inspector-logo{width:36px;height:36px}
+.chat-inspector.is-collapsed .inspector-collapse-button{display:none;position:absolute;top:11px;right:0;width:34px;height:40px;background:var(--chat-surface);box-shadow:0 3px 12px rgba(26,25,24,.12)}
+.chat-inspector.is-collapsed:hover .inspector-collapse-button,.chat-inspector.is-collapsed:focus-within .inspector-collapse-button{display:grid}
+.chat-inspector.is-collapsed .inspector-collapse-button svg{transform:rotate(180deg)}
+@media(max-width:1100px){.chat-shell:has(.chat-inspector.is-collapsed){grid-template-columns:250px minmax(0,1fr)}.chat-inspector.is-collapsed{display:none}.chat-inspector.open.is-collapsed{display:block;position:fixed;inset:0 0 0 auto;width:min(360px,92vw);max-width:100%;z-index:21;padding:0 12px}.chat-inspector.open.is-collapsed .inspector-card,.chat-inspector.open.is-collapsed .inspector-header strong,.chat-inspector.open.is-collapsed .inspector-close-button{display:block}.chat-inspector.open.is-collapsed .inspector-header{justify-content:space-between;padding:0 4px}.chat-inspector.open.is-collapsed .inspector-logo{width:auto;height:auto}.chat-inspector.open.is-collapsed .inspector-collapse-button{display:none}}
+@media(max-width:520px){.chat-overflow-menu{right:-4px;min-width:180px}.chat-inspector.open.is-collapsed{width:100%}}
+
+/* Keep the collapsed-rail control out of sight and out of the pointer path until intentional hover/focus. */
+.chat-inspector.is-collapsed .inspector-collapse-button{visibility:hidden;opacity:0;pointer-events:none;transition:opacity .16s ease,visibility .16s ease}
+.chat-inspector.is-collapsed:hover .inspector-collapse-button,.chat-inspector.is-collapsed:focus-within .inspector-collapse-button{visibility:visible;opacity:1;pointer-events:auto}

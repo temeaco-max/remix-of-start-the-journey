@@ -52,3 +52,18 @@ The same canonical navigation structure and More interaction are now used by Cha
 ## Cross-page sidebar verification
 
 The live Settings page now exposes a `complementary "Kurukoo workspace"` with the same Requests, Conversation, Reminders, Saved & offers, Cart, More, Memory, Safety, Settings, Help, and Log out structure. Its More button is visible with the remaining group hidden by default, matching the Chat drawer behavior. The former emoji-based legacy navigation is no longer rendered on Settings or Request Hub.
+
+
+## Chat header overflow and right inspector controls — 2026-08-14
+
+The live Chat accessibility tree places `More conversation actions` after `Show conversation context` in the header. The new control uses an explicit accessible label and controlled menu relationship. The right inspector now includes a branded logo anchor and a dedicated `Collapse context panel` control in its header; the collapsed state is persisted separately from the inspector open state.
+
+
+## Header overflow menu verification — 2026-08-14
+
+The live Chat header overflow control opens a `menu` with exactly four accessible items: `Delete`, `Pin`, `Saved & offers`, and `Reminders`. The toggle exposes `aria-expanded="true"` while open, and the first menu item receives focus for keyboard use.
+
+
+## Collapsed right-inspector verification — 2026-08-14
+
+At desktop width, the collapsed right inspector contracts to a 56px rail. With the pointer away, the Kurukoo logo remains visible while the collapse/expand control reports `display: none`, `visibility: hidden`, `opacity: 0`, and `pointer-events: none`. Hovering the rail changes the control to visible, opaque, and interactive. The overflow menu remains closed by default after reload.

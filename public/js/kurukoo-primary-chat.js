@@ -1018,6 +1018,7 @@
 
   function setInspectorOpen(open, target = null) {
     const inspector = $('chat-inspector'); if (!inspector) return;
+    if (open && inspector.classList.contains('is-collapsed')) setInspectorCollapsed(false);
     inspector.classList.toggle('open', open);
     $('memory-toggle')?.setAttribute('aria-expanded', String(open));
     $('notification-toggle')?.setAttribute('aria-expanded', String(open && target === 'notifications-card'));
@@ -1033,6 +1034,69 @@
   $('memory-toggle')?.addEventListener('click', () => setInspectorOpen(!$('chat-inspector')?.classList.contains('open')));
   $('notification-toggle')?.addEventListener('click', async () => { await loadNotifications(); setInspectorOpen(true, 'notifications-card'); });
   $('close-inspector')?.addEventListener('click', () => setInspectorOpen(false));
+
+  function setInspectorCollapsed(collapsed) {
+    const inspector = $('chat-inspector'); const button = $('inspector-collapse');
+    if (!inspector || !button) return;
+    inspector.classList.toggle('is-collapsed', collapsed);
+    button.setAttribute('aria-expanded', String(!collapsed));
+    button.setAttribute('aria-label', collapsed ? 'Expand context panel' : 'Collapse context panel');
+    button.title = collapsed ? 'Expand context panel' : 'Collapse context panel';
+    localStorage.setItem('kurukoo_chat_inspector_collapsed', collapsed ? '1' : '0');
+  }
+  $('inspector-collapse')?.addEventListener('click', () => setInspectorCollapsed(!$('chat-inspector')?.classList.contains('is-collapsed')));
+  setInspectorCollapsed(localStorage.getItem('kurukoo_chat_inspector_collapsed') === '1');
+
+  function closeOverflowMenu() {
+    const menu = $('chat-overflow-menu'); const toggle = $('chat-overflow-toggle');
+    if (!menu || !toggle) return;
+    menu.hidden = true; toggle.setAttribute('aria-expanded', 'false');
+  }
+  function openOverflowMenu() {
+    const menu = $('chat-overflow-menu'); const toggle = $('chat-overflow-toggle');
+    if (!menu || !toggle) return;
+    menu.hidden = false; toggle.setAttribute('aria-expanded', 'true');
+    menu.querySelector('[role="menuitem"]')?.focus();
+  }
+  async function deleteCurrentConversation() {
+    if (state.isGuest) { alert('Please sign in to delete conversations.'); return; }
+    if (!state.conversationId) { setInspectorFeedback('There is no saved conversation to delete.', 'info'); return; }
+    if (!window.confirm('Delete this conversation? This cannot be undone.')) return;
+    const conversationId = state.conversationId;
+    try {
+      const response = await fetch(`/api/chat/conversation/${encodeURIComponent(conversationId)}`, { method: 'DELETE', credentials: 'same-origin' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Unable to delete conversation.');
+      localStorage.removeItem(`kurukoo_pins_${conversationId}`);
+      localStorage.removeItem('kurukoo_conversation_id');
+      state.conversationId = ''; state.messages = []; state.pinnedMessages = []; state.activeStorefrontId = null;
+      chatContent.replaceChildren(); renderWelcome(); loadPinnedMessages(); refreshHistory();
+      setInspectorOpen(false); setInspectorFeedback('Conversation deleted.', 'info');
+    } catch (error) { setInspectorFeedback(error.message || 'Unable to delete conversation.', 'error'); }
+  }
+  function pinLatestConversationMessage() {
+    const latest = [...state.messages].reverse().find(message => message && message.text);
+    if (!latest) { setInspectorOpen(true); setInspectorFeedback('There is no message to pin yet.', 'info'); return; }
+    const key = latest.id ? `message-${latest.id}` : `local-${state.messages.indexOf(latest)}`;
+    togglePinnedMessage(key, { role: latest.role, text: latest.text });
+    setInspectorOpen(true);
+    $('pinned-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  $('chat-overflow-toggle')?.addEventListener('click', () => {
+    const menu = $('chat-overflow-menu');
+    if (menu?.hidden) openOverflowMenu(); else closeOverflowMenu();
+  });
+  $('chat-overflow-menu')?.addEventListener('click', event => {
+    const item = event.target.closest('[role="menuitem"]'); if (!item) return;
+    const action = item.dataset.overflowAction;
+    if (action === 'delete') void deleteCurrentConversation();
+    if (action === 'pin') pinLatestConversationMessage();
+    closeOverflowMenu();
+  });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.chat-overflow-wrap')) closeOverflowMenu();
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeOverflowMenu(); });
   if (localStorage.getItem('kurukoo_chat_inspector_open') === '1') setInspectorOpen(true);
 
   const wireQuickActions = (root) => {
