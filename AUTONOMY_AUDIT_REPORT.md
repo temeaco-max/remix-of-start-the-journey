@@ -89,3 +89,8 @@ The next implementation phase should address those gaps without weakening consen
 The next completion tranche added a durable `agent_worker_runs` ledger to the existing autonomous runtime schema. Successful and failed worker cycles now persist bounded start/completion timestamps, due-goal and updated-goal counts, status, and a sanitized error field. Administrators can inspect recent records through the admin-only `GET /api/agent/runs` endpoint, while the existing `GET /api/agent/status` endpoint continues to expose current in-memory health. This closes the previous post-restart auditability gap without creating a second runtime or exposing user data.
 
 The implementation was compiled and verified with the autonomous runtime regression, Chat DOM-safety contract, production guard regression, and repository diff checks. The updated maturity assessment is **7.6/10**: worker lifecycle and auditability are now strong, while provider configuration, external delivery, payment/KYC/affiliate activation, and explicit skill-flow depth remain deployment prerequisites rather than code defects.
+
+
+## Post-ledger verification
+
+The full `npm run test:routes` suite passed after the durable worker-ledger change. This covered composition, public routes and runtime contracts, Chat workspace routing, voice, QR, autonomous runtime, payment boundaries, channel parity and usage, network Chat, Topics, attachments, fresh databases, pilot readiness, discovery, presence, content, trust, disputes, circles, orders, admin/SEO, tasks, provider entities, multi-party requests, execution boundaries, native assistance, authentication, development guards, and economic lifecycle behavior.
