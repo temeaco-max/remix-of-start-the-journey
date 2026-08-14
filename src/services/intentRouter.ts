@@ -394,6 +394,13 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       const workerMatch = q.match(/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/i)?.[1];
       const worker = workerMatch ? (/^plumb/i.test(workerMatch) ? 'plumber' : /^electri/i.test(workerMatch) ? 'electrician' : /^paint/i.test(workerMatch) ? 'painter' : /^decorat/i.test(workerMatch) ? 'decorator' : /^til/i.test(workerMatch) ? 'tiler' : /^roof/i.test(workerMatch) ? 'roofer' : workerMatch.toLowerCase()) : undefined;
       const seed: Record<string, unknown> = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'verified_artist' ? { event_type: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
+      const fromTo = query.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:tomorrow|today|on\s+\w+)|[.!?]|$)/i);
+      if (fromTo && (directSkill === 'ride_request' || directSkill === 'ride')) {
+        seed.origin = fromTo[1].trim();
+        seed.destination = fromTo[2].trim();
+      }
+      const departure = query.match(/\b(today|tonight|tomorrow(?:\s+(?:morning|afternoon|evening|night))?|this\s+weekend|next\s+week|saturday|sunday|monday|tuesday|wednesday|thursday|friday)\b/i);
+      if (departure && (directSkill === 'ride_request' || directSkill === 'ride')) seed.departure_time = departure[1];
       if (extractedEntities.location) seed.location = extractedEntities.location;
       if (extractedEntities.date) seed.date = extractedEntities.date;
       if (extractedEntities.time) seed.time = extractedEntities.time;

@@ -1,7 +1,7 @@
 (() => {
   const state = {
     conversationId: localStorage.getItem('kurukoo_conversation_id') || '',
-    messages: [], busy: false, attached: null, controller: null,
+    displayName: '', authStep: 'none', messages: [], busy: false, attached: null, controller: null,
     theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     activeStorefrontId: null,
     nativeAssistance: { reminders: [], checkIns: [] },
@@ -19,7 +19,7 @@
   function togglePinnedMessage(key, message = null) { const index = state.pinnedMessages.findIndex(pin => pin.key === key); if (index >= 0) state.pinnedMessages.splice(index, 1); else if (message) state.pinnedMessages.unshift({ key, role: message.role, text: String(message.text || '').slice(0, 280) }); else return; savePinnedMessages(); renderPinnedMessages(); }
   function wirePinGestures(wrap, role, text) { const key = wrap.dataset.pinKey || (wrap.dataset.messageId ? `message-${wrap.dataset.messageId}` : `local-${crypto.randomUUID()}`); wrap.dataset.pinKey = key; const toggle = () => togglePinnedMessage(key, { role, text }); let timer = null; wrap.addEventListener('contextmenu', event => { event.preventDefault(); toggle(); }); wrap.addEventListener('pointerdown', event => { if (event.pointerType !== 'touch' || event.target.closest('button,a,input,textarea')) return; timer = setTimeout(() => { timer = null; toggle(); }, 560); }); ['pointerup','pointercancel','pointerleave','pointermove'].forEach(type => wrap.addEventListener(type, () => { if (timer) { clearTimeout(timer); timer = null; } })); }
 
-  
+
   const makeElement = (tag, className = '', text = '') => {
     const el = document.createElement(tag);
     if (className) el.className = className;
@@ -43,12 +43,12 @@
     if (input) input.setAttribute('aria-busy', String(busy));
   }
 
-  const setConnection = (ok, text = ok ? 'Connected' : 'Offline') => { 
-    const el = $('connection-status'); 
-    if (el) { 
-      el.replaceChildren(makeElement('span', 'status-dot'), document.createTextNode(` ${text}`)); 
-      el.classList.toggle('offline', !ok); 
-    } 
+  const setConnection = (ok, text = ok ? 'Connected' : 'Offline') => {
+    const el = $('connection-status');
+    if (el) {
+      el.replaceChildren(makeElement('span', 'status-dot'), document.createTextNode(` ${text}`));
+      el.classList.toggle('offline', !ok);
+    }
   };
 
   function setTypingStatus(status = 'complete', label = '') {
@@ -92,25 +92,25 @@
     if (text) text.textContent = label || (status === 'thinking' ? 'Kurukoo is considering the best next step…' : 'Kurukoo is typing…');
     if (scroll) scroll.scrollTop = scroll.scrollHeight;
   }
-  
+
   const applyTheme = () => { document.body.classList.toggle('dark', state.theme === 'dark'); localStorage.setItem('kurukoo_theme', state.theme); };
-  
-  function sanitizeHtml(html) { 
-    const doc = new DOMParser().parseFromString(html, 'text/html'); 
-    doc.querySelectorAll('script,iframe,object,embed,style,link,form').forEach(n => n.remove()); 
-    doc.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => { if (/^on/i.test(a.name) || /^(javascript|data):/i.test(a.value)) n.removeAttribute(a.name); })); 
-    return doc.body.innerHTML; 
-  }
-  
-  function renderMarkdown(text) { 
-    if (!window.marked) return String(text || '').replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c])).replace(/\n/g, '<br>'); 
-    marked.setOptions({ breaks: true, gfm: true }); 
-    return sanitizeHtml(marked.parse(text || '')); 
+
+  function sanitizeHtml(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script,iframe,object,embed,style,link,form').forEach(n => n.remove());
+    doc.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => { if (/^on/i.test(a.name) || /^(javascript|data):/i.test(a.value)) n.removeAttribute(a.name); }));
+    return doc.body.innerHTML;
   }
 
-  function setMarkdown(el, text) { 
-    const html = renderMarkdown(text); 
-    el.replaceChildren(document.createRange().createContextualFragment(html)); 
+  function renderMarkdown(text) {
+    if (!window.marked) return String(text || '').replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c])).replace(/\n/g, '<br>');
+    marked.setOptions({ breaks: true, gfm: true });
+    return sanitizeHtml(marked.parse(text || ''));
+  }
+
+  function setMarkdown(el, text) {
+    const html = renderMarkdown(text);
+    el.replaceChildren(document.createRange().createContextualFragment(html));
   }
 
   function enhanceCode(root) { root.querySelectorAll('pre code').forEach(block => { if (window.hljs && !block.dataset.highlighted) hljs.highlightElement(block); }); }
@@ -119,24 +119,24 @@
 
   function updateNativeAssistanceStatus() {
     const banner = $('native-assistance-status'); if (!banner) return;
-    const now = Date.now(); 
-    const reminders = Array.isArray(state.nativeAssistance?.reminders) ? state.nativeAssistance.reminders : []; 
+    const now = Date.now();
+    const reminders = Array.isArray(state.nativeAssistance?.reminders) ? state.nativeAssistance.reminders : [];
     const checkIns = Array.isArray(state.nativeAssistance?.checkIns) ? state.nativeAssistance.checkIns : [];
-    
+
     const activeCheckIns = checkIns.filter(item => item?.status === 'active' && item?.expires_at).map(item => ({ ...item, expiresAt: new Date(item.expires_at).getTime() })).filter(item => Number.isFinite(item.expiresAt)).sort((a, b) => a.expiresAt - b.expiresAt);
     const expiringCheckIn = activeCheckIns.find(item => item.expiresAt <= now + (2 * 60 * 60 * 1000));
     if (expiringCheckIn) {
       const when = expiringCheckIn.expiresAt <= now ? 'has reached its scheduled end' : `ends at ${new Date(expiringCheckIn.expiresAt).toLocaleString()}`;
-      banner.textContent = `Personal safety check-in ${when}. Review it in the context inspector; no contact is notified automatically.`; 
+      banner.textContent = `Personal safety check-in ${when}. Review it in the context inspector; no contact is notified automatically.`;
       banner.dataset.kind = 'safety'; banner.hidden = false; return;
     }
-    
+
     const upcomingReminder = reminders.filter(item => item?.status === 'active' && item?.due_at).map(item => ({ ...item, dueAt: new Date(item.due_at).getTime() })).filter(item => Number.isFinite(item.dueAt) && item.dueAt <= now + (24 * 60 * 60 * 1000)).sort((a, b) => a.dueAt - b.dueAt)[0];
-    if (upcomingReminder) { 
-      const title = String(upcomingReminder.title || 'Reminder'); 
-      const due = upcomingReminder.dueAt <= now ? 'needs your attention now' : `is scheduled for ${new Date(upcomingReminder.dueAt).toLocaleString()}`; 
-      banner.textContent = `Reminder: ${title} ${due}. Review it in the context inspector.`; 
-      banner.dataset.kind = 'reminder'; banner.hidden = false; return; 
+    if (upcomingReminder) {
+      const title = String(upcomingReminder.title || 'Reminder');
+      const due = upcomingReminder.dueAt <= now ? 'needs your attention now' : `is scheduled for ${new Date(upcomingReminder.dueAt).toLocaleString()}`;
+      banner.textContent = `Reminder: ${title} ${due}. Review it in the context inspector.`;
+      banner.dataset.kind = 'reminder'; banner.hidden = false; return;
     }
     banner.hidden = true; banner.textContent = '';
   }
@@ -146,7 +146,7 @@
     const gate = document.createElement('div');
     gate.dataset.embedSigninGate = '1';
     gate.className = 'message assistant';
-    
+
     const avatar = makeElement('div', 'avatar', 'K'); avatar.setAttribute('aria-hidden', 'true');
     const body = makeElement('div', 'message-body');
     const bubble = makeElement('div', 'bubble');
@@ -171,6 +171,7 @@
       const sessionData = await sessionCheck.json().catch(() => ({}));
       setConnection(true);
       state.isGuest = false;
+      state.displayName = sessionData.name || sessionData.user?.name || sessionData.profile?.name || '';
       const testBanner = $('development-test-banner');
       if (testBanner) testBanner.hidden = sessionData.developmentTestAccount !== true;
       const contextBanner = $('session-context-banner');
@@ -199,46 +200,47 @@
     try { await fetch('/api/chat/auth/start', { method: 'POST', credentials: 'same-origin' }); } catch {}
   }
 
-  function renderWelcomeAuth(welcome) {
-    if (!state.isGuest || welcome.querySelector('.welcome-auth')) return;
-    const auth = makeElement('section', 'welcome-auth');
-    const heading = makeElement('div', 'welcome-auth-heading');
-    heading.append(makeIcon('chat', 'Your name'), makeElement('strong', '', 'Hi, I’m Kurukoo'));
-    auth.append(heading, makeElement('p', 'welcome-auth-copy', 'Tell me your name first. I’ll then verify your phone in this conversation so I can keep your requests connected.'));
-    const form = document.createElement('form'); form.className = 'welcome-auth-form';
-    const name = document.createElement('input'); name.type = 'text'; name.name = 'name'; name.autocomplete = 'name'; name.placeholder = 'Your name'; name.required = true;
-    const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'auth-conversation-submit'; submit.setAttribute('aria-label', 'Continue with your name'); submit.title = 'Continue'; submit.appendChild(makeIcon('send', 'Continue'));
-    form.append(name, submit); form.addEventListener('submit', event => { event.preventDefault(); const value = name.value.trim(); if (value) sendMessage(value); });
-    auth.appendChild(form); welcome.appendChild(auth); name.focus();
+  function setAuthComposerStep(step = 'none') {
+    state.authStep = step;
+    if (!input) return;
+    const prompts = { name: 'Type your name…', phone: 'Type your phone number…', otp: 'Type the 6-digit code…' };
+    input.placeholder = prompts[step] || (state.displayName ? 'Tell Kurukoo what you need…' : 'Tell Kurukoo what you need…');
+    input.setAttribute('aria-label', step === 'name' ? 'Your name' : step === 'phone' ? 'Your phone number' : step === 'otp' ? 'Verification code' : 'Message Kurukoo');
+  }
+
+  function renderWelcomeAuth() {
+    if (!state.isGuest) return;
+    setAuthComposerStep('name');
+    input?.focus();
   }
 
   function addHistoryItem(conversation, active = false) {
     const list = $('history-list'); if (!list || !conversation?.id) return;
     let item = list.querySelector(`[data-conversation-id="${CSS.escape(conversation.id)}"]`);
-    if (!item) { 
-      item = document.createElement('button'); item.type = 'button'; item.className = 'history-item'; 
-      item.dataset.conversationId = conversation.id; item.textContent = conversation.title || 'New conversation'; 
-      item.addEventListener('click', () => loadConversation(conversation.id)); 
-      list.appendChild(item); 
+    if (!item) {
+      item = document.createElement('button'); item.type = 'button'; item.className = 'history-item';
+      item.dataset.conversationId = conversation.id; item.textContent = conversation.title || 'New conversation';
+      item.addEventListener('click', () => loadConversation(conversation.id));
+      list.appendChild(item);
     }
     item.classList.toggle('active', active);
   }
 
   function createMessage(role, text = '', id = null, cardData = null, animate = true) {
     const wrap = document.createElement('article'); wrap.className = `message ${role}`; wrap.dataset.messageState = animate ? 'incoming' : 'history'; if (animate) wrap.classList.add('message-enter'); if (id) wrap.dataset.messageId = id;
-    
+
     const avatarDiv = makeElement('div', 'avatar'); avatarDiv.setAttribute('aria-hidden', 'true');
     if (role === 'assistant') {
       const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.svg'; img.alt = 'K'; img.width = 20;
       avatarDiv.appendChild(img);
     }
-    
+
     const body = makeElement('div', 'message-body');
     const bubble = makeElement('div', 'bubble');
     const md = makeElement('div', 'markdown-body');
     setMarkdown(md, text);
     bubble.appendChild(md);
-    
+
     const actions = makeElement('div', 'message-actions');
     const buttons = role === 'assistant' ? [['pin', 'Pin', 'saved'], ['copy', 'Copy', 'copy'], ['regenerate', 'Retry', 'retry'], ['delete', 'Delete', 'trash']] : [['pin', 'Pin', 'saved'], ['copy', 'Copy', 'copy'], ['edit', 'Edit', 'edit'], ['delete', 'Delete', 'trash']];
     buttons.forEach(([act, lab, iconName]) => {
@@ -247,63 +249,63 @@
       btn.appendChild(makeIcon(iconName, lab));
       actions.appendChild(btn);
     });
-    
+
     body.append(bubble, actions);
     if (role === 'assistant') wrap.appendChild(avatarDiv);
     wrap.appendChild(body);
-    
+
     actions.addEventListener('click', async event => {
       const button = event.target.closest('button'); if (!button) return; const action = button.dataset.action;
       if (action === 'pin') togglePinnedMessage(wrap.dataset.pinKey, { role, text });
       if (action === 'copy') await navigator.clipboard?.writeText(wrap.querySelector('.bubble').innerText);
       if (action === 'edit') { input.value = text; input.focus(); input.dispatchEvent(new Event('input')); }
-      if (action === 'delete') { 
+      if (action === 'delete') {
         if (state.isGuest) { alert('Please sign in to delete messages.'); return; }
-        if (wrap.dataset.messageId) await deleteMessage(Number(wrap.dataset.messageId)); 
-        wrap.remove(); 
+        if (wrap.dataset.messageId) await deleteMessage(Number(wrap.dataset.messageId));
+        wrap.remove();
       }
-      if (action === 'regenerate') { 
+      if (action === 'regenerate') {
         if (state.isGuest) { alert('Please sign in to regenerate messages.'); return; }
-        const lastUser = [...state.messages].reverse().find(m => m.role === 'user'); 
-        if (lastUser) await sendMessage(lastUser.text); 
+        const lastUser = [...state.messages].reverse().find(m => m.role === 'user');
+        if (lastUser) await sendMessage(lastUser.text);
       }
     });
-    
-    chatContent.appendChild(wrap); 
+
+    chatContent.appendChild(wrap);
     wirePinGestures(wrap, role, text);
-    if (cardData) renderCard(cardData, wrap); 
-    scroll.scrollTop = scroll.scrollHeight; 
+    if (cardData) renderCard(cardData, wrap);
+    scroll.scrollTop = scroll.scrollHeight;
     enhanceCode(wrap);
     return wrap;
   }
 
   function appendStreamBubble() {
-    $('welcome')?.remove(); 
+    $('welcome')?.remove();
     const wrap = document.createElement('article'); wrap.className = 'message assistant message-enter message-streaming'; wrap.dataset.messageState = 'incoming'; wrap.hidden = true;
-    
+
     const avatar = makeElement('div', 'avatar'); avatar.setAttribute('aria-hidden', 'true');
     const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.svg'; img.alt = 'K'; img.width = 20;
     avatar.appendChild(img);
-    
+
     const body = makeElement('div', 'message-body');
     const bubble = makeElement('div', 'bubble');
     bubble.appendChild(makeElement('div', 'markdown-body'));
-    
+
     const thinking = makeElement('div', 'thinking'); thinking.hidden = true;
     const details = document.createElement('details');
     details.appendChild(makeElement('summary', '', 'Reasoning completed'));
     details.appendChild(makeElement('div', '', 'Kurukoo selected the appropriate response path. Private model reasoning is not exposed.'));
     thinking.appendChild(details);
     bubble.appendChild(thinking);
-    
+
     const actions = makeElement('div', 'message-actions');
     [['copy', 'Copy', 'copy'], ['regenerate', 'Retry', 'retry'], ['delete', 'Delete', 'trash']].forEach(([act, lab, iconName]) => {
       const btn = makeElement('button', 'message-action-btn'); btn.type = 'button'; btn.dataset.action = act; btn.setAttribute('aria-label', lab); btn.title = lab; btn.appendChild(makeIcon(iconName, lab)); actions.appendChild(btn);
     });
-    
+
     body.append(bubble, actions);
     wrap.append(avatar, body);
-    chatContent.appendChild(wrap); 
+    chatContent.appendChild(wrap);
     wirePinGestures(wrap, 'assistant', 'Kurukoo is responding…');
     return wrap;
   }
@@ -640,7 +642,7 @@
     const holder = document.createElement('div');
     holder.className = 'intent-suggestion-bar';
     holder.setAttribute('aria-label', 'Suggested next actions');
-    
+
     if (Array.isArray(options)) {
       options.forEach(option => {
         const opt = typeof option === 'string' ? { label: option, prompt: option } : option;
@@ -672,6 +674,11 @@
   function renderCard(card, messageEl) {
     if (!card || !messageEl) return;
     if (card.type === 'agentic_storefront') {
+      if (card.stage === 'slot_fill' || card.stage === 'intent_extraction') {
+        const missing = (Array.isArray(card.fields) ? card.fields : []).filter(field => field?.required && !field.value).map(field => String(field.label || field.key || 'the next detail').toLowerCase());
+        if (missing.length && input) input.placeholder = `Tell me ${missing[0]}…`;
+        return renderSuggestions(card.suggestions, messageEl, card.sponsored);
+      }
       renderAgenticStorefront(card, messageEl);
       return renderSuggestions(card.suggestions, messageEl, card.sponsored);
     }
@@ -681,6 +688,8 @@
 
     if (card.type === 'auth_otp_input' || card.type === 'auth_conversation') {
       const step = card.type === 'auth_otp_input' ? 'otp' : String(card.step || 'name');
+      if (state.isGuest) setAuthComposerStep(step);
+      return;
       const holder = makeElement('div', 'auth-conversation-card');
       holder.dataset.authStep = step;
       const header = makeElement('div', 'auth-conversation-heading');
@@ -707,7 +716,7 @@
       const desc = makeElement('p', '', `You're adding ${card.name} as a contact. Share their phone number in the chat to continue.`);
       const btn = makeElement('button', 'primary-btn', 'Manage contacts');
       btn.addEventListener('click', () => setInspectorOpen(true, 'safety-card'));
-      
+
       inner.append(icon, title, desc, btn);
       holder.appendChild(inner);
       messageEl.querySelector('.bubble').appendChild(holder);
@@ -837,7 +846,7 @@
     const allowed = /^(image\/(png|jpeg|webp|gif)|application\/pdf|video\/mp4|video\/webm)$/i.test(file.type || '');
     if (!allowed) throw new Error('Unsupported attachment type. Use an image, PDF or supported video.');
     if (file.size > 25 * 1024 * 1024) throw new Error('Attachment is larger than the 25 MB chat limit.');
-    const reader = new FileReader(); 
+    const reader = new FileReader();
     const data = await new Promise((resolve, reject) => { reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
     const response = await fetch('/api/chat/attachments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ name: file.name, type: file.type || 'application/octet-stream', data }) });
     if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.error || 'Attachment upload failed'); }
@@ -863,10 +872,11 @@
           const line = event.split('\n').find(x => x.startsWith('data: ')); if (!line) continue; const payload = line.slice(6); if (payload === '[DONE]') continue;
           let data; try { data = JSON.parse(payload); } catch { continue; }
           if (data.type === 'conversation') { state.conversationId = data.conversationId; localStorage.setItem('kurukoo_conversation_id', state.conversationId); user.dataset.messageId = data.messageId || ''; }
-          if (data.type === 'auth_success') { 
-            state.isGuest = false; 
-            setConnection(true); 
-            $('logout-sidebar-btn').hidden = false;
+          if (data.type === 'auth_success') {
+            state.isGuest = false; state.authStep = 'none';
+            setAuthComposerStep('none');
+            setConnection(true);
+            const logoutButton = $('workspace-logout') || $('logout-sidebar-btn'); if (logoutButton) logoutButton.hidden = false;
             if (data.phone) localStorage.setItem('kurukoo_user_phone', data.phone);
           }
           if (data.type === 'metadata') updateModelStatus(data);
@@ -889,15 +899,20 @@
           if (data.type === 'error') throw new Error(data.error || 'Stream error');
         }
       }
+      if (state.isGuest) {
+        if (/enter your phone number/i.test(full)) setAuthComposerStep('phone');
+        else if (/6-digit verification code|code sent to your phone/i.test(full)) setAuthComposerStep('otp');
+        else if (/profile is now verified|account is now connected/i.test(full)) setAuthComposerStep('none');
+      }
       state.messages.push({ role: 'user', text: finalText, id: Number(user.dataset.messageId) || null }); state.messages.push({ role: 'assistant', text: full, id: Number(assistant.dataset.messageId) || null });
       if (!full) output.textContent = 'I could not complete that request. Please try again.';
       await refreshHistory();
     } catch (error) {
       if (error?.name === 'AbortError') { setConnection(true); setTypingStatus('complete'); assistant.hidden = false; assistant.classList.remove('message-streaming'); assistant.classList.add('message-arrived'); if (!full) setMarkdown(output, 'Generation stopped.'); return; }
       setConnection(false, 'Connection issue'); setTypingStatus('error'); assistant.hidden = false; assistant.classList.remove('message-streaming'); assistant.classList.add('message-arrived');
-      const bubble = chatContent.querySelector('.message.assistant:last-child .markdown-body'); 
-      if (bubble) setMarkdown(bubble, `I’m having trouble completing that right now. **Please try again.**\n\n_${escapeAttr(error.message)}_`); 
-    } finally { state.controller = null; setTypingStatus('complete'); setComposerBusy(false); input.placeholder = 'Message Kurukoo'; input.focus(); loadPoints(); loadReminders(); loadSafety(); loadAgentGoal(); }
+      const bubble = chatContent.querySelector('.message.assistant:last-child .markdown-body');
+      if (bubble) setMarkdown(bubble, `I’m having trouble completing that right now. **Please try again.**\n\n_${escapeAttr(error.message)}_`);
+    } finally { state.controller = null; setTypingStatus('complete'); setComposerBusy(false); if (state.authStep !== 'none') setAuthComposerStep(state.authStep); else input.placeholder = state.displayName ? 'Tell Kurukoo what you need…' : 'Tell Kurukoo what you need…'; input.focus(); loadPoints(); loadReminders(); loadSafety(); loadAgentGoal(); }
   }
 
   function updateModelStatus(data) { const label = $('model-badge'); if (label && data.model) label.textContent = data.model; }
@@ -956,7 +971,7 @@
     });
   }
 
-  async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; personalizeQuickActions(profile); const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile remains attached to your account.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
+  async function loadMemory() { try { const res = await fetch('/api/profile', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); const profile = data.profile || {}; if (!state.displayName && profile.name) state.displayName = String(profile.name); personalizeQuickActions(profile); const text = `Kurukoo remembers ${profile.location || 'your area'}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}. Your Memory Profile remains attached to your account.`; const mc = $('memory-context'); if (mc) mc.textContent = text; const im = $('inspector-memory'); if (im) im.textContent = text; } catch {} }
 
   function renderAgentGoal(goal, events = []) {
     const card = $('agent-goal-card'); const status = $('agent-goal-status'); const summary = $('agent-goal-summary'); const list = $('agent-goal-events'); const cancel = $('agent-goal-cancel');
@@ -989,7 +1004,7 @@
       const data = await response.json(); renderAgentGoal(data.goal, data.events);
     } catch { renderAgentGoal(null); }
   }
-  
+
   async function loadReminders() {
     try {
       const res = await fetch('/api/reminders', { credentials: 'same-origin' });
@@ -1012,7 +1027,7 @@
 
   function setInspectorFeedback(message, kind = 'info') { const feedback = $('inspector-feedback'); if (!feedback) return; feedback.hidden = !message; feedback.textContent = message || ''; feedback.dataset.kind = kind; }
   async function nativeAction(url, options = {}) { const response = await fetch(url, { credentials: 'same-origin', ...options }); let data = {}; try { data = await response.json(); } catch {} if (!response.ok) throw new Error(data.error || 'Action could not be completed.'); return data; }
-  
+
   async function loadSafety() {
     try {
       const [contactsResponse, checkInsResponse] = await Promise.all([
@@ -1023,10 +1038,10 @@
       if (!contactsResponse.ok || !checkInsResponse.ok || !card || !contactsList || !checkInsList) return;
       const contactsData = await contactsResponse.json(); const checkInsData = await checkInsResponse.json();
       const contacts = Array.isArray(contactsData.contacts) ? contactsData.contacts : [];
-      const checkIns = Array.isArray(checkInsData.checkIns) ? checkInsData.checkIns : []; 
+      const checkIns = Array.isArray(checkInsData.checkIns) ? checkInsData.checkIns : [];
       state.nativeAssistance.checkIns = checkIns; updateNativeAssistanceStatus();
       card.hidden = false; contactsList.replaceChildren(); checkInsList.replaceChildren();
-      
+
       const contactHeading = document.createElement('strong'); contactHeading.textContent = contacts.length ? 'Contacts' : 'No safety contacts yet.'; contactsList.appendChild(contactHeading);
       contacts.forEach(contact => {
         const row = document.createElement('div'); row.className = 'safety-list-item';
@@ -1223,18 +1238,18 @@
   input?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
   send?.addEventListener('click', () => sendMessage());
   stop?.addEventListener('click', () => { state.controller?.abort(); });
-  $('new-chat')?.addEventListener('click', async () => { 
-    if (!await ensureIdentity()) return; 
-    try { 
-      const res = await fetch('/api/chat/conversation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ channel: 'web', title: 'New conversation' }) }); 
-      const data = await res.json(); 
-      if (data.conversationId) { state.conversationId = data.conversationId; localStorage.setItem('kurukoo_conversation_id', data.conversationId); } 
-    } catch {} 
-    state.messages = []; state.activeStorefrontId = null; chatContent.replaceChildren(); 
-    const ds = $('deferred-status'); if (ds) ds.hidden = true; 
-    renderWelcome(); refreshHistory(); 
+  $('new-chat')?.addEventListener('click', async () => {
+    if (!await ensureIdentity()) return;
+    try {
+      const res = await fetch('/api/chat/conversation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ channel: 'web', title: 'New conversation' }) });
+      const data = await res.json();
+      if (data.conversationId) { state.conversationId = data.conversationId; localStorage.setItem('kurukoo_conversation_id', data.conversationId); }
+    } catch {}
+    state.messages = []; state.activeStorefrontId = null; chatContent.replaceChildren();
+    const ds = $('deferred-status'); if (ds) ds.hidden = true;
+    renderWelcome(); refreshHistory();
   });
-  
+
   $('logout-button')?.addEventListener('click', async () => {
     try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (_) {}
     localStorage.removeItem('kurukoo_user_phone');
@@ -1262,26 +1277,23 @@
   }
 
   function renderWelcome() {
-    const welcome = makeElement('div', 'welcome'); welcome.id = 'welcome';
-    const mark = makeElement('div', 'welcome-mark');
-    const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.svg'; img.alt = 'K'; img.width = 32;
-    mark.appendChild(img);
-    welcome.appendChild(mark);
-    welcome.appendChild(makeElement('h1', '', 'What can I help you get done?'));
-    welcome.appendChild(makeElement('p', '', 'Describe a service, work, coordination, or everyday information need. Kurukoo will show the supported request path.'));
-    const qa = makeElement('div', 'quick-actions'); qa.id = 'quick-actions';
-    [['I need a ride request', '🚗 Ride'], ['I have a food request', '🍔 Food'], ['I need repair help', '🔧 Repair'], ['I have an urgent non-emergency service request', '🏥 Urgent request'], ['I want to discuss a work request', '⚡ Work']].forEach(([p, l]) => {
+    chatContent.replaceChildren();
+    const greeting = state.isGuest
+      ? 'Welcome to Kurukoo. I’m designed to help you directly, organise a reminder, keep you safe, or coordinate people and services to fulfil your request. Can I take your name?'
+      : `Welcome back${state.displayName ? `, ${state.displayName}` : ''}. What would you like to get done today?`;
+    createMessage('assistant', greeting, null, null, false);
+    const qa = makeElement('div', 'quick-actions welcome-quick-actions'); qa.id = 'quick-actions';
+    [['I need a ride request', 'Ride'], ['I have a food request', 'Food'], ['I need repair help', 'Repair'], ['I want to discuss a work request', 'Work']].forEach(([p, l]) => {
       const b = makeElement('button', '', l); b.dataset.prompt = p; qa.appendChild(b);
     });
-    welcome.appendChild(qa);
-    chatContent.replaceChildren(welcome);
-    wireQuickActions($('quick-actions'));
-    if (state.isGuest) { void startGuestAuth().finally(() => renderWelcomeAuth(welcome)); }
+    chatContent.appendChild(qa); wireQuickActions(qa);
+    if (state.isGuest) { void startGuestAuth().finally(() => renderWelcomeAuth()); }
+    else setAuthComposerStep('none');
   }
 
   applyTheme();
   hydrateChatDeepLink();
-  ensureIdentity().then(async ok => { 
+  ensureIdentity().then(async ok => {
     if (ok) {
       await refreshHistory();
       await Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadReminders(), loadSafety(), loadAgentGoal()]);
