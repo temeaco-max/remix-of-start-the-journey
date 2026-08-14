@@ -113,7 +113,7 @@ router.post('/conversation', optionalAuthenticateUser, async (req: AuthRequest, 
   const channel = typeof req.body?.channel === 'string' ? req.body.channel.slice(0, 30) : 'web';
   const title = typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : undefined;
   try {
-    const id = await ensureConversation(phone, undefined, channel, title);
+    const id = await ensureConversation(phone, undefined, channel, title, true);
     res.json({ success: true, conversationId: id });
   } catch (error) {
     console.error('[Chat] conversation create failed:', error);

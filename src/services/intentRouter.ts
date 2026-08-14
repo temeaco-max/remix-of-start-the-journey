@@ -26,7 +26,7 @@ const CANONICAL_ALIASES: Array<[RegExp, string]> = [
   [/\bkeke|tricycle\b/, 'keke_driver'],
   [/\b(taxi|cab|uber|ride-hailing)\b/, 'taxi_driver'],
   [/\b(ride|trip)\b/, 'ride_request'],
-  [/\b(book|hire|need|get)\b.*\b(artist|musician|dj|celebrity|performer|creator)\b/, 'verified_artist'],
+  [/(?:\b(book|hire|need|get|find|help me with|want)\b.*\b(artist|musician|dj|celebrity|performer|creator)\b|\b(?:artist|musician|dj|celebrity|performer|creator)\b\s+(?:for hire|services?))/, 'verified_artist'],
   [/\b(football|basketball|tennis|pitch|match|league|team|player)\b/, 'sports_matchmaking'],
   [/\b(verify|evidence|capture|report|contributor|event coverage)\b/, 'event_coverage'],
   [/\b(happening|event|events|weekend|calendar|daily picks)\b/, 'national_events']
@@ -260,6 +260,13 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone) };
   if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
 
+  if (/\b(emergency|ambulance|fire service|flood line|swep alert|immediate danger|life[- ]threatening)\b/i.test(q) && !/\b(emergency|safety) contact\b/i.test(q)) {
+    const result = await delegateToAgentForSkill('support_triage', query, phone);
+    const safetyGuidance = 'If anyone is in immediate danger, contact your local emergency service now (112 in Nigeria). I can help you record the situation and coordinate next steps, but I am not an emergency responder.';
+    const triageReply = result.success && result.reply && !/service request, payment, dispute, profile, or earning opportunity/i.test(result.reply) ? `\n\n${result.reply}` : '';
+    return { skill: 'emergency', reply: `${safetyGuidance}${triageReply}` };
+  }
+
   if (q.includes('emergency contact') || q.includes('safety contact')) {
     if (!phone || phone.startsWith('anon_')) return { skill: 'safety_contact', reply: 'I can save your personal emergency contacts as soon as you sign in, so they stay with your Kurukoo profile.' };
     const addMatch = q.match(/add\s+(.+?)\s+as\s+(?:my\s+)?(?:emergency|safety)\s+contact/i);
@@ -272,6 +279,18 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       };
     }
     return { skill: 'safety_contact', reply: 'I can manage your safety contacts. You can add a contact by saying “Add [Name] as my emergency contact” or review them in the context inspector.', cardData: suggestionCard('safety_contact') };
+  }
+
+  if (phone && /\b(i want to earn|i can|i offer|offer(?:ing)? .*service|provide .*service|take jobs|find work)\b/i.test(q)) {
+    const providerSkill = q.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder|driver|baker|coder)\b/i)?.[1]?.toLowerCase();
+    if (providerSkill) {
+      const location = q.match(/\b(?:in|around|near)\s+([a-z][a-z -]{2,40}?)(?=\s+(?:and|can|tomorrow|today|available)\b|[,.!?]|$)/i)?.[1]?.trim() || null;
+      return {
+        skill: 'provider_onboarding',
+        reply: `I can help you add **${providerSkill}** to your provider profile${location ? ` for ${location}` : ''}. I will not publish or mark you available automatically. Confirm the skill and location, then I can save the profile update; availability, pricing, verification, and job matching remain separate steps.`,
+        cardData: { type: 'provider_profile_setup', status: 'review_required', skill: providerSkill, location, source: 'explicit_provider_statement' },
+      };
+    }
   }
 
   if (phone && isResumePhrase(q)) {
@@ -311,7 +330,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
         }
       }
       const worker = q.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder)\b/i)?.[1];
-      const seed = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
+      const seed = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'verified_artist' ? { event_type: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
       const card = await startStorefrontSession(phone, directSkill, seed);
       const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message;
       return { skill: directSkill, reply, cardData: decorateCardWithSuggestions(card, directSkill) };

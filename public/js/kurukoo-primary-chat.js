@@ -315,7 +315,7 @@
   }
 
   async function advanceStorefront(requestId, action, fields, messageEl) {
-    if (!requestId || state.busy) return;
+    if (!requestId || (state.busy && action !== 'cancel')) return;
     state.busy = true;
     if (send) send.disabled = true;
     try {
@@ -739,6 +739,30 @@
       boundary.className = 'escrow-badge';
       boundary.textContent = 'This personal reminder does not create a provider request or payment step.';
       holder.append(heading, detail, boundary);
+    } else if (card.type === 'provider_profile_setup') {
+      holder.appendChild(makeElement('strong', '', 'Provider profile review'));
+      const skill = String(card.skill || '').trim();
+      const location = String(card.location || '').trim();
+      holder.appendChild(makeElement('div', 'deferred', `Skill: ${skill || 'not specified'}${location ? ` · Location: ${location}` : ''}`));
+      holder.appendChild(makeElement('span', 'escrow-badge', 'Review required. This does not publish availability, verification, pricing, matching, payment, or fulfilment.'));
+      const confirm = makeElement('button', 'primary-btn', 'Confirm and save profile skill');
+      confirm.type = 'button';
+      confirm.addEventListener('click', async () => {
+        confirm.disabled = true;
+        confirm.textContent = 'Saving…';
+        try {
+          const response = await fetch('/api/profile/update', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ skills: skill ? [skill] : [], location: location || undefined, is_available: false }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.success) throw new Error(data.error || 'Could not save provider profile');
+          confirm.textContent = 'Saved — availability remains off';
+          holder.appendChild(makeElement('div', 'deferred', 'Profile skill saved. Turn availability on separately only when you are ready, and verification is still required before matching.'));
+        } catch (error) {
+          confirm.disabled = false;
+          confirm.textContent = 'Confirm and save profile skill';
+          holder.appendChild(makeElement('div', 'deferred', `Could not save profile: ${error.message || 'try again'}`));
+        }
+      });
+      holder.appendChild(confirm);
     } else if (card.type === 'artist_booking') {
       holder.appendChild(makeElement('strong', '', 'Creator request'));
       holder.appendChild(makeElement('div', 'deferred', 'Availability and representation details require confirmation before a request can proceed.'));

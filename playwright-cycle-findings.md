@@ -39,3 +39,28 @@ After rebuild and runtime restart, the reload retest showed two storefront cards
 - The same deferred request was visible in `/requests` as one open request owned by `+2348022222222`, confirming Chat/workspace convergence.
 - Explicit follow-up `Keep checking for a painter in Ibadan and let me know when one is verified.` re-entered the same deferred request state. Agent-runtime regression also passed bounded follow-up, waiting/re-entry, cancellation, disabled mode, and high-risk denial checks.
 - Multi-party economic-request and provider-entity regression suites passed.
+
+## Expanded actor/skill matrix — onboarding boundary
+
+- A fresh customer actor was intentionally run through a broad Chat matrix. The first prompt (`What is Kurukoo?`) correctly entered progressive onboarding, but the naive matrix continued sending normal skill prompts before onboarding completed. Those prompts were consumed as onboarding answers, so later responses did not represent post-onboarding skill routing.
+- This is a test-harness sequencing finding, not yet a confirmed product defect: future matrix runs must complete and verify onboarding (`name`, phone/OTP, profile activation) before exercising native and Economic Request skills.
+- The same sweep also exposed two real canonical routing defects: `ride_request` had no explicit transport requirement definition and emergency phrases could fall into a generic Economic Request storefront. Both were repaired in source and targeted build/regression tests passed; Playwright post-onboarding retest remains required.
+
+## Expanded matrix — rate-limit boundary
+
+The corrected post-onboarding customer matrix successfully exercised memory, reminder, transport, food, repair, and painter feedback. Later cases received the truthful `429 Too many authenticated requests` response from the authenticated-request limiter after the high-volume automated sequence. This is an anti-abuse boundary, not a fabricated Chat answer or a request-state leak. Subsequent actor/category groups will use fresh controlled sessions and respect the limiter rather than weakening production protection.
+
+## Expanded actor and skill/category Chat cycle — 2026-08-14
+
+The expanded acceptance cycle exercised a controlled provider actor (`+2348044444444`, Matrix Provider) through clean Chat conversations and a full disposable routing matrix. The matrix covered all 205 seeded skills across 46 categories with zero routing errors and zero generic fallbacks after repair. Emergency-dispatch skills intentionally route to safety triage with explicit Nigerian 112 guidance and no provider storefront.
+
+Observed and repaired defects:
+
+- New conversation reused the latest conversation identifier because the conversation authority always resumed the latest thread when no ID was supplied. Added an explicit fresh-conversation mode and wired the New conversation endpoint to it. Playwright then showed an empty thread with a distinct conversation and preserved historical threads in the sidebar.
+- Provider capability statements initially produced a raw `provider_profile_setup` label. Added a confirmation-required provider profile card using the existing authenticated profile authority. The card states that saving a skill does not publish availability, verification, pricing, matching, payment, or fulfilment. Playwright confirmed painter skill setup and the saved-but-unavailable feedback loop.
+- Provider location extraction captured trailing availability text (`ibadan and can take jobs tomorrow`). Tightened the canonical parser; a fresh Chat turn produced the correct `ibadan` location.
+- Provider profile availability and skill-row availability could diverge. The availability and profile-update routes now synchronize both authorities. Playwright/API verification showed profile `is_available=0` and painter skill `is_available=0` after the provider remained unavailable.
+- Direct DJ prompts such as `Help me with DJ` fell through to generic Chat. Added a verified-artist alias and direct storefront dispatch. Playwright completed the DJ event slot-fill with artist, event, date, venue, audience, duration, budget, representation, technical, and travel requirements; Chat produced a truthful deferred no-match state and `/requests` mirrored one owner-scoped `Verified Artist` request as `Awaiting Match`.
+- The active `Cancel request` control could be blocked by the composer busy guard. Cancellation remains allowed while another turn is marked busy. Direct API and rebuilt Playwright state converged to `Cancelled`, with no payment claimed.
+
+The full route regression suite, skill taxonomy audit, messaging audit, security/economic audit, pilot readiness, production guards, WhatsApp boundary, attachment boundary, fresh database, and Chat DOM-safety checks passed after the repairs.

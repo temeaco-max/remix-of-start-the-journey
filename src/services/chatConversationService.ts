@@ -68,7 +68,8 @@ export async function ensureConversation(
   phone: string,
   conversationId?: string,
   channel = 'unified',
-  title?: string
+  title?: string,
+  createNew = false
 ): Promise<string> {
   const db = await dbReady();
   if (conversationId) {
@@ -77,6 +78,13 @@ export async function ensureConversation(
     const exists = stmt.step();
     stmt.free();
     if (exists) return conversationId;
+  }
+
+  if (createNew) {
+    const id = randomUUID();
+    db.run(`INSERT INTO chat_conversations (id, phone, title, channel) VALUES (?, ?, ?, ?)`, [id, phone, title || null, channel || 'unified']);
+    saveDb();
+    return id;
   }
 
   const latest = db.prepare(`SELECT id FROM chat_conversations WHERE phone = ? ORDER BY updated_at DESC LIMIT 1`);

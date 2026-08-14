@@ -26,7 +26,11 @@ router.get('/profile', authenticateUser, async (req: AuthRequest, res) => {
 router.post('/profile/availability', authenticateUser, async (req: AuthRequest, res) => {
   const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
   if (req.body?.phone && req.body.phone !== phone) return res.status(403).json({ error: 'Forbidden: You can only update your own availability' });
-  const db = await getDb(); db.run(`UPDATE memory_profiles SET is_available = ? WHERE phone = ?`, [req.body?.is_available ? 1 : 0, phone]); saveDb(); res.json({ success: true });
+  const db = await getDb();
+  const available = req.body?.is_available ? 1 : 0;
+  db.run(`UPDATE memory_profiles SET is_available = ? WHERE phone = ?`, [available, phone]);
+  db.run(`UPDATE skills SET is_available = ? WHERE phone = ?`, [available, phone]);
+  saveDb(); res.json({ success: true });
 });
 
 router.post('/profile/update', authenticateUser, async (req: AuthRequest, res) => {
@@ -37,13 +41,17 @@ router.post('/profile/update', authenticateUser, async (req: AuthRequest, res) =
     const db = await getDb(); const stmt = db.prepare(`SELECT phone FROM memory_profiles WHERE phone = ?`); stmt.bind([phone]); const exists = stmt.step(); stmt.free();
     if (!exists) db.run(`INSERT INTO memory_profiles (phone, name, location, country, subscription_tier) VALUES (?, ?, ?, ?, ?)`, [phone, name || 'New User', location || 'Ibadan', country || 'ng', 'Base']);
     else db.run(`UPDATE memory_profiles SET name = COALESCE(?, name), location = COALESCE(?, location), country = COALESCE(?, country) WHERE phone = ?`, [name || null, location || null, country || null, phone]);
-    if (typeof is_available !== 'undefined') db.run(`UPDATE memory_profiles SET is_available = ? WHERE phone = ?`, [is_available ? 1 : 0, phone]);
+    if (typeof is_available !== 'undefined') {
+      const available = is_available ? 1 : 0;
+      db.run(`UPDATE memory_profiles SET is_available = ? WHERE phone = ?`, [available, phone]);
+      db.run(`UPDATE skills SET is_available = ? WHERE phone = ?`, [available, phone]);
+    }
     if (skills) {
       const skillList = Array.isArray(skills) ? skills : String(skills).split(',').map((s: string) => s.trim()).filter((s: string) => s);
       for (const sk of skillList) {
         const sStmt = db.prepare(`SELECT id FROM skills WHERE phone = ? AND skill = ?`); sStmt.bind([phone, sk]); const skillExists = sStmt.step(); sStmt.free(); const equipJson = typeof equipment === 'object' ? JSON.stringify(equipment) : equipment || '{}';
-        if (!skillExists) db.run(`INSERT INTO skills (phone, skill, operation_mode, hourly_rate, service_radius_km, transport_mode, pricing_model, payment_method, equipment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [phone, sk, operation_mode || 'stationary', hourly_rate || 0, service_radius_km || 10, transport_mode || 'none', pricing_model || 'hourly', payment_method || 'cash', equipJson]);
-        else db.run(`UPDATE skills SET operation_mode = ?, hourly_rate = ?, service_radius_km = ?, transport_mode = ?, pricing_model = ?, payment_method = ?, equipment = ? WHERE phone = ? AND skill = ?`, [operation_mode || 'stationary', hourly_rate || 0, service_radius_km || 10, transport_mode || 'none', pricing_model || 'hourly', payment_method || 'cash', equipJson, phone, sk]);
+        if (!skillExists) db.run(`INSERT INTO skills (phone, skill, operation_mode, hourly_rate, service_radius_km, transport_mode, pricing_model, payment_method, equipment, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [phone, sk, operation_mode || 'stationary', hourly_rate || 0, service_radius_km || 10, transport_mode || 'none', pricing_model || 'hourly', payment_method || 'cash', equipJson, typeof is_available === 'undefined' ? 0 : (is_available ? 1 : 0)]);
+        else db.run(`UPDATE skills SET operation_mode = ?, hourly_rate = ?, service_radius_km = ?, transport_mode = ?, pricing_model = ?, payment_method = ?, equipment = ?, is_available = COALESCE(?, is_available) WHERE phone = ? AND skill = ?`, [operation_mode || 'stationary', hourly_rate || 0, service_radius_km || 10, transport_mode || 'none', pricing_model || 'hourly', payment_method || 'cash', equipJson, typeof is_available === 'undefined' ? null : (is_available ? 1 : 0), phone, sk]);
       }
     }
     saveDb(); res.json({ success: true });
