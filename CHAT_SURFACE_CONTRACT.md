@@ -78,3 +78,11 @@ Sponsored, Daily Picks, discovery, workspace promotion, and inline advert images
 ## Rebuild checklist
 
 When adding a new page or surface, update the route maps, title map, navigation control, central rendering behavior, shared responsive styles, tests, and this contract. Verify that the page does not introduce a second header, second composer, independent typography system, untracked image placeholder, or full-page navigation from within Chat.
+
+## Context-aware header and inspector
+
+When a workspace surface is active, the Chat header displays the active surface title instead of the default Agent label and reveals a compact back icon. The loaded surface itself must not add another Back to conversation control, Your Kurukoo kicker, or generic workspace sentence. This keeps the distance from the Chat header to the surface title compact and avoids duplicate navigation chrome.
+
+The right inspector adapts to the active surface through `data-context-card` tokens and transitions between states with a short opacity/translation swap. Tasks shows request context, task status, and reminders; Discover shows discovery and nearby context; Memory and Settings show profile context; Safety shows safety controls; and the default conversation view restores the general context set. Cards must remain truthful and hidden when they are not relevant to the active surface.
+
+Task card headings use the compact shared workspace type scale. `Verify a location`, `Update a price`, `Confirm an incident`, and `Was your recent request resolved?` must not use display-sized typography inside the central Chat surface.

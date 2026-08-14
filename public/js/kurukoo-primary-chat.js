@@ -38,23 +38,42 @@
   };
   const surfacePaths = { cart: '/cart', points: '/points', requests: '/requests', reminders: '/reminders', saved: '/saved', tasks: '/tasks', 'daily-picks': '/daily-picks', discover: '/discover', connect: '/channels', memory: '/memory', safety: '/safety', settings: '/settings', topics: '/topics' };
   const surfaceTitles = { cart: 'Cart', points: 'Points', requests: 'Requests', reminders: 'Reminders', saved: 'Saved & offers', tasks: 'Tasks', 'daily-picks': 'Daily Picks', discover: 'Discover', connect: 'Connect', memory: 'Memory', safety: 'Safety & check-ins', settings: 'Settings', topics: 'Topics' };
-  function renderSurfaceFallback(view, message = 'This workspace view is not available yet.') {
-    const body = makeElement('div', 'surface-empty'); body.append(makeIcon('info', 'Information'), makeElement('h3', surfaceTitles[view] || 'Workspace'), makeElement('p', message)); return body;
+  function updateSurfaceHeader(view = null) {
+    const title = $('header-context-title'); const back = $('surface-header-back');
+    if (title) title.textContent = view ? (surfaceTitles[view] || 'Workspace') : 'Agent';
+    if (back) { back.hidden = !view; back.setAttribute('aria-label', view ? `Back from ${surfaceTitles[view] || 'workspace'}` : 'Back to conversation'); }
+  }
+  function updateSurfaceContext(view = null) {
+    const inspector = $('chat-inspector'); if (!inspector) return;
+    const title = $('inspector-title'); if (title) title.textContent = view ? (surfaceTitles[view] || 'Context') : 'Context';
+    inspector.setAttribute('aria-label', view ? `${surfaceTitles[view] || 'Workspace'} context` : 'Conversation context');
+    inspector.classList.add('is-swapping');
+    window.setTimeout(() => {
+      const cards = inspector.querySelectorAll('[data-context-card]');
+      cards.forEach(card => {
+        const tokens = String(card.dataset.contextCard || 'all').split(/\s+/);
+        card.hidden = Boolean(view) && !tokens.includes('all') && !tokens.includes(view);
+      });
+      const goal = $('agent-goal-card'); if (goal && view) goal.hidden = !['tasks','requests','reminders'].includes(view) || goal.dataset.goalAvailable !== 'true';
+      const discovery = $('discovery-context-card'); if (discovery && view) discovery.hidden = !['discover','daily-picks','requests','cart'].includes(view);
+      inspector.classList.remove('is-swapping');
+    }, 120);
+  }
+  function leaveWorkspaceSurface() {
+    state.surfaceView = null; updateSurfaceHeader(null); updateSurfaceContext(null); chatContent.replaceChildren(); if (state.messages.length) renderMessages(state.messages); else renderWelcome();
   }
   async function renderWorkspaceSurface(view) {
     if (!chatContent || !surfacePaths[view]) return;
-    state.surfaceView = view;
+    state.surfaceView = view; updateSurfaceHeader(view); updateSurfaceContext(view);
     const surface = makeElement('section', 'workspace-surface'); surface.dataset.surfaceView = view;
-    const bar = makeElement('div', 'surface-toolbar'); const back = makeElement('button', 'surface-back', 'Back to conversation'); back.type = 'button'; back.append(makeIcon('chevron-left', 'Back')); back.addEventListener('click', () => { state.surfaceView = null; chatContent.replaceChildren(); if (state.messages.length) renderMessages(state.messages); else renderWelcome(); });
-    bar.append(back, makeElement('span', 'surface-kicker', 'Your Kurukoo')); surface.append(bar);
-    const heading = makeElement('div', 'surface-heading'); heading.append(makeElement('h1', '', surfaceTitles[view] || 'Workspace'), makeElement('p', '', 'This view stays inside your conversation workspace.'));
+    const heading = makeElement('div', 'surface-heading'); heading.append(makeElement('h1', '', surfaceTitles[view] || 'Workspace'));
     surface.append(heading); const body = makeElement('div', 'surface-body'); body.append(makeElement('div', 'surface-loading', 'Loading…')); surface.append(body); chatContent.replaceChildren(surface); scroll.scrollTop = 0;
     try {
       if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
       const res = await fetch(surfacePaths[view], { credentials: 'same-origin' }); if (!res.ok) throw new Error('Workspace view unavailable'); const html = await res.text(); const doc = new DOMParser().parseFromString(html, 'text/html'); const source = doc.querySelector('.workspace-content, main, .workspace-main'); if (!source) throw new Error('Workspace content unavailable');       body.innerHTML = source.innerHTML; body.querySelector('.workspace-header')?.remove(); body.querySelectorAll('script').forEach(script => script.remove()); body.querySelectorAll('a[href]').forEach(link => { const href = link.getAttribute('href') || ''; const mapped = Object.entries(surfacePaths).find(([, path]) => href === path || href.startsWith(`${path}?`)); if (mapped) { link.dataset.surfaceView = mapped[0]; link.removeAttribute('href'); } }); wireSurfaceActions(body);
     } catch (error) { body.replaceChildren(renderSurfaceFallback(view, error.message || undefined)); }
   }
-  async function loadConversation(conversationId) { if (!conversationId) return; state.surfaceView = null; state.conversationId = conversationId; localStorage.setItem('kurukoo_conversation_id', conversationId); try { const url = new URL('/api/chat/history', location.origin); url.searchParams.set('conversationId', conversationId); url.searchParams.set('limit', '60'); const res = await fetch(url, { credentials: 'same-origin' }); const data = await res.json(); state.messages = (data.messages || []).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.content, id: m.id })); renderMessages(data.messages || []); refreshHistory(); } catch { setConnection(false, 'Offline'); } }
+  async function loadConversation(conversationId) { if (!conversationId) return; state.surfaceView = null; updateSurfaceHeader(null); updateSurfaceContext(null); state.conversationId = conversationId; localStorage.setItem('kurukoo_conversation_id', conversationId); try { const url = new URL('/api/chat/history', location.origin); url.searchParams.set('conversationId', conversationId); url.searchParams.set('limit', '60'); const res = await fetch(url, { credentials: 'same-origin' }); const data = await res.json(); state.messages = (data.messages || []).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.content, id: m.id })); renderMessages(data.messages || []); refreshHistory(); } catch { setConnection(false, 'Offline'); } }
   function wireSurfaceActions(root = document) { root.querySelectorAll('[data-surface-view]').forEach(action => { if (action.dataset.surfaceWired === '1') return; action.dataset.surfaceWired = '1'; action.addEventListener('click', event => { event.preventDefault(); renderWorkspaceSurface(action.dataset.surfaceView); }); }); }
 
   function setComposerBusy(busy) {
@@ -1083,8 +1102,8 @@
   function renderAgentGoal(goal, events = []) {
     const card = $('agent-goal-card'); const status = $('agent-goal-status'); const summary = $('agent-goal-summary'); const list = $('agent-goal-events'); const cancel = $('agent-goal-cancel');
     if (!card || !status || !summary || !list || !cancel) return;
-    if (!goal) { card.hidden = true; return; }
-    card.hidden = false; card.dataset.goalId = String(goal.id || '');
+    if (!goal) { card.hidden = true; card.dataset.goalAvailable = 'false'; return; }
+    card.hidden = false; card.dataset.goalAvailable = 'true'; card.dataset.goalId = String(goal.id || '');
     status.textContent = String(goal.status || 'checking').replace(/_/g, ' ');
     summary.textContent = String(goal.summary || goal.objective || 'Kurukoo is checking the current objective.');
     list.replaceChildren();
@@ -1360,6 +1379,7 @@
     renderWelcome(); refreshHistory();
   });
 
+  $('surface-header-back')?.addEventListener('click', () => leaveWorkspaceSurface());
   $('logout-button')?.addEventListener('click', async () => {
     try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (_) {}
     localStorage.removeItem('kurukoo_user_phone');
