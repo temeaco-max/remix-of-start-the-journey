@@ -923,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (card.image || card.type === 'product_card' || card.type === 'affiliate_card') {
             const img = document.createElement('img');
             img.className = 'card-thumbnail';
-            img.src = card.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400';
+            img.src = card.image || '/assets/chat/campaign-food-vendor.jpg';
             img.alt = card.title || 'Product Image';
             img.onclick = () => {
                 // Simple inline expand effect

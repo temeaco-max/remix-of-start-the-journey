@@ -90,21 +90,25 @@
     if (moreItems) moreItems.hidden = expanded;
     moreToggle.classList.toggle('is-expanded', !expanded);
   });
-  const fallbackSponsoredAds = [
-    { id: 'kurukoo-local-service', image: '/assets/chat/sponsored-local-service.jpg', alt: 'Local service professional preparing a package and tools in a neighborhood setting', disclosure: 'Sponsored' },
-    { id: 'kurukoo-home-repair', image: '/assets/chat/sponsored-home-repair.jpg', alt: 'Home repair professional inspecting an apartment doorway with a toolkit', disclosure: 'Sponsored' },
-    { id: 'kurukoo-fresh-market', image: '/assets/chat/sponsored-fresh-market.jpg', alt: 'Fresh produce seller arranging vegetables at a neighborhood market stall', disclosure: 'Sponsored' }
-  ];
-  let sponsoredAds = Array.isArray(window.KURUKOO_SPONSORED_ADS) && window.KURUKOO_SPONSORED_ADS.length ? window.KURUKOO_SPONSORED_ADS : fallbackSponsoredAds;
+  let sponsoredAds = Array.isArray(window.KURUKOO_SPONSORED_ADS) ? window.KURUKOO_SPONSORED_ADS : [];
   let sponsoredIndex = -1;
   function renderSponsoredAd() {
     const card = $('sidebar-promo'); const image = card?.querySelector('img'); const tag = card?.querySelector('.sidebar-sponsored-tag');
-    if (!card || !image || !sponsoredAds.length) return;
+    const dailyCard = $('daily-picks-promo-card'); const dailyImage = $('daily-picks-promo-image');
+    if (!card || !image) return;
+    if (!sponsoredAds.length) { card.hidden = true; if (dailyCard) dailyCard.hidden = true; return; }
+    card.hidden = false;
     sponsoredIndex = (sponsoredIndex + 1) % sponsoredAds.length;
     const ad = sponsoredAds[sponsoredIndex];
-    image.src = String(ad.image || fallbackSponsoredAds[0].image); image.alt = String(ad.alt || ad.title || 'Sponsored local service');
+    image.src = String(ad.image || ''); image.alt = String(ad.alt || ad.title || 'Sponsored local service');
     if (tag) tag.textContent = String(ad.disclosure || 'Sponsored');
     card.dataset.adId = String(ad.id || sponsoredIndex);
+    if (dailyCard && dailyImage) {
+      const dailyAd = sponsoredAds[(sponsoredIndex + 1) % sponsoredAds.length] || ad;
+      dailyImage.src = String(dailyAd.image || ''); dailyImage.alt = String(dailyAd.alt || dailyAd.title || 'Daily Picks community discovery');
+      dailyCard.hidden = false;
+      dailyCard.dataset.adId = String(dailyAd.id || sponsoredIndex);
+    }
   }
   async function loadSponsoredAds() {
     try {

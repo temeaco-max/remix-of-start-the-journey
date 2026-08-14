@@ -941,8 +941,16 @@
                     <textarea id="ad-desc" rows="2" required placeholder="Get premium Nigerian rice delivered straight to your home."></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="ad-image">Image URL</label>
-                    <input type="text" id="ad-image" placeholder="https://images.unsplash.com/photo-...">
+                    <label for="ad-image">Image URL or approved asset</label>
+                    <input type="text" id="ad-image" list="kurukoo-ad-assets" placeholder="https://images.unsplash.com/photo-...">
+                    <datalist id="kurukoo-ad-assets">
+                        <option value="/assets/chat/campaign-food-vendor.jpg">Food vendor and local meals</option>
+                        <option value="/assets/chat/campaign-rider-delivery.jpg">Courier and neighborhood delivery</option>
+                        <option value="/assets/chat/campaign-tailor.jpg">Tailor and made-to-order clothing</option>
+                        <option value="/assets/chat/campaign-beauty.jpg">Beauty and hair service</option>
+                        <option value="/assets/chat/campaign-digital-worker.jpg">Digital support for local businesses</option>
+                        <option value="/assets/chat/sponsored-home-repair.jpg">Home repair service</option>
+                    </datalist>
                 </div>
                 <div class="form-group">
                     <label for="ad-keyword">Target Context Keyword Match</label>

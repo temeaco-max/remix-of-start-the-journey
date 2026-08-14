@@ -128,19 +128,20 @@ export async function seedDemoAdCampaigns(): Promise<void> {
     const db = await getDb();
     ensureAdSchema(db);
     const campaigns = [
-        ['Ask Kurukoo', 'Tell Kurukoo what you need and keep everything in one conversation.', 'chat', 'Open Chat', '/chat', 'public_home', 'community', 100],
-        ['Find useful people and services nearby', 'Explore eligible providers, agents, events and activity around you.', 'nearby', 'Explore Nearby', '/discover', 'public_discovery', 'community', 90],
-        ['Ask the community', 'Share or explore useful local questions, reports and experiences.', 'topics', 'Explore Topics', '/topics', 'public_content', 'community', 80],
-        ['Know something useful? Contribute it.', 'Share evidence and context without presenting it as verified fulfilment.', 'contributor', 'Become a Contributor', '/chat?prompt=I%20want%20to%20contribute%20useful%20local%20information', 'public_content', 'community', 70],
-        ['Let Kurukoo keep work moving', 'Create a bounded agent goal and review its progress, tools and limits.', 'agent', 'Explore Agents', '/chat?prompt=Show%20me%20my%20agents', 'public_workspace', 'agents', 60],
-        ['Bring someone to Kurukoo', 'Invite someone to start a conversation-first Kurukoo relationship.', 'referral', 'Invite a Friend', '/referral-qr/', 'public_workspace', 'community', 50],
-        ['Reach customers through Kurukoo', 'Explore disclosed, controlled business placements using the same campaign authority.', 'business', 'Explore Business', '/advertise', 'public_business', 'business', 40],
-        ['Use Kurukoo where you already are', 'Review the connected access channels and their current readiness.', 'channels', 'Explore Channels', '/channels', 'public_channels', 'channels', 30],
+        ['Ask Kurukoo', 'Tell Kurukoo what you need and keep everything in one conversation.', 'chat', 'Open Chat', '/chat', 'public_home', 'community', 100, '/assets/chat/campaign-digital-worker.jpg'],
+        ['Find useful people and services nearby', 'Explore eligible providers, agents, events and activity around you.', 'nearby', 'Explore Nearby', '/discover', 'public_discovery', 'community', 90, '/assets/chat/campaign-rider-delivery.jpg'],
+        ['Ask the community', 'Share or explore useful local questions, reports and experiences.', 'topics', 'Explore Topics', '/topics', 'public_content', 'community', 80, '/assets/chat/campaign-food-vendor.jpg'],
+        ['Know something useful? Contribute it.', 'Share evidence and context without presenting it as verified fulfilment.', 'contributor', 'Become a Contributor', '/chat?prompt=I%20want%20to%20contribute%20useful%20local%20information', 'public_content', 'community', 70, '/assets/chat/campaign-tailor.jpg'],
+        ['Let Kurukoo keep work moving', 'Create a bounded agent goal and review its progress, tools and limits.', 'agent', 'Explore Agents', '/chat?prompt=Show%20me%20my%20agents', 'public_workspace', 'agents', 60, '/assets/chat/campaign-digital-worker.jpg'],
+        ['Bring someone to Kurukoo', 'Invite someone to start a conversation-first Kurukoo relationship.', 'referral', 'Invite a Friend', '/referral-qr/', 'public_workspace', 'community', 50, '/assets/chat/campaign-beauty.jpg'],
+        ['Reach customers through Kurukoo', 'Explore disclosed, controlled business placements using the same campaign authority.', 'business', 'Explore Business', '/advertise', 'public_business', 'business', 40, '/assets/chat/sponsored-home-repair.jpg'],
+        ['Use Kurukoo where you already are', 'Review the connected access channels and their current readiness.', 'channels', 'Explore Channels', '/channels', 'public_channels', 'channels', 30, '/assets/chat/campaign-food-vendor.jpg'],
     ];
-    for (const [title, desc, keyword, cta, destination, placement, category, priority] of campaigns) {
+    for (const [title, desc, keyword, cta, destination, placement, category, priority, imageUrl] of campaigns) {
         const exists = db.exec('SELECT id FROM ad_campaigns WHERE title = ? AND first_party = 1 LIMIT 1', [title]);
-        if (exists.length && exists[0].values.length) continue;
-        db.run(`INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, status, campaign_type, disclosure, advertiser_name, first_party, cta_text, destination, placement, category, country, region, frequency_cap, priority, targeting) VALUES (?, ?, '', ?, 0, 'active', 'first_party', 'Kurukoo promotion', 'Kurukoo', 1, ?, ?, ?, ?, ?, '', 5, ?, ?)`, [title, desc, keyword, cta, destination, placement, category, priority, JSON.stringify({ scope: 'public', safetyExcluded: true })]);
+        const existingId = exists.length && exists[0].values.length ? exists[0].values[0][0] : null;
+        if (existingId) { db.run('UPDATE ad_campaigns SET image_url = ? WHERE id = ?', [imageUrl, existingId]); continue; }
+        db.run(`INSERT INTO ad_campaigns (title, desc, image_url, target_keyword, credits_budget, status, campaign_type, disclosure, advertiser_name, first_party, cta_text, destination, placement, category, country, region, frequency_cap, priority, targeting) VALUES (?, ?, ?, ?, 0, 'active', 'first_party', 'Kurukoo promotion', 'Kurukoo', 1, ?, ?, ?, ?, ?, '', 5, ?, ?)`, [title, desc, imageUrl, keyword, cta, destination, placement, category, priority, JSON.stringify({ scope: 'public', safetyExcluded: true })]);
     }
     saveDb();
     console.log('First-party Kurukoo campaigns ensured');
