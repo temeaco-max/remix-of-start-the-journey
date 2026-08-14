@@ -67,3 +67,20 @@ The live Chat header overflow control opens a `menu` with exactly four accessibl
 ## Collapsed right-inspector verification — 2026-08-14
 
 At desktop width, the collapsed right inspector contracts to a 56px rail. With the pointer away, the Kurukoo logo remains visible while the collapse/expand control reports `display: none`, `visibility: hidden`, `opacity: 0`, and `pointer-events: none`. Hovering the rail changes the control to visible, opaque, and interactive. The overflow menu remains closed by default after reload.
+
+
+## Live animated agent activity test — 2026-08-14
+
+A sandboxed Chat request was submitted after installing a temporary five-second delay on the local `/api/chat/stream` fetch. During the delay, the live Chat showed an assistant activity bubble with the text `Kurukoo is considering the best next step…`, an animated orbit indicator, and the staged label `Working through your request`. The composer showed the stop-generation control while processing.
+
+After the stream completed, the activity bubble disappeared and the assistant displayed a truthful clarification response requiring Job or service and Location. No payment, provider availability, booking, or fulfillment claim was shown. Live screenshots were captured at `/home/ubuntu/screenshots/127_0_0_1_2026-08-14_18-00-31_9749.webp` during activity and `/home/ubuntu/screenshots/127_0_0_1_2026-08-14_18-00-37_8017.webp` after completion.
+
+## Chat response and visual refresh pass — 2026-08-14
+
+The live rebuilt Chat flow was re-tested in fresh browser conversations. The former `Create Your Profile` card is no longer rendered, including when historical `auth_in_chat_start` card payloads are loaded. Protected guest actions retain a backend identity-gate contract and a preserved continuation projection, but the user sees one concise inline sentence: `If you want Kurukoo to save or continue this request, tell me your name and I’ll take you through sign-in.` The retired profile-creation wording is absent from fresh responses.
+
+A second natural-language request sent immediately after the guest sign-in notice no longer gets interpreted as the user’s name or trapped in the old auth response. The canonical turn service clears the pending name prompt only when the new message has clear request/question markers, then routes that same message normally. A deterministic venue-comparison route now returns a useful three-step plan with a weighted 1–5 scorecard suggestion instead of the generic Kurukoo capability fallback.
+
+The Chat visual layer now uses a calmer neutral palette, quieter borders, restrained shadows, clearer user/assistant hierarchy, more deliberate action-icon reveal behavior, a softened composer focus state, and a compact orbit activity treatment with two elliptical rings, three restrained orbit points, and reduced-motion support. Live browser snapshots showed no profile card and preserved accessible icon labels, the More navigation control, the context inspector, and the stop-generation control during streaming.
+
+Verification passed for TypeScript lint, production build, Chat DOM-safety, and conversation-first authentication. All live testing remained in development-auth and sandbox-payment mode; no real payment, external delivery, or production identity action was used.

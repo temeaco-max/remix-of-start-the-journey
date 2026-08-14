@@ -14,6 +14,12 @@ function parseCardData(row: any): any | null {
   try { return typeof row.card_data === 'string' ? JSON.parse(row.card_data) : row.card_data; } catch { return null; }
 }
 
+function isNewGuestRequestAfterAuthPrompt(message: string): boolean {
+  const text = message.trim();
+  if (!text || text.length < 3) return false;
+  return /[?]/.test(text) || /^(also\b|can you\b|could you\b|would you\b|what\b|how\b|where\b|when\b|why\b|i\s+(?:need|want|would like|am looking|can)|help\b|give me\b|find\b|show\b|compare\b|plan\b|remind\b|get\b|book\b|check\b)/i.test(text);
+}
+
 function extractRequirementPatch(message: string, card: any, current: any): Record<string, unknown> {
   const text = message.trim();
   const fields = Array.isArray(card?.fields) ? card.fields : [];
@@ -129,7 +135,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   const prefs: any = profile?.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};
   const safetyState = prefs.safety_capture_state || 'none';
 
-  if (isGuest && authState.state !== 'none') {
+  if (isGuest && authState.state !== 'none' && !(authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message))) {
     const result = await handleConversationalAuth(phone, message);
     reply = result.reply;
     cardData = result.cardData;
@@ -143,6 +149,9 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     reply = result.reply;
     cardData = result.cardData;
   } else {
+    if (isGuest && authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message)) {
+      await setAuthState(phone, 'none');
+    }
     const controlCommand = /^(pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\b/i.test(message.trim());
     const continued = controlCommand ? null : await continueActiveRequest(phone, input.conversationId, message);
     const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
@@ -166,12 +175,16 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     }) : null;
 
     if (routing.skill && routing.skill !== 'general_question' && routing.skill !== 'autonomous_agent' && isGuest) {
+      // Preserve the guest authorization boundary without interrupting the
+      // conversation with a redundant profile-creation card. The request
+      // response already carries the useful next step and the auth state keeps
+      // the continuation available if the guest chooses to sign in.
       await setAuthState(phone, 'awaiting_name', { intent: routing.skill, continuationCard: cardData });
-      reply = `${routing.reply}\n\nI can help with that. Before I save this for you, let's create your Kurukoo profile. What's your name?`;
+      reply = `${routing.reply}\n\nIf you want Kurukoo to save or continue this request, tell me your name and I’ll take you through sign-in.`;
       cardData = {
         type: 'auth_in_chat_start',
-        title: 'Create Your Profile',
-        message: 'Your request is captured. Tell me your name to continue.',
+        title: 'Sign in to continue',
+        message: 'Your request is preserved. Tell me your name if you want to save or continue it.',
         continuationCard: routing.cardData,
       };
     } else {

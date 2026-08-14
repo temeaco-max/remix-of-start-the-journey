@@ -215,6 +215,9 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   if (/^explain the difference between (?:a )?reminder and (?:an )?agent(?: simply)?\??$/i.test(q)) {
     return { skill: 'general_question', reply: 'A reminder is a scheduled nudge for you. A bounded agent is an explicit follow-up that can re-check an owned request under limited permissions, report its actual status, and pause or stop when you ask.' };
   }
+  if (/(?:compare|comparing)\b.*\b(?:venues?|locations?|spaces?)\b|\bvenue comparison\b/i.test(q) && /\b(?:workshop|event|community|meeting)\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'Here is a short venue-comparison plan:\n\n1. Define the essentials: date, expected attendance, accessibility, transport, and budget.\n2. Score each venue on capacity, total cost, location, facilities, reliability, and cancellation terms.\n3. Visit or verify the two strongest options, then choose the one with the best practical fit—not just the lowest price.\n\nA simple 1–5 scorecard with weighted priorities will make the trade-offs clear.' };
+  }
   if (/^(i(?:'|’)ve|i have|i just)(?: just)? moved\b|^i(?:'|’)m in\b|^i am in\b/i.test(q)) {
     return { skill: 'general_question', reply: 'Welcome to the area. I can help you understand a problem, find a verified service, set a reminder, or answer a question. Tell me what you would like to get done; I will not create a request from your location alone.' };
   }

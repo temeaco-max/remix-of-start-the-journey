@@ -377,3 +377,74 @@ body.dark .auth-gate-card {
 @keyframes kurukoo-agent-orbit-reverse{to{transform:rotate(-360deg)}}
 @keyframes kurukoo-agent-stage-in{from{opacity:.25;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.agent-activity-orbit,.agent-activity-orbit::before{animation:none}.agent-activity-stage{animation:none}}
+
+
+/* Chat refresh: calm surfaces, precise hierarchy, and restrained motion. */
+:root {
+  --chat-cream: #f7f7f5;
+  --chat-surface: #ffffff;
+  --chat-surface-muted: #f2f3f1;
+  --chat-border: #e7e8e5;
+  --chat-charcoal: #242522;
+  --chat-muted: #767a75;
+  --chat-primary: #5f6f64;
+  --chat-blue: #6d8190;
+  --chat-shadow: 0 12px 34px rgba(35, 39, 35, .07);
+}
+.chat-shell { background: var(--chat-surface); }
+.chat-sidebar, .chat-inspector { background: #fbfbfa; }
+.chat-header { background: rgba(255,255,255,.88); backdrop-filter: blur(14px); }
+.brand-mark, .welcome-mark, .avatar { background: #30342f; }
+.model-badge { background: #eef1ed; color: #4f5e54; }
+.new-chat, .points-balance, .composer, .inspector-card { box-shadow: 0 2px 8px rgba(36,37,34,.035); }
+.sidebar-link, .history-item { color: #5c625c; }
+.sidebar-link:hover, .history-item:hover, .history-item.active { background: #f0f2ef; color: #303730; }
+.icon-btn, .message-actions button, .composer-btn { color: #858a84; }
+.icon-btn:hover, .message-actions button:hover, .composer-btn:hover { background: #f0f2ef; color: #303730; }
+.chat-content { padding-top: 40px; }
+.message { margin: 28px 0; }
+.message .message-body { min-width: 0; }
+.message.assistant .bubble { color: #2c302c; }
+.message.user .bubble { background: #eff2ef; color: #2c302c; border: 1px solid #e4e8e4; box-shadow: none; }
+.message.user .bubble, .message.assistant .bubble { line-height: 1.68; }
+.message-actions { opacity: 0; transform: translateY(-2px); transition: opacity 160ms cubic-bezier(.23,1,.32,1), transform 160ms cubic-bezier(.23,1,.32,1); }
+.message:hover .message-actions, .message:focus-within .message-actions { opacity: .78; transform: translateY(0); }
+.message-actions button { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 7px; }
+.message-actions .k-icon { width: 15px; height: 15px; }
+.markdown-body p:last-child { margin-bottom: 0; }
+.composer-wrap { background: linear-gradient(transparent, rgba(255,255,255,.96) 20%); }
+.composer { border-color: #dfe3df; border-radius: 14px; padding: 7px 8px 7px 12px; }
+.composer:focus-within { border-color: #bdc9bf; box-shadow: 0 0 0 3px rgba(103,126,108,.10), 0 8px 24px rgba(35,39,35,.06); }
+.send-btn { background: #30342f; border-radius: 10px; }
+.send-btn:hover { background: #1f231f; }
+
+/* The activity state is a compact system status, not a second message bubble. */
+.typing-indicator { margin: 18px 0 10px; }
+.typing-indicator .typing-indicator-bubble { position: relative; display: inline-flex; min-height: 38px; padding: 8px 12px 8px 9px; gap: 9px; border: 1px solid #e2e7e2; border-radius: 12px 12px 12px 5px; background: #fafcf9; color: #626a63; box-shadow: 0 5px 16px rgba(35,39,35,.045); font-size: 12px; font-weight: 600; }
+.agent-activity-line { display: inline-flex; align-items: center; gap: 8px; }
+.agent-activity-orbit { position: relative; display: inline-block; width: 22px; height: 22px; flex: 0 0 22px; border: 1px solid rgba(93,113,99,.28); border-radius: 50%; transform: rotate(-22deg); }
+.agent-activity-orbit::before { content: ''; position: absolute; inset: 3px -3px; border: 1px solid rgba(109,129,144,.32); border-radius: 50%; transform: rotate(58deg); }
+.agent-activity-orbit::after { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: #758c7b; box-shadow: 0 0 0 3px rgba(117,140,123,.10); }
+.agent-activity-orbit i { position: absolute; z-index: 2; width: 4px; height: 4px; border-radius: 50%; background: #72899a; transform-origin: 8px 8px; animation: kurukoo-orbit-dot 2.4s linear infinite; }
+.agent-activity-orbit i:nth-child(1) { top: 1px; left: 8px; }
+.agent-activity-orbit i:nth-child(2) { right: 1px; bottom: 5px; animation-delay: -.8s; background: #9a7c67; }
+.agent-activity-orbit i:nth-child(3) { left: 2px; bottom: 4px; animation-delay: -1.6s; background: #7a8d78; }
+@keyframes kurukoo-orbit-dot { to { transform: rotate(360deg) translateX(7px) rotate(-360deg); } }
+.typing-indicator-dots { gap: 3px; margin-left: 1px; }
+.typing-indicator-dots i { width: 3px; height: 3px; background: #8b938b; }
+@media (prefers-reduced-motion: reduce) {
+  .agent-activity-orbit i, .typing-indicator-dots i { animation: none; }
+  .message-actions { transition: none; }
+}
+body.dark { --chat-surface: #1f211f; --chat-surface-muted: #292c29; --chat-border: #363b36; --chat-charcoal: #f0f2ef; --chat-muted: #aeb6ae; --chat-cream: #171917; }
+body.dark .chat-sidebar, body.dark .chat-inspector { background: #1a1c1a; }
+body.dark .chat-header { background: rgba(31,33,31,.9); }
+body.dark .message.user .bubble, body.dark .typing-indicator .typing-indicator-bubble { background: #292d29; border-color: #3a403a; color: #eef1ed; }
+body.dark .composer-wrap { background: linear-gradient(transparent, rgba(31,33,31,.97) 20%); }
+body.dark .model-badge { background: #303730; color: #cbd6cc; }
+body.dark .sidebar-link:hover, body.dark .history-item:hover, body.dark .history-item.active, body.dark .icon-btn:hover, body.dark .message-actions button:hover, body.dark .composer-btn:hover { background: #2c302c; color: #f0f2ef; }
+@media (max-width: 760px) {
+  .chat-content { padding-top: 24px; }
+  .message { margin: 22px 0; }
+  .typing-indicator .typing-indicator-bubble { max-width: calc(100vw - 72px); }
+}

@@ -9,7 +9,7 @@
   };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
-  const activityStages = ['Working through your request', 'Organising the next step', 'Preparing a clear response'];
+  const activityStages = ['Reviewing your request', 'Checking the relevant context', 'Preparing a clear response'];
   let activityTimer = null;
   let activityStageIndex = 0;
   const pinStorageKey = () => `kurukoo_pins_${state.conversationId || 'draft'}`;
@@ -85,7 +85,7 @@
         if (!current) return;
         activityStageIndex = (activityStageIndex + 1) % activityStages.length;
         current.textContent = activityStages[activityStageIndex];
-      }, 1800);
+      }, 2200);
     }
     indicator.dataset.status = status;
     const text = indicator.querySelector('.typing-indicator-label');
@@ -690,6 +690,9 @@
     }
 
     if (card.type === 'auth_gate' || card.type === 'auth_in_chat_start') {
+      // Authentication is intentionally communicated inline by the assistant;
+      // the former profile-creation card is retired from the Chat surface.
+      return;
       const gate = document.createElement('div');
       gate.className = 'auth-gate-card';
       const signedIn = state.isGuest === false;
