@@ -17,6 +17,28 @@ export interface MistralChatOptions {
   signal?: AbortSignal;
 }
 
+export interface MistralTranscriptionInput {
+  data: Buffer;
+  mimeType: string;
+  filename?: string;
+  language?: string;
+  signal?: AbortSignal;
+}
+
+export interface MistralTranscriptionResult {
+  text: string;
+  model: string;
+  language?: string;
+}
+
+function transcriptionModel(): string {
+  return String(process.env.MISTRAL_TRANSCRIPTION_MODEL || 'voxtral-mini-latest').trim();
+}
+
+function transcriptionEnabled(): boolean {
+  return process.env.KURUKOO_MISTRAL_TRANSCRIPTION_ENABLED === 'true';
+}
+
 function apiKey(): string {
   const value = String(process.env.MISTRAL_API_KEY || '').trim();
   if (!hasConfiguredSecret(value)) throw new MistralProviderError('MISTRAL_NOT_CONFIGURED', 'Mistral is not configured for this deployment.');
@@ -46,13 +68,44 @@ export function getMistralStatus(): ProviderReadiness {
     available: configured,
     capabilities: [
       text,
-      { ...text, capability: 'transcription', model: String(process.env.MISTRAL_TRANSCRIPTION_MODEL || 'voxtral-mini-latest'), available: false, note: 'Voxtral transcription is not activated until a repository-supported audio boundary is configured.', limits: configured ? unknownLimits('Mistral transcription limits are not safely discoverable from environment configuration.') : { status: 'unavailable', note: 'MISTRAL_API_KEY is not configured.' } },
+      { ...text, capability: 'transcription', model: transcriptionModel(), available: configured && transcriptionEnabled(), note: !configured ? 'MISTRAL_API_KEY is not configured.' : transcriptionEnabled() ? 'Voxtral transcription is available through the bounded voice audio boundary; provider limits remain deployment-dependent.' : 'Voxtral transcription is configured but disabled by feature flag.', limits: configured ? unknownLimits('Mistral transcription limits are not safely discoverable from environment configuration.') : { status: 'unavailable', note: 'MISTRAL_API_KEY is not configured.' } },
       { ...text, capability: 'tts', model: String(process.env.MISTRAL_TTS_MODEL || ''), available: false, note: 'No verified Mistral TTS adapter is present in the current repository; no audio is fabricated.', limits: { status: 'unavailable', note: 'Mistral TTS is not implemented at this boundary.' } },
       { ...text, capability: 'vision', model: String(process.env.MISTRAL_VISION_MODEL || 'pixtral-large-latest'), available: false, note: 'Vision is not selected without a canonical attachment/evidence owner and explicit enablement.', limits: configured ? unknownLimits('Mistral vision limits are not safely discoverable from environment configuration.') : { status: 'unavailable', note: 'MISTRAL_API_KEY is not configured.' } },
       { ...text, capability: 'moderation', available: false, note: 'Mistral moderation is not assumed or silently substituted for the existing moderation boundary.', limits: { status: 'unavailable', note: 'No Mistral moderation adapter is implemented at this boundary.' } },
     ],
     failover: 'canonical-local',
   };
+}
+
+export async function transcribeMistralAudio(input: MistralTranscriptionInput): Promise<MistralTranscriptionResult> {
+  if (!input?.data?.length) throw new MistralProviderError('MISTRAL_REQUEST_FAILED', 'Mistral transcription requires audio data.');
+  if (input.data.length > 10 * 1024 * 1024) throw new MistralProviderError('MISTRAL_REQUEST_FAILED', 'Mistral transcription audio is limited to 10 MB.');
+  if (!transcriptionEnabled()) throw new MistralProviderError('MISTRAL_NOT_CONFIGURED', 'Mistral transcription is disabled for this deployment.');
+  const key = apiKey();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.MISTRAL_TIMEOUT_MS || 15_000));
+  try {
+    const form = new FormData();
+    form.append('model', transcriptionModel());
+    form.append('file', new Blob([input.data], { type: input.mimeType || 'application/octet-stream' }), input.filename || 'kurukoo-audio');
+    if (input.language) form.append('language', input.language.slice(0, 16));
+    const response = await fetch(String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '') + '/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}` },
+      signal: input.signal || controller.signal,
+      body: form,
+    });
+    if (!response.ok) throw new MistralProviderError('MISTRAL_REQUEST_FAILED', `Mistral transcription failed with status ${response.status}.`);
+    const payload = await response.json() as any;
+    const text = String(payload?.text || '').trim();
+    if (!text) throw new MistralProviderError('MISTRAL_EMPTY_RESPONSE', 'Mistral transcription returned no usable text.');
+    return { text, model: String(payload?.model || transcriptionModel()), language: payload?.language ? String(payload.language) : undefined };
+  } catch (error) {
+    if (error instanceof MistralProviderError) throw error;
+    throw new MistralProviderError('MISTRAL_REQUEST_FAILED', 'Mistral transcription failed; no synthetic transcript was generated.', { cause: error });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function queryMistral(prompt: string, options: MistralChatOptions = {}): Promise<string> {

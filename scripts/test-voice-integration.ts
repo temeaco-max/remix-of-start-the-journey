@@ -32,12 +32,14 @@ async function main() {
   assert.match(router, /router\.post\('\/session'/);
   assert.match(router, /router\.post\('\/tools'/);
   assert.match(router, /router\.post\('\/transcript'/);
+  assert.match(router, /router\.post\('\/transcribe'/);
+  assert.match(router, /transcribeMistralAudio/);
   assert.match(router, /getVoiceSession\(sessionId, phone\)/, 'tool and transcript operations require owned sessions');
   assert.match(service, /authTokens\.create/);
   assert.match(service, /lockAdditionalFields/);
   assert.doesNotMatch(service, /GOOGLE_API_KEY/);
   assert.match(index, /app\.use\('\/api\/voice', voiceRouter\)/);
-  console.log('Voice integration contract passed: ephemeral session boundary, shared conversation identity, restricted tools, transcript persistence path, and no permanent credential response.');
+  console.log('Voice integration contract passed: ephemeral session boundary, shared conversation identity, restricted tools, transcript persistence path, bounded Voxtral transcription route, and no permanent credential response.');
 }
 
 main().catch(error => { console.error(error); process.exit(1); });

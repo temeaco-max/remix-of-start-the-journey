@@ -3,8 +3,10 @@ import { Router } from 'express';
 import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
 import { appendChatMessage } from '../services/chatConversationService.js';
+import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 import { createVoiceSession, endVoiceSession, getVoiceSession, getVoiceStatus } from '../services/voiceService.js';
 import { synthesizeSpeech } from '../services/serverTtsService.js';
+import { transcribeMistralAudio } from '../services/mistralService.js';
 import { executeVoiceTool, isVoiceToolAllowed } from '../services/voiceToolRegistry.js';
 
 const router = Router();
@@ -58,6 +60,29 @@ router.post('/tools', optionalAuthenticateUser, async (req: AuthRequest, res) =>
   } catch (error) {
     console.warn('[Voice] tool_failed', { sessionId, name });
     res.status(500).json({ error: 'That request could not be completed right now.' });
+  }
+});
+
+router.post('/transcribe', optionalAuthenticateUser, sessionRateLimit, async (req: AuthRequest, res) => {
+  const { phone, isGuest } = identity(req, res);
+  if (isGuest) return res.status(403).json({ error: 'Sign in to use server transcription.' });
+  const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId : '';
+  const session = getVoiceSession(sessionId, phone);
+  if (!session) return res.status(404).json({ error: 'Voice session is unavailable.' });
+  const encoded = typeof req.body?.audioBase64 === 'string' ? req.body.audioBase64.replace(/^data:[^;]+;base64,/, '') : '';
+  const mimeType = typeof req.body?.mimeType === 'string' && req.body.mimeType.startsWith('audio/') ? req.body.mimeType.slice(0, 80) : 'audio/webm';
+  if (!encoded || !/^[A-Za-z0-9+/=]+$/.test(encoded)) return res.status(400).json({ error: 'audioBase64 is required.' });
+  const data = Buffer.from(encoded, 'base64');
+  if (!data.length || data.length > 10 * 1024 * 1024) return res.status(400).json({ error: 'Audio must be between 1 byte and 10 MB.' });
+  try {
+    const transcript = await transcribeMistralAudio({ data, mimeType, filename: typeof req.body?.filename === 'string' ? req.body.filename.slice(0, 120) : 'kurukoo-audio', language: typeof req.body?.language === 'string' ? req.body.language : undefined });
+    const turn = await processCanonicalChatTurn({ phone, message: transcript.text, channel: 'web_voice', conversationId: session.conversationId });
+    res.json({ transcript: transcript.text, provider: 'mistral', model: transcript.model, language: transcript.language, conversationId: turn.conversationId, turn });
+  } catch (error: any) {
+    const code = error?.code || 'MISTRAL_REQUEST_FAILED';
+    const status = code === 'MISTRAL_NOT_CONFIGURED' ? 503 : 502;
+    console.warn('[Voice] transcription_failed', { code, guest: isGuest });
+    res.status(status).json({ error: 'Server transcription is unavailable right now.', code });
   }
 });
 

@@ -5559,7 +5559,7 @@ Kurukoo has one AI architecture. **FastText remains the primary intent classifie
 | Turn-based browser speech | Browser Speech APIs | None | Experimental, explicit opt-in only; never represented as server transcription or production voice | Not a production provider commitment |
 | Realtime Live voice | Existing `voiceService` + `/api/voice` boundary | Gemini 2.5 Flash Native Audio Live or another explicitly verified Live model | Enable only with `KURUKOO_VOICE_ENABLED=true`, a supported `gemini-live` provider, server-side key, session limits, and runtime validation | Existing Gemini Live boundary retained; unsupported providers are unavailable, not silently substituted |
 | Server TTS | Existing voice/channel boundary when an approved adapter exists | Gemini 2.5 Flash TTS or approved equivalent | Requires a separately configured TTS provider/model and an explicit adapter | Not available until implemented; no audio is fabricated |
-| Voice transcription | Existing voice/channel boundary | Mistral Voxtral only after verified audio adapter | Must persist into the shared conversation and continue through canonical Chat and Intent Router | Not active in the current repository; status reports unavailable |
+| Voice transcription | Existing voice/channel boundary | Mistral Voxtral only after verified audio adapter | Enable `KURUKOO_MISTRAL_TRANSCRIPTION_ENABLED=true` only after privacy, quota, retention and provider-terms review; authenticated owned voice session → bounded audio upload → Voxtral transcript → `processCanonicalChatTurn` | Repository adapter and `/api/voice/transcribe` boundary implemented; disabled and unavailable by default until the flag, key, and external validation are present |
 | Vision/OCR | Existing attachment/evidence owner | Pixtral or approved equivalent | Integrate only where a canonical attachment, contributor evidence, Topics, or provider/business owner exists | Not active at the Mistral boundary; no unsupported OCR/moderation claim |
 | Moderation | Existing moderation/safety owner | Optional provider adapter | Must not silently replace or bypass current moderation and safety policy | Mistral moderation is not assumed |
 
@@ -5579,7 +5579,7 @@ The permitted voice path is:
 
 > speech input → verified transcription or Live boundary → shared conversation → FastText/Intent Router → existing Kurukoo action → canonical response → explicitly verified TTS or Live audio → user
 
-Voice does not create a second Chat, memory, action, provider, or agent engine. Transcript metadata records the actual declared provider, capability, model, and owned conversation. Unsupported transcription, TTS, Live, vision, OCR, and moderation states remain unavailable and visible rather than silently falling back to an unrelated capability.
+Voice does not create a second Chat, memory, action, provider, or agent engine. The bounded server transcription path is `/api/voice/transcribe`: it requires an authenticated owned voice session, accepts at most 10 MB of audio, calls Voxtral only when explicitly enabled and configured, then passes the transcript into `processCanonicalChatTurn` on the same conversation. Transcript metadata records the actual declared provider, capability, model, and owned conversation. Unsupported transcription, TTS, Live, vision, OCR, and moderation states remain unavailable and visible rather than silently falling back to an unrelated capability.
 
 
 ## Current Implementation Tranche — v5.66 Repository-Side Convergence
