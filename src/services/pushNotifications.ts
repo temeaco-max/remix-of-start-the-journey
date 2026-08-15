@@ -87,6 +87,25 @@ export async function listQueuedNotifications(limit = 50): Promise<Array<{ id: n
     return rows;
 }
 
+export async function getNotificationQueueStats(): Promise<{ total: number; queued: number; accepted: number; sent: number; delivered: number; failed: number; suppressed: number; deadLetter: number; oldestQueuedAt?: string }> {
+    const db = await ensureNotificationTable();
+    const counts = db.exec(`SELECT delivery_state, COUNT(*) AS count FROM internal_notifications GROUP BY delivery_state`)[0]?.values || [];
+    const stateCounts: Record<string, number> = {};
+    for (const row of counts) stateCounts[String(row[0] || 'queued')] = Number(row[1] || 0);
+    const oldest = db.exec(`SELECT MIN(created_at) FROM internal_notifications WHERE delivery_state = 'queued'`)[0]?.values?.[0]?.[0];
+    return {
+        total: Object.values(stateCounts).reduce((sum, value) => sum + value, 0),
+        queued: stateCounts.queued || 0,
+        accepted: stateCounts.accepted || 0,
+        sent: stateCounts.sent || 0,
+        delivered: stateCounts.delivered || 0,
+        failed: stateCounts.failed || 0,
+        suppressed: stateCounts.suppressed || 0,
+        deadLetter: stateCounts.dead_letter || 0,
+        oldestQueuedAt: oldest ? String(oldest) : undefined,
+    };
+}
+
 export async function getInternalNotifications(phone: string, limit = 20): Promise<Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; created_at: string }>> {
     const db = await ensureNotificationTable();
     const safeLimit = Math.max(1, Math.min(100, Math.floor(Number(limit) || 20)));

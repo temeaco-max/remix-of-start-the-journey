@@ -92,13 +92,16 @@ try {
   assert.ok(adminPayload.token, 'Admin auth should issue a token');
 
   const stats = await fetch(`${baseUrl}/api/admin/stats`, { headers: { Authorization: `Bearer ${adminPayload.token}` } });
-  const statsPayload = await stats.json() as { success?: boolean; economic_requests?: unknown; reminders?: unknown; check_ins?: unknown; unread_internal_notifications?: number };
+  const statsPayload = await stats.json() as { success?: boolean; economic_requests?: unknown; reminders?: unknown; check_ins?: unknown; unread_internal_notifications?: number; notification_queue?: { total?: number; queued?: number; deadLetter?: number } };
   assert.equal(stats.status, 200, 'Admin should access platform stats');
   assert.equal(statsPayload.success, true, 'Stats should return a successful payload');
   assert.equal(typeof statsPayload.economic_requests, 'object', 'Stats should include economic request status counts');
   assert.equal(typeof statsPayload.reminders, 'object', 'Stats should include reminder status counts');
   assert.equal(typeof statsPayload.check_ins, 'object', 'Stats should include safety check-in status counts');
   assert.equal(statsPayload.unread_internal_notifications, 0, 'Stats should reflect the read notification');
+  assert.equal(typeof statsPayload.notification_queue?.total, 'number', 'Admin stats should expose durable notification queue totals');
+  assert.equal(typeof statsPayload.notification_queue?.queued, 'number', 'Admin stats should expose queued notification count');
+  assert.equal(typeof statsPayload.notification_queue?.deadLetter, 'number', 'Admin stats should expose dead-letter notification count');
 
   const db = await getDb();
   const queued = db.exec('SELECT status FROM internal_notifications WHERE phone = ?', [phone]);

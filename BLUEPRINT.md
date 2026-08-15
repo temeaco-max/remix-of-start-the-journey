@@ -5661,3 +5661,8 @@ The completion classification remains: **repository-side complete for these reli
 Autonomous execution is now **fail-closed when its feature gates are absent**. Starting the web process does not implicitly enable the worker. `KURUKOO_AGENT_ENABLED=true` permits bounded runtime participation, and `KURUKOO_AGENT_AUTONOMOUS=true` additionally permits recurring background evaluation; `KURUKOO_AGENT_AUTONOMOUS_LOW_RISK=true` documents the low-risk policy mode. The environment template contains an intentional opt-in configuration, while deployments that omit the variables report autonomy as disabled rather than implying activation.
 
 This preserves the distinction between **repository-side implementation** and **operator activation**: the worker, controls, ownership checks, limits, evidence, and persistence are implemented, but no autonomous production behavior is claimed unless the deployment explicitly enables the gates and independently validates the runtime.
+
+
+## Current Observability Tranche — Notification Queue Health
+
+The protected admin stats boundary now exposes canonical internal notification queue metrics: total records, queued records, provider lifecycle states, failed records, suppressed records, dead-letter records, and the oldest queued timestamp when present. These metrics describe database-backed lifecycle state only; they do not claim that an external FCM provider accepted, sent, or delivered a notification. Queue records remain owner-scoped in the user inbox, while operator metrics are available only behind admin authentication.

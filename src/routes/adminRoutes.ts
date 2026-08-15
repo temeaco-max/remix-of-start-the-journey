@@ -34,6 +34,7 @@ import { getProfile, updateProfile } from '../services/memoryProfile.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { createAdCampaign, getAdCampaigns, updateAdCampaign } from '../services/adManager.js';
 import { testMistralConnection } from '../services/mistralService.js';
+import { getNotificationQueueStats } from '../services/pushNotifications.js';
 
 const router = Router();
 
@@ -172,6 +173,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
     let reminders = {};
     let checkIns = {};
     let notificationsCount = 0;
+    let notificationQueue = { total: 0, queued: 0, accepted: 0, sent: 0, delivered: 0, failed: 0, suppressed: 0, deadLetter: 0 } as Awaited<ReturnType<typeof getNotificationQueueStats>>;
     try {
       const reqRes = db.exec("SELECT status, COUNT(*) as cnt FROM economic_requests GROUP BY status");
       const reqRows = reqRes[0]?.values || [];
@@ -196,6 +198,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
     try {
       const notifRes = db.exec("SELECT COUNT(*) FROM internal_notifications notification WHERE notification.status = 'unread' AND notification.id IN (SELECT MAX(id) FROM internal_notifications GROUP BY phone, title, body, COALESCE(link, ''))");
       notificationsCount = Number(notifRes[0]?.values[0]?.[0] || 0);
+      notificationQueue = await getNotificationQueueStats();
     } catch {}
 
     res.json({
@@ -205,6 +208,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
       reminders,
       check_ins: checkIns,
       unread_internal_notifications: notificationsCount,
+      notification_queue: notificationQueue,
     });
   } catch (error) {
     console.error('[AdminStats] failed:', error);
