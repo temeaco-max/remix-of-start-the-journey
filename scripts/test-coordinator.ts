@@ -17,7 +17,7 @@ const { createConversationGoal } = await import('../src/services/agentRuntime.js
 const { processCanonicalChatTurn } = await import('../src/services/canonicalChatTurnService.js');
 const { getDb } = await import('../src/database.js');
 const { coordinatorEventForAgentGoal, internalCoordinator } = await import('../src/services/internalCoordinator.js');
-const { listCoordinatorRuns, ensureCoordinatorSchema, listLearningArtifacts } = await import('../src/services/coordinatorStore.js');
+const { approveLearningArtifact, listCoordinatorRuns, ensureCoordinatorSchema, listLearningArtifacts, persistLearningArtifact } = await import('../src/services/coordinatorStore.js');
 const { requestTeacherCandidate } = await import('../src/services/coordinatorLearning.js');
 
 const owner = `+234809${String(Date.now()).slice(-7)}`;
@@ -45,6 +45,13 @@ await ensureCoordinatorSchema();
 const teacherDisabled = await requestTeacherCandidate({ task: 'choose_capability', event: coordinatorEventForAgentGoal({ ownerPhone: owner, agentGoalId: goal!.id, economicRequestId: request.id }) });
 assert.equal(teacherDisabled.status, 'disabled', 'Teacher mode must remain opt-in');
 assert.equal((await listLearningArtifacts()).length, 0, 'Disabled teacher mode must not create learning artifacts');
+
+await persistLearningArtifact({ id: 'coordinator-test-candidate', type: 'routing_rule', content: { capability: 'inspect_request' }, provenance: { source: 'test', evidenceLevel: 'assertion' }, policyVersion: 'coordinator-policy-v1' });
+const approved = await approveLearningArtifact({ id: 'coordinator-test-candidate', operatorId: 'test-operator', evaluationScore: 0.91, policyVersion: 'coordinator-policy-v1' });
+assert.equal(approved.ok, true, 'Operator approval should promote a candidate artifact');
+assert.equal(approved.status, 'approved', 'Approved artifact must have approved status');
+const approvedAgain = await approveLearningArtifact({ id: 'coordinator-test-candidate', operatorId: 'test-operator' });
+assert.equal(approvedAgain.ok, true, 'Repeated approval must remain idempotent');
 
 await processCanonicalChatTurn({ phone: owner, message: 'What is the current status?', channel: 'web', conversationId: 'coordinator-chat' });
 const db = await getDb();

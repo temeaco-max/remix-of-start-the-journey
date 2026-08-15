@@ -5753,4 +5753,8 @@ The canonical Chat persistence boundary emits `chat.turn.completed` after an ass
 
 The coordinator remains deterministic and local-first (`rules-v1`) and uses canonical services as the owners of truth. The teacher/evaluation boundary remains opt-in and fail-closed. These events establish repository-side observability and resumability; they do not fabricate provider availability, stock, inventory, payment settlement, fulfilment, delivery, verification, quotas, or external connectivity. External capabilities are classified as **ready for external activation** until credentials, provider callbacks, privacy/retention decisions, quota review, activation flags, and independent runtime evidence exist.
 
+The deferred Request service also emits `economic_request.state_changed` after open-intention creation, state transitions, and bounded recheck scheduling. This keeps unavailable work resumable and observable without claiming that a provider, quote, dispatch, inventory item, or fulfilment result exists.
+
+Candidate learning artifacts have a protected, explicit approval boundary at `POST /api/admin/coordinator/learning/:id/approve`. The route is disabled unless `KURUKOO_COORDINATOR_PROMOTION_ENABLED=true`, requires administrator authentication, validates candidate status and policy version, records operator provenance, and marks the artifact `approved`. Approval does not activate runtime policy; a separate canary and runtime activation decision remains required.
+
 The targeted coordinator, agent-runtime, notification-queue, and TypeScript checks pass, and the broad `npm run test:routes` regression suite passes. This is repository-side validation, not a claim that external providers are live.

@@ -118,6 +118,38 @@ export async function listLearningArtifacts(limit = 20): Promise<Array<{ id: str
   return artifacts;
 }
 
+export async function approveLearningArtifact(input: { id: string; operatorId: string; evaluationScore?: number; policyVersion?: string }): Promise<{ ok: boolean; status: string; reason?: string }> {
+  await ensureCoordinatorSchema();
+  const artifactId = String(input.id || '').trim();
+  const operatorId = String(input.operatorId || '').trim();
+  if (!artifactId || !operatorId) return { ok: false, status: 'rejected', reason: 'Artifact id and operator identity are required.' };
+  const score = input.evaluationScore === undefined ? undefined : Number(input.evaluationScore);
+  if (score !== undefined && (!Number.isFinite(score) || score < 0 || score > 1)) return { ok: false, status: 'rejected', reason: 'Evaluation score must be between 0 and 1.' };
+  const db = await getDb();
+  const row = db.exec('SELECT approval_status, policy_version, source_event_id FROM coordinator_learning_artifacts WHERE id = ? LIMIT 1', [artifactId])[0]?.values?.[0] as any[] | undefined;
+  if (!row) return { ok: false, status: 'missing', reason: 'Learning artifact was not found.' };
+  const current = String(row[0] || 'candidate');
+  if (current === 'approved') return { ok: true, status: 'approved' };
+  if (current !== 'candidate') return { ok: false, status: current, reason: 'Only candidate artifacts can be approved.' };
+  if (input.policyVersion && String(input.policyVersion) !== String(row[1])) return { ok: false, status: 'rejected', reason: 'Policy version does not match the candidate artifact.' };
+  db.run('UPDATE coordinator_learning_artifacts SET approval_status = ?, evaluation_score = COALESCE(?, evaluation_score) WHERE id = ? AND approval_status = ?', ['approved', score ?? null, artifactId, 'candidate']);
+  if (db.getRowsModified() !== 1) return { ok: false, status: 'conflict', reason: 'Artifact changed before approval was recorded.' };
+  saveDb();
+  await persistCoordinatorEvent({
+    id: `learning-artifact:${artifactId}:approved`,
+    type: 'operator.policy_changed',
+    occurredAt: new Date().toISOString(),
+    producer: 'coordinatorStore',
+    correlationId: `learning_artifact:${artifactId}`,
+    payload: { artifactId, action: 'approved', operatorId, evaluationScore: score, policyVersion: String(row[1]), sourceEventId: row[2] ? String(row[2]) : undefined },
+    sensitivity: 'restricted',
+    provenance: { source: 'operator', sourceId: operatorId, evidenceLevel: 'persisted_state' },
+    policy: { autonomousAllowed: false, confirmationRequired: 'operator' },
+    schemaVersion: 1,
+  });
+  return { ok: true, status: 'approved' };
+}
+
 export async function listCoordinatorRuns(limit = 20): Promise<CoordinatorRun[]> {
   await ensureCoordinatorSchema();
   const db = await getDb();

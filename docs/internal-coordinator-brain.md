@@ -372,6 +372,10 @@ The current implemented event taxonomy is: `agent.goal.due`, `chat.turn.complete
 
 The coordinator remains local-first and deterministic (`rules-v1`) with teacher/evaluation disabled unless explicitly enabled. External activation is a separate deployment step requiring provider credentials, privacy and retention decisions, quota review, callback verification, and runtime evidence. A passing repository test must therefore be described as repository-side readiness, not as live provider connectivity.
 
+The deferred Request service also emits `economic_request.state_changed` after open-intention creation, state transitions, and bounded recheck scheduling. This keeps unavailable work resumable and observable without claiming that a provider, quote, dispatch, inventory item, or fulfilment result exists.
+
+Candidate learning artifacts now have a protected, explicit approval boundary at `POST /api/admin/coordinator/learning/:id/approve`. The route is disabled unless `KURUKOO_COORDINATOR_PROMOTION_ENABLED=true`, requires administrator authentication, validates the candidate status and policy version, records operator provenance, and marks the artifact `approved`. Approval does not activate runtime policy; a separate canary and runtime activation decision remains required.
+
 The targeted coordinator, agent-runtime, notification-queue, and TypeScript checks pass. The broad `npm run test:routes` suite passes, including economic lifecycle, multi-party request, provider entity, execution boundary, native assistance, development authentication, order, admin, SEO, task, and notification regressions.
 
 > A coordinator event means that a canonical Kurukoo owner recorded a state transition or bounded observation. It does not mean that an external action occurred unless the event provenance explicitly says `verified_external` and the corresponding canonical reconciliation succeeded.

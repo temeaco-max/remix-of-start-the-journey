@@ -150,6 +150,12 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
         autonomousLowRiskMode: agentAutonomous && agentEnabled ? item('EXTERNAL_DEPENDENCY', 'Autonomous low-risk mode is enabled but remains bounded by existing runtime controls.') : item('DISABLED', 'Autonomous low-risk mode is disabled.'),
         concurrencyLimits: agentEnabled ? item(Number(env.KURUKOO_AGENT_MAX_CONCURRENT_GOALS || 0) > 0 ? 'READY' : 'PENDING', 'Concurrency is controlled by the existing agent runtime environment limits.') : item('DISABLED', 'Concurrency is inactive while the agent runtime is disabled.'),
       },
+      COORDINATOR: {
+        localFirst: item('READY', 'Deterministic rules-v1 coordination is available behind canonical service owners.'),
+        canonicalProducerWiring: item('READY', 'Chat, Economic Requests, deferred intentions, provider offers, notifications, Living Memory, and verified payment boundaries emit typed coordinator telemetry.'),
+        teacherEvaluation: env.KURUKOO_COORDINATOR_TEACHER_ENABLED === 'true' ? item('EXTERNAL_DEPENDENCY', 'Teacher/evaluation is explicitly enabled; provider privacy, quota, retention, and terms remain external deployment decisions.') : item('DISABLED', 'Teacher/evaluation is disabled by default and cannot create artifacts.'),
+        candidatePromotion: env.KURUKOO_COORDINATOR_PROMOTION_ENABLED === 'true' ? item('PENDING', 'Operator approval is enabled, but approved artifacts still require evaluation, canarying, and separate runtime activation.') : item('DISABLED', 'Candidate promotion is disabled by feature flag.'),
+      },
       PRESENCE: {
         NearbyPulse: env.KURUKOO_PRESENCE_ENABLED === 'false' ? item('DISABLED', 'Presence was explicitly disabled.') : item('READY', 'Nearby/Pulse uses the existing active-presence authority; it does not prove provider availability.'),
       },

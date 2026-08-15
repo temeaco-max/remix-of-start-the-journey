@@ -1,4 +1,5 @@
 import { getDb, saveDb } from '../database.js';
+import { persistCoordinatorEvent } from './coordinatorStore.js';
 
 export type DeferredStatus = 'requested' | 'awaiting_match' | 'partially_matched' | 'fulfilled' | 'abandoned';
 const DEFAULT_TTL_DAYS = 7;
@@ -85,7 +86,22 @@ export async function createOpenIntention(
     ]);
 
     saveDb();
-    return getIntentionById(phone, db.exec('SELECT last_insert_rowid() AS id')[0]?.values[0]?.[0]);
+    const intentionId = Number(db.exec('SELECT last_insert_rowid() AS id')[0]?.values[0]?.[0] || 0);
+    await persistCoordinatorEvent({
+        id: `deferred-intention:${intentionId}:created`,
+        type: 'economic_request.state_changed',
+        occurredAt: now.toISOString(),
+        producer: 'deferredRequestService',
+        correlationId: options.economicRequestId ? `economic_request:${options.economicRequestId}` : `deferred_intention:${intentionId}`,
+        ownerPhone: phone.startsWith('anon_') ? undefined : phone,
+        economicRequestId: options.economicRequestId,
+        payload: { intentionId, status: 'requested', skill: options.skill, locationKnown: Boolean(options.location), nextCheckAt: nextCheck.toISOString(), expiresAt: expires.toISOString(), maxAttempts },
+        sensitivity: phone.startsWith('anon_') ? 'public' : 'personal',
+        provenance: { source: 'canonical_service', sourceId: String(intentionId), evidenceLevel: 'persisted_state' },
+        policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+        schemaVersion: 1,
+    });
+    return getIntentionById(phone, intentionId);
 }
 
 async function getIntentionById(phone: string, id: any) {
@@ -125,7 +141,22 @@ async function transition(phone: string, intentionId: string | number, status: D
         WHERE phone = ? AND id = ?
     `, [status, resolution || null, note || null, workaround || null, now, phone, Number(intentionId)]);
     saveDb();
-    return getIntentionById(phone, intentionId);
+    const intention = await getIntentionById(phone, intentionId);
+    if (intention) await persistCoordinatorEvent({
+        id: `deferred-intention:${intention.id}:state:${status}:${Date.now()}`,
+        type: 'economic_request.state_changed',
+        occurredAt: now,
+        producer: 'deferredRequestService',
+        correlationId: intention.economic_request_id ? `economic_request:${intention.economic_request_id}` : `deferred_intention:${intention.id}`,
+        ownerPhone: phone.startsWith('anon_') ? undefined : phone,
+        economicRequestId: intention.economic_request_id ? String(intention.economic_request_id) : undefined,
+        payload: { intentionId: Number(intention.id), status, resolution: resolution || undefined, hasWorkaround: Boolean(workaround), attemptCount: Number(intention.attempts || 0) },
+        sensitivity: phone.startsWith('anon_') ? 'public' : 'personal',
+        provenance: { source: 'canonical_service', sourceId: String(intention.id), evidenceLevel: 'persisted_state' },
+        policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+        schemaVersion: 1,
+    });
+    return intention;
 }
 
 export async function getIntentions(phone: string) {
@@ -189,7 +220,22 @@ export async function incrementAttempt(phone: string, intentionId: string | numb
         [new Date(Date.now() + DEFAULT_RECHECK_HOURS * 60 * 60 * 1000).toISOString(), new Date().toISOString(), phone, Number(intentionId)]
     );
     saveDb();
-    return getIntentionById(phone, intentionId);
+    const intention = await getIntentionById(phone, intentionId);
+    if (intention) await persistCoordinatorEvent({
+        id: `deferred-intention:${intention.id}:retry:${intention.deferred_attempts}`,
+        type: 'economic_request.state_changed',
+        occurredAt: new Date().toISOString(),
+        producer: 'deferredRequestService',
+        correlationId: intention.economic_request_id ? `economic_request:${intention.economic_request_id}` : `deferred_intention:${intention.id}`,
+        ownerPhone: phone.startsWith('anon_') ? undefined : phone,
+        economicRequestId: intention.economic_request_id ? String(intention.economic_request_id) : undefined,
+        payload: { intentionId: Number(intention.id), status: String(intention.status), deferredAttempt: Number(intention.deferred_attempts || 0), nextCheckAt: intention.next_check_at || undefined },
+        sensitivity: phone.startsWith('anon_') ? 'public' : 'personal',
+        provenance: { source: 'canonical_service', sourceId: String(intention.id), evidenceLevel: 'persisted_state' },
+        policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+        schemaVersion: 1,
+    });
+    return intention;
 }
 
 /** Called by the 2-hour worker to return intentions ready for another matching pass. */

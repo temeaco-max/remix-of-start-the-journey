@@ -35,7 +35,7 @@ import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { createAdCampaign, getAdCampaigns, updateAdCampaign } from '../services/adManager.js';
 import { testMistralConnection } from '../services/mistralService.js';
 import { getNotificationQueueStats } from '../services/pushNotifications.js';
-import { listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
+import { approveLearningArtifact, listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
 
 const router = Router();
 
@@ -163,6 +163,15 @@ router.post('/operator/actors/:actorId/reset', authenticateAdmin, async (req: Au
   const db = await getDb();
   resetOperatorActorState(db, actor.phone);
   res.json({ success: true, actor, reset: true, preserved: ['operator_identity', 'other_actor_contexts', 'production_user_data'] });
+});
+
+router.post('/coordinator/learning/:id/approve', authenticateAdmin, async (req: AuthRequest, res) => {
+  if (process.env.KURUKOO_COORDINATOR_PROMOTION_ENABLED !== 'true') return res.status(503).json({ success: false, error: 'Learning-artifact promotion is disabled for this deployment.' });
+  const operatorId = String(req.user?.phone || `admin:${process.env.ADMIN_USERNAME || 'admin'}`);
+  const score = req.body?.evaluationScore === undefined ? undefined : Number(req.body.evaluationScore);
+  const result = await approveLearningArtifact({ id: String(req.params.id || ''), operatorId, evaluationScore: score, policyVersion: req.body?.policyVersion ? String(req.body.policyVersion) : undefined });
+  const status = result.ok ? 200 : result.status === 'missing' ? 404 : result.status === 'conflict' ? 409 : 400;
+  return res.status(status).json({ success: result.ok, ...result, runtimeActivation: 'separate_feature_flag_and_canary_required' });
 });
 
 // ── Platform Stats / Observability ──────────────────────────────────────

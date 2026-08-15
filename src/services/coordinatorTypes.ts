@@ -7,7 +7,8 @@ export type CoordinatorEventType =
   | 'chat.turn.completed'
   | 'memory.context.retrieved'
   | 'provider.offer.received'
-  | 'payment.webhook.verified';
+  | 'payment.webhook.verified'
+  | 'operator.policy_changed';
 
 export type CoordinatorConfirmation = 'none' | 'user' | 'operator' | 'external_evidence';
 export type CoordinatorEvidenceLevel = 'assertion' | 'persisted_state' | 'verified_external';
