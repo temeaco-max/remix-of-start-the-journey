@@ -10,6 +10,27 @@
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
   const activityStages = ['Reviewing your request', 'Checking the relevant context', 'Preparing a clear response'];
+  const draftStorageKey = () => `kurukoo_chat_draft_${state.conversationId || 'guest'}`;
+  function saveComposerDraft() {
+    if (!input) return;
+    try {
+      const value = input.value.slice(0, 12000);
+      if (value.trim()) sessionStorage.setItem(draftStorageKey(), value);
+      else sessionStorage.removeItem(draftStorageKey());
+    } catch {}
+  }
+  function clearComposerDraft() {
+    try { sessionStorage.removeItem(draftStorageKey()); } catch {}
+  }
+  function restoreComposerDraft() {
+    if (!input || input.value) return;
+    try {
+      const draft = sessionStorage.getItem(draftStorageKey());
+      if (!draft) return;
+      input.value = draft.slice(0, 12000);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch {}
+  }
   let activityTimer = null;
   let activityStageIndex = 0;
   const pinStorageKey = () => `kurukoo_pins_${state.conversationId || 'draft'}`;
@@ -86,7 +107,7 @@
       const res = await fetch(surfacePaths[view], { credentials: 'same-origin' }); if (!res.ok) throw new Error('Workspace view unavailable'); const html = await res.text(); const doc = new DOMParser().parseFromString(html, 'text/html'); const source = doc.querySelector('.workspace-content, main, .workspace-main'); if (!source) throw new Error('Workspace content unavailable');       body.replaceChildren(...Array.from(source.childNodes).map(node => node.cloneNode(true))); body.querySelector('.workspace-header')?.remove(); body.querySelector('[data-tasks-activity]') && loadTasksActivity(); body.querySelectorAll('script').forEach(script => script.remove()); body.querySelectorAll('a[href]').forEach(link => { const href = link.getAttribute('href') || ''; const mapped = Object.entries(surfacePaths).find(([, path]) => href === path || href.startsWith(`${path}?`)); if (mapped) { link.dataset.surfaceView = mapped[0]; link.removeAttribute('href'); } }); body.querySelectorAll('a.ask-cta').forEach(link => { link.addEventListener('click', event => { event.preventDefault(); const prompt = new URL(link.href || link.getAttribute('data-href') || '/chat', location.origin).searchParams.get('prompt'); if (prompt && input) { input.value = prompt; input.dispatchEvent(new Event('input', { bubbles: true })); input.focus(); } }); }); wireSurfaceActions(body);
     } catch (error) { body.replaceChildren(renderSurfaceFallback(view, error.message || undefined)); }
   }
-  async function loadConversation(conversationId) { if (!conversationId) return; state.surfaceView = null; updateSurfaceHeader(null); updateSurfaceContext(null); state.conversationId = conversationId; localStorage.setItem('kurukoo_conversation_id', conversationId); try { const url = new URL('/api/chat/history', location.origin); url.searchParams.set('conversationId', conversationId); url.searchParams.set('limit', '60'); const res = await fetch(url, { credentials: 'same-origin' }); const data = await res.json(); state.messages = (data.messages || []).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.content, id: m.id })); renderMessages(data.messages || []); refreshHistory(); } catch { setConnection(false, 'Offline'); } }
+  async function loadConversation(conversationId) { if (!conversationId) return; state.surfaceView = null; updateSurfaceHeader(null); updateSurfaceContext(null); state.conversationId = conversationId; localStorage.setItem('kurukoo_conversation_id', conversationId); restoreComposerDraft(); try { const url = new URL('/api/chat/history', location.origin); url.searchParams.set('conversationId', conversationId); url.searchParams.set('limit', '60'); const res = await fetch(url, { credentials: 'same-origin' }); const data = await res.json(); state.messages = (data.messages || []).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.content, id: m.id })); renderMessages(data.messages || []); refreshHistory(); } catch { setConnection(false, 'Offline'); } }
   function wireSurfaceActions(root = document) { root.querySelectorAll('[data-surface-view]').forEach(action => { if (action.dataset.surfaceWired === '1') return; action.dataset.surfaceWired = '1'; action.addEventListener('click', event => { event.preventDefault(); renderWorkspaceSurface(action.dataset.surfaceView); }); }); }
 
   function setComposerBusy(busy) {
@@ -115,6 +136,7 @@
   }
   $('radar-toggle')?.addEventListener('click', () => setRadarActive(!state.radarActive));
   setRadarActive(state.radarActive);
+  restoreComposerDraft();
   const moreToggle = $('sidebar-more-toggle'); const moreItems = $('sidebar-more-items');
   moreToggle?.addEventListener('click', () => {
     const expanded = moreToggle.getAttribute('aria-expanded') === 'true';
@@ -979,7 +1001,7 @@
   async function sendMessage(raw) {
     const text = String(raw || input.value || '').trim(); if (!text || state.busy || !(await ensureIdentity())) return;
     const surfaceActive = Boolean(state.surfaceView);
-    state.controller = new AbortController(); setComposerBusy(true); setConnection(true); input.value = '';
+    state.controller = new AbortController(); setComposerBusy(true); setConnection(true); input.value = ''; clearComposerDraft();
     let attachment = state.attached;
     try {
       if (attachment instanceof File) { input.placeholder = 'Uploading attachment…'; attachment = await uploadAttachment(attachment); }
@@ -1509,7 +1531,7 @@
   }
   $('attach-file')?.addEventListener('click', () => $('file-input')?.click());
   $('file-input')?.addEventListener('change', event => { const file = event.target.files?.[0]; state.attached = file || null; renderAttachmentPreview(state.attached); });
-  input?.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 180)}px`; if (!state.busy && send) send.disabled = !input.value.trim(); });
+  input?.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 180)}px`; if (!state.busy && send) send.disabled = !input.value.trim(); saveComposerDraft(); });
   input?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
   send?.addEventListener('click', () => sendMessage());
   stop?.addEventListener('click', () => { state.controller?.abort(); });

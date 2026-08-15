@@ -71,7 +71,7 @@ The public web and the installed application are related but distinct:
 - **Public web:** discovery, SEO, resources, marketing and public network surfaces.
 - **Installed app:** conversation-first personal workspace, requests, reminders, saved items, notifications, Discover, tasks, Points, safety, memory and account state.
 
-Future native clients should inherit the PWA's product interaction model and design system rather than creating a separate product language.
+Future native clients should inherit the PWA's product interaction model and design system rather than creating a separate product language. The Chat composer also retains an unsent draft only in the current browser session, keyed to the active conversation, so backgrounding or a temporary disconnect does not erase text. Drafts are cleared when submitted and are not promoted into Memory or server persistence.
 
 ## Memory truth
 
