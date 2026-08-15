@@ -41,12 +41,17 @@ export function getVoiceStatus() {
     provider: current.provider,
     model: current.model,
     capability: 'live',
-    tts: {
-      provider: process.env.KURUKOO_VOICE_TTS_PROVIDER || 'disabled',
-      model: process.env.KURUKOO_VOICE_TTS_MODEL || undefined,
-      available: false,
-      note: 'Server TTS is unavailable until an explicitly configured adapter is implemented; browser speech remains experimental and turn-based.',
-    },
+    tts: (() => {
+      const provider = process.env.KURUKOO_VOICE_TTS_PROVIDER || 'disabled';
+      const model = process.env.KURUKOO_VOICE_TTS_MODEL || undefined;
+      const available = current.enabled && provider !== 'disabled' && Boolean(model) && configuredKey();
+      return {
+        provider,
+        model,
+        available,
+        note: available ? 'Server TTS is enabled and configured.' : 'Server TTS is unavailable until it is explicitly enabled and configured.',
+      };
+    })(),
     optionalMistral: {
       configured: mistral.configured,
       transcriptionAvailable: mistral.capabilities.some(capability => capability.capability === 'transcription' && capability.available),
