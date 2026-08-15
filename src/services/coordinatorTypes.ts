@@ -10,7 +10,15 @@ export type CoordinatorEventType =
   | 'payment.webhook.verified'
   | 'operator.policy_changed'
   | 'reminder.state_changed'
-  | 'safety.checkin.state_changed';
+  | 'safety.checkin.state_changed'
+  | 'trust.device.registered'
+  | 'trust.challenge.created'
+  | 'trust.challenge.approved'
+  | 'trust.challenge.denied'
+  | 'trust.device.revoked'
+  | 'channel.evidence.observed'
+  | 'privacy.number_mapping.created'
+  | 'privacy.number_mapping.released';
 
 export type CoordinatorConfirmation = 'none' | 'user' | 'operator' | 'external_evidence';
 export type CoordinatorEvidenceLevel = 'assertion' | 'persisted_state' | 'verified_external';

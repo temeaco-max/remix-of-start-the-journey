@@ -5772,3 +5772,18 @@ The connector uses the existing canonical Chat boundary for inbound messages and
 The personal WhatsApp linked-device experience is available from the authenticated dashboard’s central chat-template workspace at `/connect`. Connect is a first-class workspace section, not a replacement for Web Chat and not a Meta Cloud API setup page. Its central content area reuses the shared linked-device pairing panel, QR state polling, owner controls, and existing workspace styling. `/whatsapp-linked-device` remains a focused direct pairing page for local setup and deep links; both surfaces call the same protected API and connector state owner.
 
 All actions taken through the linked device return to the canonical Chat, request, reminder, safety, memory, notification, and coordinator boundaries. The left workspace navigation and central content remain the user-facing dashboard shell; external channel activation is still classified truthfully as pending or externally dependent until a real session and provider outcome are evidenced.
+
+
+## Current Convergence Addendum — Progressive Trust, Channels, and Privacy Masking
+
+The current implementation preserves phone number as Kurukoo’s primary communications identity while allowing users to establish trust progressively. A guest session, established profile, trusted device, verified email, linked WhatsApp session, linked Telegram session, social account, verified phone, and consented location are separate evidence types. None may be collapsed into a generic verification claim.
+
+The Coordinator/AI Brain observes bounded lifecycle events from the canonical trust, channel-evidence, and privacy services. It may coordinate notifications, continuation, and wait-for-user states, but it cannot autonomously approve a device, verify phone ownership, release a privacy mapping, or activate an external connector. Canonical services remain owners of authentication, channel, request, masking, and provider truth.
+
+The authenticated admin console manages trust and channel readiness through the existing admin owner. It exposes feature flags, pending challenges, trusted-device inventory and revocation, channel-evidence counts, WhatsApp/Telegram connector state, and privacy-mask readiness. Secrets, provider tokens, deployment flags, and external delivery claims remain outside arbitrary admin editing.
+
+Personal Telegram linked devices are a separate MTProto connector from the Telegram Bot API. The central Connect workspace contains both WhatsApp and Telegram pairing panels. The Telegram connector uses maintained Teleproto, persists a StringSession only under `.data/telegram-linked-device`, remains disabled until API credentials and owner activation are present, ignores self/group messages by default, and routes accepted inbound text through the same canonical Chat and AI pipeline as Web Chat and WhatsApp.
+
+Privacy number masking protects provider-facing execution contacts; it does not authenticate users. An authorized execution request may allocate an owner-scoped proxy mapping through `privacyBridge`, store the proxy for provider-facing routing, resolve callbacks internally, and release or expire the mapping. Direct replies through a user’s already-bound WhatsApp, Telegram, SMS, or email channel are not masked. A local proxy mapping is not a routable real telephony number, and no delivery is claimed without provider evidence.
+
+The implementation is repository-side complete and ready for external activation, but real Telegram pairing, WhatsApp pairing, Firebase push delivery, Resend inbox delivery, carrier verification, social OAuth, and provider-owned number masking remain externally dependent and must not be reported as live without independent proof.

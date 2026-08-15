@@ -41,6 +41,7 @@ import qrRouter from './routes/qrRouter.js';
 import agentRouter from './routes/agentRouter.js';
 import fcmRouter from './server.js';
 import whatsappLinkedDeviceRoutes from './routes/whatsappLinkedDeviceRoutes.js';
+import telegramLinkedDeviceRoutes from './routes/telegramLinkedDeviceRoutes.js';
 import topicRoutes from './routes/topicRoutes.js';
 import { startBackgroundServices, stopBackgroundServices } from './startup/backgroundServices.js';
 
@@ -71,6 +72,7 @@ app.use('/api/qr', qrRouter);
 app.use('/api/agent', agentRouter);
 app.use('/api/fcm', fcmRouter);
 app.use('/api/whatsapp-linked-device', whatsappLinkedDeviceRoutes);
+app.use('/api/telegram-linked-device', telegramLinkedDeviceRoutes);
 app.use('/api', topicRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', cartRoutes);

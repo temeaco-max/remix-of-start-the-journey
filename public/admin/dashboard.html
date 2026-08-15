@@ -377,6 +377,21 @@
                     </div>
                 </div>
 
+                <!-- Progressive Trust, Channel, and Privacy Controls -->
+                <div class="admin-section">
+                    <h3>Progressive Trust & Channel Readiness</h3>
+                    <p class="admin-inline-349fc4ea76">Manage persisted trust state and inspect connector readiness. External delivery is never inferred from internal records.</p>
+                    <div id="trust-readiness-grid" class="admin-inline-58c221a45e">
+                        <div class="admin-inline-91c151c1a2">Loading trust readiness...</div>
+                    </div>
+                    <div class="admin-actions-row">
+                        <label for="trust-device-phone">User phone</label>
+                        <input id="trust-device-phone" type="tel" placeholder="+234..." autocomplete="off">
+                        <button type="button" class="btn-action" onclick="loadTrustedDevices()">Inspect devices</button>
+                    </div>
+                    <div id="trusted-devices-list" class="admin-inline-cd70e79f23">No device selected.</div>
+                </div>
+
                 <!-- Dispute Resolution Board -->
                 <div class="admin-section">
                     <h3>Dispute Resolution Board</h3>
@@ -731,6 +746,51 @@
             loadDisputesList();
             loadTicketsList();
             loadPlatformStats();
+            loadTrustReadiness();
+        }
+
+        function loadTrustReadiness() {
+            fetch('/api/admin/trust/readiness', { credentials: 'same-origin' })
+                .then(res => res.json())
+                .then(data => {
+                    const grid = document.getElementById('trust-readiness-grid');
+                    const flags = data.featureFlags || {};
+                    const connectors = data.connectors || {};
+                    const masking = data.privacyNumberMasking || {};
+                    const cards = [
+                        ['Trusted devices', `${data.trustedDevices?.active || 0} active / ${data.trustedDevices?.revoked || 0} revoked`],
+                        ['Pending approvals', String(data.trustChallenges?.pending || 0)],
+                        ['Email OTP gate', flags.emailOtp ? 'enabled' : 'disabled'],
+                        ['Push approval gate', flags.pushApproval ? 'enabled' : 'disabled'],
+                        ['WhatsApp linked device', connectors.whatsappLinkedDevice?.state || 'unknown'],
+                        ['Telegram linked device', connectors.telegramLinkedDevice?.state || 'unknown'],
+                        ['Number masking', masking.enabled && masking.configured ? 'mapping ready; provider pending' : 'disabled or unconfigured'],
+                    ];
+                    grid.innerHTML = cards.map(([label, value]) => `<div class="pilot-readiness-card"><strong>${escapeHtml(label)}</strong><br/><span>${escapeHtml(value)}</span></div>`).join('');
+                })
+                .catch(() => { document.getElementById('trust-readiness-grid').textContent = 'Trust readiness is temporarily unavailable.'; });
+        }
+
+        function loadTrustedDevices() {
+            const phone = document.getElementById('trust-device-phone').value.trim();
+            const target = document.getElementById('trusted-devices-list');
+            if (!phone) { target.textContent = 'Enter a user phone first.'; return; }
+            fetch(`/api/admin/trust/devices/${encodeURIComponent(phone)}`, { credentials: 'same-origin' })
+                .then(res => res.json())
+                .then(data => {
+                    const devices = data.devices || [];
+                    target.innerHTML = devices.length ? devices.map(device => `<div class="admin-inline-f01a9c842c"><strong>${escapeHtml(device.label || device.credentialType)}</strong> — ${escapeHtml(device.status)} — last seen ${escapeHtml(device.lastSeenAt || 'unknown')} ${device.status === 'active' ? `<button class="btn-action btn-secondary" onclick="revokeTrustedDevice(${Number(device.id)})">Revoke</button>` : ''}</div>`).join('') : 'No trusted devices recorded for this user.';
+                })
+                .catch(() => { target.textContent = 'Unable to load trusted devices.'; });
+        }
+
+        function revokeTrustedDevice(deviceId) {
+            const phone = document.getElementById('trust-device-phone').value.trim();
+            if (!phone || !confirm('Revoke this trusted device?')) return;
+            fetch(`/api/admin/trust/devices/${encodeURIComponent(phone)}/${encodeURIComponent(deviceId)}/revoke`, { method: 'POST', credentials: 'same-origin' })
+                .then(res => res.json())
+                .then(() => { loadTrustedDevices(); loadTrustReadiness(); })
+                .catch(() => alert('Unable to revoke trusted device.'));
         }
 
         function loadPlatformStats() {

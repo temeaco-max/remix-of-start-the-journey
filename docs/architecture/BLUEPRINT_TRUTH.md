@@ -46,7 +46,7 @@ This document is the current convergence index between the Blueprint and the rep
 |---|---|---|
 | Web Chat | Active canonical UI/channel. | IMPLEMENTED_AND_VERIFIED |
 | WhatsApp | Adapter and parity/webhook boundaries exist; real provider activation remains external. | PROVIDER_DEPENDENT |
-| Telegram | Adapter boundary exists; real provider activation remains external. | PROVIDER_DEPENDENT |
+| Telegram | Bot API adapter plus an explicit personal MTProto linked-device boundary exist; real provider activation remains external. | PROVIDER_DEPENDENT |
 | SMS | Adapter boundary exists; carrier/provider activation remains external. | PROVIDER_DEPENDENT |
 | USSD | Repository boundary exists; carrier/shortcode activation remains external. | PROVIDER_DEPENDENT |
 | Email | Canonical email channel and Resend boundary exist; email OTP request/verification is implemented behind `KURUKOO_EMAIL_OTP_ENABLED` and still requires provider activation. | PROVIDER_DEPENDENT |
@@ -55,7 +55,7 @@ This document is the current convergence index between the Blueprint and the rep
 | Channel evidence | Signed/validated WhatsApp, Telegram, email, SMS and other canonical inbound adapters record bounded evidence through the shared channel boundary; evidence does not replace phone verification automatically. | IMPLEMENTED_PARTIALLY_WIRED |
 | Location consent | Discover requests browser permission only for authenticated users, stores coarse purpose-bound consent with expiry, and does not claim background location. | IMPLEMENTED_PARTIALLY_WIRED |
 | Voice | Repository voice boundary exists; real provider activation remains external. | PROVIDER_DEPENDENT |
-| Private-number masking | Privacy/proxy mapping abstraction exists; the local proxy number is not a routable real telephony number. | FOUNDATION_ONLY |
+| Private-number masking | Owner-scoped proxy allocation, resolution, expiry/release, execution-connector integration, and protected Coordinator lifecycle telemetry exist; a local proxy number is not a routable real telephony number. | PROVIDER_DEPENDENT |
 | WebRTC | Authenticated signalling foundation exists. TURN/STUN, client media lifecycle and production relay are not equivalent to signalling and remain gated. | FOUNDATION_ONLY |
 | MQTT / IoT | MQTT bridge foundation exists; secure device identity, discovery, authorisation, state sync and production broker architecture are not yet a complete product capability. | FOUNDATION_ONLY |
 
@@ -108,6 +108,7 @@ Kurukoo remains aligned with the launch cost strategy:
 1. Keep `BLUEPRINT.md`, Addendum, Ecosystem and product documents synchronized to the same current truth.
 2. Complete the product-grade PWA experience and make it the reference for future native apps.
 3. Continue end-to-end behavioural completion of the broad skill/category catalogue rather than treating routing coverage as completion.
-4. Finish provider-independent portions of private number masking, WebRTC and MQTT/IoT and keep them feature-flagged until real infrastructure is present.
-5. Continue actor/scenario testing across contributors, providers, businesses, agents and users so every canonical flow behaves as one ecosystem.
-6. Keep external activation boundaries truthful and explicit.
+4. Finish real provider activation and delivery validation for Telegram personal MTProto sessions, WhatsApp linked devices, FCM push approval, Resend email, and any phone-dependent channel.
+5. Finish provider-independent portions of private number masking, WebRTC and MQTT/IoT and keep them feature-flagged until real infrastructure is present.
+6. Continue actor/scenario testing across contributors, providers, businesses, agents and users so every canonical flow behaves as one ecosystem.
+7. Keep external activation boundaries truthful and explicit.

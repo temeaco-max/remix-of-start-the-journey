@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 import { getDb, saveDb } from '../database.js';
+import { persistCoordinatorEvent } from './coordinatorStore.js';
+import type { CoordinatorEventType } from './coordinatorTypes.js';
 
 export type DeviceCredentialType = 'web' | 'pwa' | 'mobile' | 'passkey' | 'push';
 export type TrustChallengeStatus = 'pending' | 'approved' | 'denied' | 'expired';
@@ -35,6 +37,24 @@ function digest(value: string): string {
 
 function normalizeDeviceId(value: unknown): string {
   return String(value || '').trim().slice(0, 256);
+}
+
+export async function emitProgressiveTrustEvent(type: CoordinatorEventType, phone: string, payload: Record<string, unknown>, sourceId: string): Promise<void> {
+  const ownerPhone = String(phone || '').trim();
+  if (!ownerPhone) return;
+  await persistCoordinatorEvent({
+    id: `trust:${type}:${crypto.randomUUID()}`,
+    type,
+    occurredAt: new Date().toISOString(),
+    producer: 'progressiveTrustService',
+    correlationId: `trust:${digest(ownerPhone).slice(0, 20)}`,
+    ownerPhone,
+    payload,
+    sensitivity: 'personal',
+    provenance: { source: 'canonical_service', sourceId: String(sourceId || '').slice(0, 160), evidenceLevel: 'persisted_state' },
+    policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+    schemaVersion: 1,
+  });
 }
 
 async function ensureTrustSchema(): Promise<void> {
@@ -122,6 +142,7 @@ export async function registerTrustedDevice(input: {
           ON CONFLICT(phone, device_hash) DO UPDATE SET credential_type = excluded.credential_type, label = excluded.label, push_capable = excluded.push_capable, status = 'active', revoked_at = NULL, last_seen_at = CURRENT_TIMESTAMP`,
     [phone, deviceHash, credentialType, String(input.label || '').trim().slice(0, 120) || null, input.pushCapable ? 1 : 0]);
   saveDb();
+  await emitProgressiveTrustEvent('trust.device.registered', phone, { credentialType, pushCapable: Boolean(input.pushCapable), status: 'active' }, `device:${deviceHash.slice(0, 20)}`);
   return { deviceId, credentialType, status: 'active', trustedAt: new Date().toISOString() };
 }
 
@@ -150,6 +171,7 @@ export async function createTrustChallenge(input: { phone: string; targetDeviceI
   const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS).toISOString();
   db.run(`INSERT INTO trust_challenges (id, phone, target_device_hash, purpose, expires_at) VALUES (?, ?, ?, ?, ?)`, [id, phone, targetHash, String(input.purpose || 'device_sign_in').slice(0, 80), expiresAt]);
   saveDb();
+  await emitProgressiveTrustEvent('trust.challenge.created', phone, { challengeId: id, purpose: String(input.purpose || 'device_sign_in').slice(0, 80), expiresAt }, `challenge:${id}`);
   return { id, status: 'pending', expiresAt, alreadyTrusted: false };
 }
 
@@ -167,6 +189,7 @@ export async function approveTrustChallenge(input: { phone: string; challengeId:
   db.run(`UPDATE trust_challenges SET status = 'approved', approved_by_device_hash = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ? AND status = 'pending'`, [approverHash, input.challengeId, phone]);
   db.run(`INSERT INTO trusted_devices (phone, device_hash, credential_type, label, push_capable, status) VALUES (?, ?, 'push', 'Push-approved device', 1, 'active') ON CONFLICT(phone, device_hash) DO UPDATE SET status = 'active', revoked_at = NULL, last_seen_at = CURRENT_TIMESTAMP`, [phone, String(challenge[0])]);
   saveDb();
+  await emitProgressiveTrustEvent('trust.challenge.approved', phone, { challengeId: input.challengeId, status: 'approved' }, `challenge:${input.challengeId}`);
   return { approved: true, targetDeviceIdHash: String(challenge[0]) };
 }
 
@@ -179,6 +202,7 @@ export async function recordChannelEvidence(input: { phone: string; channel: Cha
           ON CONFLICT(phone, channel, evidence_type, external_subject) DO UPDATE SET source_ref = excluded.source_ref, consented = excluded.consented, status = 'observed', revoked_at = NULL, observed_at = CURRENT_TIMESTAMP`,
     [String(input.phone || '').trim(), input.channel, String(input.evidenceType || '').slice(0, 80), String(input.externalSubject || '').slice(0, 256) || null, String(input.sourceRef || '').slice(0, 256) || null, input.consented ? 1 : 0]);
   saveDb();
+  await emitProgressiveTrustEvent('channel.evidence.observed', String(input.phone || '').trim(), { channel: input.channel, evidenceType: String(input.evidenceType || '').slice(0, 80), consented: Boolean(input.consented) }, `channel:${input.channel}:${String(input.evidenceType || '').slice(0, 80)}`);
 }
 
 export async function recordLocationConsent(input: { phone: string; purpose: string; precision?: 'coarse' | 'precise'; latitude?: number; longitude?: number; area?: string; expiresAt?: string }): Promise<void> {
@@ -221,6 +245,7 @@ export async function denyTrustChallenge(input: { phone: string; challengeId: st
   if (!result) return { denied: false, reason: 'challenge_not_found_or_expired' };
   db.run(`UPDATE trust_challenges SET status = 'denied', approved_by_device_hash = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ? AND status = 'pending'`, [approverHash, input.challengeId, input.phone]);
   saveDb();
+  await emitProgressiveTrustEvent('trust.challenge.denied', input.phone, { challengeId: input.challengeId, status: 'denied' }, `challenge:${input.challengeId}`);
   return { denied: true };
 }
 
@@ -239,5 +264,6 @@ export async function revokeTrustedDevice(input: { phone: string; deviceRecordId
   if (input.currentDeviceId && String(record[0]) === digest(normalizeDeviceId(input.currentDeviceId))) return { revoked: false, reason: 'current_device_requires_reauthentication' };
   db.run(`UPDATE trusted_devices SET status = 'revoked', revoked_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ? AND status = 'active'`, [input.deviceRecordId, input.phone]);
   saveDb();
+  await emitProgressiveTrustEvent('trust.device.revoked', input.phone, { deviceRecordId: input.deviceRecordId, status: 'revoked' }, `device-record:${input.deviceRecordId}`);
   return { revoked: true };
 }

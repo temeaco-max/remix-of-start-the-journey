@@ -82,7 +82,7 @@ export async function persistCoordinatorEvent(event: CoordinatorEventEnvelope, o
     event.occurredAt,
   ]);
   saveDb();
-  if (options.dispatch !== false && ['economic_request.state_changed', 'provider.offer.received', 'payment.webhook.verified'].includes(event.type)) {
+  if (options.dispatch !== false && ['economic_request.state_changed', 'provider.offer.received', 'payment.webhook.verified', 'trust.device.registered', 'trust.challenge.created', 'trust.challenge.approved', 'trust.challenge.denied', 'trust.device.revoked', 'channel.evidence.observed', 'privacy.number_mapping.created', 'privacy.number_mapping.released'].includes(event.type)) {
     void import('./internalCoordinator.js')
       .then(({ internalCoordinator }) => internalCoordinator.handle(event))
       .catch((error) => console.error('[Coordinator] continuation dispatch failed:', error instanceof Error ? error.message : 'unknown error'));

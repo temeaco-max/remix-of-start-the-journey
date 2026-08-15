@@ -113,3 +113,87 @@ EMAIL_FROM=
 ```
 
 Production activation requires setting the gate explicitly, supplying a Resend API key, verifying the sending domain, configuring a valid `EMAIL_FROM`, and completing a real inbox test. A generated database record or an internal email queue entry is not delivery evidence.
+
+## Coordinator and AI Brain integration
+
+Trust, channel-evidence, and privacy lifecycle changes now pass through the existing Coordinator event envelope. The Coordinator may observe bounded state transitions and produce notifications or wait-for-user projections, but these events do not grant autonomous authority to approve devices, verify phone ownership, release a privacy mapping, or activate an external connector.
+
+The current bounded event vocabulary includes:
+
+```text
+trust.device.registered
+trust.challenge.created
+trust.challenge.approved
+trust.challenge.denied
+trust.device.revoked
+channel.evidence.observed
+privacy.proxy.allocated
+privacy.proxy.released
+```
+
+Event payloads contain hashed or bounded identifiers, channel names, lifecycle states, source references, and timestamps. Raw device identifiers, OTP values, phone numbers, message bodies, provider credentials, and external secrets are excluded. Canonical services remain the owners of truth and the Coordinator remains an observer/orchestrator under policy.
+
+## Admin management
+
+The existing admin console now includes a Progressive Trust & Channel Readiness panel. It reads:
+
+```text
+GET /api/admin/trust/readiness
+GET /api/admin/trust/devices/:phone
+POST /api/admin/trust/devices/:phone/:deviceId/revoke
+GET /api/admin/connectors/telegram-linked-device/status
+POST /api/admin/connectors/telegram-linked-device/start
+POST /api/admin/connectors/telegram-linked-device/stop
+POST /api/admin/connectors/telegram-linked-device/logout
+```
+
+The panel exposes feature-gate state, trusted-device counts, pending approvals, WhatsApp and Telegram connector state, channel-evidence counts, and privacy-mask readiness. It does not expose secrets or claim external delivery. Deployment feature flags and provider credentials remain environment-managed rather than editable as arbitrary admin values.
+
+## Personal Telegram linked device
+
+Kurukoo now has a separate personal Telegram MTProto linked-device boundary. It is deliberately distinct from the Telegram Bot API webhook adapter. The central Connect workspace renders WhatsApp and Telegram pairing panels using the shared linked-device styling and central workspace architecture.
+
+The Telegram API boundary is:
+
+```text
+GET  /api/telegram-linked-device/status
+POST /api/telegram-linked-device/start
+GET  /api/telegram-linked-device/pairing-qr
+POST /api/telegram-linked-device/stop
+POST /api/telegram-linked-device/logout
+```
+
+The connector uses the maintained `teleproto` package, persists a StringSession only under `.data/telegram-linked-device`, and is disabled unless the explicit deployment flags, API ID, API hash, and owner phone are present. It accepts direct inbound messages only by default, ignores self messages and status broadcasts, keeps group messages disabled by default, records bounded channel evidence, and routes accepted text into canonical Chat rather than creating a Telegram-specific Chat engine.
+
+The personal Telegram path is therefore:
+
+```text
+Telegram QR-linked session
+→ inbound direct message
+→ bounded Telegram channel evidence
+→ canonicalChatTurnService
+→ existing FastText / SmolLM2 / hosted policy
+→ Telegram reply
+→ Coordinator chat.turn.completed telemetry
+```
+
+A real QR scan, Telegram API credentials, possible Telegram two-step password, and real inbound/outbound exchange remain required before activation can be described as connected.
+
+## Privacy number masking
+
+Privacy number masking is not an authentication replacement. It protects provider-facing communication after a canonical request has been authorized. The execution connector allocates an owner-scoped proxy mapping through `privacyBridge` when `FF_PRIVATE_NUMBER_MASKING=true` and the masking provider boundary is configured. The execution request stores the proxy contact for provider-facing routing while the real owner number remains protected inside the canonical service boundary.
+
+The mapping lifecycle is:
+
+```text
+authorized execution request
+→ owner-scoped proxy allocation
+→ provider-facing execution uses proxy contact
+→ callback/status resolves proxy to the canonical owner internally
+→ mapping expires or is explicitly released
+→ privacy.proxy.released Coordinator event
+```
+
+Direct replies to the user’s own WhatsApp, Telegram, SMS, or email channel are not masked because those channels already address the user through the verified or observed channel boundary. Provider, seller, delivery, callback, IVR, and other external execution contacts are the masking target. The system must not display a proxy as proof of phone ownership, and it must not claim that a provider call or message was delivered without provider evidence.
+
+The current privacy state is manageable from admin readiness, while actual provider-owned proxy number allocation, voice/SMS routing, consent, retention, and delivery evidence remain external activation requirements.

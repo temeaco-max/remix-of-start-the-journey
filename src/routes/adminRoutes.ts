@@ -36,6 +36,10 @@ import { createAdCampaign, getAdCampaigns, updateAdCampaign } from '../services/
 import { testMistralConnection } from '../services/mistralService.js';
 import { getNotificationQueueStats } from '../services/pushNotifications.js';
 import { approveLearningArtifact, getCoordinatorTelemetry, listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
+import { getPrivacyBridgeStatus } from '../services/privacyBridge.js';
+import { getTelegramLinkedDeviceStatus, startTelegramLinkedDevice, stopTelegramLinkedDevice } from '../services/telegramLinkedDeviceService.js';
+import { getWhatsAppLinkedDeviceStatus } from '../services/whatsappLinkedDeviceService.js';
+import { listTrustedDevices, revokeTrustedDevice } from '../services/progressiveTrustService.js';
 
 const router = Router();
 
@@ -174,8 +178,88 @@ router.post('/coordinator/learning/:id/approve', authenticateAdmin, async (req: 
   return res.status(status).json({ success: result.ok, ...result, runtimeActivation: 'separate_feature_flag_and_canary_required' });
 });
 
-// ── Platform Stats / Observability ──────────────────────────────────────
+// ── Trust, channel, and privacy readiness ────────────────────────────────
+router.get('/trust/readiness', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try {
+    const db = await getDb();
+    const count = (sql: string): number => { try { return Number(db.exec(sql)[0]?.values?.[0]?.[0] || 0); } catch { return 0; } };
+    const channelRows = (() => { try { return db.exec('SELECT channel, status, COUNT(*) FROM channel_evidence GROUP BY channel, status')[0]?.values || []; } catch { return []; } })();
+    const channelEvidence: Record<string, Record<string, number>> = {};
+    for (const row of channelRows) {
+      const channel = String(row[0]);
+      const status = String(row[1]);
+      channelEvidence[channel] ||= {};
+      channelEvidence[channel][status] = Number(row[2]);
+    }
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      featureFlags: {
+        progressiveTrust: process.env.KURUKOO_PROGRESSIVE_TRUST_ENABLED === 'true',
+        pushApproval: process.env.KURUKOO_PUSH_APPROVAL_ENABLED === 'true',
+        channelEvidence: process.env.KURUKOO_CHANNEL_EVIDENCE_ENABLED === 'true',
+        emailOtp: process.env.KURUKOO_EMAIL_OTP_ENABLED === 'true',
+        privateNumberMasking: process.env.FF_PRIVATE_NUMBER_MASKING === 'true',
+      },
+      trustedDevices: { active: count("SELECT COUNT(*) FROM trusted_devices WHERE status='active'"), revoked: count("SELECT COUNT(*) FROM trusted_devices WHERE status='revoked'") },
+      trustChallenges: { pending: count("SELECT COUNT(*) FROM trust_challenges WHERE status='pending' AND expires_at > CURRENT_TIMESTAMP"), approved: count("SELECT COUNT(*) FROM trust_challenges WHERE status='approved'"), denied: count("SELECT COUNT(*) FROM trust_challenges WHERE status='denied'") },
+      channelEvidence,
+      connectors: { whatsappLinkedDevice: getWhatsAppLinkedDeviceStatus(), telegramLinkedDevice: getTelegramLinkedDeviceStatus() },
+      privacyNumberMasking: getPrivacyBridgeStatus(),
+      deliveryClaims: 'Internal readiness and persisted states only; no external delivery or provider ownership is claimed.',
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unable to read trust readiness.' });
+  }
+});
 
+router.get('/connectors/telegram-linked-device/status', authenticateAdmin, (_req: AuthRequest, res) => {
+  res.json({ success: true, status: getTelegramLinkedDeviceStatus(), activation: 'Deployment flags and Telegram API credentials remain environment-managed.' });
+});
+
+router.post('/connectors/telegram-linked-device/start', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try {
+    await startTelegramLinkedDevice();
+    res.status(202).json({ success: true, status: getTelegramLinkedDeviceStatus() });
+  } catch (error) {
+    res.status(503).json({ success: false, error: error instanceof Error ? error.message : 'Telegram linked-device start failed.', status: getTelegramLinkedDeviceStatus() });
+  }
+});
+
+router.post('/connectors/telegram-linked-device/stop', authenticateAdmin, async (_req: AuthRequest, res) => {
+  await stopTelegramLinkedDevice(false);
+  res.json({ success: true, status: getTelegramLinkedDeviceStatus() });
+});
+
+router.post('/connectors/telegram-linked-device/logout', authenticateAdmin, async (_req: AuthRequest, res) => {
+  await stopTelegramLinkedDevice(true);
+  res.json({ success: true, status: getTelegramLinkedDeviceStatus() });
+});
+
+router.get('/trust/devices/:phone', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const phone = decodeURIComponent(String(req.params.phone || '')).trim();
+    if (!phone) return res.status(400).json({ success: false, error: 'Phone is required.' });
+    const devices = await listTrustedDevices(phone);
+    res.json({ success: true, phone, devices });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unable to list trusted devices.' });
+  }
+});
+
+router.post('/trust/devices/:phone/:deviceId/revoke', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const phone = decodeURIComponent(String(req.params.phone || '')).trim();
+    const deviceRecordId = Number(req.params.deviceId);
+    if (!phone || !Number.isInteger(deviceRecordId) || deviceRecordId <= 0) return res.status(400).json({ success: false, error: 'A valid phone and device id are required.' });
+    const result = await revokeTrustedDevice({ phone, deviceRecordId });
+    res.status(result.revoked ? 200 : 409).json({ success: result.revoked, ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unable to revoke trusted device.' });
+  }
+});
+
+// ── Platform Stats / Observability ──────────────────────────────────────
 router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
   try {
     const db = await getDb();

@@ -1,4 +1,5 @@
 import { getDb, saveDb } from '../database.js';
+import { emitProgressiveTrustEvent } from './progressiveTrustService.js';
 
 /**
  * Privacy Bridge — Blueprint §41 (Privacy & Security) & §2153 (Number Masking).
@@ -63,6 +64,7 @@ export async function generateProxyNumber(realPhone: string, context = 'booking'
         [normalizedPhone, proxyPhone, String(context || 'booking').slice(0, 80)]
     );
     saveDb();
+    await emitProgressiveTrustEvent('privacy.number_mapping.created', normalizedPhone, { context: String(context || 'booking').slice(0, 80), status: 'active', expiresInHours: 24 }, `proxy:${proxyPhone}`);
     return proxyPhone;
 }
 
@@ -91,10 +93,16 @@ export async function getProxyForPhone(realPhone: string): Promise<string | null
 /** Release a proxy mapping (e.g. after a booking is completed). */
 export async function releaseProxyNumber(proxyPhone: string): Promise<boolean> {
     const db = await getDb();
+    const ownerStmt = db.prepare(`SELECT real_phone FROM privacy_bridge WHERE proxy_phone = ? AND status = 'active' LIMIT 1`);
+    ownerStmt.bind([proxyPhone]);
+    const realPhone = ownerStmt.step() ? String(ownerStmt.getAsObject().real_phone || '') : '';
+    ownerStmt.free();
     db.run(`UPDATE privacy_bridge SET status = 'released', released_at = CURRENT_TIMESTAMP WHERE proxy_phone = ? AND status = 'active'`, [proxyPhone]);
     const changes = db.exec(`SELECT changes() as c`);
     saveDb();
-    return ((changes[0]?.values[0][0] as number) || 0) > 0;
+    const released = ((changes[0]?.values[0][0] as number) || 0) > 0;
+    if (released && realPhone) await emitProgressiveTrustEvent('privacy.number_mapping.released', realPhone, { status: 'released' }, `proxy:${proxyPhone}`);
+    return released;
 }
 
 /** Rotate: release the current proxy for a real number and allocate a fresh one. */

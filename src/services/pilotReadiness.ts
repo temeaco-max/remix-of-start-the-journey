@@ -12,6 +12,7 @@ import { getWebRTCStatus } from './webrtcSignalling.js';
 import { getPrivacyBridgeStatus } from './privacyBridge.js';
 import { getFirebaseFcmReadiness } from './firebaseCloudMessaging.js';
 import { getWhatsAppLinkedDeviceStatus } from './whatsappLinkedDeviceService.js';
+import { getTelegramLinkedDeviceStatus } from './telegramLinkedDeviceService.js';
 
 export const READINESS_STATES = ['READY', 'NOT_CONFIGURED', 'DISABLED', 'EXTERNAL_DEPENDENCY', 'PENDING'] as const;
 export type ReadinessState = typeof READINESS_STATES[number];
@@ -104,6 +105,7 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
     ? 'Gemini text credentials are present; request routing, quota, privacy, retention, and provider terms remain deployment decisions.'
     : 'Gemini text is not configured; local routing remains the canonical path.';
   const linkedDevice = getWhatsAppLinkedDeviceStatus();
+  const telegramLinkedDevice = getTelegramLinkedDeviceStatus();
   const fastTextReadiness = fastText.modelState === 'real'
     ? item('READY', `Real FastText binary is present at ${fastText.modelPath}.`)
     : item('NOT_CONFIGURED', fastText.modelState === 'missing'
@@ -133,7 +135,8 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
         Web: item('READY', 'Web Chat is the active first-party channel.'),
         WhatsApp: item(isChannelConfigured('whatsapp') ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', 'WhatsApp Cloud API adapter is truthful only when its required credentials are configured.'),
         WhatsAppLinkedDevice: item(!linkedDevice.enabled ? 'DISABLED' : linkedDevice.state === 'connected' ? 'EXTERNAL_DEPENDENCY' : linkedDevice.ownerConfigured ? 'PENDING' : 'NOT_CONFIGURED', !linkedDevice.enabled ? 'Personal WhatsApp linked-device connector is disabled by explicit feature flags.' : linkedDevice.state === 'connected' ? 'A linked-device session is connected in this process; inbound and outbound behavior still requires local owner testing.' : linkedDevice.ownerConfigured ? `Linked-device connector is enabled for owner binding but is not connected (${linkedDevice.state}).` : 'Linked-device connector requires an explicit owner phone before pairing.'),
-        Telegram: item(isChannelConfigured('telegram') ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', 'Telegram adapter requires a real bot token.'),
+        Telegram: item(isChannelConfigured('telegram') ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', 'Telegram Bot API adapter requires a real bot token.'),
+        TelegramLinkedDevice: item(!telegramLinkedDevice.enabled ? 'DISABLED' : telegramLinkedDevice.state === 'connected' ? 'EXTERNAL_DEPENDENCY' : telegramLinkedDevice.configured ? 'PENDING' : 'NOT_CONFIGURED', !telegramLinkedDevice.enabled ? 'Personal Telegram linked-device connector is disabled by explicit feature flags.' : telegramLinkedDevice.state === 'connected' ? 'A personal Telegram MTProto session is connected in this process; real inbound/outbound testing remains required.' : telegramLinkedDevice.configured ? `Telegram linked-device connector is configured but not connected (${telegramLinkedDevice.state}).` : 'Telegram linked-device connector requires API ID, API hash, and an owner phone.'),
         SMS: item(isChannelConfigured('sms') ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', 'SMS requires the configured carrier adapter.'),
         USSD: item(isChannelConfigured('ussd') ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', 'USSD requires the configured carrier adapter.'),
         FCM: fcmState(env),

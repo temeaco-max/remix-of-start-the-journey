@@ -1,0 +1,8 @@
+<div class="linked-device-card" data-telegram-linked-device-panel aria-live="polite">
+  <div class="linked-device-status-row"><span data-telegram-linked-device-status-dot class="linked-device-status-dot"></span><span data-telegram-linked-device-status>Ready to start pairing</span></div>
+  <div data-telegram-linked-device-qr-frame class="linked-device-qr-frame"><div class="linked-device-qr-placeholder">Start pairing to create a Telegram QR code.</div><img data-telegram-linked-device-qr class="linked-device-qr" alt="Telegram linked-device pairing QR code" hidden></div>
+  <p data-telegram-linked-device-error class="linked-device-error" hidden></p>
+  <div class="linked-device-actions"><button data-telegram-linked-device-start class="linked-device-primary" type="button">Start pairing</button><button data-telegram-linked-device-stop class="linked-device-secondary" type="button" hidden>Stop</button><button data-telegram-linked-device-logout class="linked-device-secondary" type="button" hidden>Log out device</button></div>
+  <p class="linked-device-owner">Signed in as <strong><%= displayName %></strong> · <%= phone %></p>
+</div>
+<script src="/js/telegram-linked-device.js?v=1" defer></script>

@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { getDb, saveDb } from '../database.js';
 import { getEconomicRequest } from './skillFlows.js';
 import { getEconomicParticipants, type EconomicParticipantRole } from './economicParticipants.js';
+import { generateProxyNumber, getPrivacyBridgeStatus } from './privacyBridge.js';
 
 export const EXECUTION_STATUSES = [
   'pending',
@@ -370,6 +371,14 @@ export async function createExecutionRequest(input: {
   });
   if (!authorization.authorized) throw new ExecutionAuthorizationError(authorization.reason);
 
+  const authorizationContext = { ...(input.authorizationContext || {}) };
+  const masking = getPrivacyBridgeStatus();
+  if (masking.enabled && masking.configured) {
+    const proxyPhone = await generateProxyNumber(input.providerPhone, `execution:${requestId}`);
+    authorizationContext.privateContactNumber = proxyPhone;
+    authorizationContext.numberMasking = 'proxy_mapping_ready';
+  }
+
   const id = `exec_${crypto.randomUUID()}`;
   const now = new Date().toISOString();
   db.run(`
@@ -387,7 +396,7 @@ export async function createExecutionRequest(input: {
     idempotencyKey,
     cleanText(input.correlationId, 'Correlation id', 256),
     authorization.connectorId,
-    JSON.stringify({ ...(input.authorizationContext || {}), connector_id: authorization.connectorId, authorized_at: now }),
+    JSON.stringify({ ...authorizationContext, connector_id: authorization.connectorId, authorized_at: now }),
     now,
     now,
   ]);
