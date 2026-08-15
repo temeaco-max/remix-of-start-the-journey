@@ -6,11 +6,15 @@ import path from 'node:path';
 const dbPath = path.join(os.tmpdir(), `kurukoo-execution-${process.pid}-${Date.now()}.sqlite`);
 process.env.DB_PATH = dbPath;
 process.env.NODE_ENV = 'production';
+process.env.JWT_SECRET = 'execution-boundary-test-secret-0123456789';
 process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
+process.env.FF_PRIVATE_NUMBER_MASKING = 'true';
+process.env.NUMBER_MASKING_PROVIDER = 'test-proxy-provider';
 
 const { getDb, saveDb } = await import('../src/database.js');
 const { createEconomicRequest, getEconomicRequest } = await import('../src/services/skillFlows.js');
 const { addEconomicParticipant } = await import('../src/services/economicParticipants.js');
+const { getRealNumber, getPrivacyBridgeStatus } = await import('../src/services/privacyBridge.js');
 const {
   authorizeProviderConnector,
   revokeProviderConnector,
@@ -123,6 +127,11 @@ const created = await createExecutionRequest({
 });
 assert.equal(created.status, 'pending', 'creation must persist pending before dispatch');
 assert.equal(created.connectorId, 'kurukoo_dummy_test_v1');
+const proxyContact = String(created.authorizationContext.privateContactNumber || '');
+assert.match(proxyContact, /^\+2348009\d{7}$/, 'provider-facing execution must use the owner-scoped proxy contact');
+assert.notEqual(proxyContact, deliveryPhone, 'provider-facing execution must not expose the real provider number as the private contact');
+assert.equal(await getRealNumber(proxyContact), deliveryPhone, 'proxy mapping must resolve only inside the canonical privacy boundary');
+assert.equal(getPrivacyBridgeStatus().externalActivationRequired, true, 'local masking must remain explicitly external-activation dependent');
 
 const dispatched = await dispatchExecutionRequest(created.id);
 assert.equal(dispatched.status, 'acknowledged', 'dummy connector must acknowledge dispatch');
@@ -185,6 +194,9 @@ assert.equal(repeatedEvidence.evidence.filter((item) => item.id === 'buyer-selec
 const after = await getEconomicRequest(requestId);
 assert.equal(after?.status, 'requested', 'execution status must not create a second lifecycle or mutate request status');
 assert.equal(after?.providerPhone, null, 'execution participant must not become the escrow recipient');
+const privacyEvents = db.exec("SELECT type, payload_json FROM coordinator_events WHERE type IN ('privacy.number_mapping.created','privacy.number_mapping.released')")[0]?.values || [];
+assert.ok(privacyEvents.some(row => String(row[0]) === 'privacy.number_mapping.created'), 'privacy proxy allocation must be observable by the Coordinator');
+assert.ok(!privacyEvents.some(row => String(row[1]).includes(deliveryPhone)), 'privacy telemetry must not contain the real provider number');
 
 await revokeProviderConnector({ providerPhone: deliveryPhone, connectorId: 'kurukoo_dummy_test_v1', capability: 'delivery' });
 const revoked = await authorizeProviderExecution({

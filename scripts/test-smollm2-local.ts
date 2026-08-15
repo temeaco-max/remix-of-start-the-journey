@@ -8,7 +8,9 @@ process.env.DB_PATH = isolatedDbPath;
 process.env.KURUKOO_SMOLLM2_LOCAL = 'true';
 process.env.KURUKOO_AGENT_ENABLED = 'false';
 process.env.KURUKOO_AI_HOSTED_PROVIDER = 'none';
-process.env.SMOLLM2_MAX_NEW_TOKENS = '96';
+process.env.SMOLLM2_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+process.env.SMOLLM2_DTYPE = 'q4';
+process.env.SMOLLM2_MAX_NEW_TOKENS = '64';
 process.on('exit', () => { try { fs.rmSync(isolatedDbPath, { force: true }); } catch {} });
 
 const { querySmolLM2, getSmolLM2RuntimeStatus } = await import('../src/services/smolLm2Service.js');

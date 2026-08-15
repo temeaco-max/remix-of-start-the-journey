@@ -127,8 +127,8 @@ trust.challenge.approved
 trust.challenge.denied
 trust.device.revoked
 channel.evidence.observed
-privacy.proxy.allocated
-privacy.proxy.released
+privacy.number_mapping.created
+privacy.number_mapping.released
 ```
 
 Event payloads contain hashed or bounded identifiers, channel names, lifecycle states, source references, and timestamps. Raw device identifiers, OTP values, phone numbers, message bodies, provider credentials, and external secrets are excluded. Canonical services remain the owners of truth and the Coordinator remains an observer/orchestrator under policy.
@@ -191,7 +191,7 @@ authorized execution request
 → provider-facing execution uses proxy contact
 → callback/status resolves proxy to the canonical owner internally
 → mapping expires or is explicitly released
-→ privacy.proxy.released Coordinator event
+→ privacy.number_mapping.released Coordinator event
 ```
 
 Direct replies to the user’s own WhatsApp, Telegram, SMS, or email channel are not masked because those channels already address the user through the verified or observed channel boundary. Provider, seller, delivery, callback, IVR, and other external execution contacts are the masking target. The system must not display a proxy as proof of phone ownership, and it must not claim that a provider call or message was delivered without provider evidence.

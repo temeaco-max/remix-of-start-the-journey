@@ -124,6 +124,9 @@
     "sql.js": "^1.12.0",
     "teleproto": "^1.228.5"
   },
+  "overrides": {
+    "sharp": "0.35.3"
+  },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",

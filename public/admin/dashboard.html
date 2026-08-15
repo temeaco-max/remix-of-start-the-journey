@@ -385,6 +385,12 @@
                         <div class="admin-inline-91c151c1a2">Loading trust readiness...</div>
                     </div>
                     <div class="admin-actions-row">
+                        <span id="telegram-admin-state">Telegram connector status unavailable.</span>
+                        <button type="button" class="btn-action" onclick="telegramAdminAction('start')">Start Telegram</button>
+                        <button type="button" class="btn-action btn-secondary" onclick="telegramAdminAction('stop')">Stop Telegram</button>
+                        <button type="button" class="btn-action btn-secondary" onclick="telegramAdminAction('logout')">Log out Telegram</button>
+                    </div>
+                    <div class="admin-actions-row">
                         <label for="trust-device-phone">User phone</label>
                         <input id="trust-device-phone" type="tel" placeholder="+234..." autocomplete="off">
                         <button type="button" class="btn-action" onclick="loadTrustedDevices()">Inspect devices</button>
@@ -757,6 +763,9 @@
                     const flags = data.featureFlags || {};
                     const connectors = data.connectors || {};
                     const masking = data.privacyNumberMasking || {};
+                    const telegram = connectors.telegramLinkedDevice || {};
+                    const telegramState = document.getElementById('telegram-admin-state');
+                    if (telegramState) telegramState.textContent = `Telegram: ${telegram.state || 'unknown'}${telegram.configured ? ' · configured' : ' · activation required'}`;
                     const cards = [
                         ['Trusted devices', `${data.trustedDevices?.active || 0} active / ${data.trustedDevices?.revoked || 0} revoked`],
                         ['Pending approvals', String(data.trustChallenges?.pending || 0)],
@@ -769,6 +778,13 @@
                     grid.innerHTML = cards.map(([label, value]) => `<div class="pilot-readiness-card"><strong>${escapeHtml(label)}</strong><br/><span>${escapeHtml(value)}</span></div>`).join('');
                 })
                 .catch(() => { document.getElementById('trust-readiness-grid').textContent = 'Trust readiness is temporarily unavailable.'; });
+        }
+
+        function telegramAdminAction(action) {
+            fetch(`/api/admin/connectors/telegram-linked-device/${action}`, { method: 'POST', credentials: 'same-origin' })
+                .then(res => res.json())
+                .then(data => { if (!data.success) throw new Error(data.error || 'Telegram action failed'); loadTrustReadiness(); })
+                .catch(error => { const node = document.getElementById('telegram-admin-state'); if (node) node.textContent = error.message || 'Telegram action failed.'; });
         }
 
         function loadTrustedDevices() {

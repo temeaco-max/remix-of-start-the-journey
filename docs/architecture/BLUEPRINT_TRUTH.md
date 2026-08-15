@@ -20,7 +20,7 @@ This document is the current convergence index between the Blueprint and the rep
 | Conversation-first Chat | `canonicalChatTurnService` is the shared conversation/action orchestration authority. | IMPLEMENTED_AND_VERIFIED |
 | Intent routing | FastText + deterministic routing + configured AI escalation. | IMPLEMENTED_AND_VERIFIED |
 | FastText | Real model path exists and is used for representative routing; fallback remains truthful. | IMPLEMENTED_AND_VERIFIED |
-| Local SmolLM2 | Local generation boundary exists and remains optional/cost-controlled. | IMPLEMENTED_FEATURE_FLAGGED |
+| Local SmolLM2 | Local generation boundary exists and remains optional/cost-controlled; the memory-safe 360M q4 checkpoint is covered by direct, unifiedAiEngine, and canonical Chat integration tests. | IMPLEMENTED_FEATURE_FLAGGED |
 | Unified AI | Existing provider-neutral AI layer supports configured hosted providers. | IMPLEMENTED_AND_VERIFIED |
 | Skill catalogue | `skillFlows.ts` is canonical for skill/category/requirements/capabilities. | IMPLEMENTED_AND_VERIFIED |
 | Universal Economic Request | Shared request lifecycle is the canonical economic orchestration model. | IMPLEMENTED_AND_VERIFIED |
