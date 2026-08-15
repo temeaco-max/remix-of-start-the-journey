@@ -30,8 +30,22 @@ globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
 const transcription = await transcribeMistralAudio({ data: Buffer.from('audio'), mimeType: 'audio/wav', language: 'en' });
 assert.deepEqual(transcription, { text: 'find a plumber in Ikeja', model: 'voxtral-mini-latest', language: 'en' });
 globalThis.fetch = previousFetch;
-process.env.MISTRAL_API_KEY = '';
 process.env.KURUKOO_MISTRAL_TRANSCRIPTION_ENABLED = 'false';
+
+process.env.KURUKOO_AI_HOSTED_PROVIDER = 'mistral';
+process.env.MISTRAL_API_KEY = 'test-mistral-key';
+globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+  assert.equal(init?.method, 'POST');
+  assert.match(String(init?.headers && new Headers(init.headers).get('authorization')), /^Bearer test-mistral-key$/);
+  return new Response(JSON.stringify({ choices: [{ message: { content: 'Mistral hosted response' } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+}) as typeof fetch;
+const hosted = await queryUnifiedAI('Explain Kurukoo in one sentence', { provider: 'mistral', skipMemory: true });
+assert.equal(hosted.provider, 'Mistral');
+assert.equal(hosted.model, 'mistral-small-latest');
+assert.equal(hosted.text, 'Mistral hosted response');
+
+globalThis.fetch = previousFetch;
+process.env.MISTRAL_API_KEY = '';
 
 const voice = getVoiceStatus();
 assert.equal(voice.available, false);

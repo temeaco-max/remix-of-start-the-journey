@@ -81,6 +81,12 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
   const fastText = getFastTextRuntimeStatus(rootDir);
   const voice = getVoiceStatus();
   const mistral = getMistralStatus();
+  const mistralSelected = env.KURUKOO_AI_HOSTED_PROVIDER === 'mistral';
+  const mistralSelection = !mistralSelected
+    ? item('DISABLED', 'Mistral is not selected by hosted-provider policy; local-first routing remains canonical.')
+    : mistral.configured
+      ? item('EXTERNAL_DEPENDENCY', 'Mistral is selected by hosted-provider policy; quota, privacy, retention, terms, and runtime validation remain deployment dependencies.')
+      : item('PENDING', 'Mistral is selected by hosted-provider policy, but MISTRAL_API_KEY is not configured; local-first fallback remains active.');
   const mqtt = getMqttBridgeStatus();
   const webRtc = getWebRTCStatus();
   const privacyBridge = getPrivacyBridgeStatus(env);
@@ -107,7 +113,8 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
       },
       AI_PROVIDERS: {
         GeminiText: item(geminiConfigured ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', providerTextNote),
-        MistralText: item(mistral.configured ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', mistral.configured ? 'Mistral Small is configured as an optional hosted capability; its account limits are not assumed from configuration.' : 'Mistral is not configured; no hosted generation is selected.'),
+        MistralSelection: mistralSelection,
+        MistralText: item(mistral.configured ? 'EXTERNAL_DEPENDENCY' : mistralSelected ? 'PENDING' : 'NOT_CONFIGURED', mistral.configured ? 'Mistral Small is configured as the selected optional hosted capability; its account limits are not assumed from configuration.' : mistralSelected ? 'Mistral is selected but not configured; local-first fallback remains active.' : 'Mistral is not configured and is not selected; local routing remains canonical.'),
         MistralLimits: item(mistral.configured ? 'PENDING' : 'NOT_CONFIGURED', mistral.configured ? mistral.capabilities.find(capability => capability.capability === 'text')?.limits.note || 'Mistral limits are unknown.' : 'Mistral limits cannot be assessed without a configured provider.'),
       },
       CHANNELS: {

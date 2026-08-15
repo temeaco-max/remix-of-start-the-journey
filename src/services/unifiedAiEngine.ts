@@ -5,6 +5,7 @@ import { classifyWithFastText, type FastTextResult } from './fastTextService.js'
 import { withMemoryContext, logAiAudit } from './livingMemoryEngine.js';
 import { checkAiQuota, recordAiUsage, type QuotaKind } from './aiQuotaService.js';
 import { queryMistral } from './mistralService.js';
+import { hasConfiguredSecret } from './providerCapabilities.js';
 
 export type AIProvider = 'auto' | 'gemini' | 'mistral' | 'smollm2' | 'groq' | 'local_intent';
 export interface UnifiedAIOptions {
@@ -350,7 +351,7 @@ export async function* streamUnifiedAI(
   }
 
   const useMistral = options.provider === 'mistral'
-    || (options.provider !== 'smollm2' && !simple && process.env.KURUKOO_AI_HOSTED_PROVIDER === 'mistral' && process.env.MISTRAL_API_KEY);
+    || (options.provider !== 'smollm2' && !simple && process.env.KURUKOO_AI_HOSTED_PROVIDER === 'mistral' && hasConfiguredSecret(process.env.MISTRAL_API_KEY));
   const route = useMistral
     ? 'mistral'
     : options.provider === 'groq' || (!simple && options.provider !== 'smollm2' && process.env.GROQ_API_KEY)
@@ -361,6 +362,7 @@ export async function* streamUnifiedAI(
 
   if (route === 'mistral') {
     try {
+      const result = cleanThinking(await queryMistral(prompt, { systemInstruction: systemPrompt }));
       yield {
         type: 'metadata',
         provider: 'Mistral',
@@ -369,7 +371,6 @@ export async function* streamUnifiedAI(
         intent: classification?.intent,
         confidence: classification?.confidence,
       };
-      const result = cleanThinking(await queryMistral(prompt, { systemInstruction: systemPrompt }));
       yield { type: 'text', content: result.text };
       return;
     } catch {
