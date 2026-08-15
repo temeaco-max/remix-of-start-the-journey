@@ -32,7 +32,7 @@
         </div>
     </div>
 
-    <section class="advertise-boundaries-card" aria-labelledby="advertise-boundaries-title"><h2 id="advertise-boundaries-title" class="section-h2">Clear placement, clear boundaries.</h2><p class="advertise-desc">Sponsored cards and banners are managed through the approved campaign system. A campaign appears only when its image asset, disclosure, advertiser, destination, timing and review state are valid.</p><div class="advertise-boundaries-grid"><div><strong>Approved asset</strong><span>No placeholders or unreviewed images.</span></div><div><strong>Visible disclosure</strong><span>Users can tell when a placement is sponsored.</span></div><div><strong>Known destination</strong><span>Every campaign has a controlled next step.</span></div></div></section>
+    <section class="placements-card advertise-boundaries-card" aria-labelledby="advertise-boundaries-title"><h2 id="advertise-boundaries-title" class="section-h2">Clear placement, clear boundaries.</h2><p class="advertise-desc">Sponsored cards and banners are managed through the approved campaign system. A campaign appears only when its image asset, disclosure, advertiser, destination, timing and review state are valid.</p><div class="placements-grid advertise-boundaries-grid"><div class="placement-box"><strong class="placement-box-title">Approved asset</strong><span class="placement-box-desc">No placeholders or unreviewed images.</span></div><div class="placement-box"><strong class="placement-box-title">Visible disclosure</strong><span class="placement-box-desc">Users can tell when a placement is sponsored.</span></div><div class="placement-box"><strong class="placement-box-title">Known destination</strong><span class="placement-box-desc">Every campaign has a controlled next step.</span></div></div></section>
 
     <div class="advertise-cta-box">
         <h2 class="section-h2">Ready to advertise?</h2>
@@ -40,14 +40,5 @@
         <a href="/chat?prompt=I%20want%20to%20discuss%20advertising%20or%20a%20partnership" class="btn advertise-cta-btn">Discuss in Web Chat</a>
     </div>
 </main>
-
-<style>
-.advertise-boundaries-card { margin: 34px 0; padding: 28px; border: 1px solid var(--gray-200); border-radius: var(--border-radius-lg); background: var(--cream); }
-.advertise-boundaries-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 22px; }
-.advertise-boundaries-grid div { display: grid; gap: 6px; }
-.advertise-boundaries-grid strong { font-size: .9rem; }
-.advertise-boundaries-grid span { color: var(--gray-600); font-size: .8rem; line-height: 1.45; }
-@media (max-width: 720px) { .advertise-boundaries-grid { grid-template-columns: 1fr; } }
-</style>
 
 <%- include('_partials/footer') %>

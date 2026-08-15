@@ -16,7 +16,7 @@
         </p>
     </section>
 
-    <section class="discover-intro-cards" aria-label="Discover pathways"><article class="discover-intro-card"><span>⌖</span><h2>Nearby services</h2><p>Explore eligible local capabilities when reliable location and availability data exists.</p></article><article class="discover-intro-card"><span>◇</span><h2>Events &amp; opportunities</h2><p>Discover useful activity without turning the network into a conventional directory.</p></article><article class="discover-intro-card"><span>△</span><h2>Safety &amp; urgent help</h2><p>Get guidance and coordination support while keeping emergency-service boundaries clear.</p></article></section>
+    <section class="discover-intro-cards" aria-label="Discover pathways"><article class="network-card discover-intro-card"><span>⌖</span><h2>Nearby services</h2><p>Explore eligible local capabilities when reliable location and availability data exists.</p></article><article class="network-card discover-intro-card"><span>◇</span><h2>Events &amp; opportunities</h2><p>Discover useful activity without turning the network into a conventional directory.</p></article><article class="network-card discover-intro-card"><span>△</span><h2>Safety &amp; urgent help</h2><p>Get guidance and coordination support while keeping emergency-service boundaries clear.</p></article></section>
 
     <div id="layer-chips" class="layer-chips-bar">
         <button class="layer-chip active" data-layer="mobile">🟢 Mobile providers</button>
@@ -35,15 +35,6 @@
         🔒 Privacy: your location is fuzzed to ~100m and never shown publicly without consent.
     </p>
 </main>
-
-<style>
-.discover-intro-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 34px 0; }
-.discover-intro-card { padding: 22px; background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--border-radius); }
-.discover-intro-card > span { color: var(--terracotta); font-size: 1.35rem; }
-.discover-intro-card h2 { margin: 18px 0 8px; font-size: 1.12rem; }
-.discover-intro-card p { margin: 0; color: var(--gray-600); line-height: 1.55; font-size: .86rem; }
-@media (max-width: 720px) { .discover-intro-cards { grid-template-columns: 1fr; } }
-</style>
 
 <script>
 (function(){
