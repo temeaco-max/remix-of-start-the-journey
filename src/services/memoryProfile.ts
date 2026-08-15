@@ -59,6 +59,23 @@ export async function getMemoryFacts(phone: string, fields?: string[]): Promise<
     return facts;
 }
 
+export async function revokeMemoryFact(phone: string, factId: number): Promise<{ revoked: boolean; reason?: 'not_found' | 'already_revoked' }> {
+    if (!phone || !Number.isInteger(factId) || factId <= 0) return { revoked: false, reason: 'not_found' };
+    await ensureMemoryFactsSchema();
+    const db = await getDb();
+    const stmt = db.prepare(`SELECT id, status FROM memory_facts WHERE id = ? AND phone = ? LIMIT 1`);
+    stmt.bind([factId, phone]);
+    let status: string | null = null;
+    if (stmt.step()) status = String((stmt.getAsObject() as any).status || '');
+    stmt.free();
+    if (!status) return { revoked: false, reason: 'not_found' };
+    if (status !== 'active') return { revoked: false, reason: 'already_revoked' };
+    db.run(`UPDATE memory_facts SET status = 'revoked', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ? AND status = 'active'`, [factId, phone]);
+    saveDb();
+    await logProfileAccess(phone, 'memory_self_service', 'write');
+    return { revoked: true };
+}
+
 const getSecretKey = () => {
     const raw = String(process.env.MEMORY_ENCRYPTION_KEY || '').trim();
     if (!raw && process.env.NODE_ENV === 'production') throw new Error('[Kurukoo Security] MEMORY_ENCRYPTION_KEY must be configured in production.');

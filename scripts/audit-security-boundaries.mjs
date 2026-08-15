@@ -43,6 +43,8 @@ for (const route of [
   "router.post('/:id/transition', authenticateUser",
   "router.post('/:id/escrow', authenticateUser",
   "router.post('/:id/complete', authenticateUser",
+  "router.get('/memory/facts', authenticateUser",
+  "router.delete('/memory/facts/:id', authenticateUser",
   "router.get('/memory/inspector', authenticateUser",
 ]) {
   expect(economicSource.includes(route), `Economic Request user-owned route lacks explicit auth: ${route}`);

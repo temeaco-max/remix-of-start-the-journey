@@ -28,6 +28,7 @@ import {
 import { startStorefrontSession, advanceStorefront } from '../services/agenticStorefront.js';
 import { appendChatMessage } from '../services/chatConversationService.js';
 import { getAiQuotaStatus } from '../services/aiQuotaService.js';
+import { getMemoryFacts, revokeMemoryFact } from '../services/memoryProfile.js';
 import {
   addEconomicParticipant,
   attachEconomicOffer,
@@ -487,7 +488,28 @@ router.post('/memory/lifecycle', authenticateAdmin, async (req: AuthRequest, res
   }
 });
 
-router.get('/memory/inspector', authenticateUser, async (req: AuthRequest, res) => {
+  router.get('/memory/facts', authenticateUser, async (req: AuthRequest, res) => {
+    const phone = phoneFrom(req);
+    if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+    try {
+      const facts = await getMemoryFacts(phone);
+      res.json({ success: true, facts: facts.map(({ id, field, value, provenance, confidence, observedAt, expiresAt }) => ({ id, field, value, provenance, confidence, observedAt, expiresAt })) });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Unable to load memory facts' });
+    }
+  });
+
+  router.delete('/memory/facts/:id', authenticateUser, async (req: AuthRequest, res) => {
+    const phone = phoneFrom(req);
+    if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+    const factId = Number(req.params.id);
+    const result = await revokeMemoryFact(phone, factId);
+    if (result.revoked) return res.json({ success: true, revoked: true, id: factId });
+    if (result.reason === 'already_revoked') return res.status(409).json({ success: false, error: 'Memory fact has already been removed.' });
+    return res.status(404).json({ success: false, error: 'Memory fact was not found for this account.' });
+  });
+
+  router.get('/memory/inspector', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   try {

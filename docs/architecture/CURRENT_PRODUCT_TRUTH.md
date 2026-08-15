@@ -75,7 +75,7 @@ Future native clients should inherit the PWA's product interaction model and des
 
 ## Memory truth
 
-The Memory Profile is canonical user state. Working memory is selective and bounded. A value must have truthful provenance; unknown remains unknown.
+The Memory Profile is canonical user state. Working memory is selective and bounded. A value must have truthful provenance; unknown remains unknown. Authenticated users can review active fact-level context through the canonical memory boundary and revoke their own retained facts; revoked facts leave active retrieval and remain auditable without exposing source references in the self-service response.
 
 Memory-related concepts:
 
