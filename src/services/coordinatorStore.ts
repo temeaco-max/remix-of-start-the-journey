@@ -10,6 +10,7 @@ export function ensureCoordinatorSchema(): Promise<void> {
     db.run(`CREATE TABLE IF NOT EXISTS coordinator_events (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
+      producer TEXT NOT NULL DEFAULT 'unknown',
       correlation_id TEXT NOT NULL,
       causation_id TEXT,
       owner_phone TEXT,
@@ -32,6 +33,8 @@ export function ensureCoordinatorSchema(): Promise<void> {
       failure_reason TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`);
+    const eventColumns = db.exec('PRAGMA table_info(coordinator_events)')[0]?.values?.map((row: any[]) => String(row[1])) || [];
+    if (!eventColumns.includes('producer')) { try { db.run("ALTER TABLE coordinator_events ADD COLUMN producer TEXT NOT NULL DEFAULT 'unknown'"); } catch {} }
     db.run(`CREATE TABLE IF NOT EXISTS coordinator_learning_artifacts (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
@@ -63,10 +66,11 @@ export async function persistCoordinatorEvent(event: CoordinatorEventEnvelope): 
   await ensureCoordinatorSchema();
   const db = await getDb();
   db.run(`INSERT OR IGNORE INTO coordinator_events
-    (id, type, correlation_id, causation_id, owner_phone, economic_request_id, agent_goal_id, payload_json, provenance_json, policy_json, occurred_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+    (id, type, producer, correlation_id, causation_id, owner_phone, economic_request_id, agent_goal_id, payload_json, provenance_json, policy_json, occurred_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
     event.id,
     event.type,
+    event.producer,
     event.correlationId,
     event.causationId || null,
     event.ownerPhone || null,

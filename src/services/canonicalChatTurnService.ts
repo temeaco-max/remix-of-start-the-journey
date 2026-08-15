@@ -8,6 +8,7 @@ import { cancelAgentGoal, createConversationGoal, goalTimeline, pauseAgentGoal, 
 import { advanceStorefront, tryResumeStorefront } from './agenticStorefront.js';
 import { getEconomicRequest } from './skillFlows.js';
 import type { IntentRoutingResult } from '../types.js';
+import { persistCoordinatorEvent } from './coordinatorStore.js';
 
 function parseCardData(row: any): any | null {
   if (!row?.card_data) return null;
@@ -296,6 +297,35 @@ async function persistTurn(args: {
     conversationId: args.userMessage.conversationId,
     cardData: args.cardData,
     metadata: { ai: true, canonical_turn: true },
+  });
+  await persistCoordinatorEvent({
+    id: `chat-turn:${args.userMessage.id}`,
+    type: 'chat.turn.completed',
+    occurredAt: new Date().toISOString(),
+    producer: 'canonicalChatTurnService',
+    correlationId: `conversation:${args.userMessage.conversationId}`,
+    ownerPhone: args.phone.startsWith('anon_') ? undefined : args.phone,
+    economicRequestId: typeof args.cardData?.requestId === 'string' ? args.cardData.requestId : undefined,
+    agentGoalId: typeof args.agentGoal?.id === 'string' ? args.agentGoal.id : undefined,
+    payload: {
+      messageId: args.userMessage.id,
+      channel: args.channel,
+      classificationSource: args.classificationSource,
+      intentConfidence: args.intentConfidence,
+      modelProvider: args.modelProvider,
+      model: args.model,
+      extractionSource: args.extractionSource,
+      canonicalAction: args.canonicalAction,
+      progressStage: args.progressStage,
+      cardType: typeof args.cardData?.type === 'string' ? args.cardData.type : undefined,
+      requestId: typeof args.cardData?.requestId === 'string' ? args.cardData.requestId : undefined,
+      agentGoalStatus: typeof args.agentGoal?.status === 'string' ? args.agentGoal.status : undefined,
+      latencyMs: args.latencyMs,
+    },
+    sensitivity: args.phone.startsWith('anon_') ? 'public' : 'personal',
+    provenance: { source: 'canonical_service', sourceId: String(args.userMessage.id), evidenceLevel: 'persisted_state' },
+    policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+    schemaVersion: 1,
   });
   return {
     phone: args.phone,

@@ -1,4 +1,5 @@
 import { getDb, saveDb } from '../database.js';
+import { persistCoordinatorEvent } from './coordinatorStore.js';
 async function ensureNotificationTable() {
     const db = await getDb();
     db.run(`CREATE TABLE IF NOT EXISTS internal_notifications (
@@ -53,7 +54,21 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
             `INSERT INTO internal_notifications (phone, title, body, link, status, delivery_state) VALUES (?, ?, ?, ?, 'unread', 'queued')`,
             [phone, title, body, clickLink],
         );
+        const notificationId = Number(db.exec('SELECT last_insert_rowid()')[0]?.values?.[0]?.[0] || 0);
         saveDb();
+        if (notificationId) await persistCoordinatorEvent({
+            id: `notification:${notificationId}:queued`,
+            type: 'notification.action_required',
+            occurredAt: new Date().toISOString(),
+            producer: 'pushNotifications',
+            correlationId: `notification:${notificationId}`,
+            ownerPhone: phone.startsWith('anon_') ? undefined : phone,
+            payload: { notificationId, title: title.slice(0, 160), link: clickLink, deliveryState: 'queued' },
+            sensitivity: phone.startsWith('anon_') ? 'public' : 'personal',
+            provenance: { source: 'canonical_service', sourceId: String(notificationId), evidenceLevel: 'persisted_state' },
+            policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+            schemaVersion: 1,
+        });
     } catch (error) {
         console.error('[Push] Failed to store internal notification:', error);
     }
@@ -72,7 +87,22 @@ export async function transitionNotificationDelivery(notificationId: number, del
     if (terminal.has(current)) return current === deliveryState;
     db.run(`UPDATE internal_notifications SET delivery_state=?, provider_reference=?, failure_reason=?, dead_lettered_at=CASE WHEN ?='dead_letter' THEN COALESCE(dead_lettered_at, CURRENT_TIMESTAMP) ELSE dead_lettered_at END WHERE id=?${ownerClause}`, [deliveryState, providerReference || null, failureReason || null, deliveryState, notificationId, ...(phone ? [phone] : [])]);
     const updated = db.getRowsModified() > 0;
-    if (updated) saveDb();
+    if (updated) {
+      saveDb();
+      if (updated && ['failed', 'dead_letter', 'delivered', 'suppressed'].includes(deliveryState)) await persistCoordinatorEvent({
+        id: `notification:${notificationId}:${deliveryState}:${Date.now()}`,
+        type: 'notification.action_required',
+        occurredAt: new Date().toISOString(),
+        producer: 'pushNotifications',
+        correlationId: `notification:${notificationId}`,
+        ownerPhone: phone && !phone.startsWith('anon_') ? phone : undefined,
+        payload: { notificationId, deliveryState, providerReference: providerReference || undefined, failureReason: failureReason || undefined },
+        sensitivity: phone?.startsWith('anon_') ? 'public' : 'personal',
+        provenance: { source: 'canonical_service', sourceId: String(notificationId), evidenceLevel: 'persisted_state' },
+        policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+        schemaVersion: 1,
+      });
+    }
     return updated;
 }
 

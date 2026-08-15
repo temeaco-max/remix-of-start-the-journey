@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { getDb, saveDb } from '../database.js';
 import { createEconomicRequest, getEconomicRequest, type EconomicRequest } from './skillFlows.js';
 import { find_worker, type FindWorkerResult } from './find-worker.js';
+import { persistCoordinatorEvent } from './coordinatorStore.js';
 
 export const ECONOMIC_PARTICIPANT_ROLES = [
   'seller',
@@ -241,6 +242,21 @@ export async function attachEconomicOffer(input: {
     ],
   );
   saveDb();
+  const request = await getEconomicRequest(input.requestId);
+  await persistCoordinatorEvent({
+    id: `provider-offer:${input.id}:${Date.now()}`,
+    type: 'provider.offer.received',
+    occurredAt: new Date().toISOString(),
+    producer: 'economicParticipants',
+    correlationId: `economic_request:${input.requestId}`,
+    ownerPhone: request?.phone?.startsWith('anon_') ? undefined : request?.phone,
+    economicRequestId: input.requestId,
+    payload: { offerId: input.id, sellerPhone, description: String(input.description).slice(0, 240), priceMinor: priceMinor ?? undefined, currency: input.currency || 'NGN', status: input.status || 'available', provenance: input.provenance || 'conversationally_created', verifiedSeller: true, availabilityClaim: input.availabilityNote || undefined },
+    sensitivity: request?.phone?.startsWith('anon_') ? 'public' : 'personal',
+    provenance: { source: 'canonical_service', sourceId: input.id, evidenceLevel: 'persisted_state' },
+    policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+    schemaVersion: 1,
+  });
   return (await getEconomicOffer(input.requestId))!;
 }
 

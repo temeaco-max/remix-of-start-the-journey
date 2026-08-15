@@ -4,6 +4,7 @@
  * AI never sees full history; only a bounded, diverse working context.
  */
 import { getDb, saveDb } from '../database.js';
+import { persistCoordinatorEvent } from './coordinatorStore.js';
 import { getProfile, getMemoryFacts } from './memoryProfile.js';
 import { getIntentions } from './deferredRequestService.js';
 
@@ -346,6 +347,29 @@ export async function buildWorkingContext(
   const { context, tokenEstimate } = assembleContext(selected, budget);
 
   await touchSelected(selected);
+  await persistCoordinatorEvent({
+    id: `memory-retrieval:${phone}:${options.threadId || 'default'}:${Date.now()}`,
+    type: 'memory.context.retrieved',
+    occurredAt: new Date().toISOString(),
+    producer: 'livingMemoryEngine',
+    correlationId: `conversation:${options.threadId || 'default'}`,
+    ownerPhone: phone.startsWith('anon_') ? undefined : phone,
+    payload: {
+      threadId: options.threadId,
+      route: options.route,
+      intentClass: options.intentClass,
+      intentConfidence: options.intentConfidence,
+      selectedCount: selected.length,
+      availableCount: available.length,
+      tokenEstimate,
+      selectedTiers: Array.from(new Set(selected.map((item) => item.tier))),
+      selectedSources: Array.from(new Set(selected.map((item) => item.source))),
+    },
+    sensitivity: phone.startsWith('anon_') ? 'public' : 'personal',
+    provenance: { source: 'canonical_service', sourceId: options.threadId || phone, evidenceLevel: 'persisted_state' },
+    policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+    schemaVersion: 1,
+  });
 
   return {
     context,

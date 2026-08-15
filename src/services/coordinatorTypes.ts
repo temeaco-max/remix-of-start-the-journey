@@ -5,6 +5,7 @@ export type CoordinatorEventType =
   | 'economic_request.state_changed'
   | 'notification.action_required'
   | 'chat.turn.completed'
+  | 'memory.context.retrieved'
   | 'provider.offer.received'
   | 'payment.webhook.verified';
 

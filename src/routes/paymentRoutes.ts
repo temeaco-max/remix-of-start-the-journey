@@ -12,6 +12,7 @@ import { getEconomicRequest, transitionEconomicRequest } from '../services/skill
 import { lockEscrowForEconomicRequest } from '../services/tradeEngine.js';
 import { createStripePaymentIntent, stripeStatus, verifyStripeWebhook } from '../services/stripePayment.js';
 import { getDb, saveDb } from '../database.js';
+import { persistCoordinatorEvent } from '../services/coordinatorStore.js';
 
 const router = Router();
 function configuredPaymentProvider(): string | null {
@@ -65,7 +66,22 @@ router.post('/webhooks/stripe', async (req, res) => {
   if (event.type === 'payment_intent.succeeded' && payment.status === 'succeeded' && Number(payment.amount) === Number(quote?.amount_minor) && String(payment.currency || '').toLowerCase() === String(quote?.currency || '').toLowerCase()) {
     try {
       await transitionEconomicRequest(request.id, 'paid', { fulfillment: { ...(request.fulfillment || {}), payment_verified: true, payment_provider: 'stripe', payment_reference: payment.id, payment_event_id: event.id, payment_verified_at: new Date().toISOString() } });
-      await lockEscrowForEconomicRequest(request.id, Number(payment.amount));
+      const escrow = await lockEscrowForEconomicRequest(request.id, Number(payment.amount));
+      if (!escrow.success) throw new Error('Verified payment was received but escrow could not be locked safely.');
+      await persistCoordinatorEvent({
+        id: `payment:${event.id}:verified`,
+        type: 'payment.webhook.verified',
+        occurredAt: new Date().toISOString(),
+        producer: 'paymentRoutes',
+        correlationId: `economic_request:${request.id}`,
+        ownerPhone: request.phone.startsWith('anon_') ? undefined : request.phone,
+        economicRequestId: request.id,
+        payload: { provider: 'stripe', eventId: event.id, paymentReference: String(payment.id), amountMinor: Number(payment.amount), currency: String(payment.currency || '').toLowerCase(), escrowLocked: true },
+        sensitivity: request.phone.startsWith('anon_') ? 'public' : 'personal',
+        provenance: { source: 'provider', sourceId: String(event.id), evidenceLevel: 'verified_external' },
+        policy: { autonomousAllowed: false, confirmationRequired: 'external_evidence' },
+        schemaVersion: 1,
+      });
     } catch (error) { db.run(`DELETE FROM payment_webhook_events WHERE provider='stripe' AND event_id=?`, [event.id]); saveDb(); console.error('[Stripe] verified payment transition failed', { eventId: event.id, requestId, message: error instanceof Error ? error.message : 'unknown' }); return res.status(500).json({ error: 'Payment reconciliation failed; retry is safe.' }); }
   }
   res.status(200).json({ received: true });
