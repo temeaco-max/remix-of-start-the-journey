@@ -3,6 +3,8 @@
  * Pricing is a separate route boundary and is tested independently.
  */
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const paths = [
   '/api/admin/tickets',
@@ -27,6 +29,11 @@ async function main() {
   const src = await import('node:fs').then((fs) =>
     fs.promises.readFile(new URL('../src/routes/adminRoutes.ts', import.meta.url), 'utf8')
   );
+  const publicRoutes = await fs.promises.readFile(path.join(process.cwd(), 'src', 'routes', 'publicRoutes.ts'), 'utf8');
+  assert.match(publicRoutes, /router\.get\('\/admin'/, 'the canonical /admin entry route must exist');
+  for (const file of ['login.html', 'dashboard.html', 'ads.html', 'analytics.html', 'ai-agents.html', 'content.html', 'seo.html', 'users.html', 'pricing.html', 'revenue.html']) {
+    assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', file)), `admin page ${file} must exist`);
+  }
   assert.match(src, /authenticateAdmin/, 'adminRoutes must use authenticateAdmin');
   assert.match(src, /operatorSession: true/, 'operator Chat must issue an explicit operator session claim');
   assert.match(src, /testActor: true/, 'Test As must issue an explicit actor claim');
@@ -35,7 +42,7 @@ async function main() {
   for (const p of paths) {
     assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
   }
-  console.log('test-admin-routes: PASS');
+  console.log('test-admin-routes: PASS: protected API registry, canonical /admin entry, and core static admin revamp pages are present');
 }
 
 main().catch((e) => {

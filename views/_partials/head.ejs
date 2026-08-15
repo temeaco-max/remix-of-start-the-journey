@@ -4,19 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <%
-        const seoTitle = (typeof seo !== 'undefined' && seo.title) ? seo.title : 'Kurukoo — Tell us what you need.';
-        const seoDesc = (typeof seo !== 'undefined' && seo.meta_description) ? seo.meta_description : 'Kurukoo is a conversational fulfillment network. Tell us what you need, and we figure out who or what can fulfil it.';
-        const seoCanonical = (typeof seo !== 'undefined' && seo.canonical) ? seo.canonical : 'https://kurukoo.com' + (typeof reqPath !== 'undefined' ? reqPath : '');
+        const seoRecord = (typeof seo !== 'undefined' && seo) ? seo : {};
+        const seoTitle = seoRecord.title || 'Kurukoo — Tell us what you need.';
+        const seoDesc = seoRecord.meta_description || 'Kurukoo is a conversational fulfillment network. Tell us what you need, and we figure out who or what can fulfil it.';
+        const seoCanonical = seoRecord.canonical_url || seoRecord.canonical || ('https://kurukoo.com' + (typeof reqPath !== 'undefined' ? reqPath : ''));
+        const seoOgTitle = seoRecord.og_title || seoTitle;
+        const seoOgDescription = seoRecord.og_description || seoDesc;
+        const seoOgImage = seoRecord.og_image || 'https://kurukoo.com/assets/icon-512.png';
+        const schemaItems = Array.isArray(typeof schemas !== 'undefined' ? schemas : undefined) ? schemas : [];
+        const faqItems = Array.isArray(typeof faqs !== 'undefined' ? faqs : undefined) ? faqs : [];
+        const safeJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
     %>
     <title><%= seoTitle %></title>
     <meta name="description" content="<%= seoDesc %>">
-    <meta name="robots" content="<%= (typeof seo !== 'undefined' && seo.robots_directive) ? seo.robots_directive : 'index,follow' %>">
+    <% if (seoRecord.keywords) { %><meta name="keywords" content="<%= seoRecord.keywords %>"><% } %>
+    <meta name="robots" content="<%= seoRecord.robots_directive || 'index,follow' %>">
     <link rel="canonical" href="<%= seoCanonical %>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Kurukoo">
+    <meta property="og:title" content="<%= seoOgTitle %>">
+    <meta property="og:description" content="<%= seoOgDescription %>">
+    <meta property="og:url" content="<%= seoCanonical %>">
+    <meta property="og:image" content="<%= seoOgImage %>">
+    <meta name="twitter:card" content="<%= seoRecord.twitter_card || 'summary_large_image' %>">
+    <meta name="twitter:title" content="<%= seoOgTitle %>">
+    <meta name="twitter:description" content="<%= seoOgDescription %>">
+    <meta name="twitter:image" content="<%= seoOgImage %>">
+    <% if (seoRecord.hreflang_overrides) { %>
+        <% try { Object.entries(typeof seoRecord.hreflang_overrides === 'string' ? JSON.parse(seoRecord.hreflang_overrides) : seoRecord.hreflang_overrides).forEach(([locale, href]) => { %>
+            <link rel="alternate" hreflang="<%= locale %>" href="<%= href %>">
+        <% }); } catch (_) {} %>
+    <% } %>
+    <% schemaItems.forEach((schema) => { %><script type="application/ld+json"><%- safeJson(schema) %></script><% }); %>
+    <% if (faqItems.length) { %><script type="application/ld+json"><%- safeJson({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqItems.map((faq) => ({ '@type': 'Question', name: faq.question, acceptedAnswer: { '@type': 'Answer', text: faq.answer } })) }) %></script><% } %>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="/css/site.css?v=1.3.0">
     <% if (typeof pageStyles !== 'undefined' && Array.isArray(pageStyles)) { pageStyles.forEach((pageStyle) => { %>
     <link rel="stylesheet" href="<%= pageStyle %>">
