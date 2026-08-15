@@ -9580,3 +9580,36 @@ body.dark-mode .quick-chip {
   .about-conversation { padding: 22px 18px; }
   .about-conversation__status { display: none; }
 }
+
+/* PWA runtime status: concise, truthful app-state feedback above the Chat shell. */
+.pwa-status-region {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100vw - 28px));
+  padding: 10px 12px;
+  transform: translateX(-50%);
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 10px 28px rgba(26, 25, 24, .12);
+  color: var(--charcoal);
+  font-size: .78rem;
+  line-height: 1.35;
+  backdrop-filter: blur(12px);
+}
+.pwa-status-region[data-tone='offline'] { border-color: rgba(154, 63, 43, .28); color: var(--danger); }
+.pwa-status-region[data-tone='online'],
+.pwa-status-region[data-tone='installed'] { border-color: rgba(46, 125, 50, .25); color: var(--success); }
+.pwa-status-region[data-tone='update'] { border-color: rgba(30, 136, 229, .28); color: #1767a9; }
+.pwa-status-copy { min-width: 0; }
+.pwa-status-action { flex: 0 0 auto; min-height: 34px; padding: 7px 12px; border: 1px solid var(--gray-200); border-radius: 999px; background: var(--white); color: var(--charcoal); cursor: pointer; font-size: .74rem; font-weight: 700; }
+.pwa-status-action:hover { border-color: var(--terracotta); color: var(--terracotta); }
+@media (max-width: 560px) {
+  .pwa-status-region { align-items: flex-start; width: calc(100vw - 24px); border-radius: 14px; }
+  .pwa-status-action { margin-left: auto; }
+}

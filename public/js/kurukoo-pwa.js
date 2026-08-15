@@ -4,6 +4,7 @@
 
   function setPwaState(state) {
     document.documentElement.dataset.pwaState = state;
+    document.documentElement.dataset.pwaOnline = navigator.onLine ? 'true' : 'false';
   }
 
   setPwaState('loading');
@@ -23,16 +24,47 @@
     return region;
   }
 
-  function showAction(label, action) {
+  let statusTimer = null;
+
+  function showNotice(message, { tone = 'neutral', actionLabel, action, timeout = 0 } = {}) {
     const region = ensureStatusRegion();
     if (!region) return;
+    if (statusTimer) window.clearTimeout(statusTimer);
     region.replaceChildren();
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'k-btn k-btn-secondary pwa-status-action';
-    button.textContent = label;
-    button.addEventListener('click', action, { once: true });
-    region.appendChild(button);
+    region.dataset.tone = tone;
+    const copy = document.createElement('span');
+    copy.className = 'pwa-status-copy';
+    copy.textContent = message;
+    region.appendChild(copy);
+    if (actionLabel && action) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'k-btn k-btn-secondary pwa-status-action';
+      button.textContent = actionLabel;
+      button.addEventListener('click', action, { once: true });
+      region.appendChild(button);
+    }
+    if (timeout > 0) {
+      statusTimer = window.setTimeout(() => {
+        region.replaceChildren();
+        region.removeAttribute('data-tone');
+      }, timeout);
+    }
+  }
+
+  function showAction(label, action) {
+    showNotice('A new Kurukoo version is ready.', { tone: 'update', actionLabel: label, action });
+  }
+
+  function updateConnectivityState() {
+    const online = navigator.onLine;
+    setPwaState(online ? 'online' : 'offline');
+    if (!isAppSurface()) return;
+    if (online) {
+      showNotice('Back online. Kurukoo can continue your conversation.', { tone: 'online', timeout: 4200 });
+    } else {
+      showNotice('You’re offline. Cached Kurukoo pages remain available; new messages will need a connection.', { tone: 'offline' });
+    }
   }
 
   function routeLegacyStart() {
@@ -48,7 +80,7 @@
     }
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-      setPwaState('registered');
+      setPwaState(navigator.onLine ? 'registered' : 'offline');
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         if (!worker) return;
@@ -86,12 +118,20 @@
   window.addEventListener('appinstalled', () => {
     setPwaState('installed');
     deferredInstallPrompt = null;
-    const region = document.querySelector('[data-pwa-status]');
-    if (region) region.replaceChildren();
+    showNotice('Kurukoo is installed and ready from your home screen.', { tone: 'installed', timeout: 4200 });
+  });
+
+  window.addEventListener('online', updateConnectivityState);
+  window.addEventListener('offline', updateConnectivityState);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && navigator.serviceWorker?.ready) {
+      navigator.serviceWorker.ready.then(registration => registration.update()).catch(() => {});
+    }
   });
 
   window.addEventListener('load', () => {
     routeLegacyStart();
+    updateConnectivityState();
     registerWorker();
   });
 })();

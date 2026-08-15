@@ -36,7 +36,7 @@ This document is the current convergence index between the Blueprint and the rep
 | Points | Points ledger/contributor rewards exist with bounded reward semantics. | IMPLEMENTED_AND_VERIFIED |
 | Subscriptions | Consumer/provider plan boundaries and sandbox/QA paths exist; live payment is external. | IMPLEMENTED_FEATURE_FLAGGED |
 | Money Circle | Circle foundations and tests exist; live monetary transfer remains gated. | IMPLEMENTED_FEATURE_FLAGGED |
-| PWA | Installable PWA, shared shell and Chat-first direction exist. Product-grade mobile/native-app polish remains a convergence task. | IMPLEMENTED_PARTIALLY_WIRED |
+| PWA | Installable PWA, shared Chat-first shell, offline fallback, version-safe asset caching, install/update prompts, reconnect messaging, and foreground service-worker refresh exist. Actual installed iOS, Android, macOS, and Windows behavior and push delivery remain external device-validation tasks. | IMPLEMENTED_PARTIALLY_WIRED |
 | Progressive trust | Provider-neutral trusted-device records, independent push challenges, channel evidence, and time-bound location consent exist behind explicit production gates. | IMPLEMENTED_PARTIALLY_WIRED |
 | Guest/authenticated personalization | The Chat client hides private workspace actions for guests and exposes profile-linked context after authentication; direct protected APIs remain fail-closed. | IMPLEMENTED_PARTIALLY_WIRED |
 
@@ -79,7 +79,7 @@ PWA / native application family
     notifications / Discover / tasks / Points / safety / account
 ```
 
-The installed application should launch into the conversation-first experience rather than a dashboard-first experience. Native clients should inherit this same design system and interaction model.
+The installed application should launch into the conversation-first experience rather than a dashboard-first experience. The repository now provides the bounded shell behavior for install prompts, service-worker updates, cached public/app surfaces, truthful offline messaging, reconnect messaging, and foreground refresh. Native clients should inherit this same design system and interaction model. This does not claim that an installed app has been independently validated on a real iOS, Android, macOS, or Windows device, nor that push delivery is live.
 
 ## Progressive trust contract
 

@@ -64,6 +64,7 @@
     "test:live-chat-acceptance": "tsx scripts/live-chat-acceptance.ts",
     "test:public-routes": "tsx scripts/test-public-routes.ts",
     "test:pwa-contract": "tsx scripts/test-pwa-contract.ts",
+    "test:pwa": "npm run test:pwa-contract",
     "test:public-runtime": "tsx scripts/test-public-runtime-contracts.ts",
     "test:public-runtime-contracts": "npm run test:public-runtime",
     "test:chat-dom-safety": "node scripts/test-chat-dom-safety.mjs",

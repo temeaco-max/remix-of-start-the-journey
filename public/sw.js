@@ -1,6 +1,6 @@
-const STATIC_CACHE = 'kurukoo-static-v5';
-const PAGES_CACHE = 'kurukoo-pages-v6';
-const PWA_SHELL_CACHE = 'kurukoo-pwa-shell-v6';
+const STATIC_CACHE = 'kurukoo-static-v6';
+const PAGES_CACHE = 'kurukoo-pages-v7';
+const PWA_SHELL_CACHE = 'kurukoo-pwa-shell-v7';
 const ALLOWED_CACHES = [STATIC_CACHE, PAGES_CACHE, PWA_SHELL_CACHE];
 
 const SHELL_ASSETS = [
@@ -13,6 +13,7 @@ const SHELL_ASSETS = [
     '/js/kurukoo-primary-chat.js',
     '/js/kurukoo-workspace.js',
     '/js/site-navigation.js',
+    '/js/kurukoo-pwa.js',
     '/manifest.json',
     '/sw.js',
     '/assets/icons/icon-192.svg',
@@ -58,7 +59,7 @@ self.addEventListener('fetch', event => {
 
     const isStatic = url.pathname.startsWith('/css/') || url.pathname.startsWith('/js/') || url.pathname.startsWith('/assets/') || url.pathname === '/manifest.json' || url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com') || url.hostname.includes('unpkg.com');
     if (isStatic) {
-        event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
+        event.respondWith(caches.match(request, { ignoreSearch: true }).then(cached => cached || fetch(request).then(response => {
             if (response.ok) caches.open(STATIC_CACHE).then(cache => cache.put(request, response.clone()));
             return response;
         }).catch(() => cached)));
