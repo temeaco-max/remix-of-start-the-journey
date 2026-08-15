@@ -8,6 +8,7 @@ import { requestPhoneOtp, verifyPhoneOtp } from '../services/otpAuthService.js';
 import { authRateLimit } from '../middleware/rateLimit.js';
 import { authenticateUser, AuthRequest } from '../middleware/auth.js';
 import { developmentTestOtpLabel, getConfiguredTestName, getDevelopmentTestAuthStatus, isDevelopmentTestIdentity, verifyDevelopmentTestOtp } from '../services/devTestAuthService.js';
+import { registerTrustedDevice } from '../services/progressiveTrustService.js';
 
 const router = Router();
 const AUTH_COOKIE = 'kurukoo_auth';
@@ -89,8 +90,10 @@ router.post('/verify-otp', authRateLimit, async (req, res) => {
     }
 
     const token = issueUserToken(userPhone);
+    const deviceId = String(req.body?.deviceId || req.headers['x-kurukoo-device-id'] || '').trim();
+    if (deviceId) await registerTrustedDevice({ phone: userPhone, deviceId, credentialType: req.body?.credentialType || 'web', label: req.body?.label || 'Phone-verified browser', pushCapable: req.body?.pushCapable === true });
     setAuthCookie(res, token, guestPhone.startsWith('anon_'));
-    res.json({ success: true, phone: userPhone, token, message: developmentResult?.testMode ? 'Development test identity authenticated' : 'Authenticated', ...(developmentResult?.testMode ? { testMode: true } : {}) });
+    res.json({ success: true, phone: userPhone, token, deviceRegistered: Boolean(deviceId), message: developmentResult?.testMode ? 'Development test identity authenticated' : 'Authenticated', ...(developmentResult?.testMode ? { testMode: true } : {}) });
   } catch (e: any) {
     console.error('verify-otp error:', e);
     res.status(500).json({ success: false, message: e.message || 'Verification failed' });

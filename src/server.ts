@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getDb, saveDb } from './database.js';
 import { authenticateUser, type AuthRequest } from './middleware/auth.js';
+import { registerTrustedDevice } from './services/progressiveTrustService.js';
 const router = Router();
 
 /**
@@ -11,6 +12,7 @@ const router = Router();
 router.post('/register', authenticateUser, async (req: AuthRequest, res) => {
     const phone = req.user?.phone ? String(req.user.phone) : '';
     const token = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+    const deviceId = typeof req.body?.deviceId === 'string' ? req.body.deviceId.trim() : String(req.headers['x-kurukoo-device-id'] || '').trim();
     if (!phone || !token || token.length > 4096) {
         return res.status(400).json({ 
             success: false, 
@@ -27,13 +29,16 @@ router.post('/register', authenticateUser, async (req: AuthRequest, res) => {
         stmt.free();
         if (!profileExists) return res.status(409).json({ success: false, error: 'Authenticated profile is not ready' });
         db.run(`UPDATE memory_profiles SET fcm_token = ?, updated_at = CURRENT_TIMESTAMP WHERE phone = ?`, [token, phone]);
+        if (deviceId) await registerTrustedDevice({ phone, deviceId, credentialType: req.body?.credentialType || 'pwa', label: req.body?.label || 'FCM-capable device', pushCapable: true });
 
         saveDb();
 
         return res.json({
             success: true,
             message: 'Firebase Cloud Messaging (FCM) registration token updated successfully!',
-            tokenRegistered: true
+            tokenRegistered: true,
+            deviceRegistered: Boolean(deviceId),
+            trust: deviceId ? 'registered_authenticated_device' : 'push_token_registered_without_device_binding'
         });
     } catch (error) {
         console.error('[FCM-Server] Error registering FCM token:', error);

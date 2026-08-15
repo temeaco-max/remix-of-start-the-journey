@@ -1142,11 +1142,16 @@
   async function loadNearbyInspector(view = state.surfaceView) {
     const list = document.getElementById('radar-list'); if (!list) return;
     if (view !== 'discover') { renderNearbyInspector([], false); return; }
+    if (state.isGuest) { renderNearbyInspector([], true); const empty = list.querySelector('.empty-state'); if (empty) empty.textContent = 'Sign in to share your location for nearby results.'; return; }
     if (!navigator.geolocation) { renderNearbyInspector([], true); return; }
     try {
       const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 2500, maximumAge: 300000 }));
       const { latitude, longitude } = position.coords;
-      const url = new URL('/api/discover/map', location.origin); url.searchParams.set('lat', String(latitude)); url.searchParams.set('lng', String(longitude)); url.searchParams.set('radius', '10000'); url.searchParams.set('layers', 'mobile,stationary,agents,emergency,deals,events');
+      const coarseLatitude = Math.round(latitude * 100) / 100;
+      const coarseLongitude = Math.round(longitude * 100) / 100;
+      const consentExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      await fetch('/api/location/consent', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purpose: 'nearby_discovery', precision: 'coarse', latitude: coarseLatitude, longitude: coarseLongitude, expiresAt: consentExpiresAt }) }).catch(() => {});
+      const url = new URL('/api/discover/map', location.origin); url.searchParams.set('lat', String(coarseLatitude)); url.searchParams.set('lng', String(coarseLongitude)); url.searchParams.set('radius', '10000'); url.searchParams.set('layers', 'mobile,stationary,agents,emergency,deals,events');
       const response = await fetch(url, { credentials: 'same-origin' }); if (!response.ok) throw new Error('Nearby activity unavailable');
       const data = await response.json(); renderNearbyInspector(data.features || [], true);
     } catch { renderNearbyInspector([], true); }
@@ -1530,10 +1535,45 @@
     else setAuthComposerStep('none');
   }
 
+  function applyWorkspaceIdentityState() {
+    const privateViews = new Set(['requests', 'tasks', 'topup', 'subscription', 'memory', 'safety', 'settings', 'points', 'cart', 'saved', 'reminders']);
+    document.querySelectorAll('[data-surface-view]').forEach(action => {
+      const view = action.dataset.surfaceView || '';
+      const privateView = privateViews.has(view);
+      action.hidden = Boolean(state.isGuest && privateView);
+      action.setAttribute('aria-hidden', String(Boolean(state.isGuest && privateView)));
+    });
+    const moreToggle = $('sidebar-more-toggle');
+    if (moreToggle) moreToggle.hidden = Boolean(state.isGuest);
+    const moreItems = $('sidebar-more-items');
+    if (moreItems && state.isGuest) moreItems.hidden = true;
+    const presence = $('sidebar-presence'); if (presence) presence.textContent = state.isGuest ? 'Guest' : 'Available';
+    const memory = $('sidebar-memory-status'); if (memory) memory.textContent = state.isGuest ? 'Not connected' : 'In use';
+    const channel = $('sidebar-channel-status'); if (channel) channel.textContent = state.isGuest ? 'Web only' : 'Web';
+    const context = $('memory-context'); if (context) context.textContent = state.isGuest ? 'Start with a conversation. Your private context appears after you establish your account.' : 'Your conversations, reminders and saved context stay connected to your profile.';
+  }
+
+  async function registerCurrentDeviceTrust() {
+    if (state.isGuest) return false;
+    try {
+      let deviceId = localStorage.getItem('kurukoo_device_id');
+      if (!deviceId) { deviceId = crypto.randomUUID(); localStorage.setItem('kurukoo_device_id', deviceId); }
+      const response = await fetch('/api/device/register', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-Kurukoo-Device-Id': deviceId },
+        body: JSON.stringify({ deviceId, credentialType: 'web', label: 'Current Kurukoo browser', pushCapable: 'Notification' in window }),
+      });
+      return response.ok;
+    } catch { return false; }
+  }
+
   applyTheme();
   hydrateChatDeepLink();
   ensureIdentity().then(async ok => {
+    applyWorkspaceIdentityState();
     if (ok) {
+      await registerCurrentDeviceTrust();
       await refreshHistory();
       await Promise.all([loadPoints(), loadMemory(), loadNotifications(), loadTaskContext(), loadReminders(), loadSafety(), loadAgentGoal()]);
     loadProactiveInspector();

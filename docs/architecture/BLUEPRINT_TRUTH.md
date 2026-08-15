@@ -37,6 +37,8 @@ This document is the current convergence index between the Blueprint and the rep
 | Subscriptions | Consumer/provider plan boundaries and sandbox/QA paths exist; live payment is external. | IMPLEMENTED_FEATURE_FLAGGED |
 | Money Circle | Circle foundations and tests exist; live monetary transfer remains gated. | IMPLEMENTED_FEATURE_FLAGGED |
 | PWA | Installable PWA, shared shell and Chat-first direction exist. Product-grade mobile/native-app polish remains a convergence task. | IMPLEMENTED_PARTIALLY_WIRED |
+| Progressive trust | Provider-neutral trusted-device records, independent push challenges, channel evidence, and time-bound location consent exist behind explicit production gates. | IMPLEMENTED_PARTIALLY_WIRED |
+| Guest/authenticated personalization | The Chat client hides private workspace actions for guests and exposes profile-linked context after authentication; direct protected APIs remain fail-closed. | IMPLEMENTED_PARTIALLY_WIRED |
 
 ## External/channel truth
 
@@ -48,7 +50,10 @@ This document is the current convergence index between the Blueprint and the rep
 | SMS | Adapter boundary exists; carrier/provider activation remains external. | PROVIDER_DEPENDENT |
 | USSD | Repository boundary exists; carrier/shortcode activation remains external. | PROVIDER_DEPENDENT |
 | Email | Adapter and route boundary exist. | PROVIDER_DEPENDENT |
-| FCM/PWA push | Internal notification persistence exists; real external push requires Firebase configuration and delivery evidence. | PROVIDER_DEPENDENT |
+| FCM/PWA push | Internal notification persistence and authenticated device registration exist; real external push and approval delivery require Firebase configuration, device permission, and delivery evidence. | PROVIDER_DEPENDENT |
+| Device trust / push approval | `/api/device/register`, `/api/device/status`, `/api/device/challenge`, and approval routes bind trusted devices without treating browser access as phone ownership. | IMPLEMENTED_FEATURE_FLAGGED |
+| Channel evidence | Signed/validated WhatsApp, Telegram, email, SMS and other canonical inbound adapters record bounded evidence through the shared channel boundary; evidence does not replace phone verification automatically. | IMPLEMENTED_PARTIALLY_WIRED |
+| Location consent | Discover requests browser permission only for authenticated users, stores coarse purpose-bound consent with expiry, and does not claim background location. | IMPLEMENTED_PARTIALLY_WIRED |
 | Voice | Repository voice boundary exists; real provider activation remains external. | PROVIDER_DEPENDENT |
 | Private-number masking | Privacy/proxy mapping abstraction exists; the local proxy number is not a routable real telephony number. | FOUNDATION_ONLY |
 | WebRTC | Authenticated signalling foundation exists. TURN/STUN, client media lifecycle and production relay are not equivalent to signalling and remain gated. | FOUNDATION_ONLY |
@@ -74,6 +79,14 @@ PWA / native application family
 ```
 
 The installed application should launch into the conversation-first experience rather than a dashboard-first experience. Native clients should inherit this same design system and interaction model.
+
+## Progressive trust contract
+
+Kurukoo preserves phone as the primary channel identity while allowing users to establish trust progressively. A supplied phone number, an authenticated browser, a trusted device, a linked WhatsApp session, a verified email, a social-account connection, and verified phone ownership remain separate evidence types. Each evidence type may unlock only the capabilities it actually supports.
+
+Production activation is explicit through `KURUKOO_PROGRESSIVE_TRUST_ENABLED`, `KURUKOO_PUSH_APPROVAL_ENABLED`, `KURUKOO_CHANNEL_EVIDENCE_ENABLED`, and `KURUKOO_LOCATION_CONSENT_ENABLED`. These flags default to fail-closed in production when absent. FCM registration may bind an authenticated device, but push delivery is not claimed unless the provider accepts the message and delivery evidence exists.
+
+The central Chat surface is personalized by state. Guests receive public conversation and discovery affordances without private reminders, memory, Points, tasks, saved context, or account notifications. Authenticated users receive their own workspace state. Discover may request coarse, purpose-specific location permission while open; the system does not silently collect background location from the browser.
 
 ## Feature flags
 

@@ -29,7 +29,15 @@ class TelegramHandler extends BaseChannelHandler {
         const userId = message.from?.id;
         const phone = userId ? `tg_${userId}` : (chatId ? `tg_${chatId}` : '');
         if (!phone) return null;
-        return { phone, text: message.text, meta: { chatId } };
+        return {
+            phone,
+            text: message.text,
+            meta: {
+                chatId,
+                externalSubject: userId ? `telegram:${userId}` : chatId ? `telegram-chat:${chatId}` : undefined,
+                messageId: message.message_id ? String(message.message_id) : undefined,
+            },
+        };
     }
 
     protected async sendReply(_phone: string, reply: string, meta?: any): Promise<void> {

@@ -6,6 +6,8 @@ import { getProfile, updateProfile } from '../services/memoryProfile.js';
 import { generateReferralCode, trackReferral } from '../services/referralService.js';
 import { buildQrEntryUrl, parseQrContext } from '../services/qrContextService.js';
 import { submitRating } from '../services/ratingService.js';
+import { approveTrustChallenge, createTrustChallenge, getProgressiveTrust, getTrustedDeviceStatus, recordChannelEvidence, recordLocationConsent, registerTrustedDevice } from '../services/progressiveTrustService.js';
+import { sendFcmPush } from '../services/pushNotifications.js';
 
 const router = Router();
 
@@ -20,7 +22,7 @@ router.get('/profile', authenticateUser, async (req: AuthRequest, res) => {
     const newStmt = db.prepare(`SELECT * FROM memory_profiles WHERE phone = ?`); newStmt.bind([phone]); if (newStmt.step()) profile = newStmt.getAsObject(); newStmt.free();
   }
   stmt.free(); const skillsStmt = db.prepare(`SELECT * FROM skills WHERE phone = ?`); skillsStmt.bind([phone]); const skills: any[] = []; while (skillsStmt.step()) skills.push(skillsStmt.getAsObject()); skillsStmt.free();
-  res.json({ profile, skills });
+  res.json({ profile, skills, progressiveTrust: await getProgressiveTrust(phone) });
 });
 
 router.post('/profile/availability', authenticateUser, async (req: AuthRequest, res) => {
@@ -99,5 +101,65 @@ router.post('/referral/resolve', async (req, res) => { const code = String(req.b
 router.get('/referral/stats', authenticateUser, async (req: AuthRequest, res) => { const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' }); try { const { getReferralStats } = await import('../services/referralService.js'); res.json({ success: true, stats: await getReferralStats(phone) }); } catch (_) { res.status(500).json({ error: 'Failed to fetch referral stats' }); } });
 
 router.post('/ratings', authenticateUser, async (req: AuthRequest, res) => { const rater = sessionPhone(req); if (!rater) return res.status(401).json({ error: 'Authentication required' }); const { provider_phone, skill, rating } = req.body || {}; if (!provider_phone || !skill || !rating) return res.status(400).json({ error: 'Missing data' }); const r = parseInt(rating, 10); if (!Number.isInteger(r) || r < 1 || r > 5) return res.status(400).json({ error: 'Rating must be an integer from 1 to 5' }); await submitRating(provider_phone, skill, r); res.json({ success: true }); });
+
+// Progressive trust remains owned by the authenticated user boundary. It never
+// changes the canonical phone identity or treats a browser challenge as phone proof.
+router.post('/device/register', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const deviceId = String(req.body?.deviceId || req.headers['x-kurukoo-device-id'] || '').trim();
+  if (!deviceId) return res.status(400).json({ error: 'Device identifier is required' });
+  try { res.json({ success: true, device: await registerTrustedDevice({ phone, deviceId, credentialType: req.body?.credentialType, label: req.body?.label, pushCapable: req.body?.pushCapable === true }) }); }
+  catch (error) { res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Device registration failed' }); }
+});
+
+router.get('/device/status', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const deviceId = String(req.query.deviceId || req.headers['x-kurukoo-device-id'] || '').trim();
+  if (!deviceId) return res.status(400).json({ error: 'Device identifier is required' });
+  res.json({ success: true, ...(await getTrustedDeviceStatus(phone, deviceId)) });
+});
+
+router.post('/device/challenge', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const targetDeviceId = String(req.body?.targetDeviceId || '').trim();
+  if (!targetDeviceId) return res.status(400).json({ error: 'Target device identifier is required' });
+  try {
+    const challenge = await createTrustChallenge({ phone, targetDeviceId, purpose: req.body?.purpose });
+    const pushQueued = !challenge.alreadyTrusted && Boolean(challenge.id) ? await sendFcmPush(phone, 'Approve this Kurukoo device', 'A new device is asking to continue your Kurukoo session. Open Kurukoo to approve or deny it.', '/settings?section=devices') : false;
+    res.status(challenge.alreadyTrusted ? 200 : 201).json({ success: true, challenge, pushQueued, pushDelivery: pushQueued ? 'provider_accepted_or_internal_queued' : 'not_available' });
+  }
+  catch (error) { res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Trust challenge could not be created' }); }
+});
+
+router.post('/device/challenge/:id/approve', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const approverDeviceId = String(req.headers['x-kurukoo-device-id'] || '').trim();
+  if (!approverDeviceId) return res.status(400).json({ error: 'Approver device identifier is required' });
+  const result = await approveTrustChallenge({ phone, challengeId: String(req.params.id), approverDeviceId });
+  res.status(result.approved ? 200 : 403).json({ success: result.approved, ...result });
+});
+
+router.get('/trust/progressive', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  res.json({ success: true, trust: await getProgressiveTrust(phone) });
+});
+
+router.post('/channel-evidence', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const channel = String(req.body?.channel || '').toLowerCase();
+  if (!['whatsapp', 'telegram', 'sms', 'email', 'social', 'ivr', 'ussd'].includes(channel)) return res.status(400).json({ error: 'Unsupported channel evidence type' });
+  if (!String(req.body?.evidenceType || '').trim()) return res.status(400).json({ error: 'evidenceType is required' });
+  await recordChannelEvidence({ phone, channel: channel as any, evidenceType: String(req.body.evidenceType), externalSubject: req.body.externalSubject, sourceRef: req.body.sourceRef, consented: req.body.consented === true });
+  res.status(201).json({ success: true, status: 'observed' });
+});
+
+router.post('/location/consent', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const purpose = String(req.body?.purpose || '').trim();
+  if (!purpose) return res.status(400).json({ error: 'Location purpose is required' });
+  const precision = req.body?.precision === 'precise' ? 'precise' : 'coarse';
+  await recordLocationConsent({ phone, purpose, precision, latitude: Number(req.body?.latitude), longitude: Number(req.body?.longitude), area: req.body?.area, expiresAt: req.body?.expiresAt });
+  res.status(201).json({ success: true, status: 'granted', precision, purpose });
+});
 
 export default router;

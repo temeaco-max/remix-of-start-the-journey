@@ -76,6 +76,15 @@ export async function processWhatsAppLinkedDeviceMessage(message: any, reply?: (
   const phone = jid.endsWith('@g.us') ? phoneFromJid(String(message?.key?.participant || '')) : phoneFromJid(jid);
   if (!phone) return { accepted: false, reason: 'sender_identity_missing' };
   const { processCanonicalChatTurn } = await import('./canonicalChatTurnService.js');
+  const { recordChannelEvidence } = await import('./progressiveTrustService.js');
+  await recordChannelEvidence({
+    phone,
+    channel: 'whatsapp',
+    evidenceType: 'verified_personal_linked_session_inbound',
+    externalSubject: jid,
+    sourceRef: String(message?.key?.id || '').slice(0, 256) || undefined,
+    consented: true,
+  });
   const turn = await processCanonicalChatTurn({ phone, message: text, channel: 'whatsapp' });
   const sendReply = reply || (async (targetJid: string, responseText: string) => { if (socket) await socket.sendMessage(targetJid, { text: responseText }); });
   await sendReply(jid, turn.reply);

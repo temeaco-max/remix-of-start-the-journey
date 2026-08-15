@@ -102,6 +102,7 @@
     "test:whatsapp-webhook-boundary": "tsx scripts/test-whatsapp-webhook-boundary.ts",
     "test:whatsapp-linked-device": "tsx scripts/test-whatsapp-linked-device.ts",
     "test:whatsapp-linked-session-chat": "tsx scripts/test-whatsapp-linked-session-chat.ts",
+    "test:progressive-trust": "tsx scripts/test-progressive-trust.ts",
     "whatsapp:linked-device": "tsx scripts/whatsapp-linked-device.ts"
   },
   "dependencies": {

@@ -1,0 +1,201 @@
+import crypto from 'node:crypto';
+import { getDb, saveDb } from '../database.js';
+
+export type DeviceCredentialType = 'web' | 'pwa' | 'mobile' | 'passkey' | 'push';
+export type TrustChallengeStatus = 'pending' | 'approved' | 'denied' | 'expired';
+export type ChannelEvidenceType = 'whatsapp' | 'telegram' | 'sms' | 'email' | 'social' | 'ivr' | 'ussd';
+
+const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+
+export function isProgressiveTrustEnabled(): boolean {
+  return process.env.KURUKOO_PROGRESSIVE_TRUST_ENABLED === 'true' || (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PROGRESSIVE_TRUST_ENABLED);
+}
+
+export function isPushApprovalEnabled(): boolean {
+  return process.env.KURUKOO_PUSH_APPROVAL_ENABLED === 'true' || (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PUSH_APPROVAL_ENABLED);
+}
+
+export function isLocationConsentEnabled(): boolean {
+  return process.env.KURUKOO_LOCATION_CONSENT_ENABLED === 'true' || (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_LOCATION_CONSENT_ENABLED);
+}
+
+export function isChannelEvidenceEnabled(): boolean {
+  return process.env.KURUKOO_CHANNEL_EVIDENCE_ENABLED === 'true' || (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_CHANNEL_EVIDENCE_ENABLED);
+}
+
+function secret(): string {
+  const configured = String(process.env.JWT_SECRET || '').trim();
+  if (!configured && process.env.NODE_ENV === 'production') throw new Error('JWT_SECRET is required for trust records.');
+  return configured || 'development-only-trust-secret';
+}
+
+function digest(value: string): string {
+  return crypto.createHmac('sha256', secret()).update(String(value || '').trim()).digest('hex');
+}
+
+function normalizeDeviceId(value: unknown): string {
+  return String(value || '').trim().slice(0, 256);
+}
+
+async function ensureTrustSchema(): Promise<void> {
+  const db = await getDb();
+  db.run(`
+    CREATE TABLE IF NOT EXISTS trusted_devices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      device_hash TEXT NOT NULL,
+      credential_type TEXT NOT NULL DEFAULT 'web',
+      label TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      push_capable INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      revoked_at TEXT,
+      UNIQUE(phone, device_hash)
+    );
+    CREATE INDEX IF NOT EXISTS idx_trusted_devices_phone_status ON trusted_devices(phone, status);
+    CREATE TABLE IF NOT EXISTS trust_challenges (
+      id TEXT PRIMARY KEY,
+      phone TEXT NOT NULL,
+      target_device_hash TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      purpose TEXT NOT NULL DEFAULT 'device_sign_in',
+      expires_at TEXT NOT NULL,
+      approved_by_device_hash TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      approved_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_trust_challenges_phone_status ON trust_challenges(phone, status);
+    CREATE TABLE IF NOT EXISTS channel_evidence (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      evidence_type TEXT NOT NULL,
+      external_subject TEXT,
+      status TEXT NOT NULL DEFAULT 'observed',
+      source_ref TEXT,
+      consented INTEGER NOT NULL DEFAULT 0,
+      observed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      revoked_at TEXT,
+      UNIQUE(phone, channel, evidence_type, external_subject)
+    );
+    CREATE INDEX IF NOT EXISTS idx_channel_evidence_phone ON channel_evidence(phone, status);
+    CREATE TABLE IF NOT EXISTS location_consents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      precision TEXT NOT NULL DEFAULT 'coarse',
+      latitude REAL,
+      longitude REAL,
+      area TEXT,
+      status TEXT NOT NULL DEFAULT 'granted',
+      expires_at TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      revoked_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_location_consents_phone_status ON location_consents(phone, status);
+  `);
+  saveDb();
+}
+
+function expireChallenges(db: any): void {
+  db.run(`UPDATE trust_challenges SET status = 'expired' WHERE status = 'pending' AND datetime(expires_at) <= datetime('now')`);
+}
+
+export async function registerTrustedDevice(input: {
+  phone: string;
+  deviceId: string;
+  credentialType?: DeviceCredentialType;
+  label?: string;
+  pushCapable?: boolean;
+}): Promise<{ deviceId: string; credentialType: DeviceCredentialType; status: 'active'; trustedAt: string }> {
+  if (!isProgressiveTrustEnabled()) throw new Error('Progressive trust is not enabled in this deployment.');
+  await ensureTrustSchema();
+  const phone = String(input.phone || '').trim();
+  const deviceId = normalizeDeviceId(input.deviceId);
+  if (!phone || !deviceId) throw new Error('Phone and device identifier are required.');
+  const deviceHash = digest(deviceId);
+  const credentialType = input.credentialType || 'web';
+  const db = await getDb();
+  db.run(`INSERT INTO trusted_devices (phone, device_hash, credential_type, label, push_capable, status, last_seen_at)
+          VALUES (?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)
+          ON CONFLICT(phone, device_hash) DO UPDATE SET credential_type = excluded.credential_type, label = excluded.label, push_capable = excluded.push_capable, status = 'active', revoked_at = NULL, last_seen_at = CURRENT_TIMESTAMP`,
+    [phone, deviceHash, credentialType, String(input.label || '').trim().slice(0, 120) || null, input.pushCapable ? 1 : 0]);
+  saveDb();
+  return { deviceId, credentialType, status: 'active', trustedAt: new Date().toISOString() };
+}
+
+export async function getTrustedDeviceStatus(phone: string, deviceId: string): Promise<{ trusted: boolean; pushCapable: boolean; credentialType?: string }> {
+  await ensureTrustSchema();
+  const db = await getDb();
+  const row = db.exec(`SELECT credential_type, push_capable FROM trusted_devices WHERE phone = ? AND device_hash = ? AND status = 'active' LIMIT 1`, [phone, digest(normalizeDeviceId(deviceId))])[0]?.values?.[0] as any[] | undefined;
+  if (!row) return { trusted: false, pushCapable: false };
+  db.run(`UPDATE trusted_devices SET last_seen_at = CURRENT_TIMESTAMP WHERE phone = ? AND device_hash = ? AND status = 'active'`, [phone, digest(normalizeDeviceId(deviceId))]);
+  saveDb();
+  return { trusted: true, pushCapable: Number(row[1] || 0) === 1, credentialType: String(row[0] || 'web') };
+}
+
+export async function createTrustChallenge(input: { phone: string; targetDeviceId: string; purpose?: string }): Promise<{ id: string; status: 'pending'; expiresAt: string; alreadyTrusted: boolean }> {
+  if (!isPushApprovalEnabled()) throw new Error('Push approval is not enabled in this deployment.');
+  await ensureTrustSchema();
+  const phone = String(input.phone || '').trim();
+  const targetDeviceId = normalizeDeviceId(input.targetDeviceId);
+  if (!phone || !targetDeviceId) throw new Error('Phone and target device identifier are required.');
+  const db = await getDb();
+  expireChallenges(db);
+  const targetHash = digest(targetDeviceId);
+  const existing = db.exec(`SELECT id FROM trusted_devices WHERE phone = ? AND device_hash = ? AND status = 'active' LIMIT 1`, [phone, targetHash])[0]?.values?.[0];
+  if (existing) return { id: '', status: 'pending', expiresAt: new Date(Date.now() + CHALLENGE_TTL_MS).toISOString(), alreadyTrusted: true };
+  const id = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS).toISOString();
+  db.run(`INSERT INTO trust_challenges (id, phone, target_device_hash, purpose, expires_at) VALUES (?, ?, ?, ?, ?)`, [id, phone, targetHash, String(input.purpose || 'device_sign_in').slice(0, 80), expiresAt]);
+  saveDb();
+  return { id, status: 'pending', expiresAt, alreadyTrusted: false };
+}
+
+export async function approveTrustChallenge(input: { phone: string; challengeId: string; approverDeviceId: string }): Promise<{ approved: boolean; targetDeviceIdHash?: string; reason?: string }> {
+  await ensureTrustSchema();
+  const phone = String(input.phone || '').trim();
+  const approverHash = digest(normalizeDeviceId(input.approverDeviceId));
+  const db = await getDb();
+  expireChallenges(db);
+  const challenge = db.exec(`SELECT target_device_hash, status, expires_at FROM trust_challenges WHERE id = ? AND phone = ? LIMIT 1`, [input.challengeId, phone])[0]?.values?.[0] as any[] | undefined;
+  if (!challenge) return { approved: false, reason: 'challenge_not_found' };
+  if (String(challenge[1]) !== 'pending') return { approved: false, reason: `challenge_${String(challenge[1])}` };
+  const approver = db.exec(`SELECT id FROM trusted_devices WHERE phone = ? AND device_hash = ? AND status = 'active' LIMIT 1`, [phone, approverHash])[0]?.values?.[0];
+  if (!approver) return { approved: false, reason: 'approver_device_not_trusted' };
+  db.run(`UPDATE trust_challenges SET status = 'approved', approved_by_device_hash = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ? AND status = 'pending'`, [approverHash, input.challengeId, phone]);
+  db.run(`INSERT INTO trusted_devices (phone, device_hash, credential_type, label, push_capable, status) VALUES (?, ?, 'push', 'Push-approved device', 1, 'active') ON CONFLICT(phone, device_hash) DO UPDATE SET status = 'active', revoked_at = NULL, last_seen_at = CURRENT_TIMESTAMP`, [phone, String(challenge[0])]);
+  saveDb();
+  return { approved: true, targetDeviceIdHash: String(challenge[0]) };
+}
+
+export async function recordChannelEvidence(input: { phone: string; channel: ChannelEvidenceType; evidenceType: string; externalSubject?: string; sourceRef?: string; consented?: boolean }): Promise<void> {
+  if (!isChannelEvidenceEnabled()) return;
+  await ensureTrustSchema();
+  const db = await getDb();
+  db.run(`INSERT INTO channel_evidence (phone, channel, evidence_type, external_subject, source_ref, consented, status)
+          VALUES (?, ?, ?, ?, ?, ?, 'observed')
+          ON CONFLICT(phone, channel, evidence_type, external_subject) DO UPDATE SET source_ref = excluded.source_ref, consented = excluded.consented, status = 'observed', revoked_at = NULL, observed_at = CURRENT_TIMESTAMP`,
+    [String(input.phone || '').trim(), input.channel, String(input.evidenceType || '').slice(0, 80), String(input.externalSubject || '').slice(0, 256) || null, String(input.sourceRef || '').slice(0, 256) || null, input.consented ? 1 : 0]);
+  saveDb();
+}
+
+export async function recordLocationConsent(input: { phone: string; purpose: string; precision?: 'coarse' | 'precise'; latitude?: number; longitude?: number; area?: string; expiresAt?: string }): Promise<void> {
+  if (!isLocationConsentEnabled()) throw new Error('Location consent is not enabled in this deployment.');
+  await ensureTrustSchema();
+  const db = await getDb();
+  const lat = Number.isFinite(input.latitude) ? Number(input.latitude) : null;
+  const lng = Number.isFinite(input.longitude) ? Number(input.longitude) : null;
+  db.run(`INSERT INTO location_consents (phone, purpose, precision, latitude, longitude, area, expires_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'granted')`, [String(input.phone || '').trim(), String(input.purpose || '').slice(0, 120), input.precision || 'coarse', lat, lng, String(input.area || '').slice(0, 120) || null, input.expiresAt || null]);
+  saveDb();
+}
+
+export async function getProgressiveTrust(phone: string): Promise<{ trustedDevices: number; channelEvidence: Array<{ channel: string; evidenceType: string; status: string; observedAt: string }>; activeLocationConsents: number }> {
+  await ensureTrustSchema();
+  const db = await getDb();
+  const deviceCount = Number(db.exec(`SELECT COUNT(*) FROM trusted_devices WHERE phone = ? AND status = 'active'`, [phone])[0]?.values?.[0]?.[0] || 0);
+  const evidenceRows = db.exec(`SELECT channel, evidence_type, status, observed_at FROM channel_evidence WHERE phone = ? AND status = 'observed' ORDER BY observed_at DESC`, [phone])[0]?.values || [];
+  const locationCount = Number(db.exec(`SELECT COUNT(*) FROM location_consents WHERE phone = ? AND status = 'granted' AND (expires_at IS NULL OR datetime(expires_at) > datetime('now'))`, [phone])[0]?.values?.[0]?.[0] || 0);
+  return { trustedDevices: deviceCount, channelEvidence: evidenceRows.map((row: any[]) => ({ channel: String(row[0]), evidenceType: String(row[1]), status: String(row[2]), observedAt: String(row[3]) })), activeLocationConsents: locationCount };
+}

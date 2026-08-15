@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 import { getDb, saveDb } from '../database.js';
 import { sendEmail } from '../services/emailService.js';
+import { recordChannelEvidence } from '../services/progressiveTrustService.js';
 
 function emailAddress(value: unknown): string {
     const raw = String(value || '').trim().toLowerCase();
@@ -139,6 +140,15 @@ export async function handleEmailWebhook(body: any, headers: Record<string, any>
         saveDb();
         return { status: 'ignored', reason: 'unlinked_email_identity' };
     }
+
+    await recordChannelEvidence({
+        phone,
+        channel: 'email',
+        evidenceType: 'verified_resend_webhook_inbound',
+        externalSubject: from,
+        sourceRef: incomingMessageId || id,
+        consented: true,
+    });
 
     const attachmentMeta = Array.isArray(received?.attachments || data?.attachments)
         ? (received?.attachments || data?.attachments).map((a: any) => ({ id: a.id, filename: a.filename, content_type: a.content_type, size: a.size }))

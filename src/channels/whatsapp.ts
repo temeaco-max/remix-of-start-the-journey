@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { getDb, saveDb } from '../database.js';
 import { updateSessionInteraction } from '../services/sessionManager.js';
+import { recordChannelEvidence } from '../services/progressiveTrustService.js';
 
 /** Verify Meta X-Hub-Signature-256 (security audit #8). */
 export function verifyWhatsAppSignature(rawBody: string | Buffer, signatureHeader: string): boolean {
@@ -101,6 +102,14 @@ export async function handleWhatsAppWebhook(body: any, signature: string, rawBod
         const text = msg.text?.body || msg.button?.text || '';
         if (!phone || !text.trim()) return { status: 'ignored' };
 
+        await recordChannelEvidence({
+            phone,
+            channel: 'whatsapp',
+            evidenceType: 'verified_meta_webhook_inbound',
+            externalSubject: String(msg.id || msg.from || '').slice(0, 256) || undefined,
+            sourceRef: String(msg.id || '').slice(0, 256) || undefined,
+            consented: true,
+        });
         await sendWhatsAppTypingIndicator(phone, 'typing', phoneNumberId);
         await updateSessionInteraction(phone);
         const { processCanonicalChatTurn } = await import('../services/canonicalChatTurnService.js');

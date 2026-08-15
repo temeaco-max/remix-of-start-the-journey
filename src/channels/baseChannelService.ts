@@ -1,4 +1,5 @@
 import { recordChannelUsage } from '../services/channelUsageService.js';
+import { recordChannelEvidence } from '../services/progressiveTrustService.js';
 
 export interface ChannelWebhookResult {
     status: string;
@@ -36,6 +37,14 @@ export abstract class BaseChannelHandler {
             if (!parsed || !parsed.phone || !parsed.text.trim()) return { status: 'ignored' };
 
             const { phone, text, meta } = parsed;
+            await recordChannelEvidence({
+                phone,
+                channel: this.channelName as any,
+                evidenceType: 'verified_webhook_inbound',
+                externalSubject: typeof meta?.externalSubject === 'string' ? meta.externalSubject : undefined,
+                sourceRef: typeof meta?.messageId === 'string' ? meta.messageId : undefined,
+                consented: true,
+            });
             await this.onStart(meta);
             const turn = await this.routeIntent({ phone, message: text, channel: this.channelName });
 
