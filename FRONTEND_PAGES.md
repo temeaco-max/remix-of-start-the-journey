@@ -82,13 +82,13 @@ This document is the **implementation reference** for every page and surface in 
 | **Responsive** | Full-screen map on mobile with overlay panels (bottom sheet for pin details, top bar for filters). On desktop, sidebar with filters + list view alongside map. Leaflet.js + OpenStreetMap. |
 | **Blueprint ref** | §9 (Nearby Pulse), §38 (Live Map) |
 
-### B4. For You (User Type Chooser) — ✅ Done
+### B4. For You (User Type Chooser) — ❌ Removed
 | Field | Value |
 |---|---|
-| **Route** | `/:country/for-you` |
-| **Template** | `views/for-you.ejs` |
-| **Purpose** | Shows the 5 user types in the Kurukoo ecosystem with explanations of what each type gets and what they can do. Acts as a "who are you?" entry point that routes users to the right onboarding path. |
-| **Status** | ✅ Done — template and backend route implemented |
+| **Route** | `/:country/for-you` (removed) |
+| **Template** | `views/for-you.ejs` (removed) |
+| **Purpose** | (historical) Showed the 5 user types in the Kurukoo ecosystem with explanations of what each type gets and what they can do; a "who are you?" entry point routing users to the right onboarding path. |
+| **Status** | ❌ Removed — `views/for-you.ejs` and the route were deleted in the conversation-first convergence (12 Aug 2026, commit `7a57361`). Role entry is now conversation-first via `/chat`; the participant taxonomy lives on `/network`. Legacy `/for-you` nav links were repointed to `/network`. |
 | **User types** | 1. **Consumer** — Request any service, get matched with trusted providers, escrow protection, Daily Picks. 2. **Provider** — List skills, Work Toggle, Nearby Pulse (Go Live), Boost listings, earn. 3. **Business** — Verified storefront (chat-managed product inventory), catalogue import, analytics, team accounts, advertising. 4. **Physical Agent** — Cash-in/out, onboarding, walk-in assistance, earn commissions. 5. **Contributor** — Micro-tasks (update prices, confirm locations, incident alerts, security updates), earn airtime from Growth Fund, badge progression. |
 | **Design** | This legacy role chooser is not registered in the current public router. Role and intent entry now remain conversation-first through `/chat` and are not represented as WhatsApp or PWA deep-link claims. |
 | **Responsive** | Cards: 1-column on mobile (stacked), 2-column on tablet, 3-column on desktop. |
