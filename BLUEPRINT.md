@@ -5523,3 +5523,12 @@ Development-only compatibility is permitted only when it is explicitly scoped to
 The canonical Chat turn is the only authority for conversational autonomous controls. Authenticated natural-language pause, resume, stop-following, stop-checking, and cancel commands must resolve the current conversation’s owner-scoped goal and must not be sent through ordinary intent routing after a control action is recognized.
 
 Economic configuration is authoritative data, not an optional fallback. Missing or invalid active commission configuration must stop the affected economic operation with a typed error; the system must never substitute an arbitrary fee. Verification commands must remain registered and executable under the names documented for operators.
+
+
+## Continuous red-team operating contract — live verification and deterministic failure states
+
+The live-user quality harness is a verification boundary, not a production feature. It must fail before scenario execution when the admin status boundary does not report `KURUKOO_AGENT_ENABLED=true`; autonomous execution may remain disabled when testing persistence and user controls. Test launch may set `KURUKOO_TEST_RESET_OPERATOR_ON_LAUNCH=true` only outside production. That switch clears stale encrypted state for the canonical operator test identity before recreation and must never be enabled in production.
+
+The protected Chat shell must honor native `hidden` semantics for collapsed utility navigation. Shared CSS rules must not override hidden regions; the canonical More-menu container is required to use `.sidebar-bottom[hidden]{display:none!important}` or an equivalent contract-preserving rule. Workspace Ask controls must focus the shared Chat composer and must not create parallel interaction surfaces.
+
+Every red-team replay must record whether a response is grounded, whether a provider is truly configured, whether a goal exists before pause/resume/cancel, and whether conversation history persists. A disabled prerequisite must produce a clear readiness failure rather than a misleading empty-state response.

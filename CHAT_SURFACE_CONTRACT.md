@@ -197,3 +197,12 @@ The Chat surface must prefer a truthful, bounded error state over a synthetic fa
 ## Autonomous command and economic failure contract
 
 When an authenticated user writes a direct autonomous control command, the Chat surface must show the resulting persisted goal state in the current conversation and must not create a duplicate intent or economic request. If economic configuration is missing or invalid, the central surface must present a truthful setup or failure state and must not display an arbitrary commission, apparent completion, or payment-ready result.
+
+
+## Red-team verification and deterministic workspace behavior
+
+The live quality harness must verify agent readiness through the admin status boundary before exercising autonomous control commands. When `KURUKOO_AGENT_ENABLED` is false, the harness must stop with an actionable configuration error; it must not report an empty autonomous objective as if the user request had been accepted without a goal.
+
+The development-only operator reset boundary may clear stale ciphertext for the explicitly controlled operator identity before a test launch. This is test isolation only and must never alter production profile decryption semantics or clear ordinary user profiles.
+
+The More utility navigation is collapsed by default. Its native `hidden` state must result in `display:none` and zero layout height until the user activates More. The expanded state must expose the existing utility links without changing the protected header, composer, or central-surface navigation. Every workspace Ask action must return focus to the shared Chat composer.

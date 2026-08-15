@@ -115,3 +115,12 @@ Economic commission lookup now fails with a typed configuration error when no ac
 ## Live acceptance repair
 
 The controlled development Chat reset now removes only the configured test actor's profile before canonical profile upsert. This prevents stale ciphertext created under a previous development key from blocking isolated acceptance runs, while preserving fail-closed decryption for all ordinary and production identities. The full 16-turn live HTTP/SSE acceptance sequence was replayed successfully with 32 persisted messages after the repair. Adjacent development-auth, fresh-database, conversation-first-authentication, and public-runtime regressions also passed.
+
+
+## Continuous red-team tranche — live quality and Chat shell
+
+The live-user quality harness now has an explicit readiness preflight: it requires the admin boundary to report `KURUKOO_AGENT_ENABLED=true` before exercising autonomous goal controls, while allowing `KURUKOO_AGENT_AUTONOMOUS=false` for a safe persistence-and-control test. This prevents a disabled runtime from producing misleading “no active autonomous objective” results.
+
+The controlled development operator launch now supports `KURUKOO_TEST_RESET_OPERATOR_ON_LAUNCH=true` outside production. When enabled, it removes only the canonical operator's stale encrypted profile before recreating the isolated operator profile. Production behavior remains unchanged and memory decryption remains fail-closed.
+
+The full live-user matrix passed across general, contextual reasoning, service correction, memory, reminder, autonomous control, and commercial conversations. It verified persisted conversation histories, truthful deferred provider state, natural-language pause/resume/cancel, and disclosed advertising behavior. A browser replay also found and fixed the Chat More-menu CSS defect that caused native `hidden` content to remain visible; the expanded/collapsed state is now covered by a static DOM-safety regression.
