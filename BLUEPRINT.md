@@ -5639,3 +5639,18 @@ This section records the current repository-side completion work after the produ
 | Completion verification | TypeScript, production build, strict CSS, memory, privacy bridge, provider, readiness, behavioral Chat, agent, route, security, actor, continuity, and external-boundary regressions passed. | Real iOS, Android, macOS, and Windows installation and production deployment validation. |
 
 The completion classification remains: **structurally converged, locally campaign-validated, repository-side complete for this tranche, and ready for controlled external activation—not externally proven as a complete production platform.**
+
+
+## Current Reliability Tranche — Durable Queue and Concurrent Startup Truth
+
+This tranche records repository-side reliability work and does not claim external delivery or production activation.
+
+| Area | Current repository truth | Remaining proof or activation |
+|---|---|---|
+| Internal notification persistence | Notifications are stored in the canonical `internal_notifications` table even when FCM is not configured. The response remains non-delivery and the UI can read the durable internal inbox. | FCM credentials, platform registration, provider acceptance, and real-device delivery evidence. |
+| Notification retry boundary | Queue records carry attempt count, maximum attempts, next retry time, last attempt time, failure reason, and dead-letter timestamp. Retry scheduling uses bounded exponential backoff; exhausted attempts become explicit `dead_letter` records. | A provider-specific worker must be activated only after the provider adapter and delivery callback contract are approved. |
+| Concurrent startup | SQL.js database initialization is single-flight. Concurrent first-use requests share one initialization promise, preventing competing database instances and lost writes. | Production process topology, durable storage, backup/restore, and multi-process coordination still require deployment validation. |
+| Local load proof | A bounded regression exercises 100 concurrent notification enqueues, duplicate suppression, provider non-attribution, queue persistence, and RSS growth. | Production-like concurrency, multi-process load, long-running soak, provider timeout behavior, and cost ceilings. |
+| PWA lifecycle | A tracked contract regression verifies standalone Chat launch metadata, service-worker update controls, offline fallback, and exclusion of dynamic/admin routes from static caching. | Manual installed-state validation on iOS, Android, macOS, and Windows, including notifications and update behavior. |
+
+The completion classification remains: **repository-side complete for these reliability boundaries, ready for controlled external activation, and not externally proven as live delivery or production autonomy**.
