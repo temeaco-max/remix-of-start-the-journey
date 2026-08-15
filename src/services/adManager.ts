@@ -91,6 +91,86 @@ export async function getAdCampaigns(): Promise<AdCampaign[]> {
     return campaigns;
 }
 
+export interface UpdateAdCampaignInput {
+    title?: string;
+    desc?: string;
+    imageUrl?: string;
+    targetKeyword?: string;
+    creditsBudget?: number;
+    status?: 'active' | 'paused' | 'completed';
+    campaignType?: string;
+    disclosure?: string;
+    advertiserName?: string;
+    ctaText?: string;
+    destination?: string;
+    placement?: string;
+    category?: string;
+    country?: string;
+    region?: string;
+    startAt?: string | null;
+    expiresAt?: string | null;
+    frequencyCap?: number;
+    priority?: number;
+    targeting?: string;
+    assetStatus?: 'pending' | 'approved' | 'rejected';
+    approvedBy?: string;
+}
+
+export async function updateAdCampaign(id: number, patch: UpdateAdCampaignInput, actor = 'admin'): Promise<AdCampaign> {
+    const db = await getDb();
+    ensureAdSchema(db);
+    const current = (await getAdCampaigns()).find((campaign) => Number(campaign.id) === Number(id));
+    if (!current) throw new Error('Campaign not found.');
+    const next = { ...current, ...patch } as AdCampaign;
+    const title = String(next.title || '').trim().slice(0, 160);
+    const desc = String(next.desc || '').trim().slice(0, 1000);
+    const imageUrl = String(next.imageUrl || '').trim().slice(0, 500);
+    const targetKeyword = String(next.targetKeyword || '').trim().toLowerCase().slice(0, 80);
+    const disclosure = String(next.disclosure || '').trim().slice(0, 120);
+    if (!title || !desc || !targetKeyword || !disclosure) throw new Error('Title, description, target keyword, and disclosure are required.');
+    if (!Number.isFinite(Number(next.creditsBudget)) || Number(next.creditsBudget) < 0) throw new Error('Credits budget must be a non-negative number.');
+    if (next.assetStatus === 'approved' && !isApprovedCampaignAsset(imageUrl, Number(next.firstParty || 0))) throw new Error('Approved status requires a valid approved image asset.');
+    const fields: Record<string, unknown> = {
+        title, desc, image_url: imageUrl, target_keyword: targetKeyword, credits_budget: Math.floor(Number(next.creditsBudget)), status: next.status || current.status,
+        campaign_type: next.campaignType || current.campaignType || 'external', disclosure, advertiser_name: String(next.advertiserName || '').trim().slice(0, 160),
+        cta_text: String(next.ctaText || 'Learn more').trim().slice(0, 80), destination: String(next.destination || '/chat').trim().slice(0, 300), placement: String(next.placement || 'public_discovery').trim().slice(0, 80),
+        category: String(next.category || 'community').trim().slice(0, 80), country: String(next.country || 'NG').trim().slice(0, 8), region: String(next.region || '').trim().slice(0, 80),
+        start_at: next.startAt || null, expires_at: next.expiresAt || null, frequency_cap: Math.max(1, Math.floor(Number(next.frequencyCap || 3))), priority: Math.floor(Number(next.priority || 0)), targeting: next.targeting || '{}',
+        asset_status: next.assetStatus || 'approved', approved_by: String(next.approvedBy || actor).trim().slice(0, 160), updated_at: new Date().toISOString(),
+    };
+    const assignments = Object.keys(fields).map((field) => `${field} = ?`).join(', ');
+    db.run(`UPDATE ad_campaigns SET ${assignments} WHERE id = ?`, [...Object.values(fields), id]);
+    saveDb();
+    return (await getAdCampaigns()).find((campaign) => Number(campaign.id) === Number(id)) as AdCampaign;
+}
+
+async function getCampaignForTracking(id: number): Promise<AdCampaign | null> {
+    const campaign = (await getAdCampaigns()).find((item) => Number(item.id) === Number(id));
+    if (!campaign || campaign.status !== 'active' || !isRenderableCampaign(campaign)) return null;
+    const now = Date.now();
+    if (campaign.startAt && Date.parse(campaign.startAt) > now) return null;
+    if (campaign.expiresAt && Date.parse(campaign.expiresAt) <= now) return null;
+    return campaign;
+}
+
+export async function recordAdImpression(id: number): Promise<boolean> {
+    const campaign = await getCampaignForTracking(id);
+    if (!campaign) return false;
+    const db = await getDb();
+    db.run('UPDATE ad_campaigns SET impressions = COALESCE(impressions, 0) + 1, updated_at = ? WHERE id = ?', [new Date().toISOString(), id]);
+    saveDb();
+    return true;
+}
+
+export async function recordAdClick(id: number): Promise<boolean> {
+    const campaign = await getCampaignForTracking(id);
+    if (!campaign) return false;
+    const db = await getDb();
+    db.run('UPDATE ad_campaigns SET clicks = COALESCE(clicks, 0) + 1, updated_at = ? WHERE id = ?', [new Date().toISOString(), id]);
+    saveDb();
+    return true;
+}
+
 export async function createAdCampaign(campaign: Omit<AdCampaign, 'id' | 'creditsSpent' | 'status' | 'createdAt' | 'updatedAt'>): Promise<any> {
     const db = await getDb();
     ensureAdSchema(db);

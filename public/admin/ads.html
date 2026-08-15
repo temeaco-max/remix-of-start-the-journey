@@ -26,11 +26,12 @@
     </section>
 
     <section class="card-box">
-      <h2>Create campaign</h2>
+      <h2 id="ads-form-title">Create campaign</h2>
       <form id="ads-form">
+        <input id="ad-id" name="id" type="hidden">
         <div class="form-group"><label for="ad-title">Title</label><input id="ad-title" name="title" required maxlength="160"></div>
         <div class="form-group"><label for="ad-desc">Description</label><textarea id="ad-desc" name="desc" rows="4" required maxlength="1000"></textarea></div>
-        <div class="form-group"><label for="ad-imageUrl">Approved image URL</label><input id="ad-imageUrl" name="imageUrl" type="url" required maxlength="500" placeholder="/assets/chat/approved-campaign.webp"></div>
+        <div class="form-group"><label for="ad-imageUrl">Approved image URL</label><input id="ad-imageUrl" name="imageUrl" type="text" required maxlength="500" placeholder="/assets/chat/approved-campaign.webp or https://..."></div>
         <div class="form-group"><label for="ad-targetKeyword">Target keyword</label><input id="ad-targetKeyword" name="targetKeyword" required maxlength="80"></div>
         <div class="form-group"><label for="ad-creditsBudget">Credits budget</label><input id="ad-creditsBudget" name="creditsBudget" type="number" min="1" step="1" required></div>
         <div class="form-group"><label for="ad-disclosure">Disclosure</label><input id="ad-disclosure" name="disclosure" value="Sponsored" required maxlength="120"></div>
@@ -42,13 +43,16 @@
         <div class="form-group"><label for="ad-country">Country</label><input id="ad-country" name="country" value="NG" maxlength="8"></div>
         <div class="form-group"><label for="ad-region">Region</label><input id="ad-region" name="region" maxlength="80"></div>
         <div class="form-group"><label for="ad-targeting">Targeting JSON or note</label><textarea id="ad-targeting" name="targeting" rows="3" placeholder='{"scope":"public","safetyExcluded":true}'></textarea></div>
-        <button class="btn" type="submit">Create campaign</button>
+        <div class="form-group"><label for="ad-status">Campaign status</label><select id="ad-status" name="status"><option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option></select></div>
+        <div class="form-group"><label for="ad-assetStatus">Asset review</label><select id="ad-assetStatus" name="assetStatus"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></div>
+        <button id="ads-submit" class="btn" type="submit">Create campaign</button>
+        <button id="ads-cancel-edit" class="btn secondary" type="button" hidden>Cancel edit</button>
       </form>
     </section>
 
     <section class="card-box">
       <div class="admin-section-heading"><h2>Campaign records</h2><button id="ads-refresh" class="btn secondary" type="button">Refresh</button></div>
-      <div class="table-scroll"><table><thead><tr><th>Title</th><th>Advertiser</th><th>Placement</th><th>Status</th><th>Asset</th><th>Disclosure</th><th>Destination</th></tr></thead><tbody id="ads-tbody"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th>Title</th><th>Advertiser</th><th>Placement</th><th>Status</th><th>Asset</th><th>Disclosure</th><th>Destination</th><th>Actions</th></tr></thead><tbody id="ads-tbody"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
     </section>
   </main>
   <script src="/js/admin-ads.js" defer></script>

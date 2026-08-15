@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createAdCampaign, getAdCampaigns, matchAdCampaigns, seedDemoAdCampaigns } from '../src/services/adManager.js';
+import { createAdCampaign, getAdCampaigns, matchAdCampaigns, recordAdClick, recordAdImpression, seedDemoAdCampaigns, updateAdCampaign } from '../src/services/adManager.js';
 
 await seedDemoAdCampaigns();
 const seeded = await getAdCampaigns();
@@ -19,6 +19,16 @@ assert.ok(created, 'admin campaign creation should persist a campaign');
 assert.equal(created?.campaignType, 'external');
 assert.equal(created?.firstParty, 0);
 assert.equal(created?.placement, 'public_discovery');
+const updated = await updateAdCampaign(Number(created?.id), { desc: 'Updated controlled test campaign', assetStatus: 'approved', status: 'active' });
+assert.equal(updated.assetStatus, 'approved', 'existing campaigns should be explicitly approvable after asset validation');
+assert.equal(updated.status, 'active', 'approved campaigns should be able to remain active');
+const beforeImpressions = Number(updated.impressions || 0);
+const beforeClicks = Number(updated.clicks || 0);
+assert.equal(await recordAdImpression(Number(updated.id)), true, 'rendered campaign impressions should be recorded');
+assert.equal(await recordAdClick(Number(updated.id)), true, 'campaign clicks should be recorded through the canonical tracker');
+const tracked = (await getAdCampaigns()).find(campaign => Number(campaign.id) === Number(updated.id));
+assert.equal(Number(tracked?.impressions), beforeImpressions + 1, 'impression counter should increment once');
+assert.equal(Number(tracked?.clicks), beforeClicks + 1, 'click counter should increment once');
 
 const matched = await matchAdCampaigns('convergence discovery');
 assert.ok(matched.some(campaign => campaign.title === title), 'public ad matching should use the ad manager authority');

@@ -32,7 +32,7 @@ import { issueUserToken, upsertProfile } from './authRoutes.js';
 import { getConfiguredTestName, getConfiguredTestPhone, getDevelopmentTestAuthStatus } from '../services/devTestAuthService.js';
 import { getProfile, updateProfile } from '../services/memoryProfile.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
-import { createAdCampaign, getAdCampaigns } from '../services/adManager.js';
+import { createAdCampaign, getAdCampaigns, updateAdCampaign } from '../services/adManager.js';
 
 const router = Router();
 
@@ -365,6 +365,27 @@ router.get('/ads', authenticateAdmin, async (_req: AuthRequest, res) => {
   catch { res.status(500).json({ error: 'Unable to load advertising campaigns' }); }
 });
 
+router.patch('/ads/:id', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ success: false, error: 'A valid campaign id is required.' });
+    const body = req.body || {};
+    const patch: Record<string, unknown> = {};
+    const copyFields = ['title', 'desc', 'imageUrl', 'targetKeyword', 'status', 'campaignType', 'disclosure', 'advertiserName', 'ctaText', 'destination', 'placement', 'category', 'country', 'region', 'startAt', 'expiresAt', 'assetStatus'];
+    for (const field of copyFields) if (Object.prototype.hasOwnProperty.call(body, field)) patch[field] = body[field];
+    if (Object.prototype.hasOwnProperty.call(body, 'creditsBudget')) patch.creditsBudget = Number(body.creditsBudget);
+    if (Object.prototype.hasOwnProperty.call(body, 'frequencyCap')) patch.frequencyCap = Number(body.frequencyCap);
+    if (Object.prototype.hasOwnProperty.call(body, 'priority')) patch.priority = Number(body.priority);
+    if (Object.prototype.hasOwnProperty.call(body, 'targeting')) patch.targeting = typeof body.targeting === 'string' ? body.targeting : JSON.stringify(body.targeting || {});
+    if (!Object.keys(patch).length) return res.status(400).json({ success: false, error: 'At least one campaign field is required.' });
+    const actor = String((req.user as any)?.username || 'admin');
+    const campaign = await updateAdCampaign(id, patch as any, actor);
+    res.json({ success: true, campaign });
+  } catch (error: any) {
+    const message = error?.message || 'Unable to update advertising campaign';
+    res.status(message === 'Campaign not found.' ? 404 : 400).json({ success: false, error: message });
+  }
+});
 router.post('/ads', authenticateAdmin, async (req: AuthRequest, res) => {
   try {
     const body = req.body || {};
