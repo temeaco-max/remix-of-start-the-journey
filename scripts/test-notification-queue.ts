@@ -15,7 +15,7 @@ process.env.KURUKOO_DISABLE_LISTEN = 'true';
 
 const { app } = await import('../src/index.js');
 const { getDb } = await import('../src/database.js');
-const { sendFcmPush } = await import('../src/services/pushNotifications.js');
+const { listQueuedNotifications, recordNotificationAttempt, sendFcmPush } = await import('../src/services/pushNotifications.js');
 
 const phone = '+2348090000000';
 const otherPhone = '+2348090000001';
@@ -40,6 +40,17 @@ try {
   const notification = ownerPayload.notifications?.[0];
   assert.equal(notification?.status, 'unread', 'New internal notifications should be unread');
   assert.equal(notification?.link, '/web', 'Notification link should be retained');
+  const queuedBeforeAttempt = await listQueuedNotifications();
+  assert.equal(queuedBeforeAttempt.some(item => item.id === notification?.id && item.delivery_state === 'queued'), true, 'Unconfigured delivery must remain durably queued');
+  assert.equal(await recordNotificationAttempt(notification!.id, 'provider_not_configured', phone), 'queued', 'First failed attempt should schedule a retry');
+  assert.equal(await listQueuedNotifications().then(items => items.some(item => item.id === notification?.id)), false, 'Backoff should keep a failed notification out of the immediate retry set');
+  assert.equal(await recordNotificationAttempt(notification!.id, 'provider_not_configured', phone), 'queued', 'Second failed attempt should remain retryable');
+  assert.equal(await recordNotificationAttempt(notification!.id, 'provider_not_configured', phone), 'dead_letter', 'Notification should dead-letter at the bounded attempt limit');
+  const dbAfterDeadLetter = await getDb();
+  const deadLetter = dbAfterDeadLetter.exec('SELECT delivery_state, attempt_count, dead_lettered_at FROM internal_notifications WHERE id = ?', [notification!.id]);
+  assert.equal(deadLetter[0]?.values?.[0]?.[0], 'dead_letter', 'Dead-letter state must be explicit and durable');
+  assert.equal(deadLetter[0]?.values?.[0]?.[1], 3, 'Dead-letter attempt count must be durable');
+  assert.ok(deadLetter[0]?.values?.[0]?.[2], 'Dead-letter timestamp must be recorded');
 
   const otherList = await fetch(`${baseUrl}/api/notifications`, { headers: userHeaders(otherPhone) });
   const otherPayload = await otherList.json() as { notifications?: unknown[] };

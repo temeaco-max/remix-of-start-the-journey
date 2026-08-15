@@ -8,12 +8,22 @@ async function ensureNotificationTable() {
         body TEXT NOT NULL,
         link TEXT,
         status TEXT NOT NULL DEFAULT 'unread',
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        attempt_count INTEGER NOT NULL DEFAULT 0,
+        max_attempts INTEGER NOT NULL DEFAULT 3,
+        next_attempt_at TEXT,
+        last_attempt_at TEXT,
+        dead_lettered_at TEXT
     )`);
     const columns = new Set((db.exec('PRAGMA table_info(internal_notifications)')[0]?.values || []).map((row: any[]) => String(row[1])));
     if (!columns.has('delivery_state')) db.run(`ALTER TABLE internal_notifications ADD COLUMN delivery_state TEXT NOT NULL DEFAULT 'queued'`);
     if (!columns.has('provider_reference')) db.run(`ALTER TABLE internal_notifications ADD COLUMN provider_reference TEXT`);
     if (!columns.has('failure_reason')) db.run(`ALTER TABLE internal_notifications ADD COLUMN failure_reason TEXT`);
+    if (!columns.has('attempt_count')) db.run(`ALTER TABLE internal_notifications ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0`);
+    if (!columns.has('max_attempts')) db.run(`ALTER TABLE internal_notifications ADD COLUMN max_attempts INTEGER NOT NULL DEFAULT 3`);
+    if (!columns.has('next_attempt_at')) db.run(`ALTER TABLE internal_notifications ADD COLUMN next_attempt_at TEXT`);
+    if (!columns.has('last_attempt_at')) db.run(`ALTER TABLE internal_notifications ADD COLUMN last_attempt_at TEXT`);
+    if (!columns.has('dead_lettered_at')) db.run(`ALTER TABLE internal_notifications ADD COLUMN dead_lettered_at TEXT`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_internal_notifications_phone_status ON internal_notifications(phone, status)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_internal_notifications_delivery_state ON internal_notifications(delivery_state)`);
     return db;
@@ -41,15 +51,40 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
     return false;
 }
 
-export async function transitionNotificationDelivery(notificationId: number, deliveryState: 'queued' | 'accepted' | 'sent' | 'delivered' | 'failed' | 'suppressed', phone?: string, providerReference?: string, failureReason?: string): Promise<boolean> {
+export async function transitionNotificationDelivery(notificationId: number, deliveryState: 'queued' | 'accepted' | 'sent' | 'delivered' | 'failed' | 'suppressed' | 'dead_letter', phone?: string, providerReference?: string, failureReason?: string): Promise<boolean> {
     const db = await ensureNotificationTable();
     const ownerClause = phone ? ' AND phone = ?' : '';
     const params: any[] = [deliveryState, providerReference || null, failureReason || null, notificationId];
     if (phone) params.push(phone);
-    db.run(`UPDATE internal_notifications SET delivery_state=?, provider_reference=?, failure_reason=? WHERE id=?${ownerClause}`, params);
+    db.run(`UPDATE internal_notifications SET delivery_state=?, provider_reference=?, failure_reason=?, dead_lettered_at=CASE WHEN ?='dead_letter' THEN COALESCE(dead_lettered_at, CURRENT_TIMESTAMP) ELSE dead_lettered_at END WHERE id=?${ownerClause}`, [deliveryState, providerReference || null, failureReason || null, deliveryState, notificationId, ...(phone ? [phone] : [])]);
     const updated = db.getRowsModified() > 0;
     if (updated) saveDb();
     return updated;
+}
+
+export async function recordNotificationAttempt(notificationId: number, failureReason?: string, phone?: string): Promise<'queued' | 'dead_letter' | 'missing'> {
+    const db = await ensureNotificationTable();
+    const ownerClause = phone ? ' AND phone = ?' : '';
+    const row = db.exec(`SELECT attempt_count, max_attempts FROM internal_notifications WHERE id = ?${ownerClause}`, phone ? [notificationId, phone] : [notificationId])[0]?.values?.[0] as any[] | undefined;
+    if (!row) return 'missing';
+    const attempts = Number(row[0] || 0) + 1;
+    const maxAttempts = Math.max(1, Number(row[1] || 3));
+    const terminal = attempts >= maxAttempts;
+    const nextAttemptAt = terminal ? null : new Date(Date.now() + Math.min(60 * 60_000, 5_000 * (2 ** Math.min(attempts - 1, 6)))).toISOString();
+    db.run(`UPDATE internal_notifications SET attempt_count=?, last_attempt_at=CURRENT_TIMESTAMP, next_attempt_at=?, delivery_state=?, failure_reason=?, dead_lettered_at=CASE WHEN ?='dead_letter' THEN CURRENT_TIMESTAMP ELSE dead_lettered_at END WHERE id=?${ownerClause}`, [attempts, nextAttemptAt, terminal ? 'dead_letter' : 'queued', failureReason || null, terminal ? 'dead_letter' : 'queued', notificationId, ...(phone ? [phone] : [])]);
+    saveDb();
+    return terminal ? 'dead_letter' : 'queued';
+}
+
+export async function listQueuedNotifications(limit = 50): Promise<Array<{ id: number; phone: string; title: string; body: string; link?: string; attempt_count: number; max_attempts: number; next_attempt_at?: string; delivery_state: string }>> {
+    const db = await ensureNotificationTable();
+    const safeLimit = Math.max(1, Math.min(100, Math.floor(Number(limit) || 50)));
+    const stmt = db.prepare(`SELECT id, phone, title, body, link, attempt_count, max_attempts, next_attempt_at, delivery_state FROM internal_notifications WHERE delivery_state='queued' AND (next_attempt_at IS NULL OR datetime(next_attempt_at) <= datetime('now')) ORDER BY id ASC LIMIT ?`);
+    stmt.bind([safeLimit]);
+    const rows: Array<{ id: number; phone: string; title: string; body: string; link?: string; attempt_count: number; max_attempts: number; next_attempt_at?: string; delivery_state: string }> = [];
+    while (stmt.step()) { const row = stmt.getAsObject() as any; rows.push({ id: Number(row.id), phone: String(row.phone), title: String(row.title), body: String(row.body), link: row.link ? String(row.link) : undefined, attempt_count: Number(row.attempt_count || 0), max_attempts: Number(row.max_attempts || 3), next_attempt_at: row.next_attempt_at ? String(row.next_attempt_at) : undefined, delivery_state: String(row.delivery_state) }); }
+    stmt.free();
+    return rows;
 }
 
 export async function getInternalNotifications(phone: string, limit = 20): Promise<Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; created_at: string }>> {
