@@ -3,34 +3,44 @@ import fs from 'fs';
 import path from 'path';
 
 let db: any = null;
+let dbInitialization: Promise<any> | null = null;
 const dbFilePath = process.env.DB_PATH || path.join(process.cwd(), 'kurukoo.sqlite');
 
 export async function getDb() {
   if (db) return db;
-  const SQL = await initSqlJs();
-  if (fs.existsSync(dbFilePath)) {
-    db = new SQL.Database(fs.readFileSync(dbFilePath));
-    initTables(db);
-    initEconomicParticipantTables(db);
-    initExecutionTables(db);
-    seedCanonicalOperatorState(db);
-    auditAppointmentSkillFlows(db);
-    saveDb();
-  } else {
-    db = new SQL.Database();
-    initTables(db);
-    initEconomicParticipantTables(db);
-    initExecutionTables(db);
-    seedCanonicalOperatorState(db);
-    seedSkillFlows(db);
-    if (process.env.NODE_ENV !== 'production') {
-      seedDemoProviders(db);
+  if (dbInitialization) return dbInitialization;
+  dbInitialization = (async () => {
+    const SQL = await initSqlJs();
+    if (db) return db;
+    if (fs.existsSync(dbFilePath)) {
+      db = new SQL.Database(fs.readFileSync(dbFilePath));
+      initTables(db);
+      initEconomicParticipantTables(db);
+      initExecutionTables(db);
+      seedCanonicalOperatorState(db);
+      auditAppointmentSkillFlows(db);
+      saveDb();
+    } else {
+      db = new SQL.Database();
+      initTables(db);
+      initEconomicParticipantTables(db);
+      initExecutionTables(db);
+      seedCanonicalOperatorState(db);
+      seedSkillFlows(db);
+      if (process.env.NODE_ENV !== 'production') {
+        seedDemoProviders(db);
+      }
+      auditAppointmentSkillFlows(db);
+      saveDb();
+      console.log(`Kurukoo database initialized${process.env.NODE_ENV === 'production' ? '' : ' with development seed data'}.`);
     }
-    auditAppointmentSkillFlows(db);
-    saveDb();
-    console.log(`Kurukoo database initialized${process.env.NODE_ENV === 'production' ? '' : ' with development seed data'}.`);
+    return db;
+  })();
+  try {
+    return await dbInitialization;
+  } finally {
+    dbInitialization = null;
   }
-  return db;
 }
 
 let saveTimer: NodeJS.Timeout | null = null;
