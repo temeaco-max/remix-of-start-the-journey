@@ -110,3 +110,8 @@ This tranche passed build, lint, QR integration, authentication, autonomous runt
 The canonical Chat authority now handles authenticated natural-language `pause that`, `resume that`, `cancel that`, `stop following`, and `stop checking` commands directly against the owner-scoped autonomous goal for the current conversation. These commands no longer fall through into ordinary intent routing, and their persisted state is covered by a dedicated regression scenario.
 
 Economic commission lookup now fails with a typed configuration error when no active commission exists or the stored rate is invalid; it no longer silently applies an arbitrary numeric fee. The behavioral-chat matrix is also registered under both the implementation script name and its documented matrix name, removing a verification-command wiring defect discovered during red-team execution.
+
+
+## Live acceptance repair
+
+The controlled development Chat reset now removes only the configured test actor's profile before canonical profile upsert. This prevents stale ciphertext created under a previous development key from blocking isolated acceptance runs, while preserving fail-closed decryption for all ordinary and production identities. The full 16-turn live HTTP/SSE acceptance sequence was replayed successfully with 32 persisted messages after the repair. Adjacent development-auth, fresh-database, conversation-first-authentication, and public-runtime regressions also passed.

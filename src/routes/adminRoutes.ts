@@ -86,8 +86,13 @@ router.post('/test-chat/reset', authenticateAdmin, async (_req: AuthRequest, res
   if (!status.active || !status.configured) return res.status(404).json({ success: false, error: 'Development test authentication is not enabled or configured' });
   const phone = getConfiguredTestPhone();
   try {
-    await upsertProfile(phone, getConfiguredTestName(), '', 'buyer');
     const db = await getDb();
+    // This route is restricted to the explicitly configured development test actor.
+    // Remove only that actor's profile so stale ciphertext from a prior test key cannot
+    // block isolation; production identities and ordinary reset paths are untouched.
+    db.run('DELETE FROM memory_profiles WHERE phone = ?', [phone]);
+    saveDb();
+    await upsertProfile(phone, getConfiguredTestName(), '', 'buyer');
     const messageStmt = db.prepare('SELECT id FROM messages WHERE phone = ?');
     messageStmt.bind([phone]);
     const messageIds: number[] = [];
