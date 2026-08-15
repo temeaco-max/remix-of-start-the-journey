@@ -82,16 +82,17 @@ export async function updateProfile(phone: string, serviceName: string = 'system
 }) {
     await logProfileAccess(phone, serviceName, 'write');
     const db = await getDb();
-    
-    // Check if profile exists
+
     const existing = await getProfile(phone, serviceName);
-    
+
+    // Unknown remains unknown. Do not manufacture a location, balance, or other
+    // user fact simply because a profile is being created.
     const name = updates.name !== undefined ? updates.name : (existing ? existing.name : 'New User');
-    const location = updates.location !== undefined ? updates.location : (existing ? existing.location : 'Ibadan');
+    const location = updates.location !== undefined ? updates.location : (existing ? existing.location : null);
     const country = updates.country !== undefined ? updates.country : (existing ? existing.country : 'ng');
     const subscription_tier = updates.subscription_tier !== undefined ? updates.subscription_tier : (existing ? existing.subscription_tier : 'Base');
-    const wallet_balance_minor = updates.wallet_balance_minor !== undefined ? updates.wallet_balance_minor : (existing ? existing.wallet_balance_minor : 30);
-    
+    const wallet_balance_minor = updates.wallet_balance_minor !== undefined ? updates.wallet_balance_minor : (existing ? existing.wallet_balance_minor : 0);
+
     const prefsObj = updates.preferences !== undefined ? updates.preferences : (existing ? existing.preferences : {});
     if (!prefsObj.referral_code) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
