@@ -22,13 +22,13 @@ export async function startBackgroundServices(): Promise<void> {
     backgroundTimers.push(setTimeout(() => runEscrowPass().catch((error) => console.error('Error running initial escrow pass:', error)), 30000));
     backgroundTimers.push(setInterval(() => runEscrowPass().catch((error) => console.error('Error running daily escrow pass:', error)), 24 * 60 * 60 * 1000));
 
-    // Kurukoo's bounded agent runtime is part of the core platform, not an
-    // optional demo. Keep it available by default while preserving explicit
-    // owner-controlled opt-out. The runtime itself remains bounded by its
-    // action, concurrency, retry, risk and confirmation guards.
-    if (process.env.KURUKOO_AGENT_ENABLED === undefined) process.env.KURUKOO_AGENT_ENABLED = 'true';
-    if (process.env.KURUKOO_AGENT_AUTONOMOUS === undefined) process.env.KURUKOO_AGENT_AUTONOMOUS = 'true';
-    if (process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK === undefined) process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK = 'true';
+    // Autonomy is an explicit deployment decision, not a side effect of
+    // starting the web process. Keep all gates fail-closed when absent; the
+    // runtime itself remains bounded by action, concurrency, retry, risk and
+    // confirmation guards. `.env.example` documents the deliberate opt-in.
+    if (process.env.KURUKOO_AGENT_ENABLED === undefined) process.env.KURUKOO_AGENT_ENABLED = 'false';
+    if (process.env.KURUKOO_AGENT_AUTONOMOUS === undefined) process.env.KURUKOO_AGENT_AUTONOMOUS = 'false';
+    if (process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK === undefined) process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK = 'false';
 
     if (process.env.KURUKOO_AGENT_ENABLED === 'true' && process.env.KURUKOO_AGENT_AUTONOMOUS === 'true') {
         const intervalMs = Math.max(30_000, Math.min(15 * 60_000, Number(process.env.KURUKOO_AGENT_WORKER_INTERVAL_MS || 60_000)));

@@ -5654,3 +5654,10 @@ This tranche records repository-side reliability work and does not claim externa
 | PWA lifecycle | A tracked contract regression verifies standalone Chat launch metadata, service-worker update controls, offline fallback, and exclusion of dynamic/admin routes from static caching. | Manual installed-state validation on iOS, Android, macOS, and Windows, including notifications and update behavior. |
 
 The completion classification remains: **repository-side complete for these reliability boundaries, ready for controlled external activation, and not externally proven as live delivery or production autonomy**.
+
+
+## Current Gate Truth — Explicit Autonomous Activation
+
+Autonomous execution is now **fail-closed when its feature gates are absent**. Starting the web process does not implicitly enable the worker. `KURUKOO_AGENT_ENABLED=true` permits bounded runtime participation, and `KURUKOO_AGENT_AUTONOMOUS=true` additionally permits recurring background evaluation; `KURUKOO_AGENT_AUTONOMOUS_LOW_RISK=true` documents the low-risk policy mode. The environment template contains an intentional opt-in configuration, while deployments that omit the variables report autonomy as disabled rather than implying activation.
+
+This preserves the distinction between **repository-side implementation** and **operator activation**: the worker, controls, ownership checks, limits, evidence, and persistence are implemented, but no autonomous production behavior is claimed unless the deployment explicitly enables the gates and independently validates the runtime.
