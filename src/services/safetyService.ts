@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getDb, saveDb } from '../database.js';
+import { persistCoordinatorEvent } from './coordinatorStore.js';
 
 export interface SafetyContact {
   id: string;
@@ -9,6 +10,22 @@ export interface SafetyContact {
   relationship: string | null;
   status: 'active' | 'pending' | 'revoked';
   created_at: string;
+}
+
+async function emitCheckInEvent(checkIn: CheckIn, status: CheckIn['status'], payload: Record<string, unknown> = {}): Promise<void> {
+  await persistCoordinatorEvent({
+    id: `safety-checkin:${checkIn.id}:state:${status}:${Date.now()}`,
+    type: 'safety.checkin.state_changed',
+    occurredAt: new Date().toISOString(),
+    producer: 'safetyService',
+    correlationId: `safety_checkin:${checkIn.id}`,
+    ownerPhone: checkIn.owner_phone.startsWith('anon_') ? undefined : checkIn.owner_phone,
+    payload: { checkInId: checkIn.id, status, contactId: checkIn.contact_id, expiresAt: checkIn.expires_at, hasRouteNote: Boolean(checkIn.route_note), ...payload },
+    sensitivity: checkIn.owner_phone.startsWith('anon_') ? 'public' : 'personal',
+    provenance: { source: 'canonical_service', sourceId: checkIn.id, evidenceLevel: 'persisted_state' },
+    policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+    schemaVersion: 1,
+  });
 }
 
 export interface CheckIn {
@@ -109,7 +126,9 @@ export async function startCheckIn(ownerPhone: string, input: { contactId: strin
     [id, ownerPhone, input.contactId, start.toISOString(), expires.toISOString(), input.routeNote?.trim() || null]
   );
   saveDb();
-  return { id, owner_phone: ownerPhone, contact_id: input.contactId, check_in_at: start.toISOString(), expires_at: expires.toISOString(), status: 'active', route_note: input.routeNote?.trim() || null };
+  const checkIn = { id, owner_phone: ownerPhone, contact_id: input.contactId, check_in_at: start.toISOString(), expires_at: expires.toISOString(), status: 'active' as const, route_note: input.routeNote?.trim() || null };
+  await emitCheckInEvent(checkIn, 'active', { action: 'started' });
+  return checkIn;
 }
 
 export async function completeCheckIn(ownerPhone: string, id: string): Promise<boolean> {
@@ -117,8 +136,12 @@ export async function completeCheckIn(ownerPhone: string, id: string): Promise<b
   const db = await getDb();
   db.run("UPDATE safety_checkins SET status='completed' WHERE id=? AND owner_phone=? AND status='active'", [id, ownerPhone]);
   saveDb();
-  const result = db.exec("SELECT id FROM safety_checkins WHERE id=? AND owner_phone=? AND status='completed'", [id, ownerPhone]);
-  return Boolean(result[0]?.values?.length);
+  const result = db.exec("SELECT * FROM safety_checkins WHERE id=? AND owner_phone=? AND status='completed'", [id, ownerPhone]);
+  const row = result[0]?.values?.[0];
+  if (!row) return false;
+  const checkIn = Object.fromEntries((result[0].columns || []).map((c: string, i: number) => [c, row[i]])) as CheckIn;
+  await emitCheckInEvent(checkIn, 'completed', { action: 'completed' });
+  return true;
 }
 
 export async function listCheckIns(ownerPhone: string): Promise<CheckIn[]> {
@@ -190,10 +213,13 @@ export async function processExpiredCheckIns(): Promise<number> {
   await ensureSafetySchema();
   const db = await getDb();
   const now = new Date().toISOString();
-  const result = db.exec("SELECT id FROM safety_checkins WHERE status='active' AND expires_at <= ?", [now]);
+  const result = db.exec("SELECT * FROM safety_checkins WHERE status='active' AND expires_at <= ?", [now]);
   const rows = result[0]?.values || [];
-  for (const row of rows) {
-    db.run("UPDATE safety_checkins SET status='escalation_pending' WHERE id=?", [row[0]]);
+  for (const values of rows) {
+    const row = Object.fromEntries((result[0].columns || []).map((c: string, i: number) => [c, values[i]])) as CheckIn;
+    db.run("UPDATE safety_checkins SET status='escalation_pending' WHERE id=?", [row.id]);
+    row.status = 'escalation_pending';
+    await emitCheckInEvent(row, 'escalation_pending', { action: 'expired', externalEscalation: 'not_claimed' });
   }
   if (rows.length) saveDb();
   return rows.length;

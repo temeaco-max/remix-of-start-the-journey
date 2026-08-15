@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { getDb, saveDb } from '../database.js';
 import { sendFcmPush } from './pushNotifications.js';
+import { persistCoordinatorEvent } from './coordinatorStore.js';
 
 export type ReminderStatus = 'scheduled' | 'sent' | 'completed' | 'cancelled' | 'failed';
 
@@ -31,6 +32,22 @@ async function ensureReminderSchema() {
   );`);
   db.run('CREATE INDEX IF NOT EXISTS idx_reminders_phone_due ON reminders(phone, due_at, status)');
   db.run("CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(due_at, status)");
+}
+
+async function emitReminderEvent(reminder: Reminder, status: ReminderStatus, payload: Record<string, unknown> = {}): Promise<void> {
+  await persistCoordinatorEvent({
+    id: `reminder:${reminder.id}:state:${status}:${Date.now()}`,
+    type: 'reminder.state_changed',
+    occurredAt: new Date().toISOString(),
+    producer: 'reminderService',
+    correlationId: `reminder:${reminder.id}`,
+    ownerPhone: reminder.phone.startsWith('anon_') ? undefined : reminder.phone,
+    payload: { reminderId: reminder.id, status, dueAt: reminder.due_at, recurrence: reminder.recurrence, titleLength: reminder.title.length, notePresent: Boolean(reminder.note), ...payload },
+    sensitivity: reminder.phone.startsWith('anon_') ? 'public' : 'personal',
+    provenance: { source: 'canonical_service', sourceId: reminder.id, evidenceLevel: 'persisted_state' },
+    policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+    schemaVersion: 1,
+  });
 }
 
 function rowToReminder(row: any): Reminder {
@@ -86,7 +103,9 @@ export async function createReminder(phone: string, input: {
   const row = stmt.step() ? stmt.getAsObject() : null;
   stmt.free();
   if (!row) throw new Error('Reminder could not be created');
-  return rowToReminder(row);
+  const reminder = rowToReminder(row);
+  await emitReminderEvent(reminder, reminder.status, { action: 'created' });
+  return reminder;
 }
 
 export async function listReminders(phone: string, includeCompleted = false): Promise<Reminder[]> {
@@ -104,8 +123,12 @@ export async function cancelReminder(phone: string, id: string): Promise<boolean
   const db = await getDb();
   db.run("UPDATE reminders SET status = 'cancelled' WHERE id = ? AND phone = ? AND status = 'scheduled'", [id, phone]);
   saveDb();
-  const check = db.exec('SELECT id FROM reminders WHERE id = ? AND phone = ? AND status = \'cancelled\'', [id, phone]);
-  return Boolean(check[0]?.values?.length);
+  const check = db.exec('SELECT * FROM reminders WHERE id = ? AND phone = ? AND status = \'cancelled\'', [id, phone]);
+  const row = check[0]?.values?.[0];
+  if (!row) return false;
+  const reminder = rowToReminder(Object.fromEntries((check[0].columns || []).map((c: string, i: number) => [c, row[i]])));
+  await emitReminderEvent(reminder, 'cancelled', { action: 'cancelled' });
+  return true;
 }
 
 function nextOccurrence(dueAt: string, recurrence: string): string | null {
@@ -160,12 +183,20 @@ export async function processDueReminders(limit = 100): Promise<{ checked: numbe
       const next = nextOccurrence(reminder.due_at, reminder.recurrence);
       if (next) {
         db.run('UPDATE reminders SET due_at = ?, status = \'scheduled\', sent_at = ? WHERE id = ?', [next, new Date().toISOString(), reminder.id]);
+        reminder.due_at = next;
+        reminder.status = 'scheduled';
+        reminder.sent_at = new Date().toISOString();
       } else {
         db.run('UPDATE reminders SET status = \'sent\', sent_at = ? WHERE id = ?', [new Date().toISOString(), reminder.id]);
+        reminder.status = 'sent';
+        reminder.sent_at = new Date().toISOString();
       }
     } else {
       db.run('UPDATE reminders SET status = \'sent\', sent_at = ? WHERE id = ?', [new Date().toISOString(), reminder.id]);
+      reminder.status = 'sent';
+      reminder.sent_at = new Date().toISOString();
     }
+    await emitReminderEvent(reminder, reminder.status, { action: 'due_processed', internalMessageStatus: pushSent ? 'sent' : 'queued', transportEvidence: pushSent ? 'adapter_reported_success' : 'not_configured_or_unsuccessful' });
   }
 
   if (rows.length) saveDb();

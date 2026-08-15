@@ -8,7 +8,9 @@ export type CoordinatorEventType =
   | 'memory.context.retrieved'
   | 'provider.offer.received'
   | 'payment.webhook.verified'
-  | 'operator.policy_changed';
+  | 'operator.policy_changed'
+  | 'reminder.state_changed'
+  | 'safety.checkin.state_changed';
 
 export type CoordinatorConfirmation = 'none' | 'user' | 'operator' | 'external_evidence';
 export type CoordinatorEvidenceLevel = 'assertion' | 'persisted_state' | 'verified_external';
