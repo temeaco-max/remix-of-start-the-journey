@@ -82,17 +82,15 @@ This document is the **implementation reference** for every page and surface in 
 | **Responsive** | Full-screen map on mobile with overlay panels (bottom sheet for pin details, top bar for filters). On desktop, sidebar with filters + list view alongside map. Leaflet.js + OpenStreetMap. |
 | **Blueprint ref** | §9 (Nearby Pulse), §38 (Live Map) |
 
-### B4. For You (User Type Chooser) — ✅ Done
+### B4. Role and intent entry — conversation-first
 | Field | Value |
 |---|---|
-| **Route** | `/:country/for-you` |
-| **Template** | `views/for-you.ejs` |
-| **Purpose** | Shows the 5 user types in the Kurukoo ecosystem with explanations of what each type gets and what they can do. Acts as a "who are you?" entry point that routes users to the right onboarding path. |
-| **Status** | ✅ Done — template and backend route implemented |
-| **User types** | 1. **Consumer** — Request any service, get matched with trusted providers, escrow protection, Daily Picks. 2. **Provider** — List skills, Work Toggle, Nearby Pulse (Go Live), Boost listings, earn. 3. **Business** — Verified storefront (chat-managed product inventory), catalogue import, analytics, team accounts, advertising. 4. **Physical Agent** — Cash-in/out, onboarding, walk-in assistance, earn commissions. 5. **Contributor** — Micro-tasks (update prices, confirm locations, incident alerts, security updates), earn airtime from Growth Fund, badge progression. |
-| **Design** | This legacy role chooser is not registered in the current public router. Role and intent entry now remain conversation-first through `/chat` and are not represented as WhatsApp or PWA deep-link claims. |
-| **Responsive** | Cards: 1-column on mobile (stacked), 2-column on tablet, 3-column on desktop. |
-| **Blueprint ref** | §40 (Pick a Role), §C Contributor model below |
+| **Route** | No standalone role-selector route. Entry is through `/chat`, `/network`, `/explore`, `/discover`, `/resources`, and `/advertise`. |
+| **Purpose** | Users describe what they need or what they offer in the canonical conversation. Kurukoo keeps the same identity and request context while routing the user to the appropriate role or capability. |
+| **Role pathways** | **Request a service** and **Offer your skills** enter Chat; **Grow your business** enters the bounded advertising/business pathway; broader participant types remain represented on `/network`. |
+| **Status** | Implemented. The former standalone For You page and static entry point were removed during the conversation-first convergence. |
+| **Truth boundary** | No direct WhatsApp role claims, fabricated matching, guaranteed demand, payment, escrow, delivery, or fulfilment states are presented without the relevant activation and evidence. |
+| **Ownership** | Homepage owns concise role pathways; `/network` owns participant taxonomy; `/resources` owns educational guidance; `/explore` and `/discover` own capability and nearby discovery; `/chat` owns the actual role-aware conversation. |
 
 ### B5. Provider Dynamic Display — **NEW (no dedicated page)**
 | Field | Value |
@@ -384,7 +382,7 @@ This section appears on the homepage and feeds into the Explore hub. Each card l
 | 17 | Find Work / Gigs | 💼 | `/explore/gigs` | Earning, Building & Community |
 | 18 | Sell Locally | 🏪 | `/explore/classifieds` (§55.4) | Earning, Building & Community |
 | 19 | Reach Customers / Advertise | 📢 | `/explore/reach-reference` | Earning, Building & Community |
-| 20 | Cover Events / Get Paid | 🎥 | `/for-you` (Contributor) | Earning, Building & Community |
+| 20 | Cover Events / Get Paid | 🎥 | `/tasks` + contributor Chat flow | Earning, Building & Community |
 | 21 | Sports, Matches & Clubs | ⚽ | `/explore/sports-recreation` | Earning, Building & Community |
 | 22 | Community / Groups (Kuru Circles) | 👥 | `/explore/events-entertainment` | Earning, Building & Community |
 | 23 | Get Price Alerts | 💲 | `/explore/price-check` | Info, Alerts & Entertainment |

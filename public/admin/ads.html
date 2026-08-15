@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kurukoo Admin - Advertising</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/css/site.css">
+  <link rel="stylesheet" href="/css/admin-pages/admin-base.css">
+</head>
+<body>
+  <div class="header-bar">
+    <div class="logo"><span>Kurukoo</span> Admin</div>
+    <nav aria-label="Admin navigation">
+      <a href="/admin/dashboard.html">Console</a>
+      <a href="/admin/ads.html" class="active">Advertising</a>
+      <a href="/admin/marketing.html">Marketing &amp; Affiliates</a>
+    </nav>
+  </div>
+
+  <main class="container">
+    <section class="card-box">
+      <h1>Advertising campaigns</h1>
+      <p>Manage campaign records used by the approved advertising authority. A campaign is not public merely because it is created: its asset, disclosure, timing, destination, review state, and external readiness remain bounded.</p>
+      <p id="ads-status" class="admin-status" role="status" aria-live="polite">Loading campaigns…</p>
+    </section>
+
+    <section class="card-box">
+      <h2>Create campaign</h2>
+      <form id="ads-form">
+        <div class="form-group"><label for="ad-title">Title</label><input id="ad-title" name="title" required maxlength="160"></div>
+        <div class="form-group"><label for="ad-desc">Description</label><textarea id="ad-desc" name="desc" rows="4" required maxlength="1000"></textarea></div>
+        <div class="form-group"><label for="ad-imageUrl">Approved image URL</label><input id="ad-imageUrl" name="imageUrl" type="url" required maxlength="500" placeholder="/assets/chat/approved-campaign.webp"></div>
+        <div class="form-group"><label for="ad-targetKeyword">Target keyword</label><input id="ad-targetKeyword" name="targetKeyword" required maxlength="80"></div>
+        <div class="form-group"><label for="ad-creditsBudget">Credits budget</label><input id="ad-creditsBudget" name="creditsBudget" type="number" min="1" step="1" required></div>
+        <div class="form-group"><label for="ad-disclosure">Disclosure</label><input id="ad-disclosure" name="disclosure" value="Sponsored" required maxlength="120"></div>
+        <div class="form-group"><label for="ad-advertiserName">Advertiser</label><input id="ad-advertiserName" name="advertiserName" maxlength="160"></div>
+        <div class="form-group"><label for="ad-ctaText">CTA label</label><input id="ad-ctaText" name="ctaText" value="Learn more" maxlength="80"></div>
+        <div class="form-group"><label for="ad-destination">Destination</label><input id="ad-destination" name="destination" value="/advertise" maxlength="300"></div>
+        <div class="form-group"><label for="ad-placement">Placement</label><select id="ad-placement" name="placement"><option value="public_home">Public home</option><option value="public_business">Public business</option><option value="public_diaspora">Public diaspora</option><option value="public_discovery">Public discovery</option><option value="public_channels">Public channels</option></select></div>
+        <div class="form-group"><label for="ad-category">Category</label><input id="ad-category" name="category" value="community" maxlength="80"></div>
+        <div class="form-group"><label for="ad-country">Country</label><input id="ad-country" name="country" value="NG" maxlength="8"></div>
+        <div class="form-group"><label for="ad-region">Region</label><input id="ad-region" name="region" maxlength="80"></div>
+        <div class="form-group"><label for="ad-targeting">Targeting JSON or note</label><textarea id="ad-targeting" name="targeting" rows="3" placeholder='{"scope":"public","safetyExcluded":true}'></textarea></div>
+        <button class="btn" type="submit">Create campaign</button>
+      </form>
+    </section>
+
+    <section class="card-box">
+      <div class="admin-section-heading"><h2>Campaign records</h2><button id="ads-refresh" class="btn secondary" type="button">Refresh</button></div>
+      <div class="table-scroll"><table><thead><tr><th>Title</th><th>Advertiser</th><th>Placement</th><th>Status</th><th>Asset</th><th>Disclosure</th><th>Destination</th></tr></thead><tbody id="ads-tbody"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
+    </section>
+  </main>
+  <script src="/js/admin-ads.js" defer></script>
+</body>
+</html>

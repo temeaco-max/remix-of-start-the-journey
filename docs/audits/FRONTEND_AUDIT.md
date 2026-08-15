@@ -17,7 +17,7 @@
 | **Help** | `/help` | Support/FAQ. | Users with issues. | Get quick answers to common problems. | **Merged**: Merge into Resources. |
 | **Partners** | `/partners` | B2B/Partner entry. | Potential partners. | How to join the Kurukoo network. | **Retained**: Align with Network model. |
 | **Advertise** | `/advertise` | Ad placement info. | Potential advertisers. | Monetization boundaries & opportunities. | **Retained**: Define ad boundaries. |
-| **For You** | `/for-you` | Persona selection. | New users. | Tailoring the experience. | **Removed**: Integrate into onboarding/chat. |
+| **Role and intent entry** | `/chat`, `/network`, `/explore`, `/discover`, `/resources`, `/advertise` | Conversation-first role and capability entry. | New and returning users. | Route users by need or offer without a separate persona selector. | **Reconciled**: Former standalone role chooser removed; ownership distributed across Chat and the canonical public pages. |
 | **Blog** | `/blog` | News/Updates. | General audience. | Stay updated on Kurukoo. | **Merged**: Integrate into Resources. |
 | **Careers** | `/careers` | Job listings. | Job seekers. | Joining the team. | **Retained**. |
 | **Legal** | `/legal` | Policies. | Everyone. | Privacy, Terms, Safety. | **Retained**. |

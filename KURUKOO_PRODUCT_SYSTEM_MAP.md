@@ -114,7 +114,7 @@ The header should remain compact. Do not expose the 45-category taxonomy as a pr
 | `/explore` | Show the breadth of things Kurukoo can help with | Try this in chat |
 | `/explore/:slug` | Explain a capability and launch a seeded conversation | Start this request |
 | `/discover` | Show nearby, events, opportunities and useful local context where permitted | Open in chat |
-| `/for-you` | Explain user modes without locking identity: Consumer, Provider, Business, Agent, Contributor | Choose a starting point |
+| `/chat`, `/network`, `/explore`, `/discover`, `/resources`, `/advertise` | Explain and route user needs, offers, participant roles, discovery, education, and business pathways without a standalone role selector | Start with the conversation or the relevant canonical page |
 | `/channels` | Explain that all channels connect to one Kurukoo relationship | Start on web |
 | `/resources` | Teach users how Kurukoo works and how to get value from it | Read / Start chatting |
 | `/help` | Resolve problems, disputes and support issues | Get help |
