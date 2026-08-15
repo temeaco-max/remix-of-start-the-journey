@@ -5703,3 +5703,10 @@ The unified admin dashboard headline cards are backed by the canonical `/api/adm
 
 
 The admin dashboard also handles protected API denial explicitly: headline metrics render `—` and protected sections report unavailable/authentication-required states rather than showing `undefined`, fake zeroes, or indefinite loading as if the operator were authenticated.
+
+
+## Provider Verification and PWA Lifecycle Telemetry
+
+Mistral credentials are now classified separately from verified availability. A configured key is not reported as available until the protected models-endpoint connection test succeeds in the current process; failed or untested credentials remain pending/unverified, while limits, privacy, retention, terms, and production suitability remain deployment decisions. This does not fabricate a provider response and does not make Mistral mandatory for local-first routing.
+
+The existing PWA client now exposes lifecycle state through `document.documentElement.dataset.pwaState`, including `loading`, `registered`, `update-available`, `installed`, `unsupported`, and `registration-error`. This is local lifecycle observability only; it does not claim notification delivery, background execution, or installed-device validation.

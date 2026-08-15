@@ -39,6 +39,18 @@ function transcriptionEnabled(): boolean {
   return process.env.KURUKOO_MISTRAL_TRANSCRIPTION_ENABLED === 'true';
 }
 
+let lastConnection: { keyMarker: string; reachable: boolean; testedAt: string; note: string } | null = null;
+
+function keyMarker(value: string): string { return `${value.length}:${value.slice(-4)}`; }
+
+function rememberConnection(key: string, reachable: boolean, note: string): void {
+  lastConnection = { keyMarker: keyMarker(key), reachable, testedAt: new Date().toISOString(), note };
+}
+
+function connectionVerified(key: string): boolean {
+  return Boolean(lastConnection && lastConnection.keyMarker === keyMarker(key) && lastConnection.reachable);
+}
+
 function apiKey(): string {
   const value = String(process.env.MISTRAL_API_KEY || '').trim();
   if (!hasConfiguredSecret(value)) throw new MistralProviderError('MISTRAL_NOT_CONFIGURED', 'Mistral is not configured for this deployment.');
@@ -51,24 +63,25 @@ export function getMistralModel(): string {
 
 export function getMistralStatus(): ProviderReadiness {
   const configured = hasConfiguredSecret(process.env.MISTRAL_API_KEY);
+  const verified = configured && connectionVerified(String(process.env.MISTRAL_API_KEY || '').trim());
   const text: ProviderCapabilityStatus = {
     configured,
-    available: configured,
+    available: verified,
     provider: 'mistral',
     capability: 'text',
     model: getMistralModel(),
     limits: configured
       ? unknownLimits('Mistral account limits are not exposed by environment configuration; no allowance is assumed.')
       : { status: 'unavailable', note: 'MISTRAL_API_KEY is not configured.' },
-    note: configured ? 'Optional hosted text generation is configured; routing policy must still select it.' : 'Optional hosted text generation is not configured.',
+    note: !configured ? 'Optional hosted text generation is not configured.' : verified ? 'Mistral models endpoint was independently verified in this process; routing policy must still select it.' : 'Mistral credentials are present, but provider availability is unverified until the protected connection test succeeds.',
   };
   return {
     provider: 'mistral',
     configured,
-    available: configured,
+    available: verified,
     capabilities: [
       text,
-      { ...text, capability: 'transcription', model: transcriptionModel(), available: configured && transcriptionEnabled(), note: !configured ? 'MISTRAL_API_KEY is not configured.' : transcriptionEnabled() ? 'Voxtral transcription is available through the bounded voice audio boundary; provider limits remain deployment-dependent.' : 'Voxtral transcription is configured but disabled by feature flag.', limits: configured ? unknownLimits('Mistral transcription limits are not safely discoverable from environment configuration.') : { status: 'unavailable', note: 'MISTRAL_API_KEY is not configured.' } },
+      { ...text, capability: 'transcription', model: transcriptionModel(), available: verified && transcriptionEnabled(), note: !configured ? 'MISTRAL_API_KEY is not configured.' : !verified ? 'Mistral credentials are present, but provider availability is unverified until the protected connection test succeeds.' : transcriptionEnabled() ? 'Voxtral transcription is available through the bounded voice audio boundary; provider limits remain deployment-dependent.' : 'Voxtral transcription is configured but disabled by feature flag.', limits: configured ? unknownLimits('Mistral transcription limits are not safely discoverable from environment configuration.') : { status: 'unavailable', note: 'MISTRAL_API_KEY is not configured.' } },
       { ...text, capability: 'tts', model: String(process.env.MISTRAL_TTS_MODEL || ''), available: false, note: 'No verified Mistral TTS adapter is present in the current repository; no audio is fabricated.', limits: { status: 'unavailable', note: 'Mistral TTS is not implemented at this boundary.' } },
       { ...text, capability: 'vision', model: String(process.env.MISTRAL_VISION_MODEL || 'pixtral-large-latest'), available: false, note: 'Vision is not selected without a canonical attachment/evidence owner and explicit enablement.', limits: configured ? unknownLimits('Mistral vision limits are not safely discoverable from environment configuration.') : { status: 'unavailable', note: 'MISTRAL_API_KEY is not configured.' } },
       { ...text, capability: 'moderation', available: false, note: 'Mistral moderation is not assumed or silently substituted for the existing moderation boundary.', limits: { status: 'unavailable', note: 'No Mistral moderation adapter is implemented at this boundary.' } },
@@ -110,7 +123,7 @@ export async function transcribeMistralAudio(input: MistralTranscriptionInput): 
 
 export async function testMistralConnection(): Promise<{ configured: boolean; reachable: boolean; modelCount?: number; status: number; note: string }> {
   const key = String(process.env.MISTRAL_API_KEY || '').trim();
-  if (!hasConfiguredSecret(key)) return { configured: false, reachable: false, status: 0, note: 'Mistral API key is not configured.' };
+  if (!hasConfiguredSecret(key)) { rememberConnection('', false, 'Mistral API key is not configured.'); return { configured: false, reachable: false, status: 0, note: 'Mistral API key is not configured.' }; }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Number(process.env.MISTRAL_TIMEOUT_MS || 15_000));
   try {
@@ -119,12 +132,12 @@ export async function testMistralConnection(): Promise<{ configured: boolean; re
       headers: { Authorization: `Bearer ${key}` },
       signal: controller.signal,
     });
-    if (!response.ok) return { configured: true, reachable: false, status: response.status, note: `Mistral models endpoint returned HTTP ${response.status}.` };
+    if (!response.ok) { const note = `Mistral models endpoint returned HTTP ${response.status}.`; rememberConnection(key, false, note); return { configured: true, reachable: false, status: response.status, note }; }
     const payload = await response.json() as any;
     const models = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
-    return { configured: true, reachable: true, modelCount: models.length, status: response.status, note: 'Mistral models endpoint responded successfully; account limits and production suitability remain unverified.' };
+    const note = 'Mistral models endpoint responded successfully; account limits and production suitability remain unverified.'; rememberConnection(key, true, note); return { configured: true, reachable: true, modelCount: models.length, status: response.status, note };
   } catch {
-    return { configured: true, reachable: false, status: 0, note: 'Mistral models endpoint could not be reached; no provider availability is claimed.' };
+    const note = 'Mistral models endpoint could not be reached; no provider availability is claimed.'; rememberConnection(key, false, note); return { configured: true, reachable: false, status: 0, note };
   } finally {
     clearTimeout(timeout);
   }

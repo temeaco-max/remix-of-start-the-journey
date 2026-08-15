@@ -20,6 +20,11 @@ assert.match(serviceWorker, /url\.pathname\.startsWith\('\/admin'\)/);
 assert.match(pwaClient, /navigator\.serviceWorker\.register\('\/sw\.js'/);
 assert.match(pwaClient, /updateViaCache:\s*'none'/);
 assert.match(pwaClient, /controllerchange/);
+assert.match(pwaClient, /dataset\.pwaState/);
+assert.match(pwaClient, /registered/);
+assert.match(pwaClient, /update-available/);
+assert.match(pwaClient, /registration-error/);
+assert.match(pwaClient, /installed/);
 assert.match(offline, /id="retry-button"/);
 
 console.log('PWA contract passed: standalone Chat launch, service-worker update lifecycle, offline fallback, and dynamic route exclusions are present.');

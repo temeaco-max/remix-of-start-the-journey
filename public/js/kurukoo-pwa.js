@@ -2,6 +2,12 @@
   const APP_START = '/chat/';
   let deferredInstallPrompt = null;
 
+  function setPwaState(state) {
+    document.documentElement.dataset.pwaState = state;
+  }
+
+  setPwaState('loading');
+
   function isAppSurface() {
     return window.location.pathname === '/chat/' || window.location.pathname === '/chat' || window.location.pathname.startsWith('/dashboard');
   }
@@ -36,14 +42,19 @@
   }
 
   async function registerWorker() {
-    if (!('serviceWorker' in navigator)) return;
+    if (!('serviceWorker' in navigator)) {
+      setPwaState('unsupported');
+      return;
+    }
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+      setPwaState('registered');
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         if (!worker) return;
         worker.addEventListener('statechange', () => {
           if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            setPwaState('update-available');
             showAction('Update Kurukoo', () => {
               worker.postMessage({ type: 'SKIP_WAITING' });
               window.location.reload();
@@ -54,6 +65,7 @@
       navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
       await registration.update();
     } catch (error) {
+      setPwaState('registration-error');
       // The application remains usable online; do not render a false offline state.
       console.warn('Kurukoo PWA update registration unavailable', error);
     }
@@ -72,6 +84,7 @@
   });
 
   window.addEventListener('appinstalled', () => {
+    setPwaState('installed');
     deferredInstallPrompt = null;
     const region = document.querySelector('[data-pwa-status]');
     if (region) region.replaceChildren();
