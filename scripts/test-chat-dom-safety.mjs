@@ -44,5 +44,6 @@ assert.match(source, /AbortController/, 'streaming must support user-requested c
 assert.match(source, /function renderAttachmentPreview\(/, 'attachments must have an accessible preview/removal surface');
 assert.match(chatCss, /\.message-action-btn/, 'message action buttons must have a dedicated touch-safe style');
 assert.match(chatCss, /min-height:42px/, 'primary Chat actions must remain usable on touch devices');
+assert.match(chatCss, /\.sidebar-bottom\[hidden\]\{display:none!important\}/, 'collapsed More-menu utility links must remain hidden until expanded');
 
 console.log('Chat DOM-safety contract passed: sanitized cards, accessible streaming, native icon actions, stop generation, and attachment affordances remain covered.');
