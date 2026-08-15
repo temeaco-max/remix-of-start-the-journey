@@ -151,7 +151,7 @@ export function getFeatureFlagStatus(country: string, flagName: string): {
         defaultEnabled: definition.defaultEnabled,
         killSwitchActive: killed,
         adminVisible: definition.adminVisible !== false,
-        source: override !== undefined ? 'test_override' : 'environment' in process.env ? 'environment' : 'default',
+        source: override !== undefined ? 'test_override' : process.env[`${FLAG_ENV_PREFIX}${flagName.toUpperCase()}`] !== undefined ? 'environment' : 'default',
     };
 }
 
