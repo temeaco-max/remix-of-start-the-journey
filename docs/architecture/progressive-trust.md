@@ -197,3 +197,10 @@ authorized execution request
 Direct replies to the user’s own WhatsApp, Telegram, SMS, or email channel are not masked because those channels already address the user through the verified or observed channel boundary. Provider, seller, delivery, callback, IVR, and other external execution contacts are the masking target. The system must not display a proxy as proof of phone ownership, and it must not claim that a provider call or message was delivered without provider evidence.
 
 The current privacy state is manageable from admin readiness, while actual provider-owned proxy number allocation, voice/SMS routing, consent, retention, and delivery evidence remain external activation requirements.
+
+
+## Phone OTP delivery truth
+
+Phone OTP generation, hashed storage, expiry, attempt limits, and verification are implemented. An OTP-specific phone delivery adapter is not currently wired. The Africa’s Talking credentials configure the separate SMS/USSD channel boundary, and WhatsApp credentials configure the WhatsApp channel boundary; neither is treated as evidence that a phone OTP was delivered.
+
+In development, a code may be returned only when the controlled debug/test gates are enabled. In production, Kurukoo must not expose the code and must not claim that it was sent until an approved phone-OTP delivery adapter returns an accepted provider response. Email OTP through Resend is the currently implemented low-cost external delivery alternative and still preserves phone as the primary communications identity.

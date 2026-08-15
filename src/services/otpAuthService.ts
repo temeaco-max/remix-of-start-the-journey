@@ -83,11 +83,13 @@ export async function requestPhoneOtp(phoneInput: string): Promise<{ success: bo
     [phone, hashCode(code, phone), expiresAt]);
   saveDb();
 
-  const deliveryConfigured = Boolean(process.env.WHATSAPP_TOKEN || process.env.AFRICASTALKING_API_KEY);
+  // Phone OTP storage is implemented, but no OTP-specific phone delivery adapter
+  // is currently wired. WhatsApp/SMS channel credentials must never be treated as
+  // proof that this OTP was delivered.
   const exposeDebug = process.env.NODE_ENV !== 'production' && process.env.OTP_DEBUG === 'true';
   return {
     success: true,
-    message: deliveryConfigured ? 'Verification code sent' : 'Verification code generated (configure phone delivery for external activation)',
+    message: 'Verification code generated (configure an approved phone-OTP delivery adapter for external activation)',
     ...(exposeDebug ? { debugCode: code } : {}),
   };
 }
