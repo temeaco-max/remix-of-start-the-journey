@@ -5666,3 +5666,8 @@ This preserves the distinction between **repository-side implementation** and **
 ## Current Observability Tranche — Notification Queue Health
 
 The protected admin stats boundary now exposes canonical internal notification queue metrics: total records, queued records, provider lifecycle states, failed records, suppressed records, dead-letter records, and the oldest queued timestamp when present. These metrics describe database-backed lifecycle state only; they do not claim that an external FCM provider accepted, sent, or delivered a notification. Queue records remain owner-scoped in the user inbox, while operator metrics are available only behind admin authentication.
+
+
+## Current Queue Integrity Tranche — Terminal Lifecycle Protection
+
+Notification delivery transitions now preserve terminal truth. Once a record is marked `delivered`, `suppressed`, or `dead_letter`, a late callback cannot move it back to `queued`, `failed`, or another non-terminal state; repeating the same terminal state remains idempotent. Retry attempts also stop for terminal records. This prevents delayed provider callbacks from resurrecting exhausted work or rewriting an externally meaningful lifecycle state.

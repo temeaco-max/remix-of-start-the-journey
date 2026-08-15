@@ -54,19 +54,25 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
 export async function transitionNotificationDelivery(notificationId: number, deliveryState: 'queued' | 'accepted' | 'sent' | 'delivered' | 'failed' | 'suppressed' | 'dead_letter', phone?: string, providerReference?: string, failureReason?: string): Promise<boolean> {
     const db = await ensureNotificationTable();
     const ownerClause = phone ? ' AND phone = ?' : '';
-    const params: any[] = [deliveryState, providerReference || null, failureReason || null, notificationId];
-    if (phone) params.push(phone);
+    const row = db.exec(`SELECT delivery_state FROM internal_notifications WHERE id = ?${ownerClause}`, phone ? [notificationId, phone] : [notificationId])[0]?.values?.[0] as any[] | undefined;
+    if (!row) return false;
+    const current = String(row[0] || 'queued');
+    const terminal = new Set(['delivered', 'suppressed', 'dead_letter']);
+    if (terminal.has(current)) return current === deliveryState;
     db.run(`UPDATE internal_notifications SET delivery_state=?, provider_reference=?, failure_reason=?, dead_lettered_at=CASE WHEN ?='dead_letter' THEN COALESCE(dead_lettered_at, CURRENT_TIMESTAMP) ELSE dead_lettered_at END WHERE id=?${ownerClause}`, [deliveryState, providerReference || null, failureReason || null, deliveryState, notificationId, ...(phone ? [phone] : [])]);
     const updated = db.getRowsModified() > 0;
     if (updated) saveDb();
     return updated;
 }
 
-export async function recordNotificationAttempt(notificationId: number, failureReason?: string, phone?: string): Promise<'queued' | 'dead_letter' | 'missing'> {
+export async function recordNotificationAttempt(notificationId: number, failureReason?: string, phone?: string): Promise<'queued' | 'dead_letter' | 'terminal' | 'missing'> {
     const db = await ensureNotificationTable();
     const ownerClause = phone ? ' AND phone = ?' : '';
-    const row = db.exec(`SELECT attempt_count, max_attempts FROM internal_notifications WHERE id = ?${ownerClause}`, phone ? [notificationId, phone] : [notificationId])[0]?.values?.[0] as any[] | undefined;
+    const row = db.exec(`SELECT attempt_count, max_attempts, delivery_state FROM internal_notifications WHERE id = ?${ownerClause}`, phone ? [notificationId, phone] : [notificationId])[0]?.values?.[0] as any[] | undefined;
     if (!row) return 'missing';
+    const current = String(row[2] || 'queued');
+    if (['delivered', 'suppressed'].includes(current)) return 'terminal';
+    if (current === 'dead_letter') return 'dead_letter';
     const attempts = Number(row[0] || 0) + 1;
     const maxAttempts = Math.max(1, Number(row[1] || 3));
     const terminal = attempts >= maxAttempts;

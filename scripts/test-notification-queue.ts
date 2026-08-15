@@ -15,7 +15,7 @@ process.env.KURUKOO_DISABLE_LISTEN = 'true';
 
 const { app } = await import('../src/index.js');
 const { getDb } = await import('../src/database.js');
-const { listQueuedNotifications, recordNotificationAttempt, sendFcmPush } = await import('../src/services/pushNotifications.js');
+const { listQueuedNotifications, recordNotificationAttempt, sendFcmPush, transitionNotificationDelivery } = await import('../src/services/pushNotifications.js');
 
 const phone = '+2348090000000';
 const otherPhone = '+2348090000001';
@@ -51,6 +51,8 @@ try {
   assert.equal(deadLetter[0]?.values?.[0]?.[0], 'dead_letter', 'Dead-letter state must be explicit and durable');
   assert.equal(deadLetter[0]?.values?.[0]?.[1], 3, 'Dead-letter attempt count must be durable');
   assert.ok(deadLetter[0]?.values?.[0]?.[2], 'Dead-letter timestamp must be recorded');
+  assert.equal(await transitionNotificationDelivery(notification!.id, 'queued', phone), false, 'A dead-letter notification must not be resurrected by a late callback');
+  assert.equal(await transitionNotificationDelivery(notification!.id, 'dead_letter', phone), true, 'Repeating the terminal dead-letter state must remain idempotent');
 
   const otherList = await fetch(`${baseUrl}/api/notifications`, { headers: userHeaders(otherPhone) });
   const otherPayload = await otherList.json() as { notifications?: unknown[] };
