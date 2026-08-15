@@ -72,6 +72,7 @@
     "test:voice": "tsx scripts/test-voice-integration.ts",
     "test:webrtc-boundary": "tsx scripts/test-webrtc-boundary.ts",
     "test:provider-capabilities": "tsx scripts/test-provider-capabilities.ts",
+    "test:feature-flags": "tsx scripts/test-feature-flags.ts",
     "test:qr": "tsx scripts/test-qr-context.ts",
     "test:agent-runtime": "tsx scripts/test-agent-runtime.ts",
     "test:coordinator": "tsx scripts/test-coordinator.ts",
