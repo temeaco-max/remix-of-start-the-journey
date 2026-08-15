@@ -33,6 +33,8 @@ npm run dev                 # tsx index.ts → http://localhost:3000
 npm run lint                # TypeScript type-check
 npm run build               # type-check + public asset copy + CSS optimization
 npm run test:routes         # canonical route and ownership contracts
+npm run audit:complete       # repository CSS/architecture duplicate audit
+npm run audit:css:all       # shared CSS/token and server-template audit
 npm run audit:security      # static safety invariants + HTTP authorization behavior
 npm run pilot:readiness      # read-only readiness report; never prints secrets
 npm run test:pilot-readiness # missing-credential and production/dev-auth regression
@@ -45,7 +47,7 @@ When intentionally changing dependencies, use `npm install`, commit both `packag
 
 ## Controlled development/test Chat
 
-Kurukoo includes an explicit development/test authentication mode for exercising the real canonical Chat without a live OTP delivery provider. Enable it only outside production by setting `KURUKOO_DEV_AUTH=true`, `KURUKOO_TEST_PHONE` to the designated test identity, and optionally `KURUKOO_TEST_NAME`. The deterministic code `111111` is accepted only for that configured phone while `NODE_ENV` is not `production`; it is not stored as an OTP record, is never accepted in production, and does not bypass provider verification, payment, escrow, Economic Request ownership, or other execution boundaries.
+The verified release candidate is maintained on `develop`; GitHub currently keeps `main` as the default branch until an explicitly approved and validated convergence. Kurukoo includes an explicit development/test authentication mode for exercising the real canonical Chat without a live OTP delivery provider. Enable it only outside production by setting `KURUKOO_DEV_AUTH=true`, `KURUKOO_TEST_PHONE` to the designated test identity, and optionally `KURUKOO_TEST_NAME`. The deterministic code `111111` is accepted only for that configured phone while `NODE_ENV` is not `production`; it is not stored as an OTP record, is never accepted in production, and does not bypass provider verification, payment, escrow, Economic Request ownership, or other execution boundaries.
 
 The normal browser login page identifies when this mode is active. An authenticated admin can use **Open Test Chat** in the admin console, which issues the normal HttpOnly Kurukoo user session for the configured test identity and redirects to `/chat`. The Chat then uses the same conversation, Memory Profile, Living Memory, routing, skill, native-assistance, Economic Request, deferred-request, agent, notification, and response-persistence services as every other user. **Reset Test Chat** clears test conversation, reminder, behavioral, OTP, and agent state while preserving economic requests, orders, escrow, payments, and disputes.
 

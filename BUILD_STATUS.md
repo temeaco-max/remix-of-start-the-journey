@@ -1,10 +1,12 @@
 # Kurukoo — Current Build Status
 
-**Status:** Pilot-readiness hardening is implemented on `develop`; external provider activation remains deployment-dependent.
+**Status:** The `develop` branch is the verified release candidate for controlled-pilot readiness; the GitHub default `main` branch remains an older lineage until an explicitly approved convergence operation is completed. External provider activation remains deployment-dependent.
 **Blueprint:** `BLUEPRINT.md` v5.62 (with the current implementation clarifications below)
-**Date:** 2026-08-14
-**Current branch:** `develop` (the repository owner controls promotion to production branches)
-**Current convergence commit:** See `git log -1` on `develop`.
+**Date:** 2026-08-15
+**Release-candidate branch:** `develop`
+**Release-candidate commit:** `3ac0101` before the current documentation/UI readiness tranche; verify with `git log -1`.
+**Default branch status:** `origin/main` is currently `b2667dc`; `origin/develop` is 42 commits ahead and 0 commits behind. No branch deletion or history rewrite is implied by this document.
+**Convergence rule:** Validate `develop`, obtain explicit release approval, then merge or fast-forward `main` through the repository’s protected review path.
 
 ## 2026-08-11 convergence verification
 

@@ -9,7 +9,6 @@ import { migrateGuestSessionToAccount } from '../services/guestSessionMigration.
 import { applyQrReferralAttribution } from '../services/qrContextService.js';
 import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 import { getAuthState, setAuthState } from '../services/conversationalAuthService.js';
-import { streamUnifiedAI } from '../services/unifiedAiEngine.js';
 import economicRequestRouter from './economicRequestRouter.js';
 
 const router = Router();
@@ -69,6 +68,8 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
   let activeConversation = conversationId;
 
   try {
+    res.flushHeaders?.();
+    sse(res, { type: 'status', status: 'processing', label: 'Kurukoo is checking your request…', grounded: true });
     const turn = await processCanonicalChatTurn({ phone, message, channel, conversationId, attachment });
     activeConversation = turn.conversationId;
     fullReply = turn.reply;
@@ -82,16 +83,12 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
       await migrateGuestSessionToAccount(phone, turn.authSuccess.phone);
       await applyQrReferralAttribution(phone, turn.authSuccess.phone).catch(() => undefined);
     }
-    res.flushHeaders?.();
     sse(res, { type: 'conversation', conversationId: activeConversation, messageId: turn.userMessageId });
     sse(res, { type: 'status', status: 'typing', label: 'Kurukoo is typing…' });
     if (turn.progressStage && turn.progressStage !== 'complete') sse(res, { type: 'progress', stage: turn.progressStage, label: turn.progressStage === 'understanding' ? 'Understanding your request…' : turn.progressStage === 'checking' ? 'Checking the available Kurukoo state…' : turn.progressStage === 'coordinating' ? 'Preparing the next supported step…' : 'Preparing your request…', grounded: true });
     if (turn.authSuccess) sse(res, { type: 'auth_success', phone: turn.authSuccess.phone });
     if (turn.agentGoal) sse(res, { type: 'agent_goal', goal: turn.agentGoal });
-    for (const chunk of chunkText(fullReply)) {
-      sse(res, { type: 'text', content: chunk });
-      await new Promise(r => setTimeout(r, 8));
-    }
+    for (const chunk of chunkText(fullReply)) sse(res, { type: 'text', content: chunk });
     sse(res, { type: 'status', status: 'complete' });
     sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, diagnostics: { classificationSource: turn.classificationSource, intentConfidence: turn.intentConfidence, modelProvider: turn.modelProvider, model: turn.model, extractionSource: turn.extractionSource, extractedEntities: turn.extractedEntities, canonicalAction: turn.canonicalAction, progressStage: turn.progressStage } });
     sse(res, '[DONE]');

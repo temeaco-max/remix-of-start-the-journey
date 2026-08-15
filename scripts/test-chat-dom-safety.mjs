@@ -38,6 +38,7 @@ assert.match(chatCss, /\.typing-indicator/, 'typing indicator must have dedicate
 assert.match(chatCss, /kurukoo-message-bubble-in/, 'new message bubbles must have a dedicated arrival animation');
 assert.match(chatCss, /prefers-reduced-motion:reduce/, 'typing and message arrival motion must honor user motion preferences');
 assert.match(shell, /id="stop-generation"[^>]*aria-label="Stop generation"/, 'composer must expose an accessible stop-generation control');
+assert.doesNotMatch(shell, /\sstyle\s*=/i, 'canonical Chat shell must not use inline style attributes');
 assert.match(source, /makeIcon\s*=|const makeIcon/, 'message actions must use the native SVG icon system');
 assert.match(source, /message-action-btn/, 'message actions must use restrained icon affordances');
 assert.match(source, /AbortController/, 'streaming must support user-requested cancellation');

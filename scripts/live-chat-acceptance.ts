@@ -69,6 +69,8 @@ for (const message of sequence) {
   });
   const body = await response.text();
   const events = parseSse(body);
+  const processing = events.find(event => event?.type === 'status' && event?.status === 'processing');
+  assert.equal(processing?.grounded, true, `${message}: missing grounded processing event`);
   const conversationEvent = events.find(event => event?.type === 'conversation');
   const done = events.find(event => event?.type === 'done');
   if (conversationEvent?.conversationId) conversationId = conversationEvent.conversationId;
