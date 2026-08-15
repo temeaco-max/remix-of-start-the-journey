@@ -4,7 +4,7 @@ const sourcePath = 'src/services/skillFlows.ts';
 const source = fs.readFileSync(sourcePath, 'utf8');
 const match = source.match(/const CATEGORY_BY_SKILL:Record<string,string>=\{([\s\S]*?)\};/);
 if (!match) throw new Error('CATEGORY_BY_SKILL map not found');
-const entries = [...match[1].matchAll(/(?:^|,)([A-Za-z0-9_]+):'([^']+)'/g)].map(([, skill, category]) => ({ skill, category }));
+const entries = [...match[1].matchAll(/(?:^|,)\s*([A-Za-z0-9_]+):'([^']+)'/g)].map(([, skill, category]) => ({ skill, category }));
 if (entries.length < 180) throw new Error(`Expected at least 180 canonical skills, found ${entries.length}`);
 const categoryProfiles = {
   'transport-mobility': { action: 'quote_and_reserve', payment: 'payment_after_confirmation', fulfillment: 'Confirm a verified driver, route, timing and quote before reservation or payment.' },
@@ -56,18 +56,24 @@ const categoryProfiles = {
 };
 const escape = value => String(value).replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 const display = skill => skill.split('_').map(part => part[0].toUpperCase() + part.slice(1)).join(' ');
+const informationCategories = new Set(['emergency-dispatch','health-medical','betting-gaming','money-circle','price-check','government-civic','community-neighbourhood','reach-reference','finance-tax','legal-compliance','nightlife-lounges']);
+const explicitRequirements = (skill, category, label) => {
+  const requirements = [{ key: 'objective', label: `Outcome for ${label}`, required: true }];
+  if (!informationCategories.has(category)) requirements.push({ key: 'location', label: category === 'digital-services' || category === 'home-automation' ? 'Access or service context' : 'Location or area' });
+  if (!['price-check','reach-reference','government-civic'].includes(category)) requirements.push({ key: 'timing', label: 'When or deadline' });
+  if (['food-drink','cravings-streetfood','agriculture-produce','water-beverage','classifieds-marketplace','communication-telecom'].includes(category)) requirements.push({ key: 'quantity', label: 'Quantity or scope' });
+  if (['professional-services','freelance-services','creative-arts','legal-compliance','finance-tax','solar-energy','property-real-estate'].includes(category)) requirements.push({ key: 'budget', label: 'Budget or fee boundary' });
+  return requirements;
+};
 const lines = entries.map(({ skill, category }) => {
   const profile = categoryProfiles[category];
   if (!profile) throw new Error(`No category profile for ${category} (${skill})`);
   const label = display(skill);
-  const questions = [
-    `{q:'What outcome do you need for ${label}?',options:[]}`,
-    `{q:'Where or who is this for?',options:[]}`,
-    `{q:'When should this happen?',options:['Now','Later','Flexible']}`,
-  ];
-  return `  ${JSON.stringify(skill)}:{category:${JSON.stringify(category)},questions:[${questions.join(',')}],action:${JSON.stringify(profile.action)},payment:${JSON.stringify(profile.payment)},fulfillment:${JSON.stringify(profile.fulfillment)}}`;
+  const requirements = explicitRequirements(skill, category, label);
+  const questions = requirements.map(requirement => `{q:${JSON.stringify(requirement.label + '?')},options:[]}`);
+  return `  ${JSON.stringify(skill)}:{category:${JSON.stringify(category)},requirements:${JSON.stringify(requirements)},questions:[${questions.join(',')}],action:${JSON.stringify(profile.action)},payment:${JSON.stringify(profile.payment)},fulfillment:${JSON.stringify(profile.fulfillment)}}`;
 });
-const block = `\nconst EXPLICIT_SKILL_FLOW_DEFINITIONS:Record<string,{category:string;questions:Array<{q:string;options:string[]}>;action:string;payment:string;fulfillment:string}>={\n${lines.join(',\n')}\n};\n`;
+const block = `\nconst EXPLICIT_SKILL_FLOW_DEFINITIONS:Record<string,{category:string;requirements:Array<{key:string;label:string;required?:boolean}>;questions:Array<{q:string;options:string[]}>;action:string;payment:string;fulfillment:string}>={\n${lines.join(',\n')}\n};\n`;
 const marker = 'function seedCanonicalSkillFlows';
 const markerIndex = source.indexOf(marker);
 if (markerIndex < 0) throw new Error('seedCanonicalSkillFlows marker not found');
