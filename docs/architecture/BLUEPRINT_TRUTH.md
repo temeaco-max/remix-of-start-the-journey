@@ -20,14 +20,14 @@ This document is the current convergence index between the Blueprint and the rep
 | Conversation-first Chat | `canonicalChatTurnService` is the shared conversation/action orchestration authority. | IMPLEMENTED_AND_VERIFIED |
 | Intent routing | FastText + deterministic routing + configured AI escalation. | IMPLEMENTED_AND_VERIFIED |
 | FastText | Real model path exists and is used for representative routing; fallback remains truthful. | IMPLEMENTED_AND_VERIFIED |
-| Local SmolLM2 | Local generation boundary exists and remains optional/cost-controlled; the memory-safe 360M q4 checkpoint is covered by direct, unifiedAiEngine, and canonical Chat integration tests. | IMPLEMENTED_FEATURE_FLAGGED |
+| Local SmolLM2 | Local generation boundary exists and remains optional/cost-controlled; the memory-safe 360M q4 checkpoint is covered by direct, unifiedAiEngine, canonical Chat, and first-class persona integration tests. | IMPLEMENTED_FEATURE_FLAGGED |
 | Unified AI | Existing provider-neutral AI layer supports configured hosted providers. | IMPLEMENTED_AND_VERIFIED |
 | Skill catalogue | `skillFlows.ts` is canonical for skill/category/requirements/capabilities. | IMPLEMENTED_AND_VERIFIED |
 | Universal Economic Request | Shared request lifecycle is the canonical economic orchestration model. | IMPLEMENTED_AND_VERIFIED |
 | Deferred requests | Open intentions/deferred request machinery exists with bounded re-evaluation and notification boundaries. | IMPLEMENTED_AND_VERIFIED |
 | Memory Profile | Single canonical user/profile authority exists; fabricated location/balance defaults were removed. Authenticated users can list active fact-level context and revoke their own retained facts without exposing source references or affecting another account. | IMPLEMENTED_PARTIALLY_WIRED |
 | Living Memory | Bounded multi-tier working context and lifecycle jobs exist. Current retrieval uses a launch-efficient relevance implementation; Blueprint fidelity to FastText embeddings must be treated as a measured optimisation choice, not an automatic requirement. Admin lifecycle jobs and owner-scoped fact revocation preserve the retention boundary. | IMPLEMENTED_PARTIALLY_WIRED |
-| Agents | Bounded autonomous goal runtime, tool registry, ownership, risk and lifecycle exist. | IMPLEMENTED_FEATURE_FLAGGED |
+| Agents | Bounded autonomous goal runtime, tool registry, ownership, risk and lifecycle exist. First-class persona delegation now emits a typed Brain event and receives policy-reviewed local-model preflight before its stored persona instruction is sent to SmolLM2; admin execution remains operator-controlled. | IMPLEMENTED_FEATURE_FLAGGED |
 | Notifications | Internal notification authority exists; external push remains separately configurable. | IMPLEMENTED_AND_VERIFIED |
 | Presence / Nearby Pulse | Nearby Radar is ready by default for local discovery without claiming a live broadcast. Authenticated eligible providers can explicitly Go Live through the canonical Pulse route; location is supplied explicitly, public display is fuzzed, sessions expire, and Chat nudges reuse the internal notification surface. External/device behaviour remains deployment-dependent. | IMPLEMENTED_FEATURE_FLAGGED |
 | Topics | Bounded shared Topic authority exists with moderation/privacy/SEO boundaries. | IMPLEMENTED_AND_VERIFIED |

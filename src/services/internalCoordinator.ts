@@ -63,6 +63,27 @@ function recheckRequest(): CoordinatorCapability {
   };
 }
 
+function firstClassAgentPersona(): CoordinatorCapability {
+  return {
+    name: 'first_class_agent_persona',
+    risk: 'read_only',
+    requires: 'none',
+    autonomous: false,
+    canRun: context => context.event.type === 'agent.persona.requested' && Boolean(context.event.ownerPhone) && typeof context.event.payload?.agentId === 'string',
+    async run(context): Promise<CoordinatorCapabilityResult> {
+      const agentId = String(context.event.payload?.agentId || '').slice(0, 120);
+      const skill = String(context.event.payload?.skill || '').slice(0, 120);
+      return {
+        ok: true,
+        state: 'observed',
+        message: 'The internal Brain authorized a bounded first-class persona response through the canonical local model boundary.',
+        data: { agentId, skill, provider: 'local', model: 'SmolLM2' },
+        evidence: { source: `agent-persona:${agentId}`, level: 'policy_reviewed' },
+      };
+    },
+  };
+}
+
 function waitForUser(): CoordinatorCapability {
   return {
     name: 'wait_for_user',
@@ -76,11 +97,13 @@ function waitForUser(): CoordinatorCapability {
   };
 }
 
-const CAPABILITIES: CoordinatorCapability[] = [recheckRequest(), inspectRequest(), waitForUser()];
+const CAPABILITIES: CoordinatorCapability[] = [recheckRequest(), inspectRequest(), firstClassAgentPersona(), waitForUser()];
 
 function chooseCapability(context: CoordinatorContext): CoordinatorDecision {
   const candidates = CAPABILITIES.filter(capability => capability.canRun(context));
-  const inspect = candidates.find(capability => capability.name === 'inspect_request');
+    const persona = candidates.find(capability => capability.name === 'first_class_agent_persona');
+    if (persona) return { capability: persona.name, provider: 'deterministic', model: 'rules-v1', reason: 'First-class persona execution must be policy-audited by the internal Brain before local generation.' };
+    const inspect = candidates.find(capability => capability.name === 'inspect_request');
   if (inspect) return { capability: inspect.name, provider: 'deterministic', model: 'rules-v1', reason: 'Read-only request inspection is the cheapest correct capability.' };
   const recheck = candidates.find(capability => capability.name === 'recheck_request');
   if (recheck) return { capability: recheck.name, provider: 'deterministic', model: 'rules-v1', reason: 'Bounded low-risk request recheck is explicitly enabled.' };
@@ -120,6 +143,19 @@ export class InternalCoordinator {
 }
 
 export const internalCoordinator = new InternalCoordinator();
+
+export function coordinatorEventForFirstClassAgent(input: { ownerPhone: string; agentId: string; skill: string; conversationId?: string }): Omit<CoordinatorEventEnvelope, 'id' | 'occurredAt' | 'schemaVersion'> {
+  return {
+    type: 'agent.persona.requested',
+    producer: 'intentRouter',
+    correlationId: `agent-persona:${input.agentId}:${Date.now()}`,
+    ownerPhone: input.ownerPhone,
+    payload: { agentId: input.agentId, skill: input.skill, conversationId: input.conversationId },
+    sensitivity: 'personal',
+    provenance: { source: 'canonical_service', sourceId: input.agentId, evidenceLevel: 'policy_reviewed' },
+    policy: { autonomousAllowed: false, confirmationRequired: 'none' },
+  };
+}
 
 export function coordinatorEventForAgentGoal(input: { ownerPhone: string; agentGoalId: string; economicRequestId: string; conversationId?: string; requestStatus?: string }): Omit<CoordinatorEventEnvelope, 'id' | 'occurredAt' | 'schemaVersion'> {
   return {

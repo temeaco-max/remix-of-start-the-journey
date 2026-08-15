@@ -16,7 +16,7 @@ const { createEconomicRequest } = await import('../src/services/skillFlows.js');
 const { createConversationGoal } = await import('../src/services/agentRuntime.js');
 const { processCanonicalChatTurn } = await import('../src/services/canonicalChatTurnService.js');
 const { getDb } = await import('../src/database.js');
-const { coordinatorEventForAgentGoal, internalCoordinator } = await import('../src/services/internalCoordinator.js');
+const { coordinatorEventForAgentGoal, coordinatorEventForFirstClassAgent, internalCoordinator } = await import('../src/services/internalCoordinator.js');
 const { approveLearningArtifact, listCoordinatorRuns, ensureCoordinatorSchema, listLearningArtifacts, persistLearningArtifact } = await import('../src/services/coordinatorStore.js');
 const { requestTeacherCandidate } = await import('../src/services/coordinatorLearning.js');
 
@@ -35,6 +35,13 @@ assert.equal(result.ok, true, 'Coordinator must complete the read-only request i
 assert.equal(result.state, 'observed', 'Coordinator must report observation rather than claim external progress');
 assert.equal(result.tool, 'get_request_state', 'Coordinator must use the canonical request-state tool');
 assert.equal(result.evidence?.level, 'persisted_state', 'Coordinator evidence must remain scoped to persisted state');
+
+const personaResult = await internalCoordinator.handle(coordinatorEventForFirstClassAgent({ ownerPhone: owner, agentId: 'agent_support_triage', skill: 'support_triage', conversationId: goal!.conversationId }));
+assert.equal(personaResult.ok, true, 'First-class persona requests must pass through the internal Brain');
+assert.equal(personaResult.state, 'observed', 'Persona coordination must remain a policy observation before generation');
+assert.equal(personaResult.data?.provider, 'local', 'Persona coordination must select the local boundary by default');
+assert.equal(personaResult.data?.model, 'SmolLM2', 'Persona coordination must report the local Brain model boundary');
+assert.equal(personaResult.evidence?.level, 'policy_reviewed', 'Persona coordination must persist policy-reviewed evidence');
 
 const runs = await listCoordinatorRuns(10);
 assert.ok(runs.some(run => run.capability === 'inspect_request' && run.provider === 'deterministic' && run.model === 'rules-v1'), 'Coordinator run telemetry must persist the deterministic local-first decision');

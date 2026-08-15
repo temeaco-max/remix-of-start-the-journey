@@ -1,6 +1,7 @@
 import { deductPoints, addPoints } from './pointsEngine.js';
 import { getDb, saveDb } from '../database.js';
 import { getSmolLM2RuntimeStatus, querySmolLM2 } from './smolLm2Service.js';
+import { coordinatorEventForFirstClassAgent, internalCoordinator } from './internalCoordinator.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -489,6 +490,11 @@ export async function delegateToAgentForSkill(skillTag: string, taskInput: strin
     }
     console.log(`[delegateToAgentForSkill] FOUND agent: ${agent.id} for skill '${skillTag}'`);
     
+    if (userPhone && !userPhone.startsWith('anon_')) {
+        const coordination = await internalCoordinator.handle(coordinatorEventForFirstClassAgent({ ownerPhone: userPhone, agentId: agent.id, skill: skillTag }));
+        if (!coordination.ok) return { agentUsed: agent.id, reply: coordination.message || 'The internal Brain did not authorize this specialist response.', success: false };
+    }
+
     let pointDeducted = false;
     if (userPhone && skillTag !== 'support_triage') {
         // Free skills don't deduct points, but for now we assume some are paid.

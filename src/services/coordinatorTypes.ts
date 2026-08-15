@@ -18,10 +18,11 @@ export type CoordinatorEventType =
   | 'trust.device.revoked'
   | 'channel.evidence.observed'
   | 'privacy.number_mapping.created'
-  | 'privacy.number_mapping.released';
+  | 'privacy.number_mapping.released'
+  | 'agent.persona.requested';
 
 export type CoordinatorConfirmation = 'none' | 'user' | 'operator' | 'external_evidence';
-export type CoordinatorEvidenceLevel = 'assertion' | 'persisted_state' | 'verified_external';
+export type CoordinatorEvidenceLevel = 'assertion' | 'persisted_state' | 'verified_external' | 'policy_reviewed';
 
 export interface CoordinatorEventEnvelope<TPayload = Record<string, unknown>> {
   id: string;
@@ -48,7 +49,7 @@ export interface CoordinatorEventEnvelope<TPayload = Record<string, unknown>> {
   schemaVersion: 1;
 }
 
-export type CoordinatorCapabilityName = 'inspect_request' | 'recheck_request' | 'wait_for_user';
+export type CoordinatorCapabilityName = 'inspect_request' | 'recheck_request' | 'first_class_agent_persona' | 'wait_for_user';
 export type CoordinatorCapabilityRisk = 'read_only' | 'reversible' | 'user_confirmation_required';
 
 export interface CoordinatorContext {
