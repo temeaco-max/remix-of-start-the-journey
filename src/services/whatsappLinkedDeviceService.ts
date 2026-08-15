@@ -1,0 +1,145 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import makeWASocket, { DisconnectReason, useMultiFileAuthState, type WASocket } from '@whiskeysockets/baileys';
+import QRCode from 'qrcode';
+
+export type LinkedDeviceState = 'disabled' | 'idle' | 'pairing' | 'connecting' | 'connected' | 'logged_out' | 'error';
+
+export interface LinkedDeviceStatus {
+  enabled: boolean;
+  ownerConfigured: boolean;
+  state: LinkedDeviceState;
+  connected: boolean;
+  connectedAccount?: string;
+  qrAvailable: boolean;
+  qrDataUrl?: string;
+  lastError?: string;
+  authDirectory: string;
+}
+
+let socket: WASocket | null = null;
+let starting: Promise<void> | null = null;
+let currentStatus: LinkedDeviceStatus = statusBase();
+let currentQrText = '';
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function configuredOwner(): string {
+  return String(process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_OWNER_PHONE || '').trim();
+}
+function authDirectory(): string {
+  return path.resolve(String(process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_AUTH_DIR || path.join(process.cwd(), '.data', 'whatsapp-linked-device')));
+}
+function enabled(): boolean {
+  return process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_ENABLED === 'true' && process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_ALLOW === 'true';
+}
+function statusBase(): LinkedDeviceStatus {
+  return {
+    enabled: enabled(),
+    ownerConfigured: Boolean(configuredOwner()),
+    state: enabled() ? 'idle' : 'disabled',
+    connected: false,
+    qrAvailable: false,
+    authDirectory: authDirectory(),
+  };
+}
+function updateStatus(patch: Partial<LinkedDeviceStatus>): void {
+  currentStatus = { ...currentStatus, ...patch, enabled: enabled(), ownerConfigured: Boolean(configuredOwner()), authDirectory: authDirectory() };
+}
+
+export function getWhatsAppLinkedDevicePairingCode(): string | null { return currentQrText || null; }
+export function getWhatsAppLinkedDeviceStatus(): LinkedDeviceStatus {
+  return { ...currentStatus, enabled: enabled(), ownerConfigured: Boolean(configuredOwner()), authDirectory: authDirectory(), qrDataUrl: currentStatus.qrDataUrl };
+}
+export function isWhatsAppLinkedDeviceConfigured(): boolean {
+  return enabled() && Boolean(configuredOwner());
+}
+export function isWhatsAppLinkedDeviceOwner(phone: string): boolean {
+  return Boolean(configuredOwner()) && String(phone).trim() === configuredOwner();
+}
+
+function textFromMessage(message: any): string {
+  const content = message?.message || {};
+  return String(content.conversation || content.extendedTextMessage?.text || content.imageMessage?.caption || content.videoMessage?.caption || '').trim();
+}
+function phoneFromJid(jid: string): string {
+  const user = String(jid || '').split('@')[0].split(':')[0];
+  return user ? `+${user.replace(/^\+/, '')}` : '';
+}
+
+async function handleInboundMessage(message: any): Promise<void> {
+  const jid = String(message?.key?.remoteJid || '');
+  if (!jid || message?.key?.fromMe || jid === 'status@broadcast') return;
+  const allowGroups = process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_ALLOW_GROUPS === 'true';
+  if (jid.endsWith('@g.us') && !allowGroups) return;
+  const text = textFromMessage(message);
+  if (!text) return;
+  const phone = jid.endsWith('@g.us') ? phoneFromJid(String(message?.key?.participant || '')) : phoneFromJid(jid);
+  if (!phone) return;
+  const { processCanonicalChatTurn } = await import('./canonicalChatTurnService.js');
+  const turn = await processCanonicalChatTurn({ phone, message: text, channel: 'whatsapp' });
+  if (socket) await socket.sendMessage(jid, { text: turn.reply });
+}
+
+export async function startWhatsAppLinkedDevice(): Promise<void> {
+  if (!isWhatsAppLinkedDeviceConfigured()) {
+    updateStatus({ state: enabled() ? 'error' : 'disabled', lastError: enabled() ? 'KURUKOO_WHATSAPP_LINKED_DEVICE_OWNER_PHONE is required.' : 'Linked-device connector is disabled.' });
+    return;
+  }
+  if (starting) return starting;
+  if (socket) return;
+  starting = (async () => {
+    const directory = authDirectory();
+    fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    const { state, saveCreds } = await useMultiFileAuthState(directory);
+    updateStatus({ state: state.creds.registered ? 'connecting' : 'pairing', lastError: undefined });
+    socket = makeWASocket({ auth: state, printQRInTerminal: false, markOnlineOnConnect: false, syncFullHistory: false, browser: ['Kurukoo', 'Chrome', '1.0.0'] });
+    socket.ev.on('creds.update', saveCreds);
+    socket.ev.on('connection.update', async ({ connection, lastDisconnect, qr, isNewLogin }) => {
+      if (qr) {
+        const qrDataUrl = await QRCode.toDataURL(qr, { margin: 2, width: 320 });
+        currentQrText = qr;
+        updateStatus({ state: 'pairing', qrAvailable: true, qrDataUrl });
+      }
+      if (connection === 'open') {
+        currentQrText = '';
+        updateStatus({ state: 'connected', connected: true, qrAvailable: false, qrDataUrl: undefined, connectedAccount: socket?.user?.id });
+      }
+      if (connection === 'close') {
+        socket = null;
+        const code = (lastDisconnect?.error as any)?.output?.statusCode;
+        if (code === DisconnectReason.loggedOut || isNewLogin === false && code === DisconnectReason.loggedOut) {
+            currentQrText = '';
+          updateStatus({ state: 'logged_out', connected: false, qrAvailable: false, qrDataUrl: undefined, lastError: 'WhatsApp linked-device session logged out; pair again explicitly.' });
+          return;
+        }
+        currentQrText = '';
+        updateStatus({ state: 'error', connected: false, qrAvailable: false, qrDataUrl: undefined, lastError: 'Linked-device connection closed; retry is scheduled.' });
+        if (!reconnectTimer) reconnectTimer = setTimeout(() => { reconnectTimer = null; void startWhatsAppLinkedDevice(); }, 5000);
+      }
+    });
+    socket.ev.on('messages.upsert', async ({ messages, type }) => {
+      if (type !== 'notify') return;
+      for (const message of messages) {
+        try { await handleInboundMessage(message); } catch (error) { updateStatus({ state: 'error', lastError: error instanceof Error ? error.message.slice(0, 160) : 'Inbound linked-device processing failed.' }); }
+      }
+    });
+  })().catch((error) => {
+    socket = null;
+    updateStatus({ state: 'error', connected: false, lastError: error instanceof Error ? error.message.slice(0, 160) : 'Linked-device startup failed.' });
+  }).finally(() => { starting = null; });
+  return starting;
+}
+
+export async function stopWhatsAppLinkedDevice(logout = false): Promise<void> {
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  const active = socket;
+  socket = null;
+  if (active) {
+    if (logout) await active.logout().catch(() => undefined);
+    else active.end(undefined);
+  }
+  currentQrText = '';
+  updateStatus({ state: logout ? 'logged_out' : enabled() ? 'idle' : 'disabled', connected: false, qrAvailable: false, qrDataUrl: undefined });
+}
+
+export const __linkedDeviceInternal = { textFromMessage, phoneFromJid, statusBase };

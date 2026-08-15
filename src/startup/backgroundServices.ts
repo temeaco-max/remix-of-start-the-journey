@@ -4,6 +4,7 @@ import { startContactSyncService } from '../services/contactSyncService.js';
 import { startDeliveryStatusService } from '../services/deliveryService.js';
 import { runEscrowPass } from '../services/tradeEngine.js';
 import { drainFcmQueue, isFcmConfigured } from '../services/pushNotifications.js';
+import { isWhatsAppLinkedDeviceConfigured, startWhatsAppLinkedDevice, stopWhatsAppLinkedDevice } from '../services/whatsappLinkedDeviceService.js';
 import { markAgentWorkerCycleCompleted, markAgentWorkerCycleFailed, markAgentWorkerCycleStarted, markAgentWorkerStarted, markAgentWorkerStopped, notifyGoalIfNeeded, recordAgentWorkerRun, reenterDueDeferredGoals, runDueAgentGoals } from '../services/agentRuntime.js';
 
 const backgroundTimers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
@@ -27,6 +28,11 @@ export async function startBackgroundServices(): Promise<void> {
         backgroundTimers.push(setInterval(() => drainFcmQueue().catch((error) => console.error('Error draining FCM queue:', error instanceof Error ? error.message : error)), 15_000));
     } else {
         console.warn('[Push] FCM external delivery is not configured; internal inbox notifications only.');
+    }
+    if (process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_AUTOSTART === 'true' && isWhatsAppLinkedDeviceConfigured()) {
+        void startWhatsAppLinkedDevice().catch((error) => console.error('[WhatsApp Linked Device] Startup failed:', error instanceof Error ? error.message : error));
+    } else {
+        console.warn('[WhatsApp Linked Device] Disabled or not configured; no personal WhatsApp session will start.');
     }
     backgroundTimers.push(setTimeout(() => runEscrowPass().catch((error) => console.error('Error running initial escrow pass:', error)), 30000));
     backgroundTimers.push(setInterval(() => runEscrowPass().catch((error) => console.error('Error running daily escrow pass:', error)), 24 * 60 * 60 * 1000));
@@ -64,6 +70,7 @@ export async function startBackgroundServices(): Promise<void> {
 }
 
 export function stopBackgroundServices(): void {
+    void stopWhatsAppLinkedDevice(false).catch(() => undefined);
     while (backgroundTimers.length) {
         const timer = backgroundTimers.pop();
         if (timer) clearTimeout(timer);

@@ -44,3 +44,5 @@ repo-main.zip
 *.workspace.tar
 
 secrets/
+# Persistent local connector sessions; contains WhatsApp auth keys and must never be committed.
+.data/
