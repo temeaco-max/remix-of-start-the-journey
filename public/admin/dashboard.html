@@ -618,12 +618,19 @@
         // Load initial console data
         function loadConsoleData() {
             // Load stats
-            fetch('/api/admin/stats').then(res=>res.json()).then(data => {
-                document.getElementById('stat-users').innerText = data.users;
-                document.getElementById('stat-providers').innerText = data.providers;
-                document.getElementById('stat-messages').innerText = data.messages;
-                document.getElementById('stat-credits').innerText = data.credits;
-            }).catch(e => console.error('Stats error:', e));
+            fetch('/api/admin/stats').then(async res => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) throw new Error(data.error || 'Admin authentication required');
+                return data;
+            }).then(data => {
+                document.getElementById('stat-users').innerText = Number.isFinite(Number(data.users)) ? data.users : '—';
+                document.getElementById('stat-providers').innerText = Number.isFinite(Number(data.providers)) ? data.providers : '—';
+                document.getElementById('stat-messages').innerText = Number.isFinite(Number(data.messages)) ? data.messages : '—';
+                document.getElementById('stat-credits').innerText = Number.isFinite(Number(data.credits)) ? data.credits : '—';
+            }).catch(e => {
+                console.warn('Admin stats unavailable:', e.message);
+                ['stat-users', 'stat-providers', 'stat-messages', 'stat-credits'].forEach(id => { const node = document.getElementById(id); if (node) node.innerText = '—'; });
+            });
 
             fetch('/api/admin/pilot-readiness').then(res => res.json()).then(report => {
                 const grid = document.getElementById('pilot-readiness-grid');

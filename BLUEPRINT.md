@@ -5700,3 +5700,6 @@ The internal notification queue now has an explicit `KURUKOO_NOTIFICATION_MAX_QU
 ## Admin Dashboard Metric Contract
 
 The unified admin dashboard headline cards are backed by the canonical `/api/admin/stats` response. The response now includes registered profile count, provider-profile count, message count, and aggregate Points balance in addition to economic-request, reminder, safety, internal-notification, and queue lifecycle metrics. Unauthenticated static admin HTML may load as a shell, but protected APIs remain unavailable until an administrator authenticates; the UI must show a neutral empty state rather than interpreting missing protected data as live zeroes or `undefined` values.
+
+
+The admin dashboard also handles protected API denial explicitly: headline metrics render `—` and protected sections report unavailable/authentication-required states rather than showing `undefined`, fake zeroes, or indefinite loading as if the operator were authenticated.
