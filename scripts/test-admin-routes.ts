@@ -34,6 +34,11 @@ async function main() {
   for (const file of ['login.html', 'dashboard.html', 'ads.html', 'analytics.html', 'ai-agents.html', 'content.html', 'seo.html', 'users.html', 'pricing.html', 'revenue.html']) {
     assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', file)), `admin page ${file} must exist`);
   }
+  const dashboard = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'dashboard.html'), 'utf8');
+  assert.match(dashboard, /fetch\('\/api\/admin\/ads'/, 'admin dashboard campaigns must use the protected admin ads owner');
+  assert.match(dashboard, /fetch\('\/api\/admin\/content'/, 'admin dashboard CMS must use the protected admin content owner');
+  assert.doesNotMatch(dashboard, /fetch\('\/api\/ads'/, 'admin dashboard must not use the public ads path');
+  assert.doesNotMatch(dashboard, /fetch\('\/api\/content'/, 'admin dashboard must not use the public content path');
   assert.match(src, /authenticateAdmin/, 'adminRoutes must use authenticateAdmin');
   assert.match(src, /operatorSession: true/, 'operator Chat must issue an explicit operator session claim');
   assert.match(src, /testActor: true/, 'Test As must issue an explicit actor claim');

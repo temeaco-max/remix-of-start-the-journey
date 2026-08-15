@@ -5710,3 +5710,8 @@ The admin dashboard also handles protected API denial explicitly: headline metri
 Mistral credentials are now classified separately from verified availability. A configured key is not reported as available until the protected models-endpoint connection test succeeds in the current process; failed or untested credentials remain pending/unverified, while limits, privacy, retention, terms, and production suitability remain deployment decisions. This does not fabricate a provider response and does not make Mistral mandatory for local-first routing.
 
 The existing PWA client now exposes lifecycle state through `document.documentElement.dataset.pwaState`, including `loading`, `registered`, `update-available`, `installed`, `unsupported`, and `registration-error`. This is local lifecycle observability only; it does not claim notification delivery, background execution, or installed-device validation.
+
+
+## Cross-Platform Admin Wiring
+
+The unified admin dashboard now uses the protected canonical `/api/admin/ads` and `/api/admin/content` owners for campaign and CMS reads and writes. It no longer calls the unrelated public `/api/ads` or `/api/content` paths, which previously caused the dashboard’s campaign and content panels to fail or silently remain in loading states. The admin regression now verifies those endpoint contracts.

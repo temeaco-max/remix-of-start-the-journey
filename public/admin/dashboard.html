@@ -661,7 +661,7 @@
             }).catch(e => console.error('Skill flows load error:', e));
 
             // Load ad campaigns
-            fetch('/api/ads').then(res=>res.json()).then(ads => {
+            fetch('/api/admin/ads', { credentials: 'same-origin', headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '' } }).then(res=>{ if (!res.ok) throw new Error('Admin authentication required'); return res.json(); }).then(ads => {
                 const tbody = document.getElementById('ads-tbody');
                 tbody.innerHTML = ads.map(ad => `
                     <tr>
@@ -844,9 +844,10 @@
             const targetKeyword = document.getElementById('ad-keyword').value;
             const creditsBudget = document.getElementById('ad-budget').value;
 
-            fetch('/api/ads', {
+            fetch('/api/admin/ads', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '', 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, desc, imageUrl, targetKeyword, creditsBudget })
             }).then(res => res.json()).then(() => {
                 closeAdModal();
@@ -868,7 +869,7 @@
 
         // CMS Actions & Loaders
         function loadCmsList() {
-            fetch('/api/content').then(res => res.json()).then(data => {
+            fetch('/api/admin/content', { credentials: 'same-origin', headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '' } }).then(res => { if (!res.ok) throw new Error('Admin authentication required'); return res.json(); }).then(data => {
                 const tbody = document.getElementById('cms-tbody');
                 tbody.innerHTML = data.map(page => `
                     <tr>
