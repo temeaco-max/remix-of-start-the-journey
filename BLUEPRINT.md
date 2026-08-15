@@ -5511,7 +5511,7 @@ Authenticated users control their own persistent goals through `POST /api/agent/
 
 The administrator-only runtime status endpoint exposes activation flags, bounded limits, worker start time, current overlap state, cycle count, last cycle timestamps, updated-goal counts, and a bounded last-error message. Background services retain all recurring timer handles, refuse duplicate startup, and expose `stopBackgroundServices()` for deploy/restart shutdown. This is operational telemetry, not user data and not a substitute for provider delivery evidence.
 
-Production activation remains conditional on a real JWT secret of at least 32 characters, configured notification and channel providers, verified callback/webhook paths, payment and affiliate configuration, and an explicit operator decision to enable both runtime flags. Missing provider credentials must remain visible as setup required or unconfigured; they must never be represented as connected.
+Production activation remains conditional on a real JWT secret of at least 32 characters, configured notification and channel providers, verified callback/webhook paths, payment and affiliate configuration, and an explicit operator decision to enable both runtime flags. WhatsApp and Telegram webhook authentication failures now return a non-2xx response through the shared channel boundary; invalid secrets/signatures are not acknowledged as successful delivery, while internal processing errors remain distinct from authentication failures. Missing provider credentials must remain visible as setup required or unconfigured; they must never be represented as connected.
 
 
 ## §21b.5 Durable worker auditability

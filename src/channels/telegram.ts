@@ -20,7 +20,7 @@ class TelegramHandler extends BaseChannelHandler {
     protected parseMessage(body: any, headers: Record<string, any>): { phone: string; text: string; meta?: any } | null {
         const configuredSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
         const secretToken = headers['x-telegram-bot-api-secret-token'];
-        if (configuredSecret && secretToken !== configuredSecret) return null;
+        if (configuredSecret && secretToken !== configuredSecret) throw new Error('Invalid Telegram webhook secret');
 
         const message = body?.message || body?.edited_message;
         if (!message || !message.text) return null;

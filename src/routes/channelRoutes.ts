@@ -8,6 +8,11 @@ import { webhookRateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
 
+function webhookStatus(result: { status?: string; error?: string }): number {
+  if (result.status !== 'error') return 200;
+  return /signature|secret|auth/i.test(String(result.error || '')) ? 401 : 502;
+}
+
 router.get('/webhook/whatsapp', (req, res) => {
   const mode = String(req.query['hub.mode'] || '');
   const token = String(req.query['hub.verify_token'] || '');
@@ -20,17 +25,17 @@ router.get('/webhook/whatsapp', (req, res) => {
 router.post('/webhook/whatsapp', webhookRateLimit, async (req, res) => {
   const rawBody = (req as any).rawBody;
   const result = await dispatchWebhook('whatsapp', req.body, req.headers as Record<string, any>, rawBody);
-  res.status(200).json(result);
+  res.status(webhookStatus(result)).json(result);
 });
 
 router.post('/webhook/telegram', webhookRateLimit, async (req, res) => {
   const result = await dispatchWebhook('telegram', req.body, req.headers as Record<string, any>);
-  res.status(200).json(result);
+  res.status(webhookStatus(result)).json(result);
 });
 
 router.post('/webhook/sms', webhookRateLimit, async (req, res) => {
   const result = await dispatchWebhook('sms', req.body, req.headers as Record<string, any>);
-  res.status(200).json(result);
+  res.status(webhookStatus(result)).json(result);
 });
 
 router.post('/webhook/email', webhookRateLimit, async (req, res) => {

@@ -62,7 +62,8 @@ export abstract class BaseChannelHandler {
             return { status: 'success', response: turn.reply, conversationId: turn.conversationId, cardData: turn.cardData };
         } catch (e) {
             console.error(`[${this.channelName} Webhook] Error:`, e);
-            return { status: 'error' };
+            const detail = e instanceof Error ? e.message : '';
+            return { status: 'error', error: /secret|signature/i.test(detail) ? 'invalid_webhook_auth' : 'webhook_processing_failed' };
         }
     }
 }
