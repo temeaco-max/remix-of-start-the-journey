@@ -8,6 +8,7 @@ process.env.DB_PATH = path.join(tempDir, 'skill-flows.sqlite');
 process.env.KURUKOO_DISABLE_LISTEN = 'true';
 
 const { getSkillFlow, auditSkillFlows, getKnownSkills, getEconomicCategory } = await import('../src/services/skillFlows.js');
+const { getDb } = await import('../src/database.js');
 
 const canonicalSkills = getKnownSkills();
 assert.ok(canonicalSkills.length >= 200, `Expected the full canonical skill catalogue, found ${canonicalSkills.length}`);
@@ -25,6 +26,11 @@ for (const skill of canonicalSkills) {
   assert.ok(!seen.has(skill), `${skill} should not be seeded more than once in the canonical definition map`);
   seen.add(skill);
 }
+
+const db = await getDb();
+db.run(`UPDATE skill_flows SET post_match_action='legacy_default', payment_model='legacy_default', fulfillment_instructions='legacy_default' WHERE skill='rider'`);
+const upgraded = await getSkillFlow('rider');
+assert.ok(upgraded && upgraded.post_match_action !== 'legacy_default', 'Existing legacy flow rows must be upgraded to the explicit definition');
 
 const audit = await auditSkillFlows();
 assert.equal(audit.invalid.length, 0, `Skill flow audit should have no invalid seeded records: ${audit.invalid.join(', ')}`);
