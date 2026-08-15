@@ -10,6 +10,8 @@ try {
   const base = { ...process.env, NODE_ENV: 'test', KURUKOO_DEV_AUTH: 'true', KURUKOO_TEST_PHONE: '+2348000000000', JWT_SECRET: 'a'.repeat(40), KURUKOO_PAY_PROVIDER: '', FF_NIMC_KYC: 'true', KURUKOO_AGENT_ENABLED: 'false' };
   const development = getPilotReadiness(base);
   assert.equal(state(development, 'CORE', 'developmentAuth'), 'READY');
+  assert.equal(state(development, 'CORE', 'databaseConcurrency'), 'READY');
+  assert.equal(state(getPilotReadiness({ ...base, KURUKOO_WORKERS: '2' }), 'CORE', 'databaseConcurrency'), 'PENDING');
   assert.equal(state(development, 'CHANNELS', 'WhatsApp'), 'NOT_CONFIGURED');
   assert.equal(state(development, 'CHANNELS', 'FCM'), 'NOT_CONFIGURED');
   assert.equal(state(development, 'PAYMENTS', 'Stripe'), 'NOT_CONFIGURED');
@@ -19,6 +21,7 @@ try {
 
   const production = getPilotReadiness({ ...base, NODE_ENV: 'production' });
   assert.equal(state(production, 'CORE', 'developmentAuth'), 'DISABLED');
+  assert.equal(state(getPilotReadiness({ ...base, NODE_ENV: 'production', KURUKOO_WORKERS: '4' }), 'CORE', 'databaseConcurrency'), 'PENDING');
   assert.equal(state(production, 'CHANNELS', 'WhatsApp'), 'NOT_CONFIGURED');
   assert.equal(state(production, 'CHANNELS', 'FCM'), 'NOT_CONFIGURED');
   assert.equal(state(production, 'PAYMENTS', 'Stripe'), 'NOT_CONFIGURED');

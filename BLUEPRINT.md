@@ -5671,3 +5671,8 @@ The protected admin stats boundary now exposes canonical internal notification q
 ## Current Queue Integrity Tranche — Terminal Lifecycle Protection
 
 Notification delivery transitions now preserve terminal truth. Once a record is marked `delivered`, `suppressed`, or `dead_letter`, a late callback cannot move it back to `queued`, `failed`, or another non-terminal state; repeating the same terminal state remains idempotent. Retry attempts also stop for terminal records. This prevents delayed provider callbacks from resurrecting exhausted work or rewriting an externally meaningful lifecycle state.
+
+
+## Current Deployment Safety Tranche — SQL.js Worker Topology
+
+The readiness report now exposes `CORE.databaseConcurrency`. A single worker is reported as ready for the current SQL.js file-backed persistence boundary; configurations requesting more than one application worker are reported as pending because the repository does not claim multi-process database coordination. This guard prevents a deployment from silently scaling the current storage implementation beyond its proven concurrency model. Multi-process activation requires an approved database boundary or an explicitly validated coordination design.

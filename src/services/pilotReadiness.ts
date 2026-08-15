@@ -45,6 +45,12 @@ function devAuthState(env: NodeJS.ProcessEnv): ReadinessItem {
   return item('DISABLED', 'Controlled development OTP is disabled unless explicitly enabled outside production.');
 }
 
+function databaseConcurrencyState(env: NodeJS.ProcessEnv): ReadinessItem {
+  const workers = Number(env.KURUKOO_WORKERS || 1);
+  if (!Number.isFinite(workers) || workers <= 1) return item('READY', 'SQL.js file-backed persistence is constrained to one application worker for safe in-process coordination.');
+  return item('PENDING', `KURUKOO_WORKERS=${workers} requests multiple application workers, but this SQL.js persistence boundary is single-process; use one worker or an approved multi-process database boundary before activation.`);
+}
+
 function fcmState(env: NodeJS.ProcessEnv): ReadinessItem {
   // The current push authority intentionally persists an internal notification when no external adapter exists.
   // No environment variable alone is treated as proof of external FCM delivery.
@@ -109,6 +115,7 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
         sqljs: item('READY', 'SQL.js is a declared runtime dependency and is exercised by the repository tests.'),
         securitySecret: secretState(env),
         developmentAuth: devAuthState(env),
+        databaseConcurrency: databaseConcurrencyState(env),
         fastTextModel: fastTextReadiness,
       },
       AI_PROVIDERS: {
