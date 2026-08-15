@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 
+import { hasConfiguredSecret } from './providerCapabilities.js';
+
 export interface StripePaymentIntent {
   id: string;
   clientSecret: string;
@@ -15,7 +17,7 @@ export interface StripeWebhookEvent {
 }
 
 function configured(): boolean {
-  return process.env.KURUKOO_PAY_PROVIDER === 'stripe' && Boolean(process.env.STRIPE_SECRET_KEY) && Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  return process.env.KURUKOO_PAY_PROVIDER === 'stripe' && hasConfiguredSecret(process.env.STRIPE_SECRET_KEY) && hasConfiguredSecret(process.env.STRIPE_WEBHOOK_SECRET);
 }
 
 export function stripeStatus(): { configured: boolean; provider: 'stripe'; required: string[] } {

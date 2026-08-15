@@ -5676,3 +5676,10 @@ Notification delivery transitions now preserve terminal truth. Once a record is 
 ## Current Deployment Safety Tranche — SQL.js Worker Topology
 
 The readiness report now exposes `CORE.databaseConcurrency`. A single worker is reported as ready for the current SQL.js file-backed persistence boundary; configurations requesting more than one application worker are reported as pending because the repository does not claim multi-process database coordination. This guard prevents a deployment from silently scaling the current storage implementation beyond its proven concurrency model. Multi-process activation requires an approved database boundary or an explicitly validated coordination design.
+
+
+## Current Activation Tranche — Channel and Payment Boundary Truth
+
+Channel readiness now requires the complete authentication boundary rather than only a transport token. WhatsApp requires its access token, phone-number ID, verification token, and signing secret; Telegram requires both its bot token and webhook secret. Placeholder and sentinel values are rejected. In production, Telegram webhooks fail closed when the secret is absent, while local development may still use the existing controlled adapter behavior.
+
+Stripe activation likewise rejects placeholder secrets before creating intents or accepting webhook events. The payment boundary continues to require provider selection, server credentials, raw-body signature verification, replay protection, canonical economic-request metadata, idempotency, and verified quote matching before payment state changes. These checks establish repository readiness only; no external channel delivery or payment settlement is claimed without provider evidence.

@@ -19,4 +19,10 @@ const oldSignature = crypto.createHmac('sha256', process.env.STRIPE_WEBHOOK_SECR
 assert.equal(verifyStripeWebhook(payload, `t=${oldTimestamp},v1=${oldSignature}`), null, 'Expired webhook signatures must fail closed');
 process.env.STRIPE_WEBHOOK_SECRET = '';
 assert.equal(stripeStatus().configured, false, 'Missing verification secret must disable the production adapter');
+process.env.STRIPE_SECRET_KEY = 'CHANGE_ME_TO_A_REAL_SECRET';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_adapter_contract';
+assert.equal(stripeStatus().configured, false, 'Placeholder payment credentials must disable the production adapter');
+process.env.STRIPE_SECRET_KEY = 'sk_test_adapter_contract';
+process.env.STRIPE_WEBHOOK_SECRET = 'CHANGE_ME_TO_A_REAL_WEBHOOK_SECRET';
+assert.equal(stripeStatus().configured, false, 'Placeholder webhook credentials must disable the production adapter');
 console.log('Stripe adapter contract passed: configured-only execution, raw-body signature verification, replay-window rejection, and request metadata integrity.');
