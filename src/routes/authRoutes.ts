@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { getDb, saveDb } from '../database.js';
 import { migrateGuestSessionToAccount } from '../services/guestSessionMigration.js';
 import { applyQrReferralAttribution } from '../services/qrContextService.js';
-import { requestPhoneOtp, verifyPhoneOtp } from '../services/otpAuthService.js';
+import { ensureOtpSchema, isEmailOtpEnabled, normalizeOtpEmail, requestEmailOtp, requestPhoneOtp, verifyEmailOtp, verifyPhoneOtp } from '../services/otpAuthService.js';
 import { authRateLimit } from '../middleware/rateLimit.js';
 import { authenticateUser, AuthRequest } from '../middleware/auth.js';
 import { developmentTestOtpLabel, getConfiguredTestName, getDevelopmentTestAuthStatus, isDevelopmentTestIdentity, verifyDevelopmentTestOtp } from '../services/devTestAuthService.js';
@@ -67,6 +67,51 @@ router.post('/request-otp', authRateLimit, async (req, res) => {
   }
 });
 
+router.post('/request-email-otp', authRateLimit, async (req, res) => {
+  try {
+    if (!isEmailOtpEnabled()) return res.status(503).json({ success: false, message: 'Email OTP is not enabled in this deployment' });
+    const result = await requestEmailOtp(String(req.body?.email || ''), String(req.body?.phone || ''));
+    if (!result.success) return res.status(502).json(result);
+    res.json(result);
+  } catch (e) {
+    console.error('request-email-otp error:', e);
+    res.status(500).json({ success: false, message: 'Failed to issue email verification code' });
+  }
+});
+
+router.post('/verify-email-otp', authRateLimit, async (req, res) => {
+  try {
+    const email = normalizeOtpEmail(String(req.body?.email || ''));
+    const result = await verifyEmailOtp(email, String(req.body?.code || ''));
+    if (!result.success || !result.email) return res.status(401).json(result);
+    const db = await getDb();
+    let userPhone = result.phone || '';
+    if (!userPhone) {
+      const lookup = db.prepare('SELECT phone FROM memory_profiles WHERE lower(email) = lower(?) LIMIT 1'); lookup.bind([email]);
+      if (lookup.step()) userPhone = String(lookup.getAsObject().phone || '');
+      lookup.free();
+    }
+    if (!userPhone) userPhone = String(req.body?.phone || '').trim();
+    if (!userPhone) return res.status(400).json({ success: false, message: 'Phone number is required to create a phone-first Kurukoo account.' });
+    await upsertProfile(userPhone, req.body?.name, email, req.body?.goal);
+    db.run('UPDATE memory_profiles SET email_verified_at = CURRENT_TIMESTAMP WHERE phone = ?', [userPhone]);
+    saveDb();
+    const guestPhone = String(req.body?.guestPhone || '').trim();
+    if (guestPhone.startsWith('anon_')) {
+      try { await migrateGuestSessionToAccount(guestPhone, userPhone); await applyQrReferralAttribution(guestPhone, userPhone); }
+      catch (migrationError) { console.error('Guest migration failed during email verify:', migrationError); }
+    }
+    const token = issueUserToken(userPhone);
+    const deviceId = String(req.body?.deviceId || req.headers['x-kurukoo-device-id'] || '').trim();
+    if (deviceId) await registerTrustedDevice({ phone: userPhone, deviceId, credentialType: req.body?.credentialType || 'web', label: req.body?.label || 'Email-verified browser', pushCapable: req.body?.pushCapable === true });
+    setAuthCookie(res, token, guestPhone.startsWith('anon_'));
+    res.json({ success: true, phone: userPhone, email, token, emailVerified: true, deviceRegistered: Boolean(deviceId), message: 'Email verified. Your phone remains the primary Kurukoo channel identity.' });
+  } catch (e: any) {
+    console.error('verify-email-otp error:', e);
+    res.status(500).json({ success: false, message: e.message || 'Email verification failed' });
+  }
+});
+
 router.post('/verify-otp', authRateLimit, async (req, res) => {
   try {
     const phone = String(req.body?.phone || '').trim();
@@ -79,6 +124,11 @@ router.post('/verify-otp', authRateLimit, async (req, res) => {
     const userPhone = result.phone;
     const profileName = developmentResult?.testMode ? getConfiguredTestName() : req.body?.name;
     await upsertProfile(userPhone, profileName, req.body?.email, req.body?.goal);
+    await ensureOtpSchema();
+    const db = await getDb();
+    db.run('UPDATE memory_profiles SET phone_verified_at = CURRENT_TIMESTAMP WHERE phone = ?', [userPhone]);
+    if (req.body?.email) db.run('UPDATE memory_profiles SET email = COALESCE(NULLIF(?, \'\'), email) WHERE phone = ?', [String(req.body.email).trim().toLowerCase(), userPhone]);
+    saveDb();
 
     if (guestPhone.startsWith('anon_')) {
       try {

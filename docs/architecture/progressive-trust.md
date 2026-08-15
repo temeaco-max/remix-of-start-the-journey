@@ -88,3 +88,28 @@ Production operators must set them deliberately after reviewing privacy, notific
 | Location | Consent and coarse persistence exist | Browser permission, privacy notice, retention policy, and product-specific purpose review. |
 
 The acceptance standard is **repository-side complete → ready for external activation**. The system must not describe a queued notification as delivered, a linked adapter as connected, or observed channel evidence as universal identity verification.
+
+## Email OTP bootstrap and recovery
+
+Email OTP is now available through the existing conversational and dedicated authentication surfaces. The phone remains required for a new phone-first account and remains the canonical communications identity. Email verification sets `email_verified_at`; it does not set `phone_verified_at`.
+
+The dedicated endpoints are:
+
+```text
+POST /api/auth/request-email-otp
+POST /api/auth/verify-email-otp
+```
+
+The login page keeps phone as the default path and provides an explicit `Use email for the code instead` option. The user still supplies the phone number, while the code is sent to the supplied email address. The conversational onboarding flow accepts an email in the verification step, asks for the phone that should remain connected, and then continues in the original Chat session after successful verification.
+
+Email OTP codes are six digits, expire after ten minutes, allow at most five attempts, are hashed with the application secret, are deleted after successful verification, and are never included in production responses. The canonical email log stores `[redacted]` for sensitive OTP bodies. Development-only debug codes are available only when `NODE_ENV` is not production and `OTP_DEBUG=true`.
+
+The deployment gate is:
+
+```dotenv
+KURUKOO_EMAIL_OTP_ENABLED=false
+RESEND_API_KEY=
+EMAIL_FROM=
+```
+
+Production activation requires setting the gate explicitly, supplying a Resend API key, verifying the sending domain, configuring a valid `EMAIL_FROM`, and completing a real inbox test. A generated database record or an internal email queue entry is not delivery evidence.

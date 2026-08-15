@@ -13,7 +13,7 @@ function assert(condition: boolean, message: string): void {
 
 assert(login.includes("Tell me your name first."), 'login must preserve the name-first conversation sequence');
 assert(login.includes('auth-step-name') && login.includes('auth-step-phone') && login.includes('auth-step-code'), 'name, phone, and OTP steps must exist');
-assert(login.includes("fetch('/api/auth/request-otp'") && login.includes("fetch('/api/auth/verify-otp'"), 'login must use canonical OTP endpoints');
+assert(login.includes("fetch('/api/auth/request-otp'") && login.includes("/api/auth/verify-email-otp") && login.includes("/api/auth/verify-otp"), 'login must use canonical phone and email OTP endpoints');
 assert(login.includes('credentials:\'same-origin\''), 'OTP requests must retain same-origin browser credentials');
 assert(login.includes('safeReturnTo') && login.includes('url.origin === window.location.origin'), 'return navigation must reject cross-origin targets');
 assert(!login.includes('/js/kurukoo-auth.js'), 'login must not retain a competing legacy auth controller');

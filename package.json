@@ -103,6 +103,7 @@
     "test:whatsapp-linked-device": "tsx scripts/test-whatsapp-linked-device.ts",
     "test:whatsapp-linked-session-chat": "tsx scripts/test-whatsapp-linked-session-chat.ts",
     "test:progressive-trust": "tsx scripts/test-progressive-trust.ts",
+    "test:email-otp": "tsx scripts/test-email-otp.ts",
     "whatsapp:linked-device": "tsx scripts/whatsapp-linked-device.ts"
   },
   "dependencies": {

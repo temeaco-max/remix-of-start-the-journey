@@ -49,9 +49,9 @@ This document is the current convergence index between the Blueprint and the rep
 | Telegram | Adapter boundary exists; real provider activation remains external. | PROVIDER_DEPENDENT |
 | SMS | Adapter boundary exists; carrier/provider activation remains external. | PROVIDER_DEPENDENT |
 | USSD | Repository boundary exists; carrier/shortcode activation remains external. | PROVIDER_DEPENDENT |
-| Email | Adapter and route boundary exist. | PROVIDER_DEPENDENT |
+| Email | Canonical email channel and Resend boundary exist; email OTP request/verification is implemented behind `KURUKOO_EMAIL_OTP_ENABLED` and still requires provider activation. | PROVIDER_DEPENDENT |
 | FCM/PWA push | Internal notification persistence and authenticated device registration exist; real external push and approval delivery require Firebase configuration, device permission, and delivery evidence. | PROVIDER_DEPENDENT |
-| Device trust / push approval | `/api/device/register`, `/api/device/status`, `/api/device/challenge`, and approval routes bind trusted devices without treating browser access as phone ownership. | IMPLEMENTED_FEATURE_FLAGGED |
+| Device trust / push approval | Device registration, status, pending challenges, approve/deny actions, inventory, and revocation bind trusted devices without treating browser access as phone ownership. | IMPLEMENTED_FEATURE_FLAGGED |
 | Channel evidence | Signed/validated WhatsApp, Telegram, email, SMS and other canonical inbound adapters record bounded evidence through the shared channel boundary; evidence does not replace phone verification automatically. | IMPLEMENTED_PARTIALLY_WIRED |
 | Location consent | Discover requests browser permission only for authenticated users, stores coarse purpose-bound consent with expiry, and does not claim background location. | IMPLEMENTED_PARTIALLY_WIRED |
 | Voice | Repository voice boundary exists; real provider activation remains external. | PROVIDER_DEPENDENT |

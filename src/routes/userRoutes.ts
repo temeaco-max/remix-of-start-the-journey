@@ -6,7 +6,7 @@ import { getProfile, updateProfile } from '../services/memoryProfile.js';
 import { generateReferralCode, trackReferral } from '../services/referralService.js';
 import { buildQrEntryUrl, parseQrContext } from '../services/qrContextService.js';
 import { submitRating } from '../services/ratingService.js';
-import { approveTrustChallenge, createTrustChallenge, getProgressiveTrust, getTrustedDeviceStatus, recordChannelEvidence, recordLocationConsent, registerTrustedDevice } from '../services/progressiveTrustService.js';
+import { approveTrustChallenge, createTrustChallenge, denyTrustChallenge, getPendingTrustChallenges, getProgressiveTrust, getTrustedDeviceStatus, listTrustedDevices, recordChannelEvidence, recordLocationConsent, registerTrustedDevice, revokeTrustedDevice } from '../services/progressiveTrustService.js';
 import { sendFcmPush } from '../services/pushNotifications.js';
 
 const router = Router();
@@ -137,6 +137,30 @@ router.post('/device/challenge/:id/approve', authenticateUser, async (req: AuthR
   if (!approverDeviceId) return res.status(400).json({ error: 'Approver device identifier is required' });
   const result = await approveTrustChallenge({ phone, challengeId: String(req.params.id), approverDeviceId });
   res.status(result.approved ? 200 : 403).json({ success: result.approved, ...result });
+});
+
+router.get('/device/challenges', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  res.json({ success: true, challenges: await getPendingTrustChallenges(phone) });
+});
+
+router.get('/devices', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  res.json({ success: true, devices: await listTrustedDevices(phone) });
+});
+
+router.post('/devices/:id/revoke', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const result = await revokeTrustedDevice({ phone, deviceRecordId: Number(req.params.id), currentDeviceId: String(req.headers['x-kurukoo-device-id'] || '') });
+  res.status(result.revoked ? 200 : 400).json({ success: result.revoked, ...result });
+});
+
+router.post('/device/challenge/:id/deny', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const approverDeviceId = String(req.headers['x-kurukoo-device-id'] || '').trim();
+  if (!approverDeviceId) return res.status(400).json({ error: 'Approver device identifier is required' });
+  const result = await denyTrustChallenge({ phone, challengeId: String(req.params.id), approverDeviceId });
+  res.status(result.denied ? 200 : 403).json({ success: result.denied, ...result });
 });
 
 router.get('/trust/progressive', authenticateUser, async (req: AuthRequest, res) => {

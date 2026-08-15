@@ -4,7 +4,7 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'progressive-trust-test-secret-0123456789';
 process.env.DB_PATH = process.env.DB_PATH || `tmp/progressive-trust-test-${Date.now()}.sqlite`;
 
-const { registerTrustedDevice, getTrustedDeviceStatus, createTrustChallenge, approveTrustChallenge, recordChannelEvidence, recordLocationConsent, getProgressiveTrust } = await import('../src/services/progressiveTrustService.ts');
+const { registerTrustedDevice, getTrustedDeviceStatus, createTrustChallenge, getPendingTrustChallenges, approveTrustChallenge, denyTrustChallenge, listTrustedDevices, revokeTrustedDevice, recordChannelEvidence, recordLocationConsent, getProgressiveTrust } = await import('../src/services/progressiveTrustService.ts');
 
 const phone = '+2348035550101';
 const existingDevice = `test-existing-${Date.now()}`;
@@ -18,6 +18,8 @@ assert.equal(existingStatus.pushCapable, true);
 const challenge = await createTrustChallenge({ phone, targetDeviceId: newDevice, purpose: 'device_sign_in' });
 assert.equal(challenge.alreadyTrusted, false);
 assert.ok(challenge.id);
+const pending = await getPendingTrustChallenges(phone);
+assert.equal(pending.some((item: any) => item.id === challenge.id), true);
 
 const denied = await approveTrustChallenge({ phone, challengeId: challenge.id, approverDeviceId: 'untrusted-device' });
 assert.equal(denied.approved, false);
@@ -30,10 +32,20 @@ const newStatus = await getTrustedDeviceStatus(phone, newDevice);
 assert.equal(newStatus.trusted, true);
 assert.equal(newStatus.credentialType, 'push');
 
+const denialTarget = `test-denial-${Date.now()}`;
+const denialChallenge = await createTrustChallenge({ phone, targetDeviceId: denialTarget, purpose: 'device_sign_in' });
+const deniedByTrustedDevice = await denyTrustChallenge({ phone, challengeId: denialChallenge.id, approverDeviceId: existingDevice });
+assert.equal(deniedByTrustedDevice.denied, true);
+const devices = await listTrustedDevices(phone);
+assert.equal(devices.length, 2);
+const revoked = await revokeTrustedDevice({ phone, deviceRecordId: devices.find((device: any) => device.label === 'Push-approved device')?.id || -1, currentDeviceId: existingDevice });
+assert.equal(revoked.revoked, true);
+assert.equal((await getTrustedDeviceStatus(phone, newDevice)).trusted, false);
+
 await recordChannelEvidence({ phone, channel: 'whatsapp', evidenceType: 'verified_personal_linked_session_inbound', externalSubject: 'test-jid', sourceRef: 'test-message', consented: true });
 await recordLocationConsent({ phone, purpose: 'find nearby providers', precision: 'coarse', area: 'Ibadan', expiresAt: new Date(Date.now() + 60_000).toISOString() });
 const trust = await getProgressiveTrust(phone);
-assert.equal(trust.trustedDevices, 2);
+assert.equal(trust.trustedDevices, 1);
 assert.equal(trust.channelEvidence[0]?.channel, 'whatsapp');
 assert.equal(trust.activeLocationConsents, 1);
 

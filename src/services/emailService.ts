@@ -14,6 +14,7 @@ interface SendEmailOptions {
     replyTo?: string;
     tags?: Record<string, string>;
     idempotencyKey?: string;
+    sensitive?: boolean;
 }
 
 function required(name: string): string | undefined {
@@ -132,9 +133,15 @@ export async function sendEmail(
         message_id TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`);
+    for (const statement of [
+        'ALTER TABLE email_log ADD COLUMN provider_id TEXT',
+        'ALTER TABLE email_log ADD COLUMN message_id TEXT',
+    ]) {
+        try { db.run(statement); } catch { /* existing column or compatible schema */ }
+    }
     db.run(
         `INSERT INTO email_log (recipient, subject, body, status, provider_id, message_id) VALUES (?, ?, ?, ?, ?, ?)`,
-        [recipient, subject, body, result.ok ? `sent:${result.provider}` : `failed:${result.provider}`, result.id || null, result.messageId || null]
+        [recipient, subject, options.sensitive ? '[redacted]' : body, result.ok ? `sent:${result.provider}` : `failed:${result.provider}`, result.id || null, result.messageId || null]
     );
     saveDb();
     return result;

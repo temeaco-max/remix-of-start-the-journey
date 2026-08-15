@@ -1,10 +1,10 @@
 import { getDb, saveDb } from '../database.js';
-import { requestPhoneOtp, verifyPhoneOtp } from './otpAuthService.js';
+import { isEmailOtpEnabled, normalizeOtpEmail, normalizeOtpPhone, requestEmailOtp, requestPhoneOtp, verifyEmailOtp, verifyPhoneOtp } from './otpAuthService.js';
 import { developmentTestOtpLabel, isDevelopmentTestIdentity, verifyDevelopmentTestOtp } from './devTestAuthService.js';
 import { issueUserToken, upsertProfile } from '../routes/authRoutes.js';
 import { sendFcmPush } from './pushNotifications.js';
 
-export type AuthState = 'none' | 'awaiting_name' | 'awaiting_phone' | 'awaiting_otp';
+export type AuthState = 'none' | 'awaiting_name' | 'awaiting_phone' | 'awaiting_otp' | 'awaiting_email_phone' | 'awaiting_email_otp';
 
 export interface ConversationalAuthResult {
   reply: string;
@@ -67,7 +67,14 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
   }
   
   if (state === 'awaiting_phone') {
-    const phone = text.trim().replace(/\D/g, '');
+    const supplied = text.trim();
+    if (supplied.includes('@') && isEmailOtpEnabled()) {
+      const email = normalizeOtpEmail(supplied);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { reply: 'That email address does not look valid. You can enter your phone number, or try the email again.' };
+      await setAuthState(guestPhone, 'awaiting_email_phone', { ...data, email });
+      return { reply: 'Email can be used for the verification code, while your phone remains your primary Kurukoo channel identity. What phone number should stay connected to your account?', cardData: { type: 'auth_conversation', step: 'phone', email } };
+    }
+    const phone = supplied.replace(/\D/g, '');
     if (phone.length < 10) return { reply: "That doesn't look like a valid phone number. Please enter your full phone number (e.g. 080...)" };
     
     // For now, assume Nigeria prefix if missing
@@ -91,6 +98,32 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
     };
   }
   
+  if (state === 'awaiting_email_phone') {
+    const phone = normalizeOtpPhone(text.trim());
+    if (phone.replace(/\D/g, '').length < 10) return { reply: 'That does not look like a valid phone number. Please enter your full phone number.' };
+    const result = await requestEmailOtp(data.email, phone);
+    if (!result.success) return { reply: result.message || 'I could not request the email code yet.' };
+    await setAuthState(guestPhone, 'awaiting_email_otp', { ...data, phone });
+    const codeNote = result.debugCode ? ` For this development test, use ${result.debugCode}.` : '';
+    return { reply: `I’ve sent a verification code to ${data.email}. Enter it here to continue.${codeNote}`, cardData: { type: 'auth_conversation', step: 'otp', email: data.email } };
+  }
+
+  if (state === 'awaiting_email_otp') {
+    const code = text.trim().replace(/\D/g, '');
+    if (code.length !== 6) return { reply: 'Please enter the 6-digit code sent to your email.' };
+    const result = await verifyEmailOtp(data.email, code);
+    if (!result.success) return { reply: `That email code did not work: ${result.message}. Please check it and try again.` };
+    const userPhone = result.phone || data.phone;
+    await upsertProfile(userPhone, data.name, data.email);
+    const db = await getDb();
+    db.run('UPDATE memory_profiles SET email_verified_at = CURRENT_TIMESTAMP WHERE phone = ?', [userPhone]);
+    saveDb();
+    const token = issueUserToken(userPhone);
+    await sendFcmPush(userPhone, 'Kurukoo details confirmed', `Thanks for confirming your email, ${data.name || 'friend'}. Your account is now connected.`, '/chat').catch(() => false);
+    await setAuthState(guestPhone, 'none');
+    return { reply: `Thanks for confirming your email, ${data.name || 'friend'}. Your phone remains connected as your primary Kurukoo channel identity, and I’ll continue with the request we were discussing.`, authenticated: true, token, phone: userPhone, continuationMessage: data.continuationMessage || undefined, cardData: data.continuationCard || undefined };
+  }
+
   if (state === 'awaiting_otp') {
     const code = text.trim().replace(/\D/g, '');
     if (code.length !== 6) return { reply: "Please enter the 6-digit code I sent to your phone." };

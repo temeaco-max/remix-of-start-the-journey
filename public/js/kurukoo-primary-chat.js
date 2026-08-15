@@ -5,7 +5,7 @@
     theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     activeStorefrontId: null,
     nativeAssistance: { reminders: [], checkIns: [] },
-    pinnedMessages: [], surfaceView: null, notifiedNotificationIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') === '1'
+    pinnedMessages: [], surfaceView: null, notifiedNotificationIds: new Set(), notifiedTrustChallengeIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') === '1'
   };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
@@ -1178,7 +1178,39 @@
       });
     } catch { list.replaceChildren(makeElement('div', 'empty-state', 'Tasks are unavailable right now.')); }
   }
-  async function loadNotifications() { try { const res = await fetch('/api/notifications?limit=20', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); renderNotifications(data.notifications || []); } catch {} }
+  async function loadTrustChallenges() {
+    if (state.isGuest) return;
+    try {
+      const response = await fetch('/api/device/challenges', { credentials: 'same-origin' });
+      if (!response.ok) return;
+      const data = await response.json();
+      const challenges = Array.isArray(data.challenges) ? data.challenges : [];
+      const toastRegion = $('chat-toast-region');
+      challenges.filter(challenge => challenge?.id && !state.notifiedTrustChallengeIds.has(challenge.id)).forEach(challenge => {
+        state.notifiedTrustChallengeIds.add(challenge.id);
+        if (!toastRegion) return;
+        const toast = makeElement('div', 'chat-toast chat-toast--approval');
+        const copy = makeElement('div');
+        copy.append(makeElement('strong', '', 'Approve this Kurukoo device'), makeElement('span', '', 'A new browser is asking to continue your account.'));
+        const actions = makeElement('div', 'chat-toast-actions');
+        const approve = makeElement('button', 'text-btn', 'Approve'); approve.type = 'button';
+        const deny = makeElement('button', 'text-btn', 'Deny'); deny.type = 'button';
+        const deviceId = localStorage.getItem('kurukoo_device_id') || '';
+        const act = async (button, path) => {
+          button.disabled = true;
+          try {
+            const result = await fetch(`/api/device/challenge/${encodeURIComponent(challenge.id)}/${path}`, { method: 'POST', credentials: 'same-origin', headers: { 'X-Kurukoo-Device-Id': deviceId } });
+            if (!result.ok) throw new Error('This device is not eligible to approve the request.');
+            toast.remove();
+          } catch (error) { button.disabled = false; button.textContent = error.message || 'Try again'; }
+        };
+        approve.addEventListener('click', () => void act(approve, 'approve'));
+        deny.addEventListener('click', () => void act(deny, 'deny'));
+        actions.append(approve, deny); toast.append(makeIcon('safety', 'Device approval'), copy, actions); toastRegion.appendChild(toast);
+      });
+    } catch {}
+  }
+  async function loadNotifications() { try { const res = await fetch('/api/notifications?limit=20', { credentials: 'same-origin' }); if (!res.ok) return; const data = await res.json(); renderNotifications(data.notifications || []); await loadTrustChallenges(); } catch {} }
   function personalizeQuickActions(profile = {}) {
     const location = String(profile.location || profile.primary_lga || '').trim();
     const preferences = profile.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};

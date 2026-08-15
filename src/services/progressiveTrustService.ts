@@ -199,3 +199,45 @@ export async function getProgressiveTrust(phone: string): Promise<{ trustedDevic
   const locationCount = Number(db.exec(`SELECT COUNT(*) FROM location_consents WHERE phone = ? AND status = 'granted' AND (expires_at IS NULL OR datetime(expires_at) > datetime('now'))`, [phone])[0]?.values?.[0]?.[0] || 0);
   return { trustedDevices: deviceCount, channelEvidence: evidenceRows.map((row: any[]) => ({ channel: String(row[0]), evidenceType: String(row[1]), status: String(row[2]), observedAt: String(row[3]) })), activeLocationConsents: locationCount };
 }
+
+export async function getPendingTrustChallenges(phone: string): Promise<Array<{ id: string; purpose: string; expiresAt: string; createdAt: string }>> {
+  if (!isPushApprovalEnabled()) return [];
+  await ensureTrustSchema();
+  const db = await getDb();
+  expireChallenges(db);
+  const rows = db.exec(`SELECT id, purpose, expires_at, created_at FROM trust_challenges WHERE phone = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 10`, [phone])[0]?.values || [];
+  return rows.map((row: any[]) => ({ id: String(row[0]), purpose: String(row[1]), expiresAt: String(row[2]), createdAt: String(row[3]) }));
+}
+
+export async function denyTrustChallenge(input: { phone: string; challengeId: string; approverDeviceId: string }): Promise<{ denied: boolean; reason?: string }> {
+  if (!isPushApprovalEnabled()) return { denied: false, reason: 'push_approval_disabled' };
+  await ensureTrustSchema();
+  const db = await getDb();
+  expireChallenges(db);
+  const approverHash = digest(normalizeDeviceId(input.approverDeviceId));
+  const approver = db.exec(`SELECT id FROM trusted_devices WHERE phone = ? AND device_hash = ? AND status = 'active' LIMIT 1`, [input.phone, approverHash])[0]?.values?.[0];
+  if (!approver) return { denied: false, reason: 'approver_device_not_trusted' };
+  const result = db.exec(`SELECT id FROM trust_challenges WHERE id = ? AND phone = ? AND status = 'pending' LIMIT 1`, [input.challengeId, input.phone])[0]?.values?.[0];
+  if (!result) return { denied: false, reason: 'challenge_not_found_or_expired' };
+  db.run(`UPDATE trust_challenges SET status = 'denied', approved_by_device_hash = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ? AND status = 'pending'`, [approverHash, input.challengeId, input.phone]);
+  saveDb();
+  return { denied: true };
+}
+
+export async function listTrustedDevices(phone: string): Promise<Array<{ id: number; credentialType: string; label: string; pushCapable: boolean; status: string; createdAt: string; lastSeenAt: string }>> {
+  await ensureTrustSchema();
+  const db = await getDb();
+  const rows = db.exec(`SELECT id, credential_type, label, push_capable, status, created_at, last_seen_at FROM trusted_devices WHERE phone = ? ORDER BY last_seen_at DESC`, [phone])[0]?.values || [];
+  return rows.map((row: any[]) => ({ id: Number(row[0]), credentialType: String(row[1] || 'web'), label: String(row[2] || 'Kurukoo device'), pushCapable: Number(row[3] || 0) === 1, status: String(row[4] || 'active'), createdAt: String(row[5] || ''), lastSeenAt: String(row[6] || '') }));
+}
+
+export async function revokeTrustedDevice(input: { phone: string; deviceRecordId: number; currentDeviceId?: string }): Promise<{ revoked: boolean; reason?: string }> {
+  await ensureTrustSchema();
+  const db = await getDb();
+  const record = db.exec(`SELECT device_hash FROM trusted_devices WHERE id = ? AND phone = ? AND status = 'active' LIMIT 1`, [input.deviceRecordId, input.phone])[0]?.values?.[0] as any[] | undefined;
+  if (!record) return { revoked: false, reason: 'device_not_found' };
+  if (input.currentDeviceId && String(record[0]) === digest(normalizeDeviceId(input.currentDeviceId))) return { revoked: false, reason: 'current_device_requires_reauthentication' };
+  db.run(`UPDATE trusted_devices SET status = 'revoked', revoked_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ? AND status = 'active'`, [input.deviceRecordId, input.phone]);
+  saveDb();
+  return { revoked: true };
+}
