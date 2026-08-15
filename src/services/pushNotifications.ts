@@ -1,7 +1,7 @@
 import { getDb, saveDb } from '../database.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
 import { getProfile } from './memoryProfile.js';
-import { sendFirebaseFcmMessage } from './firebaseCloudMessaging.js';
+import { getFirebaseFcmReadiness, sendFirebaseFcmMessage } from './firebaseCloudMessaging.js';
 async function ensureNotificationTable() {
     const db = await getDb();
     db.run(`CREATE TABLE IF NOT EXISTS internal_notifications (
@@ -193,4 +193,33 @@ export async function markNotificationRead(notificationId: number, phone: string
     } catch {
         return false;
     }
+}
+
+
+export function isFcmConfigured(): boolean {
+    return getFirebaseFcmReadiness().configured;
+}
+
+async function sendSingleFcmMessage(phone: string, title: string, body: string, link?: string): Promise<{ accepted: boolean; providerReference?: string; failureReason?: string }> {
+    const profile = await getProfile(phone, 'pushNotifications.fcmDrain').catch(() => null) as any;
+    const token = profile?.fcm_token ? String(profile.fcm_token).trim() : '';
+    if (!token) return { accepted: false, failureReason: 'device_token_missing' };
+    return sendFirebaseFcmMessage({ token, title, body, link });
+}
+
+export async function drainFcmQueue(limit = 50): Promise<{ sent: number; retried: number; none: number }> {
+    const outcome = { sent: 0, retried: 0, none: 0 };
+    if (!isFcmConfigured()) return outcome;
+    const rows = await listQueuedNotifications(Math.max(1, Math.min(100, Math.floor(Number(limit) || 50))));
+    for (const row of rows) {
+        const result = await sendSingleFcmMessage(row.phone, row.title, row.body, row.link);
+        if (result.accepted) {
+            await transitionNotificationDelivery(row.id, 'accepted', row.phone, result.providerReference);
+            outcome.sent += 1;
+        } else {
+            const state = await recordNotificationAttempt(row.id, result.failureReason || 'fcm_delivery_failed', row.phone);
+            outcome[state === 'dead_letter' ? 'none' : 'retried'] += 1;
+        }
+    }
+    return outcome;
 }
