@@ -34,6 +34,12 @@ async function main() {
   for (const file of ['login.html', 'dashboard.html', 'ads.html', 'analytics.html', 'ai-agents.html', 'content.html', 'seo.html', 'users.html', 'pricing.html', 'revenue.html']) {
     assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', file)), `admin page ${file} must exist`);
   }
+  assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', 'admin-auth.js')), 'shared admin auth boundary must exist');
+  for (const file of await fs.promises.readdir(path.join(process.cwd(), 'public', 'admin'))) {
+    if (!file.endsWith('.html')) continue;
+    const page = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', file), 'utf8');
+    assert.match(page, /admin-auth\.js/, `${file} must include the shared admin auth boundary`);
+  }
   const dashboard = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'dashboard.html'), 'utf8');
   assert.match(dashboard, /fetch\('\/api\/admin\/ads'/, 'admin dashboard campaigns must use the protected admin ads owner');
   assert.match(dashboard, /fetch\('\/api\/admin\/content'/, 'admin dashboard CMS must use the protected admin content owner');

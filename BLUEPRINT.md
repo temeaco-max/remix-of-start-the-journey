@@ -5725,3 +5725,8 @@ The Celebrity Demand admin surface is connected to the existing `celebrity_deman
 ## Admin Session Continuity
 
 Static admin pages that call protected APIs must forward the same `kurukoo_admin` token established by the canonical admin login flow. Celebrity Demand and Future Roadmap now use the shared `x-admin-token` header; protected API denial remains visible as an unavailable state rather than being bypassed through cookie-only assumptions.
+
+
+## Shared Admin Authentication Boundary
+
+All static admin HTML pages include `public/admin/admin-auth.js`, which decorates requests under `/api/admin/` with the `kurukoo_admin` token established by the canonical login flow. This prevents secondary admin pages from silently falling back to cookie-only requests and ensures protected data, mutations, and readiness views share one authentication boundary.
