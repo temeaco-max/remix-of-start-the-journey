@@ -15,6 +15,26 @@ import { getDb, saveDb } from '../database.js';
 
 const PROXY_PREFIX = '+2348009'; // internal proxy number pool range
 
+export interface PrivacyBridgeStatus {
+    enabled: boolean;
+    configured: boolean;
+    externalActivationRequired: true;
+    note: string;
+}
+
+export function getPrivacyBridgeStatus(env: NodeJS.ProcessEnv = process.env): PrivacyBridgeStatus {
+    const enabled = env.FF_PRIVATE_NUMBER_MASKING === 'true';
+    const configured = Boolean(String(env.NUMBER_MASKING_PROVIDER || '').trim());
+    return {
+        enabled,
+        configured,
+        externalActivationRequired: true,
+        note: enabled && configured
+            ? 'Internal proxy mapping is available; provider number ownership, routing, consent, and delivery receipts remain external activation requirements.'
+            : 'Private-number mapping is disabled or not configured; no telephony capability is claimed.',
+    };
+}
+
 /** Mask a phone number for display (e.g. in chat cards): +234 803 *** ****.
  *  Never returns the real number. */
 export function maskPhoneNumber(phone: string): string {
@@ -24,15 +44,23 @@ export function maskPhoneNumber(phone: string): string {
 
 /** Allocate a fresh proxy number for a real number and persist the mapping. */
 export async function generateProxyNumber(realPhone: string, context = 'booking'): Promise<string> {
+    const normalizedPhone = String(realPhone || '').trim();
+    if (!normalizedPhone) throw new Error('A real phone number is required for a privacy mapping.');
     const db = await getDb();
-    // Derive a unique sequence number from the current row count.
-    const res = db.exec(`SELECT COUNT(*) as c FROM privacy_bridge`);
-    const count = (res[0]?.values[0][0] as number) || 0;
-    const seq = String(count + 1).padStart(7, '0');
-    const proxyPhone = `${PROXY_PREFIX}${seq}`;
+    const existing = db.prepare(`SELECT proxy_phone FROM privacy_bridge WHERE real_phone = ? AND status = 'active' ORDER BY id DESC LIMIT 1`);
+    existing.bind([normalizedPhone]);
+    if (existing.step()) {
+        const current = String(existing.getAsObject().proxy_phone || '');
+        existing.free();
+        return current;
+    }
+    existing.free();
+    const res = db.exec(`SELECT MAX(id) as max_id FROM privacy_bridge`);
+    const maxId = Number(res[0]?.values?.[0]?.[0] || 0);
+    const proxyPhone = `${PROXY_PREFIX}${String(maxId + 1).padStart(7, '0')}`;
     db.run(
-        `INSERT INTO privacy_bridge (real_phone, proxy_phone, context, status) VALUES (?, ?, ?, 'active')`,
-        [realPhone, proxyPhone, context]
+        `INSERT INTO privacy_bridge (real_phone, proxy_phone, context, status, expires_at) VALUES (?, ?, ?, 'active', datetime('now', '+24 hours'))`,
+        [normalizedPhone, proxyPhone, String(context || 'booking').slice(0, 80)]
     );
     saveDb();
     return proxyPhone;
@@ -41,7 +69,7 @@ export async function generateProxyNumber(realPhone: string, context = 'booking'
 /** Resolve a proxy number back to the real number (for routing only — never display). */
 export async function getRealNumber(proxyPhone: string): Promise<string | null> {
     const db = await getDb();
-    const stmt = db.prepare(`SELECT real_phone FROM privacy_bridge WHERE proxy_phone = ? AND status = 'active'`);
+    const stmt = db.prepare(`SELECT real_phone FROM privacy_bridge WHERE proxy_phone = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)`);
     stmt.bind([proxyPhone]);
     let real: string | null = null;
     if (stmt.step()) real = stmt.getAsObject().real_phone as string;
@@ -52,7 +80,7 @@ export async function getRealNumber(proxyPhone: string): Promise<string | null> 
 /** Find the active proxy number currently mapped to a real number. */
 export async function getProxyForPhone(realPhone: string): Promise<string | null> {
     const db = await getDb();
-    const stmt = db.prepare(`SELECT proxy_phone FROM privacy_bridge WHERE real_phone = ? AND status = 'active' ORDER BY id DESC LIMIT 1`);
+    const stmt = db.prepare(`SELECT proxy_phone FROM privacy_bridge WHERE real_phone = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP) ORDER BY id DESC LIMIT 1`);
     stmt.bind([realPhone]);
     let proxy: string | null = null;
     if (stmt.step()) proxy = stmt.getAsObject().proxy_phone as string;

@@ -8,6 +8,7 @@ import { hasConfiguredSecret } from './providerCapabilities.js';
 import { getFeatureRegistryReadiness } from './featureFlags.js';
 import { getMqttBridgeStatus } from './iotBridge.js';
 import { getWebRTCStatus } from './webrtcSignalling.js';
+import { getPrivacyBridgeStatus } from './privacyBridge.js';
 
 export const READINESS_STATES = ['READY', 'NOT_CONFIGURED', 'DISABLED', 'EXTERNAL_DEPENDENCY', 'PENDING'] as const;
 export type ReadinessState = typeof READINESS_STATES[number];
@@ -82,6 +83,7 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
   const mistral = getMistralStatus();
   const mqtt = getMqttBridgeStatus();
   const webRtc = getWebRTCStatus();
+  const privacyBridge = getPrivacyBridgeStatus(env);
   const geminiConfigured = hasConfiguredSecret(env.GEMINI_API_KEY || env.API_KEY);
   const providerTextNote = geminiConfigured
     ? 'Gemini text credentials are present; request routing, quota, privacy, retention, and provider terms remain deployment decisions.'
@@ -149,7 +151,7 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
         WebRTCSignalling: item(webRtc.enabled ? 'EXTERNAL_DEPENDENCY' : 'PENDING', `Signalling is repository-ready; ${webRtc.activationRequirement}`),
         WebRTCRelay: item(webRtc.relayConfigured ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', webRtc.activationRequirement),
         MQTTBridge: item(mqtt.enabled ? (mqtt.connected ? 'EXTERNAL_DEPENDENCY' : 'PENDING') : 'DISABLED', mqtt.enabled ? (mqtt.connected ? 'Broker connection exists; device authorization and delivery evidence remain external.' : mqtt.lastError || mqtt.activationRequirement) : 'MQTT remote control is disabled until explicitly enabled with a configured broker.'),
-        PrivateNumberRouting: item(env.FF_PRIVATE_NUMBER_MASKING === 'true' && present(env.NUMBER_MASKING_PROVIDER) ? 'EXTERNAL_DEPENDENCY' : 'DISABLED', 'Private-number routing remains repository-ready only; activation requires independently verified provider ownership, routing, consent, and delivery receipts.'),
+        PrivateNumberRouting: item(privacyBridge.enabled ? (privacyBridge.configured ? 'EXTERNAL_DEPENDENCY' : 'PENDING') : 'DISABLED', privacyBridge.note),
       },
     },
   };

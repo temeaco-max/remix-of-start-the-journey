@@ -5608,3 +5608,19 @@ Emergency and urgent-safety requests remain owned by the canonical safety/triage
 The repository now contains a repeatable `test:live-user1-continuity` campaign using the canonical Super Admin User #1 Chat session. The campaign traverses conversation, explicit memory, native assistance, skill routing, Economic Request creation/correction, provider-evidence policy, deferred matching, bounded agent pause/resume, stored notifications, reminders, continuation, and truth-state explanation while preserving one conversation ID and persisted history. The campaign verifies repository-side state transitions only; it does not prove external provider delivery, payment, fulfilment, or account quota activation.
 
 The installed-style Playwright lifecycle check verifies manifest `display: standalone`, `/chat/` start routing, service-worker control, offline shell launch, reconnect, update polling, composer availability, and zero page errors at mobile and desktop reference widths. This remains a browser simulation of installed behavior, not proof that a user installed the app from a macOS, Windows, iOS, or Android system store.
+
+
+## Current Completion Tranche — User/Actor Coverage and Privacy Foundation
+
+This section records the current repository-side completion work after the production-like acceptance campaign. It is implementation truth only and does not promote any external provider, payment, telephony, notification, or fulfilment capability to live status.
+
+| Area | Verified repository-side result | Remaining activation or proof |
+|---|---|---|
+| Controlled actor Chat | A repeatable matrix now launches isolated canonical Chat sessions for customer, provider, seller, contributor, business, and agent-owner actors. Role-specific flows are asserted rather than treated as generic HTTP success. | Fresh production-like accounts, real-device validation, load/soak testing, and external network/provider proof. |
+| Provider routing | Explicit plumbing language is normalized to the plumber provider skill and produces a review-required provider profile flow without publishing availability or verification. | Provider verification, availability, pricing, and matching remain separate evidence-backed steps. |
+| Seller routing | Seller/product offer language is protected from FastText referral misclassification and produces a review-required seller-offer state. | Product, inventory, price, evidence, fulfilment, and publication still require explicit canonical steps. |
+| Chat continuity | User #1 campaign retains one conversation ID and persisted history across memory, native assistance, skill flow, Economic Request, deferred state, agent controls, notification summary, reminder, and continuation. | External provider delivery, payment settlement, fulfilment, and OS notification delivery remain unproven. |
+| Private-number foundation | The privacy bridge table and index are now created during canonical database bootstrap. Mapping reuse is owner-scoped, proxy resolution is expiry-aware, release is explicit, and readiness exposes external activation requirements. | Verified telephony provider, number ownership, routing, consent, retention, delivery receipts, and fraud controls. |
+| Completion verification | TypeScript, production build, strict CSS, memory, privacy bridge, provider, readiness, behavioral Chat, agent, route, security, actor, continuity, and external-boundary regressions passed. | Real iOS, Android, macOS, and Windows installation and production deployment validation. |
+
+The completion classification remains: **structurally converged, locally campaign-validated, repository-side complete for this tranche, and ready for controlled external activation—not externally proven as a complete production platform.**

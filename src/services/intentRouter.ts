@@ -368,7 +368,8 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   }
 
   if (phone && /\b(i want to earn|i can|i offer|offer(?:ing)? .*service|provide .*service|take jobs|find work)\b/i.test(q)) {
-    const providerSkill = q.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder|driver|baker|coder)\b/i)?.[1]?.toLowerCase();
+    const providerSkillMatch = q.match(/\b(plumb(?:er|ing)|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder|driver|baker|coder)\b/i)?.[1]?.toLowerCase();
+    const providerSkill = providerSkillMatch === 'plumbing' ? 'plumber' : providerSkillMatch;
     if (providerSkill) {
       const location = q.match(/\b(?:in|around|near)\s+([a-z][a-z -]{2,40}?)(?=\s+(?:and|can|tomorrow|today|available)\b|[,.!?]|$)/i)?.[1]?.trim() || null;
       return {
@@ -377,6 +378,10 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
         cardData: { type: 'provider_profile_setup', status: 'review_required', skill: providerSkill, location, source: 'explicit_provider_statement' },
       };
     }
+  }
+
+  if (phone && /\b(?:seller|known seller offers?)\b/i.test(q) && /\b(?:sell|offer|product|charger|stock|catalogue|catalog)\b/i.test(q)) {
+    return { skill: 'seller_offer_review', reply: 'I can help review your seller or product offer details. I will keep the offer in review until the product, price, inventory, evidence, and fulfilment terms are explicitly recorded; nothing is published or sold from this message alone.', cardData: { type: 'seller_offer_review', status: 'review_required', source: 'explicit_seller_statement' } };
   }
 
   if (phone && isResumePhrase(q)) {
