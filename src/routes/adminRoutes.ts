@@ -35,6 +35,7 @@ import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { createAdCampaign, getAdCampaigns, updateAdCampaign } from '../services/adManager.js';
 import { testMistralConnection } from '../services/mistralService.js';
 import { getNotificationQueueStats } from '../services/pushNotifications.js';
+import { listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
 
 const router = Router();
 
@@ -448,11 +449,20 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
     const mRes = db.exec(`SELECT COUNT(*) FROM messages`);
     const cRes = db.exec(`SELECT COUNT(*) FROM credit_transactions`);
 
+    const coordinatorRuns = await listCoordinatorRuns(10);
+    const learningArtifacts = await listLearningArtifacts(10);
     res.json({
       users: uRes[0]?.values[0][0] || 0,
       providers: pRes[0]?.values[0][0] || 0,
       messages: mRes[0]?.values[0][0] || 0,
       credits: cRes[0]?.values[0][0] || 0,
+      coordinator: {
+        recentRuns: coordinatorRuns,
+        enabled: process.env.KURUKOO_AGENT_ENABLED === 'true',
+        autonomous: process.env.KURUKOO_AGENT_AUTONOMOUS === 'true',
+        teacherEnabled: process.env.KURUKOO_COORDINATOR_TEACHER_ENABLED === 'true',
+        recentLearningArtifacts: learningArtifacts,
+      },
     });
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch stats' });

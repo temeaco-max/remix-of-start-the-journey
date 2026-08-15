@@ -5735,3 +5735,14 @@ All static admin HTML pages include `public/admin/admin-auth.js`, which decorate
 ## Cart-to-Economic-Request Connection
 
 Internal known-offer checkout now enters the existing product-sourcing Economic Request lifecycle through `startKnownOfferEconomicRequest`. The cart stores the resulting request reference idempotently and reports that quote review and verified payment are still required. External affiliate items continue through the affiliate destination boundary; multi-item carts remain explicitly review-only until a separate auditable multi-item request model is approved. Cart checkout never claims payment, stock reservation, dispatch, or fulfilment.
+
+
+## Internal Coordinator Brain — Repository-Side Implementation
+
+Kurukoo now includes a provider-independent internal coordinator boundary behind the existing `agentRuntime`. The coordinator persists typed event envelopes and durable run records, chooses only declared capabilities, delegates state access to the existing `agentToolRegistry`, and records provider/model telemetry. The first capability set is deliberately bounded: read current owned Economic Request state, perform an explicitly enabled low-risk recheck through the canonical storefront, or wait for user confirmation.
+
+The coordinator is local-first and deterministic by default (`rules-v1`). It does not create a second Chat engine, worker, database owner, payment path, notification queue, memory owner, or external connector. Agent goals continue to be bounded, retry-limited, and governed by explicit autonomy flags.
+
+An optional teacher/evaluation boundary is also present. When `KURUKOO_COORDINATOR_TEACHER_ENABLED=true` and a configured provider is available, a redacted event may be sent through the canonical AI router for a structured candidate artifact. Teacher output is stored with provenance, policy version, candidate approval status, and expiry. It cannot execute capabilities, mutate canonical state, or promote itself into production policy. The default is disabled and no teacher call is attempted without the explicit flag and a configured Mistral key.
+
+Protected admin stats expose recent coordinator runs, effective autonomy gates, teacher-mode state, and candidate learning artifacts. These are operator telemetry only; they do not imply that a model, provider, payment, notification, delivery, inventory, or fulfilment action succeeded.

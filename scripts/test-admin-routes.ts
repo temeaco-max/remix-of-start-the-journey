@@ -52,6 +52,11 @@ async function main() {
   const future = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'future.html'), 'utf8');
   assert.match(future, /fetch\('\/api\/admin\/future_plans'/, 'future roadmap page must use its protected admin endpoint');
   assert.match(future, /x-admin-token.*localStorage\.getItem\('kurukoo_admin'\)/, 'future roadmap page must forward the shared admin token');
+  assert.match(src, /listCoordinatorRuns/, 'admin stats must expose coordinator run telemetry');
+  assert.match(src, /recentRuns/, 'admin stats must expose recent coordinator runs');
+  assert.match(src, /autonomous: process\.env\.KURUKOO_AGENT_AUTONOMOUS/, 'admin stats must expose the effective autonomy gate');
+  assert.match(src, /teacherEnabled: process\.env\.KURUKOO_COORDINATOR_TEACHER_ENABLED/, 'admin stats must expose teacher-mode state');
+  assert.match(src, /recentLearningArtifacts/, 'admin stats must expose candidate learning artifacts');
   assert.match(src, /authenticateAdmin/, 'adminRoutes must use authenticateAdmin');
   assert.match(src, /operatorSession: true/, 'operator Chat must issue an explicit operator session claim');
   assert.match(src, /testActor: true/, 'Test As must issue an explicit actor claim');
