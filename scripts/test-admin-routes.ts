@@ -42,6 +42,10 @@ async function main() {
   assert.match(src, /router\.get\('\/celebrity',\s*authenticateAdmin/, 'celebrity demand must have a protected admin endpoint');
   const celebrity = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'celebrity.html'), 'utf8');
   assert.match(celebrity, /fetch\('\/api\/admin\/celebrity'/, 'celebrity demand page must use its protected admin endpoint');
+  assert.match(celebrity, /x-admin-token.*localStorage\.getItem\('kurukoo_admin'\)/, 'celebrity demand page must forward the shared admin token');
+  const future = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'future.html'), 'utf8');
+  assert.match(future, /fetch\('\/api\/admin\/future_plans'/, 'future roadmap page must use its protected admin endpoint');
+  assert.match(future, /x-admin-token.*localStorage\.getItem\('kurukoo_admin'\)/, 'future roadmap page must forward the shared admin token');
   assert.match(src, /authenticateAdmin/, 'adminRoutes must use authenticateAdmin');
   assert.match(src, /operatorSession: true/, 'operator Chat must issue an explicit operator session claim');
   assert.match(src, /testActor: true/, 'Test As must issue an explicit actor claim');

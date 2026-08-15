@@ -5720,3 +5720,8 @@ The unified admin dashboard now uses the protected canonical `/api/admin/ads` an
 ## Admin Demand-Signal Wiring
 
 The Celebrity Demand admin surface is connected to the existing `celebrity_demand` table through protected `GET /api/admin/celebrity`. The page reports only persisted demand signals and returns an empty state when no signals exist; it does not fabricate interest, threshold, creator, or outreach data.
+
+
+## Admin Session Continuity
+
+Static admin pages that call protected APIs must forward the same `kurukoo_admin` token established by the canonical admin login flow. Celebrity Demand and Future Roadmap now use the shared `x-admin-token` header; protected API denial remains visible as an unavailable state rather than being bypassed through cookie-only assumptions.

@@ -44,7 +44,7 @@
       statusText.textContent = 'Loading demand data…';
       tbody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
       try {
-        const response = await fetch('/api/admin/celebrity', { credentials: 'include' });
+        const response = await fetch('/api/admin/celebrity', { credentials: 'same-origin', headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '' } });
         if (!response.ok) throw new Error(`Request failed (${response.status})`);
         const data = await response.json();
         tbody.replaceChildren();
