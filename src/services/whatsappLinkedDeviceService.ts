@@ -66,18 +66,25 @@ function phoneFromJid(jid: string): string {
   return user ? `+${user.replace(/^\+/, '')}` : '';
 }
 
-async function handleInboundMessage(message: any): Promise<void> {
+export async function processWhatsAppLinkedDeviceMessage(message: any, reply?: (jid: string, text: string) => Promise<void>): Promise<{ accepted: boolean; phone?: string; text?: string; reply?: string; reason?: string }> {
   const jid = String(message?.key?.remoteJid || '');
-  if (!jid || message?.key?.fromMe || jid === 'status@broadcast') return;
+  if (!jid || message?.key?.fromMe || jid === 'status@broadcast') return { accepted: false, reason: 'ignored_system_or_self_message' };
   const allowGroups = process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_ALLOW_GROUPS === 'true';
-  if (jid.endsWith('@g.us') && !allowGroups) return;
+  if (jid.endsWith('@g.us') && !allowGroups) return { accepted: false, reason: 'group_messages_disabled' };
   const text = textFromMessage(message);
-  if (!text) return;
+  if (!text) return { accepted: false, reason: 'empty_message' };
   const phone = jid.endsWith('@g.us') ? phoneFromJid(String(message?.key?.participant || '')) : phoneFromJid(jid);
-  if (!phone) return;
+  if (!phone) return { accepted: false, reason: 'sender_identity_missing' };
   const { processCanonicalChatTurn } = await import('./canonicalChatTurnService.js');
   const turn = await processCanonicalChatTurn({ phone, message: text, channel: 'whatsapp' });
-  if (socket) await socket.sendMessage(jid, { text: turn.reply });
+  const sendReply = reply || (async (targetJid: string, responseText: string) => { if (socket) await socket.sendMessage(targetJid, { text: responseText }); });
+  await sendReply(jid, turn.reply);
+  return { accepted: true, phone, text, reply: turn.reply };
+}
+
+async function handleInboundMessage(message: any): Promise<void> {
+  try { await processWhatsAppLinkedDeviceMessage(message); }
+  catch (error) { updateStatus({ state: 'error', lastError: error instanceof Error ? error.message.slice(0, 160) : 'Inbound linked-device processing failed.' }); }
 }
 
 export async function startWhatsAppLinkedDevice(): Promise<void> {

@@ -47,6 +47,7 @@ const expected = [
     '/settings',
     '/top-up',
     '/subscription',
+    '/connect',
     '/api/proactive/feed',
     '/api/chat/sponsored',
     '/ads/:id/click',
