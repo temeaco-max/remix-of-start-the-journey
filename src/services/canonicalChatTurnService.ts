@@ -103,7 +103,7 @@ export interface CanonicalChatTurnResult {
   extractionSource?: 'deterministic' | 'generative' | 'none';
   extractedEntities?: Record<string, unknown>;
   canonicalAction?: string;
-  progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete';
+  progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
 }
 
 /** The single server-side authority for a Kurukoo conversational turn. */
@@ -132,7 +132,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   let extractionSource: 'deterministic' | 'generative' | 'none' | undefined;
   let extractedEntities: Record<string, unknown> | undefined;
   let canonicalAction: string | undefined;
-  let progressStage: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete' | undefined;
+  let progressStage: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete' | undefined;
   const isGuest = phone.startsWith('anon_');
   const authState = isGuest ? await getAuthState(phone) : { state: 'none' as const, data: {} };
   const standaloneNameAuth = isGuest && authState.state === 'none' && isStandaloneName(message);
@@ -256,7 +256,7 @@ async function persistTurn(args: {
   extractionSource?: 'deterministic' | 'generative' | 'none';
   extractedEntities?: Record<string, unknown>;
   canonicalAction?: string;
-  progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete';
+  progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
 }): Promise<CanonicalChatTurnResult> {
   await appendChatMessage({
     phone: args.phone,

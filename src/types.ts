@@ -53,5 +53,5 @@ export interface IntentRoutingResult {
     extractionSource?: 'deterministic' | 'generative' | 'none';
     extractedEntities?: Record<string, unknown>;
     canonicalAction?: string;
-    progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'ready' | 'complete';
+    progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
 }

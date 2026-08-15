@@ -312,7 +312,8 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const result = await delegateToAgentForSkill('support_triage', query, phone);
     const safetyGuidance = 'If anyone is in immediate danger, contact your local emergency service now (112 in Nigeria). I can help you record the situation and coordinate next steps, but I am not an emergency responder.';
     const triageReply = result.success && result.reply && !/service request, payment, dispute, profile, or earning opportunity/i.test(result.reply) ? `\n\n${result.reply}` : '';
-    return { skill: 'emergency', reply: `${safetyGuidance}${triageReply}` };
+    const safetyCard = await startStorefrontSession(phone || 'anon_safety', 'emergency');
+    return { skill: 'emergency', reply: `${safetyGuidance}${triageReply}`, cardData: { ...safetyCard, canonicalAction: 'skill_flow.safety', progressStage: 'safety' }, canonicalAction: 'skill_flow.safety', progressStage: 'safety' };
   }
 
   if (q.includes('emergency contact') || q.includes('safety contact')) {
@@ -409,8 +410,9 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       if (extractedEntities.product) seed.product = extractedEntities.product;
       const card = await startStorefrontSession(phone, directSkill, seed);
       const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message;
-      const progressStage = card.stage === 'slot_fill' || card.stage === 'intent_extraction' ? 'understanding' : ['catalog_match', 'offer_review', 'quote_review'].includes(card.stage) ? 'checking' : card.stage === 'complete' ? 'complete' : 'coordinating';
-      return { skill: directSkill, reply, cardData: { ...decorateCardWithSuggestions(card, directSkill), extractedEntities, extractionSource: 'deterministic', canonicalAction: 'economic_request.start', progressStage }, extractedEntities: extractedEntities as Record<string, unknown>, extractionSource: 'deterministic', canonicalAction: 'economic_request.start', progressStage };
+      const progressStage = card.stage === 'information' ? 'information' : card.stage === 'safety' ? 'safety' : card.stage === 'coordination' ? 'coordination' : card.stage === 'slot_fill' || card.stage === 'intent_extraction' ? 'understanding' : card.stage === 'catalog_match' || card.stage === 'offer_review' || card.stage === 'quote_review' ? 'checking' : card.stage === 'complete' ? 'complete' : 'coordinating';
+      const canonicalAction = card.requestId ? 'economic_request.start' : `skill_flow.${card.stage}`;
+      return { skill: directSkill, reply, cardData: { ...decorateCardWithSuggestions(card, directSkill), extractedEntities, extractionSource: 'deterministic', canonicalAction, progressStage }, extractedEntities: extractedEntities as Record<string, unknown>, extractionSource: 'deterministic', canonicalAction, progressStage };
     } catch (e) {
       console.warn('[Router] storefront start failed:', e);
     }
