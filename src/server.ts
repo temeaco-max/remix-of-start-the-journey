@@ -1,48 +1,42 @@
 import { Router } from 'express';
 import { getDb, saveDb } from './database.js';
+import { authenticateUser, type AuthRequest } from './middleware/auth.js';
 
 const router = Router();
 
 /**
  * @route POST /api/fcm/register
- * @desc Receive and store device registration tokens for Firebase Cloud Messaging (FCM)
- *       to target specific users for the 15-hour session reset push notifications.
+ * @desc Receive and store a device registration token for Firebase Cloud Messaging
+ *       (FCM), bound to the *authenticated* user. The phone is taken from the JWT,
+ *       never from the client body, so a caller cannot register a token for another
+ *       user's device.
  */
-router.post('/register', async (req, res) => {
-    const { phone, token } = req.body;
-    
-    if (!phone || !token) {
-        return res.status(400).json({ 
-            success: false, 
-            error: 'Both phone and token are required' 
-        });
+router.post('/register', authenticateUser, async (req: AuthRequest, res) => {
+    const token = req.body?.token;
+    const phone = req.user?.phone;
+
+    if (!phone) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    if (!token || typeof token !== 'string' || !token.trim()) {
+        return res.status(400).json({ success: false, error: 'FCM token is required' });
     }
 
     try {
         const db = await getDb();
-        
-        // Check if memory profile exists for the given phone number
+
+        // FCM tokens are only bound to an existing authenticated profile.
         const stmt = db.prepare(`SELECT phone FROM memory_profiles WHERE phone = ?`);
         stmt.bind([phone]);
         const profileExists = stmt.step();
         stmt.free();
 
-        if (profileExists) {
-            // Update token for existing user
-            db.run(`UPDATE memory_profiles SET fcm_token = ? WHERE phone = ?`, [token, phone]);
-            console.log(`[FCM-Server] Updated FCM registration token for existing user: ${phone}`);
-        } else {
-            // Insert basic memory profile if user does not exist yet
-            db.run(
-                `INSERT INTO memory_profiles (
-                    phone, name, location, country, subscription_tier, 
-                    wallet_balance_minor, preferences, behavior_patterns, 
-                    fcm_token, is_available
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [phone, 'User', 'Ibadan', 'ng', 'Base', 30, '{}', '{}', token, 0]
-            );
-            console.log(`[FCM-Server] Created new profile and registered FCM token for user: ${phone}`);
+        if (!profileExists) {
+            return res.status(404).json({ success: false, error: 'Profile not found' });
         }
+
+        db.run(`UPDATE memory_profiles SET fcm_token = ? WHERE phone = ?`, [token.trim(), phone]);
+        console.log(`[FCM-Server] Updated FCM registration token for user: ${phone}`);
 
         saveDb();
 

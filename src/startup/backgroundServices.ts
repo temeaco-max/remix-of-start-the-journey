@@ -3,6 +3,7 @@ import { seedDemoAdCampaigns } from '../services/adManager.js';
 import { startContactSyncService } from '../services/contactSyncService.js';
 import { startDeliveryStatusService } from '../services/deliveryService.js';
 import { runEscrowPass } from '../services/tradeEngine.js';
+import { drainFcmQueue, isFcmConfigured } from '../services/pushNotifications.js';
 import { markAgentWorkerCycleCompleted, markAgentWorkerCycleFailed, markAgentWorkerCycleStarted, markAgentWorkerStarted, markAgentWorkerStopped, notifyGoalIfNeeded, recordAgentWorkerRun, reenterDueDeferredGoals, runDueAgentGoals } from '../services/agentRuntime.js';
 
 const backgroundTimers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
@@ -19,6 +20,14 @@ export async function startBackgroundServices(): Promise<void> {
     const logHeartbeat = () => { const mem = process.memoryUsage(); console.log(`[Heartbeat] Server healthy. Memory usage: RSS ${(mem.rss / 1024 / 1024).toFixed(2)} MB, Heap ${(mem.heapUsed / 1024 / 1024).toFixed(2)}/${(mem.heapTotal / 1024 / 1024).toFixed(2)} MB.`); };
     logHeartbeat();
     backgroundTimers.push(setInterval(logHeartbeat, 5 * 60 * 1000));
+
+    // FCM push delivery: drain the durable internal queue to external devices.
+    // Only starts a worker when the service account + project id are configured.
+    if (isFcmConfigured()) {
+        backgroundTimers.push(setInterval(() => drainFcmQueue().catch((error) => console.error('Error draining FCM queue:', error instanceof Error ? error.message : error)), 15_000));
+    } else {
+        console.warn('[Push] FCM external delivery is not configured; internal inbox notifications only.');
+    }
     backgroundTimers.push(setTimeout(() => runEscrowPass().catch((error) => console.error('Error running initial escrow pass:', error)), 30000));
     backgroundTimers.push(setInterval(() => runEscrowPass().catch((error) => console.error('Error running daily escrow pass:', error)), 24 * 60 * 60 * 1000));
 

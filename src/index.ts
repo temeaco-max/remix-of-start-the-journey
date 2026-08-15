@@ -40,6 +40,7 @@ import voiceRouter from './routes/voiceRouter.js';
 import qrRouter from './routes/qrRouter.js';
 import agentRouter from './routes/agentRouter.js';
 import topicRoutes from './routes/topicRoutes.js';
+import fcmRouter from './server.js';
 import { startBackgroundServices, stopBackgroundServices } from './startup/backgroundServices.js';
 
 if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
@@ -67,6 +68,7 @@ app.use('/api/chat', chatRouter);
 app.use('/api/voice', voiceRouter);
 app.use('/api/qr', qrRouter);
 app.use('/api/agent', agentRouter);
+app.use('/api/fcm', fcmRouter);
 app.use('/api', topicRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', cartRoutes);

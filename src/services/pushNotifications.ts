@@ -73,7 +73,12 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
         console.error('[Push] Failed to store internal notification:', error);
     }
 
-    console.warn('[Push] FCM delivery adapter is not configured; notification stored in internal queue.');
+    if (isFcmConfigured()) {
+        // External delivery is attempted asynchronously by drainFcmQueue().
+        console.log('[Push] Notification stored in internal queue; FCM delivery pending drain.');
+    } else {
+        console.warn('[Push] FCM external adapter is not configured; notification stored in internal queue only.');
+    }
     return false;
 }
 
@@ -174,4 +179,104 @@ export async function markNotificationRead(notificationId: number, phone: string
     } catch {
         return false;
     }
+}
+
+// ── Firebase Cloud Messaging external delivery adapter ─────────────────────
+// The durable internal queue above is always written first. These helpers add a
+// real FCM HTTP v1 delivery path (OAuth2 from a service account + fetch), which
+// mirrors the existing WhatsApp/webhook pattern and avoids adding firebase-admin
+// as a new dependency. External delivery is never claimed unless the adapter set
+// the delivery_state to 'sent'/'delivered'.
+
+export function isFcmConfigured(): boolean {
+    // A lightweight boolean check with no secrets logged.
+    return Boolean(process.env.FCM_SERVICE_ACCOUNT_PATH || process.env.FCM_SERVICE_ACCOUNT_JSON)
+        && Boolean(process.env.FCM_PROJECT_ID);
+}
+
+async function fcmServiceAccount(): Promise<any> {
+    const pathValue = process.env.FCM_SERVICE_ACCOUNT_PATH;
+    const inline = process.env.FCM_SERVICE_ACCOUNT_JSON;
+    if (inline) return JSON.parse(inline);
+    if (pathValue) {
+        const fsMod = await import('node:fs');
+        return JSON.parse(fsMod.readFileSync(pathValue, 'utf8'));
+    }
+    return null;
+}
+
+async function getFcmAccessToken(): Promise<{ token: string; expiresIn: number } | null> {
+    try {
+        const account = await fcmServiceAccount();
+        if (!account) return null;
+        const mod: any = await import('google-auth-library');
+        const auth = new mod.JWT({
+            email: account.client_email,
+            key: account.private_key,
+            scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+        });
+        const result = await auth.getAccessToken();
+        if (!result || !result.token) return null;
+        return { token: result.token, expiresIn: Number(result.res?.data?.expires_in || 3600) };
+    } catch (error) {
+        console.error('[FCM] Failed to obtain access token:', error instanceof Error ? error.message : error);
+        return null;
+    }
+}
+
+async function getFcmTokenForPhone(phone: string): Promise<string | null> {
+    const db = await getDb();
+    const row = db.exec(`SELECT fcm_token FROM memory_profiles WHERE phone = ?`, [phone])[0]?.values?.[0] as any[] | undefined;
+    const token = row?.[0];
+    return typeof token === 'string' && token ? token : null;
+}
+
+export async function sendSingleFcmMessage(phone: string, title: string, body: string, link?: string): Promise<boolean> {
+    if (!isFcmConfigured()) return false;
+    const project = process.env.FCM_PROJECT_ID;
+    const token = await getFcmTokenForPhone(phone);
+    if (!token) return false;
+    const access = await getFcmAccessToken();
+    if (!access) return false;
+
+    const message: Record<string, unknown> = {
+        token,
+        notification: { title, body },
+        data: {},
+    };
+    if (link) message.data = { ...(message.data as Record<string, unknown>), link };
+
+    try {
+        const response = await fetch(`https://fcm.googleapis.com/v1/projects/${project}/messages:send`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${access.token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.warn(`[FCM] send failed (${response.status}):`, text.slice(0, 300));
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.warn('[FCM] send request error:', error instanceof Error ? error.message : error);
+        return false;
+    }
+}
+
+export async function drainFcmQueue(limit = 50): Promise<{ sent: number; retried: number; none: number }> {
+    const outcome = { sent: 0, retried: 0, none: 0 };
+    if (!isFcmConfigured()) return outcome;
+    const rows = await listQueuedNotifications(Math.max(1, Math.min(100, Math.floor(Number(limit) || 50))));
+    for (const row of rows) {
+        const ok = await sendSingleFcmMessage(row.phone, row.title, row.body, row.link);
+        if (ok) {
+            await transitionNotificationDelivery(row.id, 'sent', row.phone);
+            outcome.sent += 1;
+        } else {
+            const state = await recordNotificationAttempt(row.id, 'fcm_delivery_failed', row.phone);
+            outcome[state === 'dead_letter' ? 'none' : 'retried'] += 1;
+        }
+    }
+    return outcome;
 }
