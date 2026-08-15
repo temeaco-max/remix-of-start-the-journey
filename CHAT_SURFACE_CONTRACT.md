@@ -1,6 +1,6 @@
 # Kurukoo Central Chat Surface Contract
 
-**Status:** Current implementation contract as of 2026-08-14.
+**Status:** Current implementation contract as of 2026-08-15.
 
 ## Purpose
 
@@ -39,6 +39,8 @@ The fetched `.workspace-header` is removed before the workspace content is inser
 ## Continuing work without leaving a surface
 
 When a user opens Tasks or another surface and sends a message, `state.surfaceView` remains active. The request uses the normal `/api/chat/stream` lifecycle while the current content remains visible. Agent completion, errors, and questions requiring user input appear in closeable notifications anchored at the upper-right of the central Chat content area. Dismissing one does not navigate or clear the surface; the composer is focused again and ready for the next message.
+
+The same canonical composer owns guest identity onboarding. A standalone name is handled before intent classification, including names containing numeric characters. The flow then collects phone and OTP conversationally. Controlled development authentication identifies its local test code and states that no external SMS was sent; production-like flows distinguish an actually configured delivery adapter from a merely generated verification request. The streaming route flushes response headers only after any HttpOnly authentication-cookie migration is attached, so an in-chat OTP success cannot produce a post-auth `ERR_HTTP_HEADERS_SENT` connection failure.
 
 This model is recommended because it combines task context with the conversational agent rather than forcing the user to return to the conversation screen for every step.
 

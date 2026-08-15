@@ -1,4 +1,4 @@
-# Kurukoo v5.41 — Everyday Utility Platform
+# Kurukoo v5.66 — Everyday Utility Platform
 
 **Tagline:** Wake up. Get going.
 **Shortcode:** `*7000#` · **Voice/WhatsApp:** `7000`
@@ -63,7 +63,7 @@ Current CI includes build, test, custom audit, FastText, and secret-scan jobs. T
 
 ## Key Docs
 
-- `BLUEPRINT.md` — master specification and current product/architecture source of truth (v5.65).
+- `BLUEPRINT.md` — master specification and current product/architecture source of truth (v5.66).
 - `BUILD_STATUS.md` — canonical route ownership and release verification status.
 - `SECURITY_AUDIT_STATUS.md` — security posture, manual operator actions, and scale transition criteria.
 - `ECOSYSTEM.md` — authoritative economic taxonomy.

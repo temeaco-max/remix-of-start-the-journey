@@ -1,10 +1,10 @@
 # Kurukoo Homepage Copy — Marketing Reference
 
-**Version:** 2.1
-**Date:** 2026-08-11
-**Status:** Aligned with the verified homepage implementation and its no-fabrication preview policy
+**Version:** 2.2
+**Date:** 2026-08-15
+**Status:** Aligned with the revised verified homepage implementation, preserved live sections, and no-fabrication preview policy
 **Owner:** Kurukoo Brand  
-**Blueprint reference:** §32.6 (v5.55), FRONTEND_PAGES.md
+**Blueprint reference:** `BLUEPRINT.md` v5.66, `CHAT_SURFACE_CONTRACT.md`
 
 ---
 
@@ -20,17 +20,18 @@ This document records the current homepage copy reference for `kurukoo.ai.studio
 
 ## Header / Navigation
 
-> **Aligned with the live `nav.ejs` partial and `publicRoutes.ts`.** The public header uses six extensionless navigation links, a Web Chat CTA, and a phone-auth account entry. No unsupported WhatsApp, USSD, SMS, App Store, or platform-mega-dropdown claim belongs in this reference.
+> **Aligned with the live `nav.ejs` partial and `publicRoutes.ts`.** The public header preserves the route-backed public navigation, lightweight dropdowns for Network and Resources, a Web Chat CTA, and a phone-auth account entry. No unsupported WhatsApp, USSD, SMS, App Store, or platform-mega-dropdown claim belongs in this reference.
 
 | Item | Label | Live destination |
 |---|---|---|
 | Logo | Kurukoo | `/` |
-| Nav link 1 | Discover | `/discover` |
-| Nav link 2 | How it works | `/how-it-works` |
-| Nav link 3 | Network | `/network` |
-| Nav link 4 | Channels | `/channels` |
-| Nav link 5 | Resources | `/resources` |
-| Nav link 6 | About | `/about` |
+| Nav link 1 | How it works | `/how-it-works` |
+| Nav link 2 | What you can ask | `/explore` |
+| Nav link 3 | Discover | `/discover` |
+| Nav link 4 | Network | `/network` with Providers & businesses, Partners, Agents & contributors dropdown entries |
+| Nav link 5 | Channels | `/channels` |
+| Nav link 6 | Resources | `/resources` with Help, Blog & Media, Developers, and Safety, privacy & legal dropdown entries |
+| Nav link 7 | About | `/about` |
 | Right side | User account | `/login` |
 | CTA button | Start chatting | `/chat` |
 
@@ -40,43 +41,46 @@ This document records the current homepage copy reference for `kurukoo.ai.studio
 
 ## Hero Section
 
-**Headline:**  
-The trusted neighbor who knows everyone.
+**Eyebrow:**
+Your everyday, sorted.
 
-**Subhead:**  
-Meet Kurukoo — a conversational utility that helps you find trusted people, get everyday things done, offer your skills, and discover useful opportunities nearby.
+**Headline:**
+Tell Kurukoo what you need. It works out who or what can fulfil it.
 
-**Primary CTA:**  
+**Subhead:**
+Start with a conversation. Kurukoo can help directly, capture a request, organise a reminder, surface relevant options, or coordinate people and services when a fulfilment path is available.
+
+**Primary CTA:**
 [Start chatting] (links to `/chat`)
 
-**Secondary CTA:**  
+**Secondary CTA:**
 [How it works] (links to `/how-it-works`)
 
-**Trust line (small, under CTAs):**  
+**Trust line (small, under CTAs):**
 ⭐ Built for everyday coordination • Web Chat is available in this deployment • Privacy first
 
 ---
 
 ## Role Priming Section (3 Cards)
 
-**Section headline:**  
-What do you want to do today?
+**Section headline:**
+Useful whether you need help, offer it, or grow around it.
 
-**Section intro:**  
-One conversation. Every role. No profile switching, no new apps. Kurukoo is like that reliable, connected neighbor who knows every plumber, okada rider, and shopkeeper in town — always ready to assist you or find you some good work.
+**Section intro:**
+Kurukoo brings different pathways into one conversational surface instead of sending people to disconnected dashboards.
 
 ---
 
 ### Card 1 — Consumer
 
-**Headline:**  
+**Headline:**
 Request a service
 
 **Body:**  
 Need a ride, repair, delivery, food, a worker, or something else? Tell Kurukoo what you need and let the conversation fill in the details.
 
-**CTA button:**  
-Request a service
+**CTA button:**
+Ask for help
 
 **Pre-filled chat prompt (on click):**
 > "Hi, I need help with [tell me what you need]"
@@ -85,14 +89,14 @@ Request a service
 
 ### Card 2 — Provider
 
-**Headline:**  
+**Headline:**
 Offer your skills
 
 **Body:**  
 Ride, repair, cook, build, deliver, design, teach, sell or help. List your skills once and let Kurukoo help people find you.
 
-**CTA button:**  
-Offer your skills
+**CTA button:**
+Offer a skill
 
 **Pre-filled chat prompt (on click):**
 > "Hi, I want to offer my skills. I do [your skill]"
@@ -101,33 +105,42 @@ Offer your skills
 
 ### Card 3 — Business
 
-**Headline:**  
+**Headline:**
 Grow my business
 
 **Body:**  
 Turn your products and services into a discoverable local offering without forcing you into a complicated dashboard.
 
-**CTA button:**  
-Grow my business
+**CTA button:**
+Review business options
 
 **Pre-filled chat prompt (on click):**
 > "Hi, I want to grow my business on Kurukoo"
 
 ---
 
+## Process Strip
+
+A compact dark process strip appears immediately below the hero: **Start with a need**, **Kurukoo organises it**, and **See the useful step**. It explains the experience in user language and does not claim that matching, payment, fulfilment, or external delivery has already occurred.
+
 ## Living Profile Section (3 Cards)
 
-**Section headline:**  
-A helper who learns a little more every day.
+**Eyebrow:**
+A helper that learns carefully
 
-**Subhead:**  
-No forms. No questionnaires. Kurukoo learns from every conversation and gets smarter every time you come back.
+**Section headline:**  
+Living memory, useful context, under your control.
+
+**Subhead:**
+When you choose to keep information connected to your profile, Kurukoo can use it to make future conversations more useful.
+
+The section uses a split layout matching the approved reference: a lavender illustration panel on the left with a centered dark **Living memory** core, delicate orbit rings, and floating labels for **preferences**, **locations**, and **your control**. The illustration is decorative and does not imply that any memory is stored unless the user has explicitly chosen and can review it.
 
 ---
 
 ### Card 1 — A Friend Who Remembers
 
-**Headline:**  
+**Headline:**
 Your profile lives and grows
 
 **Body:**  
@@ -137,7 +150,7 @@ Whether you're ordering dinner, booking a carpenter, or offering your own skills
 
 ### Card 2 — Natural Conversations
 
-**Headline:**  
+**Headline:**
 Just talk. No menus. No buttons.
 
 **Body:**  
@@ -147,7 +160,7 @@ Speak or type naturally in English, Pidgin, or local phrases. Your neighborhood 
 
 ### Card 3 — Proactive Opportunities
 
-**Headline:**  
+**Headline:**
 Always looking out for you
 
 **Body:**  
@@ -157,11 +170,14 @@ Always looking out for you. It surfaces timely alerts, nearby mobile vendors, an
 
 ## Nearby Pulse Section (Map Preview)
 
-**Section headline:**  
-See how nearby help can work
+**Eyebrow:**
+Discover
 
-**Subhead:**  
-When you choose to share an approximate area, Kurukoo can help surface relevant people, services and opportunities. Exact locations stay private.
+**Section headline:**  
+Find useful things around you.
+
+**Subhead:**
+When location context is relevant and available, Kurukoo can help you explore services, opportunities, events and other useful activity without pretending that a provider is live or verified when it is not.
 
 **Map preview element:**  
 Illustrative, non-live map preview on the homepage; the full discovery experience is available at `/discover`.
@@ -187,7 +203,7 @@ Illustrative preview. When active, exact locations remain private and you contro
 **Section headline:**  
 Everything you need, one conversation away
 
-**Subhead:**  
+**Subhead:**
 Swipe through what Kurukoo can do for you. Tap any card to start.
 
 **Card design:**  
@@ -239,7 +255,7 @@ Horizontal scroll on mobile (swipeable, snap-scroll), grid on desktop (4-6 colum
 **Section headline:**  
 From morning move to evening chop
 
-**Subhead:**  
+**Subhead:**
 One conversation can help coordinate the day without asking you to juggle apps or tabs.
 
 **Illustrative timeline (6 moments, vertical on mobile, horizontal scroll on desktop):**
@@ -260,12 +276,22 @@ One conversation can help coordinate the day without asking you to juggle apps o
 
 ---
 
+## Managed Public Advertising and Daily Picks
+
+The homepage may render a bounded Daily Picks rail beside the One relationship section, plus managed sponsored placements beside **What can you ask?** and within the illustrative day. These placements are read from `adManager.ts` only when the campaign is first-party or approved, active, time-valid, associated with an approved local asset, and carries a disclosure, destination, CTA, and advertiser identity. A missing or inactive campaign leaves the placement empty rather than showing a fabricated advertisement.
+
+The homepage does not hard-code private-number sales, premium features, provider offers, prices, availability, or activation claims. Copy such as **Privacy Phone Number Sales** or **Kurukoo Premium Features** can only appear as an admin-approved campaign asset, with the destination and availability state controlled by the campaign record and external readiness rules.
+
+## Illustrative Day and Channels Order
+
+The implemented homepage places the six-card **Your Day with Kurukoo** timeline after **What can you ask?**. Immediately below it, the homepage places the horizontal **Channels** section titled **One Kurukoo relationship, different access points.** Web Chat is shown as available in the current deployment; WhatsApp, Telegram, SMS, and USSD remain visibly not connected until their adapters are configured. This ordering keeps the channels relationship at the bottom of the day narrative while preserving truthful activation state.
+
 ## How It Works Section (Teaser)
 
-**Headline:**  
+**Headline:**
 How Kurukoo works
 
-**Subhead:**  
+**Subhead:**
 Three simple steps. No downloads. No complicated setup.
 
 | Step | What happens | Visual |
@@ -281,7 +307,7 @@ Three simple steps. No downloads. No complicated setup.
 
 ## Why Kurukoo Section (Brief)
 
-**Headline:**  
+**Headline:**
 Why Kurukoo?
 
 **Body:**  
@@ -305,20 +331,23 @@ No testimonials, customer counts, city claims, earnings stories, response-time e
 
 ## Final CTA Section
 
-**Headline:**  
-Ready to get going?
+**Eyebrow:**
+Ready when you are
 
-**Subhead:**  
-Open Web Chat and describe what you need.
+**Headline:**
+Tell Kurukoo what you need.
 
-**Primary CTA:**  
+**Subhead:**
+Start with the conversation. You do not need to know which service, provider or category should handle it.
+
+**Primary CTA:**
 [Start chatting] (links to `/chat`)
 
-**Secondary CTA:**  
+**Secondary CTA:**
 [How it works] (links to `/how-it-works`)
 
-**Small print:**  
-No download. No registration form. No credit card. Just start.
+**Small print:**
+Web Chat is available in this deployment. Other channels remain unavailable until configured and independently verified.
 
 ---
 
@@ -384,3 +413,8 @@ No download. No registration form. No credit card. Just start.
 ---
 
 *Last updated: 2026-08-11 | Version 2.1 | Blueprint v5.55*
+
+
+## Reusable Section Ownership Map
+
+The homepage remains the concise entry point, while fuller versions of its reusable sections live on the page that owns the relevant behavior. **How it works** owns the three-step process summary and Capture/Coordinate/Confirm/Fulfil request boundaries. **Discover** owns the user-facing discovery cards and the privacy-aware map. **Network** owns the role pathways and evidence-before-fulfilment explanation. **Resources** owns the need-first examples and Living Memory/privacy guidance. **Advertise** owns campaign placement options and the approved-asset, disclosure, destination, and timing boundaries. **Channels** remains the owner of access-point readiness and activation requirements.

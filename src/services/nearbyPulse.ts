@@ -29,6 +29,12 @@ export async function activatePulse(phone: string, skill: string, lat: number, l
         return { success: false, message: 'Cannot Go Live. Your skills are not registered as mobile operation mode.' };
     }
 
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return { success: false, message: 'Nearby Pulse needs an explicit valid location before it can be activated. No location was inferred.' };
+    }
+
     const db = await getDb();
     
     // Check subscription tier gating
@@ -63,11 +69,11 @@ export async function activatePulse(phone: string, skill: string, lat: number, l
     
     db.run(
         `INSERT INTO pulse_sessions (phone, skill, lat, lng, expires_at, active) VALUES (?, ?, ?, ?, datetime('now', '+30 minutes'), 1)`,
-        [phone, skill || 'general_service', lat || 6.5244, lng || 3.3792]
+        [phone, skill || 'general_service', latitude, longitude]
     );
     saveDb();
 
-    return { success: true, message: 'Nearby Pulse is LIVE! Broadcast sent to nearby users with vibration alert.' };
+    return { success: true, message: 'Nearby Pulse presence is active in Kurukoo for 30 minutes using the location and skill you explicitly supplied. Matching and any external contact remain separate, evidence-backed steps.' };
 }
 
 export async function endPulseSession(phone: string): Promise<void> {
@@ -84,7 +90,7 @@ export async function getActivePulseProviders(): Promise<any[]> {
         SELECT p.phone, p.skill, p.lat, p.lng, m.name, m.location, m.subscription_tier, 'mobile' as source
         FROM pulse_sessions p
         JOIN memory_profiles m ON p.phone = m.phone
-        WHERE p.active = 1 AND p.expires_at > datetime('now')
+        WHERE p.active = 1 AND p.expires_at > datetime('now') AND m.verified_provider = 1 AND m.is_available = 1
         
         UNION ALL
         
@@ -92,7 +98,7 @@ export async function getActivePulseProviders(): Promise<any[]> {
         FROM provider_presence pr
         JOIN memory_profiles m ON pr.phone = m.phone
         JOIN skills s ON pr.phone = s.phone
-        WHERE pr.is_live = 1 AND pr.operation_mode = 'stationary'
+        WHERE pr.is_live = 1 AND pr.operation_mode = 'stationary' AND m.verified_provider = 1 AND m.is_available = 1
     `);
     
     const results: any[] = [];

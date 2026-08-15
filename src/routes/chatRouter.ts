@@ -68,8 +68,6 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
   let activeConversation = conversationId;
 
   try {
-    res.flushHeaders?.();
-    sse(res, { type: 'status', status: 'processing', label: 'Kurukoo is checking your request…', grounded: true });
     const turn = await processCanonicalChatTurn({ phone, message, channel, conversationId, attachment });
     activeConversation = turn.conversationId;
     fullReply = turn.reply;
@@ -83,6 +81,10 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
       await migrateGuestSessionToAccount(phone, turn.authSuccess.phone);
       await applyQrReferralAttribution(phone, turn.authSuccess.phone).catch(() => undefined);
     }
+    // Authentication may complete inside this turn. Flush only after any
+    // HttpOnly session migration headers have been attached.
+    res.flushHeaders?.();
+    sse(res, { type: 'status', status: 'processing', label: 'Kurukoo is checking your request…', grounded: true });
     sse(res, { type: 'conversation', conversationId: activeConversation, messageId: turn.userMessageId });
     sse(res, { type: 'status', status: 'typing', label: 'Kurukoo is typing…' });
     if (turn.progressStage && turn.progressStage !== 'complete') sse(res, { type: 'progress', stage: turn.progressStage, label: turn.progressStage === 'understanding' ? 'Understanding your request…' : turn.progressStage === 'checking' ? 'Checking the available Kurukoo state…' : turn.progressStage === 'coordinating' ? 'Preparing the next supported step…' : 'Preparing your request…', grounded: true });

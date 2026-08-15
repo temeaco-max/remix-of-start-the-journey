@@ -8,6 +8,8 @@
         <p class="page-desc">Kurukoo is powered by a diverse network of capable participants, from local providers to automated agents.</p>
     </section>
 
+    <section class="network-role-pathways" aria-labelledby="network-role-pathways-title"><div class="section-heading section-heading--left"><span class="eyebrow">One conversation, every role.</span><h2 id="network-role-pathways-title">Useful whether you need help, offer it, or grow around it.</h2><p>Start in Chat and choose the pathway that fits your role. The same identity, evidence boundaries and request lifecycle remain connected.</p></div><div class="network-role-pathways__grid"><a class="network-card" href="/chat?prompt=I%20need%20a%20service"><div class="network-icon">↗</div><h3>Request a service</h3><p>Describe an everyday need and let the conversation collect the useful requirements.</p></a><a class="network-card" href="/chat?prompt=I%20want%20to%20offer%20my%20skills"><div class="network-icon">✦</div><h3>Offer your skills</h3><p>Tell Kurukoo what you do and what you can genuinely provide.</p></a><a class="network-card" href="/advertise"><div class="network-icon">□</div><h3>Grow your business</h3><p>Review disclosed business and campaign paths without claiming guaranteed demand.</p></a></div></section>
+
     <div class="network-grid">
         <div class="network-card">
             <div class="network-icon">👤</div>
@@ -46,6 +48,8 @@
         </div>
     </div>
 
+    <section class="network-evidence-note" aria-label="Network evidence boundary"><div class="vision-box"><h2>Evidence before fulfilment.</h2><p>Network participation does not by itself prove availability, identity, price, inventory, payment, delivery or fulfilment. Kurukoo shows those states only when the relevant evidence and authorization are available.</p></div></section>
+
     <section class="network-vision">
         <div class="vision-box">
             <h2>Participate in the Network</h2>
@@ -58,5 +62,14 @@
     </section>
 </main>
 
+
+<style>
+.network-role-pathways { margin: 54px 0 20px; }
+.network-role-pathways__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.network-role-pathways__grid .network-card { color: inherit; text-decoration: none; }
+.network-evidence-note { margin: 44px 0; }
+.network-evidence-note .vision-box { background: var(--cream); }
+@media (max-width: 760px) { .network-role-pathways__grid { grid-template-columns: 1fr; } }
+</style>
 
 <%- include('_partials/footer') %>

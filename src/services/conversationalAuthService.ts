@@ -1,5 +1,6 @@
 import { getDb, saveDb } from '../database.js';
 import { requestPhoneOtp, verifyPhoneOtp } from './otpAuthService.js';
+import { developmentTestOtpLabel, isDevelopmentTestIdentity, verifyDevelopmentTestOtp } from './devTestAuthService.js';
 import { issueUserToken, upsertProfile } from '../routes/authRoutes.js';
 import { sendFcmPush } from './pushNotifications.js';
 
@@ -73,15 +74,20 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
     const fullPhone = phone.startsWith('+') ? phone : (phone.startsWith('0') ? '+234' + phone.slice(1) : '+234' + phone);
     
     const result = await requestPhoneOtp(fullPhone);
-    if (!result.success) return { reply: `I couldn't send a code to that number: ${result.message || 'unknown error'}. Please try again.` };
-    
+    if (!result.success) return { reply: `I couldn't request a code for that number: ${result.message || 'unknown error'}. Please try again.` };
+
     await setAuthState(guestPhone, 'awaiting_otp', { ...data, phone: fullPhone });
-    let reply = "I've sent a 6-digit verification code to your phone. Enter it here to continue.";
-    if (result.debugCode) reply += ` (Dev code: ${result.debugCode})`;
-    
+    const controlledTest = isDevelopmentTestIdentity(fullPhone);
+    const delivered = /sent|delivery/i.test(String(result.message || '')) && !/generated|configure/i.test(String(result.message || ''));
+    let reply = controlledTest
+      ? `For this controlled development test, use verification code ${developmentTestOtpLabel()}. No external SMS was sent.`
+      : delivered
+        ? "I've sent a 6-digit verification code to your phone. Enter it here to continue."
+        : "I've created the verification request, but external SMS/WhatsApp delivery is not configured in this environment. Do not assume a code was delivered; connect an approved delivery provider before using this flow with real users.";
+
     return {
       reply,
-      cardData: { type: 'auth_conversation', step: 'otp', phone: fullPhone, devCode: result.debugCode || undefined }
+      cardData: { type: 'auth_conversation', step: 'otp', phone: fullPhone, devCode: controlledTest ? developmentTestOtpLabel() : undefined }
     };
   }
   
@@ -89,7 +95,8 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
     const code = text.trim().replace(/\D/g, '');
     if (code.length !== 6) return { reply: "Please enter the 6-digit code I sent to your phone." };
     
-    const result = await verifyPhoneOtp(data.phone, code);
+    const developmentResult = verifyDevelopmentTestOtp(data.phone, code);
+    const result = developmentResult || await verifyPhoneOtp(data.phone, code);
     if (!result.success || !result.phone) return { reply: `That code didn't work: ${result.message}. Please check the code and try again.` };
     
     const userPhone = result.phone;

@@ -8,6 +8,8 @@
         <p class="page-desc">Tell Kurukoo what you need. Kurukoo figures out who or what can fulfil it.</p>
     </section>
 
+    <section class="how-process-summary" aria-label="Kurukoo request flow"><div class="step-card"><div class="step-number">01</div><h3>Start with a need</h3><p>Say what you want in your own words. You do not need to know which service, provider or category should handle it.</p></div><div class="step-card"><div class="step-number">02</div><h3>Kurukoo organises it</h3><p>The conversation captures the requirements, context and next step without making you repeat the request.</p></div><div class="step-card"><div class="step-number">03</div><h3>See the useful step</h3><p>Only supported, known states are shown as known. Unavailable fulfilment paths remain clearly bounded.</p></div></section>
+
     <div class="how-it-works-grid">
         <div class="step-card">
             <div class="step-number">01</div>
@@ -34,6 +36,8 @@
         </div>
     </div>
 
+    <section class="request-boundaries-panel" aria-labelledby="request-boundaries-title"><div class="section-heading section-heading--left"><span class="eyebrow">Request states</span><h2 id="request-boundaries-title">One request, visible boundaries.</h2><p>Kurukoo keeps the useful distinction between a conversation, a supported option, a confirmed quote, payment, escrow, and fulfilment.</p></div><div class="how-it-works-grid request-boundaries-grid"><div class="step-card"><h3>Capture</h3><p>Conversation collects the request details.</p></div><div class="step-card"><h3>Coordinate</h3><p>Eligible options are considered against real availability.</p></div><div class="step-card"><h3>Confirm</h3><p>A quote or next step is shown only when its state is known.</p></div><div class="step-card"><h3>Fulfil</h3><p>Any coordination follows the same Economic Request lifecycle.</p></div></div></section>
+
     <section class="how-it-works-cta">
         <div class="cta-box">
             <h2>Ready to get started?</h2>
@@ -44,6 +48,9 @@
 </main>
 
 <style>
+.how-process-summary, .request-boundaries-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; margin: 44px 0; }
+.request-boundaries-panel { padding: 54px 0 18px; }
+.request-boundaries-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 24px; }
 .how-it-works-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));

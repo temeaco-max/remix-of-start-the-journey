@@ -64,8 +64,8 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
 
     if (!userProfile) return [];
 
-    const userState = userProfile.primary_state || 'Lagos';
-    const userLga = userProfile.primary_lga || 'Ikeja';
+    const userState = String(userProfile.primary_state || '').trim();
+    const userLga = String(userProfile.primary_lga || userProfile.location || '').trim();
 
     // 2. Fetch user's registered skills
     const skills: string[] = [];
@@ -83,29 +83,31 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
     // 4. Build list of potential opportunities
     const rawOpportunities: Omit<Opportunity, 'status'>[] = [];
 
-    // --- Type A: Engagement Reward (Engagement) ---
-    rawOpportunities.push({
-        phone,
-        type: 'reward',
-        title: 'Daily Engagement Bonus',
-        subtitle: 'You have been active! Claim your +1 Point daily bonus now.',
-        ctaText: 'Claim Bonus',
-        ctaLink: '/api/opportunities/act',
-        urgency: 1.0, // Same-day
-        businessValue: 0.5 // Engagement
-    });
-
-    // --- Type B: Skill Demand Alerts (if user has skills) ---
+    // Opportunity alerts are evidence-backed only. No engagement reward or local demand is inferred from a profile alone.
+    const demandStmt = db.prepare(`SELECT skill, requirements_json FROM economic_requests WHERE status IN ('requested','awaiting_match','partially_matched','matched','quoting','quoted')`);
+    const demandBySkill = new Map<string, number>();
+    while (demandStmt.step()) {
+        const row = demandStmt.getAsObject() as any;
+        let requirements: any = {};
+        try { requirements = JSON.parse(String(row.requirements_json || '{}')); } catch { requirements = {}; }
+        const requestLocation = String(requirements.location || requirements.area || requirements.lga || '').trim().toLowerCase();
+        const locationMatches = !userLga || !requestLocation || requestLocation.includes(userLga.toLowerCase()) || userLga.toLowerCase().includes(requestLocation);
+        const requestSkill = String(row.skill || '').trim().toLowerCase();
+        if (locationMatches && requestSkill) demandBySkill.set(requestSkill, (demandBySkill.get(requestSkill) || 0) + 1);
+    }
+    demandStmt.free();
     for (const skill of skills) {
+        const demandCount = demandBySkill.get(skill) || 0;
+        if (!demandCount) continue;
         rawOpportunities.push({
             phone,
             type: 'job',
-            title: `High Skill Demand: ${skill.charAt(0).toUpperCase() + skill.slice(1)}`,
-            subtitle: `Multiple people near ${userLga} need a ${skill} this week. Toggle Go Live to get matched!`,
-            ctaText: 'Go Live Now',
-            ctaLink: '/api/pulse/activate',
+            title: `Recorded request${demandCount === 1 ? '' : 's'} for ${skill.charAt(0).toUpperCase() + skill.slice(1)}`,
+            subtitle: `Recorded demand: ${demandCount} open Economic Request${demandCount === 1 ? '' : 's'} currently match this capability${userLga ? ` near ${userLga}` : ''}. Availability and matching still require explicit provider action.`,
+            ctaText: 'Review in Chat',
+            ctaLink: `/chat?prompt=${encodeURIComponent(`Review recorded ${skill} requests`)}`,
             urgency: 0.8,
-            businessValue: 0.8 // Lead-gen value
+            businessValue: 0.8
         });
     }
 
@@ -125,32 +127,7 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
         });
     }
 
-    // --- Type D: Market Intelligence based on location ---
-    if (userState.toLowerCase() === 'lagos') {
-        rawOpportunities.push({
-            phone,
-            type: 'market_intel',
-            title: 'Lagos Rice Supply Alert',
-            subtitle: 'Ask Web Chat about verified market information and available wholesale providers in your area.',
-            ctaText: 'Ask in Web Chat',
-            ctaLink: '/chat?prompt=Show%20verified%20wholesale%20options%20near%20me',
-            urgency: 0.5,
-            businessValue: 0.7
-        });
-    } else {
-        rawOpportunities.push({
-            phone,
-            type: 'market_intel',
-            title: 'Direct Wholesale Sourcing',
-            subtitle: 'Direct-from-farm tubers of Yam and Palm Oil discounts available this week for your local area.',
-            ctaText: 'View Wholesale Gigs',
-            ctaLink: '/explore',
-            urgency: 0.5,
-            businessValue: 0.7
-        });
-    }
-
-    // --- Type E: Sponsored Daily Picks (Ad campaigns) ---
+    // --- Type D: Sponsored Daily Picks (Ad campaigns) ---
     const adsStmt = db.prepare(`SELECT * FROM ad_campaigns WHERE status = 'active' AND first_party = 1 AND (start_at IS NULL OR datetime(start_at) <= datetime('now')) AND (expires_at IS NULL OR datetime(expires_at) > datetime('now')) ORDER BY priority DESC, id DESC LIMIT 3`);
     let adCount = 0;
     while (adsStmt.step()) {

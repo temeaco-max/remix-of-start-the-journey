@@ -22,7 +22,7 @@ function isNewGuestRequestAfterAuthPrompt(message: string): boolean {
 
 function isStandaloneName(message: string): boolean {
   const text = message.trim();
-  return text.length >= 2 && text.length <= 60 && /^[A-Za-z][A-Za-z .'-]*$/.test(text) && !/\b(?:need|want|find|book|repair|plumber|ride|food|help|remind|compare|plan|venue|service)\b/i.test(text);
+  return text.length >= 2 && text.length <= 60 && /^[A-Za-z][A-Za-z0-9 .'-]*$/.test(text) && !/\b(?:need|want|find|book|repair|plumber|ride|food|help|remind|compare|plan|venue|service)\b/i.test(text);
 }
 
 function extractRequirementPatch(message: string, card: any, current: any): Record<string, unknown> {

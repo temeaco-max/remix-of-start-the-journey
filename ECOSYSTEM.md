@@ -1,7 +1,7 @@
 # Kurukoo Ecosystem & Authoritative Registry
 
 **Status:** CURRENT taxonomy and ecosystem reference; historical category/version material is preserved in later sections.
-**Canonical Blueprint:** `BLUEPRINT.md` v5.65.
+**Canonical Blueprint:** `BLUEPRINT.md` v5.66.
 **Product definition:** Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**.
 **Tagline:** Wake up. Get going.  
 **Shortcode:** `*7000#`  

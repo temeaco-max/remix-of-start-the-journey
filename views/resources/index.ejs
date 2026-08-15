@@ -46,11 +46,20 @@
     </section>
   </div>
 
+  <section class="resources-reusable-section" aria-labelledby="resources-start-title"><div class="resource-hub-section"><h2 id="resources-start-title">Start with the need, not a category.</h2><p>These examples help you begin a conversation without choosing the service, provider or category first.</p><div class="resource-links"><a href="/chat?prompt=I%20need%20food%20or%20groceries" class="hub-link">Food and groceries <span aria-hidden="true">→</span></a><a href="/chat?prompt=I%20need%20a%20repair" class="hub-link">Repairs and maintenance <span aria-hidden="true">→</span></a><a href="/chat?prompt=Help%20me%20find%20work" class="hub-link">Work and tasks <span aria-hidden="true">→</span></a><a href="/chat?prompt=Remind%20me%20about%20something" class="hub-link">Reminders <span aria-hidden="true">→</span></a></div></div><div class="resource-hub-section"><h2>Living memory, useful context, under your control.</h2><p>Learn what Kurukoo can remember, how provenance works, and how to edit or forget connected context.</p><div class="resource-links"><a href="/memory" class="hub-link">Review memory in your workspace <span aria-hidden="true">→</span></a><a href="/legal/privacy" class="hub-link">Read privacy guidance <span aria-hidden="true">→</span></a></div></div></section>
+
   <section class="latest-guides-section">
     <h2>Latest detailed guides</h2>
     <div id="resources-list" class="resources-grid" aria-live="polite"><div class="muted-info-text">Loading latest guides…</div></div>
   </section>
 </main>
+
+<style>
+.resources-reusable-section { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 54px 0; }
+.resources-reusable-section .resource-hub-section { margin: 0; }
+.resources-reusable-section p { color: var(--gray-600); line-height: 1.6; }
+@media (max-width: 720px) { .resources-reusable-section { grid-template-columns: 1fr; } }
+</style>
 
 <script src="/js/kurukoo-resources.js?v=1" defer></script>
 <%- include('../_partials/footer') %>
