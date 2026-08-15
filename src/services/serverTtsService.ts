@@ -28,7 +28,7 @@ export async function synthesizeSpeech(input: string): Promise<TtsResult> {
       contents: text,
       config: {
         responseModalities: ['AUDIO'],
-        speechConfig: { voiceConfig: { prebuiltVoice: 'Puck' } },
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
       },
     });
     const audio = response?.candidates?.[0]?.content?.parts?.find((part: any) => part?.inlineData?.data);
