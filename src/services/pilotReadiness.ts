@@ -2,6 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isChannelConfigured } from '../channels/channelRegistry.js';
 import { getFastTextRuntimeStatus } from './fastTextService.js';
+import { getVoiceStatus } from './voiceService.js';
+import { getMistralStatus } from './mistralService.js';
+import { hasConfiguredSecret } from './providerCapabilities.js';
 
 export const READINESS_STATES = ['READY', 'NOT_CONFIGURED', 'DISABLED', 'EXTERNAL_DEPENDENCY', 'PENDING'] as const;
 export type ReadinessState = typeof READINESS_STATES[number];
@@ -71,6 +74,12 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
   const affiliate = env.FF_AFFILIATE_LINKS === 'true' && present(env.AFFILIATE_PROVIDER) ? item('EXTERNAL_DEPENDENCY', 'Affiliate provider is declared but external activation remains required.') : item('NOT_CONFIGURED', 'No affiliate provider is configured.');
   const advertising = present(env.AD_PROVIDER_API_KEY) ? item('EXTERNAL_DEPENDENCY', 'Advertising provider credentials are present; external activation remains deployment dependent.') : item('NOT_CONFIGURED', 'Self-service advertising is not configured in this deployment.');
   const fastText = getFastTextRuntimeStatus(rootDir);
+  const voice = getVoiceStatus();
+  const mistral = getMistralStatus();
+  const geminiConfigured = hasConfiguredSecret(env.GEMINI_API_KEY || env.API_KEY);
+  const providerTextNote = geminiConfigured
+    ? 'Gemini text credentials are present; request routing, quota, privacy, retention, and provider terms remain deployment decisions.'
+    : 'Gemini text is not configured; local routing remains the canonical path.';
   const fastTextReadiness = fastText.modelState === 'real'
     ? item('READY', `Real FastText binary is present at ${fastText.modelPath}.`)
     : item('NOT_CONFIGURED', fastText.modelState === 'missing'
@@ -87,6 +96,11 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
         developmentAuth: devAuthState(env),
         fastTextModel: fastTextReadiness,
       },
+      AI_PROVIDERS: {
+        GeminiText: item(geminiConfigured ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', providerTextNote),
+        MistralText: item(mistral.configured ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', mistral.configured ? 'Mistral Small is configured as an optional hosted capability; its account limits are not assumed from configuration.' : 'Mistral is not configured; no hosted generation is selected.'),
+        MistralLimits: item(mistral.configured ? 'PENDING' : 'NOT_CONFIGURED', mistral.configured ? mistral.capabilities.find(capability => capability.capability === 'text')?.limits.note || 'Mistral limits are unknown.' : 'Mistral limits cannot be assessed without a configured provider.'),
+      },
       CHANNELS: {
         Web: item('READY', 'Web Chat is the active first-party channel.'),
         WhatsApp: item(isChannelConfigured('whatsapp') ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', 'WhatsApp adapter is truthful only when its required credentials are configured.'),
@@ -95,7 +109,9 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
         USSD: item(isChannelConfigured('ussd') ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', 'USSD requires the configured carrier adapter.'),
         FCM: fcmState(env),
         Email: emailState(env),
-        Voice: env.KURUKOO_VOICE_ENABLED === 'true' && present(env.GEMINI_API_KEY) ? item('EXTERNAL_DEPENDENCY', 'Voice is enabled but depends on the configured realtime provider and runtime quota.') : item('DISABLED', 'Web Voice is disabled unless explicitly enabled with a provider credential.'),
+        Voice: voice.available ? item('EXTERNAL_DEPENDENCY', `Gemini Live voice is enabled with model ${voice.model}; runtime quota and provider terms remain external dependencies.`) : env.KURUKOO_VOICE_ENABLED === 'true' ? item('PENDING', voice.reason || 'Voice is enabled but its declared capability is unavailable.') : item('DISABLED', 'Web Voice is disabled unless explicitly enabled with the supported Gemini Live provider.'),
+        VoiceTTS: item(voice.tts.available ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', voice.tts.note),
+        VoiceTranscription: item(voice.optionalMistral.transcriptionAvailable ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', voice.optionalMistral.transcriptionAvailable ? 'Mistral transcription is configured through a verified audio boundary.' : 'No verified server transcription adapter is active; browser speech remains experimental.'),
       },
       PAYMENTS: {
         Stripe: item(stripeConfigured(env) ? 'EXTERNAL_DEPENDENCY' : 'NOT_CONFIGURED', 'Stripe activation requires the configured secret and webhook boundary.'),

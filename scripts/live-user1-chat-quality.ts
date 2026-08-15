@@ -56,7 +56,26 @@ async function runSession(name: string, messages: string[]) {
     const conversation = events.find(event => event?.type === 'conversation');
     const done = events.find(event => event?.type === 'done');
     if (conversation?.conversationId) conversationId = conversation.conversationId;
-    turns.push({ message, status: response.status, conversationId, reply: done?.fullReply || events.filter(event => event?.type === 'text').map(event => event.content || '').join(''), cardData: done?.cardData || null, diagnostics: done?.diagnostics || null, progress: events.filter(event => event?.type === 'progress') });
+    const diagnostics = done?.diagnostics || null;
+    const cardData = done?.cardData || null;
+    turns.push({
+      message,
+      status: response.status,
+      conversationId,
+      reply: done?.fullReply || events.filter(event => event?.type === 'text').map(event => event.content || '').join(''),
+      cardData,
+      diagnostics,
+      progress: events.filter(event => event?.type === 'progress'),
+      telemetry: {
+        classificationSource: diagnostics?.classificationSource || null,
+        intent: diagnostics?.intent || diagnostics?.intentClass || null,
+        provider: diagnostics?.modelProvider || diagnostics?.provider || null,
+        model: diagnostics?.model || null,
+        latencyMs: diagnostics?.latencyMs ?? null,
+        action: diagnostics?.canonicalAction || diagnostics?.action || null,
+        finalState: cardData?.status || cardData?.state || diagnostics?.finalState || null,
+      },
+    });
     assert.equal(response.status, 200, `${name}: Chat failed for ${message}`);
     assert.ok(conversationId, `${name}: no conversation id for ${message}`);
   }
@@ -70,6 +89,7 @@ await runSession('memory', ['Remember that I prefer short answers.', 'What do yo
 await runSession('reminder', ['Remind me tomorrow to check my landlord message.', 'Cancel it.']);
 await runSession('agent', ['Keep checking for a painter and tell me when one becomes available.', 'Pause that.', 'Resume.', 'Cancel it.', 'What have you been doing?']);
 await runSession('commercial', ['I want to advertise my business.', 'What are my options?', 'Show me how.']);
+await runSession('provider-request', ['Use the configured hosted provider only if policy allows; otherwise answer through the canonical local path.', 'What provider and model handled that turn?']);
 
 const allTurns = Object.values(sessions).flatMap((session: any) => session.turns);
 const correctionTurns = sessions['service-correction']?.turns || [];
@@ -85,6 +105,7 @@ assert.equal(emergencyProbe.status, 200, 'emergency probe failed');
 assert.equal(emergencyDone?.diagnostics?.canonicalAction, 'skill_flow.safety', 'emergency probe did not use the safety flow');
 assert.equal(emergencyDone?.diagnostics?.progressStage, 'safety', 'emergency probe did not expose safety progress');
 const diagnostics = allTurns.map(turn => turn.diagnostics).filter(Boolean);
+const telemetry = allTurns.map(turn => turn.telemetry);
 const invalidAiLabels = diagnostics.filter((d: any) => (d.modelProvider === 'SmolLM2' && d.model === 'template-fallback') || (d.modelProvider === 'FastText' && d.classificationSource === 'fallback'));
 assert.equal(invalidAiLabels.length, 0, `diagnostics contained contradictory model labels: ${JSON.stringify(invalidAiLabels)}`);
 for (const [name, session] of Object.entries(sessions)) {
@@ -95,6 +116,6 @@ for (const [name, session] of Object.entries(sessions)) {
   (session as any).historyCount = historyData.messages.length;
 }
 
-await fs.writeFile(evidencePath, JSON.stringify({ base, identity: meData, operator: stateData.operator, actors: stateData.actors, sessions }, null, 2));
-console.log(JSON.stringify({ identity: meData.sessionContext, sessions: Object.fromEntries(Object.entries(sessions).map(([name, value]: any) => [name, { conversationId: value.conversationId, historyCount: value.historyCount, turns: value.turns.map((turn: any) => ({ message: turn.message, reply: turn.reply, diagnostics: turn.diagnostics, progress: turn.progress })) }])) }, null, 2));
+await fs.writeFile(evidencePath, JSON.stringify({ base, identity: meData, operator: stateData.operator, actors: stateData.actors, voiceStatus: await json(await fetch(`${base}/api/voice/status`, { headers: { cookie: userCookie } })), telemetry, sessions }, null, 2));
+console.log(JSON.stringify({ identity: meData.sessionContext, sessions: Object.fromEntries(Object.entries(sessions).map(([name, value]: any) => [name, { conversationId: value.conversationId, historyCount: value.historyCount, turns: value.turns.map((turn: any) => ({ message: turn.message, reply: turn.reply, diagnostics: turn.diagnostics, telemetry: turn.telemetry, progress: turn.progress })) }])) }, null, 2));
 console.log(`Evidence written to ${evidencePath}`);

@@ -6,7 +6,7 @@ Web Voice is a **realtime interface inside `/chat`**, not a separate product, co
 
 ## Provider and model
 
-The initial provider is the Gemini Live API through the repository’s existing `@google/genai` dependency. The default model is `gemini-3.1-flash-live-preview`; it is configurable because Live API models and preview availability can change. The Live API and ephemeral tokens are preview capabilities, so production rollout requires owner verification of current model availability, quota, acceptable-use terms, and regional availability. [1] [2]
+The supported realtime surface is the Gemini Live API through the repository’s existing `@google/genai` dependency. The cost-conscious text default is `gemini-2.5-flash`, but text, TTS, and Live audio are separate capabilities. The bounded Live default is `gemini-2.5-flash-native-audio-live`; it is configurable because Live model availability, quota, acceptable-use terms, and regional availability require owner verification before production rollout. [1] [2]
 
 The browser connects directly to Gemini Live using a **short-lived ephemeral token**, not a long-lived Gemini API key. This reduces streaming latency and keeps the permanent provider credential on the Kurukoo backend. Google documents one-minute new-session validity and a short, configurable active-session lifetime for this token pattern. [1]
 
@@ -14,8 +14,11 @@ The browser connects directly to Gemini Live using a **short-lived ephemeral tok
 
 ```dotenv
 KURUKOO_VOICE_ENABLED=true
-KURUKOO_VOICE_PROVIDER=gemini
-KURUKOO_VOICE_MODEL=gemini-3.1-flash-live-preview
+KURUKOO_VOICE_PROVIDER=gemini-live
+KURUKOO_VOICE_MODEL=gemini-2.5-flash-native-audio-live
+KURUKOO_VOICE_EXPERIMENTAL_BROWSER_SPEECH=false
+KURUKOO_VOICE_TTS_PROVIDER=disabled
+KURUKOO_VOICE_TTS_MODEL=
 KURUKOO_VOICE_MAX_SESSION_SECONDS=900
 KURUKOO_VOICE_IDLE_TIMEOUT_SECONDS=120
 KURUKOO_VOICE_MAX_CONCURRENT_SESSIONS=2
@@ -32,7 +35,7 @@ Web Chat microphone
   → POST /api/voice/session (same cookie / guest identity model)
   → existing conversation ownership resolution
   → compact safe context + restricted live configuration
-  → Gemini ephemeral token from Kurukoo backend
+  → Gemini Live ephemeral token from Kurukoo backend
   → browser-to-Gemini Live WebSocket
   → browser microphone PCM stream / Gemini audio stream
   → existing messages table for transcripts
@@ -71,11 +74,11 @@ Conversation content is treated as untrusted. A spoken request cannot override t
 
 The existing `/chat` microphone button opens the realtime voice session. The chat displays text status for connecting, listening, thinking, speaking, interruption, error, and disconnection. It uses the existing SVG microphone icon and preserves a 44px control target. A visible **End voice** control allows immediate cleanup. The user may always return to text.
 
-Audio uses browser microphone capture, 16 kHz signed PCM input to Gemini Live, and 24 kHz PCM output playback. Starting new microphone audio stops queued assistant playback for barge-in. If microphone permission, device access, provider availability, quota, network, autoplay, or browser support fails, the control returns a plain-language text fallback.
+Audio uses browser microphone capture, 16 kHz signed PCM input to the supported Gemini Live boundary, and 24 kHz PCM output playback. Starting new microphone audio stops queued assistant playback for barge-in. Browser Speech APIs are an experimental, turn-based pilot only; they are not represented as server transcription. Server TTS is unavailable until a separately configured adapter is implemented. If microphone permission, device access, provider availability, quota, network, autoplay, or browser support fails, the control returns a plain-language text fallback.
 
 ## Free-tier development and production requirements
 
-The implementation is designed for Gemini Live development access where it is available; it does not promise a permanent free production tier. Quotas, preview model availability, rate limits, and token behavior are controlled by Gemini and must be verified by the owner before production release. The explicit upgrade path is to adjust the configured model/provider and session limits or add a future provider adapter—without changing chat, conversations, Economic Requests, skills, reminders, memory, or cards.
+The implementation is designed for bounded Gemini Live development access where it is available; it does not promise a permanent free production tier. Kurukoo makes no production commitment to free-tier processing of private conversations until privacy, retention, quota, regional processing, and provider-terms decisions are explicit. Quotas, preview model availability, rate limits, and token behavior are controlled by Gemini and must be verified by the owner before production release. Mistral Voxtral transcription and Mistral TTS are not active in this repository; their readiness remains unavailable until a verified adapter is connected through this same voice boundary. The explicit upgrade path is to adjust the configured model/provider and session limits or add a future provider adapter—without changing chat, conversations, Economic Requests, skills, reminders, memory, or cards.
 
 Browser voice is distinct from the existing IVR and call-placeholder surfaces. It does not activate WhatsApp voice, telephone calling, Telegram voice, SMS, USSD, remote peer calling, or a payment/dispatch integration.
 

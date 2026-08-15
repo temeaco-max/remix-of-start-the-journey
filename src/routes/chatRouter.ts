@@ -90,7 +90,7 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
     if (turn.agentGoal) sse(res, { type: 'agent_goal', goal: turn.agentGoal });
     for (const chunk of chunkText(fullReply)) sse(res, { type: 'text', content: chunk });
     sse(res, { type: 'status', status: 'complete' });
-    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, diagnostics: { classificationSource: turn.classificationSource, intentConfidence: turn.intentConfidence, modelProvider: turn.modelProvider, model: turn.model, extractionSource: turn.extractionSource, extractedEntities: turn.extractedEntities, canonicalAction: turn.canonicalAction, progressStage: turn.progressStage } });
+    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, diagnostics: { classificationSource: turn.classificationSource, intentConfidence: turn.intentConfidence, modelProvider: turn.modelProvider, model: turn.model, latencyMs: turn.latencyMs, extractionSource: turn.extractionSource, extractedEntities: turn.extractedEntities, canonicalAction: turn.canonicalAction, progressStage: turn.progressStage, finalState: cardData?.status || cardData?.state || cardData?.stage } });
     sse(res, '[DONE]');
     res.end();
   } catch (error: any) {

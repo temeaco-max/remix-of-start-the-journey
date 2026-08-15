@@ -108,6 +108,7 @@ export interface CanonicalChatTurnResult {
   extractedEntities?: Record<string, unknown>;
   canonicalAction?: string;
   progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
+  latencyMs?: number;
 }
 
 /** The single server-side authority for a Kurukoo conversational turn. */
@@ -137,6 +138,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   let extractedEntities: Record<string, unknown> | undefined;
   let canonicalAction: string | undefined;
   let progressStage: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete' | undefined;
+  const startedAt = Date.now();
   const isGuest = phone.startsWith('anon_');
   const authState = isGuest ? await getAuthState(phone) : { state: 'none' as const, data: {} };
   const standaloneNameAuth = isGuest && authState.state === 'none' && isStandaloneName(message);
@@ -256,6 +258,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     extractedEntities,
     canonicalAction,
     progressStage,
+    latencyMs: Date.now() - startedAt,
   });
 }
 
@@ -275,6 +278,7 @@ async function persistTurn(args: {
   extractedEntities?: Record<string, unknown>;
   canonicalAction?: string;
   progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
+  latencyMs?: number;
 }): Promise<CanonicalChatTurnResult> {
   await appendChatMessage({
     phone: args.phone,
@@ -301,6 +305,7 @@ async function persistTurn(args: {
     extractedEntities: args.extractedEntities,
     canonicalAction: args.canonicalAction,
     progressStage: args.progressStage,
+    latencyMs: args.latencyMs,
   };
 }
 

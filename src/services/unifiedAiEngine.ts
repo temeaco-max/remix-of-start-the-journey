@@ -4,8 +4,9 @@ import { queryGroq, streamGroq } from './groqService.js';
 import { classifyWithFastText, type FastTextResult } from './fastTextService.js';
 import { withMemoryContext, logAiAudit } from './livingMemoryEngine.js';
 import { checkAiQuota, recordAiUsage, type QuotaKind } from './aiQuotaService.js';
+import { queryMistral } from './mistralService.js';
 
-export type AIProvider = 'auto' | 'gemini' | 'smollm2' | 'groq' | 'local_intent';
+export type AIProvider = 'auto' | 'gemini' | 'mistral' | 'smollm2' | 'groq' | 'local_intent';
 export interface UnifiedAIOptions {
   provider?: AIProvider;
   systemPrompt?: string;
@@ -137,16 +138,25 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
     };
   }
 
+  const configuredHostedProvider = process.env.KURUKOO_AI_HOSTED_PROVIDER === 'mistral' && process.env.MISTRAL_API_KEY
+    ? 'mistral'
+    : process.env.KURUKOO_AI_HOSTED_PROVIDER === 'gemini' && (process.env.GEMINI_API_KEY || process.env.API_KEY)
+      ? 'gemini'
+      : process.env.GROQ_API_KEY
+        ? 'groq'
+        : 'none';
   const route =
     preferred === 'gemini'
       ? 'gemini'
-      : preferred === 'groq'
-        ? 'groq'
-        : preferred === 'smollm2'
-          ? 'smollm2'
-          : isSimple
+      : preferred === 'mistral'
+        ? 'mistral'
+        : preferred === 'groq'
+          ? 'groq'
+          : preferred === 'smollm2'
             ? 'smollm2'
-            : 'groq';
+            : isSimple
+              ? 'smollm2'
+              : configuredHostedProvider;
 
   const { systemPrompt, memoryTokens } = await resolveSystemPrompt(prompt, options, classification, route);
 
@@ -165,6 +175,25 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
         thought: result.thought,
         latencyMs: Date.now() - started,
         cost: 'configured',
+        intent: classification?.intent,
+        confidence: classification?.confidence,
+        memoryTokens,
+      });
+    } catch {
+      return fallback(classification);
+    }
+  }
+
+  if (preferred === 'mistral') {
+    try {
+      const result = cleanThinking(await queryMistral(prompt, { systemInstruction: systemPrompt }));
+      return afterSuccess({
+        provider: 'Mistral',
+        model: process.env.MISTRAL_MODEL || 'mistral-small-latest',
+        text: result.text,
+        thought: result.thought,
+        latencyMs: Date.now() - started,
+        cost: 'rate-limited',
         intent: classification?.intent,
         confidence: classification?.confidence,
         memoryTokens,
@@ -240,6 +269,26 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
     }
   }
 
+  if (route === 'mistral') {
+    try {
+      const result = cleanThinking(await queryMistral(prompt, { systemInstruction: systemPrompt }));
+      const response: AIResponse = {
+        provider: 'Mistral',
+        model: process.env.MISTRAL_MODEL || 'mistral-small-latest',
+        text: result.text,
+        thought: result.thought,
+        latencyMs: Date.now() - started,
+        cost: 'rate-limited',
+        intent: classification?.intent,
+        confidence: classification?.confidence,
+        memoryTokens,
+      };
+      return afterSuccess(response);
+    } catch {
+      /* continue to the next explicitly available hosted boundary */
+    }
+  }
+
   if (process.env.GROQ_API_KEY) {
     try {
       const result = cleanThinking(await queryGroq(prompt, { systemPrompt }));
@@ -300,12 +349,36 @@ export async function* streamUnifiedAI(
     return;
   }
 
-  const route =
-    options.provider === 'groq' || (!simple && options.provider !== 'smollm2' && process.env.GROQ_API_KEY)
+  const useMistral = options.provider === 'mistral'
+    || (options.provider !== 'smollm2' && !simple && process.env.KURUKOO_AI_HOSTED_PROVIDER === 'mistral' && process.env.MISTRAL_API_KEY);
+  const route = useMistral
+    ? 'mistral'
+    : options.provider === 'groq' || (!simple && options.provider !== 'smollm2' && process.env.GROQ_API_KEY)
       ? 'groq'
       : 'smollm2';
 
   const { systemPrompt } = await resolveSystemPrompt(prompt, options, classification, route);
+
+  if (route === 'mistral') {
+    try {
+      yield {
+        type: 'metadata',
+        provider: 'Mistral',
+        model: process.env.MISTRAL_MODEL || 'mistral-small-latest',
+        cost: 'rate-limited',
+        intent: classification?.intent,
+        confidence: classification?.confidence,
+      };
+      const result = cleanThinking(await queryMistral(prompt, { systemInstruction: systemPrompt }));
+      yield { type: 'text', content: result.text };
+      return;
+    } catch {
+      const result = fallback(classification);
+      yield { type: 'metadata', provider: result.provider, model: result.model, cost: result.cost, intent: result.intent, confidence: result.confidence };
+      yield { type: 'text', content: result.text };
+      return;
+    }
+  }
 
   if (options.provider === 'groq' || (!simple && options.provider !== 'smollm2' && process.env.GROQ_API_KEY)) {
     try {

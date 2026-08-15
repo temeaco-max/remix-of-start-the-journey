@@ -11,6 +11,7 @@
 ## Version History (Consolidated & Deduplicated)
 
 | Version | Date | Summary |
+| **v5.65** | 2026-08-15 | **AI Capability Truth Matrix and Optional Provider Boundaries (§21c).** Preserved FastText, Intent Router, SmolLM2, unifiedAiEngine, canonicalChatTurnService, and agentRuntime as canonical owners. Added an opt-in, quota-gated Mistral Small text adapter, provider/model attribution, safe unknown-limit reporting, and explicit unsupported-state reporting for Mistral Voxtral/TTS/Pixtral until canonical attachment/audio owners are verified. Aligned Gemini text defaults to `gemini-2.5-flash`; separated text, TTS, and Live voice states; retained the existing Gemini Live session boundary and marked server TTS/browser speech limitations truthfully. No private-conversation free-tier production commitment is implied. |
 | **v5.64** | 2026-08-14 | **Ultra-autonomy readiness hardening (§21b).** Added authenticated owner-scoped pause/resume goal endpoints, Chat inspector Pause/Resume controls, admin runtime worker telemetry (start, cycle, completion, counts, errors, overlap state), retained background timer handles, one-start protection, and explicit graceful background-service shutdown. The runtime remains bounded, evidence-based, provider-aware, and fail-closed; no high-risk action, silent payment, anonymous persistence, or connector capability is fabricated. |
 | **v5.63** | 2026-08-12 | **Bounded Autonomous Agent Runtime (§21b).** Implemented one persistent goal runtime that orchestrates existing conversation, bounded Living Memory, canonical Economic Requests, deferred intentions, reminders, notifications, and the established background-service lifecycle. It uses a restricted, ownership-checked tool registry; explicit autonomy levels; concise operational evidence; idempotent goal events; retries, cooldowns, concurrency/action limits; a user-controlled inspector timeline; and deployment flags. It does not create a second AI, memory, task, request, provider, workflow, voice, QR, referral, payment, or dispatch engine. High-risk actions remain outside autonomous execution and continue through their existing confirmation/authorization boundaries. |
 | :--- | :--- | :--- |
@@ -5536,3 +5537,38 @@ Every red-team replay must record whether a response is grounded, whether a prov
 ## Explicit canonical skill-flow contract
 
 Every canonical skill in `CATEGORY_BY_SKILL` must have an explicit definition in `EXPLICIT_SKILL_FLOW_DEFINITIONS`, including a skill-specific requirement set, question set, lifecycle action, payment boundary, fulfillment boundary, and flow mode. The supported modes are `economic`, `information`, `safety`, and `coordination`. Information, safety, and coordination flows must not create Economic Requests or imply payment, provider availability, or external execution. The canonical seed performs an idempotent upsert and migrates existing rows so legacy database records cannot silently preserve the former category/default behavior. The generator and full-catalogue regression are the maintenance authorities for this contract.
+
+
+## 21c. AI Capability Truth Matrix and Provider Policy
+
+Kurukoo has one AI architecture. **FastText remains the primary intent classifier; the Intent Router remains the action and clarification authority; SmolLM2 remains the local generation capability; `unifiedAiEngine` remains the only hosted/local generation policy boundary; `canonicalChatTurnService` remains the conversation owner; and `agentRuntime` remains the bounded autonomy owner.** Gemini and Mistral are optional provider adapters, not replacement engines and not independent agents.
+
+| Capability | Canonical first choice | Optional provider | Selection rule | Current truth state |
+|---|---|---|---|---|
+| Intent classification | FastText + Intent Router | None required | Always classify and route locally first | Active and cost-free at the application boundary |
+| Simple text generation | SmolLM2 | Gemini 2.5 Flash or Mistral Small | Use hosted generation only when local capability is insufficient or unavailable and policy, quota, privacy, and provider terms permit | Mistral is opt-in via `KURUKOO_AI_HOSTED_PROVIDER=mistral`; Gemini is explicit or separately configured |
+| Complex hosted text | Existing hosted policy boundary | Mistral Small, Gemini 2.5 Flash, or existing Groq adapter | Select only one configured provider under the existing AI quota; do not call Mistral for every turn | Mistral adapter is implemented with explicit provider/model attribution and bounded timeout |
+| Turn-based browser speech | Browser Speech APIs | None | Experimental, explicit opt-in only; never represented as server transcription or production voice | Not a production provider commitment |
+| Realtime Live voice | Existing `voiceService` + `/api/voice` boundary | Gemini 2.5 Flash Native Audio Live or another explicitly verified Live model | Enable only with `KURUKOO_VOICE_ENABLED=true`, a supported `gemini-live` provider, server-side key, session limits, and runtime validation | Existing Gemini Live boundary retained; unsupported providers are unavailable, not silently substituted |
+| Server TTS | Existing voice/channel boundary when an approved adapter exists | Gemini 2.5 Flash TTS or approved equivalent | Requires a separately configured TTS provider/model and an explicit adapter | Not available until implemented; no audio is fabricated |
+| Voice transcription | Existing voice/channel boundary | Mistral Voxtral only after verified audio adapter | Must persist into the shared conversation and continue through canonical Chat and Intent Router | Not active in the current repository; status reports unavailable |
+| Vision/OCR | Existing attachment/evidence owner | Pixtral or approved equivalent | Integrate only where a canonical attachment, contributor evidence, Topics, or provider/business owner exists | Not active at the Mistral boundary; no unsupported OCR/moderation claim |
+| Moderation | Existing moderation/safety owner | Optional provider adapter | Must not silently replace or bypass current moderation and safety policy | Mistral moderation is not assumed |
+
+### Provider truth and limits
+
+Provider readiness is reported as separate `configured`, `available`, capability, model, and limit-status fields. **A configured API key is not proof of production availability, free-tier eligibility, an allowance, privacy suitability, retention terms, or successful runtime execution.** If account limits cannot be safely obtained from an approved provider API or deployment configuration, the readiness report says `unknown` or `PENDING`; it never invents a monthly allowance. API keys are never returned in readiness or Chat metadata.
+
+The existing per-user and global AI quota authority remains the cost-control boundary for hosted text. Mistral Small is selected automatically only when `KURUKOO_AI_HOSTED_PROVIDER=mistral`, the Mistral key is configured, the request is not a simple local-first turn, and the existing quota permits the request. An explicit provider request remains attributable and fail-closed. A failed provider call yields an explicit canonical template response rather than pretending that a provider completed the turn.
+
+### Privacy, retention, and free-tier boundary
+
+Kurukoo makes **no production commitment to free-tier processing of private conversations** until privacy terms, data retention, regional processing, quota behavior, provider terms, incident handling, and deployment approval are recorded. Gemini 2.5 Flash is the cost-conscious text starting point, but Gemini text, Gemini TTS, Gemini Live, and browser speech are separate capabilities with separate readiness states. A model name in configuration is not evidence that the corresponding capability is enabled.
+
+### Voice convergence
+
+The permitted voice path is:
+
+> speech input → verified transcription or Live boundary → shared conversation → FastText/Intent Router → existing Kurukoo action → canonical response → explicitly verified TTS or Live audio → user
+
+Voice does not create a second Chat, memory, action, provider, or agent engine. Transcript metadata records the actual declared provider, capability, model, and owned conversation. Unsupported transcription, TTS, Live, vision, OCR, and moderation states remain unavailable and visible rather than silently falling back to an unrelated capability.

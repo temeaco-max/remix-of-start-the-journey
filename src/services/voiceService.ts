@@ -3,6 +3,7 @@ import { ensureConversation, listChatMessages } from './chatConversationService.
 import { getProfile } from './memoryProfile.js';
 import { getGenAIClient } from './geminiService.js';
 import { getVoiceToolDeclarations } from './voiceToolRegistry.js';
+import { getMistralStatus } from './mistralService.js';
 
 export interface VoiceSessionRecord {
   id: string;
@@ -18,8 +19,8 @@ const bool = (value: string | undefined) => String(value || '').toLowerCase() ==
 const number = (value: string | undefined, fallback: number, minimum: number, maximum: number) => Math.max(minimum, Math.min(maximum, Math.floor(Number(value) || fallback)));
 const config = () => ({
   enabled: bool(process.env.KURUKOO_VOICE_ENABLED),
-  provider: process.env.KURUKOO_VOICE_PROVIDER || 'gemini',
-  model: process.env.KURUKOO_VOICE_MODEL || 'gemini-3.1-flash-live-preview',
+  provider: process.env.KURUKOO_VOICE_PROVIDER || 'gemini-live',
+  model: process.env.KURUKOO_VOICE_MODEL || 'gemini-2.5-flash-native-audio-live',
   maxSessionSeconds: number(process.env.KURUKOO_VOICE_MAX_SESSION_SECONDS, 900, 60, 1800),
   idleTimeoutSeconds: number(process.env.KURUKOO_VOICE_IDLE_TIMEOUT_SECONDS, 120, 30, 600),
   maxConcurrentSessions: number(process.env.KURUKOO_VOICE_MAX_CONCURRENT_SESSIONS, 2, 1, 10),
@@ -31,16 +32,31 @@ function removeExpired() { const now = Date.now(); for (const [id, session] of s
 
 export function getVoiceStatus() {
   const current = config();
-  const available = current.enabled && current.provider === 'gemini' && configuredKey();
+  const isGeminiLive = current.provider === 'gemini-live';
+  const available = current.enabled && isGeminiLive && configuredKey();
+  const mistral = getMistralStatus();
   return {
     enabled: current.enabled,
     available,
     provider: current.provider,
     model: current.model,
+    capability: 'live',
+    tts: {
+      provider: process.env.KURUKOO_VOICE_TTS_PROVIDER || 'disabled',
+      model: process.env.KURUKOO_VOICE_TTS_MODEL || undefined,
+      available: false,
+      note: 'Server TTS is unavailable until an explicitly configured adapter is implemented; browser speech remains experimental and turn-based.',
+    },
+    optionalMistral: {
+      configured: mistral.configured,
+      transcriptionAvailable: mistral.capabilities.some(capability => capability.capability === 'transcription' && capability.available),
+      ttsAvailable: mistral.capabilities.some(capability => capability.capability === 'tts' && capability.available),
+      limits: mistral.capabilities.find(capability => capability.capability === 'transcription')?.limits,
+    },
     maxSessionSeconds: current.maxSessionSeconds,
     idleTimeoutSeconds: current.idleTimeoutSeconds,
     maxConcurrentSessions: current.maxConcurrentSessions,
-    reason: available ? undefined : (!current.enabled ? 'Voice is disabled for this deployment.' : current.provider !== 'gemini' ? 'The configured voice provider is unavailable.' : 'Voice is not configured.'),
+    reason: available ? undefined : (!current.enabled ? 'Voice is disabled for this deployment.' : !isGeminiLive ? 'Only the explicitly bounded Gemini Live surface is supported by this session boundary.' : !configuredKey() ? 'Gemini Live is not configured.' : 'Voice is unavailable.'),
   };
 }
 

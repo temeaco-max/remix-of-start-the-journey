@@ -60,6 +60,7 @@
     "test:chat-dom-safety": "node scripts/test-chat-dom-safety.mjs",
     "test:conversation-first-auth": "tsx scripts/test-conversation-first-auth.ts",
     "test:voice": "tsx scripts/test-voice-integration.ts",
+    "test:provider-capabilities": "tsx scripts/test-provider-capabilities.ts",
     "test:qr": "tsx scripts/test-qr-context.ts",
     "test:agent-runtime": "tsx scripts/test-agent-runtime.ts",
     "test:agent-control": "tsx scripts/test-agent-control-commands.ts",

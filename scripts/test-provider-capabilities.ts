@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+
+process.env.MISTRAL_API_KEY = '';
+process.env.GEMINI_API_KEY = '';
+process.env.API_KEY = '';
+process.env.KURUKOO_VOICE_ENABLED = 'false';
+
+const { getMistralStatus, queryMistral } = await import('../src/services/mistralService.js');
+const { getVoiceStatus } = await import('../src/services/voiceService.js');
+const { queryUnifiedAI } = await import('../src/services/unifiedAiEngine.js');
+
+const mistral = getMistralStatus();
+assert.equal(mistral.configured, false);
+assert.equal(mistral.available, false);
+assert.equal(mistral.capabilities.find(capability => capability.capability === 'text')?.limits.status, 'unavailable');
+assert.equal(mistral.capabilities.find(capability => capability.capability === 'tts')?.available, false);
+
+await assert.rejects(() => queryMistral('test'), (error: any) => error?.code === 'MISTRAL_NOT_CONFIGURED');
+
+const voice = getVoiceStatus();
+assert.equal(voice.available, false);
+assert.equal(voice.tts.available, false);
+assert.match(voice.tts.note, /unavailable|experimental/i);
+
+const response = await queryUnifiedAI('Explain Kurukoo in one sentence', { provider: 'mistral', skipMemory: true });
+assert.equal(response.provider, 'Kurukoo Template');
+assert.equal(response.model, 'template-fallback');
+assert.match(response.text, /ready|need/i);
+
+console.log('Provider capability regression passed: optional Mistral, truthful unknown/unavailable limits, unsupported audio, and explicit template attribution are preserved.');

@@ -68,7 +68,8 @@ router.post('/transcript', optionalAuthenticateUser, async (req: AuthRequest, re
   const session = getVoiceSession(sessionId, phone);
   if (!session || !role || !content) return res.status(400).json({ error: 'Invalid voice transcript.' });
   try {
-    const message = await appendChatMessage({ phone, sender: role, content, channel: 'web_voice', conversationId: session.conversationId, metadata: { voice: true, provider: 'gemini', model: getVoiceStatus().model, session_id: sessionId } });
+    const voiceStatus = getVoiceStatus();
+    const message = await appendChatMessage({ phone, sender: role, content, channel: 'web_voice', conversationId: session.conversationId, metadata: { voice: true, provider: voiceStatus.provider, capability: voiceStatus.capability, model: voiceStatus.model, session_id: sessionId } });
     res.json({ messageId: message.id, conversationId: message.conversationId });
   } catch {
     res.status(500).json({ error: 'Transcript could not be saved.' });

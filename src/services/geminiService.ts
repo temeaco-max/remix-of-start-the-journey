@@ -34,7 +34,7 @@ export async function queryGemini(prompt: string, options?: GeminiChatOptions): 
     if (!String(prompt || '').trim()) throw new GeminiProviderError('GEMINI_REQUEST_FAILED', 'Gemini requires a non-empty prompt.');
     try {
         const response = await getGenAIClient().models.generateContent({
-            model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+            model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
             contents: prompt,
             config: {
                 systemInstruction: options?.systemInstruction || 'You are Kurukoo, a concise and evidence-based everyday utility assistant. Never claim an external action, payment, dispatch, delivery, booking, or provider connection without authoritative confirmation.',
