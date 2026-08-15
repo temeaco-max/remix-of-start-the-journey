@@ -130,6 +130,11 @@ router.get('/operator/state', authenticateAdmin, async (_req: AuthRequest, res) 
 
 router.get('/operator/chat', authenticateAdmin, async (_req: AuthRequest, res) => {
   const operator = getCanonicalOperatorIdentity();
+  if (process.env.NODE_ENV !== 'production' && process.env.KURUKOO_TEST_RESET_OPERATOR_ON_LAUNCH === 'true') {
+    const db = await getDb();
+    db.run('DELETE FROM memory_profiles WHERE phone = ?', [operator.phone]);
+    saveDb();
+  }
   await upsertProfile(operator.phone, operator.name, '', 'super_admin');
   const token = issueUserToken(operator.phone, { operatorPhone: operator.phone, operatorSession: true, actorRole: 'super_admin', actorContextId: 'operator' });
   setUserCookie(res, token);

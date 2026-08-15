@@ -21,6 +21,11 @@ const loginData = await json(login);
 assert.ok(loginData.token, 'admin token missing');
 const adminCookie = `kurukoo_admin=${encodeURIComponent(loginData.token)}`;
 
+const agentStatus = await fetch(`${base}/api/agent/status`, { headers: { 'x-admin-token': loginData.token } });
+assert.equal(agentStatus.status, 200, `agent status unavailable: ${agentStatus.status}`);
+const agentStatusData = await json(agentStatus);
+assert.equal(agentStatusData.runtime?.enabled, true, 'live-user quality requires KURUKOO_AGENT_ENABLED=true; autonomous execution may remain disabled');
+
 const state = await fetch(`${base}/api/admin/operator/state`, { headers: { 'x-admin-token': loginData.token } });
 assert.equal(state.status, 200, `operator state failed: ${state.status}`);
 const stateData = await json(state);
