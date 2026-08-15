@@ -34,6 +34,7 @@
     "test:behavioral-chat-matrix": "npm run test:behavioral-chat",
     "test:chat-first-rebuild": "tsx scripts/test-chat-first-rebuild.ts",
     "test:live-user1-quality": "tsx scripts/live-user1-chat-quality.ts",
+    "test:live-user1-continuity": "tsx scripts/live-user1-conversation-continuity.ts",
     "test:notification-queue": "tsx scripts/test-notification-queue.ts",
     "test:skill-flows": "tsx scripts/test-skill-flows.ts",
     "test:skill-mode-routing": "tsx scripts/test-skill-mode-routing.ts",

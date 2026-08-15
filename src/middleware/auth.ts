@@ -6,8 +6,8 @@ export interface AuthRequest extends Request { user?: AuthUser; admin?: boolean 
 
 type RateState = { count: number; resetAt: number };
 const rateState = new Map<string, RateState>();
-const AUTH_WINDOW_MS = 60_000;
-const AUTH_MAX_REQUESTS = 60;
+const AUTH_WINDOW_MS = Math.max(10_000, Number(process.env.KURUKOO_AUTH_WINDOW_MS || 60_000));
+const AUTH_MAX_REQUESTS = Math.max(10, Number(process.env.KURUKOO_AUTH_MAX_REQUESTS || 60));
 
 function rateLimit(req: Request, res: Response): boolean {
     const key = String(req.ip || req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();

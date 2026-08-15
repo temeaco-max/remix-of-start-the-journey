@@ -61,6 +61,14 @@ function extractRequirementPatch(message: string, card: any, current: any): Reco
 }
 
 async function continueActiveRequest(phone: string, conversationId: string | undefined, message: string): Promise<{ reply: string; cardData: any; skill: string } | null> {
+  const normalized = message.trim().toLowerCase();
+  // An open economic request must not capture unrelated conversation intents.
+  // These commands belong to their canonical owners and must remain independently routable.
+  if (
+    /^(remind me|cancel (the )?reminder|remember that|what do you remember|forget that|what notifications|show (my )?notifications|show (my )?reminders|what provider and model)\b/.test(normalized) ||
+    /\b(immediate danger|ambulance|fire service|life[- ]threatening|emergency)\b/.test(normalized) ||
+    /^(pause|resume|cancel that|cancel it|stop following|stop checking)\b/.test(normalized)
+  ) return null;
   if (!conversationId) return null;
   const history = await listChatMessages(phone, { conversationId, limit: 60 });
   for (let i = history.length - 1; i >= 0; i -= 1) {

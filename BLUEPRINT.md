@@ -5601,3 +5601,10 @@ This section records the implementation state after the v5.65 provider convergen
 ### Safety Flow Ownership Correction
 
 Emergency and urgent-safety requests remain owned by the canonical safety/triage flow. They use a dedicated `safety_guidance` card and preserve the emergency-service limitation, rather than being represented as `agentic_storefront` or an Economic Request. Safety coordination does not imply emergency-response delivery, provider verification, payment, or fulfilment.
+
+
+### Conversational Continuity and Installed-Style Verification
+
+The repository now contains a repeatable `test:live-user1-continuity` campaign using the canonical Super Admin User #1 Chat session. The campaign traverses conversation, explicit memory, native assistance, skill routing, Economic Request creation/correction, provider-evidence policy, deferred matching, bounded agent pause/resume, stored notifications, reminders, continuation, and truth-state explanation while preserving one conversation ID and persisted history. The campaign verifies repository-side state transitions only; it does not prove external provider delivery, payment, fulfilment, or account quota activation.
+
+The installed-style Playwright lifecycle check verifies manifest `display: standalone`, `/chat/` start routing, service-worker control, offline shell launch, reconnect, update polling, composer availability, and zero page errors at mobile and desktop reference widths. This remains a browser simulation of installed behavior, not proof that a user installed the app from a macOS, Windows, iOS, or Android system store.

@@ -1,11 +1,12 @@
 import { queryUnifiedAI, type AIProvider } from './unifiedAiEngine.js';
-import { getProfile, updateProfile } from './memoryProfile.js';
+import { getProfile, getMemoryFacts, updateProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
 import { getContextualIntentSuggestions, getEconomicCategory, getKnownSkills, getSkillFlow } from './skillFlows.js';
 import { classifyWithFastText } from './fastTextService.js';
 import { advanceStorefront, previewStorefrontCard, startStorefrontSession, tryResumeStorefront } from './agenticStorefront.js';
 import { searchKnownEconomicOffers } from './economicParticipants.js';
 import { cancelReminder, createReminder, listReminders } from './reminderService.js';
+import { getInternalNotifications } from './pushNotifications.js';
 import { cancelAgentGoal, listAgentGoals, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
 import { generateReferralCode } from './referralService.js';
 import type { IntentRoutingResult } from '../types.js';
@@ -184,17 +185,29 @@ async function handleExplicitMemory(phone: string, q: string): Promise<IntentRou
     const statement = remember[1].trim();
     const profile = await getProfile(phone, 'conversation_memory');
     const preferences = { ...(profile?.preferences || {}) };
+    const locationMatch = statement.match(/\busual area is\s+([a-z][a-z -]{1,40}?)(?:\s+and\b|$)/i);
     if (/\b(prefer|want|like)\b.*\b(short|simple|concise|brief)\b/i.test(statement)) preferences.response_style = 'concise';
     else if (/\bevening\b.*\breminder/i.test(statement)) preferences.reminder_time_preference = 'evening';
-    else return { skill: 'memory', reply: 'I can remember preferences such as how you like answers or when you prefer reminders. Tell me that preference in a specific way.' };
-    await updateProfile(phone, 'conversation_memory', { preferences });
-    return { skill: 'memory', reply: 'Got it. I’ll keep that preference with your Kurukoo Memory Profile.' };
+    else if (!locationMatch) return { skill: 'memory', reply: 'I can remember preferences such as how you like answers, your usual area, or when you prefer reminders. Tell me that preference in a specific way.' };
+    await updateProfile(phone, 'conversation_memory', {
+      preferences,
+      ...(locationMatch ? { location: locationMatch[1].trim(), provenance: 'user_declared' as const, source_ref: 'conversation_memory' } : {}),
+    });
+    return { skill: 'memory', reply: locationMatch ? `Got it. I’ll remember **${locationMatch[1].trim()}** as your usual area and keep your preference with your Kurukoo Memory Profile.` : 'Got it. I’ll keep that preference with your Kurukoo Memory Profile.' };
   }
-  if (/^(what do you remember about me|what do you know about me)\??$/i.test(q)) {
+  if (/^what do you remember\b|^what do you know about me\b/i.test(q)) {
     const profile = await getProfile(phone, 'conversation_memory');
+    const facts = await getMemoryFacts(phone, ['name', 'location']);
     const preferences = profile?.preferences || {};
-    const items = [preferences.response_style === 'concise' ? 'you prefer short, simple answers' : '', preferences.reminder_time_preference === 'evening' ? 'you prefer evening reminders' : ''].filter(Boolean);
-    return { skill: 'memory', reply: items.length ? `I remember that ${items.join(' and ')}.` : 'I do not have any saved preferences for you yet.' };
+    const nameFact = facts.find((fact) => fact.field === 'name');
+    const locationFact = facts.find((fact) => fact.field === 'location');
+    const items = [
+      nameFact ? `your name is ${nameFact.value}` : '',
+      locationFact ? `your usual area is ${locationFact.value}` : '',
+      preferences.response_style === 'concise' ? 'you prefer short, simple answers' : '',
+      preferences.reminder_time_preference === 'evening' ? 'you prefer evening reminders' : '',
+    ].filter(Boolean);
+    return { skill: 'memory', reply: items.length ? `I remember that ${items.join('; ')}.` : 'I do not have any saved preferences or declared profile facts for you yet.' };
   }
   return null;
 }
@@ -206,6 +219,18 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   if (phone) {
     const memoryResult = await handleExplicitMemory(phone, q);
     if (memoryResult) return memoryResult;
+  }
+  if (phone && /^(what notifications|show (my )?notifications|what updates are waiting|show (my )?updates)\b/i.test(q)) {
+    const notifications = await getInternalNotifications(phone, 10);
+    if (!notifications.length) return { skill: 'notifications', reply: 'There are no stored notifications waiting for you right now. External push delivery is not assumed unless the delivery state says so.' };
+    const summary = notifications.slice(0, 5).map(item => `${item.title}: ${item.body} (${item.delivery_state})`).join('; ');
+    return { skill: 'notifications', reply: `I found ${notifications.length} stored notification${notifications.length === 1 ? '' : 's'}: ${summary}`, cardData: { type: 'notifications', status: 'stored', count: notifications.length } };
+  }
+  if (/^what provider and model handled (that|the) turn\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'The Chat diagnostics for each turn are the source of truth for classification source, provider, model, latency, action, and final state. This request is handled by the canonical Chat path; it does not imply that a hosted provider was used.' };
+  }
+  if (/\b(?:verified capability|do not invent (?:availability|price|reviews)|provider availability)\b/i.test(q)) {
+    return { skill: 'general_question', reply: 'Understood. I will use only recorded provider evidence and will keep availability, price, reviews, verification, payment, and fulfilment in explicit states. If evidence is missing, the request remains waiting or deferred.' };
   }
   if (/^(what is kurukoo|what does kurukoo do|explain kurukoo)\??$/i.test(q)) {
     const profile = phone ? await getProfile(phone, 'conversation_explanation') : null;
