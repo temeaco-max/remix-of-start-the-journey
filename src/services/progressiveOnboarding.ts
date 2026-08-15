@@ -1,20 +1,45 @@
 import { getDb, saveDb } from '../database.js';
 import { decryptData, encryptData } from './memoryProfile.js';
 
+/**
+ * Onboarding is progressive guidance, not a hard conversational gate.
+ * Once a user has supplied a name, or has an active Economic Request, normal
+ * Chat ownership must remain available. Users should never have to complete a
+ * profile survey before Kurukoo can help with an immediate request.
+ */
 export async function isOnboarding(phone: string): Promise<boolean> {
     const db = await getDb();
-    const stmt = db.prepare(`SELECT preferences FROM memory_profiles WHERE phone = ?`);
+    const stmt = db.prepare(`SELECT name, preferences FROM memory_profiles WHERE phone = ?`);
     stmt.bind([phone]);
     let onboarding = false;
+    let name: string | null = null;
     if (stmt.step()) {
         const obj = stmt.getAsObject();
+        name = obj.name ? String(obj.name).trim() : null;
         const prefs = obj.preferences ? JSON.parse(decryptData(String(obj.preferences))) : {};
-        if (prefs.onboarding_complete !== true) {
-            onboarding = true;
-        }
+        onboarding = prefs.onboarding_complete !== true;
     }
     stmt.free();
-    return onboarding;
+    if (!onboarding) return false;
+
+    // A supplied identity is enough to let the conversational system continue.
+    // Remaining profile enrichment can happen progressively instead of blocking.
+    if (name) return false;
+
+    // Never let onboarding capture a live economic workflow. The request owner
+    // must remain available for requirement collection and continuation.
+    try {
+        const active = db.prepare(`SELECT id FROM economic_requests WHERE phone = ? AND status IN ('requested','awaiting_match','partially_matched','matched','quoting','quoted','awaiting_confirmation','reserved','payment_pending','paid','in_fulfillment') ORDER BY updated_at DESC LIMIT 1`);
+        active.bind([phone]);
+        const hasActiveRequest = active.step();
+        active.free();
+        if (hasActiveRequest) return false;
+    } catch {
+        // If the optional request table is unavailable during early bootstrap,
+        // preserve the original onboarding behaviour rather than crashing Chat.
+    }
+
+    return true;
 }
 
 export async function handleOnboardingInput(phone: string, text: string): Promise<{ reply: string, cardData?: any }> {
@@ -64,7 +89,6 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
         prefs.onboarding_step = 'confirm_code';
         if (cleanSkill !== 'none') {
             prefs.skills = [cleanSkill];
-            // Register skill
             db.run(`INSERT OR IGNORE INTO skills (phone, skill, source, confidence, is_available) VALUES (?, ?, 'explicit', 1.0, 1)`, [phone, cleanSkill]);
         }
         db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
@@ -77,13 +101,10 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
         if (text.toUpperCase().trim() === 'CONFIRM' || text.length > 0) {
             prefs.onboarding_complete = true;
             prefs.onboarding_step = 'done';
-            
             let exploreMention = '';
             if (prefs.explore_entry_category) {
                 exploreMention = ` Since you explored ${prefs.explore_entry_category} earlier, would you like me to connect you with a verified provider for that right away?`;
             }
-
-            // Reward 20 credits activation gift
             db.run(`UPDATE memory_profiles SET wallet_balance_minor = wallet_balance_minor + 20, preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
             saveDb();
             return {
@@ -91,9 +112,7 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
                 cardData: { type: 'reload_wallet', status: 'success' }
             };
         } else {
-            return {
-                reply: `Please type CONFIRM exactly to activate your account.`
-            };
+            return { reply: `Please type CONFIRM exactly to activate your account.` };
         }
     }
 

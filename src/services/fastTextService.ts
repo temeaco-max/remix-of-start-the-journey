@@ -40,12 +40,7 @@ function getModelState(binPath: string): FastTextModelState {
 export function getFastTextRuntimeStatus(rootDir = process.cwd()): FastTextRuntimeStatus {
     const binPath = path.join(rootDir, 'models', 'kurukoo_intent.bin');
     const modelState = getModelState(binPath);
-    return {
-        modelState,
-        realModelPresent: modelState === 'real',
-        modelPath: binPath,
-        trainingExamples: trainingSet.length,
-    };
+    return { modelState, realModelPresent: modelState === 'real', modelPath: binPath, trainingExamples: trainingSet.length };
 }
 
 function loadTrainingData(): void {
@@ -65,10 +60,6 @@ function loadTrainingData(): void {
     } catch (err) { console.error('[FastText] training-data load failed:', err); }
 }
 
-/**
- * Runtime initialization is deliberately cheap. Model training belongs in CI/build
- * and must never block the application process or a cold start.
- */
 export function initializeFastText(): void {
     classificationCache.clear();
     fastTextReady = isRealBinaryModel(modelPath());
@@ -80,11 +71,14 @@ export function initializeFastText(): void {
 initializeFastText();
 
 const blueprintRules: Array<[RegExp, string]> = [
+    // Safety must win over broad domain words such as sport/activity names.
+    // A user asking for help staying safe is not asking for sports matchmaking.
+    [/\b(help me stay safe|keep me safe|i(?:'|’)m not safe|i feel unsafe|i feel in danger|protect me|safety help|need help staying safe)\b/i, 'emergency'],
+    [/\b(emergency|sos|police|accident|hospital|immediate danger|life[- ]threatening|unsafe|danger)\b/i, 'emergency'],
     [/\b(ride|okada|keke|taxi|cab|transport|driver)\b/i, 'ride_request'],
     [/\b(food|suya|rice|bread|grocery|groceries|meal|restaurant|caterer)\b/i, 'order_food'],
     [/\b(plumber|electrician|mechanic|repair|fix|artisan|worker)\b/i, 'find_worker'],
     [/\b(balance|points|wallet|credit)\b/i, 'check_balance'],
-    [/\b(emergency|sos|police|accident|hospital)\b/i, 'emergency'],
     [/\b(football|basketball|tennis|league|team|club|tournament|watch party)\b/i, 'sports_matchmaking'],
     [/\b(event coverage|cover this event|photograph.*event|film.*event)\b/i, 'event_coverage'],
     [/\b(how to|tutorial|teach me|guide me)\b/i, 'how_to_video'],
@@ -136,6 +130,12 @@ function classifyWithMemory(query: string): FastTextResult | null {
 }
 
 function correctKnownDomainCollision(query: string, result: FastTextResult | null): FastTextResult | null {
+    // Safety is a hard domain boundary. Do this correction after the model as
+    // well, so a bad model prediction cannot turn a safety request into a
+    // recreational or transactional intent.
+    if (/\b(help me stay safe|keep me safe|i(?:'|’)m not safe|i feel unsafe|i feel in danger|protect me|safety help|need help staying safe|immediate danger|life[- ]threatening)\b/i.test(query)) {
+        return { intent: 'emergency', confidence: 0.999, source: 'rules' };
+    }
     if (/\b(advertis(?:e|ing)?|advert|campaign|sponsored|promotion|promote)\b/i.test(query) && result?.intent !== 'advertising') {
         return { intent: 'advertising', confidence: 0.99, source: 'rules' };
     }
@@ -148,14 +148,9 @@ export function classifyWithFastText(query: string): FastTextResult | null {
     const key = normalize(q);
     const cached = classificationCache.get(key);
     if (cached && cached.expiresAt > Date.now()) return cached.result;
-
-    // The real FastText model is always preferred. Rules are a deterministic safety
-    // net for action intents, followed by the training-data fallback when the binary
-    // model is unavailable in a development environment.
     const result = correctKnownDomainCollision(q, classifyWithBinaryModel(q) || ruleClassify(q) || classifyWithMemory(q));
     if (classificationCache.size > 2000) classificationCache.delete(classificationCache.keys().next().value as string);
     classificationCache.set(key, { result, expiresAt: Date.now() + CACHE_TTL_MS });
-
     if (result) console.info(`[FastText] query="${q}" intent=${result.intent} confidence=${result.confidence.toFixed(3)} source=${result.source}`);
     else {
         getDb().then(db => db.run(`INSERT INTO unknown_intents (query) VALUES (?)`, [q])).catch(() => {});
