@@ -23,6 +23,43 @@ export async function canActivatePulse(phone: string): Promise<boolean> {
     return isMobile;
 }
 
+export interface PulseReadiness {
+    radarDefaultOn: boolean;
+    active: boolean;
+    eligibleToBroadcast: boolean;
+    role: 'provider' | 'user';
+    nudge?: string;
+}
+
+export async function getPulseReadiness(phone: string): Promise<PulseReadiness> {
+    const db = await getDb();
+    const profileStmt = db.prepare(`SELECT verified_provider, is_available FROM memory_profiles WHERE phone = ? LIMIT 1`);
+    profileStmt.bind([phone]);
+    let verifiedProvider = false;
+    let available = false;
+    if (profileStmt.step()) {
+        const profile = profileStmt.getAsObject() as Record<string, unknown>;
+        verifiedProvider = Number(profile.verified_provider || 0) === 1;
+        available = Number(profile.is_available || 0) === 1;
+    }
+    profileStmt.free();
+    const mobileMode = await canActivatePulse(phone);
+    const eligibleToBroadcast = verifiedProvider && available && mobileMode;
+    const providers = await getActivePulseProviders();
+    const active = providers.some((provider: any) => String(provider.phone) === phone);
+    return {
+        radarDefaultOn: true,
+        active,
+        eligibleToBroadcast,
+        role: verifiedProvider ? 'provider' : 'user',
+        nudge: active
+            ? 'You are live on Nearby Pulse. Kurukoo will keep your location fuzzed and show only confirmed availability.'
+            : eligibleToBroadcast
+                ? 'Nearby Radar is ready. Go Live only when you want nearby people to discover your available service.'
+                : 'Nearby Radar is ready for local discovery. Tell Kurukoo what you need nearby, or complete provider verification before broadcasting yourself.',
+    };
+}
+
 export async function activatePulse(phone: string, skill: string, lat: number, lng: number): Promise<{ success: boolean; message: string }> {
     const isMobile = await canActivatePulse(phone);
     if (!isMobile) {

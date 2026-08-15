@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import { authenticateUser, AuthRequest } from '../middleware/auth.js';
-import { activatePulse, endPulseSession, getActivePulseProviders } from '../services/nearbyPulse.js';
+import { activatePulse, endPulseSession, getActivePulseProviders, getPulseReadiness } from '../services/nearbyPulse.js';
 
 /** Presence/Pulse HTTP boundary. Presence identity comes from the authenticated
  * session; discovery consumes this shared presence state read-only. */
@@ -43,6 +43,13 @@ export function createPresenceRouter(): Router {
         if (req.body?.phone && String(req.body.phone) !== phone) return res.status(403).json({ success: false, error: 'Forbidden' });
         await endPulseSession(phone);
         res.json({ success: true, message: 'Pulse session deactivated.' });
+    });
+
+    router.get('/api/pulse/readiness', authenticateUser, async (req: AuthRequest, res) => {
+        const phone = sessionPhone(req);
+        if (!phone) return res.status(401).json({ success: false, error: 'Authentication required' });
+        if (req.query.phone && String(req.query.phone) !== phone) return res.status(403).json({ success: false, error: 'Forbidden' });
+        res.json({ success: true, ...(await getPulseReadiness(phone)) });
     });
 
     router.get('/api/pulse/status', authenticateUser, async (req: AuthRequest, res) => {

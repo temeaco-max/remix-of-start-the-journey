@@ -13,6 +13,7 @@ const expected = [
     ['POST', '/api/pulse/live'],
     ['POST', '/api/pulse/activate'],
     ['POST', '/api/pulse/deactivate'],
+    ['GET', '/api/pulse/readiness'],
     ['GET', '/api/pulse/status'],
     ['GET', '/api/pulse/providers'],
 ];

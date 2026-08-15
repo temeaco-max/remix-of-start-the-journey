@@ -5,7 +5,7 @@
     theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     activeStorefrontId: null,
     nativeAssistance: { reminders: [], checkIns: [] },
-    pinnedMessages: [], surfaceView: null, notifiedNotificationIds: new Set(), notifiedTrustChallengeIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') === '1'
+    pinnedMessages: [], surfaceView: null, notifiedNotificationIds: new Set(), notifiedTrustChallengeIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') !== '0', radarLive: false
   };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
@@ -129,13 +129,28 @@
   };
   function setRadarActive(active) {
     state.radarActive = Boolean(active); localStorage.setItem('kurukoo_radar_enabled', state.radarActive ? '1' : '0');
-    const toggle = $('radar-toggle'); if (toggle) { toggle.setAttribute('aria-pressed', String(state.radarActive)); toggle.classList.toggle('is-active', state.radarActive); }
-    const status = $('radar-status'); if (status) status.textContent = state.radarActive ? 'Active' : 'Inactive';
+    const toggle = $('radar-toggle'); if (toggle) { toggle.setAttribute('aria-pressed', String(state.radarActive)); toggle.classList.toggle('is-active', state.radarActive); toggle.setAttribute('aria-label', state.radarActive ? 'Nearby Radar ready' : 'Turn on Nearby Radar'); }
+    const status = $('radar-status'); if (status) status.textContent = state.radarActive ? (state.radarLive ? 'Live' : 'Ready') : 'Off';
     const pulse = $('header-presence-pulse'); if (pulse) pulse.classList.toggle('is-active', state.radarActive && !$('connection-status')?.classList.contains('offline'));
     const header = $('connection-status'); if (header) header.classList.toggle('radar-active', state.radarActive);
   }
+  async function loadPulseReadiness() {
+    try {
+      const response = await fetch('/api/pulse/readiness', { credentials: 'same-origin' });
+      if (!response.ok) return;
+      const data = await response.json();
+      state.radarLive = Boolean(data.active);
+      setRadarActive(state.radarActive);
+      const nudgeKey = `kurukoo_pulse_nudge_${data.active ? 'live' : data.eligibleToBroadcast ? 'provider' : 'consumer'}`;
+      if (data.nudge && !sessionStorage.getItem(nudgeKey)) {
+        sessionStorage.setItem(nudgeKey, '1');
+        pushAgentSurfaceToast(data.active ? 'Nearby Pulse is live' : 'Nearby Radar is ready', data.nudge, false);
+      }
+    } catch {}
+  }
   $('radar-toggle')?.addEventListener('click', () => setRadarActive(!state.radarActive));
   setRadarActive(state.radarActive);
+  void loadPulseReadiness();
   restoreComposerDraft();
   const moreToggle = $('sidebar-more-toggle'); const moreItems = $('sidebar-more-items');
   moreToggle?.addEventListener('click', () => {
