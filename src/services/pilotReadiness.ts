@@ -10,6 +10,7 @@ import { getFeatureRegistryReadiness } from './featureFlags.js';
 import { getMqttBridgeStatus } from './iotBridge.js';
 import { getWebRTCStatus } from './webrtcSignalling.js';
 import { getPrivacyBridgeStatus } from './privacyBridge.js';
+import { getFirebaseFcmReadiness } from './firebaseCloudMessaging.js';
 
 export const READINESS_STATES = ['READY', 'NOT_CONFIGURED', 'DISABLED', 'EXTERNAL_DEPENDENCY', 'PENDING'] as const;
 export type ReadinessState = typeof READINESS_STATES[number];
@@ -52,10 +53,9 @@ function databaseConcurrencyState(env: NodeJS.ProcessEnv): ReadinessItem {
   return item('PENDING', `KURUKOO_WORKERS=${workers} requests multiple application workers, but this SQL.js persistence boundary is single-process; use one worker or an approved multi-process database boundary before activation.`);
 }
 
-function fcmState(env: NodeJS.ProcessEnv): ReadinessItem {
-  // The current push authority intentionally persists an internal notification when no external adapter exists.
-  // No environment variable alone is treated as proof of external FCM delivery.
-  if (present(env.KURUKOO_FCM_PROJECT_ID) && present(env.KURUKOO_FCM_CLIENT_EMAIL) && present(env.KURUKOO_FCM_PRIVATE_KEY)) return item('EXTERNAL_DEPENDENCY', 'FCM credentials are present, but external delivery still requires provider/runtime validation.');
+function fcmState(_env: NodeJS.ProcessEnv): ReadinessItem {
+  const readiness = getFirebaseFcmReadiness();
+  if (readiness.configured) return item('EXTERNAL_DEPENDENCY', `${readiness.reason} Project identity is ${readiness.projectId ? 'configured' : 'unknown'}; device registration and real-device delivery evidence remain required.`);
   return item('NOT_CONFIGURED', 'External FCM delivery is not configured; internal notifications remain available.');
 }
 

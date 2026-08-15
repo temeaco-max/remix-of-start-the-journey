@@ -1,5 +1,7 @@
 import { getDb, saveDb } from '../database.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
+import { getProfile } from './memoryProfile.js';
+import { sendFirebaseFcmMessage } from './firebaseCloudMessaging.js';
 async function ensureNotificationTable() {
     const db = await getDb();
     db.run(`CREATE TABLE IF NOT EXISTS internal_notifications (
@@ -38,6 +40,7 @@ function maxNotificationQueue(): number {
 export async function sendFcmPush(phone: string, title: string, body: string, link?: string): Promise<boolean> {
     const db = await ensureNotificationTable();
     const clickLink = link || null;
+    let notificationId = 0;
 
     // Persist an internal inbox notification even when no external adapter is configured.
     // This is a durable fallback, not evidence that an external delivery occurred.
@@ -54,7 +57,7 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
             `INSERT INTO internal_notifications (phone, title, body, link, status, delivery_state) VALUES (?, ?, ?, ?, 'unread', 'queued')`,
             [phone, title, body, clickLink],
         );
-        const notificationId = Number(db.exec('SELECT last_insert_rowid()')[0]?.values?.[0]?.[0] || 0);
+        notificationId = Number(db.exec('SELECT last_insert_rowid()')[0]?.values?.[0]?.[0] || 0);
         saveDb();
         if (notificationId) await persistCoordinatorEvent({
             id: `notification:${notificationId}:queued`,
@@ -73,7 +76,23 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
         console.error('[Push] Failed to store internal notification:', error);
     }
 
-    console.warn('[Push] FCM delivery adapter is not configured; notification stored in internal queue.');
+    const profile = await getProfile(phone, 'pushNotifications').catch(() => null) as any;
+    const deviceToken = profile?.fcm_token ? String(profile.fcm_token).trim() : '';
+    if (!deviceToken) {
+        console.warn('[Push] FCM device token is not registered; notification remains in internal queue.');
+        return false;
+    }
+    const providerResult = await sendFirebaseFcmMessage({ token: deviceToken, title, body, link: clickLink || undefined });
+    if (notificationId) {
+        if (providerResult.accepted) {
+            await transitionNotificationDelivery(notificationId, 'accepted', phone, providerResult.providerReference);
+            return true;
+        }
+        if (providerResult.attempted) {
+            await transitionNotificationDelivery(notificationId, 'failed', phone, undefined, providerResult.failureReason);
+        }
+    }
+    console.warn(`[Push] FCM was not accepted; internal queue retained (${providerResult.failureReason || 'not_configured'}).`);
     return false;
 }
 
