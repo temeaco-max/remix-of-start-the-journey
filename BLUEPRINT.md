@@ -5715,3 +5715,8 @@ The existing PWA client now exposes lifecycle state through `document.documentEl
 ## Cross-Platform Admin Wiring
 
 The unified admin dashboard now uses the protected canonical `/api/admin/ads` and `/api/admin/content` owners for campaign and CMS reads and writes. It no longer calls the unrelated public `/api/ads` or `/api/content` paths, which previously caused the dashboard’s campaign and content panels to fail or silently remain in loading states. The admin regression now verifies those endpoint contracts.
+
+
+## Admin Demand-Signal Wiring
+
+The Celebrity Demand admin surface is connected to the existing `celebrity_demand` table through protected `GET /api/admin/celebrity`. The page reports only persisted demand signals and returns an empty state when no signals exist; it does not fabricate interest, threshold, creator, or outreach data.

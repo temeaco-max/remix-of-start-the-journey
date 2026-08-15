@@ -39,6 +39,9 @@ async function main() {
   assert.match(dashboard, /fetch\('\/api\/admin\/content'/, 'admin dashboard CMS must use the protected admin content owner');
   assert.doesNotMatch(dashboard, /fetch\('\/api\/ads'/, 'admin dashboard must not use the public ads path');
   assert.doesNotMatch(dashboard, /fetch\('\/api\/content'/, 'admin dashboard must not use the public content path');
+  assert.match(src, /router\.get\('\/celebrity',\s*authenticateAdmin/, 'celebrity demand must have a protected admin endpoint');
+  const celebrity = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'celebrity.html'), 'utf8');
+  assert.match(celebrity, /fetch\('\/api\/admin\/celebrity'/, 'celebrity demand page must use its protected admin endpoint');
   assert.match(src, /authenticateAdmin/, 'adminRoutes must use authenticateAdmin');
   assert.match(src, /operatorSession: true/, 'operator Chat must issue an explicit operator session claim');
   assert.match(src, /testActor: true/, 'Test As must issue an explicit actor claim');

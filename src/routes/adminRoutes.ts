@@ -870,8 +870,20 @@ router.get('/scam_reports', authenticateAdmin, async (_req: AuthRequest, res) =>
   }
 });
 
-// ── Content ─────────────────────────────────────────────────────────────
+// ── Celebrity demand ───────────────────────────────────────────────────
+router.get('/celebrity', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try {
+    const db = await getDb();
+    const result = db.exec('SELECT name, category, interested_users, threshold, status FROM celebrity_demand ORDER BY interested_users DESC, name ASC');
+    const rows = result[0]?.values || [];
+    res.json(rows.map((row: any[]) => ({ name: String(row[0] || ''), category: String(row[1] || ''), interested_users: Number(row[2] || 0), threshold: Number(row[3] || 0), status: String(row[4] || 'tracking') })));
+  } catch (error) {
+    console.error('[Admin] Celebrity demand query failed:', error);
+    res.status(500).json({ error: 'Unable to load celebrity demand' });
+  }
+});
 
+// ── Content ─────────────────────────────────────────────────────────────
 router.get('/content', authenticateAdmin, async (_req: AuthRequest, res) => {
   try {
     const db = await getDb();
