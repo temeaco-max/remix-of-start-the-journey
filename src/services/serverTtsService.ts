@@ -6,7 +6,7 @@ export interface TtsResult {
 }
 
 function ttsModel(): string {
-  return process.env.KURUKOO_VOICE_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
+  return process.env.KURUKOO_VOICE_TTS_MODEL || process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
 }
 
 /** Server TTS is truthfully reported as available only when explicitly enabled and configured. */

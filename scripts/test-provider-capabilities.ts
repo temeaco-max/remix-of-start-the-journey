@@ -5,7 +5,7 @@ process.env.GEMINI_API_KEY = '';
 process.env.API_KEY = '';
 process.env.KURUKOO_VOICE_ENABLED = 'false';
 
-const { getMistralStatus, queryMistral } = await import('../src/services/mistralService.js');
+const { getMistralStatus, queryMistral, transcribeMistralAudio } = await import('../src/services/mistralService.js');
 const { getVoiceStatus } = await import('../src/services/voiceService.js');
 const { queryUnifiedAI } = await import('../src/services/unifiedAiEngine.js');
 
@@ -16,6 +16,22 @@ assert.equal(mistral.capabilities.find(capability => capability.capability === '
 assert.equal(mistral.capabilities.find(capability => capability.capability === 'tts')?.available, false);
 
 await assert.rejects(() => queryMistral('test'), (error: any) => error?.code === 'MISTRAL_NOT_CONFIGURED');
+await assert.rejects(() => transcribeMistralAudio({ data: Buffer.from('audio'), mimeType: 'audio/wav' }), (error: any) => error?.code === 'MISTRAL_NOT_CONFIGURED');
+
+const previousFetch = globalThis.fetch;
+process.env.MISTRAL_API_KEY = 'test-mistral-key';
+process.env.KURUKOO_MISTRAL_TRANSCRIPTION_ENABLED = 'true';
+globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+  assert.equal(init?.method, 'POST');
+  assert.match(String(init?.headers && new Headers(init.headers).get('authorization')), /^Bearer test-mistral-key$/);
+  assert.ok(init?.body instanceof FormData);
+  return new Response(JSON.stringify({ text: 'find a plumber in Ikeja', model: 'voxtral-mini-latest', language: 'en' }), { status: 200, headers: { 'content-type': 'application/json' } });
+}) as typeof fetch;
+const transcription = await transcribeMistralAudio({ data: Buffer.from('audio'), mimeType: 'audio/wav', language: 'en' });
+assert.deepEqual(transcription, { text: 'find a plumber in Ikeja', model: 'voxtral-mini-latest', language: 'en' });
+globalThis.fetch = previousFetch;
+process.env.MISTRAL_API_KEY = '';
+process.env.KURUKOO_MISTRAL_TRANSCRIPTION_ENABLED = 'false';
 
 const voice = getVoiceStatus();
 assert.equal(voice.available, false);

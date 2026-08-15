@@ -43,7 +43,7 @@ export function getVoiceStatus() {
     capability: 'live',
     tts: (() => {
       const provider = process.env.KURUKOO_VOICE_TTS_PROVIDER || 'disabled';
-      const model = process.env.KURUKOO_VOICE_TTS_MODEL || undefined;
+      const model = process.env.KURUKOO_VOICE_TTS_MODEL || process.env.GEMINI_TTS_MODEL || undefined;
       const available = current.enabled && provider !== 'disabled' && Boolean(model) && configuredKey();
       return {
         provider,
