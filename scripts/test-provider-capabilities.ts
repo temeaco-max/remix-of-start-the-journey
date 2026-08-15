@@ -5,7 +5,7 @@ process.env.GEMINI_API_KEY = '';
 process.env.API_KEY = '';
 process.env.KURUKOO_VOICE_ENABLED = 'false';
 
-const { getMistralStatus, queryMistral, transcribeMistralAudio } = await import('../src/services/mistralService.js');
+const { getMistralStatus, queryMistral, transcribeMistralAudio, testMistralConnection } = await import('../src/services/mistralService.js');
 const { getVoiceStatus } = await import('../src/services/voiceService.js');
 const { queryUnifiedAI } = await import('../src/services/unifiedAiEngine.js');
 
@@ -16,6 +16,8 @@ assert.equal(mistral.capabilities.find(capability => capability.capability === '
 assert.equal(mistral.capabilities.find(capability => capability.capability === 'tts')?.available, false);
 
 await assert.rejects(() => queryMistral('test'), (error: any) => error?.code === 'MISTRAL_NOT_CONFIGURED');
+const noKeyConnection = await testMistralConnection();
+assert.deepEqual(noKeyConnection, { configured: false, reachable: false, status: 0, note: 'Mistral API key is not configured.' });
 await assert.rejects(() => transcribeMistralAudio({ data: Buffer.from('audio'), mimeType: 'audio/wav' }), (error: any) => error?.code === 'MISTRAL_NOT_CONFIGURED');
 
 const previousFetch = globalThis.fetch;
@@ -35,10 +37,17 @@ process.env.KURUKOO_MISTRAL_TRANSCRIPTION_ENABLED = 'false';
 process.env.KURUKOO_AI_HOSTED_PROVIDER = 'mistral';
 process.env.MISTRAL_API_KEY = 'test-mistral-key';
 globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
-  assert.equal(init?.method, 'POST');
+  const url = String(_input);
+  assert.equal(init?.method, url.endsWith('/models') ? 'GET' : 'POST');
   assert.match(String(init?.headers && new Headers(init.headers).get('authorization')), /^Bearer test-mistral-key$/);
+  if (url.endsWith('/models')) return new Response(JSON.stringify({ data: [{ id: 'mistral-small-latest' }, { id: 'voxtral-mini-latest' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   return new Response(JSON.stringify({ choices: [{ message: { content: 'Mistral hosted response' } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
 }) as typeof fetch;
+const connection = await testMistralConnection();
+assert.equal(connection.configured, true);
+assert.equal(connection.reachable, true);
+assert.equal(connection.status, 200);
+assert.equal(connection.modelCount, 2);
 const hosted = await queryUnifiedAI('Explain Kurukoo in one sentence', { provider: 'mistral', skipMemory: true });
 assert.equal(hosted.provider, 'Mistral');
 assert.equal(hosted.model, 'mistral-small-latest');

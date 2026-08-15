@@ -108,6 +108,28 @@ export async function transcribeMistralAudio(input: MistralTranscriptionInput): 
   }
 }
 
+export async function testMistralConnection(): Promise<{ configured: boolean; reachable: boolean; modelCount?: number; status: number; note: string }> {
+  const key = String(process.env.MISTRAL_API_KEY || '').trim();
+  if (!hasConfiguredSecret(key)) return { configured: false, reachable: false, status: 0, note: 'Mistral API key is not configured.' };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.MISTRAL_TIMEOUT_MS || 15_000));
+  try {
+    const response = await fetch(String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '') + '/models', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${key}` },
+      signal: controller.signal,
+    });
+    if (!response.ok) return { configured: true, reachable: false, status: response.status, note: `Mistral models endpoint returned HTTP ${response.status}.` };
+    const payload = await response.json() as any;
+    const models = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+    return { configured: true, reachable: true, modelCount: models.length, status: response.status, note: 'Mistral models endpoint responded successfully; account limits and production suitability remain unverified.' };
+  } catch {
+    return { configured: true, reachable: false, status: 0, note: 'Mistral models endpoint could not be reached; no provider availability is claimed.' };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function queryMistral(prompt: string, options: MistralChatOptions = {}): Promise<string> {
   if (!String(prompt || '').trim()) throw new MistralProviderError('MISTRAL_REQUEST_FAILED', 'Mistral requires a non-empty prompt.');
   const key = apiKey();

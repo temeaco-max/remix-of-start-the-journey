@@ -33,6 +33,7 @@ import { getConfiguredTestName, getConfiguredTestPhone, getDevelopmentTestAuthSt
 import { getProfile, updateProfile } from '../services/memoryProfile.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { createAdCampaign, getAdCampaigns, updateAdCampaign } from '../services/adManager.js';
+import { testMistralConnection } from '../services/mistralService.js';
 
 const router = Router();
 
@@ -408,6 +409,15 @@ router.post('/ads', authenticateAdmin, async (req: AuthRequest, res) => {
 router.get('/pilot-readiness', authenticateAdmin, async (_req: AuthRequest, res) => {
   try { res.json(getPilotReadiness()); }
   catch { res.status(500).json({ error: 'Unable to read pilot readiness' }); }
+});
+
+router.post('/providers/mistral/test', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try {
+    const result = await testMistralConnection();
+    res.status(result.reachable || !result.configured ? 200 : 502).json({ success: result.reachable, provider: 'mistral', ...result });
+  } catch {
+    res.status(502).json({ success: false, provider: 'mistral', configured: false, reachable: false, status: 0, note: 'Mistral connection test failed without exposing provider details.' });
+  }
 });
 
 // ── Stats / analytics ───────────────────────────────────────────────────

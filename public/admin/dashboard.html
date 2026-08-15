@@ -367,6 +367,10 @@
                         Loading internal metrics...
                     </div>
                     <h4 class="admin-inline-ec95ac8d99">Pilot readiness and external adapters</h4>
+                    <div class="admin-actions-row">
+                        <button type="button" class="btn-action" onclick="testMistralConnection()">Test Mistral connection</button>
+                        <span id="mistral-connection-result" role="status" aria-live="polite"></span>
+                    </div>
                     <div id="pilot-readiness-grid" class="admin-inline-58c221a45e">
                         <div class="admin-inline-91c151c1a2">Loading readiness...</div>
                     </div>
@@ -599,6 +603,17 @@
             if (!window.confirm('Reset only the legacy development test Chat state? Financial, escrow, payment, order, and dispute records will be preserved.')) return;
             try { await adminTestChatRequest('/api/admin/test-chat/reset', 'POST'); window.alert('Legacy development test Chat state reset.'); }
             catch (error) { window.alert(error.message || 'Unable to reset legacy development test Chat.'); }
+        }
+        async function testMistralConnection() {
+            const result = document.getElementById('mistral-connection-result');
+            if (result) result.textContent = 'Testing…';
+            try {
+                const response = await fetch('/api/admin/providers/mistral/test', { method: 'POST', credentials: 'same-origin' });
+                const data = await response.json().catch(() => ({}));
+                if (result) result.textContent = data.reachable ? `Reachable (${data.modelCount || 0} models reported)` : (data.note || 'Mistral is not reachable or configured.');
+            } catch (error) {
+                if (result) result.textContent = error.message || 'Connection test failed.';
+            }
         }
         // Load initial console data
         function loadConsoleData() {
