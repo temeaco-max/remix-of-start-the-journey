@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticateUser, AuthRequest } from '../middleware/auth.js';
 import { getDb, saveDb } from '../database.js';
 import { exportUserData, deleteUserData } from '../services/dataRetention.js';
-import { getProfile } from '../services/memoryProfile.js';
+import { getProfile, updateProfile } from '../services/memoryProfile.js';
 import { generateReferralCode, trackReferral } from '../services/referralService.js';
 import { buildQrEntryUrl, parseQrContext } from '../services/qrContextService.js';
 import { submitRating } from '../services/ratingService.js';
@@ -16,7 +16,7 @@ router.get('/profile', authenticateUser, async (req: AuthRequest, res) => {
   if (req.query.phone && String(req.query.phone) !== phone) return res.status(403).json({ error: 'Forbidden: You can only view your own profile' });
   const db = await getDb(); const stmt = db.prepare(`SELECT * FROM memory_profiles WHERE phone = ?`); stmt.bind([phone]); let profile: any = null;
   if (stmt.step()) profile = stmt.getAsObject(); else {
-    db.run(`INSERT INTO memory_profiles (phone, name, location, country, subscription_tier, wallet_balance_minor) VALUES (?, 'New User', 'Ibadan', 'ng', 'Base', 30)`, [phone]); saveDb();
+    await updateProfile(phone, 'profile_bootstrap', {});
     const newStmt = db.prepare(`SELECT * FROM memory_profiles WHERE phone = ?`); newStmt.bind([phone]); if (newStmt.step()) profile = newStmt.getAsObject(); newStmt.free();
   }
   stmt.free(); const skillsStmt = db.prepare(`SELECT * FROM skills WHERE phone = ?`); skillsStmt.bind([phone]); const skills: any[] = []; while (skillsStmt.step()) skills.push(skillsStmt.getAsObject()); skillsStmt.free();
@@ -38,9 +38,14 @@ router.post('/profile/update', authenticateUser, async (req: AuthRequest, res) =
   if (req.body?.phone && req.body.phone !== phone) return res.status(403).json({ error: 'Forbidden: You can only update your own profile' });
   const { name, location, country, skills, operation_mode, hourly_rate, service_radius_km, transport_mode, pricing_model, payment_method, equipment, is_available } = req.body || {};
   try {
-    const db = await getDb(); const stmt = db.prepare(`SELECT phone FROM memory_profiles WHERE phone = ?`); stmt.bind([phone]); const exists = stmt.step(); stmt.free();
-    if (!exists) db.run(`INSERT INTO memory_profiles (phone, name, location, country, subscription_tier) VALUES (?, ?, ?, ?, ?)`, [phone, name || 'New User', location || 'Ibadan', country || 'ng', 'Base']);
-    else db.run(`UPDATE memory_profiles SET name = COALESCE(?, name), location = COALESCE(?, location), country = COALESCE(?, country) WHERE phone = ?`, [name || null, location || null, country || null, phone]);
+    const db = await getDb();
+    await updateProfile(phone, 'profile_update', {
+      name: typeof name === 'string' && name.trim() ? name.trim() : undefined,
+      location: typeof location === 'string' && location.trim() ? location.trim() : undefined,
+      country: typeof country === 'string' && country.trim() ? country.trim() : undefined,
+      provenance: 'user_declared',
+      source_ref: 'profile_update',
+    });
     if (typeof is_available !== 'undefined') {
       const available = is_available ? 1 : 0;
       db.run(`UPDATE memory_profiles SET is_available = ? WHERE phone = ?`, [available, phone]);

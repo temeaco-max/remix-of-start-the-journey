@@ -1,6 +1,10 @@
-# Kurukoo Blueprint Implementation Addendum — 2026-08-11
+# Kurukoo Blueprint Implementation Addendum — Current
 
-This addendum records implementation decisions that must be treated as the current interpretation of `BLUEPRINT.md` v5.62. It exists because the blueprint contains historical version notes as well as current architectural intent; this file records the implementation truth after the latest Economic OS refactor.
+**Status:** CURRENT implementation companion; historical decisions remain preserved below.
+**Canonical Blueprint:** `BLUEPRINT.md` v5.65.
+**Canonical product definition:** Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**.
+
+This addendum records implementation decisions that must be read with the current `BLUEPRINT.md`. Historical version references describe when a decision entered the repository; they do not override the current canonical architecture or external-capability truth rules.
 
 ## 1. Universal Economic Request model
 
@@ -216,9 +220,9 @@ Before changing or creating anything:
 "Tell Kurukoo what you need. Kurukoo figures out who or what can fulfil it."
 
 ### Information Architecture Redesign
-- **Navigation**: Simplified to Discover, How it works, Network, Channels, Resources, About.
-- **Primary CTA**: "Start chatting" - seeds conversational intent.
-- **Access Points**: Reframed as channels (Web, WhatsApp, USSD) into one underlying orchestration network.
+- **Navigation**: The installed application is conversation-first; supporting surfaces open inside the canonical Chat workspace wherever practical.
+- **Primary CTA**: The Chat composer and agent entry point are the primary request surface; public-site CTAs may introduce Chat but must not imply external-channel activation.
+- **Access Points**: Web Chat is the active first-party channel. WhatsApp, USSD, SMS, Telegram, FCM, Voice, payments, and other connectors remain conditional external boundaries whose readiness is reported separately.
 
 ### Identity & Onboarding
 - **Conversation First**: Users can start requests as guests.
@@ -226,9 +230,12 @@ Before changing or creating anything:
 - **Continuity**: Seamless migration of guest data to authenticated profiles via OTP verification.
 
 ### Key Terminologies
-- **Orchestration Network**: The product model.
+- **Conversational fulfilment network**: The canonical product definition.
+- **Personal assistance platform**: The user-facing assistance role within that network.
+- **Economic OS**: Internal architecture terminology only.
+- **Orchestration network**: Architectural coordination terminology only.
 - **Request / Conversation**: The user-facing interaction.
-- **Fulfillment**: The outcome.
+- **Fulfilment**: The outcome.
 - **Capability**: The functional match.
 
 ### Visual System

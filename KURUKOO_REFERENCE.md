@@ -1,5 +1,7 @@
 # Kurukoo v5.41 — Technical Reference Guide
 
+> **Status: HISTORICAL / SUPERSEDED.** Retained for provenance. Current product definition, route ownership, conversation-first PWA behavior, memory truth, and provider boundaries are governed by `BLUEPRINT.md`, `docs/architecture/CURRENT_PRODUCT_TRUTH.md`, `docs/architecture/BLUEPRINT_TRUTH.md`, `CHAT_SURFACE_CONTRACT.md`, and `BUILD_STATUS.md`.
+
 ## Architecture Overview
 - **Backend:** Node.js, Express 4, TypeScript (`src/index.ts`, `src/database.ts` → `kurukoo.sqlite` via `sql.js`).
 - **Entry:** root `index.ts` validates env then bootstraps `src/index.js` (the Express app).

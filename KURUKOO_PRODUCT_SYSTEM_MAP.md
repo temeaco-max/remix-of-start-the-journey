@@ -1,6 +1,10 @@
 # Kurukoo Product System Map
 
-**Purpose:** Turn Blueprint v5.62 into one coherent product, UX, engineering and information-architecture reference. This document is an implementation companion to `BLUEPRINT.md`, not a replacement for it.
+**Status:** CURRENT implementation companion. Historical Blueprint references describe source material only and do not override the current architecture.
+**Canonical Blueprint:** `BLUEPRINT.md` v5.65.
+**Product definition:** Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**.
+
+**Purpose:** Keep product, UX, engineering, and information architecture coherent with the canonical Blueprint; this document is an implementation companion, not a replacement for it.
 
 ## 1. Product truth
 
@@ -8,7 +12,7 @@
 
 > **Tell Kurukoo what you need. Kurukoo figures out who or what can fulfil it.**
 
-Kurukoo is a **conversational fulfillment network**. It is not a marketplace, directory, chatbot, taxi app, delivery fleet, or collection of disconnected features.
+Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**. It is not defined as a marketplace, directory, chatbot, taxi app, delivery fleet, or collection of disconnected features.
 
 The user experience is deliberately simple:
 
@@ -124,6 +128,8 @@ The header should remain compact. Do not expose the 45-category taxonomy as a pr
 Every page must have a clear next action. No orphan pages.
 
 ## 5. Conversation-first PWA
+
+**Current implementation rule:** The installed app must launch into `/chat/` or the authenticated conversation entry surface, not the legacy dashboard shell. `/dashboard.html` remains a historical/supporting Request Hub until its content is fully hosted inside the canonical Chat workspace.
 
 The authenticated PWA is not a SaaS admin dashboard. It is a **personal Kurukoo workspace centred on conversation**.
 

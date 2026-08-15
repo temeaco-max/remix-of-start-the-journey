@@ -1,4 +1,9 @@
-# Kurukoo --- Final Consolidated Blueprint v5.62
+# Kurukoo — Final Consolidated Blueprint v5.65
+
+**Status:** CURRENT canonical product and architecture source of truth. Historical version entries below are preserved for provenance and do not override current implementation truth.
+**Current version:** v5.65
+**Canonical product definition:** Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**.
+**Terminology:** “Economic OS” and “orchestration network” are internal architecture terms; “marketplace” and “chatbot” are not product definitions.
 
 **Tagline:** Wake up. Get going.  
 *(Note: The tagline is 'Wake up. Get going.' The hero rotator includes marketing descriptors like 'A modern utility platform for everyday hustle.' These are not the tagline and should not replace it.)*
@@ -11,7 +16,7 @@
 ## Version History (Consolidated & Deduplicated)
 
 | Version | Date | Summary |
-| **v5.65** | 2026-08-15 | **AI Capability Truth Matrix and Optional Provider Boundaries (§21c).** Preserved FastText, Intent Router, SmolLM2, unifiedAiEngine, canonicalChatTurnService, and agentRuntime as canonical owners. Added an opt-in, quota-gated Mistral Small text adapter, provider/model attribution, safe unknown-limit reporting, and explicit unsupported-state reporting for Mistral Voxtral/TTS/Pixtral until canonical attachment/audio owners are verified. Aligned Gemini text defaults to `gemini-2.5-flash`; separated text, TTS, and Live voice states; retained the existing Gemini Live session boundary and marked server TTS/browser speech limitations truthfully. No private-conversation free-tier production commitment is implied. |
+| **v5.65** | 2026-08-15 | **Blueprint/product truth and AI capability convergence (§21c).** Preserved FastText, Intent Router, SmolLM2, unifiedAiEngine, canonicalChatTurnService, and agentRuntime as canonical owners. Added an opt-in, quota-gated Mistral Small text adapter, provider/model attribution, safe unknown-limit reporting, and explicit unsupported-state reporting for Mistral Voxtral/TTS/Pixtral until canonical attachment/audio owners are verified. Aligned Gemini text defaults to `gemini-2.5-flash`; separated text, TTS, and Live voice states; retained the existing Gemini Live session boundary and marked server TTS/browser speech limitations truthfully. No private-conversation free-tier production commitment is implied. |
 | **v5.64** | 2026-08-14 | **Ultra-autonomy readiness hardening (§21b).** Added authenticated owner-scoped pause/resume goal endpoints, Chat inspector Pause/Resume controls, admin runtime worker telemetry (start, cycle, completion, counts, errors, overlap state), retained background timer handles, one-start protection, and explicit graceful background-service shutdown. The runtime remains bounded, evidence-based, provider-aware, and fail-closed; no high-risk action, silent payment, anonymous persistence, or connector capability is fabricated. |
 | **v5.63** | 2026-08-12 | **Bounded Autonomous Agent Runtime (§21b).** Implemented one persistent goal runtime that orchestrates existing conversation, bounded Living Memory, canonical Economic Requests, deferred intentions, reminders, notifications, and the established background-service lifecycle. It uses a restricted, ownership-checked tool registry; explicit autonomy levels; concise operational evidence; idempotent goal events; retries, cooldowns, concurrency/action limits; a user-controlled inspector timeline; and deployment flags. It does not create a second AI, memory, task, request, provider, workflow, voice, QR, referral, payment, or dispatch engine. High-risk actions remain outside autonomous execution and continue through their existing confirmation/authorization boundaries. |
 | :--- | :--- | :--- |
@@ -5572,3 +5577,27 @@ The permitted voice path is:
 > speech input → verified transcription or Live boundary → shared conversation → FastText/Intent Router → existing Kurukoo action → canonical response → explicitly verified TTS or Live audio → user
 
 Voice does not create a second Chat, memory, action, provider, or agent engine. Transcript metadata records the actual declared provider, capability, model, and owned conversation. Unsupported transcription, TTS, Live, vision, OCR, and moderation states remain unavailable and visible rather than silently falling back to an unrelated capability.
+
+
+## Current Implementation Tranche — v5.65 Repository-Side Convergence
+
+This section records the implementation state after the v5.65 provider convergence work. It is current implementation truth and does not convert external prerequisites into active production capabilities.
+
+| Capability | Repository-side state | External activation requirement | User-facing classification |
+|---|---|---|---|
+| Conversation-first PWA | `/chat/` is the manifest `id` and `start_url`; the service worker caches the Chat shell and legacy dashboard navigation redirects to Chat under service-worker control. | Browser installation, update lifecycle, and deployment HTTPS validation. | Repository-ready; not a claim that a user installed the app. |
+| Typed feature flags | Registry entries carry lifecycle, risk, dependencies, provider prerequisites, kill-switch support, admin visibility, and non-production test overrides. Pilot readiness exposes safe status data. | Deployment-specific environment configuration and operator approval. | Enabled/disabled/waiting states are explicit. |
+| Memory provenance | Explicit profile facts are stored in `memory_facts` with field, provenance, source reference, observed time, expiry, and status. Living Memory retrieves fact records with provenance labels. Unknown onboarding identity remains null until declared. | Production encryption key, retention policy, and operational privacy review. | Unverified values are not presented as stable user facts. |
+| WebRTC | Authenticated in-memory signaling remains the canonical repository foundation. It reports signaling readiness separately from relay readiness. | Approved STUN/TURN or relay, authentication, consent, browser interoperability, and deployment verification. | Not live/connected/verified unless independently proven. |
+| MQTT/IoT | MQTT bridge no longer connects to localhost implicitly. It starts only when a configured broker and explicit feature flag are present, exposes connection/error status, and rejects undelivered commands truthfully. | Authenticated broker, device registry, authorization policy, safety review, and delivery evidence. | Not active by default. |
+| Private-number routing | Feature flag and provider prerequisite metadata exist; no provider ownership or delivery is inferred from environment variables alone. | Verified telephony provider, number ownership, consent, routing, retention, and delivery receipts. | Repository-side complete; external activation pending. |
+| Gemini/Mistral | Gemini text, TTS, Live, and browser speech states remain separated. Mistral Small is optional and quota-gated; unsupported Voxtral/TTS/Pixtral capabilities remain unavailable. | Provider credentials, terms, privacy/retention decision, quota telemetry, and independent provider validation. | No free-tier production commitment and no fabricated limits. |
+
+### External Capability Rule
+
+> **Repository-side complete → ready for external activation.** No WhatsApp, Telegram, SMS, USSD, FCM, voice, Stripe/payment, telephony, WebRTC relay, MQTT broker, Mistral/Gemini/Groq/Hugging Face account limit, KYC, inventory, dispatch, object storage, or malware-scanning capability is described as live, active, verified, connected, or delivered without independent external evidence.
+
+
+### Safety Flow Ownership Correction
+
+Emergency and urgent-safety requests remain owned by the canonical safety/triage flow. They use a dedicated `safety_guidance` card and preserve the emergency-service limitation, rather than being represented as `agentic_storefront` or an Economic Request. Safety coordination does not imply emergency-response delivery, provider verification, payment, or fulfilment.

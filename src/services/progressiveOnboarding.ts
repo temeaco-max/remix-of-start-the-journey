@@ -21,7 +21,7 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
     const db = await getDb();
     const stmt = db.prepare(`SELECT name, preferences, is_available FROM memory_profiles WHERE phone = ?`);
     stmt.bind([phone]);
-    let name = 'New User';
+    let name: string | null = null;
     let prefs: any = {};
     if (stmt.step()) {
         const obj = stmt.getAsObject();
@@ -102,9 +102,9 @@ export async function handleOnboardingInput(phone: string, text: string): Promis
 
 export async function onboardNewUser(phone: string): Promise<string> {
     const db = await getDb();
-    db.run(`INSERT OR IGNORE INTO memory_profiles (phone, name) VALUES (?, ?)`, [phone, 'New User']);
+    db.run(`INSERT OR IGNORE INTO memory_profiles (phone, name) VALUES (?, ?)`, [phone, null]);
     const prefs = { onboarding_step: 'start', onboarding_complete: false };
-    db.run(`UPDATE memory_profiles SET name = 'New User', preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
+    db.run(`UPDATE memory_profiles SET name = NULL, preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
     saveDb();
     return `Welcome to Kurukoo! I am your AI assistant to help you request anything and earn from your skills. Let's get you set up in 3 simple steps.\n\nFirst, what is your name?`;
 }

@@ -4,7 +4,7 @@
  * AI never sees full history; only a bounded, diverse working context.
  */
 import { getDb, saveDb } from '../database.js';
-import { getProfile } from './memoryProfile.js';
+import { getProfile, getMemoryFacts } from './memoryProfile.js';
 import { getIntentions } from './deferredRequestService.js';
 
 export type MemoryTier = 'stable' | 'episodic' | 'open_intention' | 'recent_tail';
@@ -133,26 +133,29 @@ function textSimilarity(a: string, b: string): number {
 
 async function collectStable(phone: string): Promise<MemoryItem[]> {
   const profile = await getProfile(phone, 'living_memory');
+  const facts = await getMemoryFacts(phone, ['name', 'location']);
   const items: MemoryItem[] = [];
   if (!profile) return items;
 
-  if (profile.name) {
+  const nameFact = facts.find((fact) => fact.field === 'name');
+  if (nameFact) {
     items.push({
-      id: `stable:name`,
+      id: `stable:fact:${nameFact.id}`,
       tier: 'stable',
-      text: `User name: ${profile.name}`,
-      source: 'memory_profiles.name',
-      createdAt: profile.created_at || new Date().toISOString(),
+      text: `User name: ${nameFact.value}`,
+      source: `memory_facts.name:${nameFact.provenance}`,
+      createdAt: nameFact.observedAt,
       relevance: 0.3,
     });
   }
-  if (profile.location) {
+  const locationFact = facts.find((fact) => fact.field === 'location');
+  if (locationFact) {
     items.push({
-      id: `stable:location`,
+      id: `stable:fact:${locationFact.id}`,
       tier: 'stable',
-      text: `Primary location: ${profile.location}${profile.primary_lga ? `, ${profile.primary_lga}` : ''}${profile.primary_state ? `, ${profile.primary_state}` : ''}`,
-      source: 'memory_profiles.location',
-      createdAt: profile.updated_at || new Date().toISOString(),
+      text: `Primary location: ${locationFact.value}`,
+      source: `memory_facts.location:${locationFact.provenance}`,
+      createdAt: locationFact.observedAt,
       relevance: 0.4,
     });
   }
@@ -165,7 +168,7 @@ async function collectStable(phone: string): Promise<MemoryItem[]> {
           id: `stable:roles`,
           tier: 'stable',
           text: `Inferred roles/skills: ${list.slice(0, 8).join(', ')}`,
-          source: 'memory_profiles.inferred_roles',
+          source: 'memory_profiles.inferred_roles:inferred',
           createdAt: profile.updated_at || new Date().toISOString(),
           relevance: 0.45,
         });
@@ -177,7 +180,7 @@ async function collectStable(phone: string): Promise<MemoryItem[]> {
       id: `stable:tier`,
       tier: 'stable',
       text: `Subscription: ${profile.subscription_tier}; Points: ${profile.points_balance ?? profile.wallet_balance_minor ?? 0}`,
-      source: 'memory_profiles.subscription',
+      source: 'memory_profiles.subscription:system_state',
       createdAt: profile.updated_at || new Date().toISOString(),
       relevance: 0.25,
     });

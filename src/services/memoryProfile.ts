@@ -7,6 +7,58 @@ function parseProfileJson(value: string, field: string): any {
     try { return JSON.parse(value); }
     catch (error) { throw new Error(`[Kurukoo Security] Invalid encrypted ${field} profile data.`, { cause: error }); }
 }
+export type MemoryProvenance = 'user_declared' | 'verified' | 'inferred' | 'observed' | 'system_generated' | 'expired';
+
+async function ensureMemoryFactsSchema(): Promise<void> {
+    const db = await getDb();
+    db.run(`CREATE TABLE IF NOT EXISTS memory_facts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        phone TEXT NOT NULL,
+        field TEXT NOT NULL,
+        value TEXT NOT NULL,
+        provenance TEXT NOT NULL,
+        confidence REAL,
+        source_ref TEXT,
+        observed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        expires_at TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(phone, field, value, provenance)
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_memory_facts_owner ON memory_facts(phone, status, field)`);
+    saveDb();
+}
+
+export async function recordMemoryFact(phone: string, field: string, value: unknown, provenance: MemoryProvenance, options: { confidence?: number; sourceRef?: string; expiresAt?: string } = {}): Promise<void> {
+    const normalized = String(value ?? '').trim();
+    if (!phone || !field || !normalized || provenance === 'expired') return;
+    await ensureMemoryFactsSchema();
+    const db = await getDb();
+    db.run(`INSERT INTO memory_facts (phone, field, value, provenance, confidence, source_ref, expires_at, status, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)
+            ON CONFLICT(phone, field, value, provenance) DO UPDATE SET confidence = excluded.confidence, source_ref = excluded.source_ref, expires_at = excluded.expires_at, status = 'active', updated_at = CURRENT_TIMESTAMP`,
+        [phone, field, normalized, provenance, options.confidence ?? null, options.sourceRef ?? null, options.expiresAt ?? null]);
+    saveDb();
+}
+
+export async function getMemoryFacts(phone: string, fields?: string[]): Promise<Array<{ id: number; field: string; value: string; provenance: MemoryProvenance; confidence: number | null; sourceRef: string | null; observedAt: string; expiresAt: string | null }>> {
+    await ensureMemoryFactsSchema();
+    const db = await getDb();
+    const params: unknown[] = [phone];
+    let where = `phone = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)`;
+    if (fields?.length) { where += ` AND field IN (${fields.map(() => '?').join(',')})`; params.push(...fields); }
+    const stmt = db.prepare(`SELECT id, field, value, provenance, confidence, source_ref, observed_at, expires_at FROM memory_facts WHERE ${where} ORDER BY updated_at DESC`);
+    stmt.bind(params);
+    const facts: Array<{ id: number; field: string; value: string; provenance: MemoryProvenance; confidence: number | null; sourceRef: string | null; observedAt: string; expiresAt: string | null }> = [];
+    while (stmt.step()) {
+        const row = stmt.getAsObject() as any;
+        facts.push({ id: Number(row.id), field: String(row.field), value: String(row.value), provenance: String(row.provenance) as MemoryProvenance, confidence: row.confidence == null ? null : Number(row.confidence), sourceRef: row.source_ref == null ? null : String(row.source_ref), observedAt: String(row.observed_at), expiresAt: row.expires_at == null ? null : String(row.expires_at) });
+    }
+    stmt.free();
+    return facts;
+}
+
 const getSecretKey = () => {
     const raw = String(process.env.MEMORY_ENCRYPTION_KEY || '').trim();
     if (!raw && process.env.NODE_ENV === 'production') throw new Error('[Kurukoo Security] MEMORY_ENCRYPTION_KEY must be configured in production.');
@@ -79,6 +131,8 @@ export async function updateProfile(phone: string, serviceName: string = 'system
     behavior_patterns?: any;
     fcm_token?: string;
     is_available?: number;
+    provenance?: MemoryProvenance;
+    source_ref?: string;
 }) {
     await logProfileAccess(phone, serviceName, 'write');
     const db = await getDb();
@@ -87,11 +141,11 @@ export async function updateProfile(phone: string, serviceName: string = 'system
 
     // Unknown remains unknown. Do not manufacture a location, balance, or other
     // user fact simply because a profile is being created.
-    const name = updates.name !== undefined ? updates.name : (existing ? existing.name : 'New User');
+    const name = updates.name !== undefined ? updates.name : (existing ? existing.name : null);
     const location = updates.location !== undefined ? updates.location : (existing ? existing.location : null);
-    const country = updates.country !== undefined ? updates.country : (existing ? existing.country : 'ng');
-    const subscription_tier = updates.subscription_tier !== undefined ? updates.subscription_tier : (existing ? existing.subscription_tier : 'Base');
-    const wallet_balance_minor = updates.wallet_balance_minor !== undefined ? updates.wallet_balance_minor : (existing ? existing.wallet_balance_minor : 0);
+    const country = updates.country !== undefined ? updates.country : (existing ? existing.country : null);
+    const subscription_tier = updates.subscription_tier !== undefined ? updates.subscription_tier : (existing ? existing.subscription_tier : null);
+    const wallet_balance_minor = updates.wallet_balance_minor !== undefined ? updates.wallet_balance_minor : (existing ? existing.wallet_balance_minor : null);
 
     const prefsObj = updates.preferences !== undefined ? updates.preferences : (existing ? existing.preferences : {});
     if (!prefsObj.referral_code) {
@@ -121,5 +175,9 @@ export async function updateProfile(phone: string, serviceName: string = 'system
             [name, location, country, subscription_tier, wallet_balance_minor, prefsStr, patternsStr, fcm_token, is_available, phone]);
     }
     saveDb();
+    const provenance = updates.provenance || 'user_declared';
+    if (updates.name !== undefined) await recordMemoryFact(phone, 'name', updates.name, provenance, { sourceRef: updates.source_ref || serviceName });
+    if (updates.location !== undefined) await recordMemoryFact(phone, 'location', updates.location, provenance, { sourceRef: updates.source_ref || serviceName });
+    if (updates.country !== undefined) await recordMemoryFact(phone, 'country', updates.country, provenance, { sourceRef: updates.source_ref || serviceName });
     return await getProfile(phone, serviceName);
 }

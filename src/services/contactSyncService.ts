@@ -34,7 +34,7 @@ export async function startContactSyncService() {
 export async function syncUserContacts() {
     const db = await getDb();
     
-    // Find profiles with generic, empty, or 'New User' names
+    // Find profiles with generic or empty names; legacy placeholders remain eligible for contact reconciliation.
     const stmt = db.prepare(`SELECT phone, name FROM memory_profiles`);
     const profilesToUpdate: { phone: string; currentName: string }[] = [];
     

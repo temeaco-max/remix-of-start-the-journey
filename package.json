@@ -43,6 +43,7 @@
     "test:channel-usage": "tsx scripts/test-channel-usage.ts",
     "db:migrate:messages": "tsx scripts/migrate-messages.ts",
     "test:ai": "tsx scripts/test-ai-pipeline.ts",
+    "test:memory-provenance": "tsx scripts/test-memory-provenance.ts",
     "test:private-chat-ad-boundary": "tsx scripts/test-private-chat-ad-boundary.ts",
     "test:advertising": "tsx scripts/test-advertising.ts",
     "test:referral": "tsx scripts/test-referral.ts",

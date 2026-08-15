@@ -4,6 +4,8 @@ import path from 'path';
 const FLAG_ENV_PREFIX = 'FF_';
 
 export type FeatureLifecycle = 'experimental' | 'pilot' | 'production-capable' | 'deprecated';
+export type FeatureRisk = 'low' | 'medium' | 'high';
+export type FeatureOperationalStatus = 'ENABLED' | 'DISABLED' | 'MISCONFIGURED' | 'WAITING_FOR_PROVIDER' | 'EXPERIMENTAL' | 'DEPRECATED';
 
 export interface FeatureDefinition {
     description: string;
@@ -11,6 +13,11 @@ export interface FeatureDefinition {
     defaultEnabled: boolean;
     markets?: string[];
     requires?: string[];
+    dependencies?: string[];
+    providerPrerequisites?: string[];
+    risk?: FeatureRisk;
+    killSwitch?: boolean;
+    adminVisible?: boolean;
 }
 
 /**
@@ -28,16 +35,18 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     fcm: { description: 'External push delivery', lifecycle: 'pilot', defaultEnabled: false, requires: ['FIREBASE_ADMIN_CREDENTIALS'] },
     agent_runtime: { description: 'Bounded agent runtime', lifecycle: 'production-capable', defaultEnabled: false },
     autonomous_low_risk: { description: 'Low-risk autonomous execution within explicit user permissions', lifecycle: 'pilot', defaultEnabled: false, requires: ['agent_runtime'] },
-    webrtc: { description: 'WebRTC realtime media', lifecycle: 'experimental', defaultEnabled: false, requires: ['STUN_TURN_OR_RELAY'] },
-    iot_remote: { description: 'Authenticated IoT/MQTT remote control', lifecycle: 'experimental', defaultEnabled: false, requires: ['MQTT_BROKER_URL'] },
     stripe_payments: { description: 'Stripe payment collection', lifecycle: 'pilot', defaultEnabled: false, requires: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] },
     mobile_money: { description: 'Mobile-money payment adapter', lifecycle: 'pilot', defaultEnabled: false },
     topics: { description: 'Public/shared Topic surface', lifecycle: 'production-capable', defaultEnabled: true },
     advertising: { description: 'Public advertising placements and campaign management', lifecycle: 'production-capable', defaultEnabled: true },
     contributor_tasks: { description: 'Contributor task and evidence workflow', lifecycle: 'production-capable', defaultEnabled: true },
     nearby_pulse: { description: 'Consent-based live presence and nearby discovery', lifecycle: 'pilot', defaultEnabled: false },
-    private_number_masking: { description: 'Real routable private-number communication', lifecycle: 'pilot', defaultEnabled: false, requires: ['NUMBER_MASKING_PROVIDER'] },
-    catalog_ordering: { description: 'Shared catalogue/product ordering flow', lifecycle: 'pilot', defaultEnabled: false },
+    catalog_ordering: { description: 'Shared catalogue/product ordering flow', lifecycle: 'pilot', defaultEnabled: false, dependencies: ['topics'], risk: 'medium', killSwitch: true, adminVisible: true },
+    pwa_conversation_first: { description: 'Conversation-first installed application shell', lifecycle: 'production-capable', defaultEnabled: true, risk: 'low', killSwitch: true, adminVisible: true },
+    memory_provenance: { description: 'Fact-level memory provenance and lifecycle controls', lifecycle: 'production-capable', defaultEnabled: true, risk: 'medium', killSwitch: true, adminVisible: true },
+    private_number_masking: { description: 'Real routable private-number communication', lifecycle: 'pilot', defaultEnabled: false, requires: ['NUMBER_MASKING_PROVIDER'], providerPrerequisites: ['telephony provider with number ownership, routing, consent, and delivery receipts'], risk: 'high', killSwitch: true, adminVisible: true },
+    webrtc: { description: 'WebRTC realtime media', lifecycle: 'experimental', defaultEnabled: false, requires: ['STUN_TURN_OR_RELAY'], providerPrerequisites: ['configured STUN/TURN or relay service'], risk: 'high', killSwitch: true, adminVisible: true },
+    iot_remote: { description: 'Authenticated IoT/MQTT remote control', lifecycle: 'experimental', defaultEnabled: false, requires: ['MQTT_BROKER_URL'], providerPrerequisites: ['authenticated MQTT broker and device registry'], risk: 'high', killSwitch: true, adminVisible: true },
 };
 
 function parseBoolean(value: string | undefined): boolean | undefined {
@@ -78,28 +87,91 @@ export function getFeatureDefinition(flagName: string): FeatureDefinition | unde
     return FEATURE_REGISTRY[flagName];
 }
 
+function testOverride(flagName: string): boolean | undefined {
+    if (process.env.NODE_ENV === 'production') return undefined;
+    return parseBoolean(process.env[`FF_TEST_${flagName.toUpperCase()}`]);
+}
+
+function killSwitchActive(flagName: string): boolean {
+    const definition = FEATURE_REGISTRY[flagName];
+    if (!definition?.killSwitch) return false;
+    return parseBoolean(process.env[`FF_KILL_${flagName.toUpperCase()}`]) === true;
+}
+
+function missingForDefinition(country: string, flagName: string, definition: FeatureDefinition): string[] {
+    const missing = (definition.requires || []).filter((requirement) => !hasRequirement(requirement));
+    for (const dependency of definition.dependencies || []) {
+        if (!getFeatureFlag(country, dependency)) missing.push(`feature:${dependency}`);
+    }
+    return [...new Set(missing)];
+}
+
 export function getFeatureFlagStatus(country: string, flagName: string): {
     enabled: boolean;
     lifecycle: FeatureLifecycle | 'unknown';
     configured: boolean;
     missingRequirements: string[];
+    status: FeatureOperationalStatus | 'UNKNOWN';
+    description?: string;
+    markets?: string[];
+    dependencies?: string[];
+    providerPrerequisites?: string[];
+    risk?: FeatureRisk;
+    defaultEnabled?: boolean;
+    killSwitchActive?: boolean;
+    adminVisible?: boolean;
+    source?: 'test_override' | 'environment' | 'locale' | 'default' | 'unknown';
 } {
     const definition = FEATURE_REGISTRY[flagName];
-    if (!definition) return { enabled: false, lifecycle: 'unknown', configured: false, missingRequirements: [] };
+    if (!definition) return { enabled: false, lifecycle: 'unknown', configured: false, missingRequirements: [], status: 'UNKNOWN', source: 'unknown' };
 
-    const missingRequirements = (definition.requires || []).filter((requirement) => !hasRequirement(requirement));
+    const missingRequirements = missingForDefinition(country, flagName, definition);
     const configured = missingRequirements.length === 0;
-    const enabled = getFeatureFlag(country, flagName) && configured;
-    return { enabled, lifecycle: definition.lifecycle, configured, missingRequirements };
+    const override = testOverride(flagName);
+    const killed = killSwitchActive(flagName);
+    const configuredFlag = getFeatureFlag(country, flagName);
+    const enabled = Boolean(override ?? configuredFlag) && configured && !killed;
+    let status: FeatureOperationalStatus;
+    if (definition.lifecycle === 'deprecated') status = 'DEPRECATED';
+    else if (definition.lifecycle === 'experimental') status = 'EXPERIMENTAL';
+    else if (killed) status = 'DISABLED';
+    else if (!configured) status = definition.providerPrerequisites?.length ? 'WAITING_FOR_PROVIDER' : 'MISCONFIGURED';
+    else status = enabled ? 'ENABLED' : 'DISABLED';
+    return {
+        enabled,
+        lifecycle: definition.lifecycle,
+        configured,
+        missingRequirements,
+        status,
+        description: definition.description,
+        markets: definition.markets,
+        dependencies: definition.dependencies,
+        providerPrerequisites: definition.providerPrerequisites,
+        risk: definition.risk,
+        defaultEnabled: definition.defaultEnabled,
+        killSwitchActive: killed,
+        adminVisible: definition.adminVisible !== false,
+        source: override !== undefined ? 'test_override' : 'environment' in process.env ? 'environment' : 'default',
+    };
+}
+
+export function getFeatureRegistryReadiness(country = 'ng') {
+    return Object.keys(FEATURE_REGISTRY).filter((flagName) => FEATURE_REGISTRY[flagName].adminVisible !== false).map((flagName) => ({
+        flagName,
+        ...getFeatureFlagStatus(country, flagName),
+    }));
 }
 
 export function getFeatureFlag(country: string, flagName: string): boolean {
+    const definition = FEATURE_REGISTRY[flagName];
+    if (!definition) return false;
+    if (killSwitchActive(flagName)) return false;
+    const override = testOverride(flagName);
+    if (override !== undefined) return override && missingForDefinition(country, flagName, definition).length === 0;
     const envValue = parseBoolean(process.env[`${FLAG_ENV_PREFIX}${flagName.toUpperCase()}`]);
     if (envValue !== undefined) {
         if (!envValue) return false;
-        const definition = FEATURE_REGISTRY[flagName];
-        if (!definition) return true;
-        return (definition.requires || []).every(hasRequirement);
+        return missingForDefinition(country, flagName, definition).length === 0;
     }
 
     for (const locale of localeCandidates(country)) {
@@ -111,17 +183,14 @@ export function getFeatureFlag(country: string, flagName: string): boolean {
             const parsed = typeof value === 'boolean' ? value : parseBoolean(value);
             if (parsed !== undefined) {
                 if (!parsed) return false;
-                const definition = FEATURE_REGISTRY[flagName];
-                return (definition?.requires || []).every(hasRequirement);
+                return missingForDefinition(country, flagName, definition).length === 0;
             }
         } catch (e) {
             console.error(`Error reading feature flag ${flagName} for locale ${locale}:`, e);
         }
     }
 
-    const definition = FEATURE_REGISTRY[flagName];
-    if (!definition) return false;
-    return definition.defaultEnabled && (definition.requires || []).every(hasRequirement);
+    return definition.defaultEnabled && missingForDefinition(country, flagName, definition).length === 0;
 }
 
 export function isFeatureEnabled(country: string, flagName: string): boolean {

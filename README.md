@@ -4,9 +4,9 @@
 **Shortcode:** `*7000#` · **Voice/WhatsApp:** `7000`
 **Previous working names:** Xentrix → **Kurukoo** (final)
 
-Kurukoo is an AI-powered everyday utility platform that gives every user a single, private number to **request anything**, **offer any skill**, and **earn from it** — securely and privately, inside one conversation. It works on WhatsApp, on a basic feature phone via USSD, and through a lightweight PWA (the “Kurukoo App”).
+Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**. Users tell Kurukoo what they need, and the platform provides bounded native assistance, coordinates canonical requests, or hands off through an authorised and independently verified channel when one is configured. Web Chat is the active first-party channel; WhatsApp, USSD, Telegram, SMS, FCM, Voice, payment, private-number routing, and other external capabilities remain repository-complete but deployment/provider-dependent until independently proven.
 
-> Kurukoo is not a chatbot. It is economic infrastructure that happens to use chat as one of its interfaces.
+> Kurukoo is not defined as a marketplace or chatbot. It is a conversation-first coordination system whose product definition remains stable even when a channel or external provider is unavailable.
 
 ## Architecture
 
@@ -63,7 +63,7 @@ Current CI includes build, test, custom audit, FastText, and secret-scan jobs. T
 
 ## Key Docs
 
-- `BLUEPRINT.md` — master specification.
+- `BLUEPRINT.md` — master specification and current product/architecture source of truth (v5.65).
 - `BUILD_STATUS.md` — canonical route ownership and release verification status.
 - `SECURITY_AUDIT_STATUS.md` — security posture, manual operator actions, and scale transition criteria.
 - `ECOSYSTEM.md` — authoritative economic taxonomy.

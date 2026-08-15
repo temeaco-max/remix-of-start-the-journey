@@ -7,7 +7,7 @@ category: Announcements
 
 # Welcome to Kurukoo: Wake up. Get going.
 
-Kurukoo is an AI-powered everyday utility platform that gives every user a single, private number to **request anything**, **offer any skill**, and **earn from it** — all inside one single conversation.
+Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**. It helps people explain what they need, receive bounded personal assistance, coordinate canonical requests, and continue through an authorised channel when an external capability is independently configured.
 
 ## African Modernism & Design System
 We design for high usability across all screen types and bandwidth profiles. Underneath is a powerful, self-improving memory profile mapping skills and local intent instantly.

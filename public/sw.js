@@ -1,11 +1,11 @@
 const STATIC_CACHE = 'kurukoo-static-v5';
-const PAGES_CACHE = 'kurukoo-pages-v5';
-const PWA_SHELL_CACHE = 'kurukoo-pwa-shell-v5';
+const PAGES_CACHE = 'kurukoo-pages-v6';
+const PWA_SHELL_CACHE = 'kurukoo-pwa-shell-v6';
 const ALLOWED_CACHES = [STATIC_CACHE, PAGES_CACHE, PWA_SHELL_CACHE];
 
 const SHELL_ASSETS = [
-    '/dashboard.html',
     '/chat/',
+    '/offline.html',
     '/css/site.css',
     '/css/kurukoo-platform.css',
     '/css/kurukoo-chat.css',
@@ -15,7 +15,6 @@ const SHELL_ASSETS = [
     '/js/site-navigation.js',
     '/manifest.json',
     '/sw.js',
-    '/offline.html',
     '/assets/icons/icon-192.svg',
     '/assets/icons/icon-512.svg'
 ];
@@ -45,10 +44,15 @@ self.addEventListener('fetch', event => {
     if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/api/messages') || url.pathname.startsWith('/api/profile') || url.pathname.startsWith('/api/credits') || url.pathname.startsWith('/api/pulse') || url.pathname.startsWith('/api/orders') || url.pathname.startsWith('/api/chat') || url.pathname.startsWith('/webhook') || url.pathname.startsWith('/ussd')) return;
 
     if (url.pathname === '/dashboard.html') {
+        event.respondWith(Response.redirect('/chat/', 302));
+        return;
+    }
+
+    if (url.pathname === '/chat/' || url.pathname === '/chat') {
         event.respondWith(fetch(request).then(response => {
-            if (response.ok) caches.open(PWA_SHELL_CACHE).then(cache => cache.put(request, response.clone()));
+            if (response.ok) caches.open(PWA_SHELL_CACHE).then(cache => cache.put('/chat/', response.clone()));
             return response;
-        }).catch(() => caches.match(request).then(cached => cached || caches.match('/offline.html'))));
+        }).catch(() => caches.match('/chat/').then(cached => cached || caches.match('/offline.html'))));
         return;
     }
 
@@ -68,4 +72,8 @@ self.addEventListener('fetch', event => {
             return cached || network;
         })));
     }
+});
+
+self.addEventListener('message', event => {
+    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });

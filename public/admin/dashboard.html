@@ -614,10 +614,11 @@
                 const grid = document.getElementById('pilot-readiness-grid');
                 const categories = report.categories || {};
                 const entries = Object.entries(categories).flatMap(([category, values]) => Object.entries(values || {}).map(([name, value]) => ({ category, name, value })));
-                grid.innerHTML = entries.map(({ category, name, value }) => {
+                const flags = (report.featureFlags || []).map(flag => ({ category: 'FEATURE_FLAGS', name: flag.flagName, value: { state: flag.status, note: [flag.description, flag.providerPrerequisites?.join('; '), flag.missingRequirements?.length ? `Missing: ${flag.missingRequirements.join(', ')}` : ''].filter(Boolean).join(' — ') } }));
+                grid.innerHTML = [...entries, ...flags].map(({ category, name, value }) => {
                     const state = String(value && value.state || 'UNKNOWN');
-                    const readinessClass = state === 'READY' ? 'readiness-ready' : state === 'DISABLED' ? 'readiness-disabled' : 'readiness-pending';
-                    return `<div class="pilot-readiness-card"><strong>${category}</strong><br/><span>${name}</span><br/><b class="${readinessClass}">${state.replaceAll('_',' ')}</b></div>`;
+                    const readinessClass = ['READY', 'ENABLED'].includes(state) ? 'readiness-ready' : ['DISABLED', 'DEPRECATED'].includes(state) ? 'readiness-disabled' : 'readiness-pending';
+                    return `<div class="pilot-readiness-card"><strong>${category}</strong><br/><span>${name}</span><br/><b class="${readinessClass}">${state.replaceAll('_',' ')}</b>${value && value.note ? `<small>${escapeHtml(String(value.note))}</small>` : ''}</div>`;
                 }).join('') || '<div>No readiness data available.</div>';
             }).catch(() => { document.getElementById('pilot-readiness-grid').textContent = 'Pilot readiness is temporarily unavailable.'; });
             // Load skill flows

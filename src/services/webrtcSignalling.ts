@@ -93,3 +93,17 @@ setInterval(() => {
         if (room.expiresAt <= cutoff) rooms.delete(id);
     }
 }, 60_000).unref();
+
+export function getWebRTCStatus() {
+    const relayConfigured = Boolean(process.env.STUN_SERVERS || process.env.TURN_URL || process.env.TURN_SERVER_URL);
+    const enabled = process.env.FF_WEBRTC === 'true' && relayConfigured;
+    return {
+        signaling: 'repository_ready' as const,
+        enabled,
+        relayConfigured,
+        available: enabled,
+        activationRequirement: relayConfigured
+            ? 'Independent relay/provider connectivity, authentication, consent, and browser interoperability checks remain required.'
+            : 'Configure an approved STUN/TURN or relay service and explicitly enable FF_WEBRTC after security review.',
+    };
+}

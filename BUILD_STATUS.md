@@ -1,12 +1,17 @@
 # Kurukoo — Current Build Status
 
-**Status:** `main` is the verified canonical branch for controlled-pilot readiness; external provider activation remains deployment-dependent.
-**Blueprint:** `BLUEPRINT.md` v5.62 (with the current implementation clarifications below)
+**Status:** `main` is the verified canonical branch for repository-side controlled-pilot readiness; external provider activation remains deployment-dependent.
+**Product definition:** Kurukoo is a conversational fulfilment network and personal assistance platform for everyday life and work.
+**Blueprint:** `BLUEPRINT.md` v5.65 (with the current implementation clarifications below)
 **Date:** 2026-08-15
 **Canonical branch:** `main`
-**Canonical commit:** `d0082ec` — Align release truth and ground Chat progress.
+**Canonical commit:** `5f31a01` — merge remote Blueprint convergence with truthful optional AI provider boundaries.
 **Default branch status:** GitHub default branch is `main`; `origin/main` is synchronized with the local canonical checkout. Historical development branches have been removed after convergence.
 **Convergence rule:** Future release work is validated on `main` through the repository’s protected review path; no parallel development branch is assumed.
+
+## Current implementation truth
+
+Repository-side complete means the boundary, ownership, feature flag, failure handling, readiness telemetry, and tests exist. It does not mean an external service is live, active, verified, connected, or delivered. This rule applies to channels, payments, voice, private-number routing, WebRTC relays, MQTT brokers, KYC, provider verification, inventory, dispatch, object storage, malware scanning, and AI-provider account limits.
 
 ## 2026-08-11 convergence verification
 

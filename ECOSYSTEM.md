@@ -1,5 +1,8 @@
-# Kurukoo Ecosystem & Authoritative Registry (v5.39)
+# Kurukoo Ecosystem & Authoritative Registry
 
+**Status:** CURRENT taxonomy and ecosystem reference; historical category/version material is preserved in later sections.
+**Canonical Blueprint:** `BLUEPRINT.md` v5.65.
+**Product definition:** Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**.
 **Tagline:** Wake up. Get going.  
 **Shortcode:** `*7000#`  
 **Voice/WhatsApp:** `7000`  
@@ -7,9 +10,7 @@
 ---
 
 ## 1. Overview & Core Identity
-Kurukoo is an AI-powered everyday utility platform providing economic infrastructure across WhatsApp, USSD (`*7000#`), and Kurukoo App (a single-screen chat PWA).
-
-Every user operates via a **single, private living memory profile** (`memory_profiles`). There are no separate table silos for riders, providers, or customers. Everyone has one conversation thread, one Points balance, and one evolving identity.
+Kurukoo provides one conversation-first coordination system across its active Web Chat surface and conditional channel adapters. Every user operates through the shared `memory_profiles` model; there are no separate customer, rider, provider, or business identity silos. WhatsApp, USSD, SMS, Telegram, FCM, Voice, payment, private-number routing, inventory, dispatch, and verification are not described as live or connected unless their external prerequisites are independently proven.
 
 ---
 
@@ -111,4 +112,4 @@ All channels (WhatsApp, USSD, and PWA `kurukoo-chat.js`) render structured respo
 
 ---
 
-*End of Kurukoo Ecosystem & Authoritative Registry v5.39*
+*End of the current Kurukoo Ecosystem & Authoritative Registry; historical v5.39 taxonomy material is retained for reference.*

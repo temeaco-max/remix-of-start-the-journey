@@ -312,8 +312,20 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const result = await delegateToAgentForSkill('support_triage', query, phone);
     const safetyGuidance = 'If anyone is in immediate danger, contact your local emergency service now (112 in Nigeria). I can help you record the situation and coordinate next steps, but I am not an emergency responder.';
     const triageReply = result.success && result.reply && !/service request, payment, dispute, profile, or earning opportunity/i.test(result.reply) ? `\n\n${result.reply}` : '';
-    const safetyCard = await startStorefrontSession(phone || 'anon_safety', 'emergency');
-    return { skill: 'emergency', reply: `${safetyGuidance}${triageReply}`, cardData: { ...safetyCard, canonicalAction: 'skill_flow.safety', progressStage: 'safety' }, canonicalAction: 'skill_flow.safety', progressStage: 'safety' };
+    const safetyCard = {
+      type: 'safety_guidance',
+      stage: 'safety',
+      skill: 'emergency',
+      category: 'emergency-dispatch',
+      title: 'Safety guidance',
+      message: 'Triage urgency first, show emergency limitations, and route only to verified public or provider contacts.',
+      fields: [{ key: 'objective', label: 'What outcome do you need?', required: true }, { key: 'timing', label: 'When or deadline', required: false }],
+      actions: [{ id: 'continue_guidance', label: 'Continue in Chat', style: 'primary' }],
+      progress: 45,
+      canonicalAction: 'skill_flow.safety',
+      progressStage: 'safety',
+    };
+    return { skill: 'emergency', reply: `${safetyGuidance}${triageReply}`, cardData: safetyCard, canonicalAction: 'skill_flow.safety', progressStage: 'safety' };
   }
 
   if (q.includes('emergency contact') || q.includes('safety contact')) {
