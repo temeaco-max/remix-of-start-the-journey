@@ -108,8 +108,10 @@ This document is the **implementation reference** for every page and surface in 
 |---|---|
 | **Route** | `/about` |
 | **Template** | `views/about.ejs` |
-| **Purpose** | Company story, mission, team, and public contact context |
-| **Status** | ✅ Exists |
+| **Purpose** | Company story, mission, values, public contact context, and an in-page invitation to continue through the canonical Chat relationship |
+| **Status** | ✅ Exists; continuation concept is intentionally embedded at the bottom of the page rather than exposed as a separate journey step |
+
+> The Chat agent handles conversation continuation inside `/chat`. There is no standalone `/continue-your-conversation` route or navigation dependency. The About page may reuse the visual language of continuation as an explanatory CTA, but it does not replace or duplicate Chat authentication, memory, or conversation handling.
 
 ### A4. Contact
 | Field | Value |
