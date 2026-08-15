@@ -31,6 +31,10 @@ const count = Number(db.exec(`SELECT COUNT(*) AS count FROM internal_notificatio
 assert.equal(count, batchSize, 'Concurrent enqueue should persist exactly one record per unique notification');
 const queued = await listQueuedNotifications(200);
 assert.equal(queued.filter(item => item.title === 'Load test').length, batchSize, 'All load-test notifications must be durably queued');
+process.env.KURUKOO_NOTIFICATION_MAX_QUEUE = String(batchSize);
+assert.equal(await sendFcmPush(phones[0], 'Queue cap', 'This must be rejected at the configured cap', '/chat/'), false, 'A full pending queue must fail closed instead of growing without bound');
+const capped = Number(db.exec(`SELECT COUNT(*) AS count FROM internal_notifications WHERE title = 'Queue cap'`)[0]?.values?.[0]?.[0] || 0);
+assert.equal(capped, 0, 'Queue-cap rejection must not create a durable record');
 
 const rssGrowthMb = (process.memoryUsage().rss - startRss) / 1024 / 1024;
 assert.ok(rssGrowthMb < 128, `Notification enqueue RSS growth exceeded bounded local threshold: ${rssGrowthMb.toFixed(2)} MB`);

@@ -29,6 +29,11 @@ async function ensureNotificationTable() {
     return db;
 }
 
+function maxNotificationQueue(): number {
+    const configured = Number(process.env.KURUKOO_NOTIFICATION_MAX_QUEUE || 10000);
+    return Number.isSafeInteger(configured) && configured > 0 ? Math.min(configured, 1_000_000) : 10000;
+}
+
 export async function sendFcmPush(phone: string, title: string, body: string, link?: string): Promise<boolean> {
     const db = await ensureNotificationTable();
     const clickLink = link || null;
@@ -38,6 +43,12 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
     try {
         const duplicate = db.exec(`SELECT id FROM internal_notifications WHERE phone = ? AND title = ? AND body = ? AND COALESCE(link, '') = COALESCE(?, '') AND datetime(created_at) > datetime('now', '-10 minutes') LIMIT 1`, [phone, title, body, clickLink]);
         if (duplicate[0]?.values?.length) return false;
+        const pending = db.exec(`SELECT COUNT(*) FROM internal_notifications WHERE delivery_state IN ('queued', 'accepted', 'sent', 'failed')`);
+        const pendingCount = Number(pending[0]?.values?.[0]?.[0] || 0);
+        if (pendingCount >= maxNotificationQueue()) {
+            console.error(`[Push] Internal notification queue cap reached (${maxNotificationQueue()}); notification was not enqueued.`);
+            return false;
+        }
         db.run(
             `INSERT INTO internal_notifications (phone, title, body, link, status, delivery_state) VALUES (?, ?, ?, ?, 'unread', 'queued')`,
             [phone, title, body, clickLink],
