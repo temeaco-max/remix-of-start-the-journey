@@ -82,6 +82,7 @@
     "test:presence-routes": "tsx scripts/test-presence-routes.ts",
     "test:presence": "npm run test:presence-routes",
     "test:memory-self-service": "tsx scripts/test-memory-self-service.ts",
+    "test:mobile-money-boundary": "tsx scripts/test-mobile-money-boundary.ts",
     "test:content-routes": "tsx scripts/test-content-routes.ts",
     "test:trust": "tsx scripts/test-trust-routes.ts",
     "test:trust-score": "tsx scripts/test-trust-score.ts",
