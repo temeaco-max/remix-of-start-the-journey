@@ -10,10 +10,12 @@ assert.equal(sandbox.checkoutUrl, '', 'sandbox must never provide an externally 
 assert.match(sandbox.gatewayResponse, /not a real payment rail/i);
 
 process.env.KURUKOO_PAY_PROVIDER = 'unsupported-provider';
-const unsupported = await initiateMobileMoneyTopup('unsupported-provider', '+2347000000001', 1000);
+const secretLikeProvider = 'provider-secret-like-value';
+const unsupported = await initiateMobileMoneyTopup(secretLikeProvider, '+2347000000001', 1000);
 assert.equal(unsupported.success, false, 'unverified providers must fail closed');
 assert.equal(unsupported.checkoutUrl, '');
 assert.match(unsupported.gatewayResponse, /no verified production adapter/i);
+assert.doesNotMatch(unsupported.gatewayResponse, /provider-secret-like-value/i, 'provider input must not be echoed into a client-facing payment error');
 
 const invalidNin = await verifyIdentity('+2347000000001', '123', 'NIN');
 assert.equal(invalidNin.verified, false);

@@ -50,7 +50,7 @@ export async function initiateMobileMoneyTopup(
         success: false,
         checkoutUrl: '',
         transactionReference: '',
-        gatewayResponse: `Payment provider '${requestedProvider || activeProvider}' is configured but has no verified production adapter.`
+        gatewayResponse: 'A payment provider is configured but has no verified production adapter.'
     };
 }
 
