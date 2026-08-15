@@ -104,6 +104,41 @@
     try {
       if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
       if (view === 'cart') { const res = await fetch('/api/cart', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'Cart is unavailable'); const items = Array.isArray(data.items) ? data.items : []; const panel = makeElement('section', 'workspace-panel'); panel.appendChild(makeElement('div', 'panel-heading', [makeElement('div', '', [makeElement('span', 'workspace-eyebrow', 'Review cart'), makeElement('h2', '', items.length ? 'Offers you chose to review' : 'Your review cart is empty')])])); if (!items.length) panel.appendChild(makeElement('p', 'empty-state', 'Choose a sourced seller offer in Chat before starting checkout.')); else { const list = makeElement('div', 'storefront-review-list'); items.forEach(item => { const row = makeElement('article', 'storefront-review-item'); const copy = makeElement('div'); copy.append(makeElement('strong', '', String(item.title || 'Seller offer')), makeElement('small', '', `${String(item.quantity || 1)} × ${item.price_minor === null ? 'Price pending confirmation' : `${item.price_minor} ${item.currency || 'NGN'}`}`)); const remove = makeElement('button', 'sf-btn sf-secondary', 'Remove'); remove.type = 'button'; remove.addEventListener('click', async () => { await fetch(`/api/cart/items/${encodeURIComponent(item.id)}`, { method: 'DELETE', credentials: 'same-origin' }); await renderWorkspaceSurface('cart'); }); row.append(copy, remove); list.appendChild(row); }); panel.appendChild(list); const checkout = makeElement('button', 'sf-btn sf-primary', 'Continue to checkout review'); checkout.type = 'button'; const status = makeElement('p', 'empty-state'); checkout.addEventListener('click', async () => { checkout.disabled = true; const result = await fetch('/api/cart/checkout', { method: 'POST', credentials: 'same-origin' }); const resultData = await result.json().catch(() => ({})); status.textContent = resultData.message || resultData.error || 'Checkout needs review.'; checkout.disabled = false; }); panel.appendChild(checkout); panel.appendChild(status); } body.replaceChildren(panel); return; }
+      if (view === 'memory') {
+        const res = await fetch('/api/memory/facts', { credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Memory is unavailable');
+        const facts = Array.isArray(data.facts) ? data.facts : [];
+        const panel = makeElement('section', 'workspace-panel');
+        const heading = makeElement('div', 'panel-heading');
+        heading.append(makeElement('div', '', [makeElement('span', 'workspace-eyebrow', 'Your retained context'), makeElement('h2', '', facts.length ? 'Review what Kurukoo may use' : 'Nothing is retained yet')]));
+        heading.append(makeElement('span', 'status-pill', 'Owner controlled'));
+        panel.appendChild(heading);
+        panel.appendChild(makeElement('p', 'workspace-note', 'These are active fact-level memories connected to your account. Removing one stops it from active retrieval; it does not change your conversation history.'));
+        if (!facts.length) panel.appendChild(makeElement('p', 'empty-state', 'Tell Kurukoo what you would like it to remember, or continue your conversation without saving a preference.'));
+        else {
+          const list = makeElement('div', 'workspace-data-list');
+          facts.forEach(fact => {
+            const row = makeElement('article', 'workspace-data-row');
+            const copy = makeElement('div');
+            copy.append(makeElement('strong', '', `${String(fact.field || 'Context')}: ${String(fact.value || '')}`), makeElement('small', '', `Provenance: ${String(fact.provenance || 'unknown').replace(/_/g, ' ')}`));
+            const remove = makeElement('button', 'text-btn text-btn-danger', 'Remove');
+            remove.type = 'button';
+            remove.addEventListener('click', async () => {
+              remove.disabled = true;
+              try {
+                const result = await fetch(`/api/memory/facts/${encodeURIComponent(fact.id)}`, { method: 'DELETE', credentials: 'same-origin' });
+                const resultData = await result.json().catch(() => ({}));
+                if (!result.ok) throw new Error(resultData.error || 'Memory fact could not be removed.');
+                await renderWorkspaceSurface('memory');
+              } catch (error) { remove.disabled = false; setInspectorFeedback(error.message || 'Memory fact could not be removed.', 'error'); }
+            });
+            row.append(copy, remove); list.appendChild(row);
+          });
+          panel.appendChild(list);
+        }
+        body.replaceChildren(panel); return;
+      }
       const res = await fetch(surfacePaths[view], { credentials: 'same-origin' }); if (!res.ok) throw new Error('Workspace view unavailable'); const html = await res.text(); const doc = new DOMParser().parseFromString(html, 'text/html'); const source = doc.querySelector('.workspace-content, main, .workspace-main'); if (!source) throw new Error('Workspace content unavailable');       body.replaceChildren(...Array.from(source.childNodes).map(node => node.cloneNode(true))); body.querySelector('.workspace-header')?.remove(); body.querySelector('[data-tasks-activity]') && loadTasksActivity(); body.querySelectorAll('script').forEach(script => script.remove()); body.querySelectorAll('a[href]').forEach(link => { const href = link.getAttribute('href') || ''; const mapped = Object.entries(surfacePaths).find(([, path]) => href === path || href.startsWith(`${path}?`)); if (mapped) { link.dataset.surfaceView = mapped[0]; link.removeAttribute('href'); } }); body.querySelectorAll('a.ask-cta').forEach(link => { link.addEventListener('click', event => { event.preventDefault(); const prompt = new URL(link.href || link.getAttribute('data-href') || '/chat', location.origin).searchParams.get('prompt'); if (prompt && input) { input.value = prompt; input.dispatchEvent(new Event('input', { bubbles: true })); input.focus(); } }); }); wireSurfaceActions(body);
     } catch (error) { body.replaceChildren(renderSurfaceFallback(view, error.message || undefined)); }
   }
