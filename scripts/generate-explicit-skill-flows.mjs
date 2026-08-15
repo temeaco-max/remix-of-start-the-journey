@@ -58,6 +58,15 @@ const escape = value => String(value).replaceAll('\\', '\\\\').replaceAll("'", "
 const display = skill => skill.split('_').map(part => part[0].toUpperCase() + part.slice(1)).join(' ');
 const informationCategories = new Set(['emergency-dispatch','health-medical','betting-gaming','money-circle','price-check','government-civic','community-neighbourhood','reach-reference','finance-tax','legal-compliance','nightlife-lounges']);
 const explicitRequirements = (skill, category, label) => {
+  const canonical = {
+    ride_request: [{ key: 'origin', label: 'Pickup location', required: true }, { key: 'destination', label: 'Destination', required: true }, { key: 'departure_time', label: 'When' }],
+    order_food: [{ key: 'items', label: 'What do you want?', required: true }, { key: 'quantity', label: 'Quantity' }, { key: 'location', label: 'Delivery area', required: true }, { key: 'delivery_time', label: 'Delivery time' }],
+    repair: [{ key: 'device_or_asset', label: 'What needs fixing?', required: true }, { key: 'issue', label: 'Problem', required: true }, { key: 'location', label: 'Location', required: true }, { key: 'urgency', label: 'Urgency' }],
+    find_worker: [{ key: 'service', label: 'Job or service', required: true }, { key: 'location', label: 'Location or area', required: true }, { key: 'time', label: 'When or deadline' }, { key: 'budget', label: 'Budget or rate' }],
+    product_sourcing: [{ key: 'product', label: 'Product or goods', required: true }, { key: 'quantity', label: 'Quantity' }, { key: 'budget', label: 'Budget' }, { key: 'location', label: 'Preferred area' }, { key: 'deadline', label: 'Deadline' }],
+    security_personnel: [{ key: 'service', label: 'Security need', required: true }, { key: 'location', label: 'Location', required: true }, { key: 'date_time', label: 'Date and time', required: true }, { key: 'duration', label: 'Duration' }],
+  };
+  if (canonical[skill]) return canonical[skill];
   const requirements = [{ key: 'objective', label: `Outcome for ${label}`, required: true }];
   if (!informationCategories.has(category)) requirements.push({ key: 'location', label: category === 'digital-services' || category === 'home-automation' ? 'Access or service context' : 'Location or area' });
   if (!['price-check','reach-reference','government-civic'].includes(category)) requirements.push({ key: 'timing', label: 'When or deadline' });

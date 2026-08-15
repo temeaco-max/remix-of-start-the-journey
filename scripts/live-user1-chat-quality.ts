@@ -56,7 +56,7 @@ async function runSession(name: string, messages: string[]) {
     const conversation = events.find(event => event?.type === 'conversation');
     const done = events.find(event => event?.type === 'done');
     if (conversation?.conversationId) conversationId = conversation.conversationId;
-    turns.push({ message, status: response.status, conversationId, reply: done?.fullReply || events.filter(event => event?.type === 'text').map(event => event.content || '').join(''), diagnostics: done?.diagnostics || null, progress: events.filter(event => event?.type === 'progress') });
+    turns.push({ message, status: response.status, conversationId, reply: done?.fullReply || events.filter(event => event?.type === 'text').map(event => event.content || '').join(''), cardData: done?.cardData || null, diagnostics: done?.diagnostics || null, progress: events.filter(event => event?.type === 'progress') });
     assert.equal(response.status, 200, `${name}: Chat failed for ${message}`);
     assert.ok(conversationId, `${name}: no conversation id for ${message}`);
   }
@@ -72,6 +72,18 @@ await runSession('agent', ['Keep checking for a painter and tell me when one bec
 await runSession('commercial', ['I want to advertise my business.', 'What are my options?', 'Show me how.']);
 
 const allTurns = Object.values(sessions).flatMap((session: any) => session.turns);
+const correctionTurns = sessions['service-correction']?.turns || [];
+assert.match(JSON.stringify(correctionTurns[1]?.cardData || {}), /Sunday/i, 'service correction did not persist the updated day');
+assert.match(JSON.stringify(correctionTurns[2]?.cardData || {}), /30000|30,000/i, 'service correction did not persist the updated budget');
+assert.match(JSON.stringify(correctionTurns[5]?.cardData || {}), /plumber/i, 'service correction did not replace the worker service');
+assert.match(String(correctionTurns[6]?.reply || ''), /cancel/i, 'service correction did not cancel the active request');
+assert.match(String(sessions['reminder']?.turns?.[1]?.reply || ''), /Cancelled your reminder/i, 'reminder cancellation was routed to the wrong control surface');
+const emergencyProbe = await fetch(`${base}/api/chat/stream`, { method: 'POST', headers: { cookie: userCookie, 'content-type': 'application/json' }, body: JSON.stringify({ message: 'There is an immediate danger near Ikeja', channel: 'web' }) });
+const emergencyEvents = parseSse(await emergencyProbe.text());
+const emergencyDone = emergencyEvents.find(event => event?.type === 'done');
+assert.equal(emergencyProbe.status, 200, 'emergency probe failed');
+assert.equal(emergencyDone?.diagnostics?.canonicalAction, 'skill_flow.safety', 'emergency probe did not use the safety flow');
+assert.equal(emergencyDone?.diagnostics?.progressStage, 'safety', 'emergency probe did not expose safety progress');
 const diagnostics = allTurns.map(turn => turn.diagnostics).filter(Boolean);
 const invalidAiLabels = diagnostics.filter((d: any) => (d.modelProvider === 'SmolLM2' && d.model === 'template-fallback') || (d.modelProvider === 'FastText' && d.classificationSource === 'fallback'));
 assert.equal(invalidAiLabels.length, 0, `diagnostics contained contradictory model labels: ${JSON.stringify(invalidAiLabels)}`);

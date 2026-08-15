@@ -5,7 +5,7 @@ import { routeIntent } from './intentRouter.js';
 import { getAuthState, setAuthState, handleConversationalAuth } from './conversationalAuthService.js';
 import { handleSafetyContactInput, setSafetyCaptureState } from './safetyService.js';
 import { cancelAgentGoal, createConversationGoal, goalTimeline, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
-import { advanceStorefront } from './agenticStorefront.js';
+import { advanceStorefront, tryResumeStorefront } from './agenticStorefront.js';
 import { getEconomicRequest } from './skillFlows.js';
 import type { IntentRoutingResult } from '../types.js';
 
@@ -69,6 +69,10 @@ async function continueActiveRequest(phone: string, conversationId: string | und
     const request = await getEconomicRequest(String(card.requestId));
     if (!request || request.phone !== phone || ['completed', 'cancelled', 'abandoned', 'failed'].includes(request.status)) continue;
     const patch = extractRequirementPatch(message, card, request);
+    if (request.skill === 'find_worker') {
+      const workerCorrection = message.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder)\b/i)?.[1]?.toLowerCase();
+      if (workerCorrection) patch.service = workerCorrection;
+    }
     if (patch.__cancel) {
       const cancelled = await advanceStorefront(phone, request.id, {}, 'cancel');
       return { reply: cancelled.message, cardData: cancelled, skill: request.skill };
@@ -163,7 +167,21 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     if (!isGuest && controlAction) {
       const timeline = await goalTimeline(phone, input.conversationId);
       if (!timeline.goal) {
-        reply = 'There is no active autonomous objective to control in this conversation.';
+        if (controlAction.startsWith('cancel')) {
+          const routedCancel = await routeIntent(message, phone);
+          reply = routedCancel.reply;
+          cardData = routedCancel.cardData;
+          classificationSource = routedCancel.classificationSource;
+          intentConfidence = routedCancel.intentConfidence;
+          modelProvider = routedCancel.modelProvider;
+          model = routedCancel.model;
+          extractionSource = routedCancel.extractionSource;
+          extractedEntities = routedCancel.extractedEntities;
+          canonicalAction = routedCancel.canonicalAction;
+          progressStage = routedCancel.progressStage;
+        } else {
+          reply = 'There is no active autonomous objective to control in this conversation.';
+        }
       } else {
         const updated = controlAction.startsWith('pause') ? await pauseAgentGoal(phone, timeline.goal.id) : controlAction.startsWith('resume') ? await resumeAgentGoal(phone, timeline.goal.id) : await cancelAgentGoal(phone, timeline.goal.id);
         agentGoal = updated;
