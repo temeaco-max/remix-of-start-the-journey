@@ -25,6 +25,10 @@ await upsertProfile(owner, 'Coordinator Owner');
 const request = await createEconomicRequest({ id: `coordinator-request-${Date.now()}`, phone: owner, skill: 'find_worker', requirements: { location: 'Ikeja', description: 'Repair help' } });
 const goal = await createConversationGoal({ phone: owner, conversationId: 'coordinator-test', skill: 'find_worker', objective: 'Find repair help.', economicRequestId: request.id });
 assert.ok(goal, 'Coordinator test must create an owned request goal');
+await new Promise((resolve) => setTimeout(resolve, 100));
+const dbAfterRequest = await getDb();
+const requestContinuation = dbAfterRequest.exec("SELECT COUNT(*) FROM coordinator_runs WHERE event_id LIKE 'economic-request:%'")[0]?.values?.[0]?.[0];
+assert.ok(Number(requestContinuation) >= 1, 'Economic Request persistence must trigger a bounded coordinator continuation');
 
 const result = await internalCoordinator.handle(coordinatorEventForAgentGoal({ ownerPhone: owner, agentGoalId: goal!.id, economicRequestId: request.id, conversationId: goal!.conversationId }));
 assert.equal(result.ok, true, 'Coordinator must complete the read-only request inspection');

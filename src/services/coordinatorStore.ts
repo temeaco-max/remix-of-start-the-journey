@@ -62,7 +62,7 @@ function boundedJson(value: unknown, max = 6000): string {
   return serialized.length > max ? `${serialized.slice(0, max)}...` : serialized;
 }
 
-export async function persistCoordinatorEvent(event: CoordinatorEventEnvelope): Promise<void> {
+export async function persistCoordinatorEvent(event: CoordinatorEventEnvelope, options: { dispatch?: boolean } = {}): Promise<void> {
   await ensureCoordinatorSchema();
   const db = await getDb();
   db.run(`INSERT OR IGNORE INTO coordinator_events
@@ -82,6 +82,11 @@ export async function persistCoordinatorEvent(event: CoordinatorEventEnvelope): 
     event.occurredAt,
   ]);
   saveDb();
+  if (options.dispatch !== false && ['economic_request.state_changed', 'provider.offer.received', 'payment.webhook.verified'].includes(event.type)) {
+    void import('./internalCoordinator.js')
+      .then(({ internalCoordinator }) => internalCoordinator.handle(event))
+      .catch((error) => console.error('[Coordinator] continuation dispatch failed:', error instanceof Error ? error.message : 'unknown error'));
+  }
 }
 
 export async function persistCoordinatorRun(input: Omit<CoordinatorRun, 'id' | 'createdAt'>): Promise<void> {
@@ -148,6 +153,25 @@ export async function approveLearningArtifact(input: { id: string; operatorId: s
     schemaVersion: 1,
   });
   return { ok: true, status: 'approved' };
+}
+
+export async function getCoordinatorTelemetry(): Promise<{ events: { total: number; byType: Record<string, number>; byProducer: Record<string, number> }; runs: { total: number; byState: Record<string, number>; latestFailure?: string }; learningArtifacts: { total: number; byStatus: Record<string, number> } }> {
+  await ensureCoordinatorSchema();
+  const db = await getDb();
+  const events: Record<string, number> = {};
+  const producers: Record<string, number> = {};
+  for (const row of db.exec('SELECT type, COUNT(*) FROM coordinator_events GROUP BY type')[0]?.values || []) events[String(row[0])] = Number(row[1] || 0);
+  for (const row of db.exec('SELECT producer, COUNT(*) FROM coordinator_events GROUP BY producer')[0]?.values || []) producers[String(row[0])] = Number(row[1] || 0);
+  const runStates: Record<string, number> = {};
+  for (const row of db.exec('SELECT state, COUNT(*) FROM coordinator_runs GROUP BY state')[0]?.values || []) runStates[String(row[0])] = Number(row[1] || 0);
+  const latestFailure = db.exec("SELECT failure_reason FROM coordinator_runs WHERE failure_reason IS NOT NULL AND failure_reason <> '' ORDER BY id DESC LIMIT 1")[0]?.values?.[0]?.[0];
+  const artifactStates: Record<string, number> = {};
+  for (const row of db.exec('SELECT approval_status, COUNT(*) FROM coordinator_learning_artifacts GROUP BY approval_status')[0]?.values || []) artifactStates[String(row[0])] = Number(row[1] || 0);
+  return {
+    events: { total: Object.values(events).reduce((sum, value) => sum + value, 0), byType: events, byProducer: producers },
+    runs: { total: Object.values(runStates).reduce((sum, value) => sum + value, 0), byState: runStates, latestFailure: latestFailure ? String(latestFailure).slice(0, 300) : undefined },
+    learningArtifacts: { total: Object.values(artifactStates).reduce((sum, value) => sum + value, 0), byStatus: artifactStates },
+  };
 }
 
 export async function listCoordinatorRuns(limit = 20): Promise<CoordinatorRun[]> {

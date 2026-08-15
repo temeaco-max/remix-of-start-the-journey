@@ -95,7 +95,7 @@ export class InternalCoordinator {
   async handle(input: Omit<CoordinatorEventEnvelope, 'id' | 'occurredAt' | 'schemaVersion'> | CoordinatorEventEnvelope): Promise<CoordinatorCapabilityResult> {
     const event = 'id' in input && 'occurredAt' in input && 'schemaVersion' in input ? input : createEvent(input);
     const startedAt = Date.now();
-    await persistCoordinatorEvent(event);
+    await persistCoordinatorEvent(event, { dispatch: false });
     const context: CoordinatorContext = { event, dryRun: false };
     const decision = chooseCapability(context);
     const capability = CAPABILITIES.find(candidate => candidate.name === decision.capability) || waitForUser();

@@ -35,7 +35,7 @@ import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { createAdCampaign, getAdCampaigns, updateAdCampaign } from '../services/adManager.js';
 import { testMistralConnection } from '../services/mistralService.js';
 import { getNotificationQueueStats } from '../services/pushNotifications.js';
-import { approveLearningArtifact, listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
+import { approveLearningArtifact, getCoordinatorTelemetry, listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
 
 const router = Router();
 
@@ -188,6 +188,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
     let messages = 0;
     let credits = 0;
     let notificationQueue = { total: 0, queued: 0, accepted: 0, sent: 0, delivered: 0, failed: 0, suppressed: 0, deadLetter: 0 } as Awaited<ReturnType<typeof getNotificationQueueStats>>;
+    let coordinatorTelemetry: Awaited<ReturnType<typeof getCoordinatorTelemetry>> = { events: { total: 0, byType: {}, byProducer: {} }, runs: { total: 0, byState: {} }, learningArtifacts: { total: 0, byStatus: {} } };
     try {
       users = Number(db.exec('SELECT COUNT(*) FROM memory_profiles')[0]?.values?.[0]?.[0] || 0);
       providers = Number(db.exec("SELECT COUNT(*) FROM memory_profiles WHERE provider_type IS NOT NULL AND lower(provider_type) NOT IN ('', 'buyer')")[0]?.values?.[0]?.[0] || 0);
@@ -219,6 +220,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
       const notifRes = db.exec("SELECT COUNT(*) FROM internal_notifications notification WHERE notification.status = 'unread' AND notification.id IN (SELECT MAX(id) FROM internal_notifications GROUP BY phone, title, body, COALESCE(link, ''))");
       notificationsCount = Number(notifRes[0]?.values[0]?.[0] || 0);
       notificationQueue = await getNotificationQueueStats();
+      coordinatorTelemetry = await getCoordinatorTelemetry();
     } catch {}
 
     res.json({
@@ -233,6 +235,17 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
       check_ins: checkIns,
       unread_internal_notifications: notificationsCount,
       notification_queue: notificationQueue,
+      coordinator: {
+        ...coordinatorTelemetry,
+        runtime: {
+          enabled: process.env.KURUKOO_AGENT_ENABLED === 'true',
+          autonomous: process.env.KURUKOO_AGENT_AUTONOMOUS === 'true',
+          lowRisk: process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK === 'true',
+          teacherEnabled: process.env.KURUKOO_COORDINATOR_TEACHER_ENABLED === 'true',
+          promotionEnabled: process.env.KURUKOO_COORDINATOR_PROMOTION_ENABLED === 'true',
+          dispatchMode: 'bounded_async_canonical_events',
+        },
+      },
     });
   } catch (error) {
     console.error('[AdminStats] failed:', error);
