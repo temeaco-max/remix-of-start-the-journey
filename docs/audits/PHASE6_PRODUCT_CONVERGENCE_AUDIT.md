@@ -2,7 +2,8 @@
 
 **Date:** 12 August 2026  
 **Branch audited:** `feat/frontend-product-convergence`  
-**Baseline:** local `main` at `ba2d49f`; convergence target currently exists as `origin/integration/near-completion` at `0bb5255`.
+**Historical baseline:** local `main` at `ba2d49f`; the former convergence target was `origin/integration/near-completion` at `0bb5255`.
+**Current canonical branch:** `main`; this document is retained as historical product-audit evidence.
 
 ## Executive conclusion
 
@@ -50,7 +51,7 @@ The map preserves the five non-negotiable shared layers identified in the bluepr
 
 ## Phase 6 implementation and corrective findings
 
-The active `feat/kurukoo-blueprint-convergence` pull request already contained a reminder and personal-safety implementation. Rather than recreate that subsystem, the work adopted only its native-assistance commits into the current convergence branch and deliberately excluded its overlapping authentication and public-copy commits, which would have duplicated Phase 5 work.
+The historical `feat/kurukoo-blueprint-convergence` pull request contained a reminder and personal-safety implementation. Rather than recreate that subsystem, the work adopted only its native-assistance commits into the then-current convergence branch and deliberately excluded overlapping authentication and public-copy commits, which would have duplicated Phase 5 work.
 
 The adoption audit found two boundary defects that were corrected before validation.
 
@@ -106,7 +107,7 @@ The following areas remain deliberately **unmodified** because changing them wou
 
 The local branch contains Phase 5 changes plus the native-assistance subset of the active blueprint-convergence work. It does not import that pull request’s overlapping login and public-copy commits, because those changes were already present in the current branch and would create unnecessary conflict.
 
-The repository currently has many open, chained pull requests. `main` is locally one commit ahead of `origin/main`, while `integration/near-completion` contains the legacy-boundary convergence history. The correct next integration action is a **reviewed pull request from this branch**, with an explicit comparison against the current intended integration target. No direct merge to `main` was performed.
+This historical record predates final branch convergence. The former `integration/near-completion` line contained legacy-boundary convergence history; its relevant work is now represented in canonical `main`. No current pull-request or integration instruction should be inferred from this historical section.
 
 ## Remaining roadmap
 

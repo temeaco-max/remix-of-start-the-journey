@@ -3183,18 +3183,17 @@ All promotional Daily Picks are classified as Marketing (N70.65/message) and kep
 
 ### 33.1.13 Ijaw cultural audio (without adding Ijaw as a full written UI language).
 
-#### 33.1.13.1. Audio Asset Placeholders
-Create a directory `/public/audio/ijaw/` and add placeholder audio files (silence or tone) for the following phrases, in three dialect sub‑directories:
-- izon/
-- nembe/
-- kalabari/
+#### 33.1.13.1. Approved Audio Asset Policy
+Audio assets for Ijaw dialect support must be approved, non-empty media files stored under `/public/audio/ijaw/<dialect>/` when the capability is activated. The repository must not contain silence, tone, zero-byte, or synthetic placeholder files presented as production audio.
 
-Phrases needed:
-- welcome.mp3 (greeting on IVR/WhatsApp voice call)
-- confirm.mp3 ("Do you want to proceed?")
-- success.mp3 ("Done! What else can I help with?")
-- error.mp3 ("Sorry, I didn't catch that. Try again or use text.")
-- goodbye.mp3 ("Thank you. We'll speak again soon.")
+The required phrase set is:
+- `welcome` (greeting on IVR/WhatsApp voice call)
+- `confirm` ("Do you want to proceed?")
+- `success` ("Done! What else can I help with?")
+- `error` ("Sorry, I didn't catch that. Try again or use text.")
+- `goodbye` ("Thank you. We'll speak again soon.")
+
+Until approved recordings are provisioned and verified, the voice flow remains explicitly unavailable and must use the bounded text/Pidgin path rather than fabricating or silently substituting audio.
 
 #### 33.1.13.2. Language Detection via Location
 When a user registers from a known Ijaw‑speaking LGA (Yenagoa, Southern Ijaw, Brass, Warri South, etc.), set their `preferences.communication_language` to `pcm` (Pidgin text) and `preferences.audio_dialect` to the appropriate Ijaw dialect (mapped from LGA). This can be a lookup table in a new config file `dialectMapping.ts`.
@@ -4274,7 +4273,7 @@ These principles are mandatory and govern every build decision:
 - ⚠️ Transaction Orchestration Engine — `tradeEngine.ts` exists but implements **old arbitrage model**, needs complete rewrite to escrow-based flow (see §33.1.3 developer note)
 - ⚠️ Agent Network — `commissionService.ts` exists; catalog scraper and soft-claim merge not implemented
 - ⚠️ UK Life-Admin Skills — 60+ skills seeded in `skillFlows.ts` as stubs; external API integrations not built
-- ℹ️ Historical KuruTrust note — the current `develop` tree now implements `calculateTrustScoreValue()`, `trust_score_ledger`, recalculation, dispute-fault updates, daily recalculation, public projection, and dedicated tests. The score remains a bounded evidence summary; it is not identity verification, KYC, provider availability, payment safety, or a guaranteed outcome. Hash-chain/Twitter-bot concepts remain blueprint-only.
+- ℹ️ Historical KuruTrust note — the former `develop` tree, now incorporated into canonical `main`, implements `calculateTrustScoreValue()`, `trust_score_ledger`, recalculation, dispute-fault updates, daily recalculation, public projection, and dedicated tests. The score remains a bounded evidence summary; it is not identity verification, KYC, provider availability, payment safety, or a guaranteed outcome. Hash-chain/Twitter-bot concepts remain blueprint-only.
 - ⚠️ WebRTC — `webrtcSignalling.ts` is a 12-line stub; full signalling, STUN/TURN, data channels needed (see §32.11)
 - ⚠️ IoT Bridge — `iotBridge.ts` is a 19-line stub; MQTT broker integration needed (see §32.12)
 

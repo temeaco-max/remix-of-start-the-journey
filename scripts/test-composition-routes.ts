@@ -28,6 +28,7 @@ assert.match(indexSource,/dotenv\.config\(\)/, 'startup environment initializati
 assert.match(indexSource,/app\.set\('view engine', 'ejs'\)/, 'composition root must configure EJS after legacy route removal');
 assert.match(indexSource,/app\.set\('views', path\.join\(process\.cwd\(\), 'views'\)\)/, 'composition root must configure the canonical views directory');
 assert.match(indexSource,/startBackgroundServices, stopBackgroundServices/, 'composition root must import worker lifecycle controls');
+assert.doesNotMatch(indexSource, /startBackgroundWorkers/, 'root launcher must not create a duplicate legacy worker lifecycle');
 assert.match(indexSource,/process\.once\('SIGTERM'/, 'composition root must handle SIGTERM gracefully');
 assert.match(indexSource,/process\.once\('SIGINT'/, 'composition root must handle SIGINT gracefully');
 assert.match(indexSource,/server\.close\(/, 'composition root must drain the HTTP server during shutdown');

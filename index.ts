@@ -1,5 +1,7 @@
 import 'dotenv/config';
 
+import crypto from 'node:crypto';
+
 const production = process.env.NODE_ENV === 'production';
 const defaults: Record<string, string> = {
   PORT: '3000',
@@ -9,8 +11,12 @@ if (!production) defaults.KURUKOO_PAY_PROVIDER = 'sandbox';
 for (const [key, value] of Object.entries(defaults)) if (!process.env[key]) process.env[key] = value;
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  console.warn('[Kurukoo Startup] JWT_SECRET is unconfigured or too short. Falling back to a safe, long default token for liveness/healthcheck stability.');
-  process.env.JWT_SECRET = 'super_secret_safe_and_long_jwt_key_32_chars_fallback';
+  if (production) {
+    console.error('[Kurukoo Startup] JWT_SECRET must be configured with at least 32 characters in production.');
+  } else {
+    process.env.JWT_SECRET = crypto.randomBytes(48).toString('base64url');
+    console.warn('[Kurukoo Startup] JWT_SECRET is unconfigured or too short; generated an ephemeral development/test secret.');
+  }
 }
 
 const secretKeys = [
@@ -27,5 +33,3 @@ if (production && !process.env.KURUKOO_PAY_PROVIDER) console.warn('[Kurukoo Star
 console.log(`[Kurukoo Startup] Environment ready. PORT=${process.env.PORT}, PayProvider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}, CreditEconomy=${process.env.CREDIT_ECONOMY_ENABLED}`);
 
 import './src/index.js';
-import { startBackgroundWorkers } from './src/services/backgroundWorkers.js';
-startBackgroundWorkers();

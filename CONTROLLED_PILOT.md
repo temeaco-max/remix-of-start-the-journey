@@ -4,7 +4,7 @@ This document defines the repository-supported deployment profile for the contro
 
 ## Release candidate
 
-The controlled-pilot release candidate is the `develop` branch. Deploy the compiled application, not the TypeScript development server:
+The controlled-pilot release candidate is the canonical `main` branch. Deploy the compiled application, not the TypeScript development server:
 
 ```sh
 npm ci

@@ -1,8 +1,9 @@
 # Kurukoo Autonomous-System Red-Team Audit
 
-**Audit mode:** Read-only source and runtime-contract audit before remediation  
-**Audit baseline:** `6cdb8e0 — Harden runtime observability and secure renderers`  
-**Branch:** `develop`  
+**Audit mode:** Read-only source and runtime-contract audit before remediation
+**Audit baseline:** `6cdb8e0 — Harden runtime observability and secure renderers`
+**Historical branch snapshot:** `develop`
+**Current canonical branch:** `main`
 **Scope:** Repository correctness, Chat preservation, autonomous runtime, workers, policy tools, evidence, connectors, notifications, advertising, commerce, authentication, authorization, security, SEO/CMS, responsiveness, and deployment readiness.
 
 ## Executive assessment
@@ -32,7 +33,7 @@ The read-only audit gives the current system an estimated **7.2/10 autonomous de
 
 ## Repository correctness
 
-The repository baseline was clean before remediation. The latest commit was `6cdb8e0`, the active branch was `develop`, and the tracked-file inventory contained 412 files: 188 TypeScript files, 21 JavaScript files, 32 EJS templates, 30 HTML files, 13 CSS files, and 47 Markdown files. The protected Chat files had no uncommitted modifications at audit start.
+The repository baseline was clean before remediation. The historical snapshot commit was `6cdb8e0` on the former `develop` branch; the current canonical branch is `main`. The tracked-file inventory contained 412 files: 188 TypeScript files, 21 JavaScript files, 32 EJS templates, 30 HTML files, 13 CSS files, and 47 Markdown files. The protected Chat files had no uncommitted modifications at audit start.
 
 TypeScript correctness passed through `npm run lint`. The CSS-system audit passed and reported 353,698 production CSS bytes, no exact duplicate top-level CSS blocks, no duplicate core design tokens, no inline style attributes in server-rendered frontend templates, and no inline event handlers in server-rendered frontend templates.
 

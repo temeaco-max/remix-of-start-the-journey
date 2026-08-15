@@ -1,24 +1,24 @@
 # Kurukoo — Current Build Status
 
-**Status:** The `develop` branch is the verified release candidate for controlled-pilot readiness; the GitHub default `main` branch remains an older lineage until an explicitly approved convergence operation is completed. External provider activation remains deployment-dependent.
+**Status:** `main` is the verified canonical branch for controlled-pilot readiness; external provider activation remains deployment-dependent.
 **Blueprint:** `BLUEPRINT.md` v5.62 (with the current implementation clarifications below)
 **Date:** 2026-08-15
-**Release-candidate branch:** `develop`
-**Release-candidate commit:** `3ac0101` before the current documentation/UI readiness tranche; verify with `git log -1`.
-**Default branch status:** `origin/main` is currently `b2667dc`; `origin/develop` is 42 commits ahead and 0 commits behind. No branch deletion or history rewrite is implied by this document.
-**Convergence rule:** Validate `develop`, obtain explicit release approval, then merge or fast-forward `main` through the repository’s protected review path.
+**Canonical branch:** `main`
+**Canonical commit:** `d0082ec` — Align release truth and ground Chat progress.
+**Default branch status:** GitHub default branch is `main`; `origin/main` is synchronized with the local canonical checkout. Historical development branches have been removed after convergence.
+**Convergence rule:** Future release work is validated on `main` through the repository’s protected review path; no parallel development branch is assumed.
 
 ## 2026-08-11 convergence verification
 
 **Historical candidate:** `fix/convergence-release-readiness`
 **Historical integration target:** `integration/near-completion` — retained as historical context, not current branch state.
-**Current verification target:** `develop`.
+**Current verification target:** `main`.
 
 This convergence candidate assembles the reviewed security, lifecycle, dispute/escrow, public-route, navigation/onboarding, canonical chat, CSS-token, DOM-safety, and homepage/Explore truthfulness work. It removes the deployable GitHub workspace service and all corresponding `/api/admin/github/*` routes, tests, and maintenance-script mutation patterns. The built application uses one canonical chat client; the unused legacy client was deleted.
 
 The final clean-build verification completed `npm ci --ignore-scripts`, `npm run lint`, `npm run clean && npm run build`, `npm run test:routes`, `npm run audit:security`, `npm run audit:services`, `npm run audit:skills`, `npm run audit:messaging`, `npm run audit:css`, `npm run test:chat-dom-safety`, and `npm run test:email`. The public production runtime was exercised on the built server: homepage, onboarding, `/chat` and `/chat/`, Explore, a category detail page, Discover, the PWA dashboard, pricing, country routes, content/legal routes, and all internal homepage navigation/CTA destinations returned their expected rendered or redirected results. Responsive captures at 360px, 390px, 768px, 1024px, and 1280px showed no visible initial-viewport overflow or clipped primary CTA.
 
-> **Integration status:** Suitable for a pull request into `integration/near-completion`; it is not a claim that external production infrastructure is configured or that `main` should be merged.
+> **Historical integration status:** This verification record predates final branch convergence. It is retained as evidence, not as a current release instruction.
 
 Known non-blocking validation debt is documented rather than hidden: the non-strict CSS audit reports 217 legacy inline-style occurrences across 13 files; the production dependency audit reports two high-severity `sharp`/`@huggingface/transformers` advisories with no currently safe npm fix. These require follow-up but did not invalidate the assembled route, lifecycle, or public-runtime contracts.
 
@@ -132,7 +132,7 @@ A real browser Live session remains conditional on owner-managed provider config
 
 ## Current integration: Bounded Autonomous Agent Runtime
 
-The current `integration/main-convergence-audit` branch adds **one** feature-flagged Kurukoo Autonomous Agent Runtime. It persists owner-scoped goals and concise operational events, creates goals only after the canonical conversation/intent/storefront path, evaluates owned Economic Request state through a restricted tool registry, and re-enters due goals and existing deferred intentions through the established background-service lifecycle. It does not introduce a second AI, memory, task, provider, workflow, payment, referral, voice, QR, or Economic Request system.
+Historical provenance note: the former `integration/main-convergence-audit` line introduced **one** feature-flagged Kurukoo Autonomous Agent Runtime; that work is now part of canonical `main`. It persists owner-scoped goals and concise operational events, creates goals only after the canonical conversation/intent/storefront path, evaluates owned Economic Request state through a restricted tool registry, and re-enters due goals and existing deferred intentions through the established background-service lifecycle. It does not introduce a second AI, memory, task, provider, workflow, payment, referral, voice, QR, or Economic Request system.
 
 | Surface | Current status | Truthful boundary |
 |---|---|---|
