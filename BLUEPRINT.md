@@ -5695,3 +5695,8 @@ The shared public head now consumes the canonical SEO record fields and renders 
 ## Current Queue Safeguard Tranche — Bounded Pending Work
 
 The internal notification queue now has an explicit `KURUKOO_NOTIFICATION_MAX_QUEUE` cap, documented in `.env.example` with a default of 10,000 retryable records. When the cap is reached, new enqueue attempts fail closed and do not create a database record. Existing retry, dead-letter, duplicate-suppression, and owner-scoped inbox behavior remains unchanged. This is a local durability and memory safeguard, not evidence of external push delivery.
+
+
+## Admin Dashboard Metric Contract
+
+The unified admin dashboard headline cards are backed by the canonical `/api/admin/stats` response. The response now includes registered profile count, provider-profile count, message count, and aggregate Points balance in addition to economic-request, reminder, safety, internal-notification, and queue lifecycle metrics. Unauthenticated static admin HTML may load as a shell, but protected APIs remain unavailable until an administrator authenticates; the UI must show a neutral empty state rather than interpreting missing protected data as live zeroes or `undefined` values.

@@ -173,7 +173,17 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
     let reminders = {};
     let checkIns = {};
     let notificationsCount = 0;
+    let users = 0;
+    let providers = 0;
+    let messages = 0;
+    let credits = 0;
     let notificationQueue = { total: 0, queued: 0, accepted: 0, sent: 0, delivered: 0, failed: 0, suppressed: 0, deadLetter: 0 } as Awaited<ReturnType<typeof getNotificationQueueStats>>;
+    try {
+      users = Number(db.exec('SELECT COUNT(*) FROM memory_profiles')[0]?.values?.[0]?.[0] || 0);
+      providers = Number(db.exec("SELECT COUNT(*) FROM memory_profiles WHERE provider_type IS NOT NULL AND lower(provider_type) NOT IN ('', 'buyer')")[0]?.values?.[0]?.[0] || 0);
+      messages = Number(db.exec('SELECT COUNT(*) FROM messages')[0]?.values?.[0]?.[0] || 0);
+      credits = Number(db.exec('SELECT COALESCE(SUM(points_balance), 0) FROM memory_profiles')[0]?.values?.[0]?.[0] || 0);
+    } catch {}
     try {
       const reqRes = db.exec("SELECT status, COUNT(*) as cnt FROM economic_requests GROUP BY status");
       const reqRows = reqRes[0]?.values || [];
@@ -204,6 +214,10 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
     res.json({
       success: true,
       timestamp: new Date().toISOString(),
+      users,
+      providers,
+      messages,
+      credits,
       economic_requests: economicRequests,
       reminders,
       check_ins: checkIns,
