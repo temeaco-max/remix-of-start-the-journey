@@ -5730,3 +5730,8 @@ Static admin pages that call protected APIs must forward the same `kurukoo_admin
 ## Shared Admin Authentication Boundary
 
 All static admin HTML pages include `public/admin/admin-auth.js`, which decorates requests under `/api/admin/` with the `kurukoo_admin` token established by the canonical login flow. This prevents secondary admin pages from silently falling back to cookie-only requests and ensures protected data, mutations, and readiness views share one authentication boundary.
+
+
+## Cart-to-Economic-Request Connection
+
+Internal known-offer checkout now enters the existing product-sourcing Economic Request lifecycle through `startKnownOfferEconomicRequest`. The cart stores the resulting request reference idempotently and reports that quote review and verified payment are still required. External affiliate items continue through the affiliate destination boundary; multi-item carts remain explicitly review-only until a separate auditable multi-item request model is approved. Cart checkout never claims payment, stock reservation, dispatch, or fulfilment.

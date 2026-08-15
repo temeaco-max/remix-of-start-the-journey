@@ -10,6 +10,7 @@ process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 
 const { getDb, saveDb } = await import('../src/database.js');
 const { createEconomicRequest, getEconomicRequest, transitionEconomicRequest } = await import('../src/services/skillFlows.js');
+const { startKnownOfferEconomicRequest } = await import('../src/services/economicParticipants.js');
 const { createOpenIntention, getIntentionByEconomicRequestId } = await import('../src/services/deferredRequestService.js');
 const { processDueDeferred } = await import('../src/services/backgroundWorkers.js');
 const { createEscrow } = await import('../src/services/escrow.js');
@@ -36,6 +37,14 @@ db.run(
    VALUES (?, 'plumber', 1, 0, 4.8, 10, 'mobile')`,
   [providerPhone]
 );
+
+const sourceOfferRequestId = 'source-offer-request';
+await createEconomicRequest({ id: sourceOfferRequestId, phone: customerPhone, skill: 'product_sourcing', requirements: { product: 'Lifecycle test product' } });
+db.run(`INSERT INTO economic_offers (id, request_id, seller_phone, description, price_minor, currency, source, status, provenance) VALUES (?, ?, ?, ?, ?, ?, ?, 'available', 'conversationally_created')`, ['lifecycle-offer', sourceOfferRequestId, providerPhone, 'Lifecycle test product', 12500, 'NGN', 'lifecycle-test']);
+const linkedOfferRequest = await startKnownOfferEconomicRequest({ buyerPhone: customerPhone, offerId: 'lifecycle-offer', quantity: '1' });
+assert.equal(linkedOfferRequest.request.skill, 'product_sourcing', 'known cart offers must enter the canonical product Economic Request flow');
+assert.equal(linkedOfferRequest.request.requirements.offer_id, 'lifecycle-offer', 'the canonical request must retain the source offer reference');
+assert.equal(linkedOfferRequest.request.status, 'requested', 'connecting a cart offer must not imply payment or fulfilment');
 
 const deferredRequestId = 'deferred-lifecycle-request';
 await createEconomicRequest({
@@ -113,4 +122,4 @@ saveDb(true);
 try { fs.rmSync(dbPath, { force: true }); } catch { /* temporary database cleanup is best-effort */ }
 
 console.log('Economic lifecycle integration checks passed');
-console.log('Verified: deferred re-match does not fabricate a quote, escrow release awards bounded idempotent points, and SMS uses the normalized Economic Request identity.');
+console.log('Verified: deferred re-match does not fabricate a quote, known cart offers enter the canonical product request flow without payment, escrow release awards bounded idempotent points, and SMS uses the normalized Economic Request identity.');
