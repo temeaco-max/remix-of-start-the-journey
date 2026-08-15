@@ -33,6 +33,12 @@ try {
   const strangerStatus = await fetch(`${baseUrl}/api/whatsapp-linked-device/status`, { headers: { authorization: `Bearer ${tokenFor(stranger)}` } });
   assert.equal(strangerStatus.status, 403, 'A non-owner must not inspect or pair the linked device');
 
+  const pairingPage = await fetch(`${baseUrl}/whatsapp-linked-device`, { headers: { authorization: `Bearer ${tokenFor(owner)}` } });
+  assert.equal(pairingPage.status, 200, 'Authenticated owner should receive the browser pairing page');
+  const pairingHtml = await pairingPage.text();
+  assert.match(pairingHtml, /Start pairing/);
+  assert.match(pairingHtml, /WhatsApp linked-device pairing QR code/);
+
   const ownerStatus = await fetch(`${baseUrl}/api/whatsapp-linked-device/status`, { headers: { authorization: `Bearer ${tokenFor(owner)}` } });
   assert.equal(ownerStatus.status, 200, 'Configured owner should inspect linked-device status');
   const status = await ownerStatus.json() as { enabled?: boolean; ownerConfigured?: boolean; connected?: boolean; qrDataUrl?: string };
@@ -43,7 +49,7 @@ try {
 
   const qrBeforeStart = await fetch(`${baseUrl}/api/whatsapp-linked-device/pairing-qr`, { headers: { authorization: `Bearer ${tokenFor(owner)}` } });
   assert.equal(qrBeforeStart.status, 404, 'Pairing QR must not exist before explicit connector startup');
-  console.log(JSON.stringify({ ok: true, disabledStatus: disabled.status, strangerStatus: strangerStatus.status, ownerStatus: ownerStatus.status, connected: false, qrExposedBeforeStart: false }));
+  console.log(JSON.stringify({ ok: true, pairingPageStatus: pairingPage.status, disabledStatus: disabled.status, strangerStatus: strangerStatus.status, ownerStatus: ownerStatus.status, connected: false, qrExposedBeforeStart: false }));
 } finally {
   await new Promise<void>(resolve => server.close(() => resolve()));
   fs.rmSync(tempDir, { recursive: true, force: true });

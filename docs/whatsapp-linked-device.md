@@ -67,3 +67,11 @@ This connector requires a persistent process and persistent auth storage. A temp
 The connector is not considered connected merely because the package is installed or the feature flags are set. Readiness is reported as pending until a session is actually paired and open. External message delivery is not claimed until the linked-device session reports a live connection and the send operation succeeds.
 
 WhatsApp account ownership, user consent, provider terms, rate limits, session revocation, device security, and account restrictions remain external activation concerns. The auth directory must be treated as sensitive credential material and must never be committed, copied into public assets, or included in logs.
+
+## Browser pairing page
+
+When the local Kurukoo server is running and the authenticated owner visits `/whatsapp-linked-device`, the page presents the same practical scan sequence as WhatsApp Web: start pairing, display the current QR code, poll the connection state, and replace the QR state with a connected state after the session opens. The page is owner-authenticated and does not display a QR before explicit startup.
+
+For an iPhone test, open the page in the local browser on a computer, select **Start pairing**, and scan the displayed QR from the iPhone’s WhatsApp Linked Devices screen. The browser page does not need to be on the iPhone; the iPhone camera scans the QR rendered by Kurukoo on the computer. The local connector process must remain running after the scan.
+
+The QR is generated from the live multi-device session handshake, not from a static Kurukoo URL or a simulated code. A repository test can verify QR generation and pairing state transitions, but only a real phone scan can prove that a particular WhatsApp account was linked.

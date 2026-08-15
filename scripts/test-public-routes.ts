@@ -23,6 +23,7 @@ const expected = [
     '/referral-qr/',
     '/start',
     '/chat',
+    '/whatsapp-linked-device',
     '/how-it-works',
     '/network',
     '/channels',

@@ -1,0 +1,54 @@
+<%- include('_partials/head') %>
+<%- include('_partials/nav') %>
+<main class="linked-device-page">
+  <section class="linked-device-shell" aria-labelledby="linked-device-title">
+    <div class="linked-device-copy">
+      <p class="eyebrow">Personal channel</p>
+      <h1 id="linked-device-title">Link WhatsApp to Kurukoo</h1>
+      <p class="linked-device-lede">Scan this code with the owner’s iPhone, just as you would when linking WhatsApp Web. Your messages will continue through the same Kurukoo conversation and action system.</p>
+      <div class="linked-device-steps" aria-label="Pairing steps">
+        <div><span>1</span><p>Open WhatsApp on the owner phone.</p></div>
+        <div><span>2</span><p>Open <strong>Linked devices</strong> and choose <strong>Link a device</strong>.</p></div>
+        <div><span>3</span><p>Scan the code and keep the local connector running.</p></div>
+      </div>
+      <p class="linked-device-note"><strong>Private account:</strong> this is a local linked-device session, not a Meta Cloud API business number. Group messages stay off unless explicitly enabled.</p>
+    </div>
+    <div class="linked-device-card" aria-live="polite">
+      <div class="linked-device-status-row"><span id="linked-device-status-dot" class="linked-device-status-dot"></span><span id="linked-device-status">Ready to start pairing</span></div>
+      <div id="linked-device-qr-frame" class="linked-device-qr-frame"><div class="linked-device-qr-placeholder">Start pairing to create a secure QR code.</div><img id="linked-device-qr" class="linked-device-qr" alt="WhatsApp linked-device pairing QR code" hidden></div>
+      <p id="linked-device-error" class="linked-device-error" hidden></p>
+      <div class="linked-device-actions"><button id="linked-device-start" class="linked-device-primary" type="button">Start pairing</button><button id="linked-device-stop" class="linked-device-secondary" type="button" hidden>Stop</button><button id="linked-device-logout" class="linked-device-secondary" type="button" hidden>Log out device</button></div>
+      <p class="linked-device-owner">Signed in as <strong><%= displayName %></strong> · <%= phone %></p>
+    </div>
+  </section>
+</main>
+<script>
+(() => {
+  const statusText = document.getElementById('linked-device-status');
+  const dot = document.getElementById('linked-device-status-dot');
+  const qr = document.getElementById('linked-device-qr');
+  const placeholder = document.querySelector('.linked-device-qr-placeholder');
+  const error = document.getElementById('linked-device-error');
+  const start = document.getElementById('linked-device-start');
+  const stop = document.getElementById('linked-device-stop');
+  const logout = document.getElementById('linked-device-logout');
+  let timer;
+  const setStatus = (value) => { statusText.textContent = value; dot.dataset.state = value.toLowerCase().replace(/\s+/g, '-'); };
+  const showError = (value) => { error.hidden = !value; error.textContent = value || ''; };
+  const render = (data) => {
+    const labels = { disabled: 'Connector disabled', idle: 'Ready to start pairing', pairing: 'Scan with WhatsApp', connecting: 'Connecting', connected: 'WhatsApp linked', logged_out: 'Logged out', error: 'Connection needs attention' };
+    setStatus(labels[data.state] || data.state || 'Checking connection');
+    showError(data.lastError);
+    if (data.qrDataUrl) { qr.src = data.qrDataUrl; qr.hidden = false; placeholder.hidden = true; } else if (data.state !== 'connected') { qr.hidden = true; placeholder.hidden = false; }
+    start.hidden = data.state === 'connected' || data.state === 'pairing' || data.state === 'connecting';
+    stop.hidden = !(data.state === 'pairing' || data.state === 'connecting' || data.state === 'connected');
+    logout.hidden = data.state !== 'connected';
+  };
+  const poll = async () => { try { const response = await fetch('/api/whatsapp-linked-device/status', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to read linked-device status'); render(data); } catch (err) { showError(err.message); } };
+  start.addEventListener('click', async () => { showError(''); start.disabled = true; try { const response = await fetch('/api/whatsapp-linked-device/start', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to start pairing'); render(data.status || data); } catch (err) { showError(err.message); } finally { start.disabled = false; } });
+  stop.addEventListener('click', async () => { await fetch('/api/whatsapp-linked-device/stop', { method: 'POST', credentials: 'same-origin' }); await poll(); });
+  logout.addEventListener('click', async () => { if (!window.confirm('Log out this linked WhatsApp device?')) return; await fetch('/api/whatsapp-linked-device/logout', { method: 'POST', credentials: 'same-origin' }); await poll(); });
+  poll(); timer = window.setInterval(poll, 2500); window.addEventListener('beforeunload', () => window.clearInterval(timer));
+})();
+</script>
+<%- include('_partials/footer') %>
