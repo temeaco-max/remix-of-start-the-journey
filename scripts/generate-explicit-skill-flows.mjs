@@ -71,9 +71,10 @@ const lines = entries.map(({ skill, category }) => {
   const label = display(skill);
   const requirements = explicitRequirements(skill, category, label);
   const questions = requirements.map(requirement => `{q:${JSON.stringify(requirement.label + '?')},options:[]}`);
-  return `  ${JSON.stringify(skill)}:{category:${JSON.stringify(category)},requirements:${JSON.stringify(requirements)},questions:[${questions.join(',')}],action:${JSON.stringify(profile.action)},payment:${JSON.stringify(profile.payment)},fulfillment:${JSON.stringify(profile.fulfillment)}}`;
+  const mode = ['emergency-dispatch','security-safety'].includes(category) ? 'safety' : ['community-neighbourhood','sports-recreation','money-circle'].includes(category) ? 'coordination' : informationCategories.has(category) ? 'information' : 'economic';
+  return `  ${JSON.stringify(skill)}:{category:${JSON.stringify(category)},mode:${JSON.stringify(mode)},requirements:${JSON.stringify(requirements)},questions:[${questions.join(',')}],action:${JSON.stringify(profile.action)},payment:${JSON.stringify(profile.payment)},fulfillment:${JSON.stringify(profile.fulfillment)}}`;
 });
-const block = `\nconst EXPLICIT_SKILL_FLOW_DEFINITIONS:Record<string,{category:string;requirements:Array<{key:string;label:string;required?:boolean}>;questions:Array<{q:string;options:string[]}>;action:string;payment:string;fulfillment:string}>={\n${lines.join(',\n')}\n};\n`;
+const block = `\nconst EXPLICIT_SKILL_FLOW_DEFINITIONS:Record<string,{category:string;mode:string;requirements:Array<{key:string;label:string;required?:boolean}>;questions:Array<{q:string;options:string[]}>;action:string;payment:string;fulfillment:string}>={\n${lines.join(',\n')}\n};\n`;
 const marker = 'function seedCanonicalSkillFlows';
 const markerIndex = source.indexOf(marker);
 if (markerIndex < 0) throw new Error('seedCanonicalSkillFlows marker not found');

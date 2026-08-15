@@ -5532,3 +5532,8 @@ The live-user quality harness is a verification boundary, not a production featu
 The protected Chat shell must honor native `hidden` semantics for collapsed utility navigation. Shared CSS rules must not override hidden regions; the canonical More-menu container is required to use `.sidebar-bottom[hidden]{display:none!important}` or an equivalent contract-preserving rule. Workspace Ask controls must focus the shared Chat composer and must not create parallel interaction surfaces.
 
 Every red-team replay must record whether a response is grounded, whether a provider is truly configured, whether a goal exists before pause/resume/cancel, and whether conversation history persists. A disabled prerequisite must produce a clear readiness failure rather than a misleading empty-state response.
+
+
+## Explicit canonical skill-flow contract
+
+Every canonical skill in `CATEGORY_BY_SKILL` must have an explicit definition in `EXPLICIT_SKILL_FLOW_DEFINITIONS`, including a skill-specific requirement set, question set, lifecycle action, payment boundary, fulfillment boundary, and flow mode. The supported modes are `economic`, `information`, `safety`, and `coordination`. Information, safety, and coordination flows must not create Economic Requests or imply payment, provider availability, or external execution. The canonical seed performs an idempotent upsert and migrates existing rows so legacy database records cannot silently preserve the former category/default behavior. The generator and full-catalogue regression are the maintenance authorities for this contract.

@@ -206,3 +206,8 @@ The live quality harness must verify agent readiness through the admin status bo
 The development-only operator reset boundary may clear stale ciphertext for the explicitly controlled operator identity before a test launch. This is test isolation only and must never alter production profile decryption semantics or clear ordinary user profiles.
 
 The More utility navigation is collapsed by default. Its native `hidden` state must result in `display:none` and zero layout height until the user activates More. The expanded state must expose the existing utility links without changing the protected header, composer, or central-surface navigation. Every workspace Ask action must return focus to the shared Chat composer.
+
+
+## Explicit skill-flow modes
+
+The central Chat surface consumes explicit skill-flow definitions for every canonical skill. Each flow declares its requirement schema, questions, lifecycle action, payment boundary, fulfillment instructions, and one mode: `economic`, `information`, `safety`, or `coordination`. Information, safety, and coordination flows render truthful guidance or coordination surfaces without creating Economic Requests, payment states, provider matches, or external execution claims. Existing `skill_flows` rows are upgraded idempotently during initialization so legacy defaults cannot survive silently.

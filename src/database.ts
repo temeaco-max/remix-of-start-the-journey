@@ -121,7 +121,7 @@ function initTables(database: any) {
       verified_artist INTEGER DEFAULT 0, 
       FOREIGN KEY(phone) REFERENCES memory_profiles(phone)
     );
-    CREATE TABLE IF NOT EXISTS skill_flows (skill TEXT PRIMARY KEY, question_set TEXT, post_match_action TEXT, payment_model TEXT, fulfillment_instructions TEXT, available_locales TEXT DEFAULT '["en"]', booking_mode TEXT DEFAULT 'instant');
+    CREATE TABLE IF NOT EXISTS skill_flows (skill TEXT PRIMARY KEY, question_set TEXT, post_match_action TEXT, payment_model TEXT, fulfillment_instructions TEXT, available_locales TEXT DEFAULT '["en"]', booking_mode TEXT DEFAULT 'instant', flow_mode TEXT NOT NULL DEFAULT 'economic');
     CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT, sender TEXT, content TEXT, channel TEXT DEFAULT 'pwa', card_data TEXT, status TEXT DEFAULT 'sent', whatsapp_msg_id TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS credit_transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT, amount INTEGER, type TEXT, description TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS pulse_sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT, skill TEXT, lat REAL, lng REAL, expires_at TEXT, active INTEGER DEFAULT 1);
@@ -246,6 +246,8 @@ function initTables(database: any) {
     'ALTER TABLE micro_tasks ADD COLUMN approved_by TEXT',
     'ALTER TABLE micro_tasks ADD COLUMN approved_at TEXT',
   ]) { try { database.run(migration); } catch { /* column already exists */ } }
+  const skillFlowColumns = database.exec('PRAGMA table_info(skill_flows)')[0]?.values || [];
+  if (!skillFlowColumns.some((column: unknown[]) => String(column[1]) === 'flow_mode')) database.run("ALTER TABLE skill_flows ADD COLUMN flow_mode TEXT NOT NULL DEFAULT 'economic'");
   database.run("CREATE INDEX IF NOT EXISTS idx_micro_tasks_source ON micro_tasks(source_type, source_id)");
   database.run("CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone)");
   database.run("CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)");

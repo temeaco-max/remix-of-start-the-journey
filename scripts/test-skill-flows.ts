@@ -8,11 +8,17 @@ process.env.DB_PATH = path.join(tempDir, 'skill-flows.sqlite');
 process.env.KURUKOO_DISABLE_LISTEN = 'true';
 
 const { getSkillFlow, auditSkillFlows, getKnownSkills, getEconomicCategory } = await import('../src/services/skillFlows.js');
+const { startStorefrontSession } = await import('../src/services/agenticStorefront.js');
 const { getDb } = await import('../src/database.js');
 
 const canonicalSkills = getKnownSkills();
 assert.ok(canonicalSkills.length >= 200, `Expected the full canonical skill catalogue, found ${canonicalSkills.length}`);
 const seen = new Set<string>();
+for (const [skill, expectedMode] of [['emergency','safety'],['nin_passport_guidance','information'],['neighbourhood_watch','coordination'],['taxi_quick','economic']] as const) {
+  const flow = await getSkillFlow(skill);
+  assert.equal(flow?.mode, expectedMode, `${skill} should use the explicit ${expectedMode} flow mode`);
+}
+
 for (const skill of canonicalSkills) {
   const flow = await getSkillFlow(skill);
   assert.ok(flow, `${skill} should have an explicit persisted skill flow`);
@@ -26,6 +32,16 @@ for (const skill of canonicalSkills) {
   assert.ok(!seen.has(skill), `${skill} should not be seeded more than once in the canonical definition map`);
   seen.add(skill);
 }
+
+const safetyCard = await startStorefrontSession('+2347000000999', 'emergency');
+assert.equal(safetyCard.stage, 'safety', 'Safety skills must not enter an economic storefront stage');
+assert.equal(safetyCard.requestId, undefined, 'Safety skills must not create an Economic Request');
+const informationCard = await startStorefrontSession('+2347000000999', 'nin_passport_guidance');
+assert.equal(informationCard.stage, 'information', 'Information skills must not enter an economic storefront stage');
+assert.equal(informationCard.requestId, undefined, 'Information skills must not create an Economic Request');
+const coordinationCard = await startStorefrontSession('+2347000000999', 'neighbourhood_watch');
+assert.equal(coordinationCard.stage, 'coordination', 'Coordination skills must use the coordination stage');
+assert.equal(coordinationCard.requestId, undefined, 'Coordination skills must not create an Economic Request');
 
 const db = await getDb();
 db.run(`UPDATE skill_flows SET post_match_action='legacy_default', payment_model='legacy_default', fulfillment_instructions='legacy_default' WHERE skill='rider'`);
