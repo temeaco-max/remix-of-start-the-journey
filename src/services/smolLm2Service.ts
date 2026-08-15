@@ -1,20 +1,21 @@
 import { pipeline } from '@huggingface/transformers';
 import { HfInference } from '@huggingface/inference';
 
-const MODEL_NAME = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
+const DEFAULT_MODEL_NAME = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
+function getModelName(): string { return String(process.env.SMOLLM2_MODEL || DEFAULT_MODEL_NAME).trim() || DEFAULT_MODEL_NAME; }
 let localPipeline: any = null;
 let localPipelinePromise: Promise<any> | null = null;
 let hfClient: HfInference | null = null;
 let localBusy = false;
 let lastInferenceSource: 'local' | 'huggingface' | 'fallback' = 'fallback';
 
-export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'huggingface' | 'fallback'; available: boolean } {
-  return { model: MODEL_NAME, source: lastInferenceSource, available: lastInferenceSource !== 'fallback' };
+export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'huggingface' | 'fallback'; available: boolean; dtype: string } {
+  return { model: getModelName(), source: lastInferenceSource, available: lastInferenceSource !== 'fallback', dtype: String(process.env.SMOLLM2_DTYPE || 'q4') };
 }
 
 async function getLocalPipeline(): Promise<any> {
   if (localPipeline) return localPipeline;
-  if (!localPipelinePromise) localPipelinePromise = pipeline('text-generation', MODEL_NAME) as Promise<any>;
+  if (!localPipelinePromise) localPipelinePromise = pipeline('text-generation', getModelName(), { dtype: String(process.env.SMOLLM2_DTYPE || 'q4') as any, device: 'cpu' } as any) as Promise<any>;
   localPipeline = await localPipelinePromise;
   return localPipeline;
 }
@@ -43,7 +44,7 @@ export async function querySmolLM2(prompt: string, systemPrompt?: string): Promi
   }
   if (process.env.HUGGINGFACE_API_KEY || process.env.HF_API_KEY) {
     try {
-      const response = await getHfClient().textGeneration({ model: MODEL_NAME, inputs: input, parameters: { max_new_tokens: Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), temperature: 0.2, return_full_text: false } });
+      const response = await getHfClient().textGeneration({ model: getModelName(), inputs: input, parameters: { max_new_tokens: Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), temperature: 0.2, return_full_text: false } });
       if (response?.generated_text) { lastInferenceSource = 'huggingface'; return response.generated_text.trim(); }
     } catch (err: any) { console.warn('[SmolLM2] HF serverless inference failed:', err?.message || err); }
   }

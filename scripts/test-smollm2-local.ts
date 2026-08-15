@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+const isolatedDbPath = path.join(os.tmpdir(), `kurukoo-smollm2-${process.pid}-${Date.now()}.sqlite`);
+process.env.DB_PATH = isolatedDbPath;
+process.env.KURUKOO_SMOLLM2_LOCAL = 'true';
+process.env.KURUKOO_AGENT_ENABLED = 'false';
+process.env.KURUKOO_AI_HOSTED_PROVIDER = 'none';
+process.env.SMOLLM2_MAX_NEW_TOKENS = '96';
+process.on('exit', () => { try { fs.rmSync(isolatedDbPath, { force: true }); } catch {} });
+
+const { querySmolLM2, getSmolLM2RuntimeStatus } = await import('../src/services/smolLm2Service.js');
+const { queryUnifiedAI } = await import('../src/services/unifiedAiEngine.js');
+const { upsertProfile } = await import('../src/routes/authRoutes.js');
+const { processCanonicalChatTurn } = await import('../src/services/canonicalChatTurnService.js');
+
+const direct = await querySmolLM2('Explain in one short sentence what Kurukoo helps with.');
+const directStatus = getSmolLM2RuntimeStatus();
+assert.ok(direct.trim(), 'Local SmolLM2 must return text');
+assert.equal(directStatus.source, 'local', `Expected local SmolLM2 inference, received ${directStatus.source}`);
+assert.equal(directStatus.available, true, 'Local SmolLM2 runtime must be available after inference');
+
+const unified = await queryUnifiedAI('Explain in one short sentence what Kurukoo helps with.', { provider: 'smollm2' });
+assert.ok(unified.text.trim(), 'unifiedAiEngine must return SmolLM2 text');
+assert.equal(unified.provider, 'SmolLM2', `unifiedAiEngine must attribute local SmolLM2, received ${unified.provider}`);
+const expectedModel = directStatus.model.split('/').pop() || directStatus.model;
+assert.equal(unified.model, expectedModel, `Unexpected unified model attribution: ${unified.model}`);
+
+const phone = `+234809${String(Date.now()).slice(-7)}`;
+await upsertProfile(phone, 'Local SmolLM2 Tester');
+const turn = await processCanonicalChatTurn({ phone, message: 'What should I know before using Kurukoo?', channel: 'web', conversationId: 'smollm2-local-chat' });
+assert.ok(turn.reply.trim(), 'Canonical Chat must return a reply through the local SmolLM2 path');
+assert.equal(turn.modelProvider, 'SmolLM2', `Canonical Chat must report local SmolLM2, received ${turn.modelProvider}`);
+assert.equal(turn.model, expectedModel, `Canonical Chat must report the local SmolLM2 model, received ${turn.model}`);
+
+console.log(JSON.stringify({
+  ok: true,
+  model: directStatus.model,
+  source: directStatus.source,
+  unifiedProvider: unified.provider,
+  unifiedModel: unified.model,
+  chatProvider: turn.modelProvider,
+  chatModel: turn.model,
+  chatReplyPreview: turn.reply.slice(0, 180),
+}, null, 2));
+console.log('Local SmolLM2 direct, unifiedAiEngine, and canonical Chat integration passed.');

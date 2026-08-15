@@ -229,7 +229,7 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
       const runtime = getSmolLM2RuntimeStatus();
       return afterSuccess({
         provider: runtime.available ? 'SmolLM2' : 'Kurukoo Template',
-        model: runtime.available ? 'SmolLM2-1.7B-Instruct' : 'template-fallback',
+        model: runtime.available ? (runtime.model.split('/').pop() || runtime.model) : 'template-fallback',
         text: result.text,
         thought: result.thought,
         latencyMs: Date.now() - started,
@@ -254,7 +254,7 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
       const runtime = getSmolLM2RuntimeStatus();
       const response: AIResponse = {
         provider: runtime.available ? 'SmolLM2' : 'Kurukoo Template',
-        model: runtime.available ? 'SmolLM2-1.7B-Instruct' : 'template-fallback',
+        model: runtime.available ? (runtime.model.split('/').pop() || runtime.model) : 'template-fallback',
         text: result.text,
         thought: result.thought,
         latencyMs: Date.now() - started,

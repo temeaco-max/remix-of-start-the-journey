@@ -46,6 +46,7 @@
     "test:channel-usage": "tsx scripts/test-channel-usage.ts",
     "db:migrate:messages": "tsx scripts/migrate-messages.ts",
     "test:ai": "tsx scripts/test-ai-pipeline.ts",
+    "test:smollm2-local": "tsx scripts/test-smollm2-local.ts",
     "test:memory-provenance": "tsx scripts/test-memory-provenance.ts",
     "test:privacy-bridge": "tsx scripts/test-privacy-bridge.ts",
     "test:private-chat-ad-boundary": "tsx scripts/test-private-chat-ad-boundary.ts",

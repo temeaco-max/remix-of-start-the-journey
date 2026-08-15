@@ -4,6 +4,7 @@ import { isChannelConfigured } from '../channels/channelRegistry.js';
 import { getFastTextRuntimeStatus } from './fastTextService.js';
 import { getVoiceStatus } from './voiceService.js';
 import { getMistralStatus } from './mistralService.js';
+import { getSmolLM2RuntimeStatus } from './smolLm2Service.js';
 import { hasConfiguredSecret } from './providerCapabilities.js';
 import { getFeatureRegistryReadiness } from './featureFlags.js';
 import { getMqttBridgeStatus } from './iotBridge.js';
@@ -87,6 +88,7 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
   const fastText = getFastTextRuntimeStatus(rootDir);
   const voice = getVoiceStatus();
   const mistral = getMistralStatus();
+  const smollm2 = getSmolLM2RuntimeStatus();
   const mistralSelected = env.KURUKOO_AI_HOSTED_PROVIDER === 'mistral';
   const mistralSelection = !mistralSelected
     ? item('DISABLED', 'Mistral is not selected by hosted-provider policy; local-first routing remains canonical.')
@@ -123,6 +125,7 @@ export function getPilotReadiness(env: NodeJS.ProcessEnv = process.env, rootDir 
         MistralSelection: mistralSelection,
         MistralText: item(mistral.configured ? 'EXTERNAL_DEPENDENCY' : mistralSelected ? 'PENDING' : 'NOT_CONFIGURED', mistral.configured ? 'Mistral Small is configured as the selected optional hosted capability; its account limits are not assumed from configuration.' : mistralSelected ? 'Mistral is selected but not configured; local-first fallback remains active.' : 'Mistral is not configured and is not selected; local routing remains canonical.'),
         MistralLimits: item(mistral.configured ? 'PENDING' : 'NOT_CONFIGURED', mistral.configured ? mistral.capabilities.find(capability => capability.capability === 'text')?.limits.note || 'Mistral limits are unknown.' : 'Mistral limits cannot be assessed without a configured provider.'),
+        SmolLM2Local: item(env.KURUKOO_SMOLLM2_LOCAL === 'true' ? (smollm2.available && smollm2.source === 'local' ? 'READY' : 'PENDING') : 'DISABLED', env.KURUKOO_SMOLLM2_LOCAL === 'true' ? (smollm2.available && smollm2.source === 'local' ? `Local ${smollm2.model} is loaded with ${smollm2.dtype}.` : `Local SmolLM2 is enabled but not loaded yet; first-use model download and inference are required (${smollm2.model}, ${smollm2.dtype}).`) : 'Local SmolLM2 is disabled by feature flag.'),
       },
       CHANNELS: {
         Web: item('READY', 'Web Chat is the active first-party channel.'),

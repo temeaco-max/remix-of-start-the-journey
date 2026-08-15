@@ -1,6 +1,6 @@
 import { deductPoints, addPoints } from './pointsEngine.js';
 import { getDb, saveDb } from '../database.js';
-import { querySmolLM2 } from './smolLm2Service.js';
+import { getSmolLM2RuntimeStatus, querySmolLM2 } from './smolLm2Service.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -451,8 +451,9 @@ export async function executeAgentTask(agentId: string, taskInput: string, userP
         }
     }
 
-    // Generate real response using SmolLM2-1.7B-Instruct with agent system prompt
+    // Generate through the canonical local SmolLM2 boundary with the configured checkpoint.
     const aiOutput = await querySmolLM2(taskInput, agent.system_prompt);
+    const smollm2Model = getSmolLM2RuntimeStatus().model.split('/').pop() || getSmolLM2RuntimeStatus().model;
 
     const tokensUsed = Math.floor(taskInput.length / 4) + Math.floor(aiOutput.length / 4) + 30;
     const db = await getDb();
@@ -461,7 +462,7 @@ export async function executeAgentTask(agentId: string, taskInput: string, userP
 
     return {
         success: true,
-        result: `${aiOutput}\n\n*(Processed by SmolLM2-1.7B-Instruct under ${agent.name})*`,
+        result: `${aiOutput}\n\n*(Processed by ${smollm2Model} under ${agent.name})*`,
         tokensUsed,
         escalated: false
     };
