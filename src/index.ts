@@ -40,7 +40,7 @@ import voiceRouter from './routes/voiceRouter.js';
 import qrRouter from './routes/qrRouter.js';
 import agentRouter from './routes/agentRouter.js';
 import topicRoutes from './routes/topicRoutes.js';
-import { startBackgroundServices } from './startup/backgroundServices.js';
+import { startBackgroundServices, stopBackgroundServices } from './startup/backgroundServices.js';
 
 if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 if (!process.env.CREDIT_ECONOMY_ENABLED) process.env.CREDIT_ECONOMY_ENABLED = 'true';
@@ -95,4 +95,23 @@ if (process.env.KURUKOO_DISABLE_LISTEN !== 'true') {
         if (process.env.KURUKOO_WORKERS !== '0') void startBackgroundServices();
     });
     server.on('error', (error) => { console.error('[Kurukoo] HTTP server error:', error); process.exitCode = 1; });
+    let shuttingDown = false;
+    const shutdown = (signal: string) => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        console.log(`[Kurukoo] Graceful shutdown requested (${signal})`);
+        stopBackgroundServices();
+        server.close((error) => {
+            if (error) {
+                console.error('[Kurukoo] HTTP server shutdown error:', error);
+                process.exitCode = 1;
+            }
+        });
+        setTimeout(() => {
+            console.error('[Kurukoo] Graceful shutdown timeout; forcing exit');
+            process.exitCode = 1;
+        }, 10_000).unref();
+    };
+    process.once('SIGTERM', () => shutdown('SIGTERM'));
+    process.once('SIGINT', () => shutdown('SIGINT'));
 }
