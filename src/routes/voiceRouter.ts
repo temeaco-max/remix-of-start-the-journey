@@ -4,6 +4,7 @@ import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.j
 import { createRateLimiter } from '../middleware/rateLimit.js';
 import { appendChatMessage } from '../services/chatConversationService.js';
 import { createVoiceSession, endVoiceSession, getVoiceSession, getVoiceStatus } from '../services/voiceService.js';
+import { synthesizeSpeech } from '../services/serverTtsService.js';
 import { executeVoiceTool, isVoiceToolAllowed } from '../services/voiceToolRegistry.js';
 
 const router = Router();
@@ -57,6 +58,21 @@ router.post('/tools', optionalAuthenticateUser, async (req: AuthRequest, res) =>
   } catch (error) {
     console.warn('[Voice] tool_failed', { sessionId, name });
     res.status(500).json({ error: 'That request could not be completed right now.' });
+  }
+});
+
+router.post('/tts', optionalAuthenticateUser, sessionRateLimit, async (req: AuthRequest, res) => {
+  const { isGuest } = identity(req, res);
+  const text = String(req.body?.text || '').trim().slice(0, 600);
+  if (!text) return res.status(400).json({ error: 'text is required' });
+  if (isGuest) return res.status(403).json({ error: 'Sign in to use server voice.' });
+  try {
+    const { mime, data } = await synthesizeSpeech(text);
+    res.set({ 'Content-Type': mime, 'Content-Length': String(data.length), 'Cache-Control': 'private, max-age=300' });
+    res.send(data);
+  } catch (error) {
+    console.warn('[Voice] tts_failed', { guest: isGuest });
+    res.status(502).json({ error: 'Text-to-speech is unavailable right now.' });
   }
 });
 
