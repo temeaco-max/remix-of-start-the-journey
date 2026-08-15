@@ -23,20 +23,22 @@ const legacyAppPath = path.join(root, 'src/legacyApp.ts');
 
 const categoryMatch = skillFlows.match(/const CATEGORY_BY_SKILL:Record<string,string>=\{([\s\S]*?)\};/);
 const canonicalSkills = categoryMatch
-  ? [...categoryMatch[1].matchAll(/(?:^|,)([A-Za-z0-9_]+):'/g)].map(match => match[1])
+  ? [...categoryMatch[1].matchAll(/(?:^|,)\s*([A-Za-z0-9_]+):'/g)].map(match => match[1])
   : [];
 
 const seedBlock = database.match(/function seedSkillFlows[\s\S]*?function seedDemoProviders/)?.[0] || '';
-const runtimeSeedBlock = skillFlows.match(/function seedCanonicalSkillFlows[\s\S]*?\}\nexport async function getSkillFlow/)?.[0] || '';
-const explicitFlows = [...`${seedBlock}\n${runtimeSeedBlock}`.matchAll(/\[\s*'([^']+)'\s*,/g)].map(match => match[1]);
-const explicitFlowSet = new Set(explicitFlows.filter(skill => canonicalSkills.includes(skill)));
+const runtimeSeedBlock = skillFlows.match(/function seedCanonicalSkillFlows[\s\S]*?\nexport async function getSkillFlow/)?.[0] || '';
+const explicitDefinitionBlock = skillFlows.match(/const EXPLICIT_SKILL_FLOW_DEFINITIONS:[\s\S]*?=\{([\s\S]*?)\n\};/)?.[1] || '';
+const legacyExplicitFlows = [...`${seedBlock}\n${runtimeSeedBlock}`.matchAll(/\[\s*'([^']+)\'\s*,/g)].map(match => match[1]);
+const generatedExplicitFlows = [...explicitDefinitionBlock.matchAll(/^\s*"([a-z0-9_]+)":\{/gm)].map(match => match[1]);
+const explicitFlowSet = new Set([...legacyExplicitFlows, ...generatedExplicitFlows].filter(skill => canonicalSkills.includes(skill)));
 const missingExplicitFlows = canonicalSkills.filter(skill => !explicitFlowSet.has(skill));
 
 const alignment = {
   canonicalSkillCount: canonicalSkills.length,
   explicitSeededFlowCount: explicitFlowSet.size,
   canonicalSkillsWithoutExplicitSeedFlow: missingExplicitFlows.length,
-  canonicalSkillFallbackExpected: true,
+  canonicalSkillFallbackExpected: false,
   artistUsesEconomicRequest: /createEconomicRequest|transitionEconomicRequest|getEconomicRequest/.test(artist),
   artistUsesSharedLifecycle: /transitionEconomicRequest/.test(artist),
   orderFinalizerGuardsChatCommitment: /awaiting_confirmation/.test(orderFinalizer) && /getEconomicCategory/.test(orderFinalizer),

@@ -17,6 +17,7 @@
     "audit:messaging": "node scripts/audit-messaging-system.mjs",
     "audit:skills": "node scripts/audit-skills.mjs",
     "audit:services": "node scripts/audit-services.mjs",
+    "generate:skill-flows": "node scripts/generate-explicit-skill-flows.mjs && node scripts/replace-skill-flow-seed.mjs",
     "audit:security": "node scripts/audit-security-boundaries.mjs && npm run audit:economic",
     "audit:economic": "tsx scripts/test-economic-request.ts",
     "secrets:staged": "node scripts/scan-staged-secrets.mjs",
