@@ -57,7 +57,7 @@ This document is the current convergence index between the Blueprint and the rep
 | Location consent | Discover requests browser permission only for authenticated users, stores coarse purpose-bound consent with expiry, and does not claim background location. | IMPLEMENTED_PARTIALLY_WIRED |
 | Voice | Repository voice boundary exists; real provider activation remains external. | PROVIDER_DEPENDENT |
 | Private-number masking | Owner-scoped proxy allocation, resolution, expiry/release, execution-connector integration, and protected Coordinator lifecycle telemetry exist; a local proxy number is not a routable real telephony number. | PROVIDER_DEPENDENT |
-| WebRTC | Authenticated signalling foundation exists. TURN/STUN, client media lifecycle and production relay are not equivalent to signalling and remain gated. | FOUNDATION_ONLY |
+| WebRTC | Authenticated signalling foundation exists, but create/peer/signal endpoints now fail closed unless `FF_WEBRTC=true` and an approved STUN/TURN or relay prerequisite is configured. TURN/STUN, client media lifecycle, consent, browser interoperability, and production relay remain external activation tasks. | FOUNDATION_ONLY |
 | MQTT / IoT | MQTT bridge foundation exists; secure device identity, discovery, authorisation, state sync and production broker architecture are not yet a complete product capability. | FOUNDATION_ONLY |
 
 ## Economic / network truth

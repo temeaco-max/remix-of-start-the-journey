@@ -12,11 +12,29 @@ import {
   leaveWebRTCRoom,
   touchWebRTCPeer,
   destroyWebRTCRoom,
+  getWebRTCStatus,
 } from '../services/webrtcSignalling.js';
 
 const router = Router();
 
+function requireWebRTCReadiness(res: any): boolean {
+  const readiness = getWebRTCStatus();
+  if (readiness.available) return true;
+  res.status(503).json({
+    success: false,
+    error: 'WebRTC is not available in this deployment.',
+    readiness: {
+      signaling: readiness.signaling,
+      enabled: readiness.enabled,
+      relayConfigured: readiness.relayConfigured,
+      activationRequirement: readiness.activationRequirement,
+    },
+  });
+  return false;
+}
+
 router.post('/create', authenticateUser, (req: AuthRequest, res) => {
+  if (!requireWebRTCReadiness(res)) return;
   const roomId = String(req.body?.roomId || '').trim();
   const phone = String(req.user?.phone || '');
   if (!roomId || !phone) return res.status(400).json({ success: false, error: 'roomId required; phone taken from session' });
@@ -25,6 +43,7 @@ router.post('/create', authenticateUser, (req: AuthRequest, res) => {
 });
 
 router.get('/peers', authenticateUser, (req: AuthRequest, res) => {
+  if (!requireWebRTCReadiness(res)) return;
   const roomId = String(req.query.roomId || '').trim();
   if (!roomId) return res.status(400).json({ success: false, error: 'roomId required' });
   const phone = String(req.user?.phone || '');
@@ -35,6 +54,7 @@ router.get('/peers', authenticateUser, (req: AuthRequest, res) => {
 });
 
 router.post('/signal', authenticateUser, (req: AuthRequest, res) => {
+  if (!requireWebRTCReadiness(res)) return;
   const roomId = String(req.body?.roomId || '').trim();
   const kind = String(req.body?.kind || '') as 'offer' | 'answer' | 'ice' | 'hangup';
   const to = req.body?.to ? String(req.body.to) : undefined;
@@ -52,6 +72,7 @@ router.post('/signal', authenticateUser, (req: AuthRequest, res) => {
 });
 
 router.get('/signals', authenticateUser, (req: AuthRequest, res) => {
+  if (!requireWebRTCReadiness(res)) return;
   const roomId = String(req.query.roomId || '').trim();
   const after = req.query.after ? Number(req.query.after) : undefined;
   const phone = String(req.user?.phone || '');
