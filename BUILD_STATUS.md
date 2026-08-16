@@ -102,6 +102,16 @@ In non-production sandbox mode, the canonical payment boundary can record a clea
 
 `npm run test:local-repair-outcome` exercises this complete local journey: conversational repair requirements → canonical discovery → explicit provider selection → provider-listed quote → sandbox payment authorization → escrow → service-provider execution evidence → user-confirmed completion. It uses temporary development fixtures and does not seed providers into production data.
 
+## Provider-led outcome scenario laboratory
+
+The reusable `scripts/provider-outcome-scenario-lab.ts` derives a deterministic provider-led scenario universe from the canonical skill-flow and service registries. It does not create per-skill engines or scenario-specific business logic. The default run generates 10,000 retained scenarios from a 28,700-instance full universe covering all 205 canonical skills, all 46 families, seven UK/Canada/Nigeria market configurations, six locale/dialect groups, ten channel/context surfaces, six actor types, six provider types, linked-device and QR entry, and 20 lifecycle, failure, recovery, identity, safety, legal, negotiation, interruption, duplicate, stale-action, and notification variants.
+
+Run `npm run scenario-lab:generate` to regenerate the deterministic JSONL scenario corpus and its SmolLM2-labelled corpus. Run `npm run scenario-lab:execute` to execute one isolated canonical `routeIntent` probe for every skill against a temporary `DB_PATH`; this does not mutate the normal development database and does not claim provider availability or external fulfilment. Run `KURUKOO_REQUIRE_SCENARIO_EXECUTION=true npm run test:scenario-lab` to require the per-skill probe results.
+
+Artifacts are written to `data/scenario-lab/provider-outcome-scenarios.jsonl`, `data/scenario-lab/provider-outcome-scenario-lab.manifest.json`, and `data/scenario-lab/provider-outcome-execution-results.jsonl`. The training corpus is written to `ml/datasets/kurukoo-provider-outcome-lab-v1.all.jsonl`. Each record includes scenario identity, market, locale, dialect, actor, channel, linked-device/QR flags, skill, family, provider type, lifecycle, canonical services, UI states, execution boundary, evidence requirements, external dependencies, final state, failure class, and readiness classification.
+
+The readiness vocabulary is explicit: `LOCALLY_COMPLETE`, `DEVELOPMENT_FIXTURE_COMPLETE`, `REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED`, `STRUCTURALLY_INCOMPLETE`, and `BLOCKED_BY_EXTERNAL_DEPENDENCY`. The laboratory is synthetic-only, does not feed scenario data into normal runtime authority, and never promotes an adapter into live, active, verified, connected, delivered, or externally completed status.
+
 ## What is intentionally not claimed as implemented
 
 The application does **not** simulate unavailable real-world infrastructure. In particular:

@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "seed": "kurukoo-provider-outcome-lab-v1",
+  "generatedAt": "2026-08-16T14:44:56.066Z",
+  "generatedCount": 10000,
+  "fullUniverseCount": 28700,
+  "target": 10000,
+  "executedCount": 205,
+  "executedPassed": 205,
+  "executedFailed": 0,
+  "skillCount": 205,
+  "familyCount": 46,
+  "coverage": {
+    "skills": 205,
+    "families": 46,
+    "markets": [
+      "ng",
+      "ca",
+      "ca-fr",
+      "ng-hausa",
+      "gb-regional",
+      "ng-pidgin",
+      "gb"
+    ],
+    "locales": [
+      "ng:en",
+      "ca:en",
+      "ca:fr",
+      "ng:hausa-influenced",
+      "gb:en",
+      "ng:pidgin"
+    ],
+    "dialects": [
+      "nigerian-english",
+      "canadian-english",
+      "canadian-french",
+      "hausa-influenced",
+      "uk-english",
+      "pidgin"
+    ],
+    "channels": [
+      "voice",
+      "ussd",
+      "web_chat",
+      "sms",
+      "whatsapp",
+      "telegram",
+      "linked_device",
+      "qr_context",
+      "pwa",
+      "email"
+    ],
+    "actors": [
+      "contributor",
+      "business",
+      "support_operator",
+      "agent",
+      "provider",
+      "consumer"
+    ],
+    "providerTypes": [
+      "professional",
+      "business",
+      "seller",
+      "community_provider",
+      "delivery_provider",
+      "individual"
+    ],
+    "lifecycleVariants": [
+      "duplicate_action",
+      "ambiguous",
+      "delivery_failure",
+      "normal",
+      "provider_failure",
+      "notification_failure",
+      "legal_boundary",
+      "stale_action",
+      "payment_failure",
+      "safety_boundary",
+      "locale_variant",
+      "context_conflict",
+      "evidence_failure",
+      "cancellation",
+      "channel_interruption",
+      "interrupted",
+      "dispute",
+      "corrected",
+      "execution_failure",
+      "quote_change"
+    ],
+    "readiness": {
+      "BLOCKED_BY_EXTERNAL_DEPENDENCY": 4085,
+      "LOCALLY_COMPLETE": 2893,
+      "DEVELOPMENT_FIXTURE_COMPLETE": 2290,
+      "REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED": 732
+    },
+    "linkedDevices": 1012,
+    "qrContexts": 1016
+  },
+  "fileSha256": {
+    "scenarios": "dcc2332e21ec104b23cfd331c2fb5aba5fe6e2ec95aeffa71b9f1a70468d827f",
+    "training": "fadcd04230575cc324766440c0677f0cc7aa756859b8caeb99dd43533842b9bf"
+  },
+  "executionMode": "isolated_canonical_route_probe_one_per_skill",
+  "sourceOfTruth": [
+    "src/services/skillFlows.ts",
+    "src/services/intentRouter.ts",
+    "src/services/canonicalChatTurnService.ts",
+    "src/services/discoveryNetwork.ts",
+    "src/services/agenticStorefront.ts",
+    "src/services/executionConnector.ts"
+  ],
+  "normalRuntimeDependsOnUniverse": false,
+  "syntheticOnly": true,
+  "externalCapabilitiesClaimed": false,
+  "readinessVocabulary": [
+    "LOCALLY_COMPLETE",
+    "DEVELOPMENT_FIXTURE_COMPLETE",
+    "REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED",
+    "STRUCTURALLY_INCOMPLETE",
+    "BLOCKED_BY_EXTERNAL_DEPENDENCY"
+  ]
+}
