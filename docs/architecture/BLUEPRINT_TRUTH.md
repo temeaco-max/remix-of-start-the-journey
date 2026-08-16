@@ -113,3 +113,12 @@ Kurukoo remains aligned with the launch cost strategy:
 5. Finish provider-independent portions of private number masking, WebRTC and MQTT/IoT and keep them feature-flagged until real infrastructure is present.
 6. Continue actor/scenario testing across contributors, providers, businesses, agents and users so every canonical flow behaves as one ecosystem.
 7. Keep external activation boundaries truthful and explicit.
+
+
+## Outcome-completeness truth
+
+The executable outcome matrix is generated from the canonical skill-flow and feature registries with `npm run audit:outcome-completeness`; its machine-readable and Markdown evidence lives at `data/audits/outcome-completeness.json` and `data/audits/outcome-completeness.md`. `npm run test:outcome-completeness` enforces 205 canonical skills, 46 families, zero missing canonical flow definitions, populated lifecycle states, canonical owners, execution boundaries and recovery paths.
+
+The matrix classifies every current skill as **REPOSITORY_READY_EXTERNAL_ACTIVATION** when its canonical repository path exists but a capability-specific provider, operational, delivery or evidence boundary remains deployment-dependent. This does not mean that external execution, payment, messaging, voice, fulfilment, provider availability or completion is live. It means the repository-side lifecycle and activation seam are present and truthfully bounded.
+
+The outcome unit is the user's objective across the applicable lifecycle, not the presence of a skill tag, route or card. Brain/context arbitration remains semantic and planning authority; canonical services remain the sole mutation and authorization owners. The matrix is evidence of convergence and gap detection, not a second orchestration subsystem.
