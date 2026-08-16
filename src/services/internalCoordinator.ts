@@ -69,7 +69,7 @@ function firstClassAgentPersona(): CoordinatorCapability {
     risk: 'read_only',
     requires: 'none',
     autonomous: false,
-    canRun: context => context.event.type === 'agent.persona.requested' && Boolean(context.event.ownerPhone) && typeof context.event.payload?.agentId === 'string',
+    canRun: context => context.event.type === 'agent.persona.requested' && typeof context.event.payload?.agentId === 'string',
     async run(context): Promise<CoordinatorCapabilityResult> {
       const agentId = String(context.event.payload?.agentId || '').slice(0, 120);
       const skill = String(context.event.payload?.skill || '').slice(0, 120);
@@ -144,15 +144,15 @@ export class InternalCoordinator {
 
 export const internalCoordinator = new InternalCoordinator();
 
-export function coordinatorEventForFirstClassAgent(input: { ownerPhone: string; agentId: string; skill: string; conversationId?: string }): Omit<CoordinatorEventEnvelope, 'id' | 'occurredAt' | 'schemaVersion'> {
+export function coordinatorEventForFirstClassAgent(input: { ownerPhone?: string; agentId: string; skill: string; conversationId?: string }): Omit<CoordinatorEventEnvelope, 'id' | 'occurredAt' | 'schemaVersion'> {
   return {
     type: 'agent.persona.requested',
     producer: 'intentRouter',
     correlationId: `agent-persona:${input.agentId}:${Date.now()}`,
-    ownerPhone: input.ownerPhone,
+    ...(input.ownerPhone ? { ownerPhone: input.ownerPhone } : {}),
     payload: { agentId: input.agentId, skill: input.skill, conversationId: input.conversationId },
-    sensitivity: 'personal',
-    provenance: { source: 'canonical_service', sourceId: input.agentId, evidenceLevel: 'policy_reviewed' },
+    sensitivity: input.ownerPhone ? 'personal' : 'public',
+    provenance: { source: input.ownerPhone ? 'canonical_service' : 'user', sourceId: input.agentId, evidenceLevel: 'policy_reviewed' },
     policy: { autonomousAllowed: false, confirmationRequired: 'none' },
   };
 }

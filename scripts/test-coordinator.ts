@@ -43,6 +43,11 @@ assert.equal(personaResult.data?.provider, 'local', 'Persona coordination must s
 assert.equal(personaResult.data?.model, 'SmolLM2', 'Persona coordination must report the local Brain model boundary');
 assert.equal(personaResult.evidence?.level, 'policy_reviewed', 'Persona coordination must persist policy-reviewed evidence');
 
+const guestPersonaResult = await internalCoordinator.handle(coordinatorEventForFirstClassAgent({ agentId: 'agent_support_triage', skill: 'support_triage' }));
+assert.equal(guestPersonaResult.ok, true, 'Guest first-class persona requests must still pass through the Brain');
+assert.equal(guestPersonaResult.state, 'observed', 'Guest persona coordination must remain observational');
+assert.equal(guestPersonaResult.data?.provider, 'local', 'Guest persona coordination must remain local-first');
+
 const runs = await listCoordinatorRuns(10);
 assert.ok(runs.some(run => run.capability === 'inspect_request' && run.provider === 'deterministic' && run.model === 'rules-v1'), 'Coordinator run telemetry must persist the deterministic local-first decision');
 
