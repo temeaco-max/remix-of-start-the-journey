@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kurukoo.com/schemas/governance/decision-record.json",
+  "title": "Kurukoo bounded decision provenance record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decision_id", "conversation_id", "outcome", "created_at"],
+  "properties": {
+    "decision_id": {"type": "string"},
+    "conversation_id": {"type": "string"},
+    "context_id": {"type": ["string", "null"]},
+    "capability": {"type": ["string", "null"]},
+    "action": {"type": ["string", "null"]},
+    "model": {"type": ["string", "null"]},
+    "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "policy_version": {"type": ["string", "null"]},
+    "outcome": {"enum": ["allow", "allow_with_confirmation", "allow_with_human_review", "defer", "deny", "unavailable", "unknown"]},
+    "reason_codes": {"type": "array", "items": {"type": "string"}},
+    "authorization_ref": {"type": ["string", "null"]},
+    "execution_ref": {"type": ["string", "null"]},
+    "evidence_ref": {"type": ["string", "null"]},
+    "response_ref": {"type": ["string", "null"]},
+    "created_at": {"type": "string", "format": "date-time"}
+  }
+}
