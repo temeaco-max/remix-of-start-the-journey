@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kurukoo/evaluation-result.schema.json",
+  "type": "object",
+  "required": ["modelVersion", "datasetVersion", "suite", "metrics", "passed"],
+  "properties": {
+    "modelVersion": {"type": "string"},
+    "datasetVersion": {"type": "string"},
+    "suite": {"type": "string"},
+    "metrics": {"type": "object", "additionalProperties": {"type": "number"}},
+    "failures": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+    "passed": {"type": "boolean"},
+    "resourceProfile": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kurukoo/scenario.schema.json",
+  "type": "object",
+  "required": ["scenarioId", "version", "context", "turns", "expectedOutcome"],
+  "properties": {
+    "scenarioId": {"type": "string"},
+    "version": {"type": "string"},
+    "source": {"type": "string"},
+    "context": {"type": "object", "additionalProperties": true},
+    "turns": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+    "expectedOutcome": {"type": "object", "additionalProperties": true},
+    "policyTags": {"type": "array", "items": {"type": "string"}},
+    "difficulty": {"type": "string"},
+    "provenance": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+[project]
+name = "kurukoo-ml"
+version = "0.1.0"
+description = "Offline scenario generation, dataset curation, training and evaluation for Kurukoo's specialised student model."
+requires-python = ">=3.10"
+
+# Training dependencies are intentionally not pinned here yet. Manus should pin
+# a reproducible environment after selecting the actual CUDA/CPU training path.
+# Expected stack: transformers, datasets, peft, trl, accelerate, torch, pydantic,
+# jsonschema and an appropriate GGUF/quantization exporter.
+
+[tool.kurukoo]
+student_model = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
+training_strategy = "qlora"

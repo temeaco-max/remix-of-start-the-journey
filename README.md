@@ -22,6 +22,8 @@ Kurukoo is a **conversational fulfilment network and personal assistance platfor
 | Rate limiting | In-memory process-local limits are appropriate only for the single-instance launch model. |
 | Channels | Web Chat is active; WhatsApp, Telegram, SMS, USSD, Email, FCM, and Voice remain adapter boundaries whose readiness depends on truthful configuration. |
 | Front end | EJS public pages (`views/`) and vanilla JavaScript PWA (`public/`). Dynamic provider, opportunity, promotion, and chat text is rendered with DOM nodes and `textContent`. |
+| AI Brain | `src/services/internalCoordinator.ts` is the canonical coordinator boundary. The specialised student-model and offline learning architecture is defined by `BLUEPRINT_AI_MODEL_ADDENDUM.md` and `docs/KURUKOO_AI_MODEL_SYSTEM.md`. |
+| Student model | `ml/` contains the offline scenario, dataset, teacher, training, evaluation, export and registry foundations for Kurukoo-SmolLM2. Production must load only versioned model artifacts through the canonical runtime. |
 
 ## Quick Start
 
@@ -33,10 +35,10 @@ npm run dev                 # tsx index.ts → http://localhost:3000
 npm run lint                # TypeScript type-check
 npm run build               # type-check + public asset copy + CSS optimization
 npm run test:routes         # canonical route and ownership contracts
-npm run audit:complete       # repository CSS/architecture duplicate audit
+npm run audit:complete      # repository CSS/architecture duplicate audit
 npm run audit:css:all       # shared CSS/token and server-template audit
 npm run audit:security      # static safety invariants + HTTP authorization behavior
-npm run pilot:readiness      # read-only readiness report; never prints secrets
+npm run pilot:readiness     # read-only readiness report; never prints secrets
 npm run test:pilot-readiness # missing-credential and production/dev-auth regression
 npm run test:pilot-production-guards # production rejects development OTP/test auth
 npm run test:whatsapp-webhook-boundary # provider-independent WhatsApp challenge boundary
@@ -64,6 +66,12 @@ Current CI includes build, test, custom audit, FastText, and secret-scan jobs. T
 ## Key Docs
 
 - `BLUEPRINT.md` — master specification and current product/architecture source of truth (v5.66).
+- `BLUEPRINT_IMPLEMENTATION_ADDENDUM.md` — current implementation companion.
+- `BLUEPRINT_AI_MODEL_ADDENDUM.md` — canonical AI Brain/student-model extension.
+- `docs/KURUKOO_AI_MODEL_SYSTEM.md` — detailed AI model architecture and completion contract.
+- `docs/KURUKOO_PRODUCTION_AND_LEARNING_PIPELINES.md` — fixed production and offline learning pipelines.
+- `docs/KURUKOO_AI_MODEL_IMPLEMENTATION_MAP.md` — mapping between existing AI services and the new ML workspace.
+- `docs/MANUS_KURUKOO_STUDENT_MODEL_COMPLETION_PROMPT.md` — implementation directive for completing the system without architectural drift.
 - `BUILD_STATUS.md` — canonical route ownership and release verification status.
 - `SECURITY_AUDIT_STATUS.md` — security posture, manual operator actions, and scale transition criteria.
 - `ECOSYSTEM.md` — authoritative economic taxonomy.
