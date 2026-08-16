@@ -41,8 +41,8 @@ async function main() {
     assert.match(page, /admin-auth\.js/, `${file} must include the shared admin auth boundary`);
   }
   const dashboard = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'dashboard.html'), 'utf8');
-  assert.match(dashboard, /fetch\('\/api\/admin\/ads'/, 'admin dashboard campaigns must use the protected admin ads owner');
-  assert.match(dashboard, /fetch\('\/api\/admin\/content'/, 'admin dashboard CMS must use the protected admin content owner');
+  assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/ads'/, 'admin dashboard campaigns must use the protected admin ads owner');
+  assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/content'/, 'admin dashboard CMS must use the protected admin content owner');
   assert.doesNotMatch(dashboard, /fetch\('\/api\/ads'/, 'admin dashboard must not use the public ads path');
   assert.doesNotMatch(dashboard, /fetch\('\/api\/content'/, 'admin dashboard must not use the public content path');
   assert.match(src, /router\.get\('\/celebrity',\s*authenticateAdmin/, 'celebrity demand must have a protected admin endpoint');

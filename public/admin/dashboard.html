@@ -603,6 +603,10 @@
             if (!response.ok || !data.success) throw new Error(data.error || 'Development test Chat is unavailable.');
             return data;
         }
+        async function adminFetch(path, options = {}) {
+            const headers = { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '', ...(options.headers || {}) };
+            return fetch(path, { ...options, headers, credentials: 'same-origin' });
+        }
         async function openOperatorChat() {
             try { const data = await adminTestChatRequest('/api/admin/operator/chat'); window.location.assign(data.redirect || '/chat?operator=1'); }
             catch (error) { window.alert(error.message || 'Canonical operator Chat is unavailable.'); }
@@ -633,7 +637,7 @@
             const result = document.getElementById('mistral-connection-result');
             if (result) result.textContent = 'Testing…';
             try {
-                const response = await fetch('/api/admin/providers/mistral/test', { method: 'POST', credentials: 'same-origin' });
+                const response = await adminFetch('/api/admin/providers/mistral/test', { method: 'POST' });
                 const data = await response.json().catch(() => ({}));
                 if (result) result.textContent = data.reachable ? `Reachable (${data.modelCount || 0} models reported)` : (data.note || 'Mistral is not reachable or configured.');
             } catch (error) {
@@ -643,7 +647,7 @@
         // Load initial console data
         function loadConsoleData() {
             // Load stats
-            fetch('/api/admin/stats').then(async res => {
+            adminFetch('/api/admin/stats').then(async res => {
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.success) throw new Error(data.error || 'Admin authentication required');
                 return data;
@@ -657,7 +661,7 @@
                 ['stat-users', 'stat-providers', 'stat-messages', 'stat-credits'].forEach(id => { const node = document.getElementById(id); if (node) node.innerText = '—'; });
             });
 
-            fetch('/api/admin/pilot-readiness').then(res => res.json()).then(report => {
+            adminFetch('/api/admin/pilot-readiness').then(res => res.json()).then(report => {
                 const grid = document.getElementById('pilot-readiness-grid');
                 const categories = report.categories || {};
                 const entries = Object.entries(categories).flatMap(([category, values]) => Object.entries(values || {}).map(([name, value]) => ({ category, name, value })));
@@ -669,7 +673,7 @@
                 }).join('') || '<div>No readiness data available.</div>';
             }).catch(() => { document.getElementById('pilot-readiness-grid').textContent = 'Pilot readiness is temporarily unavailable.'; });
             // Load skill flows
-            fetch('/api/admin/skill-flows').then(res=>res.json()).then(flows => {
+            adminFetch('/api/admin/skill-flows').then(res=>res.json()).then(flows => {
                 const tbody = document.getElementById('skill-flows-tbody');
                 tbody.innerHTML = flows.map(f => `
                     <tr>
@@ -686,7 +690,7 @@
             }).catch(e => console.error('Skill flows load error:', e));
 
             // Load ad campaigns
-            fetch('/api/admin/ads', { credentials: 'same-origin', headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '' } }).then(res=>{ if (!res.ok) throw new Error('Admin authentication required'); return res.json(); }).then(ads => {
+            adminFetch('/api/admin/ads', { credentials: 'same-origin', headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '' } }).then(res=>{ if (!res.ok) throw new Error('Admin authentication required'); return res.json(); }).then(ads => {
                 const tbody = document.getElementById('ads-tbody');
                 tbody.innerHTML = ads.map(ad => `
                     <tr>
@@ -700,7 +704,7 @@
             }).catch(e => console.error('Ads load error:', e));
 
             // Load active pulse sessions
-            fetch('/api/admin/pulse-sessions').then(res=>res.json()).then(sessions => {
+            adminFetch('/api/admin/pulse-sessions').then(res=>res.json()).then(sessions => {
                 const div = document.getElementById('pulse-sessions-list');
                 div.innerHTML = sessions.map(s => `
                     <div class="admin-inline-f01a9c842c">
@@ -713,7 +717,7 @@
             }).catch(e => console.error('Pulse sessions error:', e));
 
             // Load real-time trends analytics
-            fetch('/api/admin/analytics/trends').then(res=>res.json()).then(data => {
+            adminFetch('/api/admin/analytics/trends').then(res=>res.json()).then(data => {
                 // Trends
                 const trendsDiv = document.getElementById('trends-bars');
                 trendsDiv.innerHTML = data.trends.map(t => {
@@ -759,7 +763,7 @@
         }
 
         function loadTrustReadiness() {
-            fetch('/api/admin/trust/readiness', { credentials: 'same-origin', headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '' } })
+            adminFetch('/api/admin/trust/readiness')
                 .then(res => res.json())
                 .then(data => {
                     const grid = document.getElementById('trust-readiness-grid');
@@ -829,7 +833,7 @@
         }
 
         function loadPlatformStats() {
-            fetch('/api/admin/stats')
+            adminFetch('/api/admin/stats')
                 .then(res => res.json())
                 .then(data => {
                     const requests = data.economic_requests || {};
@@ -897,7 +901,7 @@
                 return;
             }
 
-            fetch('/api/admin/skill-flows', {
+            adminFetch('/api/admin/skill-flows', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ skill, question_set, post_match_action, payment_model, fulfillment_instructions })
@@ -940,7 +944,7 @@
             const targetKeyword = document.getElementById('ad-keyword').value;
             const creditsBudget = document.getElementById('ad-budget').value;
 
-            fetch('/api/admin/ads', {
+            adminFetch('/api/admin/ads', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '', 'Content-Type': 'application/json' },
@@ -965,7 +969,7 @@
 
         // CMS Actions & Loaders
         function loadCmsList() {
-            fetch('/api/admin/content', { credentials: 'same-origin', headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '' } }).then(res => { if (!res.ok) throw new Error('Admin authentication required'); return res.json(); }).then(data => {
+            adminFetch('/api/admin/content').then(res => { if (!res.ok) throw new Error('Admin authentication required'); return res.json(); }).then(data => {
                 const tbody = document.getElementById('cms-tbody');
                 tbody.innerHTML = data.map(page => `
                     <tr>
@@ -1025,7 +1029,7 @@
             const author = document.getElementById('cms-author').value;
             const body = document.getElementById('cms-body').value;
 
-            fetch('/api/admin/content', {
+            adminFetch('/api/admin/content', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ slug, title, type, author, body })
@@ -1040,7 +1044,7 @@
 
         // Disputes Actions & Loaders
         function loadDisputesList() {
-            fetch('/api/admin/tickets?type=dispute').then(res => res.json()).then(data => {
+            adminFetch('/api/admin/tickets?type=dispute').then(res => res.json()).then(data => {
                 const tbody = document.getElementById('disputes-tbody');
                 tbody.innerHTML = data.map(d => `
                     <tr>
@@ -1095,7 +1099,7 @@
 
         // Tickets Actions & Loaders
         function loadTicketsList() {
-            fetch('/api/admin/tickets?type=support').then(res => res.json()).then(data => {
+            adminFetch('/api/admin/tickets?type=support').then(res => res.json()).then(data => {
                 const tbody = document.getElementById('tickets-tbody');
                 tbody.innerHTML = data.map(t => `
                     <tr>
@@ -1129,7 +1133,7 @@
             const disputeId = document.getElementById('reply-ticket-id').value;
             const replyMessage = document.getElementById('reply-content').value;
 
-            fetch('/api/admin/tickets/reply', {
+            adminFetch('/api/admin/tickets/reply', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ disputeId, replyMessage })
