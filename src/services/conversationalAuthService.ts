@@ -1,4 +1,5 @@
 import { getDb, saveDb } from '../database.js';
+import { getProfile, updateProfile } from './memoryProfile.js';
 import { isEmailOtpEnabled, normalizeOtpEmail, normalizeOtpPhone, requestEmailOtp, requestPhoneOtp, verifyEmailOtp, verifyPhoneOtp } from './otpAuthService.js';
 import { developmentTestOtpLabel, isDevelopmentTestIdentity, verifyDevelopmentTestOtp } from './devTestAuthService.js';
 import { issueUserToken, upsertProfile } from '../routes/authRoutes.js';
@@ -16,40 +17,22 @@ export interface ConversationalAuthResult {
 }
 
 export async function getAuthState(guestPhone: string): Promise<{ state: AuthState, data: any }> {
-  const db = await getDb();
-  const stmt = db.prepare('SELECT preferences FROM memory_profiles WHERE phone = ?');
-  stmt.bind([guestPhone]);
-  let state: AuthState = 'none';
-  let data: any = {};
-  if (stmt.step()) {
-    const obj = stmt.getAsObject();
-    const prefs = obj.preferences ? JSON.parse(String(obj.preferences)) : {};
-    state = prefs.auth_in_chat_state || 'none';
-    data = prefs.auth_in_chat_data || {};
-  }
-  stmt.free();
-  return { state, data };
+  const profile = await getProfile(guestPhone, 'conversational_auth');
+  const prefs = profile?.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};
+  return {
+    state: (prefs.auth_in_chat_state || 'none') as AuthState,
+    data: prefs.auth_in_chat_data && typeof prefs.auth_in_chat_data === 'object' ? prefs.auth_in_chat_data : {},
+  };
 }
 
 export async function setAuthState(guestPhone: string, state: AuthState, data: any = {}): Promise<void> {
-  const db = await getDb();
-  const stmt = db.prepare('SELECT preferences FROM memory_profiles WHERE phone = ?');
-  stmt.bind([guestPhone]);
-  let prefs: any = {};
-  if (stmt.step()) {
-    const obj = stmt.getAsObject();
-    prefs = obj.preferences ? JSON.parse(String(obj.preferences)) : {};
-  }
-  stmt.free();
-  
+  const profile = await getProfile(guestPhone, 'conversational_auth');
+  const prefs = profile?.preferences && typeof profile.preferences === 'object' ? { ...profile.preferences } : {};
   prefs.auth_in_chat_state = state;
   prefs.auth_in_chat_data = data;
-
-  // Guest sessions may not have a profile row yet. Create the lightweight
-  // memory record before persisting the conversational auth state.
-  db.run('INSERT OR IGNORE INTO memory_profiles (phone, name, preferences) VALUES (?, ?, ?)', [guestPhone, '', JSON.stringify(prefs)]);
-  db.run('UPDATE memory_profiles SET preferences = ? WHERE phone = ?', [JSON.stringify(prefs), guestPhone]);
-  saveDb();
+  // updateProfile creates the lightweight guest record when needed and keeps
+  // conversational-auth state inside the canonical encrypted profile boundary.
+  await updateProfile(guestPhone, 'conversational_auth', { preferences: prefs });
 }
 
 export async function handleConversationalAuth(guestPhone: string, text: string): Promise<ConversationalAuthResult> {

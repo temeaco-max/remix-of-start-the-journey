@@ -114,6 +114,21 @@ export async function logProfileAccess(phone: string, serviceName: string, actio
     }
 }
 
+function decodeProfileField(value: unknown, field: 'preferences' | 'behavior_patterns'): Record<string, unknown> {
+    if (!value) return {};
+    try {
+        const decrypted = decryptData(String(value));
+        const parsed = parseProfileJson(decrypted, field);
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+        // A rotated or unavailable encryption key must not take down the canonical
+        // Chat turn. Omit only the unreadable field, preserve the owner boundary,
+        // and keep the failure observable without logging profile contents.
+        console.warn(`[Kurukoo Security] ${field} profile context unavailable; field omitted.`, error instanceof Error ? error.message : 'decrypt failure');
+        return {};
+    }
+}
+
 export async function getProfile(phone: string, serviceName: string = 'system') {
     await logProfileAccess(phone, serviceName, 'read');
     const db = await getDb();
@@ -126,14 +141,8 @@ export async function getProfile(phone: string, serviceName: string = 'system') 
     stmt.free();
 
     if (profile) {
-        if (profile.preferences) {
-            const decryptedPrefs = decryptData(profile.preferences);
-            profile.preferences = parseProfileJson(decryptedPrefs, 'preferences');
-        }
-        if (profile.behavior_patterns) {
-            const decryptedPatterns = decryptData(profile.behavior_patterns);
-            profile.behavior_patterns = parseProfileJson(decryptedPatterns, 'behavior_patterns');
-        }
+        profile.preferences = decodeProfileField(profile.preferences, 'preferences');
+        profile.behavior_patterns = decodeProfileField(profile.behavior_patterns, 'behavior_patterns');
     }
     return profile;
 }

@@ -1,5 +1,5 @@
 import { getDb, saveDb } from '../database.js';
-import { decryptData, encryptData } from './memoryProfile.js';
+import { encryptData, getProfile } from './memoryProfile.js';
 
 /**
  * Onboarding is progressive guidance, not a hard conversational gate.
@@ -9,17 +9,13 @@ import { decryptData, encryptData } from './memoryProfile.js';
  */
 export async function isOnboarding(phone: string): Promise<boolean> {
     const db = await getDb();
-    const stmt = db.prepare(`SELECT name, preferences FROM memory_profiles WHERE phone = ?`);
-    stmt.bind([phone]);
+    const profile = await getProfile(phone, 'progressive_onboarding');
     let onboarding = false;
-    let name: string | null = null;
-    if (stmt.step()) {
-        const obj = stmt.getAsObject();
-        name = obj.name ? String(obj.name).trim() : null;
-        const prefs = obj.preferences ? JSON.parse(decryptData(String(obj.preferences))) : {};
+    const name = profile?.name ? String(profile.name).trim() : null;
+    if (profile) {
+        const prefs = profile.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};
         onboarding = prefs.onboarding_complete !== true;
     }
-    stmt.free();
     if (!onboarding) return false;
 
     // A supplied identity is enough to let the conversational system continue.
@@ -44,16 +40,9 @@ export async function isOnboarding(phone: string): Promise<boolean> {
 
 export async function handleOnboardingInput(phone: string, text: string): Promise<{ reply: string, cardData?: any }> {
     const db = await getDb();
-    const stmt = db.prepare(`SELECT name, preferences, is_available FROM memory_profiles WHERE phone = ?`);
-    stmt.bind([phone]);
-    let name: string | null = null;
-    let prefs: any = {};
-    if (stmt.step()) {
-        const obj = stmt.getAsObject();
-        name = obj.name;
-        prefs = obj.preferences ? JSON.parse(decryptData(String(obj.preferences))) : {};
-    }
-    stmt.free();
+    const profile = await getProfile(phone, 'progressive_onboarding');
+    const name: string | null = profile?.name ? String(profile.name) : null;
+    const prefs: any = profile?.preferences && typeof profile.preferences === 'object' ? { ...profile.preferences } : {};
 
     const step = prefs.onboarding_step || 'start';
 
