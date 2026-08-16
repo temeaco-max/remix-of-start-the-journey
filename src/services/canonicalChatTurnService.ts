@@ -62,9 +62,7 @@ function extractRequirementPatch(message: string, card: any, current: any): Reco
   }
   const location = text.match(/\b(?:in|at|near|around|within)\s+([A-Za-z][A-Za-z .'-]{1,50}?)(?=\s+(?:tomorrow|today|on|for|with|and|,|\.|!|\?|$))/i);
   if (location) setFirst(['location', 'venue', 'city', 'venue_or_city', 'origin'], location[1].trim());
-  if (!location && /^[A-Za-z][A-Za-z .'-]{1,40}[.!?]?$/.test(text) && (keys.has('location') || keys.has('city') || keys.has('venue'))) {
-    setFirst(['location', 'city', 'venue', 'venue_or_city'], text.replace(/[.!?]+$/, '').trim());
-  }
+  if (!location && /^[A-Za-z][A-Za-z .'-]{1,40}[.!?]?$/.test(text) && (keys.has('location') || keys.has('city') || keys.has('venue'))) setFirst(['location', 'city', 'venue', 'venue_or_city'], text.replace(/[.!?]+$/, '').trim());
   const service = text.match(/\b(plumb(?:er|ing)?|electri(?:cian|cal)?|paint(?:er|ing)?|decorat(?:or|ing)?|til(?:er|ing)?|roof(?:er|ing)?|mason|welder|mechanic|carpenter|cleaner|clean|cleaning|housekeeping|tailor|charger|cater(?:ing|er)?|food|ride)\b/i);
   if (service) {
     const raw = service[1].toLowerCase();
@@ -105,7 +103,12 @@ async function continueActiveRequest(phone: string, conversationId: string | und
 export interface CanonicalChatTurnInput { phone: string; message: string; channel: string; conversationId?: string; attachment?: unknown; contextAction?: { type: string; entityId?: string; contextId?: string; conversationId?: string; canonicalAction?: string; objectType?: string; objectId?: string }; }
 export interface CanonicalChatTurnResult { phone: string; conversationId: string; userMessageId: number; reply: string; cardData?: any; authSuccess?: { phone: string; token: string }; agentGoal?: { id: string; status: string; objective: string; summary?: string; autonomy?: string; economicRequestId?: string }; classificationSource?: 'fasttext' | 'rules' | 'fallback'; intentConfidence?: number; modelProvider?: string; model?: string; extractionSource?: 'deterministic' | 'generative' | 'none'; extractedEntities?: Record<string, unknown>; canonicalAction?: string; progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete'; latencyMs?: number; contextDecision?: ContextArbitrationDecision; conversationQualityScore?: number; conversationQualityIssues?: string[]; conversationGenerationEscalated?: boolean; conversationGenerationAttempts?: number; conversationContextTurns?: number; }
 
-function shouldUseUniversalConversationOwner(routing: IntentRoutingResult): boolean { if (routing.skill !== 'general_question') return false; if (routing.canonicalAction) return false; if (typeof routing.cardData?.requestId === 'string') return false; if (routing.cardData?.type && /(?:economic_request|agentic_storefront|checkout|payment|reminder|notification|safety|provider_profile|seller_offer|topic_draft|events_list|sports_search)/i.test(String(routing.cardData.type))) return false; return true; }
+function shouldUseUniversalConversationOwner(routing: IntentRoutingResult): boolean {
+  if (routing.skill !== 'general_question') return false;
+  if (routing.canonicalAction) return false;
+  if (routing.cardData && typeof routing.cardData === 'object') return routing.cardData.type === 'ai_metadata';
+  return true;
+}
 
 export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): Promise<CanonicalChatTurnResult> {
   const phone = String(input.phone || '').trim(); const message = String(input.message || '').trim(); if (!phone || !message) throw new Error('Phone and message are required');
