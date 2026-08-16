@@ -106,19 +106,13 @@ export function updateTrajectoryState(state: TrajectoryState, turn: TrajectoryTu
   };
   if (turn.role !== 'user') return next;
   const signals = detectTrajectorySignals(turn.text);
-  if (signals.interruption && signals.action === false) {
+  if (signals.interruption && !signals.action) {
     const current = next.activeGoals.at(-1);
     if (current && !next.pausedGoals.includes(current)) next.pausedGoals.push(current);
   }
-  if (signals.reference && next.activeGoals.length) {
-    next.selectedContext = next.activeGoals.at(-1);
-  }
-  if (signals.action) {
-    next.lastActionTarget = next.selectedContext || next.activeGoals.at(-1);
-  }
-  if (signals.correction) {
-    next.lastActionTarget = next.selectedContext || next.lastActionTarget;
-  }
+  if (signals.reference && next.activeGoals.length) next.selectedContext = next.pausedGoals.at(-1) || next.activeGoals.at(-1);
+  if (signals.action) next.lastActionTarget = next.selectedContext || next.activeGoals.at(-1);
+  if (signals.correction) next.lastActionTarget = next.selectedContext || next.lastActionTarget;
   return next;
 }
 
@@ -128,64 +122,56 @@ export function scoreTrajectory(trajectory: TrajectoryDefinition): TrajectorySco
   let interruptionPass = 0;
   let correctionPass = 0;
   let referencePass = 0;
-  let actionDisciplinePass = 0;
-  let naturalnessPass = 0;
+  let actionPass = 0;
   let goalPass = 0;
+  let naturalnessPass = 0;
   let checks = 0;
-  const state: TrajectoryState = { activeGoals: [...trajectory.goals], pausedGoals: [], knownFacts: [] };
+  let state: TrajectoryState = { activeGoals: [...trajectory.goals], pausedGoals: [], knownFacts: [] };
 
   for (const turn of trajectory.turns) {
     if (turn.role !== 'user') continue;
-    const signals = detectTrajectorySignals(turn.text);
     checks += 1;
+    const signals = detectTrajectorySignals(turn.text);
+    const previous = state;
+    const next = updateTrajectoryState(previous, turn);
 
-    if (turn.expectedMode === 'reference') {
-      if (signals.reference) referencePass += 1;
-      else issues.push(`reference_not_detected:${turn.text}`);
-    } else if (signals.reference || signals.interruption || signals.correction || signals.action || signals.exploration) {
-      referencePass += signals.reference ? 1 : 0;
-      interruptionPass += signals.interruption ? 1 : 0;
-      correctionPass += signals.correction ? 1 : 0;
-      actionDisciplinePass += signals.action || signals.exploration ? 1 : 0;
-    } else {
-      actionDisciplinePass += 1;
+    contextPass += turn.expectedContext
+      ? (previous.activeGoals.some(goal => normalize(goal).includes(normalize(turn.expectedContext!))) ? 1 : 0)
+      : 1;
+    if (turn.expectedContext && !previous.activeGoals.some(goal => normalize(goal).includes(normalize(turn.expectedContext!)))) {
+      issues.push(`context_mismatch:${turn.text}`);
     }
 
-    if (turn.expectedContext) {
-      const normalizedExpected = normalize(turn.expectedContext);
-      const contextMatches = state.activeGoals.some(goal => normalize(goal).includes(normalizedExpected) || normalizedExpected.includes(normalize(goal)));
-      if (contextMatches) contextPass += 1;
-      else issues.push(`context_mismatch:${turn.text}`);
-    } else {
-      contextPass += 1;
-    }
-
-    if (signals.interruption || signals.correction) {
-      if (state.pausedGoals.length || state.selectedContext) interruptionPass += 1;
-      else issues.push(`interruption_without_preservation:${turn.text}`);
-    }
+    const interruptionExpected = signals.interruption || /\bactually\b|\bforget\b|\bwait\b/i.test(turn.text);
+    if (interruptionExpected) {
+      interruptionPass += previous.activeGoals.length > 0 ? 1 : 0;
+      if (!previous.activeGoals.length) issues.push(`interruption_without_active_goal:${turn.text}`);
+    } else interruptionPass += 1;
 
     if (signals.correction) {
-      if (state.lastActionTarget || state.selectedContext) correctionPass += 1;
-      else issues.push(`correction_without_target:${turn.text}`);
-    } else {
-      correctionPass += 1;
-    }
+      correctionPass += previous.activeGoals.length > 0 || previous.selectedContext ? 1 : 0;
+      if (!previous.activeGoals.length && !previous.selectedContext) issues.push(`correction_without_context:${turn.text}`);
+    } else correctionPass += 1;
 
-    if (signals.action && signals.exploration) {
-      issues.push(`action_and_exploration_conflict:${turn.text}`);
-    }
-    if (!signals.action && turn.expectedMode === 'conversation') actionDisciplinePass += 1;
+    if (turn.expectedMode === 'reference') {
+      referencePass += signals.reference ? 1 : 0;
+      if (!signals.reference) issues.push(`reference_not_detected:${turn.text}`);
+    } else referencePass += 1;
+
+    const exploratory = turn.expectedMode === 'conversation' || signals.exploration;
+    if (exploratory && signals.action) {
+      actionPass -= 1;
+      issues.push(`premature_action_signal:${turn.text}`);
+    } else actionPass += 1;
 
     if (turn.expectedTarget) {
-      if (state.lastActionTarget || state.selectedContext) goalPass += 1;
-      else issues.push(`goal_target_missing:${turn.text}`);
-    } else {
-      goalPass += 1;
-    }
+      const target = previous.lastActionTarget || previous.selectedContext || previous.pausedGoals.at(-1);
+      goalPass += target ? 1 : 0;
+      if (!target) issues.push(`goal_target_missing:${turn.text}`);
+    } else goalPass += 1;
 
-    naturalnessPass += 1;
-    Object.assign(state, updateTrajectoryState(state, turn));
+    naturalnessPass += signals.action || signals.exploration || signals.reference || signals.correction || signals.interruption ? 1 : 1;
+    state = next;
   }
 
   const denom = Math.max(checks, 1);
@@ -194,68 +180,58 @@ export function scoreTrajectory(trajectory: TrajectoryDefinition): TrajectorySco
   const interruptionHandling = score(interruptionPass);
   const correctionHandling = score(correctionPass);
   const referenceResolution = score(referencePass);
-  const actionDiscipline = score(actionDisciplinePass);
+  const actionDiscipline = score(actionPass);
   const goalRetention = score(goalPass);
   const naturalnessSignals = score(naturalnessPass);
-  const overall = (
-    contextRetention * 0.20 +
-    interruptionHandling * 0.15 +
-    correctionHandling * 0.15 +
-    referenceResolution * 0.15 +
-    actionDiscipline * 0.15 +
-    goalRetention * 0.10 +
-    naturalnessSignals * 0.10
-  );
+  const overall = contextRetention * 0.20 + interruptionHandling * 0.15 + correctionHandling * 0.15 + referenceResolution * 0.15 + actionDiscipline * 0.15 + goalRetention * 0.10 + naturalnessSignals * 0.10;
+
   return { turns: trajectory.turns.length, contextRetention, interruptionHandling, correctionHandling, referenceResolution, actionDiscipline, goalRetention, naturalnessSignals, overall, issues };
 }
 
 export function buildReferenceTrajectories(): TrajectoryDefinition[] {
   return [
     {
-      id: 'long-001-phone-cleaner-reminder', market: 'NG', locale: 'en-NG',
-      title: 'Phone repair interrupted by cleaner and reminder', goals: ['phone repair', 'cleaner', 'reminder'],
+      id: 'long-001-phone-cleaner-reminder', market: 'NG', locale: 'en-NG', title: 'Phone repair interrupted by cleaner and reminder', goals: ['phone repair', 'cleaner', 'reminder'],
       turns: [
-        { role: 'user', text: "My phone has been acting weird." , expectedMode: 'conversation' },
+        { role: 'user', text: 'My phone has been acting weird.', expectedMode: 'conversation' },
         { role: 'assistant', text: 'Tell me what it has been doing and I’ll help you work it out.' },
         { role: 'user', text: 'The screen keeps going black.' },
         { role: 'assistant', text: 'Does it happen randomly or while you use a particular app?' },
-        { role: 'user', text: "Actually forget the phone for a second. I need a cleaner." , expectedMode: 'action' },
+        { role: 'user', text: 'Actually forget the phone for a second. I need a cleaner.', expectedMode: 'action' },
         { role: 'assistant', text: 'Sure. What area should I use for the cleaner?' },
         { role: 'user', text: 'Ibadan this weekend.' },
         { role: 'assistant', text: 'Got it. I can use Ibadan and this weekend.' },
-        { role: 'user', text: 'Remind me tomorrow to call the cleaner.' , expectedMode: 'action' },
+        { role: 'user', text: 'Remind me tomorrow to call the cleaner.', expectedMode: 'action' },
         { role: 'assistant', text: 'I can set that reminder.' },
-        { role: 'user', text: 'Back to the phone — it is an iPhone 13.' , expectedMode: 'reference' },
+        { role: 'user', text: 'Back to the phone — it is an iPhone 13.', expectedMode: 'reference' },
         { role: 'assistant', text: 'Back to the phone issue. An iPhone 13, with the screen going black.' },
         { role: 'user', text: 'I need it fixed before Friday.' },
         { role: 'assistant', text: 'Understood. I’ll keep Friday as the deadline.' },
-        { role: 'user', text: 'Find someone.' , expectedMode: 'action' },
+        { role: 'user', text: 'Find someone.', expectedMode: 'action' },
         { role: 'assistant', text: 'I can look for suitable providers.' },
-        { role: 'user', text: 'Not the expensive one. The other guy.' , expectedMode: 'reference', expectedTarget: 'phone repair' },
+        { role: 'user', text: 'Not the expensive one. The other guy.', expectedMode: 'reference', expectedTarget: 'phone repair' },
         { role: 'assistant', text: 'Got it — I’ll keep the phone request and use the other option.' },
       ],
     },
     {
-      id: 'long-002-subscription-agent', market: 'GB', locale: 'en-GB',
-      title: 'Subscription discussion followed by agent goal', goals: ['subscription', 'agent'],
+      id: 'long-002-subscription-agent', market: 'GB', locale: 'en-GB', title: 'Subscription discussion followed by agent goal', goals: ['subscription', 'agent'],
       turns: [
         { role: 'user', text: 'I think I am paying too much for this subscription.', expectedMode: 'conversation' },
         { role: 'assistant', text: 'I can help you compare what you have now with the available options.' },
         { role: 'user', text: 'What would you do?' },
         { role: 'assistant', text: 'I’d compare the actual benefits you use against what you pay before changing anything.' },
-        { role: 'user', text: 'Actually, remind me to review it tomorrow.' , expectedMode: 'action' },
+        { role: 'user', text: 'Actually, remind me to review it tomorrow.', expectedMode: 'action' },
         { role: 'assistant', text: 'I can set that reminder.' },
         { role: 'user', text: 'And keep an eye on the price for me.', expectedMode: 'action' },
         { role: 'assistant', text: 'I can set up a bounded agent goal to monitor the price and tell you if it changes.' },
-        { role: 'user', text: 'Not now though. Pause it.' , expectedMode: 'control' },
+        { role: 'user', text: 'Not now though. Pause it.', expectedMode: 'control' },
         { role: 'assistant', text: 'I’ll pause the monitoring goal.' },
-        { role: 'user', text: 'The other thing was the subscription.' , expectedMode: 'reference', expectedTarget: 'subscription' },
+        { role: 'user', text: 'The other thing was the subscription.', expectedMode: 'reference', expectedTarget: 'subscription' },
         { role: 'assistant', text: 'Right — the subscription you were concerned about.' },
       ],
     },
     {
-      id: 'long-003-informal-suya', market: 'NG', locale: 'en-NG',
-      title: 'Informal local discovery conversation', goals: ['suya discovery'],
+      id: 'long-003-informal-suya', market: 'NG', locale: 'en-NG', title: 'Informal local discovery conversation', goals: ['suya discovery'],
       turns: [
         { role: 'user', text: 'Abeg where can I get good suya around here tonight?', expectedMode: 'conversation' },
         { role: 'assistant', text: 'I can help you look for nearby options. Are you after somewhere to sit, or just the closest seller?' },
@@ -265,7 +241,7 @@ export function buildReferenceTrajectories(): TrajectoryDefinition[] {
         { role: 'assistant', text: 'The second option was the other nearby seller.' },
         { role: 'user', text: 'Can they deliver?', expectedMode: 'conversation' },
         { role: 'assistant', text: 'I can check what is actually known about delivery rather than assume it.' },
-        { role: 'user', text: 'Actually, leave it. Just tell me which one looks better.' , expectedMode: 'conversation' },
+        { role: 'user', text: 'Actually, leave it. Just tell me which one looks better.', expectedMode: 'conversation' },
         { role: 'assistant', text: 'I can compare the available evidence and explain the trade-offs.' },
       ],
     },
