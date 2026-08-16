@@ -1,8 +1,20 @@
 {
   "datasetVersion": "kurukoo-core-v1",
-  "generatedAt": "2026-08-16T12:56:12.003Z",
+  "generatedAt": "2026-08-16T13:03:49.827Z",
   "exampleCount": 1845,
+  "splitCounts": {
+    "train": 1506,
+    "validation": 160,
+    "test": 179
+  },
+  "fileSha256": {
+    "all": "72909bb873e6f39ee2597d16454f950a91d971dccbb83c2a385410142715da76",
+    "train": "ec6c583d3e38c8476b9ad193bdd875911b1796d170bc9afaede5ca579a932474",
+    "validation": "f00208f36fbd4b8984b06af2ed18c0c8135ab9ea74ddba7eb03d6f3a1b2af72f",
+    "test": "b065fb8f453eb6f3c05a529789a8200811cb429dd7b3b7db92ebc7f7c8291d0b"
+  },
   "skillCount": 205,
+  "familyCount": 46,
   "variantCount": 9,
   "actorCoverage": [
     "consumer",
@@ -22,6 +34,35 @@
     "email",
     "voice",
     "linked_device"
+  ],
+  "localeCoverage": [
+    "ng:en",
+    "ng:pidgin",
+    "ng:hausa-influenced",
+    "gh:en",
+    "gb:en",
+    "ca:en",
+    "ca:fr"
+  ],
+  "surfaceCoverage": [
+    "memory",
+    "reminders",
+    "notifications",
+    "points",
+    "subscriptions",
+    "topics",
+    "media",
+    "support",
+    "products",
+    "orders",
+    "cart",
+    "discovery",
+    "provider_interaction",
+    "safety",
+    "consent",
+    "payment_boundary",
+    "locale",
+    "dialect"
   ],
   "variantCoverage": [
     "normal",

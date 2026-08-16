@@ -1,6 +1,6 @@
 # Kurukoo Outcome-Completeness Matrix
 
-Generated for country `ng` at 2026-08-16T12:44:06.719Z.
+Generated for country `ng` at 2026-08-16T13:06:45.829Z.
 
 > This matrix is generated from the canonical skill-flow, capability, feature-flag, Chat, Economic Request, discovery, notification and execution boundaries. It distinguishes repository implementation from external activation and does not claim provider delivery.
 
