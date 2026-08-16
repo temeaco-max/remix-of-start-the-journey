@@ -11,7 +11,7 @@ import {
 } from './universalCapabilityProtocol.js';
 import { createReminder, cancelReminder } from './reminderService.js';
 import { cancelAgentGoal, getAgentGoal, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
-import { getInternalNotificationById } from './pushNotifications.js';
+import { getInternalNotificationById, markNotificationRead } from './pushNotifications.js';
 import { revokeMemoryFact } from './memoryProfile.js';
 import { getEconomicRequest } from './skillFlows.js';
 import { advanceStorefront } from './agenticStorefront.js';
@@ -143,6 +143,10 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
   }
   if (input.capability === 'notification' && input.action === 'open') {
     return baseResult(input, 'completed', 'The exact notification is available.', { canonicalFacts: { notification: object }, evidenceLevel: 'canonical_service' });
+  }
+  if (input.capability === 'notification' && input.action === 'dismiss') {
+    const dismissed = await markNotificationRead(Number(input.canonicalObjectId), input.phone);
+    return dismissed ? baseResult(input, 'completed', 'The exact notification was marked as read.', { canonicalFacts: { notificationId: input.canonicalObjectId, status: 'read' }, evidenceLevel: 'canonical_service' }) : invalidResult(input, 'stale_context', 'That exact notification is no longer available.', 'notification_not_active');
   }
   if (input.capability === 'memory' && input.action === 'forget') {
     const outcome = await revokeMemoryFact(input.phone, Number(input.canonicalObjectId));

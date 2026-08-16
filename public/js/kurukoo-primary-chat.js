@@ -1281,8 +1281,7 @@
         read.addEventListener('click', async () => {
           read.disabled = true;
           try {
-            const response = await fetch(`/api/notifications/${encodeURIComponent(item.id)}/read`, { method: 'POST', credentials: 'same-origin' });
-            if (!response.ok) throw new Error('Unable to mark notification read');
+            await executeCanonicalAction('notification', 'dismiss', item.id);
             await loadNotifications();
           } catch { read.disabled = false; }
         });
@@ -1471,10 +1470,8 @@
       if (!goal.id) return;
       pause.disabled = true; cancel.disabled = true;
       try {
-        const response = await fetch(`/api/agent/goals/${encodeURIComponent(goal.id)}/${action}`, { method: 'POST', credentials: 'same-origin' });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || failureMessage);
-        renderAgentGoal(data.goal, events);
+        const result = await executeCanonicalAction('agent', action, goal.id);
+        renderAgentGoal({ id: goal.id, status: result.canonicalFacts?.status || (action === 'pause' ? 'waiting' : action === 'cancel' ? 'cancelled' : 'active'), summary: result.canonicalFacts?.objective || goal.summary }, events);
       } catch (error) { setInspectorFeedback(error.message || failureMessage, 'error'); }
       finally { pause.disabled = false; cancel.disabled = false; }
     };
@@ -1504,13 +1501,22 @@
         const due = document.createElement('span'); const parsed = reminder.due_at ? new Date(reminder.due_at) : null;
         due.textContent = parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleString() : 'Scheduled time unavailable';
         const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'text-btn'; cancel.textContent = 'Cancel';
-        cancel.addEventListener('click', async () => { cancel.disabled = true; await fetch(`/api/reminders/${encodeURIComponent(reminder.id)}/cancel`, { method: 'POST', credentials: 'same-origin' }); loadReminders(); });
+        cancel.addEventListener('click', async () => { cancel.disabled = true; try { await executeCanonicalAction('reminder', 'cancel', reminder.id); } catch (error) { setInspectorFeedback(error.message || 'Could not cancel reminder.', 'error'); } finally { loadReminders(); } });
         row.append(title, due, cancel); list.appendChild(row);
       });
     } catch {}
   }
 
   function setInspectorFeedback(message, kind = 'info') { const feedback = $('inspector-feedback'); if (!feedback) return; feedback.hidden = !message; feedback.textContent = message || ''; feedback.dataset.kind = kind; }
+  async function executeCanonicalAction(capability, action, canonicalObjectId, args = {}) {
+    if (state.isGuest) throw new Error('Sign in before changing account-owned state.');
+    const idempotencyKey = `chat:${state.conversationId || 'draft'}:${capability}:${action}:${canonicalObjectId || 'none'}:${JSON.stringify(args).slice(0, 120)}`.slice(0, 180);
+    const response = await fetch('/api/chat/action', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capability, action, canonicalObjectId: canonicalObjectId == null ? undefined : String(canonicalObjectId), arguments: args, conversationId: state.conversationId || undefined, idempotencyKey }) });
+    let data = {}; try { data = await response.json(); } catch {}
+    if (response.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
+    if (!response.ok || !data.success) throw new Error(data.error || data.result?.message || 'Canonical action could not be completed.');
+    return data.result;
+  }
   async function nativeAction(url, options = {}) { const response = await fetch(url, { credentials: 'same-origin', ...options }); let data = {}; try { data = await response.json(); } catch {} if (!response.ok) throw new Error(data.error || 'Action could not be completed.'); return data; }
 
   async function loadSafety() {
