@@ -384,6 +384,9 @@
                     <div id="trust-readiness-grid" class="admin-inline-58c221a45e">
                         <div class="admin-inline-91c151c1a2">Loading trust readiness...</div>
                     </div>
+                    <div id="brain-readiness-grid" class="admin-inline-58c221a45e" aria-live="polite">
+                        <div class="admin-inline-91c151c1a2">Loading Brain readiness...</div>
+                    </div>
                     <div class="admin-actions-row">
                         <span id="telegram-admin-state">Telegram connector status unavailable.</span>
                         <button type="button" class="btn-action" onclick="telegramAdminAction('start')">Start Telegram</button>
@@ -764,6 +767,8 @@
                     const connectors = data.connectors || {};
                     const masking = data.privacyNumberMasking || {};
                     const telegram = connectors.telegramLinkedDevice || {};
+                    const brain = data.brain || {};
+                    const brainGrid = document.getElementById('brain-readiness-grid');
                     const telegramState = document.getElementById('telegram-admin-state');
                     if (telegramState) telegramState.textContent = `Telegram: ${telegram.state || 'unknown'}${telegram.configured ? ' · configured' : ' · activation required'}`;
                     const cards = [
@@ -776,6 +781,20 @@
                         ['Number masking', masking.enabled && masking.configured ? 'mapping ready; provider pending' : 'disabled or unconfigured'],
                     ];
                     grid.innerHTML = cards.map(([label, value]) => `<div class="pilot-readiness-card"><strong>${escapeHtml(label)}</strong><br/><span>${escapeHtml(value)}</span></div>`).join('');
+                    if (brainGrid) {
+                        const model = brain.localModel || {};
+                        const persona = brain.firstClassPersonaCoordination || {};
+                        const telemetry = brain.telemetry || {};
+                        const brainCards = [
+                            ['Local model', model.ready ? `${model.model || 'SmolLM2'} · ready` : `${model.model || 'SmolLM2'} · not ready`],
+                            ['Persona policy', persona.policyReviewed ? 'Brain preflight active' : 'Review required'],
+                            ['Guest personas', persona.guestSafe ? 'Brain-mediated · no owner claim' : 'Not ready'],
+                            ['Owner charging', persona.ownerCharging || 'unknown'],
+                            ['Coordinator events', String(telemetry.events?.total || 0)],
+                            ['Coordinator runs', String(telemetry.runs?.total || 0)],
+                        ];
+                        brainGrid.innerHTML = brainCards.map(([label, value]) => `<div class="pilot-readiness-card"><strong>${escapeHtml(label)}</strong><br/><span>${escapeHtml(value)}</span></div>`).join('');
+                    }
                 })
                 .catch(() => { document.getElementById('trust-readiness-grid').textContent = 'Trust readiness is temporarily unavailable.'; });
         }
