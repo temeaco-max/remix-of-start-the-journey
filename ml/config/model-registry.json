@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "student": {
+    "role": "kurukoo-conversational-semantic",
+    "baseModel": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    "activeVersion": null,
+    "candidateVersions": []
+  },
+  "promotionStates": ["candidate", "shadow", "canary", "active", "retired"],
+  "promotionRequires": [
+    "golden_eval",
+    "context_arbitration_eval",
+    "adversarial_eval",
+    "resource_benchmark",
+    "manifest"
+  ]
+}
