@@ -157,7 +157,7 @@ export async function testMistralConnection(): Promise<{ configured: boolean; re
 
 function augmentConversationInstruction(prompt: string, base: string, enabled: boolean): string {
   if (!enabled) return base;
-  const contract = buildConversationTurnContract({ latestUserMessage: prompt, assistantReply: '' });
+  const contract = buildConversationTurnContract({ userMessage: prompt, latestUserMessage: prompt, assistantReply: '' });
   return `${base}\n\n${buildConversationalSystemDirective(contract)}`;
 }
 

@@ -45,6 +45,13 @@ function skillForIntent(intent: string): string {
   return intent;
 }
 
+function isExploratoryQuestion(query: string): boolean {
+  const asksToExplore = /^(?:where can i get|where do i get|do you know where|is there|who sells|what(?:'s| is) a good place for|can i find)\b/i.test(query.trim());
+  const localTopic = /\b(?:suya|food|meal|rice|groceries?|restaurant|seller|market|cleaner|plumber|electrician|repair(?:er)?|provider)\b/i.test(query);
+  const explicitAction = /\b(?:order|buy|book|hire|deliver|send|bring|purchase|get me|find me|arrange)\b/i.test(query);
+  return asksToExplore && localTopic && !explicitAction;
+}
+
 function actionCard(intent: string): any {
   if (STOREFRONT_INTENTS.has(intent)) return previewStorefrontCard(skillForIntent(intent));
   if (intent === 'sports_matchmaking') return { type: 'sports_search' };
@@ -367,6 +374,18 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     return { skill: 'seller_offer_review', reply: 'I can help review your seller or product offer details. I will keep the offer in review until the product, price, inventory, evidence, and fulfilment terms are explicitly recorded; nothing is published or sold from this message alone.', cardData: { type: 'seller_offer_review', status: 'review_required', source: 'explicit_seller_statement' } };
   }
 
+  if (isExploratoryQuestion(query)) {
+    const conversational = await queryUnifiedAI(query, { phone, conversational: true, contextHint, threadId });
+    return {
+      skill: 'general_question',
+      reply: conversational.text,
+      modelProvider: conversational.provider,
+      model: conversational.model,
+      intentConfidence: conversational.confidence,
+      classificationSource: conversational.provider === 'Kurukoo Template' ? 'fallback' : 'rules',
+    };
+  }
+
   if (phone && isResumePhrase(q)) {
     try {
       const resumed = await tryResumeStorefront(phone);
@@ -397,6 +416,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   const directSkill = matchCanonicalSkill(q);
   const extractedEntities = validateConversationalEntities(extractConversationalEntities(query, directSkill || undefined), directSkill || undefined);
   const conversationDecision = decideConversationIntelligence({
+    userMessage: query,
     latestUserMessage: query,
     assistantReply: '',
     activeContextIds: contextHint?.activeContexts?.map(context => context.contextId),
@@ -454,7 +474,8 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   }
 
   const classification = classifyWithFastText(query);
-  if (classification && ACTION_INTENTS.has(classification.intent)) {
+  const trustedActionClassification = classification && ACTION_INTENTS.has(classification.intent) && !(classification.source === 'fallback' && classification.confidence < 0.85);
+  if (trustedActionClassification) {
     const source = { classificationSource: classification.source, intentConfidence: classification.confidence } as const;
     if (classification.intent === 'subscription') return { skill: 'subscription', reply: 'I can show the available Consumer and Provider plans. Payment and entitlement activation remain separate, sandbox-gated steps.', cardData: { type: 'subscription_plans', status: 'information_only', destination: '/pricing' }, ...source };
     if (classification.intent === 'advertising') return { skill: 'advertising', reply: 'Kurukoo advertising uses disclosed public placements only. I can take you to the advertiser guidance and campaign entry surface; no private Chat text is used for hidden targeting.', cardData: { type: 'advertising_info', status: 'public_only', destination: '/advertise' }, ...source };
