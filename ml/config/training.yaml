@@ -1,0 +1,39 @@
+student:
+  base_model: HuggingFaceTB/SmolLM2-1.7B-Instruct
+  method: qlora
+  adapter_name: kurukoo-core
+  output_root: ml/artifacts
+
+corpus:
+  target_scenario_space: 100000000
+  training_examples_target: null
+  require_deduplication: true
+  require_balancing: true
+  require_validation: true
+  immutable_dataset_versions: true
+
+teachers:
+  enabled: true
+  providers:
+    - mistral
+    - gemini
+    - groq
+  teacher_output_is_untrusted: true
+
+training:
+  stages:
+    - ontology
+    - semantic
+    - context_arbitration
+    - conversational
+    - capability
+    - truthfulness_safety
+    - preference_style
+    - regression
+
+promotion:
+  require_golden_eval: true
+  require_arbitration_eval: true
+  require_adversarial_eval: true
+  require_resource_benchmark: true
+  require_model_manifest: true
