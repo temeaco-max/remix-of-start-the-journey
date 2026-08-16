@@ -35,7 +35,8 @@ export interface ConversationIntelligenceDecision {
   reasons: string[];
 }
 
-const EXPLORATION_RE = /\b(?:thinking about|maybe|might|wondering|what do you think|what would you do|tell me about|how does|what(?:'s| is) a good|considering)\b/i;
+const EXPLORATION_RE = /\b(?:thinking about|maybe|might|might need|wondering|what do you think|what would you do|tell me about|how does|what(?:'s| is) a good|considering|looking into|not sure (?:about|whether)|could use|could probably use)\b/i;
+const PROBLEM_STATEMENT_RE = /\b(?:acting weird|acting strange|something(?:'s| is) wrong|something is off|not working|isn't working|is not working|keeps (?:restarting|stopping|freezing|making)|making (?:a |an )?(?:weird|strange|funny) noise|having (?:an )?issue|having trouble|can't figure out|cannot figure out|stopped working|started acting|won't charge|won't turn on|won't start|screen keeps)\b/i;
 const EXPLICIT_ACTION_RE = /^(?:please\s+)?(?:find|find me|book|buy|order|hire|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set (?:a )?reminder|go ahead|do it|handle it)\b|\b(?:go ahead and|please find|please book|please order|please hire|please arrange)\b/i;
 const ACTION_WITH_OBJECT_RE = /\b(?:find|book|buy|order|hire|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set)\b.{0,80}\b(?:it|that|one|someone|someone to|me)\b/i;
 const CLARIFICATION_RE = /\?$|\b(?:what do you need|what information|which one|which option|where|when|how much|what kind|what sort|can you explain|why)\b/i;
@@ -47,7 +48,7 @@ function countWords(value: string): number {
 }
 
 function hasExplicitAction(text: string): boolean {
-  if (EXPLORATION_RE.test(text)) return false;
+  if (EXPLORATION_RE.test(text) || PROBLEM_STATEMENT_RE.test(text)) return false;
   return EXPLICIT_ACTION_RE.test(text) || ACTION_WITH_OBJECT_RE.test(text);
 }
 
@@ -57,7 +58,7 @@ function determineMode(input: ConversationIntelligenceInput): ConversationMode {
   if (CONTROL_RE.test(text)) return 'control';
   if (relative) return 'reference';
   if (CLARIFICATION_RE.test(text) && !hasExplicitAction(text)) return 'clarification';
-  if (EXPLORATION_RE.test(text)) return 'exploration';
+  if (EXPLORATION_RE.test(text) || PROBLEM_STATEMENT_RE.test(text)) return 'exploration';
   if (hasExplicitAction(text)) return 'action';
   return 'conversation';
 }
@@ -109,6 +110,7 @@ export function decideConversationIntelligence(input: ConversationIntelligenceIn
   if (pausedCount > 0) reasons.push('paused_goal_present');
   if (input.pendingFields?.length) reasons.push('pending_fields');
   if (EXPLORATION_RE.test(input.userMessage)) reasons.push('exploratory_language');
+  if (PROBLEM_STATEMENT_RE.test(input.userMessage)) reasons.push('problem_statement_without_action');
   if (explicitAction) reasons.push('explicit_action_language');
   if (!shouldAvoidAction) reasons.push('action_capable_turn');
   if (requiresContextReconciliation) reasons.push('context_reconciliation_required');
