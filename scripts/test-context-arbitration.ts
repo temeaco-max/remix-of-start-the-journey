@@ -52,5 +52,23 @@ assert.equal(crossThread.selectedContext, 'safety');
 assert.ok(crossThread.preserveContextIds.includes('request:request-context-1'));
 assert.ok(crossThread.activeContexts.some(context => context.conversationId === conversationId && context.type === 'economic_request'));
 
-console.log('Context arbitration regression passed: ambiguous identity input clarifies, active requests are preserved, explicit safety switches are isolated, and normal answers continue the request.');
+await appendChatMessage({
+  phone,
+  sender: 'assistant',
+  content: 'What should I remember about this reminder?',
+  channel: 'web',
+  conversationId: secondConversationId,
+  cardData: { type: 'reminder', reminderId: 'reminder-context-1', state: 'pending', fields: [{ key: 'time', required: true }] },
+});
+const ambiguousReference = await arbitrateChatContext({ phone, conversationId: secondConversationId, message: 'Use that one' });
+assert.equal(ambiguousReference.selectedContext, 'topic_switch');
+assert.equal(ambiguousReference.relation, 'clarify');
+assert.equal(ambiguousReference.ambiguous, true);
+assert.ok(ambiguousReference.preserveContextIds.includes('request:request-context-1'));
+const ordinalReference = await arbitrateChatContext({ phone, conversationId: secondConversationId, message: 'Use option 2' });
+assert.equal(ordinalReference.ambiguous, false);
+assert.equal(ordinalReference.selectedContext, 'economic_request');
+assert.equal(ordinalReference.relation, 'answer');
+
+console.log('Context arbitration regression passed: ambiguous identity input clarifies, active requests are preserved, explicit safety switches are isolated, normal answers continue the request, and multi-context relative references fail closed unless explicitly ordinal.');
 try { fs.unlinkSync(dbPath); } catch { /* best effort cleanup */ }

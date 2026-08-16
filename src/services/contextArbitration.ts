@@ -1,5 +1,6 @@
 import { listChatConversations, listChatMessages } from './chatConversationService.js';
 import { getProfile } from './memoryProfile.js';
+import { detectRelativeReference } from './conversationQualityService.js';
 
 export type ConversationalContextType =
   | 'general'
@@ -132,8 +133,37 @@ export async function arbitrateChatContext(input: {
   }
 
   const signal = signalType(text);
+  const relative = detectRelativeReference(text);
   const request = activeContexts.find(context => context.type === 'economic_request');
   const preserved = activeContexts.map(context => context.contextId);
+
+  if (relative && activeContexts.length > 0) {
+    const candidates = activeContexts.filter(context => context.type !== 'onboarding');
+    const ordinal = relative.target === 'first' ? 0 : relative.target === 'second' ? 1 : -1;
+    const selected = ordinal >= 0 ? candidates[ordinal] : (candidates.length === 1 && (relative.target === 'current' || relative.target === 'previous') ? candidates[0] : undefined);
+    if (selected) {
+      return {
+        selectedContext: selected.type,
+        selectedContextId: selected.contextId,
+        relation: relative.target === 'previous' ? 'resume' : 'answer',
+        confidence: relative.confidence,
+        ambiguous: false,
+        preserveContextIds: preserved.filter(id => id !== selected.contextId),
+        activeContexts,
+        reason: 'Relative reference resolved against a single safe or explicit ordinal context; unrelated contexts preserved.',
+      };
+    }
+    return {
+      selectedContext: 'topic_switch',
+      relation: 'clarify',
+      confidence: Math.min(0.65, relative.confidence),
+      ambiguous: true,
+      preserveContextIds: preserved,
+      activeContexts,
+      clarification: `I have more than one active context. Which one do you mean by “${relative.target === 'other' ? 'the other one' : 'that one'}”? You can name the request, reminder, safety check-in, notification, or agent task.`,
+      reason: 'Relative reference is unsafe to resolve by recency or semantic similarity when multiple active contexts exist.',
+    };
+  }
 
   if (signal) {
     const conflictingRequest = request && signal.type !== 'economic_request';

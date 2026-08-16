@@ -13,12 +13,19 @@ const labScenarioPath = path.join(process.cwd(), 'data', 'scenario-lab', 'provid
 const labManifest = fs.existsSync(labManifestPath) ? JSON.parse(fs.readFileSync(labManifestPath, 'utf8')) : null;
 const labRows = readJsonl(labScenarioPath);
 
-const rate = (condition: (row: any) => boolean, source = allRows) => source.length ? source.filter(condition).length / source.length : 0;
+const structuralSource = labRows.length ? labRows : allRows;
+const rate = (condition: (row: any) => boolean, source = structuralSource) => source.length ? source.filter(condition).length / source.length : 0;
 const structural = {
-  multiTurnRate: rate((row) => Number(row.labels?.turnCount || row.messages?.length || row.turnCount || 0) >= 4),
-  arbitrationPatternRate: rate((row) => Array.isArray(row.labels?.contextPatterns) && row.labels.contextPatterns.includes('explicit-object-identity')),
-  forbiddenClaimBoundaryRate: rate((row) => row.labels?.authorityBoundary === 'canonical_domain_services' && row.labels?.forbiddenClaims?.includes('invented availability')),
-  adversarialCoverage: rate((row) => row.labels?.variant !== 'normal'),
+  multiTurnRate: rate((row) => Number(row.labels?.turnCount || row.messages?.length || row.trajectory?.length || row.turnCount || 0) >= 4),
+  arbitrationPatternRate: labRows.length
+    ? (labManifest?.contextPatterns?.includes('explicit-object-identity') && structuralSource.every((row) => row.canonicalServices?.includes('contextArbitration') && row.canonicalServices?.includes('canonicalChatTurnService')) ? 1 : 0)
+    : rate((row) => Array.isArray(row.labels?.contextPatterns) && row.labels.contextPatterns.includes('explicit-object-identity')),
+  forbiddenClaimBoundaryRate: labRows.length
+    ? rate((row) => Array.isArray(row.forbiddenClaims) && row.forbiddenClaims.includes('live availability') && Array.isArray(row.canonicalServices) && row.canonicalServices.includes('canonicalChatTurnService'))
+    : rate((row) => row.labels?.authorityBoundary === 'canonical_domain_services' && row.labels?.forbiddenClaims?.includes('invented availability')),
+  adversarialCoverage: labRows.length
+    ? rate((row) => row.lifecycleVariant !== 'normal')
+    : rate((row) => row.labels?.variant !== 'normal'),
 };
 const laboratory = labRows.length ? {
   scenarios: labRows.length,

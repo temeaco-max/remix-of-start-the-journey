@@ -44,7 +44,7 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
     
     await setAuthState(guestPhone, 'awaiting_phone', { ...data, name });
     return {
-      reply: `Nice to meet you, ${name}. Enter your phone number below and I’ll send a verification code to secure your account.`,
+      reply: `Nice to meet you, ${name}. Enter your phone number below and I’ll create a verification request and tell you whether an approved delivery method is available.`,
       cardData: { type: 'auth_conversation', step: 'phone', name },
     };
   }
@@ -109,7 +109,7 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
 
   if (state === 'awaiting_otp') {
     const code = text.trim().replace(/\D/g, '');
-    if (code.length !== 6) return { reply: "Please enter the 6-digit code I sent to your phone." };
+    if (code.length !== 6) return { reply: 'Please enter the 6-digit code from the approved verification channel, if one has been delivered.' };
     
     const developmentResult = verifyDevelopmentTestOtp(data.phone, code);
     const result = developmentResult || await verifyPhoneOtp(data.phone, code);

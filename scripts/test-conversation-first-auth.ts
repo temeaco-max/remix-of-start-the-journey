@@ -76,7 +76,27 @@ try {
   assert.equal(contextSwitchCard?.continuationCard?.stage, 'deferred', 'No-provider local outcome must remain explicitly deferred');
   assert.match(String(contextSwitchDone?.fullReply || ''), /remains open|re-checked|save or continue/i, 'The switched service request must not be answered as a person name');
 
+  const onboardingNameRequest = await fetch(`${baseUrl}/api/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: guestCookie },
+    body: JSON.stringify({ message: 'Grace Okafor', channel: 'web', conversationId }),
+  });
+  const onboardingNameEvents = sseEvents(await onboardingNameRequest.text());
+  const onboardingNameReply = onboardingNameEvents.filter(event => event.type === 'text').map(event => String(event.content || '')).join('');
+  assert.doesNotMatch(onboardingNameReply, /I(?:’|')ll send|sent a verification|code sent to your phone/i, 'Name onboarding must not promise external OTP delivery before a provider is configured');
+  assert.match(onboardingNameReply, /verification request|approved delivery/i, 'Name onboarding must describe the bounded verification request truthfully');
+
   const phone = `+234803${String(Date.now()).slice(-7)}`;
+  const onboardingPhoneRequest = await fetch(`${baseUrl}/api/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: guestCookie },
+    body: JSON.stringify({ message: phone, channel: 'web', conversationId }),
+  });
+  const onboardingPhoneEvents = sseEvents(await onboardingPhoneRequest.text());
+  const onboardingPhoneReply = onboardingPhoneEvents.filter(event => event.type === 'text').map(event => String(event.content || '')).join('');
+  assert.match(onboardingPhoneReply, /external SMS\/WhatsApp delivery is not configured|approved delivery provider/i, 'Phone onboarding must disclose unavailable external delivery');
+  assert.doesNotMatch(onboardingPhoneReply, /I(?:’|')ve sent.*verification code|code sent to your phone/i, 'Phone onboarding must not claim an external code was delivered');
+
   const otpRequest = await fetch(`${baseUrl}/api/auth/request-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

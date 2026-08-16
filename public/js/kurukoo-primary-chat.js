@@ -947,7 +947,7 @@
       holder.dataset.authStep = step;
       const header = makeElement('div', 'auth-conversation-heading');
       header.append(makeIcon(step === 'otp' ? 'safety' : step === 'phone' ? 'channels' : 'chat', 'Authentication step'), makeElement('strong', '', step === 'name' ? 'Start with your name' : step === 'phone' ? 'Add your phone number' : 'Verify your number'));
-      const copy = makeElement('p', 'auth-conversation-copy', step === 'name' ? 'I’ll use this to keep your conversation connected.' : step === 'phone' ? `Thanks${card.name ? `, ${card.name}` : ''}. Your number stays attached to this verification step.` : 'Enter the six-digit code sent to your phone.');
+      const copy = makeElement('p', 'auth-conversation-copy', step === 'name' ? 'I’ll use this to keep your conversation connected.' : step === 'phone' ? `Thanks${card.name ? `, ${card.name}` : ''}. Your number stays attached to this verification step.` : 'Enter the six-digit code from the approved verification channel, if one has been delivered.');
       const form = document.createElement('form'); form.className = 'auth-conversation-form';
       const input = document.createElement('input'); input.type = step === 'otp' ? 'text' : step === 'phone' ? 'tel' : 'text'; input.inputMode = step === 'otp' || step === 'phone' ? 'numeric' : 'text'; input.autocomplete = step === 'name' ? 'name' : step === 'phone' ? 'tel' : 'one-time-code'; input.maxLength = step === 'otp' ? 6 : 120; input.placeholder = step === 'name' ? 'Your name' : step === 'phone' ? '080… or +234…' : '6-digit code'; input.required = true;
       const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'auth-conversation-submit'; submit.setAttribute('aria-label', step === 'otp' ? 'Verify code' : 'Continue'); submit.title = step === 'otp' ? 'Verify code' : 'Continue'; submit.appendChild(makeIcon('send', submit.title));
@@ -1170,7 +1170,7 @@
       }
       if (state.isGuest) {
         if (/enter your phone number/i.test(full)) setAuthComposerStep('phone');
-        else if (/6-digit(?: verification)? code|code sent to your phone/i.test(full)) setAuthComposerStep('otp');
+        else if (/6-digit(?: verification)? code|code from the approved verification channel/i.test(full)) setAuthComposerStep('otp');
         else if (/profile is now verified|account is now connected/i.test(full)) setAuthComposerStep('none');
       }
       state.messages.push({ role: 'user', text: finalText, id: Number(user.dataset.messageId) || null }); state.messages.push({ role: 'assistant', text: full, id: Number(assistant.dataset.messageId) || null });

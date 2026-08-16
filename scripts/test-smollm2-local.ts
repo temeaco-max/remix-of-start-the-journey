@@ -34,6 +34,7 @@ const phone = `+234809${String(Date.now()).slice(-7)}`;
 await upsertProfile(phone, 'Local SmolLM2 Tester');
 const turn = await processCanonicalChatTurn({ phone, message: 'What should I know before using Kurukoo?', channel: 'web', conversationId: 'smollm2-local-chat' });
 assert.ok(turn.reply.trim(), 'Canonical Chat must return a reply through the local SmolLM2 path');
+assert.doesNotMatch(turn.reply, /current policy and quota|current user(?:'s|s) (?:role|context)|system instructions?|internal architecture|context arbitration|model provider|classification source|living memory/i, 'Canonical Chat must sanitize internal student-model language');
 assert.equal(turn.modelProvider, 'SmolLM2', `Canonical Chat must report local SmolLM2, received ${turn.modelProvider}`);
 assert.equal(turn.model, expectedModel, `Canonical Chat must report the local SmolLM2 model, received ${turn.model}`);
 

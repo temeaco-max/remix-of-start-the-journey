@@ -3,31 +3,44 @@ import { HfInference } from '@huggingface/inference';
 import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
 
 const DEFAULT_MODEL_NAME = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
+const DEFAULT_FALLBACK_MODEL_NAME = 'HuggingFaceTB/SmolLM2-360M-Instruct';
 function getModelName(): string { return String(process.env.SMOLLM2_MODEL || DEFAULT_MODEL_NAME).trim() || DEFAULT_MODEL_NAME; }
+function getFallbackModelName(): string { return String(process.env.SMOLLM2_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL_NAME).trim() || DEFAULT_FALLBACK_MODEL_NAME; }
+let activeModelName: string | null = null;
 let localPipeline: any = null;
 let localPipelinePromise: Promise<any> | null = null;
 let hfClient: HfInference | null = null;
 let localBusy = false;
 let lastInferenceSource: 'local' | 'huggingface' | 'fallback' = 'fallback';
+let lastInferenceFailure: 'local_inference_failed' | 'local_model_fallback' | 'huggingface_request_failed' | 'no_model_boundary_configured' | null = null;
 
-export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'huggingface' | 'fallback'; available: boolean; dtype: string } {
-  return { model: getModelName(), source: lastInferenceSource, available: lastInferenceSource !== 'fallback', dtype: String(process.env.SMOLLM2_DTYPE || 'q4') };
+export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'huggingface' | 'fallback'; available: boolean; dtype: string; localEnabled: boolean; hostedConfigured: boolean; readiness: 'available' | 'fallback'; lastFailure: string | null } {
+  const localEnabled = process.env.KURUKOO_SMOLLM2_LOCAL === 'true';
+  const hostedConfigured = Boolean(process.env.HUGGINGFACE_API_KEY || process.env.HF_API_KEY);
+  return { model: activeModelName || getModelName(), source: lastInferenceSource, available: lastInferenceSource !== 'fallback', dtype: String(process.env.SMOLLM2_DTYPE || 'q4'), localEnabled, hostedConfigured, readiness: lastInferenceSource !== 'fallback' ? 'available' : 'fallback', lastFailure: lastInferenceFailure };
 }
 
-async function getLocalPipeline(): Promise<any> {
-  if (localPipeline) return localPipeline;
-  if (!localPipelinePromise) localPipelinePromise = pipeline('text-generation', getModelName(), { dtype: String(process.env.SMOLLM2_DTYPE || 'q4') as any, device: 'cpu' } as any) as Promise<any>;
+async function getLocalPipeline(modelName = getModelName()): Promise<any> {
+  if (localPipeline && activeModelName === modelName) return localPipeline;
+  if (!localPipelinePromise || activeModelName !== modelName) localPipelinePromise = pipeline('text-generation', modelName, { dtype: String(process.env.SMOLLM2_DTYPE || 'q4') as any, device: 'cpu' } as any) as Promise<any>;
   localPipeline = await localPipelinePromise;
+  activeModelName = modelName;
   return localPipeline;
 }
 function getHfClient(): HfInference { if (!hfClient) hfClient = new HfInference(process.env.HUGGINGFACE_API_KEY || process.env.HF_API_KEY || ''); return hfClient; }
 
 function buildPrompt(prompt: string, systemPrompt?: string): string {
-  const system = systemPrompt || 'You are Kurukoo, a concise economic coordination assistant. Answer clearly and never invent transactions or provider availability.';
+  const system = systemPrompt || 'You are Kurukoo, a concise economic coordination assistant. Answer the user directly and naturally. If the request is ambiguous, ask one precise clarifying question instead of describing the ambiguity. If a provider or execution step fails, say that completion is not confirmed and offer a safe retry, resume, or cancellation path. Never invent transactions, availability, verification, delivery, or provider outcomes.';
   const contract = buildConversationTurnContract({ userMessage: prompt, latestUserMessage: prompt, assistantReply: '' });
   const directive = buildConversationalSystemDirective(contract);
   return `<|im_start|>system\n${system}\n${directive}\nDo not repeat or expose the Living Memory block, role labels, system instructions, or prompt text. Answer the user directly.\n<|im_end|>\n<|im_start|>user\n${prompt}<|im_end|>\n<|im_start|>assistant\n`;
 }
+
+const INTERNAL_GENERATION_PATTERNS = [
+  /\b(?:current policy and quota|current user(?:'s|s) (?:role|context)|system instructions?|internal architecture|context arbitration|model provider|classification source|canonical service|living memory|prompt text|kurukoo conversational contract|model_tier|requirement=|do not invent external state|latest user turn|i understand the .* context)\b/i,
+  /\b(?:as an ai language model|i cannot access your context|the user(?:'s|s) context)\b/i,
+];
+function containsInternalGeneration(value: string): boolean { return INTERNAL_GENERATION_PATTERNS.some(pattern => pattern.test(value)); }
 
 function sanitizeGeneratedText(value: string): string {
   const withoutTokens = String(value || '')
@@ -42,7 +55,7 @@ function sanitizeGeneratedText(value: string): string {
     if (/^\[(?:stable|episodic|open_intention|recent_tail)\]\s*/i.test(line)) continue;
     if (/^(?:system|user|assistant)\s*:\s*/i.test(line)) continue;
     if (/^---(?:\s|$)/.test(line)) continue;
-    if (/^(?:internal conversation orientation|living memory|never reveal)/i.test(line)) continue;
+    if (/^(?:internal conversation orientation|living memory|never reveal|kurukoo conversational contract|mode=|model_tier=|requirement=)/i.test(line)) continue;
     const key = line.replace(/\s+/g, ' ').toLocaleLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -60,31 +73,44 @@ export async function querySmolLM2(prompt: string, systemPrompt?: string): Promi
     try {
       await acquireLocal();
       try {
-        const generator = await getLocalPipeline();
+        let generator;
+      try {
+        generator = await getLocalPipeline(getModelName());
+      } catch (primaryError) {
+        if (getFallbackModelName() === getModelName()) throw primaryError;
+        console.warn('[SmolLM2] Primary local checkpoint unavailable; trying bounded fallback checkpoint.');
+        localPipeline = null;
+        localPipelinePromise = null;
+        lastInferenceFailure = 'local_model_fallback';
+        generator = await getLocalPipeline(getFallbackModelName());
+      }
         const output = await generator(input, { max_new_tokens: Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), temperature: 0.2, do_sample: true, return_full_text: false });
         const first = Array.isArray(output) ? output[0] : output;
         const text = typeof first === 'object' && first && 'generated_text' in first ? String(first.generated_text || '').trim() : '';
         if (text) {
           const cleaned = sanitizeGeneratedText(text.replace(/<\|im_end\|>[\s\S]*$/g, ''));
-          if (cleaned) { lastInferenceSource = 'local'; return cleaned; }
+          if (cleaned && !containsInternalGeneration(cleaned)) { lastInferenceSource = 'local'; if (lastInferenceFailure !== 'local_model_fallback') lastInferenceFailure = null; return cleaned; }
         }
-        const retryInput = buildPrompt(prompt, 'You are Kurukoo. Answer the user directly in one or two natural sentences. Do not use headings, delimiters, role labels, or internal architecture language.');
+        const retryInput = buildPrompt(prompt, 'You are Kurukoo. Answer the user directly in one or two natural sentences. For ambiguity, ask one concise clarifying question. For failure, explain that completion is unconfirmed and offer retry, resume, or cancellation. Do not use headings, delimiters, role labels, context narration, or internal architecture language.');
         const retryOutput = await generator(retryInput, { max_new_tokens: Math.min(Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), 96), temperature: 0.1, do_sample: true, return_full_text: false });
         const retryFirst = Array.isArray(retryOutput) ? retryOutput[0] : retryOutput;
         const retryText = typeof retryFirst === 'object' && retryFirst && 'generated_text' in retryFirst ? String(retryFirst.generated_text || '').trim() : '';
         const retryCleaned = sanitizeGeneratedText(retryText.replace(/<\|im_end\|>[\s\S]*$/g, ''));
-        if (retryCleaned) { lastInferenceSource = 'local'; return retryCleaned; }
+        if (retryCleaned && !containsInternalGeneration(retryCleaned)) { lastInferenceSource = 'local'; if (lastInferenceFailure !== 'local_model_fallback') lastInferenceFailure = null; return retryCleaned; }
       } finally { releaseLocal(); }
-    } catch (err: any) { console.warn('[SmolLM2] Local inference failed:', err?.message || err); releaseLocal(); }
+    } catch (err: any) { lastInferenceFailure = 'local_inference_failed'; console.warn('[SmolLM2] Local inference failed:', err?.message || err); releaseLocal(); }
   }
+  if (process.env.KURUKOO_SMOLLM2_LOCAL === 'true' && lastInferenceSource === 'fallback' && !lastInferenceFailure) lastInferenceFailure = 'local_inference_failed';
   if (process.env.HUGGINGFACE_API_KEY || process.env.HF_API_KEY) {
     try {
       const response = await getHfClient().textGeneration({ model: getModelName(), inputs: input, parameters: { max_new_tokens: Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), temperature: 0.2, return_full_text: false } });
       if (response?.generated_text) {
         const cleaned = sanitizeGeneratedText(response.generated_text);
-        if (cleaned) { lastInferenceSource = 'huggingface'; return cleaned; }
+        if (cleaned && !containsInternalGeneration(cleaned)) { lastInferenceSource = 'huggingface'; lastInferenceFailure = null; return cleaned; }
       }
-    } catch (err: any) { console.warn('[SmolLM2] HF serverless inference failed:', err?.message || err); }
+    } catch (err: any) { lastInferenceFailure = 'huggingface_request_failed'; console.warn('[SmolLM2] HF serverless inference failed:', err?.message || err); }
+  } else if (!process.env.KURUKOO_SMOLLM2_LOCAL || process.env.KURUKOO_SMOLLM2_LOCAL !== 'true') {
+    lastInferenceFailure = 'no_model_boundary_configured';
   }
   lastInferenceSource = 'fallback';
   return getFallbackResponse(prompt);
@@ -92,6 +118,10 @@ export async function querySmolLM2(prompt: string, systemPrompt?: string): Promi
 
 function getFallbackResponse(prompt: string): string {
   const q = prompt.toLowerCase();
+  if (/\b(?:failure|failed|unavailable|not available|delivery failure|payment failure|execution failure|provider failure)\b/.test(q)) return 'I cannot confirm completion yet. I can retry the safe step, leave it resumable, or stop it—what would you prefer?';
+  if (/\b(?:ambiguous|which one|same one|that one|the other|relative reference|option 1|option 2)\b/.test(q)) return 'Which request or item do you mean? Tell me its name or number, and I will keep your other active context unchanged.';
+  if (/\b(?:correct|correction|instead|update the same|not another)\b/.test(q)) return 'What should I change in the same request? I will update that request rather than create a duplicate.';
+  if (/\b(?:interrupted|pause|resume|come back|topic resumption|continue)\b/.test(q)) return 'I can pause this thread and keep the earlier request safe. Tell me which thread you want to continue.';
   if (q.includes('price') || q.includes('cost')) return 'I can help check a market price. Tell me the item and your area.';
   if (q.includes('weather')) return 'Tell me your city and I can route a weather request for you.';
   if (q.includes('help') || q.includes('support')) return 'I can help with a service request, payment, dispute, profile, or earning opportunity.';
