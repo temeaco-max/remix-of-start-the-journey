@@ -2,6 +2,7 @@ import { appendChatMessage, listChatMessages } from './chatConversationService.j
 import { getProfile, recordMemoryFact } from './memoryProfile.js';
 import { isOnboarding, handleOnboardingInput } from './progressiveOnboarding.js';
 import { routeIntent } from './intentRouter.js';
+import { generateConversationalResponse } from './conversationalGenerationService.js';
 import { getAuthState, setAuthState, handleConversationalAuth } from './conversationalAuthService.js';
 import { handleSafetyContactInput, setSafetyCaptureState } from './safetyService.js';
 import { cancelAgentGoal, createConversationGoal, getAgentGoal, goalTimeline, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
@@ -77,8 +78,6 @@ function extractRequirementPatch(message: string, card: any, current: any): Reco
 
 async function continueActiveRequest(phone: string, conversationId: string | undefined, message: string, selectedRequestId?: string): Promise<{ reply: string; cardData: any; skill: string } | null> {
   const normalized = message.trim().toLowerCase();
-  // An open economic request must not capture unrelated conversation intents.
-  // These commands belong to their canonical owners and must remain independently routable.
   if (
     /^(remind me|cancel (the )?reminder|remember that|what do you remember|forget that|what notifications|show (my )?notifications|show (my )?reminders|what provider and model)\b/.test(normalized) ||
     /\b(immediate danger|ambulance|fire service|life[- ]threatening|emergency)\b/.test(normalized) ||
@@ -137,6 +136,19 @@ export interface CanonicalChatTurnResult {
   progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
   latencyMs?: number;
   contextDecision?: ContextArbitrationDecision;
+  conversationQualityScore?: number;
+  conversationQualityIssues?: string[];
+  conversationGenerationEscalated?: boolean;
+  conversationGenerationAttempts?: number;
+  conversationContextTurns?: number;
+}
+
+function shouldUseUniversalConversationOwner(routing: IntentRoutingResult): boolean {
+  if (routing.skill !== 'general_question') return false;
+  if (routing.canonicalAction) return false;
+  if (typeof routing.cardData?.requestId === 'string') return false;
+  if (routing.cardData?.type && /(?:economic_request|agentic_storefront|checkout|payment|reminder|notification|safety|provider_profile|seller_offer|topic_draft|events_list|sports_search)/i.test(String(routing.cardData.type))) return false;
+  return true;
 }
 
 /** The single server-side authority for a Kurukoo conversational turn. */
@@ -166,6 +178,11 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   let extractedEntities: Record<string, unknown> | undefined;
   let canonicalAction: string | undefined;
   let progressStage: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete' | undefined;
+  let conversationQualityScore: number | undefined;
+  let conversationQualityIssues: string[] | undefined;
+  let conversationGenerationEscalated: boolean | undefined;
+  let conversationGenerationAttempts: number | undefined;
+  let conversationContextTurns: number | undefined;
   const startedAt = Date.now();
   const isGuest = phone.startsWith('anon_');
   const authState = isGuest ? await getAuthState(phone) : { state: 'none' as const, data: {} };
@@ -291,62 +308,81 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
         progressStage = 'ready';
       }
     } else if (isGuest && authState.state !== 'none' && isNewGuestRequestAfterAuthPrompt(message)) {
-      // An explicit new request is a semantic context switch, not a malformed
-      // answer to a stale onboarding/OTP prompt. Clear only the guest capture
-      // state; the request branch below will establish its own continuation.
       await setAuthState(phone, 'none');
     }
     if (!(!isGuest && controlAction)) {
-    const controlCommand = /^(?:pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\s*$/i.test(message.trim());
-    const contextSwitch = contextDecision && (contextDecision.relation === 'switch' || contextDecision.relation === 'create');
-    let continued: { reply: string; cardData: any; skill: string } | null = null;
-    if (!controlCommand && !contextSwitch && contextDecision?.relation === 'resume' && contextDecision.selectedContext === 'economic_request') {
-      const requestContextId = contextDecision.selectedContextId?.startsWith('request:') ? contextDecision.selectedContextId.slice('request:'.length) : undefined;
-      const resumed = requestContextId ? await resumeStorefrontFromRequest(phone, requestContextId) : await tryResumeStorefront(phone);
-      if (resumed) continued = { reply: resumed.message, cardData: resumed, skill: resumed.skill };
-    } else if (!controlCommand && !contextSwitch) {
-      const selectedRequestId = contextDecision?.selectedContextId?.startsWith('request:') ? contextDecision.selectedContextId.slice('request:'.length) : undefined;
-      continued = await continueActiveRequest(phone, input.conversationId, message, selectedRequestId);
-    }
-    const routing: IntentRoutingResult = continued || await routeIntent(message, phone, undefined, contextDecision, input.conversationId);
-    classificationSource = routing.classificationSource;
-    intentConfidence = routing.intentConfidence;
-    modelProvider = routing.modelProvider;
-    model = routing.model;
-    extractionSource = routing.extractionSource;
-    extractedEntities = routing.extractedEntities;
-    canonicalAction = routing.canonicalAction;
-    progressStage = routing.progressStage;
-    cardData = routing.cardData;
-    const explicitAgentIntent = routing.skill === 'autonomous_agent' || /\b(keep checking|keep looking|monitor|watch for|tell me when|let me know when|check again)\b/i.test(message);
-    agentGoal = !isGuest && explicitAgentIntent ? await createConversationGoal({
-      phone,
-      conversationId: userMessage.conversationId,
-      skill: routing.skill,
-      objective: message,
-      economicRequestId: typeof cardData?.requestId === 'string' ? cardData.requestId : undefined,
-      source: input.channel === 'web_qr' ? 'qr' : 'conversation',
-    }) : null;
+      const controlCommand = /^(?:pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\s*$/i.test(message.trim());
+      const contextSwitch = contextDecision && (contextDecision.relation === 'switch' || contextDecision.relation === 'create');
+      let continued: { reply: string; cardData: any; skill: string } | null = null;
+      if (!controlCommand && !contextSwitch && contextDecision?.relation === 'resume' && contextDecision.selectedContext === 'economic_request') {
+        const requestContextId = contextDecision.selectedContextId?.startsWith('request:') ? contextDecision.selectedContextId.slice('request:'.length) : undefined;
+        const resumed = requestContextId ? await resumeStorefrontFromRequest(phone, requestContextId) : await tryResumeStorefront(phone);
+        if (resumed) continued = { reply: resumed.message, cardData: resumed, skill: resumed.skill };
+      } else if (!controlCommand && !contextSwitch) {
+        const selectedRequestId = contextDecision?.selectedContextId?.startsWith('request:') ? contextDecision.selectedContextId.slice('request:'.length) : undefined;
+        continued = await continueActiveRequest(phone, input.conversationId, message, selectedRequestId);
+      }
+      const routing: IntentRoutingResult = continued || await routeIntent(message, phone, undefined, contextDecision, input.conversationId);
+      classificationSource = routing.classificationSource;
+      intentConfidence = routing.intentConfidence;
+      modelProvider = routing.modelProvider;
+      model = routing.model;
+      extractionSource = routing.extractionSource;
+      extractedEntities = routing.extractedEntities;
+      canonicalAction = routing.canonicalAction;
+      progressStage = routing.progressStage;
+      cardData = routing.cardData;
 
-    if (routing.skill && routing.skill !== 'general_question' && routing.skill !== 'autonomous_agent' && isGuest) {
-      // Preserve the guest authorization boundary without interrupting the
-      // conversation with a redundant profile-creation card. The request
-      // response already carries the useful next step and the auth state keeps
-      // the continuation available if the guest chooses to sign in.
-      await setAuthState(phone, 'awaiting_name', { intent: routing.skill, continuationCard: cardData });
-      reply = `${routing.reply}\n\nIf you want Kurukoo to save or continue this request, tell me your name and I’ll take you through sign-in.`;
-      cardData = {
-        type: 'auth_conversation',
-        step: 'name',
-        title: 'A quick introduction',
-        message: 'I’m Kurukoo. Tell me your name and I’ll keep this conversation connected while we continue your request.',
-        continuationCard: routing.cardData,
-      };
-    } else {
-      // Native assistance remains native. Economic Requests are created and
-      // advanced only by canonical request services invoked by the router.
-      reply = routing.reply;
-    }
+      if (shouldUseUniversalConversationOwner(routing)) {
+        const history = await listChatMessages(phone, { conversationId: userMessage.conversationId, limit: 12 });
+        const priorAssistantReplies = history
+          .filter(row => String(row.sender || '') === 'assistant' && String(row.id || '') !== String(userMessage.id))
+          .slice(-4)
+          .map(row => String(row.content || '').trim())
+          .filter(Boolean);
+        const activeContextIds = [
+          ...(contextDecision?.preserveContextIds || []),
+          contextDecision?.selectedContextId,
+        ].filter((value): value is string => Boolean(value));
+        const pendingFields = Array.isArray(routing.cardData?.fields)
+          ? routing.cardData.fields.filter((field: any) => field?.required).map((field: any) => String(field.key || '')).filter(Boolean).slice(0, 8)
+          : [];
+        const knownFacts = [
+          profile?.name ? `name is ${profile.name}` : '',
+          profile?.location ? `usual area is ${profile.location}` : '',
+        ].filter(Boolean);
+        const generated = await generateConversationalResponse({
+          prompt: message,
+          phone,
+          threadId: userMessage.conversationId,
+          contextHint: contextDecision ? {
+            selectedContext: contextDecision.selectedContext,
+            relation: contextDecision.relation,
+            confidence: contextDecision.confidence,
+            preserveContextIds: contextDecision.preserveContextIds,
+          } : undefined,
+          activeContextIds,
+          knownFacts,
+          pendingFields,
+          priorAssistantReplies,
+        });
+        reply = generated.text;
+        cardData = undefined;
+        modelProvider = generated.provider;
+        model = generated.model;
+        classificationSource = generated.provider === 'Kurukoo Template' ? 'fallback' : classificationSource || 'rules';
+        extractionSource = routing.extractionSource;
+        extractedEntities = routing.extractedEntities;
+        canonicalAction = undefined;
+        progressStage = 'complete';
+        conversationQualityScore = generated.quality.score;
+        conversationQualityIssues = generated.quality.issues;
+        conversationGenerationEscalated = generated.escalated;
+        conversationGenerationAttempts = generated.attemptCount;
+        conversationContextTurns = generated.contextTurns;
+      } else {
+        reply = routing.reply;
+      }
     }
   }
 
@@ -372,6 +408,11 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     progressStage,
     latencyMs: Date.now() - startedAt,
     contextDecision,
+    conversationQualityScore,
+    conversationQualityIssues,
+    conversationGenerationEscalated,
+    conversationGenerationAttempts,
+    conversationContextTurns,
   });
 }
 
@@ -393,6 +434,11 @@ async function persistTurn(args: {
   progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
   latencyMs?: number;
   contextDecision?: ContextArbitrationDecision;
+  conversationQualityScore?: number;
+  conversationQualityIssues?: string[];
+  conversationGenerationEscalated?: boolean;
+  conversationGenerationAttempts?: number;
+  conversationContextTurns?: number;
 }): Promise<CanonicalChatTurnResult> {
   await appendChatMessage({
     phone: args.phone,
@@ -404,6 +450,14 @@ async function persistTurn(args: {
     metadata: {
       ai: true,
       canonical_turn: true,
+      conversation_generation_owner: args.conversationQualityScore !== undefined,
+      conversation_quality: args.conversationQualityScore !== undefined ? {
+        score: args.conversationQualityScore,
+        issues: args.conversationQualityIssues || [],
+        escalated: Boolean(args.conversationGenerationEscalated),
+        attempts: args.conversationGenerationAttempts,
+        contextTurns: args.conversationContextTurns,
+      } : undefined,
       context_decision: args.contextDecision ? {
         selectedContext: args.contextDecision.selectedContext,
         relation: args.contextDecision.relation,
@@ -432,6 +486,14 @@ async function persistTurn(args: {
       extractionSource: args.extractionSource,
       canonicalAction: args.canonicalAction,
       progressStage: args.progressStage,
+      conversationGeneration: args.conversationQualityScore !== undefined ? {
+        owner: 'conversationalGenerationService',
+        score: args.conversationQualityScore,
+        issues: args.conversationQualityIssues || [],
+        escalated: Boolean(args.conversationGenerationEscalated),
+        attempts: args.conversationGenerationAttempts,
+        contextTurns: args.conversationContextTurns,
+      } : undefined,
       context: args.contextDecision ? {
         selectedContext: args.contextDecision.selectedContext,
         relation: args.contextDecision.relation,
@@ -467,6 +529,11 @@ async function persistTurn(args: {
     progressStage: args.progressStage,
     latencyMs: args.latencyMs,
     contextDecision: args.contextDecision,
+    conversationQualityScore: args.conversationQualityScore,
+    conversationQualityIssues: args.conversationQualityIssues,
+    conversationGenerationEscalated: args.conversationGenerationEscalated,
+    conversationGenerationAttempts: args.conversationGenerationAttempts,
+    conversationContextTurns: args.conversationContextTurns,
   };
 }
 
