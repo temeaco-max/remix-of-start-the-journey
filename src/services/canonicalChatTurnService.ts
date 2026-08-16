@@ -194,13 +194,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   const explicitDiscoveryEntityId = input.contextAction?.type === 'open_discovery_entity' && input.contextAction.entityId ? String(input.contextAction.entityId) : undefined;
   const explicitDiscoveryEntity = explicitDiscoveryEntityId ? await getDiscoveryEntity(explicitDiscoveryEntityId) : null;
   const continuationAction = input.contextAction?.type === 'resume_canonical_context' ? input.contextAction : null;
-  const allowedContinuationPairs = new Set([
-    'agent_goal:agent.goal.resume',
-    'agent_goal:agent.goal.review',
-    'economic_request:economic_request.review_match',
-    'notification:notification.open',
-    'discovery_entity:discovery.context.open',
-  ]);
+  const allowedContinuationPairs = new Set(['agent_goal:agent.goal.resume', 'agent_goal:agent.goal.review', 'economic_request:economic_request.review_match', 'notification:notification.open', 'discovery_entity:discovery.context.open']);
   let continuationObject: any = null;
   const continuationPair = continuationAction?.objectType && continuationAction.canonicalAction ? `${continuationAction.objectType}:${continuationAction.canonicalAction}` : '';
   if (continuationAction && !isGuest && continuationPair && allowedContinuationPairs.has(continuationPair) && continuationAction.objectType && continuationAction.objectId) {
@@ -243,14 +237,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     }
   } else if (!isGuest && contextDecision?.relation === 'clarify' && contextDecision.clarification) {
     reply = contextDecision.clarification;
-    cardData = {
-      type: 'context_clarification',
-      selectedContext: contextDecision.selectedContext,
-      preserveContextIds: contextDecision.preserveContextIds,
-      confidence: contextDecision.confidence,
-      ambiguousInput: message,
-      options: ['Use it for the current request', 'Treat it as new information'],
-    };
+    cardData = { type: 'context_clarification', selectedContext: contextDecision.selectedContext, preserveContextIds: contextDecision.preserveContextIds, confidence: contextDecision.confidence, ambiguousInput: message, options: ['Use it for the current request', 'Treat it as new information'] };
     progressStage = 'understanding';
   } else if (!isGuest && contextDecision?.selectedContext === 'memory' && /^(treat (?:it|that) as new information|keep (?:it|that) as new information)\b/i.test(message.trim())) {
     const history = await listChatMessages(phone, { conversationId: input.conversationId, limit: 20 });
@@ -333,46 +320,32 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       progressStage = routing.progressStage;
       cardData = routing.cardData;
 
-      if (shouldUseUniversalConversationOwner(routing)) {
+      const explicitAgentIntent = routing.skill === 'autonomous_agent' || /\b(keep checking|keep looking|monitor|watch for|tell me when|let me know when|check again)\b/i.test(message);
+      agentGoal = !isGuest && explicitAgentIntent ? await createConversationGoal({
+        phone,
+        conversationId: userMessage.conversationId,
+        skill: routing.skill,
+        objective: message,
+        economicRequestId: typeof cardData?.requestId === 'string' ? cardData.requestId : undefined,
+        source: input.channel === 'web_qr' ? 'qr' : 'conversation',
+      }) : null;
+
+      if (routing.skill && routing.skill !== 'general_question' && routing.skill !== 'autonomous_agent' && isGuest) {
+        await setAuthState(phone, 'awaiting_name', { intent: routing.skill, continuationCard: cardData });
+        reply = `${routing.reply}\n\nIf you want Kurukoo to save or continue this request, tell me your name and I’ll take you through sign-in.`;
+        cardData = { type: 'auth_conversation', step: 'name', title: 'A quick introduction', message: 'I’m Kurukoo. Tell me your name and I’ll keep this conversation connected while we continue your request.', continuationCard: routing.cardData };
+      } else if (shouldUseUniversalConversationOwner(routing)) {
         const history = await listChatMessages(phone, { conversationId: userMessage.conversationId, limit: 12 });
-        const priorAssistantReplies = history
-          .filter(row => String(row.sender || '') === 'assistant' && String(row.id || '') !== String(userMessage.id))
-          .slice(-4)
-          .map(row => String(row.content || '').trim())
-          .filter(Boolean);
-        const activeContextIds = [
-          ...(contextDecision?.preserveContextIds || []),
-          contextDecision?.selectedContextId,
-        ].filter((value): value is string => Boolean(value));
-        const pendingFields = Array.isArray(routing.cardData?.fields)
-          ? routing.cardData.fields.filter((field: any) => field?.required).map((field: any) => String(field.key || '')).filter(Boolean).slice(0, 8)
-          : [];
-        const knownFacts = [
-          profile?.name ? `name is ${profile.name}` : '',
-          profile?.location ? `usual area is ${profile.location}` : '',
-        ].filter(Boolean);
-        const generated = await generateConversationalResponse({
-          prompt: message,
-          phone,
-          threadId: userMessage.conversationId,
-          contextHint: contextDecision ? {
-            selectedContext: contextDecision.selectedContext,
-            relation: contextDecision.relation,
-            confidence: contextDecision.confidence,
-            preserveContextIds: contextDecision.preserveContextIds,
-          } : undefined,
-          activeContextIds,
-          knownFacts,
-          pendingFields,
-          priorAssistantReplies,
-        });
+        const priorAssistantReplies = history.filter(row => String(row.sender || '') === 'assistant' && String(row.id || '') !== String(userMessage.id)).slice(-4).map(row => String(row.content || '').trim()).filter(Boolean);
+        const activeContextIds = [...(contextDecision?.preserveContextIds || []), contextDecision?.selectedContextId].filter((value): value is string => Boolean(value));
+        const pendingFields = Array.isArray(routing.cardData?.fields) ? routing.cardData.fields.filter((field: any) => field?.required).map((field: any) => String(field.key || '')).filter(Boolean).slice(0, 8) : [];
+        const knownFacts = [profile?.name ? `name is ${profile.name}` : '', profile?.location ? `usual area is ${profile.location}` : ''].filter(Boolean);
+        const generated = await generateConversationalResponse({ prompt: message, phone, threadId: userMessage.conversationId, contextHint: contextDecision ? { selectedContext: contextDecision.selectedContext, relation: contextDecision.relation, confidence: contextDecision.confidence, preserveContextIds: contextDecision.preserveContextIds } : undefined, activeContextIds, knownFacts, pendingFields, priorAssistantReplies });
         reply = generated.text;
         cardData = undefined;
         modelProvider = generated.provider;
         model = generated.model;
         classificationSource = generated.provider === 'Kurukoo Template' ? 'fallback' : classificationSource || 'rules';
-        extractionSource = routing.extractionSource;
-        extractedEntities = routing.extractedEntities;
         canonicalAction = undefined;
         progressStage = 'complete';
         conversationQualityScore = generated.quality.score;
@@ -386,34 +359,9 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     }
   }
 
-  if (cardData?.type === 'safety_contact_capture') {
-    await setSafetyCaptureState(phone, 'awaiting_phone', { name: cardData.name });
-  }
+  if (cardData?.type === 'safety_contact_capture') await setSafetyCaptureState(phone, 'awaiting_phone', { name: cardData.name });
 
-  return persistTurn({
-    userMessage,
-    phone,
-    channel: input.channel,
-    reply,
-    cardData,
-    authSuccess,
-    agentGoal,
-    classificationSource,
-    intentConfidence,
-    modelProvider,
-    model,
-    extractionSource,
-    extractedEntities,
-    canonicalAction,
-    progressStage,
-    latencyMs: Date.now() - startedAt,
-    contextDecision,
-    conversationQualityScore,
-    conversationQualityIssues,
-    conversationGenerationEscalated,
-    conversationGenerationAttempts,
-    conversationContextTurns,
-  });
+  return persistTurn({ userMessage, phone, channel: input.channel, reply, cardData, authSuccess, agentGoal, classificationSource, intentConfidence, modelProvider, model, extractionSource, extractedEntities, canonicalAction, progressStage, latencyMs: Date.now() - startedAt, contextDecision, conversationQualityScore, conversationQualityIssues, conversationGenerationEscalated, conversationGenerationAttempts, conversationContextTurns });
 }
 
 async function persistTurn(args: {
@@ -451,20 +399,8 @@ async function persistTurn(args: {
       ai: true,
       canonical_turn: true,
       conversation_generation_owner: args.conversationQualityScore !== undefined,
-      conversation_quality: args.conversationQualityScore !== undefined ? {
-        score: args.conversationQualityScore,
-        issues: args.conversationQualityIssues || [],
-        escalated: Boolean(args.conversationGenerationEscalated),
-        attempts: args.conversationGenerationAttempts,
-        contextTurns: args.conversationContextTurns,
-      } : undefined,
-      context_decision: args.contextDecision ? {
-        selectedContext: args.contextDecision.selectedContext,
-        relation: args.contextDecision.relation,
-        confidence: args.contextDecision.confidence,
-        ambiguous: args.contextDecision.ambiguous,
-        preserveContextIds: args.contextDecision.preserveContextIds,
-      } : undefined,
+      conversation_quality: args.conversationQualityScore !== undefined ? { score: args.conversationQualityScore, issues: args.conversationQualityIssues || [], escalated: Boolean(args.conversationGenerationEscalated), attempts: args.conversationGenerationAttempts, contextTurns: args.conversationContextTurns } : undefined,
+      context_decision: args.contextDecision ? { selectedContext: args.contextDecision.selectedContext, relation: args.contextDecision.relation, confidence: args.contextDecision.confidence, ambiguous: args.contextDecision.ambiguous, preserveContextIds: args.contextDecision.preserveContextIds } : undefined,
     },
   });
   await persistCoordinatorEvent({
@@ -486,21 +422,8 @@ async function persistTurn(args: {
       extractionSource: args.extractionSource,
       canonicalAction: args.canonicalAction,
       progressStage: args.progressStage,
-      conversationGeneration: args.conversationQualityScore !== undefined ? {
-        owner: 'conversationalGenerationService',
-        score: args.conversationQualityScore,
-        issues: args.conversationQualityIssues || [],
-        escalated: Boolean(args.conversationGenerationEscalated),
-        attempts: args.conversationGenerationAttempts,
-        contextTurns: args.conversationContextTurns,
-      } : undefined,
-      context: args.contextDecision ? {
-        selectedContext: args.contextDecision.selectedContext,
-        relation: args.contextDecision.relation,
-        confidence: args.contextDecision.confidence,
-        ambiguous: args.contextDecision.ambiguous,
-        preserveContextIds: args.contextDecision.preserveContextIds,
-      } : undefined,
+      conversationGeneration: args.conversationQualityScore !== undefined ? { owner: 'conversationalGenerationService', score: args.conversationQualityScore, issues: args.conversationQualityIssues || [], escalated: Boolean(args.conversationGenerationEscalated), attempts: args.conversationGenerationAttempts, contextTurns: args.conversationContextTurns } : undefined,
+      context: args.contextDecision ? { selectedContext: args.contextDecision.selectedContext, relation: args.contextDecision.relation, confidence: args.contextDecision.confidence, ambiguous: args.contextDecision.ambiguous, preserveContextIds: args.contextDecision.preserveContextIds } : undefined,
       cardType: typeof args.cardData?.type === 'string' ? args.cardData.type : undefined,
       requestId: typeof args.cardData?.requestId === 'string' ? args.cardData.requestId : undefined,
       agentGoalStatus: typeof args.agentGoal?.status === 'string' ? args.agentGoal.status : undefined,
@@ -511,30 +434,7 @@ async function persistTurn(args: {
     policy: { autonomousAllowed: false, confirmationRequired: 'none' },
     schemaVersion: 1,
   });
-  return {
-    phone: args.phone,
-    conversationId: args.userMessage.conversationId,
-    userMessageId: args.userMessage.id,
-    reply: args.reply.trim(),
-    cardData: args.cardData,
-    authSuccess: args.authSuccess,
-    agentGoal: args.agentGoal,
-    classificationSource: args.classificationSource,
-    intentConfidence: args.intentConfidence,
-    modelProvider: args.modelProvider,
-    model: args.model,
-    extractionSource: args.extractionSource,
-    extractedEntities: args.extractedEntities,
-    canonicalAction: args.canonicalAction,
-    progressStage: args.progressStage,
-    latencyMs: args.latencyMs,
-    contextDecision: args.contextDecision,
-    conversationQualityScore: args.conversationQualityScore,
-    conversationQualityIssues: args.conversationQualityIssues,
-    conversationGenerationEscalated: args.conversationGenerationEscalated,
-    conversationGenerationAttempts: args.conversationGenerationAttempts,
-    conversationContextTurns: args.conversationContextTurns,
-  };
+  return { phone: args.phone, conversationId: args.userMessage.conversationId, userMessageId: args.userMessage.id, reply: args.reply.trim(), cardData: args.cardData, authSuccess: args.authSuccess, agentGoal: args.agentGoal, classificationSource: args.classificationSource, intentConfidence: args.intentConfidence, modelProvider: args.modelProvider, model: args.model, extractionSource: args.extractionSource, extractedEntities: args.extractedEntities, canonicalAction: args.canonicalAction, progressStage: args.progressStage, latencyMs: args.latencyMs, contextDecision: args.contextDecision, conversationQualityScore: args.conversationQualityScore, conversationQualityIssues: args.conversationQualityIssues, conversationGenerationEscalated: args.conversationGenerationEscalated, conversationGenerationAttempts: args.conversationGenerationAttempts, conversationContextTurns: args.conversationContextTurns };
 }
 
 export default processCanonicalChatTurn;
