@@ -1,6 +1,7 @@
 import { queryUnifiedAI, type AIProvider, type AIResponse, type ConversationalContextHint } from './unifiedAiEngine.js';
 import { assessConversationQuality, type ConversationQualityAssessment } from './conversationQualityService.js';
 import { buildConversationTurnContract, type ConversationTurnContract } from './conversationTurnContractService.js';
+import { buildConversationContextPack } from './conversationContextPackService.js';
 
 export interface ConversationalGenerationInput {
   prompt: string;
@@ -24,6 +25,7 @@ export interface ConversationalGenerationResult extends AIResponse {
   quality: ConversationQualityAssessment;
   escalated: boolean;
   attemptCount: number;
+  contextTurns: number;
 }
 
 const ACTION_RESPONSE_RE = /\b(?:book|order|hire|find (?:someone|me)|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set (?:a )?reminder|proceed|go ahead)\b/i;
@@ -106,9 +108,16 @@ export async function generateConversationalResponse(input: ConversationalGenera
     priorAssistantReplies: input.priorAssistantReplies,
   });
 
+  const contextPack = await buildConversationContextPack(input.phone, input.threadId, input.prompt);
+  const contextualSystemPrompt = [
+    input.systemPrompt || '',
+    contextPack.transcript ? `\n\n--- Recent conversation for this exact thread (human-facing content only) ---\n${contextPack.transcript}\n---` : '',
+    contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '',
+  ].filter(Boolean).join('\n');
+
   const base = await queryUnifiedAI(input.prompt, {
     provider: input.provider,
-    systemPrompt: input.systemPrompt,
+    systemPrompt: contextualSystemPrompt || input.systemPrompt,
     phone: input.phone,
     threadId: input.threadId,
     conversational: true,
@@ -131,7 +140,7 @@ export async function generateConversationalResponse(input: ConversationalGenera
     try {
       const repaired = await queryUnifiedAI(buildRepairPrompt(input.prompt, contract, assessment), {
         provider,
-        systemPrompt: input.systemPrompt,
+        systemPrompt: contextualSystemPrompt || input.systemPrompt,
         phone: input.phone,
         threadId: input.threadId,
         conversational: true,
@@ -154,7 +163,7 @@ export async function generateConversationalResponse(input: ConversationalGenera
     try {
       const strictRepair = await queryUnifiedAI(buildStrictRepairPrompt(input.prompt, contract), {
         provider,
-        systemPrompt: input.systemPrompt,
+        systemPrompt: contextualSystemPrompt || input.systemPrompt,
         phone: input.phone,
         threadId: input.threadId,
         conversational: true,
@@ -178,5 +187,6 @@ export async function generateConversationalResponse(input: ConversationalGenera
     quality: assessment,
     escalated,
     attemptCount: attempts,
+    contextTurns: contextPack.turns,
   };
 }
