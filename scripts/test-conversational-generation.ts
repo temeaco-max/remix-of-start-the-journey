@@ -11,9 +11,9 @@ const cases = [
     expectedMode: 'conversation',
   },
   {
-    name: 'problem description remains conversational',
+    name: 'problem description remains non-action exploration',
     prompt: 'My phone has been acting weird since yesterday.',
-    expectedMode: 'conversation',
+    expectedMode: 'exploration',
   },
   {
     name: 'exploration does not become an action',

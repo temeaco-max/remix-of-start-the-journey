@@ -42,7 +42,7 @@ const GENERIC_TEMPLATE_PATTERNS = [
   /^I(?:'m| am) ready\.? Tell me what (?:you need|you'd like)\.?$/i,
 ];
 
-const ACTION_LANGUAGE = /\b(?:book|order|hire|find someone|find a|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set a reminder|set the reminder|contact|message|call them)\b/i;
+const ACTION_LANGUAGE = /\b(?:book|order|hire|find someone|find a|arrange|schedule|cancel|subscribe|dispatch|send|confirm|create|set a reminder|set the reminder|contact|message|call them)\b|\bpay\s+(?:now|for|the|this|it|them|someone|online|by|with)\b/i;
 const EXPLORATORY_LANGUAGE = /\b(?:thinking about|maybe|might|could|wondering|what do you think|what would you do|should i|tell me about|how does|what(?:'s| is) a good|considering|looking at|exploring)\b/i;
 
 function normalize(value: string): string {
@@ -70,7 +70,12 @@ function asksForKnownFact(reply: string, facts: string[]): boolean {
     if (!value) return false;
     const probes = value.split(' ').filter(part => part.length > 3);
     if (!probes.length) return false;
-    return probes.some(part => new RegExp(`\\b(?:what|which|where|when|what is|tell me)\\b[^?]{0,80}\\b${part.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\b`, 'i').test(text));
+    return probes.some(part => {
+      const escaped = part.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
+      const asksFact = new RegExp(`\\b(?:what|which|where|when|what is|tell me)\\b[^?]{0,80}\\b${escaped}\\b`, 'i').test(text);
+      const asksSubLocation = new RegExp(`\\b(?:part|area|neighborhood|side|street|district)\\s+(?:of|in|around)\\s+${escaped}\\b`, 'i').test(text);
+      return asksFact && !asksSubLocation;
+    });
   });
 }
 
@@ -96,7 +101,9 @@ export function assessConversationQuality(context: ConversationQualityContext): 
   }
 
   const normalizedReply = normalize(reply);
-  const repeated = normalizedReply.length > 20 && (context.priorAssistantReplies || []).some(previous => overlap(reply, previous) >= 0.9);
+  const responseSegments = reply.split(/\n+/).map(segment => normalize(segment)).filter(Boolean);
+  const repeatedWithinReply = responseSegments.length > 1 && new Set(responseSegments).size < responseSegments.length;
+  const repeated = repeatedWithinReply || (normalizedReply.length > 20 && (context.priorAssistantReplies || []).some(previous => overlap(reply, previous) >= 0.9));
   if (repeated) {
     issues.push('repetition');
     score -= 0.3;

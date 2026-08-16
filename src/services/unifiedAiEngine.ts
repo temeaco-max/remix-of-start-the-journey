@@ -109,6 +109,8 @@ function naturalFallback(prompt: string): string {
   if (/\bhow are you\b|how is it going/.test(text)) return 'I’m here and ready to help. How are things going for you today?';
   if (/\bfrustrated\b|\boverwhelm|\bstressed\b|\bhaving a bad day/.test(text)) return 'That sounds difficult. We can take it one step at a time—would you like to talk it through, or focus on something practical I can help with?';
   if (/\bjoke\b|make me laugh/.test(text)) return 'Why did the phone need glasses? Because it lost its contacts.';
+  if (/\bwhat can you help me with\b|\bhow can you help me\b|\bwhat do you help with\b/.test(text)) return 'I’m ready to help with everyday questions, reminders, safety support, finding or coordinating services, sourcing items, and keeping a request moving. Tell me what you want to get done.';
+  if (/\b(?:explain|what does|what is)\b.*\bkurukoo\b/.test(text)) return 'Kurukoo is one conversation for everyday help: it can answer questions, remember useful context, set reminders, coordinate verified services, and keep requests moving without pretending a payment or provider action happened.';
   if (/explain (?:that|it) more simply|simpler/.test(text)) return 'Of course. I’ll keep it simpler: tell me the one part that feels unclear, and I’ll explain just that.';
   if (/what did you mean|what do you mean/.test(text)) return 'I may not have been clear. Tell me which part you mean, and I’ll restate it plainly.';
   if (/\biphone\s+15\b.*\biphone\s+16\b|difference between.*iphone/.test(text)) return 'The practical differences depend on the exact models, price and condition. If you tell me whether you care most about camera, battery, performance or value, I can compare those trade-offs without assuming current prices.';
@@ -240,8 +242,13 @@ export async function queryUnifiedAI(prompt: string, options: UnifiedAIOptions =
   const { systemPrompt, memoryTokens } = await resolveSystemPrompt(prompt, options, classification, route);
 
   const afterSuccess = async (response: AIResponse): Promise<AIResponse> => {
-    await recordAiUsage(options.phone, kind, (memoryTokens || 0) + tokenEst + Math.ceil((response.text || '').length / 4));
-    return { ...response, quotaRemaining: quota.remaining };
+    const emotionalPrompt = /\b(?:frustrated|overwhelmed|stressed|having a bad day)\b/i.test(prompt);
+    const genericOverview = /find services, coordinate work, manage requests, and answer everyday questions/i.test(response.text || '');
+    const safeResponse = emotionalPrompt && genericOverview
+      ? { ...response, provider: 'Kurukoo Template', model: 'template-fallback', text: naturalFallback(prompt), cost: '$0.00' }
+      : response;
+    await recordAiUsage(options.phone, kind, (memoryTokens || 0) + tokenEst + Math.ceil((safeResponse.text || '').length / 4));
+    return { ...safeResponse, quotaRemaining: quota.remaining };
   };
 
   if (preferred === 'gemini') {

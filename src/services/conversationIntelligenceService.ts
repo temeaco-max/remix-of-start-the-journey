@@ -57,6 +57,7 @@ function determineMode(input: ConversationIntelligenceInput): ConversationMode {
   const relative = detectRelativeReference(text);
   if (CONTROL_RE.test(text)) return 'control';
   if (relative) return 'reference';
+  if (CASUAL_RE.test(text)) return 'conversation';
   if (CLARIFICATION_RE.test(text) && !hasExplicitAction(text)) return 'clarification';
   if (EXPLORATION_RE.test(text) || PROBLEM_STATEMENT_RE.test(text)) return 'exploration';
   if (hasExplicitAction(text)) return 'action';
