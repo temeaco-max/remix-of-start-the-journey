@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kurukoo/training-example.schema.json",
+  "type": "object",
+  "required": ["exampleId", "datasetVersion", "messages", "labels", "provenance"],
+  "properties": {
+    "exampleId": {"type": "string"},
+    "datasetVersion": {"type": "string"},
+    "messages": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+    "labels": {"type": "object", "additionalProperties": true},
+    "provenance": {"type": "object", "additionalProperties": true},
+    "teacherJudgements": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+    "quality": {"type": "object", "additionalProperties": true},
+    "privacy": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}
