@@ -101,10 +101,11 @@ function assess(input: ConversationalGenerationInput, contract: ConversationTurn
 }
 
 export async function generateConversationalResponse(input: ConversationalGenerationInput): Promise<ConversationalGenerationResult> {
-  const generationMode = input.generationMode || (input.seedResponse ? 'present' : 'generate');
+  // Ordinary Chat is model-authored. A supplied seed is only honored when the caller explicitly selects presentation or deterministic mode.
+  const generationMode = input.generationMode || 'generate';
   const contract = buildConversationTurnContract({
     latestUserMessage: input.prompt,
-    assistantReply: generationMode === 'present' ? input.seedResponse?.text || '' : '',
+    assistantReply: generationMode === 'present' || generationMode === 'deterministic' ? input.seedResponse?.text || '' : '',
     userMessage: input.prompt,
     activeContextIds: input.activeContextIds,
     knownFacts: input.knownFacts,
@@ -134,7 +135,6 @@ export async function generateConversationalResponse(input: ConversationalGenera
     if (!input.seedResponse) throw new Error('Presentation conversation mode requires a canonical result');
     base = { ...input.seedResponse, text: input.seedResponse.text.trim() };
   } else {
-    // Ordinary conversation: the conversational model is the response author. Router output is never used as a reply seed.
     base = await queryUnifiedAI(input.prompt, {
       provider: conversationProvider,
       systemPrompt: contextualSystemPrompt || input.systemPrompt,
