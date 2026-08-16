@@ -42,7 +42,11 @@ function extractRequirementPatch(message: string, card: any, current: any): Reco
   const budget = text.match(/(?:₦|ngn|naira)\s*([\d,]+)|\b([\d,]+)\s*(?:ngn|naira)\b/i);
   if (budget) setFirst(['budget', 'amount', 'rate', 'price'], (budget[1] || budget[2] || '').replace(/,/g, ''));
   const time = text.match(/\b(today|tonight|tomorrow(?:\s+(?:morning|afternoon|evening|night))?|this\s+weekend|next\s+week|next\s+month|saturday|sunday|monday|tuesday|wednesday|thursday|friday)\b/i);
-  if (time) setFirst(['time', 'when', 'departure_time', 'event_date', 'date'], time[1]);
+  if (time) { setFirst(['time', 'when', 'departure_time', 'event_date', 'date'], time[1]); setFirst(['urgency'], time[1]); }
+  const device = text.match(/\b(?:it\s+is|it's|this\s+is|for)\s+(?:an?\s+|the\s+)?((?:iphone|ipad|android|samsung|pixel|laptop|computer|tablet|phone|mobile)[a-z0-9 .-]{0,24}?)(?=\s+with\b|\s+that\b|\s+which\b|[,.!?]|$)/i);
+  if (device) setFirst(['device_or_asset', 'device', 'asset', 'product'], device[1].trim());
+  const fault = text.match(/\bwith\s+(.+?)(?=\.\s*(?:i['’]m|i am|i'm)\b|\s+(?:in|at|near|around|within)\b|\s+and\s+(?:need|want|would)\b|[.!?]|$)/i);
+  if (fault) setFirst(['issue', 'fault', 'problem', 'description'], fault[1].trim());
   const correctionField = text.match(/\b(?:change|correct|update|set)\s+(?:the\s+)?(pickup|origin|destination|dropoff|location|venue|service|skill|budget|price)\s+(?:to|as)\s+(.+?)(?:[.!?]|$)/i);
   if (correctionField) {
     const field = correctionField[1].toLowerCase();
