@@ -71,3 +71,9 @@ The canonical Chat turn now uses the arbitration result operationally. Explicit 
 The canonical internal notification owner now supports optional `context_id`, `conversation_id`, `available_action`, and `surface` metadata with backward-compatible migrations. Agent-goal notifications deep-link to the originating conversation and identify `resume` or `review`; deferred provider-match notifications identify the request context and `review` action. The internal queue remains truthful when FCM is not configured or no device token is registered.
 
 Validation passed through `test:network-chat`, `test:notification-queue`, `test:fcm-boundary`, `test:agent-runtime`, `test:context-arbitration`, `test:behavioral-chat`, `lint`, and the production build. External push delivery remains unclaimed until provider acceptance or delivery evidence exists.
+
+## Browser verification after context and notification wiring
+
+The local Chat surface rendered the canonical workspace shell with the shared composer, unified left navigation, More control, Radar readiness, notification control, context inspector, channel readiness cards, and central conversation surface. The guest identity flow remained truthful: the UI disclosed that external SMS/WhatsApp delivery was not configured, and the synthetic code was rejected rather than promoting the session. The screenshot was captured at `/home/ubuntu/screenshots/localhost_2026-08-16_08-35-27_9388.webp`.
+
+The arbitration layer now recognizes explicit new-request language and topic-resumption phrases. A new request can be opened without consuming the previous request’s pending slot, while phrases such as “resume my request” select the Economic Request context rather than the agent-control context. The expanded context-arbitration and behavioral Chat regressions passed, and TypeScript validation passed.
