@@ -37,7 +37,7 @@ function buildPrompt(prompt: string, systemPrompt?: string): string {
 }
 
 const INTERNAL_GENERATION_PATTERNS = [
-  /\b(?:current policy and quota|current user(?:'s|s) (?:role|context)|system instructions?|internal architecture|context arbitration|model provider|classification source|canonical service|living memory|prompt text|kurukoo conversational contract|model_tier|requirement=|do not invent external state|latest user turn|i understand the .* context)\b/i,
+  /\b(?:current policy and quota|current user(?:'s|s) (?:role|context)|system instructions?|internal architecture|context arbitration|model provider|classification source|canonical service|living memory|prompt text|kurukoo conversational contract|model_tier|requirement=|do not invent external state|latest user turn|relative reference|canonical object|active goal|active context|i understand the .* context)\b/i,
   /\b(?:as an ai language model|i cannot access your context|the user(?:'s|s) context)\b/i,
 ];
 function containsInternalGeneration(value: string): boolean { return INTERNAL_GENERATION_PATTERNS.some(pattern => pattern.test(value)); }
