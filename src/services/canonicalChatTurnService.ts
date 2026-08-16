@@ -80,13 +80,15 @@ async function continueActiveRequest(phone: string, conversationId: string | und
   ) return null;
   if (!conversationId && !selectedRequestId) return null;
   const history = await listChatMessages(phone, selectedRequestId ? { limit: 100 } : { conversationId, limit: 60 });
+  const clarificationCard = history.map(row => parseCardData(row)).reverse().find(card => card?.type === 'context_clarification' && typeof card?.ambiguousInput === 'string');
+  const effectiveMessage = /^(use (?:it|that) for the current request|apply (?:it|that) to the current request)\b/i.test(message.trim()) && clarificationCard ? String(clarificationCard.ambiguousInput) : message;
   for (let i = history.length - 1; i >= 0; i -= 1) {
     const card = parseCardData(history[i]);
     if (!card?.requestId || card.type !== 'agentic_storefront') continue;
     if (selectedRequestId && String(card.requestId) !== selectedRequestId) continue;
     const request = await getEconomicRequest(String(card.requestId));
     if (!request || request.phone !== phone || ['completed', 'cancelled', 'abandoned', 'failed'].includes(request.status)) continue;
-    const patch = extractRequirementPatch(message, card, request);
+    const patch = extractRequirementPatch(effectiveMessage, card, request);
     if (request.skill === 'find_worker') {
       const workerCorrection = message.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder)\b/i)?.[1]?.toLowerCase();
       if (workerCorrection) patch.service = workerCorrection;
@@ -174,6 +176,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       selectedContext: contextDecision.selectedContext,
       preserveContextIds: contextDecision.preserveContextIds,
       confidence: contextDecision.confidence,
+      ambiguousInput: message,
       options: ['Use it for the current request', 'Treat it as new information'],
     };
     progressStage = 'understanding';

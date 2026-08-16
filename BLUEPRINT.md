@@ -5831,3 +5831,10 @@ A correction is now treated as a first-class conversational relation rather than
 When the selected request exists in another recent conversation, canonical Chat searches the owner-scoped message history for that exact request card before applying the patch. It never chooses an unrelated latest request merely because it is newer in the current thread. The correction result remains attached to the canonical request ID and is available for later resumption.
 
 This correction boundary is repository-side validated. It does not authorize payment, provider selection, inventory changes, dispatch, or fulfilment; those remain owned by their existing confirmation and evidence boundaries.
+
+
+## Current Convergence Addendum — Clarification Acceptance
+
+When an answer is ambiguous between identity information and a pending request field, Chat now stores the ambiguous input inside a bounded clarification card linked to the selected context. If the user chooses “Use it for the current request,” the canonical turn replays only that stored input through the selected request owner and applies the normal bounded field patch. The alternative “Treat it as new information” remains separate from request mutation.
+
+This makes clarification a resumable conversational turn rather than a dead-end prompt. The input is retained only as context-card metadata for the owner-scoped conversation flow; it does not become an authentication claim, provider fact, payment instruction, or external delivery event.

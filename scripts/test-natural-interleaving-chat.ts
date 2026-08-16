@@ -42,6 +42,15 @@ const resumed = await processCanonicalChatTurn({ phone, channel: 'web', conversa
 assert.equal(resumed.contextDecision?.relation, 'resume');
 assert.ok(resumed.cardData?.requestId, 'resume should return a canonical request card');
 
+const clarifyPhone = '+2348090000003';
+await updateProfile(clarifyPhone, 'clarification-test', { name: 'Amina', preferences: { onboarding_complete: true } });
+const clarifyStart = await processCanonicalChatTurn({ phone: clarifyPhone, channel: 'web', message: 'I need a plumber' });
+const ambiguous = await processCanonicalChatTurn({ phone: clarifyPhone, channel: 'web', conversationId: clarifyStart.conversationId, message: 'Mikel' });
+assert.equal(ambiguous.cardData?.type, 'context_clarification');
+const accepted = await processCanonicalChatTurn({ phone: clarifyPhone, channel: 'web', conversationId: clarifyStart.conversationId, message: 'Use it for the current request' });
+assert.equal(accepted.contextDecision?.relation, 'answer');
+assert.ok(JSON.stringify(accepted.cardData).toLowerCase().includes('mikel'), 'accepted clarification should update the intended request');
+
 const db = await getDb();
 const requests = db.exec('SELECT id, status FROM economic_requests WHERE phone = ?', [phone])[0]?.values || [];
 assert.ok(requests.length >= 2, 'interleaving must preserve at least two request records');

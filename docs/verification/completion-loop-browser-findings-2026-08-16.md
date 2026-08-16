@@ -107,3 +107,9 @@ Canonical Chat now recognizes deterministic correction language and applies boun
 Corrections can target an Economic Request preserved in another recent conversation because the continuation path searches owner-scoped history by the selected request ID. This prevents a correction from mutating whichever request happens to be newest in the current thread.
 
 The natural-interleaving regression now proves that memory does not corrupt the first request, a second request gets a distinct canonical record, a correction updates the selected second request, and explicit resumption returns a canonical request card. Context arbitration, behavioral Chat, economic lifecycle, admin routes, TypeScript lint, and production build checks passed.
+
+## Clarification acceptance increment
+
+Ambiguous identity-like answers now create a bounded clarification card containing the selected context and the original ambiguous input. Choosing “Use it for the current request” replays that input through the selected Economic Request owner and applies the regular requirement patch; the input is not treated as an authentication claim or provider fact.
+
+The natural-interleaving regression now covers clarification creation and acceptance in addition to memory isolation, separate request creation, correction targeting, and exact resumption. Context arbitration, behavioral Chat, admin routes, TypeScript lint, and production build validation passed.
