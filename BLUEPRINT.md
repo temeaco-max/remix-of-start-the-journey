@@ -1,7 +1,7 @@
 # Kurukoo — Final Consolidated Blueprint v5.66
 
 **Status:** CURRENT canonical product and architecture source of truth. Historical version entries below are preserved for provenance and do not override current implementation truth.
-**Current version:** v5.66
+**Current version:** v5.67
 **Canonical product definition:** Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**.
 **Terminology:** “Economic OS” and “orchestration network” are internal architecture terms; “marketplace” and “chatbot” are not product definitions.
 
@@ -16,6 +16,7 @@
 ## Version History (Consolidated & Deduplicated)
 
 | Version | Date | Summary |
+| **v5.67** | 2026-08-16 | **Conversational Operating System convergence.** Established the Brain-mediated context-arbitration contract as the next completion threshold. Every Chat turn must be classified against active contexts before canonical services execute: general conversation, onboarding, memory, safety, reminder, notification, Economic Request, provider/network, product/cart, agent goal, or a newly requested topic. The Brain must preserve unrelated active contexts, distinguish answers from topic switches, use provenance and confidence, ask natural clarification when ambiguous, and resume the correct context through conversation IDs and actionable notifications. The Brain decides meaning and next step; canonical services remain owners of state mutation, authorization, evidence, confirmation, payment, connector delivery, and fulfilment. Added the natural-interleaving acceptance campaign as the completion gate for a mature conversational operating system. Repository-side readiness remains distinct from live activation of WhatsApp, Telegram, SMS, USSD, FCM, voice, payments, telephony, WebRTC, MQTT, KYC, inventory, dispatch, and provider networks. |
 | **v5.66** | 2026-08-15 | **Completion-gap convergence: evidence-backed opportunity network and truthful product readiness.** Proactive opportunities now derive skill-demand alerts only from open canonical `economic_requests` evidence; profile skills and inferred/default locations cannot create claims about local demand, supply, discounts, or market activity. Unsupported static market alerts and engagement-reward claims were removed from the proactive feed. Added `test:opportunity-truth` to prove no fabricated demand/location claims, evidence-backed provider opportunities, and Chat continuation links. Cart, offer cards, affiliate-click tracking, and checkout remain one canonical flow: review cart → verified affiliate destination or payment-required boundary; no local fulfilment or payment is claimed without external proof. |
 | **v5.65** | 2026-08-15 | **Blueprint/product truth and AI capability convergence (§21c).** Preserved FastText, Intent Router, SmolLM2, unifiedAiEngine, canonicalChatTurnService, and agentRuntime as canonical owners. Added an opt-in, quota-gated Mistral Small text adapter, provider/model attribution, safe unknown-limit reporting, and explicit unsupported-state reporting for Mistral Voxtral/TTS/Pixtral until canonical attachment/audio owners are verified. Aligned Gemini text defaults to `gemini-2.5-flash`; separated text, TTS, and Live voice states; retained the existing Gemini Live session boundary and marked server TTS/browser speech limitations truthfully. No private-conversation free-tier production commitment is implied. |
 | **v5.64** | 2026-08-14 | **Ultra-autonomy readiness hardening (§21b).** Added authenticated owner-scoped pause/resume goal endpoints, Chat inspector Pause/Resume controls, admin runtime worker telemetry (start, cycle, completion, counts, errors, overlap state), retained background timer handles, one-start protection, and explicit graceful background-service shutdown. The runtime remains bounded, evidence-based, provider-aware, and fail-closed; no high-risk action, silent payment, anonymous persistence, or connector capability is fabricated. |
@@ -5773,6 +5774,29 @@ The personal WhatsApp linked-device experience is available from the authenticat
 
 All actions taken through the linked device return to the canonical Chat, request, reminder, safety, memory, notification, and coordinator boundaries. The left workspace navigation and central content remain the user-facing dashboard shell; external channel activation is still classified truthfully as pending or externally dependent until a real session and provider outcome are evidenced.
 
+
+## Conversational Operating System Contract — v5.67
+
+Kurukoo’s Chat surface is the primary relationship and the canonical entry point for user intent. The internal Brain is the decision owner for conversational context arbitration, but it is not a second database, second Chat engine, second memory engine, or unrestricted execution engine. The Brain receives the current turn, active conversation contexts, pending questions, relevant owner-scoped memory, recent notifications, request and goal summaries, provenance, and capability readiness. It returns a typed decision describing the selected context, whether the turn answers, modifies, pauses, resumes, or creates work, the confidence and ambiguity state, the clarification required if any, and the canonical service that may execute the decision.
+
+The required arbitration order is:
+
+1. establish the owner and current conversation boundary;
+2. load active contexts without disclosing unrelated private data;
+3. identify whether the turn is an answer to a pending question, a correction, a control command, a topic switch, a new request, a memory declaration, a reminder, a safety concern, or general conversation;
+4. use provenance, confidence, and entity compatibility to prevent short ambiguous messages from corrupting an active request;
+5. preserve unrelated contexts and create an explicit context link when a new topic is opened;
+6. delegate state changes only to the canonical owner, with authorization, idempotency, evidence, and confirmation requirements intact;
+7. return a concise response that explains the next step without exposing internal subsystem names;
+8. persist the decision and continuation metadata for later resumption and operator inspection.
+
+The Brain must prefer clarification over silent reinterpretation. For example, a short response such as `Mikel` must not be forced into a pending Economic Request location slot solely because that slot is missing. The system should recognize possible identity information, ask a concise clarification, preserve the request, and allow the user to resume it later. Similarly, a new safety concern, reminder, product request, or memory declaration must not erase an existing service request.
+
+Active contexts are first-class, owner-scoped records. At minimum, each context summary includes a context ID, type, conversation ID, state, pending fields, last activity, provenance, confidence, pause/resume state, and canonical continuation route. Notifications that require user action include the event, context ID, conversation ID, deep-link surface, available action, and truthful delivery state. Internal inbox storage may be complete while external push or channel delivery remains pending or externally dependent.
+
+The natural-interleaving acceptance campaign is the completion gate for a mature conversational operating system. A controlled User #1 session must move between conversation, memory, native assistance, skill flow, Economic Request, provider/network, deferred work, agent goal, notification, reminder, safety, topic switch, and continuation. It must verify that unrelated contexts remain intact, ambiguous answers trigger clarification, corrections modify the intended object, controls are owner-scoped, notifications resume the correct context, and no unproven external capability is claimed.
+
+A **repository-side complete** result means the contracts, feature flags, readiness telemetry, fail-closed boundaries, canonical service wiring, tests, admin controls, documentation, and deployable provider adapters exist and are validated locally. It does not mean that an external provider, account, phone number, device, carrier, payment rail, inventory source, dispatch network, or user delivery outcome is live. External activation requires independent evidence from the actual provider or device and remains separately classified in the admin readiness surface.
 
 ## Current Convergence Addendum — Progressive Trust, Channels, and Privacy Masking
 

@@ -76,6 +76,7 @@
     "test:qr": "tsx scripts/test-qr-context.ts",
     "test:agent-runtime": "tsx scripts/test-agent-runtime.ts",
     "test:coordinator": "tsx scripts/test-coordinator.ts",
+    "test:context-arbitration": "tsx scripts/test-context-arbitration.ts",
     "test:agent-control": "tsx scripts/test-agent-control-commands.ts",
     "test:agent-control-commands": "npm run test:agent-control",
     "test:stripe-payment": "tsx scripts/test-stripe-payment.ts",

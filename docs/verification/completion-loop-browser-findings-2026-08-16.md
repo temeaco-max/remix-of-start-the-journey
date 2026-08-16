@@ -45,3 +45,21 @@ External channels, push delivery, payment providers, and real device activation 
 The rebuilt acceptance Chat surface on port 3211 rendered the canonical guest shell with the same sidebar navigation, shared composer, quick actions, nearby radar readiness, channel readiness cards, context inspector, and truthful offline/reconnect banner. Capture: `/home/ubuntu/screenshots/localhost_2026-08-16_08-12-17_6696.webp`.
 
 The acceptance `/admin/` route rendered the protected Kurukoo Admin sign-in surface with username and password fields and no privileged content before authentication. Capture: `/home/ubuntu/screenshots/localhost_2026-08-16_08-12-45_6575.webp`.
+
+## Conversational Operating System convergence — first implementation increment
+
+The canonical Blueprint is now v5.67 and defines the Brain-mediated context-arbitration contract. The first repository-side increment adds `src/services/contextArbitration.ts` and wires it into `canonicalChatTurnService` and the Chat SSE diagnostics.
+
+The decision is deterministic, owner-scoped, provenance-aware, and non-destructive. It identifies explicit safety, memory, reminder, notification, product/cart, and agent-goal signals; preserves unrelated active contexts during a switch; continues a pending Economic Request when no higher-priority signal exists; and asks for clarification when a short identity-like message could corrupt a pending location field. The decision summary records selected context, relation, confidence, ambiguity, and preserved context IDs without storing message content.
+
+Regression evidence:
+
+- `npm run test:context-arbitration` passed.
+- `npm run test:conversation-first-auth` passed.
+- `npm run test:behavioral-chat` passed, including six actor scenarios and ambiguous-request coverage.
+- `npm run test:coordinator` passed.
+- `npm run test:admin-routes` passed.
+- `npm run lint` and `npm run build` passed.
+- `git diff --check` passed.
+
+This is an initial arbitration increment, not a claim that every natural-language context is solved. The next increment should expand active-context summaries, add explicit topic resumption and notification deep-link semantics, and run a natural-interleaving campaign through the canonical Chat route.

@@ -9,6 +9,7 @@ import { advanceStorefront, tryResumeStorefront } from './agenticStorefront.js';
 import { getEconomicRequest } from './skillFlows.js';
 import type { IntentRoutingResult } from '../types.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
+import { arbitrateChatContext, type ContextArbitrationDecision } from './contextArbitration.js';
 
 function parseCardData(row: any): any | null {
   if (!row?.card_data) return null;
@@ -118,6 +119,7 @@ export interface CanonicalChatTurnResult {
   canonicalAction?: string;
   progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
   latencyMs?: number;
+  contextDecision?: ContextArbitrationDecision;
 }
 
 /** The single server-side authority for a Kurukoo conversational turn. */
@@ -155,8 +157,19 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   const profile = await getProfile(phone, 'canonical_chat_turn');
   const prefs: any = profile?.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};
   const safetyState = prefs.safety_capture_state || 'none';
+  const contextDecision = isGuest ? undefined : await arbitrateChatContext({ phone, message, conversationId: input.conversationId });
 
-  if (isGuest && (authState.state !== 'none' || standaloneNameAuth) && !(authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message))) {
+  if (!isGuest && contextDecision?.relation === 'clarify' && contextDecision.clarification) {
+    reply = contextDecision.clarification;
+    cardData = {
+      type: 'context_clarification',
+      selectedContext: contextDecision.selectedContext,
+      preserveContextIds: contextDecision.preserveContextIds,
+      confidence: contextDecision.confidence,
+      options: ['Use it for the current request', 'Treat it as new information'],
+    };
+    progressStage = 'understanding';
+  } else if (isGuest && (authState.state !== 'none' || standaloneNameAuth) && !(authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message))) {
     if (standaloneNameAuth) await setAuthState(phone, 'awaiting_name', {});
     const result = await handleConversationalAuth(phone, message);
     reply = result.reply;
@@ -268,6 +281,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     canonicalAction,
     progressStage,
     latencyMs: Date.now() - startedAt,
+    contextDecision,
   });
 }
 
@@ -288,6 +302,7 @@ async function persistTurn(args: {
   canonicalAction?: string;
   progressStage?: 'processing' | 'understanding' | 'preparing' | 'checking' | 'coordinating' | 'information' | 'safety' | 'coordination' | 'ready' | 'complete';
   latencyMs?: number;
+  contextDecision?: ContextArbitrationDecision;
 }): Promise<CanonicalChatTurnResult> {
   await appendChatMessage({
     phone: args.phone,
@@ -296,7 +311,17 @@ async function persistTurn(args: {
     channel: args.channel,
     conversationId: args.userMessage.conversationId,
     cardData: args.cardData,
-    metadata: { ai: true, canonical_turn: true },
+    metadata: {
+      ai: true,
+      canonical_turn: true,
+      context_decision: args.contextDecision ? {
+        selectedContext: args.contextDecision.selectedContext,
+        relation: args.contextDecision.relation,
+        confidence: args.contextDecision.confidence,
+        ambiguous: args.contextDecision.ambiguous,
+        preserveContextIds: args.contextDecision.preserveContextIds,
+      } : undefined,
+    },
   });
   await persistCoordinatorEvent({
     id: `chat-turn:${args.userMessage.id}`,
@@ -317,6 +342,13 @@ async function persistTurn(args: {
       extractionSource: args.extractionSource,
       canonicalAction: args.canonicalAction,
       progressStage: args.progressStage,
+      context: args.contextDecision ? {
+        selectedContext: args.contextDecision.selectedContext,
+        relation: args.contextDecision.relation,
+        confidence: args.contextDecision.confidence,
+        ambiguous: args.contextDecision.ambiguous,
+        preserveContextIds: args.contextDecision.preserveContextIds,
+      } : undefined,
       cardType: typeof args.cardData?.type === 'string' ? args.cardData.type : undefined,
       requestId: typeof args.cardData?.requestId === 'string' ? args.cardData.requestId : undefined,
       agentGoalStatus: typeof args.agentGoal?.status === 'string' ? args.agentGoal.status : undefined,
@@ -344,6 +376,7 @@ async function persistTurn(args: {
     canonicalAction: args.canonicalAction,
     progressStage: args.progressStage,
     latencyMs: args.latencyMs,
+    contextDecision: args.contextDecision,
   };
 }
 
