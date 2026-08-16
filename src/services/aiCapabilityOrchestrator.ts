@@ -1,5 +1,7 @@
 import type { IntentRoutingResult } from '../types.js';
 import type { ConversationTurnContract } from './conversationTurnContractService.js';
+import type { AISemanticCapabilityProposal } from './aiSemanticProposalService.js';
+import { reconcileAICapabilityProposal } from './aiCapabilityReconciliationService.js';
 
 export type CapabilityProposalPosture = 'none' | 'clarify' | 'propose' | 'control';
 
@@ -14,7 +16,7 @@ export interface AICapabilityProposal {
   confirmationRequired: boolean;
   preserveContext: boolean;
   requiresCanonicalValidation: true;
-  source: 'canonical-routing';
+  source: 'canonical-routing' | 'semantic-model';
 }
 
 export interface AICapabilityOrchestrationDecision {
@@ -52,20 +54,29 @@ function extractCanonicalObjectId(entities: Record<string, unknown> | undefined)
 }
 
 /**
- * Translates an already-canonical routing result into a bounded AI proposal.
- * This bridge is deliberately read-only: it never executes, mutates state,
- * resolves ownership, authorizes payment, or replaces the canonical action boundary.
+ * Translates canonical routing, optionally reconciled with a model semantic
+ * proposal, into a bounded AI proposal. The output remains proposal-only.
  */
 export function buildAICapabilityOrchestration(
   routing: IntentRoutingResult,
   contract: ConversationTurnContract,
+  semanticProposal: AISemanticCapabilityProposal | null = null,
 ): AICapabilityOrchestrationDecision {
   const capability = normaliseCapability(routing.skill, routing.target_skill);
   const posture = inferPosture(contract);
   const shouldPresentCanonicalResult = Boolean(routing.cardData && typeof routing.cardData === 'object' && routing.skill !== 'general_question');
-  const shouldProposeCapability = Boolean(capability && posture !== 'none' && contract.requiresStructuredProposal);
+  const reconciled = reconcileAICapabilityProposal(routing, semanticProposal, contract);
+  const finalCapability = reconciled.capability || capability;
+  const finalAction = reconciled.action || routing.canonicalAction;
+  const finalPosture = reconciled.posture === 'none' ? posture : reconciled.posture;
+  const shouldProposeCapability = Boolean(
+    finalCapability &&
+    (finalAction || semanticProposal) &&
+    finalPosture !== 'none' &&
+    contract.requiresStructuredProposal,
+  );
 
-  if (!capability || NON_CAPABILITY_SKILLS.has(routing.skill)) {
+  if (!finalCapability || NON_CAPABILITY_SKILLS.has(routing.skill)) {
     return {
       mode: contract.mode,
       shouldTalk: true,
@@ -76,17 +87,17 @@ export function buildAICapabilityOrchestration(
   }
 
   const proposal: AICapabilityProposal = {
-    capability,
-    action: routing.canonicalAction,
+    capability: finalCapability,
+    action: finalAction,
     contextId: contract.protectedContextIds[0],
     canonicalObjectId: extractCanonicalObjectId(routing.extractedEntities),
-    arguments: { ...(routing.extractedEntities || {}) },
-    confidence: routing.intentConfidence,
-    posture,
-    confirmationRequired: contract.actionPosture === 'control',
-    preserveContext: contract.shouldPreserveExistingContext,
+    arguments: { ...(reconciled.arguments || {}), ...(routing.extractedEntities || {}) },
+    confidence: reconciled.confidence || routing.intentConfidence,
+    posture: finalPosture,
+    confirmationRequired: finalPosture === 'control' || contract.actionPosture === 'control',
+    preserveContext: contract.shouldPreserveExistingContext || reconciled.preserveContext,
     requiresCanonicalValidation: true,
-    source: 'canonical-routing',
+    source: reconciled.source === 'semantic' || reconciled.source === 'reconciled' ? 'semantic-model' : 'canonical-routing',
   };
 
   return {
@@ -95,7 +106,7 @@ export function buildAICapabilityOrchestration(
     shouldPresentCanonicalResult,
     shouldProposeCapability,
     proposal: shouldProposeCapability ? proposal : undefined,
-    reason: shouldProposeCapability ? 'canonical-capability-proposal-available' : 'canonical-routing-result-remains-authoritative',
+    reason: shouldProposeCapability ? reconciled.reason : 'canonical-routing-result-remains-authoritative',
   };
 }
 
