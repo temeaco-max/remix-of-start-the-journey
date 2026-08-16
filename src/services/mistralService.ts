@@ -1,4 +1,5 @@
 import { hasConfiguredSecret, unknownLimits, type ProviderCapabilityStatus, type ProviderReadiness } from './providerCapabilities.js';
+import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
 
 export class MistralProviderError extends Error {
   readonly code: 'MISTRAL_NOT_CONFIGURED' | 'MISTRAL_REQUEST_FAILED' | 'MISTRAL_EMPTY_RESPONSE';
@@ -15,6 +16,7 @@ export interface MistralChatOptions {
   temperature?: number;
   maxOutputTokens?: number;
   signal?: AbortSignal;
+  conversationalContract?: boolean;
 }
 
 export interface MistralTranscriptionInput {
@@ -149,6 +151,15 @@ export async function queryMistral(prompt: string, options: MistralChatOptions =
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Number(process.env.MISTRAL_TIMEOUT_MS || 15_000));
   try {
+    const baseSystemInstruction = options.systemInstruction || 'You are Kurukoo, a concise and evidence-based utility assistant. Never claim an external action without authoritative confirmation.';
+    const contract = options.conversationalContract === false
+      ? ''
+      : buildConversationalSystemDirective(buildConversationTurnContract({
+        latestUserMessage: prompt,
+        assistantReply: '',
+        userMessage: prompt,
+      }));
+    const systemInstruction = contract ? `${baseSystemInstruction}\n\n${contract}` : baseSystemInstruction;
     const response = await fetch(String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '') + '/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -156,7 +167,7 @@ export async function queryMistral(prompt: string, options: MistralChatOptions =
       body: JSON.stringify({
         model: getMistralModel(),
         messages: [
-          { role: 'system', content: options.systemInstruction || 'You are Kurukoo, a concise and evidence-based utility assistant. Never claim an external action without authoritative confirmation.' },
+          { role: 'system', content: systemInstruction },
           { role: 'user', content: prompt },
         ],
         temperature: options.temperature ?? 0.4,
