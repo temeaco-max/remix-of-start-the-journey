@@ -107,7 +107,7 @@ function isResumePhrase(q: string): boolean {
 }
 
 function parseReminderQuery(q: string): { dueAt: string; title: string; displayTime: string } | null {
-  const input = /^(?:set me a reminder|remind me)\b/i.test(q) ? q.replace(/^set me a reminder\b/i, 'remind me') : q;
+  const input = /^(?:set (?:me )?a reminder|remind me)\b/i.test(q) ? q.replace(/^set (?:me )?a reminder\b/i, 'remind me') : q;
   const rel = input.match(/^remind me\s+(?:in\s+)?(\d+)\s+(minute|minutes|hour|hours|day|days)\s+(?:to\s+)?(.+)$/i);
   if (rel) {
     const amount = Number(rel[1]);
@@ -320,7 +320,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     }
     return { skill: 'general_question', reply: 'There is no active follow-up for me to cancel.' };
   }
-  if (/^(?:remind me|set me a reminder)\b/.test(q)) {
+  if (/^(?:remind me|set (?:me )?a reminder)\b/.test(q)) {
     if (!phone || phone.startsWith('anon_')) return { skill: 'reminder', reply: 'I can save that reminder as soon as you sign in, so it stays with your Kurukoo profile.' };
     const reminder = parseReminderQuery(q);
     if (reminder) {

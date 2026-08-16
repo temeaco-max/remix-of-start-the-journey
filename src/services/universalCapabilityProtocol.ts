@@ -2,6 +2,7 @@ import { getEconomicCategory, getKnownSkills, getSkillCapabilities, getSkillFlow
 import { listAgentTools } from './agentToolRegistry.js';
 
 export type CapabilityMode = 'read_only' | 'conversation' | 'structured_action' | 'state_change' | 'external_execution';
+export type UniversalCapabilityKind = 'skill' | 'operation' | 'agent_tool';
 export type CapabilityRisk = 'read_only' | 'low_risk' | 'confirmation_required' | 'high_risk';
 export type CapabilityResultStatus =
   | 'accepted'
@@ -16,6 +17,7 @@ export type CapabilityResultStatus =
 export type CapabilityActivationState = 'locally_available' | 'repository_ready_external_activation' | 'unavailable_external_dependency' | 'intentionally_unsupported';
 
 export interface UniversalCapabilityDescriptor {
+  kind: UniversalCapabilityKind;
   capability: string;
   family: string;
   mode: CapabilityMode;
@@ -164,6 +166,7 @@ function descriptorForSkill(skill: string, flow: SkillFlow | null): UniversalCap
     ? ['External provider/payment/dispatch/evidence activation is not proven in this environment.']
     : [];
   return {
+    kind: 'skill',
     capability: skill,
     family: category,
     mode,
@@ -211,6 +214,7 @@ const CANONICAL_OPERATION_DEFINITIONS: Array<{ capability: string; family: strin
 function operationDescriptor(definition: typeof CANONICAL_OPERATION_DEFINITIONS[number]): UniversalCapabilityDescriptor {
   const confirmationRequired = definition.risk === 'confirmation_required';
   return {
+    kind: 'operation',
     capability: definition.capability, family: definition.family, mode: definition.risk === 'read_only' ? 'read_only' : definition.activationState === 'repository_ready_external_activation' ? 'external_execution' : 'state_change',
     actions: definition.actions, context: { requiredInputs: [], optionalInputs: [] }, permissions: ['authenticated_owner'], owner: definition.owner, risk: definition.risk,
     consentRequired: confirmationRequired, confirmationRequired, lifecycle: ['requested', 'awaiting_confirmation', 'accepted', 'waiting', 'executing', 'completed', 'cancelled', 'failed'],
@@ -232,6 +236,7 @@ export async function listUniversalCapabilities(): Promise<UniversalCapabilityDe
   for (const skill of getKnownSkills()) rows.push(descriptorForSkill(skill, await getSkillFlow(skill)));
   for (const tool of listAgentTools()) {
     rows.push({
+      kind: 'agent_tool',
       capability: `agent.${tool.name}`,
       family: 'agent-runtime',
       mode: tool.permission === 'read' ? 'read_only' : 'state_change',

@@ -141,3 +141,13 @@ This is deterministic synthetic candidate material derived from the canonical on
 ## SmolLM2 evaluation-set truth
 
 The ontology generator now emits a 205-example golden candidate set and a 1,435-example adversarial candidate set alongside the deterministic train, validation and test splits. Both sets are hash-recorded in `ml/datasets/kurukoo-core-v1.manifest.json` and remain explicitly marked `candidate_requires_human_curation`. They are not golden truth until curated and approved, and they are not evidence of trained model weights or runtime activation.
+
+## Universal execution and conversation reconciliation truth
+
+The canonical capability catalog is a single projected vocabulary assembled from the canonical skill registry, canonical operation definitions, and policy-reviewed agent tools. Skills describe user-facing capability domains; operations describe canonical owner actions; agent tools describe bounded runtime tools. They are projected into one catalog for model reasoning and inspection, while mutation remains owned by canonical services. The current catalog exposes 226 descriptors in this repository state; this count is a projection count, not a claim that all descriptors are equally externally activated.
+
+Canonical action execution follows `proposal -> validation -> exact owner/context verification -> canonical service -> structured result -> conversational presentation -> continuation`. `canonicalCapabilityExecutor` owns validation, idempotency, confirmation, exact identity, and truthful external-activation boundaries. Models and agent planners may propose actions but do not mutate canonical state or reinterpret an explicitly identified object.
+
+Context arbitration now treats exploratory language such as “I’m thinking about getting a cleaner” as conversation-only, accepts natural reminder phrasing such as “set a reminder for Friday” as an explicit domain switch, and recognises affirmative variants such as “Yes, go ahead” against the selected Economic Request. Relative price language remains attached to the exact request and cannot be stored as a location, provider, quote, payment, or fulfilment value without canonical evidence. The permanent regression is `npm run test:conversation-reconciliation`.
+
+The permanent acceptance boundary remains truthful: a confirmation can be recorded while dispatch, payment, provider selection, fulfilment, delivery, or completion remain blocked by missing fields, evidence, or external activation. Repository tests and local browser acceptance establish repository readiness only; they do not establish external provider activation or real-world fulfilment.

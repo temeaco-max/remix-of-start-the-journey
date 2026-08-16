@@ -8,6 +8,8 @@ import {
 
 const catalog = await listUniversalCapabilities();
 assert.ok(catalog.length >= 205, `expected the canonical catalog to cover the known skills, got ${catalog.length}`);
+assert.deepEqual(new Set(catalog.map(item => item.kind)), new Set(['skill', 'operation', 'agent_tool']), 'the single catalog must distinguish skills, canonical operations, and agent tools');
+assert.equal(new Set(catalog.map(item => `${item.kind}:${item.capability}`)).size, catalog.length, 'the projected universal vocabulary must not contain duplicate descriptor identities');
 assert.ok(catalog.some(item => item.capability === 'find_worker'), 'find_worker must remain discoverable through the canonical catalog');
 assert.ok(catalog.some(item => item.capability.startsWith('agent.')), 'first-class agent tools must use the same capability catalog');
 const readOnly = catalog.find(item => item.mode === 'read_only');

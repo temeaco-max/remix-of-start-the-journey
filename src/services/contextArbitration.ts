@@ -57,6 +57,7 @@ function lower(value: string): string { return value.trim().toLowerCase(); }
 const KNOWN_LOCATION_NAMES = new Set(['ikeja', 'yaba', 'lagos', 'lekki', 'ajah', 'surulere', 'maryland', 'vi', 'victoria island', 'mainland', 'ibadan', 'abuja', 'port harcourt']);
 
 function isLikelyName(text: string): boolean {
+  if (/^(?:hi|hey|hello|hiya|yo|sup|morning|afternoon|evening|good\s+(?:morning|afternoon|evening)|how\s+are\s+you|how're\s+you|how\s+are\s+things)[.!?,\s]*$/i.test(text.trim())) return false;
   if (KNOWN_LOCATION_NAMES.has(lower(text).replace(/[.!?]+$/, ''))) return false;
   return text.length >= 2 && text.length <= 60 && /^[A-Za-z][A-Za-z0-9 .'-]*$/.test(text)
     && !/\b(?:need|want|find|book|repair|plumber|ride|food|help|remind|compare|plan|venue|service|cancel|pause|resume|check|show)\b/i.test(text);
@@ -83,11 +84,16 @@ function pendingFieldsFor(card: any): string[] {
   return fields.filter((field: any) => field?.required).map((field: any) => String(field.key || '')).filter(Boolean);
 }
 
+export function isAffirmativeConfirmation(text: string): boolean {
+  return /^(?:(?:yes|okay|ok|alright)[, ]+)?(?:go ahead|confirm|approve|do it|proceed)(?:[.!]?|\s+please[.!]?)$|^(?:yes|okay|ok|alright)(?:[.!]?|\s+please[.!]?)$/i.test(text.trim());
+}
+
 function signalType(text: string): { type: ConversationalContextType; confidence: number; relation: ContextTurnRelation } | null {
   const value = lower(text);
+  if (/\b(?:thinking about|considering|maybe|wondering whether|not sure whether)\b/.test(value)) return null;
   if (/\b(immediate danger|life[- ]threatening|emergency|ambulance|fire service|unsafe|hurt|threat)\b/.test(value)) return { type: 'safety', confidence: 0.99, relation: 'create' };
   if (/^(remember that|remember |what do you remember|forget that|forget )/.test(value)) return { type: 'memory', confidence: 0.98, relation: 'continue' };
-  if (/^(remind me|set me a reminder|cancel (the )?reminder|show (my )?reminders)/.test(value)) return { type: 'reminder', confidence: 0.97, relation: 'create' };
+  if (/^(remind me|set (?:me )?a reminder|cancel (the )?reminder|show (my )?reminders)/.test(value)) return { type: 'reminder', confidence: 0.97, relation: 'create' };
   if (/^(what notifications|show (my )?notifications|mark .* notification|dismiss .* notification)/.test(value)) return { type: 'notification', confidence: 0.97, relation: 'continue' };
   if (/^(?:okay[, ]*)?(go back to|resume (?:my|the)|return to|continue with)\b/.test(value)) return { type: 'economic_request', confidence: 0.9, relation: 'resume' };
   if (/^(use (?:it|that) for the current request|apply (?:it|that) to the current request)\b/.test(value)) return { type: 'economic_request', confidence: 0.96, relation: 'answer' };
@@ -150,7 +156,7 @@ export async function arbitrateChatContext(input: {
     };
   }
 
-  if (request && /^(?:go ahead|yes|confirm|approve|do it|proceed)\s*[.!]?$/i.test(text)) { return { selectedContext: 'economic_request', selectedContextId: request.contextId, relation: 'answer', confidence: 0.96, ambiguous: false, preserveContextIds: preserved.filter(id => id !== request.contextId), activeContexts, reason: 'Affirmative confirmation is scoped to the current owner-selected economic request before identity-like clarification or generic routing.' }; }
+  if (request && isAffirmativeConfirmation(text)) { return { selectedContext: 'economic_request', selectedContextId: request.contextId, relation: 'answer', confidence: 0.96, ambiguous: false, preserveContextIds: preserved.filter(id => id !== request.contextId), activeContexts, reason: 'Affirmative confirmation is scoped to the current owner-selected economic request before identity-like clarification or generic routing.' }; }
 
   if (request && /\b(?:the )?(?:cheaper|less expensive|lower[- ]priced|more affordable)\b|\b(?:lower|reduce|cut)\s+(?:the )?price\b/i.test(text)) {
     return {
