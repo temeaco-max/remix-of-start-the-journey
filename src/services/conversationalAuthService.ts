@@ -4,6 +4,7 @@ import { isEmailOtpEnabled, normalizeOtpEmail, normalizeOtpPhone, requestEmailOt
 import { developmentTestOtpLabel, isDevelopmentTestIdentity, verifyDevelopmentTestOtp } from './devTestAuthService.js';
 import { issueUserToken, upsertProfile } from '../routes/authRoutes.js';
 import { sendFcmPush } from './pushNotifications.js';
+import { generateConversationalResponse } from './conversationalGenerationService.js';
 
 export type AuthState = 'none' | 'awaiting_name' | 'awaiting_phone' | 'awaiting_otp' | 'awaiting_email_phone' | 'awaiting_email_otp';
 
@@ -15,6 +16,8 @@ export interface ConversationalAuthResult {
   phone?: string;
   continuationMessage?: string;
 }
+
+const GUEST_CONVERSATION_RE = /^(?:hi|hey|hello|hiya|yo|sup|morning|afternoon|evening|good\s+(?:morning|afternoon|evening)|how\s+are\s+you|how're\s+you|how\s+are\s+things)[.!?,\s]*$/i;
 
 export async function getAuthState(guestPhone: string): Promise<{ state: AuthState, data: any }> {
   const profile = await getProfile(guestPhone, 'conversational_auth');
@@ -37,11 +40,19 @@ export async function setAuthState(guestPhone: string, state: AuthState, data: a
 
 export async function handleConversationalAuth(guestPhone: string, text: string): Promise<ConversationalAuthResult> {
   const { state, data } = await getAuthState(guestPhone);
-  
+
   if (state === 'awaiting_name') {
     const name = text.trim();
+    if (GUEST_CONVERSATION_RE.test(name)) {
+      await setAuthState(guestPhone, 'none', {});
+      const generated = await generateConversationalResponse({
+        prompt: text,
+        phone: guestPhone,
+        systemPrompt: 'You are Kurukoo, a helpful everyday conversational assistant. This is a casual greeting from a guest who has not signed in. Respond naturally and briefly. Do not ask for a name, phone number, OTP, or create a request unless the user explicitly asks for one.',
+      });
+      return { reply: generated.text };
+    }
     if (!name) return { reply: "I didn't catch your name. What should I call you?" };
-    
     await setAuthState(guestPhone, 'awaiting_phone', { ...data, name });
     return {
       reply: `Nice to meet you, ${name}. Enter your phone number below and I’ll create a verification request and tell you whether an approved delivery method is available.`,
@@ -59,13 +70,9 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
     }
     const digits = supplied.replace(/\D/g, '');
     if (digits.length < 10) return { reply: "That doesn't look like a valid phone number. Please enter your full phone number (e.g. 080...)" };
-
-    // Preserve an explicit international prefix so OTP and profile identity remain owner-scoped.
     const fullPhone = normalizeOtpPhone(supplied);
-    
     const result = await requestPhoneOtp(fullPhone);
     if (!result.success) return { reply: `I couldn't request a code for that number: ${result.message || 'unknown error'}. Please try again.` };
-
     await setAuthState(guestPhone, 'awaiting_otp', { ...data, phone: fullPhone });
     const controlledTest = isDevelopmentTestIdentity(fullPhone);
     const delivered = /sent|delivery/i.test(String(result.message || '')) && !/generated|configure/i.test(String(result.message || ''));
@@ -74,7 +81,6 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
       : delivered
         ? "I've sent a 6-digit verification code to your phone. Enter it here to continue."
         : "I've created the verification request, but external SMS/WhatsApp delivery is not configured in this environment. Do not assume a code was delivered; connect an approved delivery provider before using this flow with real users.";
-
     return {
       reply,
       cardData: { type: 'auth_conversation', step: 'otp', phone: fullPhone, devCode: controlledTest ? developmentTestOtpLabel() : undefined }
@@ -110,19 +116,14 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
   if (state === 'awaiting_otp') {
     const code = text.trim().replace(/\D/g, '');
     if (code.length !== 6) return { reply: 'Please enter the 6-digit code from the approved verification channel, if one has been delivered.' };
-    
     const developmentResult = verifyDevelopmentTestOtp(data.phone, code);
     const result = developmentResult || await verifyPhoneOtp(data.phone, code);
     if (!result.success || !result.phone) return { reply: `That code didn't work: ${result.message}. Please check the code and try again.` };
-    
     const userPhone = result.phone;
     await upsertProfile(userPhone, data.name);
     const token = issueUserToken(userPhone);
     await sendFcmPush(userPhone, 'Kurukoo details confirmed', `Thanks for confirming your details, ${data.name || 'friend'}. Your Kurukoo account is now connected.`, '/chat').catch(() => false);
-
-    // Clear state
     await setAuthState(guestPhone, 'none');
-    
     return {
       reply: `Thanks for confirming your details, ${data.name || 'friend'}. Your Kurukoo profile is now verified, and I’ll continue with the request we were discussing.`,
       authenticated: true,
