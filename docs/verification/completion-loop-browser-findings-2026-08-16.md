@@ -113,3 +113,7 @@ The natural-interleaving regression now proves that memory does not corrupt the 
 Ambiguous identity-like answers now create a bounded clarification card containing the selected context and the original ambiguous input. Choosing “Use it for the current request” replays that input through the selected Economic Request owner and applies the regular requirement patch; the input is not treated as an authentication claim or provider fact.
 
 The natural-interleaving regression now covers clarification creation and acceptance in addition to memory isolation, separate request creation, correction targeting, and exact resumption. Context arbitration, behavioral Chat, admin routes, TypeScript lint, and production build validation passed.
+
+## Broad post-clarification regression
+
+After clarification acceptance was implemented, the complete route suite, 205-skill audit, PWA contract, security audit, provider-capability boundary, voice boundary, WebRTC boundary, FCM boundary, and pilot-readiness assessment passed. Pilot readiness continues to classify external channels, push, voice, payments, relay, MQTT, private-number routing, KYC, inventory, dispatch, and provider networks according to local configuration; no external activation is inferred.
