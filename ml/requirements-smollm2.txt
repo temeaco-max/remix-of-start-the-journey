@@ -1,0 +1,7 @@
+transformers>=4.48
+peft>=0.14
+accelerate>=1.2
+datasets>=3.2
+safetensors>=0.4
+# Optional GPU 4-bit training. Install a wheel compatible with the target CUDA/PyTorch stack.
+bitsandbytes>=0.45; platform_system != "Darwin"
