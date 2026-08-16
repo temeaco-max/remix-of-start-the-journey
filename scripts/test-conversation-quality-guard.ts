@@ -40,11 +40,15 @@ const refs = [
   ['the first option', 'first'],
   ['go back to the plumber', 'previous'],
   ['same place', 'current'],
+  ['the cheaper one', 'attribute'],
+  ['same time', 'attribute'],
+  ['tomorrow instead', 'attribute'],
 ] as const;
 for (const [message, target] of refs) assert.equal(detectRelativeReference(message)?.target, target);
 
 assert.equal(classifyConversationDifficulty('hello'), 'simple');
 assert.equal(classifyConversationDifficulty('Actually change the time to tomorrow', { activeContextIds: ['request:1'], pendingFields: ['time'] }), 'complex');
 assert.equal(classifyConversationDifficulty('The other one, not the first guy — go back to the one we discussed before', { activeContextIds: ['request:1', 'request:2'] }), 'deep');
+assert.equal(classifyConversationDifficulty('Make it cheaper, but keep Saturday and use the second provider', { activeContextIds: ['request:1'], pendingFields: ['budget'] }), 'complex');
 
-console.log('Conversation quality guard passed: leak detection, repetition, premature-action detection, continuity checks, relative references and difficulty classification.');
+console.log('Conversation quality guard passed: leak detection, repetition, premature-action detection, continuity checks, comparative references and difficulty classification.');
