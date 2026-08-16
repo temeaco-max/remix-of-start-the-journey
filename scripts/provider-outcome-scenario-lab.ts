@@ -45,7 +45,7 @@ const lifecycleVariants = [
 const executionBoundaries = ['none_information_only', 'development_connector', 'sandbox_payment', 'external_provider_activation', 'external_channel_activation', 'human_confirmation_required'];
 const uiStates = ['clarification', 'choice', 'provider_card', 'quote', 'confirmation', 'payment', 'escrow', 'execution', 'evidence', 'notification', 'error', 'recovery', 'completion', 'follow_up'];
 const externalDependencies = ['none', 'provider_verification', 'provider_availability', 'payment_provider', 'delivery_connector', 'channel_credentials', 'push_registration', 'voice_provider', 'legal_review'];
-const readiness = ['LOCALLY_COMPLETE', 'DEVELOPMENT_FIXTURE_COMPLETE', 'REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED', 'STRUCTURALLY_INCOMPLETE', 'BLOCKED_BY_EXTERNAL_DEPENDENCY'];
+const readiness = ['LOCALLY_COMPLETE', 'DEVELOPMENT_FIXTURE_COMPLETE', 'REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED', 'STRUCTURALLY_INCOMPLETE', 'BLOCKED_BY_EXTERNAL_DEPENDENCY', 'INTENTIONALLY_UNSUPPORTED'];
 
 function hash(input: string): string { return crypto.createHash('sha256').update(`${seed}:${input}`).digest('hex'); }
 function pick<T>(values: readonly T[], key: string): T { return values[Number.parseInt(hash(key).slice(0, 8), 16) % values.length]; }
@@ -71,6 +71,7 @@ function classify(skill: string, mode: string, variant: string, dependency: stri
 
 const { getEconomicCategory, getKnownSkills, getSkillCapabilities, getSkillFlow } = await import('../src/services/skillFlows.js');
 const skills = getKnownSkills();
+const executionLimit = Math.max(skills.length, Number(process.env.KURUKOO_SCENARIO_EXECUTION_LIMIT || 1000));
 const rows: any[] = [];
 for (let i = 0; i < skills.length; i += 1) {
   const skill = skills[i];
@@ -110,8 +111,11 @@ for (let i = 0; i < skills.length; i += 1) {
         evidenceRequirements: ['owner_scoped_identity', 'provider_or_source_provenance', 'state_change_evidence'],
         externalDependencies: dependency === 'none' ? [] : [dependency],
         finalState: state.finalState,
+        result: state.finalState,
+        failure: state.failure || null,
+        rootCause: state.failure ? `${state.failure}: canonical boundary or external dependency requires recovery` : null,
+        repair: state.failure ? 'Use the existing canonical recovery, retry, cancellation, or escalation path; do not fabricate completion.' : null,
         readinessClassification: state.status,
-        failure: state.failure,
         forbiddenClaims: ['live availability', 'provider verification without evidence', 'payment settlement', 'delivery', 'completion without evidence'],
         provenance: { source: 'canonical Kurukoo registries', synthetic: true, productionUserData: false },
       };
@@ -127,19 +131,33 @@ const jsonl = `${selected.map((row) => JSON.stringify(row)).join('\n')}\n`;
 const scenarioPath = path.join(outputDir, 'provider-outcome-scenarios.jsonl');
 fs.writeFileSync(scenarioPath, jsonl);
 const trainingPath = path.join(mlDir, 'kurukoo-provider-outcome-lab-v1.all.jsonl');
-fs.writeFileSync(trainingPath, `${selected.map((row) => JSON.stringify({ messages: [{ role: 'user', content: row.userMessage }], labels: { skill: row.skill, family: row.family, mode: row.mode, market: row.market, locale: row.locale, dialect: row.dialect, channel: row.channel, lifecycle: row.lifecycleVariant, readiness: row.readinessClassification, canonicalEntry: 'canonicalChatTurnService', authorityBoundary: 'canonical_domain_services' }, provenance: row.provenance, privacy: { synthetic: true, containsPersonalData: false } })).join('\n')}\n`);
+fs.writeFileSync(trainingPath, `${selected.map((row) => JSON.stringify({ messages: [{ role: 'user', content: row.userMessage }], labels: { scenarioId: row.scenarioId, skill: row.skill, family: row.family, mode: row.mode, market: row.market, locale: row.locale, dialect: row.dialect, actor: row.actor, providerType: row.providerType, channel: row.channel, linkedDevice: row.linkedDevice, qrContext: row.qrContext, lifecycle: row.lifecycleVariant, result: row.result, failure: row.failure, rootCause: row.rootCause, repair: row.repair, readiness: row.readinessClassification, canonicalServices: row.canonicalServices, uiStates: row.uiStates, executionBoundary: row.executionBoundary, evidenceRequirements: row.evidenceRequirements, externalDependencies: row.externalDependencies, canonicalEntry: 'canonicalChatTurnService', authorityBoundary: 'canonical_domain_services' }, provenance: row.provenance, privacy: { synthetic: true, containsPersonalData: false } })).join('\n')}\n`);
 
 const resultRows: any[] = [];
+let executedScenarioCount = 0;
 if (shouldExecute) {
   process.env.DB_PATH = path.join(outputDir, 'scenario-lab-execution.sqlite');
   const { routeIntent } = await import('../src/services/intentRouter.js');
+  const executionRows: any[] = [];
   const perSkill = new Set<string>();
   for (const row of selected) {
     if (perSkill.has(row.skill)) continue;
     perSkill.add(row.skill);
+    executionRows.push(row);
+    if (executionRows.length >= executionLimit) break;
+  }
+  if (executionRows.length < executionLimit) {
+    for (const row of selected) {
+      if (executionRows.length >= executionLimit) break;
+      if (executionRows.includes(row)) continue;
+      executionRows.push(row);
+    }
+  }
+  executedScenarioCount = executionRows.length;
+  for (const row of executionRows) {
     try {
       const result = await routeIntent(row.userMessage, `anon_lab_${row.scenarioId}`, undefined);
-      resultRows.push({ scenarioId: row.scenarioId, skill: row.skill, resultSkill: result.skill, cardType: result.cardData?.type, stage: result.cardData?.stage, canonicalAction: result.canonicalAction, status: result.cardData ? 'passed' : 'bounded_without_card' });
+      resultRows.push({ scenarioId: row.scenarioId, skill: row.skill, market: row.market, locale: row.locale, channel: row.channel, actor: row.actor, lifecycleVariant: row.lifecycleVariant, resultSkill: result.skill, cardType: result.cardData?.type || null, stage: result.cardData?.stage || null, canonicalAction: result.canonicalAction || null, result: result.cardData ? 'canonical_route_represented' : 'bounded_without_card', failure: null, rootCause: null, repair: null, readinessClassification: row.readinessClassification, status: result.cardData ? 'passed' : 'bounded_without_card' });
     } catch (error) {
       resultRows.push({ scenarioId: row.scenarioId, skill: row.skill, status: 'failed', error: error instanceof Error ? error.message : String(error) });
     }
@@ -175,12 +193,13 @@ const manifest = {
     qrContexts: selected.filter((row) => row.qrContext).length,
   },
   fileSha256: { scenarios: crypto.createHash('sha256').update(jsonl).digest('hex'), training: crypto.createHash('sha256').update(fs.readFileSync(trainingPath)).digest('hex') },
-  executionMode: shouldExecute ? 'isolated_canonical_route_probe_one_per_skill' : 'generation_only',
+  executionMode: shouldExecute ? 'isolated_stratified_canonical_route_probe' : 'generation_only',
+  executionLimit: executedScenarioCount,
   sourceOfTruth: ['src/services/skillFlows.ts', 'src/services/intentRouter.ts', 'src/services/canonicalChatTurnService.ts', 'src/services/discoveryNetwork.ts', 'src/services/agenticStorefront.ts', 'src/services/executionConnector.ts'],
   normalRuntimeDependsOnUniverse: false,
   syntheticOnly: true,
   externalCapabilitiesClaimed: false,
-  readinessVocabulary: ['LOCALLY_COMPLETE', 'DEVELOPMENT_FIXTURE_COMPLETE', 'REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED', 'STRUCTURALLY_INCOMPLETE', 'BLOCKED_BY_EXTERNAL_DEPENDENCY'],
+  readinessVocabulary: readiness,
 };
 const manifestPath = path.join(outputDir, 'provider-outcome-scenario-lab.manifest.json');
 fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

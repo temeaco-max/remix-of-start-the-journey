@@ -20,14 +20,15 @@ if (manifest.coverage.lifecycleVariants.length < 15) throw new Error('Lifecycle 
 if (manifest.coverage.linkedDevices < 1 || manifest.coverage.qrContexts < 1) throw new Error('Linked-device or QR coverage is missing.');
 if (training.length !== scenarios.length) throw new Error('SmolLM2 provider-outcome corpus count does not match scenario count.');
 for (const row of scenarios.slice(0, 50)) {
-  if (!row.scenarioId || !row.skill || !row.market || !row.channel || !row.readinessClassification) throw new Error('Scenario row is missing required readiness fields.');
+  if (!row.scenarioId || !row.skill || !row.market || !row.channel || !row.readinessClassification || !row.result || !Object.prototype.hasOwnProperty.call(row, 'failure') || !Object.prototype.hasOwnProperty.call(row, 'rootCause') || !Object.prototype.hasOwnProperty.call(row, 'repair')) throw new Error('Scenario row is missing required outcome/readiness fields.');
   if (!Array.isArray(row.canonicalServices) || !row.canonicalServices.includes('canonicalChatTurnService')) throw new Error('Scenario row does not identify the canonical Chat owner.');
   if (!row.provenance?.synthetic || row.provenance.productionUserData) throw new Error('Scenario provenance is not synthetic-only.');
 }
 if (process.env.KURUKOO_REQUIRE_SCENARIO_EXECUTION === 'true') {
   if (!fs.existsSync(resultPath)) throw new Error('Scenario execution results are missing. Run npm run scenario-lab:execute first.');
   const results = fs.readFileSync(resultPath, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
-  if (results.length < manifest.skillCount) throw new Error(`Expected at least one canonical route probe per skill, got ${results.length}`);
+  if (results.length < manifest.skillCount) throw new Error(`Expected at least one execution result per skill, got ${results.length}`);
   if (results.some(row => row.status === 'failed')) throw new Error('Canonical scenario route probe contains failures.');
+  if (manifest.executedCount < manifest.skillCount) throw new Error('Manifest execution count does not cover the canonical skill registry.');
 }
 console.log(`Provider outcome scenario laboratory regression passed: ${scenarios.length} scenarios, ${manifest.skillCount} skills, ${manifest.familyCount} families, ${manifest.coverage.markets.length} market configurations, ${manifest.coverage.channels.length} channels, ${manifest.coverage.lifecycleVariants.length} lifecycle variants.`);

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "seed": "kurukoo-provider-outcome-lab-v1",
-  "generatedAt": "2026-08-16T14:44:56.066Z",
+  "generatedAt": "2026-08-16T15:06:07.025Z",
   "generatedCount": 10000,
   "fullUniverseCount": 28700,
   "target": 10000,
-  "executedCount": 205,
-  "executedPassed": 205,
+  "executedCount": 1000,
+  "executedPassed": 1000,
   "executedFailed": 0,
   "skillCount": 205,
   "familyCount": 46,
@@ -98,10 +98,11 @@
     "qrContexts": 1016
   },
   "fileSha256": {
-    "scenarios": "dcc2332e21ec104b23cfd331c2fb5aba5fe6e2ec95aeffa71b9f1a70468d827f",
-    "training": "fadcd04230575cc324766440c0677f0cc7aa756859b8caeb99dd43533842b9bf"
+    "scenarios": "1450d698d1757c46d0a492e5832aa8425dc8e2a1b2d827fb732c9fe5327f0466",
+    "training": "f01bcf52377651ef44285462105b3f0021aee8e80cb5e9a4f042acb52248d6cb"
   },
-  "executionMode": "isolated_canonical_route_probe_one_per_skill",
+  "executionMode": "isolated_stratified_canonical_route_probe",
+  "executionLimit": 1000,
   "sourceOfTruth": [
     "src/services/skillFlows.ts",
     "src/services/intentRouter.ts",
@@ -118,6 +119,7 @@
     "DEVELOPMENT_FIXTURE_COMPLETE",
     "REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED",
     "STRUCTURALLY_INCOMPLETE",
-    "BLOCKED_BY_EXTERNAL_DEPENDENCY"
+    "BLOCKED_BY_EXTERNAL_DEPENDENCY",
+    "INTENTIONALLY_UNSUPPORTED"
   ]
 }
