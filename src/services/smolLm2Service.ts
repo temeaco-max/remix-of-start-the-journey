@@ -65,14 +65,14 @@ export async function querySmolLM2(prompt: string, systemPrompt?: string): Promi
         const first = Array.isArray(output) ? output[0] : output;
         const text = typeof first === 'object' && first && 'generated_text' in first ? String(first.generated_text || '').trim() : '';
         if (text) {
-          const cleaned = sanitizeGeneratedText(text.replace(/<|im_end|>[\s\S]*$/g, ''));
+          const cleaned = sanitizeGeneratedText(text.replace(/<\|im_end\|>[\s\S]*$/g, ''));
           if (cleaned) { lastInferenceSource = 'local'; return cleaned; }
         }
         const retryInput = buildPrompt(prompt, 'You are Kurukoo. Answer the user directly in one or two natural sentences. Do not use headings, delimiters, role labels, or internal architecture language.');
         const retryOutput = await generator(retryInput, { max_new_tokens: Math.min(Number(process.env.SMOLLM2_MAX_NEW_TOKENS || 192), 96), temperature: 0.1, do_sample: true, return_full_text: false });
         const retryFirst = Array.isArray(retryOutput) ? retryOutput[0] : retryOutput;
         const retryText = typeof retryFirst === 'object' && retryFirst && 'generated_text' in retryFirst ? String(retryFirst.generated_text || '').trim() : '';
-        const retryCleaned = sanitizeGeneratedText(retryText.replace(/<|im_end|>[\s\S]*$/g, ''));
+        const retryCleaned = sanitizeGeneratedText(retryText.replace(/<\|im_end\|>[\s\S]*$/g, ''));
         if (retryCleaned) { lastInferenceSource = 'local'; return retryCleaned; }
       } finally { releaseLocal(); }
     } catch (err: any) { console.warn('[SmolLM2] Local inference failed:', err?.message || err); releaseLocal(); }
