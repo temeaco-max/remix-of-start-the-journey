@@ -117,6 +117,7 @@ export async function generateConversationalResponse(input: ConversationalGenera
     contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '',
     turnScope,
   ].filter(Boolean).join('\n');
+  const conversationProvider = input.provider && input.provider !== 'auto' ? input.provider : strongerProvider(input.provider);
 
   let base: AIResponse;
   if (input.seedResponse) {
@@ -126,7 +127,7 @@ export async function generateConversationalResponse(input: ConversationalGenera
     };
   } else {
     base = await queryUnifiedAI(input.prompt, {
-      provider: input.provider,
+      provider: conversationProvider,
       systemPrompt: contextualSystemPrompt || input.systemPrompt,
       phone: input.phone,
       threadId: input.threadId,
@@ -147,7 +148,7 @@ export async function generateConversationalResponse(input: ConversationalGenera
   );
 
   if (needsRepair && contract.mode !== 'control') {
-    const provider = strongerProvider(input.provider);
+    const provider = strongerProvider(conversationProvider);
     try {
       const repaired = await queryUnifiedAI(buildRepairPrompt(input.prompt, contract, assessment), {
         provider,
@@ -170,7 +171,7 @@ export async function generateConversationalResponse(input: ConversationalGenera
   }
 
   if (responseViolatesActionPosture(response.text, contract) && contract.mode !== 'control') {
-    const provider = strongerProvider(input.provider);
+    const provider = strongerProvider(conversationProvider);
     try {
       const strictRepair = await queryUnifiedAI(buildStrictRepairPrompt(input.prompt, contract), {
         provider,
