@@ -1057,8 +1057,9 @@
       if (attachment instanceof File) { input.placeholder = 'Uploading attachment…'; attachment = await uploadAttachment(attachment); }
       state.attached = null; $('attachment-preview').hidden = true; $('attachment-preview').textContent = '';
       const finalText = attachment ? `${text}\n\n[Attachment: ${attachment.name} — ${attachment.type} — ${attachment.url}]` : text;
+      const contextAction = state.discoveryContextAction || undefined; state.discoveryContextAction = undefined;
       const user = surfaceActive ? document.createElement('article') : addUserMessage(finalText); const assistant = surfaceActive ? createBackgroundStreamBubble() : appendStreamBubble(); const output = assistant.querySelector('.markdown-body'); const thinking = assistant.querySelector('.thinking'); let full = ''; setTypingStatus('thinking');
-      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', signal: state.controller?.signal, body: JSON.stringify({ message: finalText, channel: 'web', conversationId: state.conversationId || undefined, attachment: attachment || undefined }) });
+      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', signal: state.controller?.signal, body: JSON.stringify({ message: finalText, channel: 'web', conversationId: state.conversationId || undefined, attachment: attachment || undefined, contextAction }) });
       if (response.status === 401) { await ensureIdentity(); throw new Error('Your session has expired.'); }
       if (!response.ok || !response.body) throw new Error(`Chat request failed (${response.status})`);
       const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '';
@@ -1613,12 +1614,15 @@
     const topicSlug = params.get('topicSlug');
     const resourceSlug = params.get('resourceSlug');
     const requestId = params.get('requestId');
+    const discoveryEntityId = params.get('discoveryEntityId');
     if (conversationId) { state.conversationId = conversationId.slice(0, 160); localStorage.setItem('kurukoo_conversation_id', state.conversationId); }
+    if (discoveryEntityId) state.discoveryContextAction = { type: 'open_discovery_entity', entityId: discoveryEntityId.slice(0, 180) };
     const contextParts = [];
     if (providerSlug) contextParts.push(`Provider context: ${providerSlug}`);
     if (topicSlug) contextParts.push(`Topic context: ${topicSlug}`);
     if (resourceSlug) contextParts.push(`Resource context: ${resourceSlug}`);
     if (requestId) contextParts.push(`Request context: ${requestId}`);
+    if (discoveryEntityId) contextParts.push(`Discovery context: ${discoveryEntityId}`);
     const contextBanner = $('qr-context-banner');
     if (contextBanner && contextParts.length) { contextBanner.textContent = `${contextParts.join(' · ')}. Kurukoo will keep this context with the conversation.`; contextBanner.hidden = false; }
     if (prompt && input) { input.value = prompt.slice(0, 12000); input.dispatchEvent(new Event('input', { bubbles: true })); }

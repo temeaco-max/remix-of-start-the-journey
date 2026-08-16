@@ -1,1 +1,48 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#FFF8F0"><title>Discover — Kurukoo</title><link rel="manifest" href="/manifest.json"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""><link rel="stylesheet" href="/css/kurukoo-platform.css"></head><body><div class="k-shell"><nav class="k-nav"><a class="k-brand" href="/"><span class="k-mark">K</span>Kurukoo</a><a href="/chat/">💬 Chat</a><a href="/discover/" aria-current="true">🧭 Discover</a><a href="/network/">🤝 Network</a><a href="/dashboard.html">📱 PWA</a></nav><main class="k-main"><header class="k-top"><div><p class="k-muted">Nearby Pulse</p><h1>Discover what is happening around you</h1></div><div class="k-actions"><button type="button" class="k-btn" data-radar-refresh>Refresh</button><a class="k-btn k-btn-primary" href="/chat/?prompt=What%27s+nearby%3F">Ask Kurukoo</a></div></header><section class="k-grid"><article class="k-card k-span-8"><div class="k-top"><div><h2>Nearby Radar</h2><p class="k-muted">Location-aware discovery uses the same provider/presence data as chat. Exact phone numbers are not exposed.</p></div><span class="k-status"><span class="k-dot"></span> Location controlled by you</span></div><div class="k-map" id="radar-map" aria-label="Nearby Radar map"></div></article><aside class="k-card k-span-4"><h2>Layers</h2><div class="k-chips"><button type="button" class="k-btn" data-layer="mobile" aria-pressed="true">Providers</button><button type="button" class="k-btn" data-layer="stationary" aria-pressed="true">Services</button><button type="button" class="k-btn" data-layer="transport" aria-pressed="true">Transport</button><button type="button" class="k-btn" data-layer="events" aria-pressed="true">Events</button><button type="button" class="k-btn" data-layer="tasks" aria-pressed="true">Tasks</button></div><h3 class="k-section-title">Nearby activity</h3><div class="k-list" id="radar-list"><div class="k-row"><span>Locating you…</span><span class="k-muted">Permission required</span></div></div></aside></section></main></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin defer></script><script src="/js/kurukoo-discover-map.js" defer></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#FFF8F0">
+  <title>Discover — Kurukoo</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="/css/kurukoo-platform.css">
+</head>
+<body>
+  <div class="k-shell">
+    <nav class="k-nav" aria-label="Primary navigation">
+      <a class="k-brand" href="/"><span class="k-mark" aria-hidden="true">K</span>Kurukoo</a>
+      <a href="/chat/">Chat</a>
+      <a href="/discover/" aria-current="page">Discover</a>
+      <a href="/network/">Network</a>
+      <a href="/dashboard.html">PWA</a>
+    </nav>
+    <main class="k-main">
+      <header class="k-top">
+        <div><p class="k-muted">Discovery &amp; Opportunity Network</p><h1>Find useful things around you</h1><p class="k-muted">Source-attributed places, services, events and opportunities. A discovered entity is not a Kurukoo provider unless it is claimed, verified and currently available.</p></div>
+        <div class="k-actions"><button type="button" class="k-btn" data-radar-refresh>Refresh</button><a class="k-btn k-btn-primary" href="/chat/?prompt=What%27s+nearby%3F">Ask Kurukoo</a></div>
+      </header>
+      <section class="k-grid" aria-label="Discovery network">
+        <article class="k-card k-span-8"><div id="radar-map" class="k-map" aria-label="Discovery network map"></div></article>
+        <aside class="k-card k-span-4" aria-label="Discovery controls and results">
+          <h2>Layers</h2>
+          <div class="k-chips">
+            <button type="button" class="k-btn" data-layer="provider" aria-pressed="true">Providers</button>
+            <button type="button" class="k-btn" data-layer="service" aria-pressed="true">Services</button>
+            <button type="button" class="k-btn" data-layer="place" aria-pressed="true">Places</button>
+            <button type="button" class="k-btn" data-layer="event" aria-pressed="true">Events</button>
+            <button type="button" class="k-btn" data-layer="agent" aria-pressed="true">Agents</button>
+            <button type="button" class="k-btn" data-layer="community_context" aria-pressed="true">Community context</button>
+          </div>
+          <h2 class="k-section-title">Nearby discovery</h2>
+          <div class="k-list" id="radar-list"><div class="k-row"><span>Locating useful discovery context…</span><span class="k-muted">Permission required</span></div></div>
+          <p class="k-muted">Map coordinates are approximate. Source, freshness and lifecycle state remain part of every discovery result.</p>
+        </aside>
+      </section>
+    </main>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin defer></script>
+  <script src="/js/kurukoo-discover-map.js" defer></script>
+</body>
+</html>

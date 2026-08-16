@@ -84,6 +84,7 @@
     "test:agent-control-commands": "npm run test:agent-control",
     "test:stripe-payment": "tsx scripts/test-stripe-payment.ts",
     "test:discovery-routes": "tsx scripts/test-discovery-routes.ts",
+    "test:discovery-network": "tsx scripts/test-discovery-network.ts",
     "test:presence-routes": "tsx scripts/test-presence-routes.ts",
     "test:presence": "npm run test:presence-routes",
     "test:memory-self-service": "tsx scripts/test-memory-self-service.ts",

@@ -10,6 +10,7 @@ import { getEconomicRequest } from './skillFlows.js';
 import type { IntentRoutingResult } from '../types.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
 import { arbitrateChatContext, type ContextArbitrationDecision } from './contextArbitration.js';
+import { getDiscoveryEntity } from './discoveryNetwork.js';
 
 function parseCardData(row: any): any | null {
   if (!row?.card_data) return null;
@@ -110,6 +111,7 @@ export interface CanonicalChatTurnInput {
   channel: string;
   conversationId?: string;
   attachment?: unknown;
+  contextAction?: { type: string; entityId?: string };
 }
 
 export interface CanonicalChatTurnResult {
@@ -144,7 +146,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     content: message,
     channel: input.channel,
     conversationId: input.conversationId,
-    metadata: input.attachment ? { attachment: input.attachment } : undefined,
+    metadata: input.attachment || input.contextAction ? { attachment: input.attachment, contextAction: input.contextAction } : undefined,
   });
 
   let reply = '';
@@ -167,9 +169,24 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   const profile = await getProfile(phone, 'canonical_chat_turn');
   const prefs: any = profile?.preferences && typeof profile.preferences === 'object' ? profile.preferences : {};
   const safetyState = prefs.safety_capture_state || 'none';
+  const explicitDiscoveryEntityId = input.contextAction?.type === 'open_discovery_entity' && input.contextAction.entityId ? String(input.contextAction.entityId) : undefined;
+  const explicitDiscoveryEntity = explicitDiscoveryEntityId ? await getDiscoveryEntity(explicitDiscoveryEntityId) : null;
   const contextDecision = isGuest ? undefined : await arbitrateChatContext({ phone, message, conversationId: input.conversationId });
 
-  if (!isGuest && contextDecision?.relation === 'clarify' && contextDecision.clarification) {
+  if (!isGuest && explicitDiscoveryEntityId) {
+    if (!explicitDiscoveryEntity) {
+      reply = 'That discovery context is no longer available, so I have not substituted another place or provider.';
+      cardData = { type: 'discovery_context_unavailable', entityId: explicitDiscoveryEntityId };
+      canonicalAction = 'discovery.context.unavailable';
+      progressStage = 'information';
+    } else {
+      const status = explicitDiscoveryEntity.verified && explicitDiscoveryEntity.available ? 'available' : explicitDiscoveryEntity.lifecycle;
+      reply = `I’ll keep this exact discovery context with our conversation: ${explicitDiscoveryEntity.name}. It is recorded as ${status}, sourced from ${explicitDiscoveryEntity.source}, and its location is approximate. Tell me what you want to do with it.`;
+      cardData = { type: 'discovery_context', entityId: explicitDiscoveryEntity.id, entityType: explicitDiscoveryEntity.entityType, lifecycle: status, source: explicitDiscoveryEntity.source, evidenceLevel: explicitDiscoveryEntity.evidenceLevel, approximateLocation: true, exactContext: true };
+      canonicalAction = 'discovery.context.open';
+      progressStage = 'understanding';
+    }
+  } else if (!isGuest && contextDecision?.relation === 'clarify' && contextDecision.clarification) {
     reply = contextDecision.clarification;
     cardData = {
       type: 'context_clarification',

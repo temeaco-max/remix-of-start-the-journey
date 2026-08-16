@@ -2,6 +2,7 @@ import { getDb, saveDb } from '../database.js';
 import { sendFcmPush } from './pushNotifications.js';
 import { addPoints as addCredits } from './pointsEngine.js';
 import { getIntentions } from './deferredRequestService.js';
+import { getRenderableCampaigns } from './adManager.js';
 
 /*
  * Proactive Opportunity Engine (§21.3, §33)
@@ -128,23 +129,21 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
     }
 
     // --- Type D: Sponsored Daily Picks (Ad campaigns) ---
-    const adsStmt = db.prepare(`SELECT * FROM ad_campaigns WHERE status = 'active' AND first_party = 1 AND (start_at IS NULL OR datetime(start_at) <= datetime('now')) AND (expires_at IS NULL OR datetime(expires_at) > datetime('now')) ORDER BY priority DESC, id DESC LIMIT 3`);
+    const ads = await getRenderableCampaigns({ firstParty: true, limit: 3 });
     let adCount = 0;
-    while (adsStmt.step()) {
-        const ad = adsStmt.getAsObject();
+    for (const ad of ads) {
         rawOpportunities.push({
             phone,
             type: 'daily_pick',
             title: ad.title as string,
             subtitle: `${String(ad.disclosure || 'Sponsored').trim()} · ${String(ad.desc || '')}`,
-            ctaText: String(ad.cta_text || 'Learn more'),
+            ctaText: String(ad.ctaText || 'Learn more'),
             ctaLink: String(ad.destination || '/chat'),
             urgency: 0.5,
             businessValue: 1.0 // High revenue sponsored ad
         });
         adCount++;
     }
-    adsStmt.free();
 
     // Fallback static daily picks if no active campaigns
     if (adCount === 0) {

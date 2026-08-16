@@ -55,6 +55,10 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
   const channel = typeof req.body?.channel === 'string' ? req.body.channel.slice(0, 30) : 'web';
   const conversationId = typeof req.body?.conversationId === 'string' ? req.body.conversationId : undefined;
   const attachment = req.body?.attachment;
+  const contextAction = req.body?.contextAction && typeof req.body.contextAction === 'object' ? {
+    type: typeof req.body.contextAction.type === 'string' ? req.body.contextAction.type.slice(0, 80) : '',
+    entityId: typeof req.body.contextAction.entityId === 'string' ? req.body.contextAction.entityId.slice(0, 180) : undefined,
+  } : undefined;
 
   if (!phone || !message) return res.status(400).json({ error: 'Message is required' });
 
@@ -68,7 +72,7 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
   let activeConversation = conversationId;
 
   try {
-    const turn = await processCanonicalChatTurn({ phone, message, channel, conversationId, attachment });
+    const turn = await processCanonicalChatTurn({ phone, message, channel, conversationId, attachment, contextAction });
     activeConversation = turn.conversationId;
     fullReply = turn.reply;
     cardData = turn.cardData;
