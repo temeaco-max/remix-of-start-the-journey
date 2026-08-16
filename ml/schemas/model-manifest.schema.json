@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kurukoo/model-manifest.schema.json",
+  "type": "object",
+  "required": ["modelVersion", "baseModel", "datasetVersion", "trainingMethod", "artifact", "evaluation", "runtime"],
+  "properties": {
+    "modelVersion": {"type": "string"},
+    "baseModel": {"type": "string"},
+    "datasetVersion": {"type": "string"},
+    "trainingMethod": {"type": "string"},
+    "artifact": {"type": "object", "additionalProperties": true},
+    "evaluation": {"type": "object", "additionalProperties": true},
+    "runtime": {"type": "object", "additionalProperties": true},
+    "gitCommit": {"type": "string"},
+    "createdAt": {"type": "string"}
+  },
+  "additionalProperties": false
+}
