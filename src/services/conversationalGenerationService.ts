@@ -18,6 +18,7 @@ export interface ConversationalGenerationInput {
   priorAssistantReplies?: string[];
   canonicalAction?: string;
   cardType?: string;
+  seedResponse?: AIResponse;
 }
 
 export interface ConversationalGenerationResult extends AIResponse {
@@ -98,7 +99,7 @@ function assess(input: ConversationalGenerationInput, contract: ConversationTurn
 export async function generateConversationalResponse(input: ConversationalGenerationInput): Promise<ConversationalGenerationResult> {
   const contract = buildConversationTurnContract({
     latestUserMessage: input.prompt,
-    assistantReply: '',
+    assistantReply: input.seedResponse?.text || '',
     userMessage: input.prompt,
     activeContextIds: input.activeContextIds,
     knownFacts: input.knownFacts,
@@ -115,14 +116,22 @@ export async function generateConversationalResponse(input: ConversationalGenera
     contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '',
   ].filter(Boolean).join('\n');
 
-  const base = await queryUnifiedAI(input.prompt, {
-    provider: input.provider,
-    systemPrompt: contextualSystemPrompt || input.systemPrompt,
-    phone: input.phone,
-    threadId: input.threadId,
-    conversational: true,
-    contextHint: input.contextHint,
-  });
+  let base: AIResponse;
+  if (input.seedResponse) {
+    base = {
+      ...input.seedResponse,
+      text: input.seedResponse.text.trim(),
+    };
+  } else {
+    base = await queryUnifiedAI(input.prompt, {
+      provider: input.provider,
+      systemPrompt: contextualSystemPrompt || input.systemPrompt,
+      phone: input.phone,
+      threadId: input.threadId,
+      conversational: true,
+      contextHint: input.contextHint,
+    });
+  }
 
   let response = base;
   let assessment = assess(input, contract, response.text);
