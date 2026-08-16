@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { buildReferenceTrajectories, scoreTrajectory, detectTrajectorySignals, type TrajectoryDefinition } from '../src/services/conversationTrajectoryService.js';
+import { evaluateTrajectories } from '../src/services/conversationTrajectoryEvaluatorService.js';
 
 const base = buildReferenceTrajectories();
 assert.equal(base.length, 3);
@@ -24,7 +25,7 @@ for (let i = 0; i < 1000; i += 1) {
     { role: 'assistant' as const, text: 'Understood. I’ll keep the current context and use the other option.' },
     { role: 'user' as const, text: i % 3 === 0 ? 'Actually make it Saturday.' : 'No, I meant next week.', expectedMode: 'action' as const, expectedTarget: `${service}` },
     { role: 'assistant' as const, text: 'Got it. I’ll change the timing without starting a new request.' },
-    { role: 'user' as const, text: 'Go back to the original thing.', expectedMode: 'reference', expectedTarget: `${service}` },
+    { role: 'user' as const, text: 'Go back to the original thing.', expectedMode: 'reference' as const, expectedTarget: `${service}` },
     { role: 'assistant' as const, text: 'Sure — returning to the original service request.' },
   ];
   generated.push({ id: `generated-${i + 1}`, market, locale, title: `Trajectory ${i + 1}`, goals: [service, 'reminder'], turns });
@@ -46,6 +47,11 @@ for (const trajectory of trajectories) {
   totalScore += score.overall;
 }
 
+const responseEvaluations = evaluateTrajectories(trajectories);
+const averageConversationQuality = responseEvaluations.reduce((sum, result) => sum + result.conversationQuality, 0) / responseEvaluations.length;
+const averageActionDiscipline = responseEvaluations.reduce((sum, result) => sum + result.actionDiscipline, 0) / responseEvaluations.length;
+const responseIssueCount = responseEvaluations.reduce((sum, result) => sum + result.responseIssues.length, 0);
+
 assert.ok(totalTurns >= 12_000, `expected a long-horizon corpus, got ${totalTurns} turns`);
 assert.ok(references >= 2_000, `expected substantial relative-reference coverage, got ${references}`);
 assert.ok(deep >= 3_000, `expected deep/conversational-hard cases, got ${deep}`);
@@ -53,6 +59,9 @@ assert.equal(failures, 0, `${failures} deterministic trajectory failures detecte
 
 const averageScore = totalScore / trajectories.length;
 assert.ok(averageScore >= 0.90, `average deterministic trajectory score ${averageScore.toFixed(3)} is below threshold`);
+assert.ok(averageConversationQuality >= 0.72, `average response quality ${averageConversationQuality.toFixed(3)} is below threshold`);
+assert.ok(averageActionDiscipline >= 0.95, `average action discipline ${averageActionDiscipline.toFixed(3)} is below threshold`);
+assert.equal(responseIssueCount, 0, `${responseIssueCount} response quality issues detected in reference trajectories`);
 
 console.log(JSON.stringify({
   trajectories: trajectories.length,
@@ -60,6 +69,9 @@ console.log(JSON.stringify({
   relativeReferences: references,
   hardCases: deep,
   failures,
-  averageScore: Number(averageScore.toFixed(4)),
+  deterministicAverageScore: Number(averageScore.toFixed(4)),
+  averageConversationQuality: Number(averageConversationQuality.toFixed(4)),
+  averageActionDiscipline: Number(averageActionDiscipline.toFixed(4)),
+  responseIssueCount,
   status: 'passed',
 }, null, 2));
