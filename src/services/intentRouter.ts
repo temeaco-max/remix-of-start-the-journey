@@ -1,4 +1,5 @@
 import { queryUnifiedAI, type AIProvider, type ConversationalContextHint } from './unifiedAiEngine.js';
+import { decideConversationIntelligence } from './conversationIntelligenceService.js';
 import { getProfile, getMemoryFacts, updateProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
 import { getContextualIntentSuggestions, getEconomicCategory, getKnownSkills, getSkillFlow } from './skillFlows.js';
@@ -110,7 +111,6 @@ function parseReminderQuery(q: string): { dueAt: string; title: string; displayT
       return { dueAt, title: rel[3].trim(), displayTime: `in ${amount} ${unit}` };
     }
   }
-  
   const abs = q.match(/^remind me\s+(?:(every\s+day|every\s+week|daily|weekly)?\s*)?(?:on\s+([a-z]+)\s+)?(?:(tomorrow|today)\s+)?(?:(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+)?(?:to\s+)?(.+)$/i);
   if (abs) {
     const recurrence = abs[1]?.toLowerCase();
@@ -119,10 +119,8 @@ function parseReminderQuery(q: string): { dueAt: string; title: string; displayT
     let hour = Number(abs[4] || 9);
     const min = Number(abs[5] || 0);
     const meridiem = abs[6]?.toLowerCase();
-    
     if (meridiem === 'pm' && hour < 12) hour += 12;
     if (meridiem === 'am' && hour === 12) hour = 0;
-    
     const d = new Date();
     d.setHours(hour, min, 0, 0);
     if (relative === 'tomorrow') d.setDate(d.getDate() + 1);
@@ -136,7 +134,6 @@ function parseReminderQuery(q: string): { dueAt: string; title: string; displayT
       }
     }
     if (d.getTime() <= Date.now() && !day && !relative) d.setDate(d.getDate() + 1);
-    
     return { dueAt: d.toISOString(), title: abs[7].trim(), displayTime: `${relative || day ? `${relative || day} at ` : ''}${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${recurrence ? ` (${recurrence})` : ''}` };
   }
   return null;
@@ -306,7 +303,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const reminders = await listReminders(phone);
     if (reminders.length && !/^(stop following|stop checking)\b/.test(q)) {
       const cancelled = await cancelReminder(phone, String(reminders[0].id));
-      return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminders[0].title}**.` : 'I could not cancel that reminder.' };
+      return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminder.title}**.` : 'I could not cancel that reminder.' };
     }
     const active = await tryResumeStorefront(phone);
     if (active?.requestId) {
@@ -428,6 +425,29 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
 
   const directSkill = matchCanonicalSkill(q);
   const extractedEntities = validateConversationalEntities(extractConversationalEntities(query, directSkill || undefined), directSkill || undefined);
+  const conversationDecision = decideConversationIntelligence({
+    latestUserMessage: query,
+    assistantReply: '',
+    activeContextIds: contextHint?.activeContexts?.map(context => context.contextId),
+    selectedContextId: contextHint?.selectedContext,
+    relation: contextHint?.relation,
+    pendingFields: contextHint?.activeContexts?.flatMap(context => context.pendingFields || []).slice(0, 8),
+  });
+
+  if (conversationDecision.shouldAvoidAction && (!directSkill || conversationDecision.mode === 'exploration' || conversationDecision.mode === 'clarification')) {
+    const ai = await queryUnifiedAI(query, { provider, phone, conversational: true, contextHint, threadId });
+    return {
+      skill: 'general_question',
+      reply: ai.text,
+      cardData: ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model, conversationMode: conversationDecision.mode } : undefined,
+      modelProvider: ai.provider,
+      model: ai.model,
+      extractionSource: Object.keys(extractedEntities).length > 1 ? 'deterministic' : 'none',
+      extractedEntities: extractedEntities as Record<string, unknown>,
+      progressStage: 'complete',
+    };
+  }
+
   if (directSkill && !phone) {
     const flow = getSkillFlow(directSkill);
     return {
