@@ -155,6 +155,33 @@ export async function approveLearningArtifact(input: { id: string; operatorId: s
   return { ok: true, status: 'approved' };
 }
 
+export async function getContextArbitrationTelemetry(): Promise<{ total: number; byContext: Record<string, number>; byRelation: Record<string, number>; ambiguous: number; preservedContextObservations: number; latestAt?: string }> {
+  await ensureCoordinatorSchema();
+  const db = await getDb();
+  const rows = db.exec("SELECT payload_json, occurred_at FROM coordinator_events WHERE type = 'chat.turn.completed' AND payload_json LIKE '%\\\"context\\\"%'")[0]?.values || [];
+  const byContext: Record<string, number> = {};
+  const byRelation: Record<string, number> = {};
+  let ambiguous = 0;
+  let preservedContextObservations = 0;
+  let latestAt: string | undefined;
+  for (const row of rows) {
+    try {
+      const payload = JSON.parse(String(row[0] || '{}')) as any;
+      const context = payload?.context;
+      if (!context || typeof context !== 'object') continue;
+      const selected = String(context.selectedContext || 'unknown');
+      const relation = String(context.relation || 'unknown');
+      byContext[selected] = (byContext[selected] || 0) + 1;
+      byRelation[relation] = (byRelation[relation] || 0) + 1;
+      if (context.ambiguous === true) ambiguous += 1;
+      if (Array.isArray(context.preserveContextIds) && context.preserveContextIds.length > 0) preservedContextObservations += context.preserveContextIds.length;
+      const occurredAt = String(row[1] || '');
+      if (!latestAt || occurredAt > latestAt) latestAt = occurredAt;
+    } catch { /* malformed historical telemetry is ignored, never surfaced */ }
+  }
+  return { total: Object.values(byContext).reduce((sum, value) => sum + value, 0), byContext, byRelation, ambiguous, preservedContextObservations, latestAt };
+}
+
 export async function getCoordinatorTelemetry(): Promise<{ events: { total: number; byType: Record<string, number>; byProducer: Record<string, number> }; runs: { total: number; byState: Record<string, number>; latestFailure?: string }; learningArtifacts: { total: number; byStatus: Record<string, number> } }> {
   await ensureCoordinatorSchema();
   const db = await getDb();

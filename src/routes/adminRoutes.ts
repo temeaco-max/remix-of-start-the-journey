@@ -35,7 +35,7 @@ import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { createAdCampaign, getAdCampaigns, updateAdCampaign } from '../services/adManager.js';
 import { testMistralConnection } from '../services/mistralService.js';
 import { getNotificationQueueStats } from '../services/pushNotifications.js';
-import { approveLearningArtifact, getCoordinatorTelemetry, listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
+import { approveLearningArtifact, getContextArbitrationTelemetry, getCoordinatorTelemetry, listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
 import { getPrivacyBridgeStatus } from '../services/privacyBridge.js';
 import { getSmolLM2RuntimeStatus } from '../services/smolLm2Service.js';
 import { getTelegramLinkedDeviceStatus, startTelegramLinkedDevice, stopTelegramLinkedDevice } from '../services/telegramLinkedDeviceService.js';
@@ -211,6 +211,7 @@ router.get('/trust/readiness', authenticateAdmin, async (_req: AuthRequest, res)
         localModel: getSmolLM2RuntimeStatus(),
         firstClassPersonaCoordination: { eventType: 'agent.persona.requested', capability: 'first_class_agent_persona', policyReviewed: true, guestSafe: true, ownerCharging: 'authenticated_only' },
         telemetry: await getCoordinatorTelemetry(),
+        contextArbitration: await getContextArbitrationTelemetry(),
       },
       deliveryClaims: 'Internal readiness and persisted states only; no external delivery or provider ownership is claimed.',
     });
@@ -279,6 +280,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
     let credits = 0;
     let notificationQueue = { total: 0, queued: 0, accepted: 0, sent: 0, delivered: 0, failed: 0, suppressed: 0, deadLetter: 0 } as Awaited<ReturnType<typeof getNotificationQueueStats>>;
     let coordinatorTelemetry: Awaited<ReturnType<typeof getCoordinatorTelemetry>> = { events: { total: 0, byType: {}, byProducer: {} }, runs: { total: 0, byState: {} }, learningArtifacts: { total: 0, byStatus: {} } };
+    let contextArbitrationTelemetry: Awaited<ReturnType<typeof getContextArbitrationTelemetry>> = { total: 0, byContext: {}, byRelation: {}, ambiguous: 0, preservedContextObservations: 0 };
     try {
       users = Number(db.exec('SELECT COUNT(*) FROM memory_profiles')[0]?.values?.[0]?.[0] || 0);
       providers = Number(db.exec("SELECT COUNT(*) FROM memory_profiles WHERE provider_type IS NOT NULL AND lower(provider_type) NOT IN ('', 'buyer')")[0]?.values?.[0]?.[0] || 0);
@@ -311,6 +313,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
       notificationsCount = Number(notifRes[0]?.values[0]?.[0] || 0);
       notificationQueue = await getNotificationQueueStats();
       coordinatorTelemetry = await getCoordinatorTelemetry();
+      contextArbitrationTelemetry = await getContextArbitrationTelemetry();
     } catch {}
 
     res.json({
@@ -327,6 +330,7 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
       notification_queue: notificationQueue,
       coordinator: {
         ...coordinatorTelemetry,
+        contextArbitration: contextArbitrationTelemetry,
         runtime: {
           enabled: process.env.KURUKOO_AGENT_ENABLED === 'true',
           autonomous: process.env.KURUKOO_AGENT_AUTONOMOUS === 'true',

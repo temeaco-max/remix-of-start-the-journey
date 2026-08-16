@@ -796,6 +796,10 @@
                             ['Owner charging', persona.ownerCharging || 'unknown'],
                             ['Coordinator events', String(telemetry.events?.total || 0)],
                             ['Coordinator runs', String(telemetry.runs?.total || 0)],
+                            ['Context decisions', String(brain.contextArbitration?.total || 0)],
+                            ['Context switches', String(brain.contextArbitration?.byRelation?.switch || 0)],
+                            ['Contexts preserved', String(brain.contextArbitration?.preservedContextObservations || 0)],
+                            ['Clarifications', String(brain.contextArbitration?.ambiguous || 0)],
                         ];
                         brainGrid.innerHTML = brainCards.map(([label, value]) => `<div class="pilot-readiness-card"><strong>${escapeHtml(label)}</strong><br/><span>${escapeHtml(value)}</span></div>`).join('');
                     }

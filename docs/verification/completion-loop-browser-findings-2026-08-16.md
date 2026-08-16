@@ -85,3 +85,11 @@ The arbitration layer now discovers active Economic Request and other card-backe
 During validation, a real defect was found in the Chat control-command guard: prefix matching treated “resume my request” as an autonomous-agent control command and returned “There is no active autonomous objective.” Both control detectors now require exact control commands, allowing multi-word request resumption to reach the canonical storefront path.
 
 The new `test:natural-interleaving` regression passed. It proves memory does not corrupt the active request, a second request is preserved separately, and explicit resumption returns a canonical request card. Context arbitration, behavioral Chat, economic lifecycle, TypeScript lint, and the production build also passed.
+
+## Context-arbitration observability increment
+
+The existing coordinator telemetry owner now aggregates context-arbitration decisions from persisted `chat.turn.completed` events. It exposes total decisions, selected-context counts, relation counts, ambiguity count, preserved-context observations, and the latest event time without reading or returning user message content.
+
+Authenticated Admin trust-readiness and dashboard payloads now expose this aggregate under `brain.contextArbitration` and `coordinator.contextArbitration`. The new telemetry is readiness information only; it does not imply model quality, external delivery, provider activation, or live network availability.
+
+Admin-route, coordinator, natural-interleaving, TypeScript lint, and production-build regressions passed after the change.
