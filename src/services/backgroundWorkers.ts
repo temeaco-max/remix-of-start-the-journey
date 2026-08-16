@@ -90,7 +90,11 @@ export async function processDueDeferred(): Promise<{ checked: number; matched: 
         }
         const requestId = intention.economic_request_id ? String(intention.economic_request_id) : '';
         const chatLink = `/chat?requestId=${encodeURIComponent(requestId || String(intention.id))}&prompt=${encodeURIComponent(`Continue with my ${skill} request`)}`;
-        const pushed = await sendFcmPush(phone, 'Kurukoo found a match', `A provider is available for "${skill}". Open Chat to review the next supported step.`, chatLink).catch(() => false);
+        const pushed = await sendFcmPush(phone, 'Kurukoo found a match', `A provider is available for "${skill}". Open Chat to review the next supported step.`, chatLink, {
+          contextId: `request:${requestId || intention.id}`,
+          availableAction: 'review',
+          surface: 'chat',
+        }).catch(() => false);
         if (pushed) notified += 1;
       } else {
         await incrementAttempt(phone, intention.id);

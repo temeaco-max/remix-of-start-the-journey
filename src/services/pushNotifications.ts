@@ -27,6 +27,10 @@ async function ensureNotificationTable() {
     if (!columns.has('next_attempt_at')) db.run(`ALTER TABLE internal_notifications ADD COLUMN next_attempt_at TEXT`);
     if (!columns.has('last_attempt_at')) db.run(`ALTER TABLE internal_notifications ADD COLUMN last_attempt_at TEXT`);
     if (!columns.has('dead_lettered_at')) db.run(`ALTER TABLE internal_notifications ADD COLUMN dead_lettered_at TEXT`);
+    if (!columns.has('context_id')) db.run(`ALTER TABLE internal_notifications ADD COLUMN context_id TEXT`);
+    if (!columns.has('conversation_id')) db.run(`ALTER TABLE internal_notifications ADD COLUMN conversation_id TEXT`);
+    if (!columns.has('available_action')) db.run(`ALTER TABLE internal_notifications ADD COLUMN available_action TEXT`);
+    if (!columns.has('surface')) db.run(`ALTER TABLE internal_notifications ADD COLUMN surface TEXT`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_internal_notifications_phone_status ON internal_notifications(phone, status)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_internal_notifications_delivery_state ON internal_notifications(delivery_state)`);
     return db;
@@ -37,9 +41,26 @@ function maxNotificationQueue(): number {
     return Number.isSafeInteger(configured) && configured > 0 ? Math.min(configured, 1_000_000) : 10000;
 }
 
-export async function sendFcmPush(phone: string, title: string, body: string, link?: string): Promise<boolean> {
+export interface NotificationContext {
+    contextId?: string;
+    conversationId?: string;
+    availableAction?: string;
+    surface?: string;
+}
+
+function contextLink(link: string | undefined, context?: NotificationContext): string | null {
+    if (link) return link;
+    if (!context?.conversationId && !context?.contextId) return null;
+    const params = new URLSearchParams();
+    if (context.conversationId) params.set('conversationId', context.conversationId);
+    if (context.contextId) params.set('contextId', context.contextId);
+    if (context.availableAction) params.set('action', context.availableAction);
+    return `/chat?${params.toString()}`;
+}
+
+export async function sendFcmPush(phone: string, title: string, body: string, link?: string, context?: NotificationContext): Promise<boolean> {
     const db = await ensureNotificationTable();
-    const clickLink = link || null;
+    const clickLink = contextLink(link, context);
     let notificationId = 0;
 
     // Persist an internal inbox notification even when no external adapter is configured.
@@ -54,8 +75,8 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
             return false;
         }
         db.run(
-            `INSERT INTO internal_notifications (phone, title, body, link, status, delivery_state) VALUES (?, ?, ?, ?, 'unread', 'queued')`,
-            [phone, title, body, clickLink],
+            `INSERT INTO internal_notifications (phone, title, body, link, status, delivery_state, context_id, conversation_id, available_action, surface) VALUES (?, ?, ?, ?, 'unread', 'queued', ?, ?, ?, ?)`,
+            [phone, title, body, clickLink, context?.contextId || null, context?.conversationId || null, context?.availableAction || null, context?.surface || null],
         );
         notificationId = Number(db.exec('SELECT last_insert_rowid()')[0]?.values?.[0]?.[0] || 0);
         saveDb();
@@ -66,7 +87,7 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
             producer: 'pushNotifications',
             correlationId: `notification:${notificationId}`,
             ownerPhone: phone.startsWith('anon_') ? undefined : phone,
-            payload: { notificationId, title: title.slice(0, 160), link: clickLink, deliveryState: 'queued' },
+            payload: { notificationId, title: title.slice(0, 160), link: clickLink, contextId: context?.contextId, conversationId: context?.conversationId, availableAction: context?.availableAction, surface: context?.surface, deliveryState: 'queued' },
             sensitivity: phone.startsWith('anon_') ? 'public' : 'personal',
             provenance: { source: 'canonical_service', sourceId: String(notificationId), evidenceLevel: 'persisted_state' },
             policy: { autonomousAllowed: false, confirmationRequired: 'none' },
@@ -172,12 +193,12 @@ export async function getNotificationQueueStats(): Promise<{ total: number; queu
     };
 }
 
-export async function getInternalNotifications(phone: string, limit = 20): Promise<Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; created_at: string }>> {
+export async function getInternalNotifications(phone: string, limit = 20): Promise<Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; context_id?: string; conversation_id?: string; available_action?: string; surface?: string; created_at: string }>> {
     const db = await ensureNotificationTable();
     const safeLimit = Math.max(1, Math.min(100, Math.floor(Number(limit) || 20)));
     const stmt = db.prepare(`SELECT notification.* FROM internal_notifications notification INNER JOIN (SELECT phone, title, body, COALESCE(link, '') AS link_key, MAX(id) AS latest_id FROM internal_notifications WHERE phone = ? GROUP BY phone, title, body, COALESCE(link, '')) latest ON latest.latest_id = notification.id WHERE notification.phone = ? ORDER BY notification.id DESC LIMIT ?`);
     stmt.bind([phone, phone, safeLimit]);
-    const results: Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; created_at: string }> = [];
+    const results: Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; context_id?: string; conversation_id?: string; available_action?: string; surface?: string; created_at: string }> = [];
     while (stmt.step()) results.push(stmt.getAsObject() as any);
     stmt.free();
     return results;

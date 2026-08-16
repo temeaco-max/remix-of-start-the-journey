@@ -217,7 +217,8 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     }
     if (!(!isGuest && controlAction)) {
     const controlCommand = /^(pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\b/i.test(message.trim());
-    const continued = controlCommand ? null : await continueActiveRequest(phone, input.conversationId, message);
+    const contextSwitch = contextDecision && (contextDecision.relation === 'switch' || (contextDecision.selectedContext !== 'economic_request' && contextDecision.relation === 'create'));
+    const continued = controlCommand || contextSwitch ? null : await continueActiveRequest(phone, input.conversationId, message);
     const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
     classificationSource = routing.classificationSource;
     intentConfidence = routing.intentConfidence;

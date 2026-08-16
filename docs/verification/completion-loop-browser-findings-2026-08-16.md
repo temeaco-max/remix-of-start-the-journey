@@ -63,3 +63,11 @@ Regression evidence:
 - `git diff --check` passed.
 
 This is an initial arbitration increment, not a claim that every natural-language context is solved. The next increment should expand active-context summaries, add explicit topic resumption and notification deep-link semantics, and run a natural-interleaving campaign through the canonical Chat route.
+
+## Conversational Operating System convergence — continuation increment
+
+The canonical Chat turn now uses the arbitration result operationally. Explicit safety, memory, reminder, notification, product/cart, and agent-goal signals bypass active Economic Request slot filling, while the active request remains preserved for later continuation. This prevents a reminder or safety turn from being captured as a request location or requirement.
+
+The canonical internal notification owner now supports optional `context_id`, `conversation_id`, `available_action`, and `surface` metadata with backward-compatible migrations. Agent-goal notifications deep-link to the originating conversation and identify `resume` or `review`; deferred provider-match notifications identify the request context and `review` action. The internal queue remains truthful when FCM is not configured or no device token is registered.
+
+Validation passed through `test:network-chat`, `test:notification-queue`, `test:fcm-boundary`, `test:agent-runtime`, `test:context-arbitration`, `test:behavioral-chat`, `lint`, and the production build. External push delivery remains unclaimed until provider acceptance or delivery evidence exists.
