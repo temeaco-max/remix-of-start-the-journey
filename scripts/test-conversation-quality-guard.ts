@@ -30,16 +30,23 @@ assert.ok(repeated.issues.includes('repetition'));
 const premature = assessConversationQuality({
   latestUserMessage: "I'm thinking about getting a cleaner.",
   assistantReply: 'I can help coordinate a cleaner. Please confirm the payment and booking.',
+});
+assert.ok(premature.issues.includes('premature_action'), 'premature action must be caught even without a card');
+assert.equal(premature.conversational, false, 'a fluent action response is still non-conversational when the user is exploring');
+
+const prematureCard = assessConversationQuality({
+  latestUserMessage: "I'm thinking about getting a cleaner.",
+  assistantReply: 'I can help coordinate a cleaner. Please confirm the payment and booking.',
   cardType: 'economic_request',
 });
-assert.ok(premature.issues.includes('premature_action'));
+assert.ok(prematureCard.issues.includes('premature_action'));
 
 const refs = [
   ['the other guy', 'other'],
   ['the second one', 'second'],
   ['the first option', 'first'],
   ['go back to the plumber', 'previous'],
-  ['same place', 'current'],
+  ['same place', 'attribute'],
   ['the cheaper one', 'attribute'],
   ['same time', 'attribute'],
   ['tomorrow instead', 'attribute'],
@@ -51,4 +58,4 @@ assert.equal(classifyConversationDifficulty('Actually change the time to tomorro
 assert.equal(classifyConversationDifficulty('The other one, not the first guy — go back to the one we discussed before', { activeContextIds: ['request:1', 'request:2'] }), 'deep');
 assert.equal(classifyConversationDifficulty('Make it cheaper, but keep Saturday and use the second provider', { activeContextIds: ['request:1'], pendingFields: ['budget'] }), 'complex');
 
-console.log('Conversation quality guard passed: leak detection, repetition, premature-action detection, continuity checks, comparative references and difficulty classification.');
+console.log('Conversation quality guard passed: leak detection, repetition, premature-action detection without card metadata, continuity checks, comparative references and difficulty classification.');
