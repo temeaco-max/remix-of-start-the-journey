@@ -37,6 +37,7 @@ import { testMistralConnection } from '../services/mistralService.js';
 import { getNotificationQueueStats } from '../services/pushNotifications.js';
 import { approveLearningArtifact, getCoordinatorTelemetry, listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
 import { getPrivacyBridgeStatus } from '../services/privacyBridge.js';
+import { getSmolLM2RuntimeStatus } from '../services/smolLm2Service.js';
 import { getTelegramLinkedDeviceStatus, startTelegramLinkedDevice, stopTelegramLinkedDevice } from '../services/telegramLinkedDeviceService.js';
 import { getWhatsAppLinkedDeviceStatus } from '../services/whatsappLinkedDeviceService.js';
 import { listTrustedDevices, revokeTrustedDevice } from '../services/progressiveTrustService.js';
@@ -206,6 +207,11 @@ router.get('/trust/readiness', authenticateAdmin, async (_req: AuthRequest, res)
       channelEvidence,
       connectors: { whatsappLinkedDevice: getWhatsAppLinkedDeviceStatus(), telegramLinkedDevice: getTelegramLinkedDeviceStatus() },
       privacyNumberMasking: getPrivacyBridgeStatus(),
+      brain: {
+        localModel: getSmolLM2RuntimeStatus(),
+        firstClassPersonaCoordination: { eventType: 'agent.persona.requested', capability: 'first_class_agent_persona', policyReviewed: true, guestSafe: true, ownerCharging: 'authenticated_only' },
+        telemetry: await getCoordinatorTelemetry(),
+      },
       deliveryClaims: 'Internal readiness and persisted states only; no external delivery or provider ownership is claimed.',
     });
   } catch (error) {
