@@ -41,6 +41,13 @@ function extractRequirementPatch(message: string, card: any, current: any): Reco
   if (budget) setFirst(['budget', 'amount', 'rate', 'price'], (budget[1] || budget[2] || '').replace(/,/g, ''));
   const time = text.match(/\b(today|tonight|tomorrow(?:\s+(?:morning|afternoon|evening|night))?|this\s+weekend|next\s+week|next\s+month|saturday|sunday|monday|tuesday|wednesday|thursday|friday)\b/i);
   if (time) setFirst(['time', 'when', 'departure_time', 'event_date', 'date'], time[1]);
+  const correctionField = text.match(/\b(?:change|correct|update|set)\s+(?:the\s+)?(pickup|origin|destination|dropoff|location|venue|service|skill|budget|price)\s+(?:to|as)\s+(.+?)(?:[.!?]|$)/i);
+  if (correctionField) {
+    const field = correctionField[1].toLowerCase();
+    const value = correctionField[2].trim();
+    const names = field === 'pickup' || field === 'origin' ? ['origin', 'pickup', 'pickup_location'] : field === 'destination' || field === 'dropoff' ? ['destination', 'dropoff', 'dropoff_location'] : field === 'service' || field === 'skill' ? ['service', 'skill', 'job', 'description'] : field === 'budget' || field === 'price' ? ['budget', 'amount', 'rate', 'price'] : [field];
+    setFirst(names, value);
+  }
   const fromTo = text.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?:\s+(?:tomorrow|today|on\s+\w+)|[.!?]|$)/i);
   if (fromTo) {
     setFirst(['origin', 'pickup', 'pickup_location'], fromTo[1].trim());
@@ -62,7 +69,7 @@ function extractRequirementPatch(message: string, card: any, current: any): Reco
   return patch;
 }
 
-async function continueActiveRequest(phone: string, conversationId: string | undefined, message: string): Promise<{ reply: string; cardData: any; skill: string } | null> {
+async function continueActiveRequest(phone: string, conversationId: string | undefined, message: string, selectedRequestId?: string): Promise<{ reply: string; cardData: any; skill: string } | null> {
   const normalized = message.trim().toLowerCase();
   // An open economic request must not capture unrelated conversation intents.
   // These commands belong to their canonical owners and must remain independently routable.
@@ -71,11 +78,12 @@ async function continueActiveRequest(phone: string, conversationId: string | und
     /\b(immediate danger|ambulance|fire service|life[- ]threatening|emergency)\b/.test(normalized) ||
     /^(pause|resume|cancel that|cancel it|stop following|stop checking)\b/.test(normalized)
   ) return null;
-  if (!conversationId) return null;
-  const history = await listChatMessages(phone, { conversationId, limit: 60 });
+  if (!conversationId && !selectedRequestId) return null;
+  const history = await listChatMessages(phone, selectedRequestId ? { limit: 100 } : { conversationId, limit: 60 });
   for (let i = history.length - 1; i >= 0; i -= 1) {
     const card = parseCardData(history[i]);
     if (!card?.requestId || card.type !== 'agentic_storefront') continue;
+    if (selectedRequestId && String(card.requestId) !== selectedRequestId) continue;
     const request = await getEconomicRequest(String(card.requestId));
     if (!request || request.phone !== phone || ['completed', 'cancelled', 'abandoned', 'failed'].includes(request.status)) continue;
     const patch = extractRequirementPatch(message, card, request);
@@ -224,7 +232,8 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       const resumed = requestContextId ? await resumeStorefrontFromRequest(phone, requestContextId) : await tryResumeStorefront(phone);
       if (resumed) continued = { reply: resumed.message, cardData: resumed, skill: resumed.skill };
     } else if (!controlCommand && !contextSwitch) {
-      continued = await continueActiveRequest(phone, input.conversationId, message);
+      const selectedRequestId = contextDecision?.selectedContextId?.startsWith('request:') ? contextDecision.selectedContextId.slice('request:'.length) : undefined;
+      continued = await continueActiveRequest(phone, input.conversationId, message, selectedRequestId);
     }
     const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
     classificationSource = routing.classificationSource;

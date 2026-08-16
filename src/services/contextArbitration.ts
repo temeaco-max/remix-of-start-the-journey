@@ -89,6 +89,7 @@ function signalType(text: string): { type: ConversationalContextType; confidence
   if (/^(remind me|cancel (the )?reminder|show (my )?reminders)/.test(value)) return { type: 'reminder', confidence: 0.97, relation: 'continue' };
   if (/^(what notifications|show (my )?notifications|mark .* notification|dismiss .* notification)/.test(value)) return { type: 'notification', confidence: 0.97, relation: 'continue' };
   if (/^(go back to|resume (?:my|the)|return to|continue with)\b/.test(value)) return { type: 'economic_request', confidence: 0.9, relation: 'resume' };
+  if (/^(change|correct|update|actually|no[, ]|not\b)/.test(value) || /\b(instead|rather)\b/.test(value)) return { type: 'economic_request', confidence: 0.88, relation: 'correction' };
   if (/^(pause|resume|cancel that|cancel it|stop following|stop checking)\b/.test(value)) return { type: 'agent_goal', confidence: 0.98, relation: 'control' };
   if (/\b(cart|checkout|add .* to cart|buy|purchase|product|charger|groceries|food order)\b/.test(value)) return { type: 'product_cart', confidence: 0.82, relation: 'create' };
   if (/\b(keep checking|keep looking|monitor|watch for|tell me when|let me know when|check again)\b/.test(value)) return { type: 'agent_goal', confidence: 0.94, relation: 'create' };

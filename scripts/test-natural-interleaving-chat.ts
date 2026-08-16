@@ -33,6 +33,11 @@ assert.equal(second.contextDecision?.relation, 'create');
 assert.ok(second.cardData?.requestId, 'second request should have its own canonical request');
 assert.notEqual(String(second.cardData.requestId), firstRequestId, 'new request must not reuse the first request');
 
+const corrected = await processCanonicalChatTurn({ phone, channel: 'web', conversationId: first.conversationId, message: 'Change the pickup to Surulere' });
+assert.equal(corrected.contextDecision?.relation, 'correction');
+assert.equal(String(corrected.cardData?.requestId), String(second.cardData.requestId), 'correction must target the selected latest request');
+assert.ok(JSON.stringify(corrected.cardData).toLowerCase().includes('surulere'), 'corrected request should contain the updated pickup');
+
 const resumed = await processCanonicalChatTurn({ phone, channel: 'web', conversationId: first.conversationId, message: 'resume my request' });
 assert.equal(resumed.contextDecision?.relation, 'resume');
 assert.ok(resumed.cardData?.requestId, 'resume should return a canonical request card');

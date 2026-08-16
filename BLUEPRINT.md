@@ -5822,3 +5822,12 @@ The control-command boundary is exact-command based. Phrases such as `resume my 
 Coordinator telemetry aggregates context decisions without retaining message content. The authenticated Admin readiness surface exposes selected-context totals, relation counts, ambiguity counts, and preserved-context observations. These metrics describe repository behavior and do not constitute proof of model correctness, external delivery, provider availability, or live network activation.
 
 The natural-interleaving regression covers memory isolation, creation of a distinct second request, exact request resumption, and cross-conversation active-context discovery. This is a validated repository-side increment toward the mature conversational-operating-system acceptance threshold; broader natural-language coverage remains an ongoing validation requirement.
+
+
+## Current Convergence Addendum — Correction-Safe Context Updates
+
+A correction is now treated as a first-class conversational relation rather than an implicit new request. Deterministic correction language such as “change the pickup to Surulere”, “update the budget”, or “correct the service” selects the arbitrated Economic Request and applies a bounded field patch through the existing `advanceStorefront` owner.
+
+When the selected request exists in another recent conversation, canonical Chat searches the owner-scoped message history for that exact request card before applying the patch. It never chooses an unrelated latest request merely because it is newer in the current thread. The correction result remains attached to the canonical request ID and is available for later resumption.
+
+This correction boundary is repository-side validated. It does not authorize payment, provider selection, inventory changes, dispatch, or fulfilment; those remain owned by their existing confirmation and evidence boundaries.

@@ -99,3 +99,11 @@ Admin-route, coordinator, natural-interleaving, TypeScript lint, and production-
 The canonical Blueprint now records cross-conversation active-context discovery, exact request resumption, the exact-command control boundary, and privacy-safe arbitration telemetry as the current convergence behavior.
 
 Post-telemetry validation passed for natural interleaving, the complete route suite, the 205-skill audit, PWA contracts, security boundaries, economic boundaries, pilot-readiness truth, Chat DOM safety, admin routes, coordinator behavior, and the production build. The readiness output continues to classify external channels, push, voice, payments, WebRTC relay, MQTT, private-number routing, KYC, inventory, and dispatch according to their actual local configuration rather than claiming live activation.
+
+## Correction-safe context increment
+
+Canonical Chat now recognizes deterministic correction language and applies bounded field patches to the request selected by context arbitration. The correction parser supports pickup, origin, destination, location, venue, service, skill, budget, and price forms such as “change the pickup to Surulere”.
+
+Corrections can target an Economic Request preserved in another recent conversation because the continuation path searches owner-scoped history by the selected request ID. This prevents a correction from mutating whichever request happens to be newest in the current thread.
+
+The natural-interleaving regression now proves that memory does not corrupt the first request, a second request gets a distinct canonical record, a correction updates the selected second request, and explicit resumption returns a canonical request card. Context arbitration, behavioral Chat, economic lifecycle, admin routes, TypeScript lint, and production build checks passed.
