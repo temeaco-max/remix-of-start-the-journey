@@ -8,7 +8,7 @@ process.env.MEMORY_ENCRYPTION_KEY = 'memory-provenance-test-key';
 
 const { updateProfile, getProfile, getMemoryFacts } = await import('../src/services/memoryProfile.js');
 const { onboardNewUser } = await import('../src/services/progressiveOnboarding.js');
-const { buildWorkingContext } = await import('../src/services/livingMemoryEngine.js');
+const { buildWorkingContext, assembleContext } = await import('../src/services/livingMemoryEngine.js');
 
 const phone = '+2348012345678';
 await updateProfile(phone, 'test', { name: 'Amina', location: 'Ikeja', provenance: 'user_declared', source_ref: 'chat:onboarding' });
@@ -22,6 +22,12 @@ const context = await buildWorkingContext(phone, 'Where do I live?', { route: 's
 process.env.MEMORY_ENCRYPTION_KEY = 'rotated-memory-provenance-test-key';
 const rotatedProfile = await getProfile(phone, 'rotation-regression');
 if (!rotatedProfile || typeof rotatedProfile.preferences !== 'object' || typeof rotatedProfile.behavior_patterns !== 'object') throw new Error('Unreadable encrypted profile fields did not fail closed to empty objects');
+
+const duplicateContext = assembleContext([
+  { id: 'stable:one', tier: 'stable', text: 'Subscription: Base; Points: 30', source: 'profile:one', createdAt: '', relevance: 0.5 },
+  { id: 'stable:two', tier: 'stable', text: 'Subscription: Base; Points: 30', source: 'profile:two', createdAt: '', relevance: 0.5 },
+], 256);
+if (duplicateContext.context.split('Subscription: Base; Points: 30').length - 1 !== 1) throw new Error('Living Memory emitted duplicate identical context lines');
 
 const selectedLocation = context.selected.find((item) => item.text.includes('Primary location: Ikeja'));
 if (!selectedLocation || !selectedLocation.source.includes('memory_facts.location:user_declared')) throw new Error('Living Memory omitted or mislabelled explicit location provenance');

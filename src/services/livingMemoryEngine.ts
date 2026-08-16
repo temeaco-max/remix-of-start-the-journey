@@ -297,13 +297,17 @@ export function mmrSelect(query: string, candidates: MemoryItem[], k = DEFAULT_K
   return selected;
 }
 
-function assembleContext(selected: MemoryItem[], maxTokens: number): { context: string; tokenEstimate: number } {
+export function assembleContext(selected: MemoryItem[], maxTokens: number): { context: string; tokenEstimate: number } {
   const parts: string[] = [];
+  const seen = new Set<string>();
   let tokens = 0;
   for (const item of selected) {
     const line = `[${item.tier}] ${item.text}`;
+    const dedupeKey = line.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+    if (seen.has(dedupeKey)) continue;
     const t = estimateTokens(line);
     if (tokens + t > maxTokens) break;
+    seen.add(dedupeKey);
     parts.push(line);
     tokens += t;
   }
