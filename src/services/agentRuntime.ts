@@ -144,6 +144,11 @@ export async function notifyGoalIfNeeded(goal: AgentGoal): Promise<void> { if (!
       contextId: `goal:${goal.id}`,
       conversationId: goal.conversationId,
       availableAction: goal.status === 'completed' ? 'review' : 'resume',
+      canonicalAction: goal.status === 'completed' ? 'agent.goal.review' : 'agent.goal.resume',
+      objectType: 'agent_goal',
+      objectId: String(goal.id),
+      ownerScope: goal.phone,
+      idempotencyKey: key,
       surface: 'chat',
     });
   } catch {}

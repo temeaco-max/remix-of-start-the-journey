@@ -92,7 +92,13 @@ export async function processDueDeferred(): Promise<{ checked: number; matched: 
         const chatLink = `/chat?requestId=${encodeURIComponent(requestId || String(intention.id))}&prompt=${encodeURIComponent(`Continue with my ${skill} request`)}`;
         const pushed = await sendFcmPush(phone, 'Kurukoo found a match', `A provider is available for "${skill}". Open Chat to review the next supported step.`, chatLink, {
           contextId: `request:${requestId || intention.id}`,
+          conversationId: undefined,
           availableAction: 'review',
+          canonicalAction: 'economic_request.review_match',
+          objectType: 'economic_request',
+          objectId: requestId || String(intention.id),
+          ownerScope: phone,
+          idempotencyKey: `deferred-match:${intention.id}:${requestId || 'open'}:${skill}`,
           surface: 'chat',
         }).catch(() => false);
         if (pushed) notified += 1;

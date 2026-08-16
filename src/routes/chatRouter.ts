@@ -58,6 +58,11 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
   const contextAction = req.body?.contextAction && typeof req.body.contextAction === 'object' ? {
     type: typeof req.body.contextAction.type === 'string' ? req.body.contextAction.type.slice(0, 80) : '',
     entityId: typeof req.body.contextAction.entityId === 'string' ? req.body.contextAction.entityId.slice(0, 180) : undefined,
+    contextId: typeof req.body.contextAction.contextId === 'string' ? req.body.contextAction.contextId.slice(0, 180) : undefined,
+    conversationId: typeof req.body.contextAction.conversationId === 'string' ? req.body.contextAction.conversationId.slice(0, 180) : undefined,
+    canonicalAction: typeof req.body.contextAction.canonicalAction === 'string' ? req.body.contextAction.canonicalAction.slice(0, 120) : undefined,
+    objectType: typeof req.body.contextAction.objectType === 'string' ? req.body.contextAction.objectType.slice(0, 80) : undefined,
+    objectId: typeof req.body.contextAction.objectId === 'string' ? req.body.contextAction.objectId.slice(0, 180) : undefined,
   } : undefined;
 
   if (!phone || !message) return res.status(400).json({ error: 'Message is required' });

@@ -5,7 +5,7 @@
     theme: localStorage.getItem('kurukoo_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     activeStorefrontId: null,
     nativeAssistance: { reminders: [], checkIns: [] },
-    pinnedMessages: [], surfaceView: null, notifiedNotificationIds: new Set(), notifiedTrustChallengeIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') !== '0', radarLive: false
+    pinnedMessages: [], surfaceView: null, canonicalContextAction: null, notifiedNotificationIds: new Set(), notifiedTrustChallengeIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') !== '0', radarLive: false
   };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
@@ -1057,7 +1057,7 @@
       if (attachment instanceof File) { input.placeholder = 'Uploading attachment…'; attachment = await uploadAttachment(attachment); }
       state.attached = null; $('attachment-preview').hidden = true; $('attachment-preview').textContent = '';
       const finalText = attachment ? `${text}\n\n[Attachment: ${attachment.name} — ${attachment.type} — ${attachment.url}]` : text;
-      const contextAction = state.discoveryContextAction || undefined; state.discoveryContextAction = undefined;
+      const contextAction = state.canonicalContextAction || state.discoveryContextAction || undefined; state.canonicalContextAction = null; state.discoveryContextAction = undefined;
       const user = surfaceActive ? document.createElement('article') : addUserMessage(finalText); const assistant = surfaceActive ? createBackgroundStreamBubble() : appendStreamBubble(); const output = assistant.querySelector('.markdown-body'); const thinking = assistant.querySelector('.thinking'); let full = ''; setTypingStatus('thinking');
       const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', signal: state.controller?.signal, body: JSON.stringify({ message: finalText, channel: 'web', conversationId: state.conversationId || undefined, attachment: attachment || undefined, contextAction }) });
       if (response.status === 401) { await ensureIdentity(); throw new Error('Your session has expired.'); }
@@ -1615,8 +1615,13 @@
     const resourceSlug = params.get('resourceSlug');
     const requestId = params.get('requestId');
     const discoveryEntityId = params.get('discoveryEntityId');
+    const canonicalAction = params.get('canonicalAction');
+    const objectType = params.get('objectType');
+    const objectId = params.get('objectId');
+    const contextId = params.get('contextId');
     if (conversationId) { state.conversationId = conversationId.slice(0, 160); localStorage.setItem('kurukoo_conversation_id', state.conversationId); }
     if (discoveryEntityId) state.discoveryContextAction = { type: 'open_discovery_entity', entityId: discoveryEntityId.slice(0, 180) };
+    if (canonicalAction && objectType && objectId) state.canonicalContextAction = { type: 'resume_canonical_context', contextId: contextId?.slice(0, 180), conversationId: conversationId?.slice(0, 180), canonicalAction: canonicalAction.slice(0, 120), objectType: objectType.slice(0, 80), objectId: objectId.slice(0, 180) };
     const contextParts = [];
     if (providerSlug) contextParts.push(`Provider context: ${providerSlug}`);
     if (topicSlug) contextParts.push(`Topic context: ${topicSlug}`);

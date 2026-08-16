@@ -217,3 +217,10 @@ The More utility navigation is collapsed by default. Its native `hidden` state m
 ## Explicit skill-flow modes
 
 The central Chat surface consumes explicit skill-flow definitions for every canonical skill. Each flow declares its requirement schema, questions, lifecycle action, payment boundary, fulfillment instructions, and one mode: `economic`, `information`, `safety`, or `coordination`. Information, safety, and coordination flows render truthful guidance or coordination surfaces without creating Economic Requests, payment states, provider matches, or external execution claims. Existing `skill_flows` rows are upgraded idempotently during initialization so legacy defaults cannot survive silently.
+
+
+## Exact asynchronous continuation
+
+Internal notifications are not merely inbox text. When an asynchronous result has a canonical context, the notification stores the owner-scoped context ID, conversation ID, canonical action, object type, object ID, owner scope, idempotency key, and surface. Its Chat link carries the same exact identity. Chat validates the referenced object through the canonical owner before reopening it; inaccessible, stale, malformed, or cross-owner references fail closed and are never replaced by a recent or semantically similar object.
+
+The supported continuation action is `resume_canonical_context`. It is one extension of the universal Chat action protocol, not a second notification workflow. Current validated object/action pairs include agent goals, Economic Requests, discovery entities, and notifications.

@@ -31,6 +31,11 @@ async function ensureNotificationTable() {
     if (!columns.has('conversation_id')) db.run(`ALTER TABLE internal_notifications ADD COLUMN conversation_id TEXT`);
     if (!columns.has('available_action')) db.run(`ALTER TABLE internal_notifications ADD COLUMN available_action TEXT`);
     if (!columns.has('surface')) db.run(`ALTER TABLE internal_notifications ADD COLUMN surface TEXT`);
+    if (!columns.has('canonical_action')) db.run(`ALTER TABLE internal_notifications ADD COLUMN canonical_action TEXT`);
+    if (!columns.has('object_type')) db.run(`ALTER TABLE internal_notifications ADD COLUMN object_type TEXT`);
+    if (!columns.has('object_id')) db.run(`ALTER TABLE internal_notifications ADD COLUMN object_id TEXT`);
+    if (!columns.has('owner_scope')) db.run(`ALTER TABLE internal_notifications ADD COLUMN owner_scope TEXT`);
+    if (!columns.has('idempotency_key')) db.run(`ALTER TABLE internal_notifications ADD COLUMN idempotency_key TEXT`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_internal_notifications_phone_status ON internal_notifications(phone, status)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_internal_notifications_delivery_state ON internal_notifications(delivery_state)`);
     return db;
@@ -45,17 +50,26 @@ export interface NotificationContext {
     contextId?: string;
     conversationId?: string;
     availableAction?: string;
+    canonicalAction?: string;
+    objectType?: string;
+    objectId?: string;
+    ownerScope?: string;
+    idempotencyKey?: string;
     surface?: string;
 }
 
 function contextLink(link: string | undefined, context?: NotificationContext): string | null {
-    if (link) return link;
-    if (!context?.conversationId && !context?.contextId) return null;
-    const params = new URLSearchParams();
-    if (context.conversationId) params.set('conversationId', context.conversationId);
-    if (context.contextId) params.set('contextId', context.contextId);
-    if (context.availableAction) params.set('action', context.availableAction);
-    return `/chat?${params.toString()}`;
+    if (!link && !context?.conversationId && !context?.contextId) return null;
+    if (!context) return link || null;
+    if (link && /^https?:\/\//i.test(link)) return link;
+    const url = new URL(link || '/chat', 'https://kurukoo.internal');
+    if (context.conversationId) url.searchParams.set('conversationId', context.conversationId);
+    if (context.contextId) url.searchParams.set('contextId', context.contextId);
+    if (context.availableAction) url.searchParams.set('action', context.availableAction);
+    if (context.canonicalAction) url.searchParams.set('canonicalAction', context.canonicalAction);
+    if (context.objectType) url.searchParams.set('objectType', context.objectType);
+    if (context.objectId) url.searchParams.set('objectId', context.objectId);
+    return `${url.pathname}${url.search}${url.hash}`;
 }
 
 export async function sendFcmPush(phone: string, title: string, body: string, link?: string, context?: NotificationContext): Promise<boolean> {
@@ -75,8 +89,8 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
             return false;
         }
         db.run(
-            `INSERT INTO internal_notifications (phone, title, body, link, status, delivery_state, context_id, conversation_id, available_action, surface) VALUES (?, ?, ?, ?, 'unread', 'queued', ?, ?, ?, ?)`,
-            [phone, title, body, clickLink, context?.contextId || null, context?.conversationId || null, context?.availableAction || null, context?.surface || null],
+            `INSERT INTO internal_notifications (phone, title, body, link, status, delivery_state, context_id, conversation_id, available_action, canonical_action, object_type, object_id, owner_scope, idempotency_key, surface) VALUES (?, ?, ?, ?, 'unread', 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [phone, title, body, clickLink, context?.contextId || null, context?.conversationId || null, context?.availableAction || null, context?.canonicalAction || null, context?.objectType || null, context?.objectId || null, context?.ownerScope || phone, context?.idempotencyKey || null, context?.surface || null],
         );
         notificationId = Number(db.exec('SELECT last_insert_rowid()')[0]?.values?.[0]?.[0] || 0);
         saveDb();
@@ -87,7 +101,7 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
             producer: 'pushNotifications',
             correlationId: `notification:${notificationId}`,
             ownerPhone: phone.startsWith('anon_') ? undefined : phone,
-            payload: { notificationId, title: title.slice(0, 160), link: clickLink, contextId: context?.contextId, conversationId: context?.conversationId, availableAction: context?.availableAction, surface: context?.surface, deliveryState: 'queued' },
+            payload: { notificationId, title: title.slice(0, 160), link: clickLink, contextId: context?.contextId, conversationId: context?.conversationId, availableAction: context?.availableAction, canonicalAction: context?.canonicalAction, objectType: context?.objectType, objectId: context?.objectId, ownerScope: context?.ownerScope || phone, idempotencyKey: context?.idempotencyKey, surface: context?.surface, deliveryState: 'queued' },
             sensitivity: phone.startsWith('anon_') ? 'public' : 'personal',
             provenance: { source: 'canonical_service', sourceId: String(notificationId), evidenceLevel: 'persisted_state' },
             policy: { autonomousAllowed: false, confirmationRequired: 'none' },
@@ -202,6 +216,15 @@ export async function getInternalNotifications(phone: string, limit = 20): Promi
     while (stmt.step()) results.push(stmt.getAsObject() as any);
     stmt.free();
     return results;
+}
+
+export async function getInternalNotificationById(notificationId: number, phone: string): Promise<{ id: number; phone: string; title: string; body: string; link?: string; status: string; delivery_state: string; context_id?: string; conversation_id?: string; available_action?: string; canonical_action?: string; object_type?: string; object_id?: string; owner_scope?: string; idempotency_key?: string; surface?: string; created_at: string } | null> {
+    const db = await ensureNotificationTable();
+    const stmt = db.prepare('SELECT * FROM internal_notifications WHERE id = ? AND phone = ? LIMIT 1');
+    stmt.bind([notificationId, phone]);
+    const row = stmt.step() ? stmt.getAsObject() as any : null;
+    stmt.free();
+    return row ? { ...row, id: Number(row.id), phone: String(row.phone), title: String(row.title), body: String(row.body), status: String(row.status), delivery_state: String(row.delivery_state), created_at: String(row.created_at) } : null;
 }
 
 export async function markNotificationRead(notificationId: number, phone: string): Promise<boolean> {

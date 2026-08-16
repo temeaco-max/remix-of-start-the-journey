@@ -16,6 +16,7 @@ process.env.KURUKOO_DISABLE_LISTEN = 'true';
 const { app } = await import('../src/index.js');
 const { getDb } = await import('../src/database.js');
 const { listQueuedNotifications, recordNotificationAttempt, sendFcmPush, transitionNotificationDelivery } = await import('../src/services/pushNotifications.js');
+const { processCanonicalChatTurn } = await import('../src/services/canonicalChatTurnService.js');
 
 const phone = '+2348090000000';
 const otherPhone = '+2348090000001';
@@ -31,15 +32,37 @@ const { port } = server.address() as AddressInfo;
 const baseUrl = `http://127.0.0.1:${port}`;
 
 try {
-  assert.equal(await sendFcmPush(phone, 'Deferred match', 'A provider is available.', '/web'), false, 'Unconfigured FCM must not claim delivery');
+  assert.equal(await sendFcmPush(phone, 'Deferred match', 'A provider is available.', '/chat?requestId=123', {
+    contextId: 'request:123',
+    conversationId: 'conversation-123',
+    availableAction: 'review',
+    canonicalAction: 'economic_request.review_match',
+    objectType: 'economic_request',
+    objectId: '123',
+    ownerScope: phone,
+    idempotencyKey: 'notification-test:request:123',
+    surface: 'chat',
+  }), false, 'Unconfigured FCM must not claim delivery');
 
   const ownerList = await fetch(`${baseUrl}/api/notifications`, { headers: userHeaders(phone) });
   assert.equal(ownerList.status, 200, 'Authenticated owner should list internal notifications');
-  const ownerPayload = await ownerList.json() as { notifications?: Array<{ id: number; status: string; link: string }> };
+  const ownerPayload = await ownerList.json() as { notifications?: Array<{ id: number; status: string; link: string; context_id?: string; conversation_id?: string; available_action?: string; canonical_action?: string; object_type?: string; object_id?: string; owner_scope?: string; idempotency_key?: string }> };
   assert.equal(ownerPayload.notifications?.length, 1, 'Queued notification should appear once in the owner inbox');
   const notification = ownerPayload.notifications?.[0];
   assert.equal(notification?.status, 'unread', 'New internal notifications should be unread');
-  assert.equal(notification?.link, '/web', 'Notification link should be retained');
+  assert.equal(notification?.link, '/chat?requestId=123&conversationId=conversation-123&contextId=request%3A123&action=review&canonicalAction=economic_request.review_match&objectType=economic_request&objectId=123', 'Notification link should preserve exact canonical context');
+  assert.equal(notification?.context_id, 'request:123');
+  assert.equal(notification?.conversation_id, 'conversation-123');
+  assert.equal(notification?.canonical_action, 'economic_request.review_match');
+  assert.equal(notification?.object_type, 'economic_request');
+  assert.equal(notification?.object_id, '123');
+  assert.equal(notification?.owner_scope, phone);
+  assert.equal(notification?.idempotency_key, 'notification-test:request:123');
+  const resumed = await processCanonicalChatTurn({ phone, message: 'Continue this update', channel: 'web', conversationId: 'conversation-123', contextAction: { type: 'resume_canonical_context', contextId: `notification:${notification!.id}`, conversationId: 'conversation-123', canonicalAction: 'notification.open', objectType: 'notification', objectId: String(notification!.id) } });
+  assert.equal(resumed.cardData?.type, 'canonical_context', 'Owner should reopen the exact notification context through Chat');
+  assert.equal(resumed.cardData?.objectId, String(notification!.id), 'Chat must preserve exact notification identity');
+  const rejected = await processCanonicalChatTurn({ phone: otherPhone, message: 'Continue this update', channel: 'web', conversationId: 'conversation-123', contextAction: { type: 'resume_canonical_context', contextId: `notification:${notification!.id}`, conversationId: 'conversation-123', canonicalAction: 'notification.open', objectType: 'notification', objectId: String(notification!.id) } });
+  assert.equal(rejected.cardData?.type, 'canonical_context_unavailable', 'Another owner must not reopen the notification context');
   const queuedBeforeAttempt = await listQueuedNotifications();
   assert.equal(queuedBeforeAttempt.some(item => item.id === notification?.id && item.delivery_state === 'queued'), true, 'Unconfigured delivery must remain durably queued');
   assert.equal(await recordNotificationAttempt(notification!.id, 'provider_not_configured', phone), 'queued', 'First failed attempt should schedule a retry');

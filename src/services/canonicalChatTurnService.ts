@@ -4,13 +4,14 @@ import { isOnboarding, handleOnboardingInput } from './progressiveOnboarding.js'
 import { routeIntent } from './intentRouter.js';
 import { getAuthState, setAuthState, handleConversationalAuth } from './conversationalAuthService.js';
 import { handleSafetyContactInput, setSafetyCaptureState } from './safetyService.js';
-import { cancelAgentGoal, createConversationGoal, goalTimeline, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
+import { cancelAgentGoal, createConversationGoal, getAgentGoal, goalTimeline, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
 import { advanceStorefront, resumeStorefrontFromRequest, tryResumeStorefront } from './agenticStorefront.js';
 import { getEconomicRequest } from './skillFlows.js';
 import type { IntentRoutingResult } from '../types.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
 import { arbitrateChatContext, type ContextArbitrationDecision } from './contextArbitration.js';
 import { getDiscoveryEntity } from './discoveryNetwork.js';
+import { getInternalNotificationById } from './pushNotifications.js';
 
 function parseCardData(row: any): any | null {
   if (!row?.card_data) return null;
@@ -111,7 +112,7 @@ export interface CanonicalChatTurnInput {
   channel: string;
   conversationId?: string;
   attachment?: unknown;
-  contextAction?: { type: string; entityId?: string };
+  contextAction?: { type: string; entityId?: string; contextId?: string; conversationId?: string; canonicalAction?: string; objectType?: string; objectId?: string };
 }
 
 export interface CanonicalChatTurnResult {
@@ -171,9 +172,42 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
   const safetyState = prefs.safety_capture_state || 'none';
   const explicitDiscoveryEntityId = input.contextAction?.type === 'open_discovery_entity' && input.contextAction.entityId ? String(input.contextAction.entityId) : undefined;
   const explicitDiscoveryEntity = explicitDiscoveryEntityId ? await getDiscoveryEntity(explicitDiscoveryEntityId) : null;
+  const continuationAction = input.contextAction?.type === 'resume_canonical_context' ? input.contextAction : null;
+  const allowedContinuationPairs = new Set([
+    'agent_goal:agent.goal.resume',
+    'agent_goal:agent.goal.review',
+    'economic_request:economic_request.review_match',
+    'notification:notification.open',
+    'discovery_entity:discovery.context.open',
+  ]);
+  let continuationObject: any = null;
+  const continuationPair = continuationAction?.objectType && continuationAction.canonicalAction ? `${continuationAction.objectType}:${continuationAction.canonicalAction}` : '';
+  if (continuationAction && !isGuest && continuationPair && allowedContinuationPairs.has(continuationPair) && continuationAction.objectType && continuationAction.objectId) {
+    if (continuationAction.objectType === 'agent_goal') continuationObject = await getAgentGoal(phone, continuationAction.objectId);
+    else if (continuationAction.objectType === 'economic_request') {
+      const request = await getEconomicRequest(continuationAction.objectId);
+      continuationObject = request && request.phone === phone ? request : null;
+    } else if (continuationAction.objectType === 'discovery_entity') continuationObject = await getDiscoveryEntity(continuationAction.objectId);
+    else if (continuationAction.objectType === 'notification') {
+      const notificationId = Number(continuationAction.objectId);
+      continuationObject = Number.isSafeInteger(notificationId) && notificationId > 0 ? await getInternalNotificationById(notificationId, phone) : null;
+    }
+  }
   const contextDecision = isGuest ? undefined : await arbitrateChatContext({ phone, message, conversationId: input.conversationId });
 
-  if (!isGuest && explicitDiscoveryEntityId) {
+  if (!isGuest && continuationAction) {
+    if (!continuationObject || !continuationAction.canonicalAction || !allowedContinuationPairs.has(continuationPair)) {
+      reply = 'That exact continuation is no longer available or is not authorized for this account. I have not substituted another request, goal, notification or provider.';
+      cardData = { type: 'canonical_context_unavailable', contextId: continuationAction.contextId, objectType: continuationAction.objectType, objectId: continuationAction.objectId, exactContext: true };
+      canonicalAction = 'context.continuation.unavailable';
+      progressStage = 'information';
+    } else {
+      reply = 'I have reopened the exact Kurukoo context. I will keep its identity and ownership unchanged while we continue.';
+      cardData = { type: 'canonical_context', contextId: continuationAction.contextId, conversationId: continuationAction.conversationId || input.conversationId, canonicalAction: continuationAction.canonicalAction, objectType: continuationAction.objectType, objectId: continuationAction.objectId, lifecycle: continuationObject.status || continuationObject.lifecycle || continuationObject.delivery_state || 'active', exactContext: true, ownerScoped: true };
+      canonicalAction = continuationAction.canonicalAction;
+      progressStage = 'understanding';
+    }
+  } else if (!isGuest && explicitDiscoveryEntityId) {
     if (!explicitDiscoveryEntity) {
       reply = 'That discovery context is no longer available, so I have not substituted another place or provider.';
       cardData = { type: 'discovery_context_unavailable', entityId: explicitDiscoveryEntityId };
