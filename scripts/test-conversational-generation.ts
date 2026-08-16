@@ -11,6 +11,11 @@ const cases = [
     expectedMode: 'conversation',
   },
   {
+    name: 'problem description remains conversational',
+    prompt: 'My phone has been acting weird since yesterday.',
+    expectedMode: 'conversation',
+  },
+  {
     name: 'exploration does not become an action',
     prompt: "I'm thinking about getting a cleaner this weekend.",
     expectedMode: 'exploration',
@@ -39,9 +44,14 @@ for (const item of cases) {
   assert(!result.text.includes('internal conversation orientation'), `${item.name}: leaked internal prompt text`);
   assert(!result.text.includes('system prompt'), `${item.name}: leaked system prompt text`);
 
-  if (item.expectedMode === 'exploration') {
-    assert(result.contract.shouldAvoidAction, `${item.name}: exploration should block autonomous action`);
+  if (item.expectedMode === 'conversation' || item.expectedMode === 'exploration') {
+    assert(result.contract.shouldAvoidAction, `${item.name}: conversational turn should block autonomous action`);
     assert(result.contract.actionPosture === 'none' || result.contract.actionPosture === 'clarify', `${item.name}: unexpected action posture ${result.contract.actionPosture}`);
+    assert(!result.quality.issues.includes('premature_action'), `${item.name}: generated response still indicates premature action`);
+  }
+
+  if (item.expectedMode === 'exploration') {
+    assert(result.contract.mode === 'exploration', `${item.name}: exploration mode was lost`);
   }
 
   if (item.expectedMode === 'reference') {
