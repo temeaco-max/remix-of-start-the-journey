@@ -36,7 +36,7 @@
     "benchmark:teacher": "python3 scripts/run-trajectory-teacher.py",
     "scenario-lab:generate": "tsx scripts/provider-outcome-scenario-lab.ts",
     "scenario-lab:execute": "tsx scripts/provider-outcome-scenario-lab.ts --execute",
-    "test:scenario-lab": "tsx scripts/test-provider-outcome-scenario-lab.ts",
+    "test:scenario-lab": "npm run scenario-lab:generate && tsx scripts/test-provider-outcome-scenario-lab.ts",
     "test:trajectory-harness": "tsx scripts/test-trajectory-harness.ts",
     "audit:services": "node scripts/audit-services.mjs",
     "generate:skill-flows": "node scripts/generate-explicit-skill-flows.mjs && node scripts/replace-skill-flow-seed.mjs",
