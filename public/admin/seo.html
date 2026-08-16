@@ -28,8 +28,8 @@
           <h3>Pages & Metadata</h3>
           <p>Per-page titles, meta descriptions, canonical URLs, robots directives, and OG/Twitter metadata.</p>
           <div class="actions">
-            <button class="primary" onclick="loadPages()">Load Pages</button>
-            <button onclick="openPageEditor()">Add / Edit Page</button>
+            <button type="button" class="primary" onclick="loadPages()">Load Pages</button>
+            <button type="button" onclick="openPageEditor()">Add / Edit Page</button>
           </div>
           <div id="pages-table"></div>
         </div>
@@ -37,8 +37,8 @@
           <h3>Redirects</h3>
           <p>301/302 redirects, regex support, and redirect matching.</p>
           <div class="actions">
-            <button class="primary" onclick="loadRedirects()">Load Redirects</button>
-            <button onclick="openRedirectEditor()">Add Redirect</button>
+            <button type="button" class="primary" onclick="loadRedirects()">Load Redirects</button>
+            <button type="button" onclick="openRedirectEditor()">Add Redirect</button>
           </div>
           <div id="redirects-table"></div>
         </div>
@@ -46,8 +46,8 @@
           <h3>Keywords</h3>
           <p>Tracked keywords by locale, search volume, difficulty, and tracking status.</p>
           <div class="actions">
-            <button class="primary" onclick="loadKeywords()">Load Keywords</button>
-            <button onclick="openKeywordEditor()">Add Keyword</button>
+            <button type="button" class="primary" onclick="loadKeywords()">Load Keywords</button>
+            <button type="button" onclick="openKeywordEditor()">Add Keyword</button>
           </div>
           <div id="keywords-table"></div>
         </div>
@@ -55,8 +55,8 @@
           <h3>Backlinks</h3>
           <p>Inbound links and anchor text tracking.</p>
           <div class="actions">
-            <button class="primary" onclick="loadBacklinks()">Load Backlinks</button>
-            <button onclick="openBacklinkEditor()">Add Backlink</button>
+            <button type="button" class="primary" onclick="loadBacklinks()">Load Backlinks</button>
+            <button type="button" onclick="openBacklinkEditor()">Add Backlink</button>
           </div>
           <div id="backlinks-table"></div>
         </div>
@@ -64,8 +64,8 @@
           <h3>Content Calendar</h3>
           <p>Planned content items with target keywords, pillar URLs, and publish dates.</p>
           <div class="actions">
-            <button class="primary" onclick="loadContentCalendar()">Load Calendar</button>
-            <button onclick="openCalendarEditor()">Add Entry</button>
+            <button type="button" class="primary" onclick="loadContentCalendar()">Load Calendar</button>
+            <button type="button" onclick="openCalendarEditor()">Add Entry</button>
           </div>
           <div id="calendar-table"></div>
         </div>
@@ -73,9 +73,9 @@
           <h3>Content Briefs</h3>
           <p>Briefs tied to calendar items: outline, word count, focus terms, competitors.</p>
           <div class="actions">
-            <button class="primary" onclick="loadContentBriefs()">Load Briefs</button>
-            <button onclick="openBriefEditor()">Add Brief</button>
-            <button onclick="generateBriefAI()">AI Generate Brief</button>
+            <button type="button" class="primary" onclick="loadContentBriefs()">Load Briefs</button>
+            <button type="button" onclick="openBriefEditor()">Add Brief</button>
+            <button type="button" onclick="generateBriefAI()">AI Generate Brief</button>
           </div>
           <div id="briefs-table"></div>
         </div>
@@ -83,8 +83,8 @@
           <h3>Internal Links</h3>
           <p>Contextual links between Kurukoo pages for topical authority.</p>
           <div class="actions">
-            <button class="primary" onclick="loadInternalLinks()">Load Links</button>
-            <button onclick="openLinkEditor()">Add Link</button>
+            <button type="button" class="primary" onclick="loadInternalLinks()">Load Links</button>
+            <button type="button" onclick="openLinkEditor()">Add Link</button>
           </div>
           <div id="links-table"></div>
         </div>
@@ -92,9 +92,9 @@
           <h3>FAQ Manager</h3>
           <p>Per-page FAQ entries for FAQPage JSON-LD and on-page text.</p>
           <div class="actions">
-            <button class="primary" onclick="loadFaqs()">Load FAQs</button>
-            <button onclick="openFaqEditor()">Add FAQ</button>
-            <button onclick="generateFaqsAI()">AI Generate FAQs</button>
+            <button type="button" class="primary" onclick="loadFaqs()">Load FAQs</button>
+            <button type="button" onclick="openFaqEditor()">Add FAQ</button>
+            <button type="button" onclick="generateFaqsAI()">AI Generate FAQs</button>
           </div>
           <div id="faqs-table"></div>
         </div>
@@ -102,8 +102,8 @@
           <h3>Schema Templates</h3>
           <p>Reusable JSON-LD schema templates by page type and intent.</p>
           <div class="actions">
-            <button class="primary" onclick="loadSchemas()">Load Schemas</button>
-            <button onclick="openSchemaEditor()">Add Template</button>
+            <button type="button" class="primary" onclick="loadSchemas()">Load Schemas</button>
+            <button type="button" onclick="openSchemaEditor()">Add Template</button>
           </div>
           <div id="schemas-table"></div>
         </div>
@@ -111,8 +111,8 @@
           <h3>404 Log</h3>
           <p>Crawled 404 URLs, referrers, hits, and ignore controls.</p>
           <div class="actions">
-            <button class="primary" onclick="load404Log()">Load 404s</button>
-            <button onclick="refresh404Log()">Refresh</button>
+            <button type="button" class="primary" onclick="load404Log()">Load 404s</button>
+            <button type="button" onclick="refresh404Log()">Refresh</button>
           </div>
           <div id="404-table"></div>
         </div>
@@ -120,8 +120,8 @@
           <h3>SEO Audits</h3>
           <p>30-point on-page SEO audit results with scores and failing checks.</p>
           <div class="actions">
-            <button class="primary" onclick="loadAudits()">Load Audits</button>
-            <button onclick="triggerRunAudit()">Run 30-Point Audit</button>
+            <button type="button" class="primary" onclick="loadAudits()">Load Audits</button>
+            <button type="button" onclick="triggerRunAudit()">Run 30-Point Audit</button>
           </div>
           <div id="audits-table"></div>
         </div>
@@ -129,7 +129,7 @@
           <h3>Rankings</h3>
           <p>Tracked SERP positions by keyword, locale, and change over time.</p>
           <div class="actions">
-            <button class="primary" onclick="loadRankings()">Load Rankings</button>
+            <button type="button" class="primary" onclick="loadRankings()">Load Rankings</button>
           </div>
           <div id="rankings-table"></div>
         </div>
@@ -137,7 +137,7 @@
           <h3>Orphan Pages</h3>
           <p>Pages with no internal links pointing to them.</p>
           <div class="actions">
-            <button class="primary" onclick="loadOrphans()">Find Orphans</button>
+            <button type="button" class="primary" onclick="loadOrphans()">Find Orphans</button>
           </div>
           <div id="orphans-table"></div>
         </div>
@@ -145,8 +145,8 @@
           <h3>Image Metadata</h3>
           <p>Auto-generated alt text, SEO filenames, titles, and captions.</p>
           <div class="actions">
-            <button class="primary" onclick="loadImageMeta()">Load Image Meta</button>
-            <button onclick="generateAltText()">Generate Missing Alt Text</button>
+            <button type="button" class="primary" onclick="loadImageMeta()">Load Image Meta</button>
+            <button type="button" onclick="generateAltText()">Generate Missing Alt Text</button>
           </div>
           <div id="image-meta-table"></div>
         </div>
@@ -154,7 +154,7 @@
           <h3>SEO Health</h3>
           <p>Aggregate health score from the 30-point SEO audit checklist.</p>
           <div class="actions">
-            <button class="primary" onclick="loadHealth()">Run Health Check</button>
+            <button type="button" class="primary" onclick="loadHealth()">Run Health Check</button>
           </div>
           <div id="health-panel"></div>
         </div>
@@ -204,7 +204,7 @@
     }
     async function loadRedirects() {
       const res = await fetch(API + '/redirects').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.from_pattern, r.to_url, String(r.status_code ?? ''), r.is_regex ? 'Yes' : 'No', '<button onclick="deleteRedirect(' + r.id + ')">Delete</button>']);
+      const rows = res.map(r => [r.from_pattern, r.to_url, String(r.status_code ?? ''), r.is_regex ? 'Yes' : 'No', '<button type="button" onclick="deleteRedirect(' + r.id + ')">Delete</button>']);
       document.getElementById('redirects-table').innerHTML = table(['From','To','Code','Regex',''], rows);
       toast('Redirects loaded');
     }
@@ -221,7 +221,7 @@
     async function deleteRedirect(id) { await fetch(API + '/redirects/' + id, {method:'DELETE'}); loadRedirects(); toast('Redirect deleted'); }
     async function loadKeywords() {
       const res = await fetch(API + '/keywords').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.keyword, r.locale, r.country, String(r.search_volume ?? ''), String(r.difficulty ?? ''), r.tracked ? 'Yes' : 'No', '<button onclick="deleteKeyword(' + r.id + ')">Delete</button>']);
+      const rows = res.map(r => [r.keyword, r.locale, r.country, String(r.search_volume ?? ''), String(r.difficulty ?? ''), r.tracked ? 'Yes' : 'No', '<button type="button" onclick="deleteKeyword(' + r.id + ')">Delete</button>']);
       document.getElementById('keywords-table').innerHTML = table(['Keyword','Locale','Country','Volume','Difficulty','Tracked',''], rows);
       toast('Keywords loaded');
     }
@@ -239,7 +239,7 @@
     async function deleteKeyword(id) { await fetch(API + '/keywords/' + id, {method:'DELETE'}); loadKeywords(); toast('Keyword deleted'); }
     async function loadBacklinks() {
       const res = await fetch(API + '/backlinks').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.source_url, r.target_url, r.anchor_text || '', '<button onclick="deleteBacklink(' + r.id + ')">Delete</button>']);
+      const rows = res.map(r => [r.source_url, r.target_url, r.anchor_text || '', '<button type="button" onclick="deleteBacklink(' + r.id + ')">Delete</button>']);
       document.getElementById('backlinks-table').innerHTML = table(['Source','Target','Anchor',''], rows);
       toast('Backlinks loaded');
     }
@@ -255,7 +255,7 @@
     async function deleteBacklink(id) { await fetch(API + '/backlinks/' + id, {method:'DELETE'}); loadBacklinks(); toast('Backlink deleted'); }
     async function loadContentCalendar() {
       const res = await fetch(API + '/content-calendar').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.target_keyword || '', r.cluster_title || '', r.planned_publish_date || '', r.status || '', r.assigned_to || '', '<button onclick="deleteCalendar(' + r.id + ')">Delete</button>']);
+      const rows = res.map(r => [r.target_keyword || '', r.cluster_title || '', r.planned_publish_date || '', r.status || '', r.assigned_to || '', '<button type="button" onclick="deleteCalendar(' + r.id + ')">Delete</button>']);
       document.getElementById('calendar-table').innerHTML = table(['Keyword','Title','Date','Status','Assigned',''], rows);
       toast('Content calendar loaded');
     }
@@ -271,7 +271,7 @@
     async function deleteCalendar(id) { await fetch(API + '/content-calendar/' + id, {method:'DELETE'}); loadContentCalendar(); toast('Calendar entry deleted'); }
     async function loadContentBriefs() {
       const res = await fetch(API + '/content-briefs').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.target_keyword || '', r.search_intent || '', String(r.recommended_word_count ?? ''), r.outline || '', '<button onclick="deleteBrief(' + r.id + ')">Delete</button>']);
+      const rows = res.map(r => [r.target_keyword || '', r.search_intent || '', String(r.recommended_word_count ?? ''), r.outline || '', '<button type="button" onclick="deleteBrief(' + r.id + ')">Delete</button>']);
       document.getElementById('briefs-table').innerHTML = table(['Keyword','Intent','Words','Outline',''], rows);
       toast('Content briefs loaded');
     }
@@ -287,7 +287,7 @@
     async function deleteBrief(id) { await fetch(API + '/content-briefs/' + id, {method:'DELETE'}); loadContentBriefs(); toast('Brief deleted'); }
     async function loadInternalLinks() {
       const res = await fetch(API + '/internal-links').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.source_url, r.target_url, r.anchor_text || '', r.link_type || '', '<button onclick="deleteLink(' + r.id + ')">Delete</button>']);
+      const rows = res.map(r => [r.source_url, r.target_url, r.anchor_text || '', r.link_type || '', '<button type="button" onclick="deleteLink(' + r.id + ')">Delete</button>']);
       document.getElementById('links-table').innerHTML = table(['Source','Target','Anchor','Type',''], rows);
       toast('Internal links loaded');
     }
@@ -304,7 +304,7 @@
     async function deleteLink(id) { await fetch(API + '/internal-links/' + id, {method:'DELETE'}); loadInternalLinks(); toast('Link deleted'); }
     async function loadFaqs() {
       const res = await fetch(API + '/faqs').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.page_url_path, r.question || '', r.answer || '', String(r.display_order ?? ''), r.is_visible ? 'Visible' : 'Hidden', '<button onclick="deleteFaq(' + r.id + ')">Delete</button>']);
+      const rows = res.map(r => [r.page_url_path, r.question || '', r.answer || '', String(r.display_order ?? ''), r.is_visible ? 'Visible' : 'Hidden', '<button type="button" onclick="deleteFaq(' + r.id + ')">Delete</button>']);
       document.getElementById('faqs-table').innerHTML = table(['Page','Question','Answer','Order','Visible',''], rows);
       toast('FAQs loaded');
     }
@@ -322,7 +322,7 @@
     async function deleteFaq(id) { await fetch(API + '/faqs/' + id, {method:'DELETE'}); loadFaqs(); toast('FAQ deleted'); }
     async function loadSchemas() {
       const res = await fetch(API + '/schemas').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.id, r.name, r.type, r.applies_to || '', '<button onclick="deleteSchema(\'' + r.id + '\')">Delete</button>']);
+      const rows = res.map(r => [r.id, r.name, r.type, r.applies_to || '', '<button type="button" onclick="deleteSchema(\'' + r.id + '\')">Delete</button>']);
       document.getElementById('schemas-table').innerHTML = table(['ID','Name','Type','Applies To',''], rows);
       toast('Schema templates loaded');
     }
@@ -340,7 +340,7 @@
     async function deleteSchema(id) { await fetch(API + '/schemas/' + encodeURIComponent(id), {method:'DELETE'}); loadSchemas(); toast('Schema deleted'); }
     async function load404Log() {
       const res = await fetch(API + '/404-log').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.url_path, r.referrer || '', String(r.hit_count ?? 1), r.status || 'active', '<button onclick="ignore404(' + r.id + ')">Ignore</button>']);
+      const rows = res.map(r => [r.url_path, r.referrer || '', String(r.hit_count ?? 1), r.status || 'active', '<button type="button" onclick="ignore404(' + r.id + ')">Ignore</button>']);
       document.getElementById('404-table').innerHTML = table(['URL','Referrer','Hits','Status',''], rows);
       toast('404 log loaded');
     }
@@ -366,7 +366,7 @@
     }
     async function loadImageMeta() {
       const res = await fetch(API + '/image-meta').then(r => r.json()).catch(() => []);
-      const rows = res.map(r => [r.page_url_path || '', r.image_url || '', r.alt_text || '', r.seo_filename || '', r.seo_caption || '', '<button onclick="deleteImageMeta(' + r.id + ')">Delete</button>']);
+      const rows = res.map(r => [r.page_url_path || '', r.image_url || '', r.alt_text || '', r.seo_filename || '', r.seo_caption || '', '<button type="button" onclick="deleteImageMeta(' + r.id + ')">Delete</button>']);
       document.getElementById('image-meta-table').innerHTML = table(['Page','Image','Alt','Filename','Caption',''], rows);
       toast('Image metadata loaded');
     }

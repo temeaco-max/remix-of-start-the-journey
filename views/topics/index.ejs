@@ -32,15 +32,15 @@
       <p>It stays submitted until an operator makes it public. Kurukoo will never publish chat content automatically.</p>
     </div>
     <form id="topics-create-form" class="topics-form">
-      <label>Title<input name="title" required minlength="12" maxlength="160" autocomplete="off" placeholder="What would help the community understand this?" /></label>
+      <label>Title<input name="title" required minlength="12" maxlength="160" autocomplete="off" placeholder="What would help the community understand this?" / aria-label="What would help the community understand this?"></label>
       <label>Topic type<select name="type" id="topics-create-type"></select></label>
       <label>Category<select name="category" id="topics-create-category"><option value="">No category</option></select></label>
       <label>Context<select name="skills" id="topics-create-skills" multiple aria-describedby="topics-skill-help"></select><small id="topics-skill-help">Optional. Choose up to three existing Kurukoo skills from the selected category.</small></label>
       <div class="topics-form-grid">
-        <label>City (optional, broad)<input name="city" maxlength="80" autocomplete="address-level2" placeholder="e.g. Ibadan" /></label>
-        <label>LGA (optional, broad)<input name="lga" maxlength="80" autocomplete="off" placeholder="e.g. Ibadan North" /></label>
+        <label>City (optional, broad)<input name="city" maxlength="80" autocomplete="address-level2" placeholder="e.g. Ibadan" / aria-label="e.g. Ibadan"></label>
+        <label>LGA (optional, broad)<input name="lga" maxlength="80" autocomplete="off" placeholder="e.g. Ibadan North" / aria-label="e.g. Ibadan North"></label>
       </div>
-      <label>Topic text<textarea name="body" required minlength="30" maxlength="8000" placeholder="Describe what you know, what you are asking, or what you experienced. Do not include private details or treat unverified information as a fact."></textarea></label>
+      <label>Topic text<textarea name="body" required minlength="30" maxlength="8000" placeholder="Describe what you know, what you are asking, or what you experienced. Do not include private details or treat unverified information as a fact." aria-label="Describe what you know, what you are asking, or what you experienced. Do not include private details or treat unverified information as a fact."></textarea></label>
       <div class="topics-form-actions"><button class="btn btn-primary" type="submit">Submit for review</button><p id="topics-create-status" class="topics-status" role="status" aria-live="polite"></p></div>
     </form>
   </section>

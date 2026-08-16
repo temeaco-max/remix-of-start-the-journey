@@ -163,7 +163,7 @@
             </a>
         </div>
 
-        <button onclick="toggleSidebar()" class="admin-inline-f7ffedaa3a" title="Collapse Menu">
+        <button type="button" onclick="toggleSidebar()" class="admin-inline-f7ffedaa3a" title="Collapse Menu">
             <svg id="sidebar-toggle-icon" class="admin-inline-cf0b17afc2" viewBox="0 0 24 24">
                 <polyline points="11 17 6 12 11 7"></polyline>
                 <polyline points="18 17 13 12 18 7"></polyline>
@@ -230,7 +230,7 @@
                 <div class="admin-section">
                     <h3>
                         <span>Skill Flow Taxonomy</span>
-                        <button class="btn-action" onclick="openSkillFlowModal()">+ Add New Flow</button>
+                        <button type="button" class="btn-action" onclick="openSkillFlowModal()">+ Add New Flow</button>
                     </h3>
                     <div class="table-container">
                         <table>
@@ -254,7 +254,7 @@
                 <div class="admin-section">
                     <h3>
                         <span>Active Sponsored Campaigns</span>
-                        <button class="btn-action btn-secondary" onclick="openAdModal()">+ Launch Campaign</button>
+                        <button type="button" class="btn-action btn-secondary" onclick="openAdModal()">+ Launch Campaign</button>
                     </h3>
                     <div class="table-container">
                         <table>
@@ -278,7 +278,7 @@
                 <div class="admin-section">
                     <h3>
                         <span>Unified Content Management System (CMS)</span>
-                        <button class="btn-action" onclick="openCmsModal()">+ Create Page</button>
+                        <button type="button" class="btn-action" onclick="openCmsModal()">+ Create Page</button>
                     </h3>
                     <div class="table-container">
                         <table>
@@ -682,8 +682,8 @@
                         <td>${f.payment_model}</td>
                         <td class="admin-inline-452dbaf4f6">${f.fulfillment_instructions || 'N/A'}</td>
                         <td class="admin-inline-13cbe03b9a">
-                            <button class="btn-action admin-inline-92ad5d59a8" onclick="editSkillFlow('${escapeHtml(JSON.stringify(f))}')">Edit</button>
-                            <button class="btn-action btn-secondary admin-inline-40952d4dee" onclick="deleteSkillFlow('${f.skill}')">Delete</button>
+                            <button type="button" class="btn-action admin-inline-92ad5d59a8" onclick="editSkillFlow('${escapeHtml(JSON.stringify(f))}')">Edit</button>
+                            <button type="button" class="btn-action btn-secondary admin-inline-40952d4dee" onclick="deleteSkillFlow('${f.skill}')">Delete</button>
                         </td>
                     </tr>
                 `).join('') || `<tr><td colspan="5" class="admin-inline-dac4fe6c9b">No custom skill flows defined. Click add flow above!</td></tr>`;
@@ -822,7 +822,7 @@
                 .then(res => res.json())
                 .then(data => {
                     const devices = data.devices || [];
-                    target.innerHTML = devices.length ? devices.map(device => `<div class="admin-inline-f01a9c842c"><strong>${escapeHtml(device.label || device.credentialType)}</strong> — ${escapeHtml(device.status)} — last seen ${escapeHtml(device.lastSeenAt || 'unknown')} ${device.status === 'active' ? `<button class="btn-action btn-secondary" onclick="revokeTrustedDevice(${Number(device.id)})">Revoke</button>` : ''}</div>`).join('') : 'No trusted devices recorded for this user.';
+                    target.innerHTML = devices.length ? devices.map(device => `<div class="admin-inline-f01a9c842c"><strong>${escapeHtml(device.label || device.credentialType)}</strong> — ${escapeHtml(device.status)} — last seen ${escapeHtml(device.lastSeenAt || 'unknown')} ${device.status === 'active' ? `<button type="button" class="btn-action btn-secondary" onclick="revokeTrustedDevice(${Number(device.id)})">Revoke</button>` : ''}</div>`).join('') : 'No trusted devices recorded for this user.';
                 })
                 .catch(() => { target.textContent = 'Unable to load trusted devices.'; });
         }
@@ -982,8 +982,8 @@
                         <td><span class="badge badge-active admin-inline-504185f1b4">${page.type}</span></td>
                         <td>${page.author || 'Admin'}</td>
                         <td class="admin-inline-13cbe03b9a">
-                            <button class="btn-action admin-inline-92ad5d59a8" onclick="editCmsPage('${escapeHtml(JSON.stringify(page))}')">Edit</button>
-                            <button class="btn-action btn-secondary admin-inline-40952d4dee" onclick="deleteCmsPage('${page.slug}')">Delete</button>
+                            <button type="button" class="btn-action admin-inline-92ad5d59a8" onclick="editCmsPage('${escapeHtml(JSON.stringify(page))}')">Edit</button>
+                            <button type="button" class="btn-action btn-secondary admin-inline-40952d4dee" onclick="deleteCmsPage('${page.slug}')">Delete</button>
                         </td>
                     </tr>
                 `).join('') || `<tr><td colspan="5" class="admin-inline-dac4fe6c9b">No CMS content found. Click create page to add!</td></tr>`;
@@ -1059,9 +1059,9 @@
                         <td><span class="badge ${d.status === 'open' ? 'dispute-open' : d.status === 'escalated' ? 'dispute-escalated' : 'dispute-resolved'}">${d.status}</span></td>
                         <td class="admin-inline-13cbe03b9a">
                             ${d.status === 'open' || d.status === 'escalated' ? `
-                                <button class="btn-action admin-inline-b2cd1311c4" onclick="resolveDisputeAction('${d.id}', 'refund')">Refund</button>
-                                <button class="btn-action admin-inline-4cdcfb5463" onclick="resolveDisputeAction('${d.id}', 'release')">Release</button>
-                                <button class="btn-action btn-secondary admin-inline-e2da7a955f" onclick="escalateDisputeAction('${d.id}')">Escalate</button>
+                                <button type="button" class="btn-action admin-inline-b2cd1311c4" onclick="resolveDisputeAction('${d.id}', 'refund')">Refund</button>
+                                <button type="button" class="btn-action admin-inline-4cdcfb5463" onclick="resolveDisputeAction('${d.id}', 'release')">Release</button>
+                                <button type="button" class="btn-action btn-secondary admin-inline-e2da7a955f" onclick="escalateDisputeAction('${d.id}')">Escalate</button>
                             ` : `<span class="admin-inline-274147833e">Resolved</span>`}
                         </td>
                     </tr>
@@ -1113,7 +1113,7 @@
                         <td><span class="badge ${t.status === 'open' ? 'ticket-open' : 'ticket-resolved'}">${t.status}</span></td>
                         <td class="admin-inline-13cbe03b9a">
                             ${t.status === 'open' ? `
-                                <button class="btn-action admin-inline-feee965d42" onclick="openTicketReplyModal('${t.id}', '${escapeHtml(t.reason)}')">Reply & Resolve</button>
+                                <button type="button" class="btn-action admin-inline-feee965d42" onclick="openTicketReplyModal('${t.id}', '${escapeHtml(t.reason)}')">Reply & Resolve</button>
                             ` : `<span class="admin-inline-274147833e">Resolved</span>`}
                         </td>
                     </tr>

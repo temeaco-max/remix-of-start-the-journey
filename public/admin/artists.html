@@ -44,7 +44,7 @@
                         <td><strong>${a.skill}</strong></td>
                         <td>${a.verified_artist ? 'Verified' : 'Pending'}</td>
                         <td>
-                            <button class="btn" onclick="toggleVerify('${a.phone}', '${a.skill}', ${a.verified_artist ? 0 : 1})">
+                            <button type="button" class="btn" onclick="toggleVerify('${a.phone}', '${a.skill}', ${a.verified_artist ? 0 : 1})">
                                 ${a.verified_artist ? 'Revoke' : 'Verify'}
                             </button>
                         </td>

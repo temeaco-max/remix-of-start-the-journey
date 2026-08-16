@@ -1,0 +1,255 @@
+{
+  "generatedAt": "2026-08-16T12:04:17.286Z",
+  "total": {
+    "bytes": 73474800,
+    "gzip": 70392689,
+    "br": 65980385
+  },
+  "critical": {
+    "bytes": 490160,
+    "gzip": 95167,
+    "br": 79343
+  },
+  "largest": [
+    {
+      "file": "public/assets/chat/campaign-tailor.jpg",
+      "bytes": 5483035,
+      "gzip": 5391108,
+      "br": 5201395
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-care.jpg",
+      "bytes": 5415568,
+      "gzip": 5294554,
+      "br": 4975550
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-celebration.jpg",
+      "bytes": 5333670,
+      "gzip": 5197918,
+      "br": 4851777
+    },
+    {
+      "file": "public/assets/chat/campaign-rider-delivery.jpg",
+      "bytes": 5217519,
+      "gzip": 5085122,
+      "br": 4808049
+    },
+    {
+      "file": "public/assets/chat/campaign-digital-worker.jpg",
+      "bytes": 5203242,
+      "gzip": 5059693,
+      "br": 4736475
+    },
+    {
+      "file": "public/assets/chat/campaign-beauty.jpg",
+      "bytes": 5037106,
+      "gzip": 4898307,
+      "br": 4568862
+    },
+    {
+      "file": "public/assets/chat/sponsored-fresh-market.jpg",
+      "bytes": 5029756,
+      "gzip": 4880256,
+      "br": 4587565
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-business.jpg",
+      "bytes": 4977032,
+      "gzip": 4805166,
+      "br": 4497385
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-property.jpg",
+      "bytes": 4907554,
+      "gzip": 4705683,
+      "br": 4373447
+    },
+    {
+      "file": "public/assets/chat/sponsored-local-service.jpg",
+      "bytes": 4846225,
+      "gzip": 4681196,
+      "br": 4258781
+    },
+    {
+      "file": "public/assets/chat/campaign-food-vendor.jpg",
+      "bytes": 4843692,
+      "gzip": 4659496,
+      "br": 4384847
+    },
+    {
+      "file": "public/assets/chat/daily-picks-discovery.jpg",
+      "bytes": 4712132,
+      "gzip": 4491740,
+      "br": 4138534
+    },
+    {
+      "file": "public/assets/chat/sponsored-home-repair.jpg",
+      "bytes": 4610419,
+      "gzip": 4364309,
+      "br": 4044752
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-remittance.jpg",
+      "bytes": 4586206,
+      "gzip": 4322790,
+      "br": 4035211
+    },
+    {
+      "file": "public/assets/chat/campaign-tailor.webp",
+      "bytes": 261388,
+      "gzip": 261486,
+      "br": 261393
+    },
+    {
+      "file": "public/assets/chat/campaign-rider-delivery.webp",
+      "bytes": 226066,
+      "gzip": 226154,
+      "br": 226071
+    },
+    {
+      "file": "public/css/site.css",
+      "bytes": 213380,
+      "gzip": 35358,
+      "br": 28808
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-celebration.webp",
+      "bytes": 194728,
+      "gzip": 194806,
+      "br": 194733
+    },
+    {
+      "file": "public/assets/chat/sponsored-fresh-market.webp",
+      "bytes": 192800,
+      "gzip": 192878,
+      "br": 192805
+    },
+    {
+      "file": "public/assets/chat/campaign-beauty.webp",
+      "bytes": 188914,
+      "gzip": 188992,
+      "br": 188919
+    },
+    {
+      "file": "public/assets/chat/campaign-digital-worker.webp",
+      "bytes": 183072,
+      "gzip": 183150,
+      "br": 183077
+    },
+    {
+      "file": "public/assets/chat/campaign-food-vendor.webp",
+      "bytes": 172294,
+      "gzip": 172367,
+      "br": 172299
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-care.webp",
+      "bytes": 171532,
+      "gzip": 171605,
+      "br": 171537
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-business.webp",
+      "bytes": 151218,
+      "gzip": 151286,
+      "br": 151223
+    },
+    {
+      "file": "public/assets/chat/daily-picks-discovery.webp",
+      "bytes": 146186,
+      "gzip": 146249,
+      "br": 146191
+    },
+    {
+      "file": "public/assets/chat/sponsored-local-service.webp",
+      "bytes": 139704,
+      "gzip": 139767,
+      "br": 139709
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-property.webp",
+      "bytes": 117676,
+      "gzip": 117734,
+      "br": 117681
+    },
+    {
+      "file": "public/js/kurukoo-primary-chat.js",
+      "bytes": 115983,
+      "gzip": 27210,
+      "br": 22865
+    },
+    {
+      "file": "public/assets/chat/campaign-diaspora-remittance.webp",
+      "bytes": 110616,
+      "gzip": 110669,
+      "br": 110621
+    },
+    {
+      "file": "public/assets/chat/sponsored-home-repair.webp",
+      "bytes": 88086,
+      "gzip": 88134,
+      "br": 88091
+    },
+    {
+      "file": "public/css/kurukoo-chat.css",
+      "bytes": 78482,
+      "gzip": 16049,
+      "br": 13780
+    },
+    {
+      "file": "public/admin/dashboard.html",
+      "bytes": 70963,
+      "gzip": 13087,
+      "br": 11027
+    },
+    {
+      "file": "public/css/admin-pages/admin-base.css",
+      "bytes": 48743,
+      "gzip": 8010,
+      "br": 6838
+    },
+    {
+      "file": "public/admin/users.html",
+      "bytes": 32678,
+      "gzip": 6860,
+      "br": 5785
+    },
+    {
+      "file": "public/css/kurukoo-home.css",
+      "bytes": 30714,
+      "gzip": 6417,
+      "br": 5531
+    },
+    {
+      "file": "public/admin/analytics.html",
+      "bytes": 25863,
+      "gzip": 5721,
+      "br": 4799
+    },
+    {
+      "file": "public/admin/seo.html",
+      "bytes": 23903,
+      "gzip": 5088,
+      "br": 4236
+    },
+    {
+      "file": "public/css/kurukoo-workspace.css",
+      "bytes": 22667,
+      "gzip": 4809,
+      "br": 4174
+    },
+    {
+      "file": "public/admin/ai-agents.html",
+      "bytes": 22477,
+      "gzip": 5266,
+      "br": 4435
+    },
+    {
+      "file": "public/chat/index.html",
+      "bytes": 19529,
+      "gzip": 4316,
+      "br": 3519
+    }
+  ]
+}

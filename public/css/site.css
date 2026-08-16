@@ -9607,3 +9607,12 @@ body.dark-mode .quick-chip {
   .pwa-status-region { align-items: flex-start; width: calc(100vw - 24px); border-radius: 14px; }
   .pwa-status-action { margin-left: auto; }
 }
+
+
+/* WCAG high-contrast support shared by public, PWA, Chat, and admin surfaces. */
+@media (forced-colors: active) {
+  *, *::before, *::after { forced-color-adjust: auto; }
+  :where(a, button, input, select, textarea, summary, [role="button"]):focus { outline: 2px solid CanvasText; outline-offset: 3px; }
+  :where(button, [role="button"]) { border: 1px solid ButtonText; }
+  :where(a) { color: LinkText; }
+}

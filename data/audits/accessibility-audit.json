@@ -1,0 +1,16 @@
+{
+  "summary": {
+    "generatedAt": "2026-08-16T12:07:37.384Z",
+    "templateCount": 66,
+    "findingCount": 0,
+    "findingsByRule": {},
+    "cssChecks": {
+      "focusVisible": true,
+      "reducedMotion": true,
+      "forcedColors": true,
+      "minTouchTarget": true
+    },
+    "status": "pass"
+  },
+  "findings": []
+}

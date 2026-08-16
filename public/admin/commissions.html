@@ -95,8 +95,8 @@
                             <td><strong>${c.rate_minor.toLocaleString()}</strong></td>
                             <td><span class="badge ${c.active ? 'badge-active' : 'badge-inactive'}">${c.active ? 'Active' : 'Inactive'}</span></td>
                             <td class="admin-inline-13cbe03b9a">
-                                <button class="btn admin-inline-98e42eb9fb" onclick="openEditModal(${c.id})">Edit</button>
-                                <button class="btn btn-secondary admin-inline-98e42eb9fb" onclick="toggleCommission(${c.id}, ${c.active ? 0 : 1})">${c.active ? 'Disable' : 'Enable'}</button>
+                                <button type="button" class="btn admin-inline-98e42eb9fb" onclick="openEditModal(${c.id})">Edit</button>
+                                <button type="button" class="btn btn-secondary admin-inline-98e42eb9fb" onclick="toggleCommission(${c.id}, ${c.active ? 0 : 1})">${c.active ? 'Disable' : 'Enable'}</button>
                             </td>
                         </tr>
                     `).join('') || `<tr><td colspan="6" class="admin-inline-dac4fe6c9b">No commission rules found.</td></tr>`;

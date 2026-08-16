@@ -23,7 +23,7 @@
     <div class="container">
         <div class="admin-inline-e018b7aa85">
             <h2 class="admin-inline-37226e7bf3">Subscription Pricing Plans</h2>
-            <button class="btn" onclick="openCreateModal()">+ Add New Plan</button>
+            <button type="button" class="btn" onclick="openCreateModal()">+ Add New Plan</button>
         </div>
 
         <div class="card-box">
@@ -108,8 +108,8 @@
                             <td>${p.credits_per_month}</td>
                             <td><span class="badge ${p.active ? 'badge-active' : 'badge-inactive'}">${p.active ? 'Active' : 'Inactive'}</span></td>
                             <td class="admin-inline-13cbe03b9a">
-                                <button class="btn admin-inline-98e42eb9fb" onclick="editPlan('${p.country}', '${p.plan}')">Edit</button>
-                                <button class="btn btn-secondary admin-inline-98e42eb9fb" onclick="deletePlan('${p.country}', '${p.plan}')">Deactivate</button>
+                                <button type="button" class="btn admin-inline-98e42eb9fb" onclick="editPlan('${p.country}', '${p.plan}')">Edit</button>
+                                <button type="button" class="btn btn-secondary admin-inline-98e42eb9fb" onclick="deletePlan('${p.country}', '${p.plan}')">Deactivate</button>
                             </td>
                         </tr>
                     `).join('') || `<tr><td colspan="7" class="admin-inline-dac4fe6c9b">No pricing plans found.</td></tr>`;

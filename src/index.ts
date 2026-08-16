@@ -11,6 +11,7 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 }
 
 import express from 'express';
+import compression from 'compression';
 import path from 'node:path';
 import channelRoutes from './routes/channelRoutes.js';
 import circleRoutes from './routes/circleRoutes.js';
@@ -53,7 +54,21 @@ console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT 
 const app = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
-app.use(express.static(path.join(process.cwd(), 'public'), { index: false, fallthrough: true }));
+app.use(compression({ threshold: 1024 }));
+app.use(express.static(path.join(process.cwd(), 'public'), {
+  index: false,
+  fallthrough: true,
+  setHeaders: (res, filePath) => {
+    const lower = filePath.toLowerCase();
+    if (lower.endsWith('.html') || lower.endsWith('/sw.js') || lower.endsWith('/manifest.json')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      return;
+    }
+    if (/\.(?:css|js|svg|png|jpe?g|webp|woff2?)$/.test(lower)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+    }
+  },
+}));
 app.use(express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb', verify: (req, _res, buf) => { (req as any).rawBody = Buffer.from(buf); } }));
 
 // Public system documentation must remain reachable before authenticated /api route boundaries.

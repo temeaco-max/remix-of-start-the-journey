@@ -162,7 +162,7 @@
             </a>
         </div>
 
-        <button onclick="toggleSidebar()" class="admin-inline-f7ffedaa3a" title="Collapse Menu">
+        <button type="button" onclick="toggleSidebar()" class="admin-inline-f7ffedaa3a" title="Collapse Menu">
             <svg id="sidebar-toggle-icon" class="admin-inline-cf0b17afc2" viewBox="0 0 24 24">
                 <polyline points="11 17 6 12 11 7"></polyline>
                 <polyline points="18 17 13 12 18 7"></polyline>
@@ -215,7 +215,7 @@
                         <option value="100">100 / pg</option>
                     </select>
 
-                    <button class="btn" onclick="resetFilters()">
+                    <button type="button" class="btn" onclick="resetFilters()">
                         Clear
                     </button>
                 </div>
@@ -291,10 +291,10 @@
 
             <input type="number" class="bulk-input admin-inline-f2892a2e8a" id="bulk-value-points" placeholder="Points" min="1" max="1000">
 
-            <button class="btn btn-primary" onclick="submitBulkActions()">
+            <button type="button" class="btn btn-primary" onclick="submitBulkActions()">
                 Apply to Batch
             </button>
-            <button class="btn admin-inline-1b69435fab" onclick="clearSelection()">
+            <button type="button" class="btn admin-inline-1b69435fab" onclick="clearSelection()">
                 Cancel
             </button>
         </div>
@@ -477,7 +477,7 @@
                 return `
                     <tr class="${isChecked ? 'selected' : ''}" data-phone="${user.phone}">
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="user-row-checkbox" data-phone="${user.phone}" ${isChecked ? 'checked' : ''} onchange="toggleRowCheckbox(this, '${user.phone}')">
+                            <input type="checkbox" class="user-row-checkbox" data-phone="${user.phone}" ${isChecked ? 'checked' : ''} onchange="toggleRowCheckbox(this, '${user.phone}')" aria-label="checkbox input">
                         </td>
                         <td class="admin-inline-926a9311ad">
                             ${user.phone}
