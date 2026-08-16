@@ -91,6 +91,27 @@ export async function getAdCampaigns(): Promise<AdCampaign[]> {
     return campaigns;
 }
 
+export interface RenderableCampaignOptions {
+    firstParty?: boolean;
+    placements?: string[];
+    limit?: number;
+    now?: number;
+}
+
+export async function getRenderableCampaigns(options: RenderableCampaignOptions = {}): Promise<AdCampaign[]> {
+    const now = options.now ?? Date.now();
+    const placements = options.placements?.length ? new Set(options.placements.map(String)) : null;
+    const campaigns = (await getAdCampaigns()).filter((campaign) => {
+        if (campaign.status !== 'active') return false;
+        if (options.firstParty !== undefined && Number(campaign.firstParty) !== (options.firstParty ? 1 : 0)) return false;
+        if (placements && !placements.has(String(campaign.placement || ''))) return false;
+        if (campaign.startAt && Date.parse(campaign.startAt) > now) return false;
+        if (campaign.expiresAt && Date.parse(campaign.expiresAt) <= now) return false;
+        return isRenderableCampaign(campaign);
+    }).sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
+    return options.limit && options.limit > 0 ? campaigns.slice(0, Math.floor(options.limit)) : campaigns;
+}
+
 export interface UpdateAdCampaignInput {
     title?: string;
     desc?: string;
@@ -204,22 +225,13 @@ export async function spendAdCampaign(id: number, cost: number = 2): Promise<boo
 }
 
 export async function matchAdCampaigns(query: string): Promise<AdCampaign[]> {
-    const db = await getDb();
-    ensureAdSchema(db);
-    const allCampaigns = await getAdCampaigns();
-    const cleanQuery = query.toLowerCase();
-
-    // Return active campaigns whose keywords are found in the query
-    const now = Date.now();
-    const matched = allCampaigns.filter(c => {
-        if (c.status !== 'active') return false;
-        if (c.startAt && Date.parse(c.startAt) > now) return false;
-        if (c.expiresAt && Date.parse(c.expiresAt) <= now) return false;
-        const kw = c.targetKeyword.toLowerCase().trim();
-        return kw && cleanQuery.includes(kw);
+    const cleanQuery = String(query || '').toLowerCase();
+    if (!cleanQuery) return [];
+    const eligible = await getRenderableCampaigns();
+    return eligible.filter((campaign) => {
+        const keyword = String(campaign.targetKeyword || '').toLowerCase().trim();
+        return Boolean(keyword) && cleanQuery.includes(keyword);
     });
-
-    return matched;
 }
 
 export async function seedDemoAdCampaigns(): Promise<void> {
