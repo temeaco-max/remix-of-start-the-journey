@@ -3,7 +3,7 @@ import { HfInference } from '@huggingface/inference';
 import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
 
 const DEFAULT_MODEL_NAME = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
-const DEFAULT_FALLBACK_MODEL_NAME = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+const DEFAULT_FALLBACK_MODEL_NAME = DEFAULT_MODEL_NAME;
 function getModelName(): string { return String(process.env.SMOLLM2_MODEL || DEFAULT_MODEL_NAME).trim() || DEFAULT_MODEL_NAME; }
 function getFallbackModelName(): string { return String(process.env.SMOLLM2_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL_NAME).trim() || DEFAULT_FALLBACK_MODEL_NAME; }
 let activeModelName: string | null = null;
@@ -38,7 +38,7 @@ function buildPrompt(prompt: string, systemPrompt?: string): string {
 
 const INTERNAL_GENERATION_PATTERNS = [
   /\b(?:current policy and quota|current user(?:'s|s) (?:role|context)|system instructions?|internal architecture|context arbitration|model provider|classification source|canonical service|living memory|prompt text|kurukoo conversational contract|model_tier|requirement=|do not invent external state|latest user turn|relative reference|canonical object|active goal|active context|i understand the .* context)\b/i,
-  /\b(?:as an ai language model|i cannot access your context|the user(?:'s|s) context)\b/i,
+  /\b(?:as an ai language model|i cannot access your context|the user(?:'s|s) context|private guidance for this reply|keep this guidance private)\b/i,
 ];
 function containsInternalGeneration(value: string): boolean { return INTERNAL_GENERATION_PATTERNS.some(pattern => pattern.test(value)); }
 
@@ -55,7 +55,7 @@ function sanitizeGeneratedText(value: string): string {
     if (/^\[(?:stable|episodic|open_intention|recent_tail)\]\s*/i.test(line)) continue;
     if (/^(?:system|user|assistant)\s*:\s*/i.test(line)) continue;
     if (/^---(?:\s|$)/.test(line)) continue;
-    if (/^(?:internal conversation orientation|living memory|never reveal|kurukoo conversational contract|mode=|model_tier=|requirement=)/i.test(line)) continue;
+    if (/^(?:internal conversation orientation|living memory|never reveal|kurukoo conversational contract|private guidance for this reply|keep this guidance private|treat this as a .* turn|do not turn ordinary conversation|ask only the smallest useful clarification|if an action is discussed|affect an existing request|keep these \d+ conversation contexts distinct|keep paused or current goals safe|do not ask again for supplied details|mode=|model_tier=|requirement=)/i.test(line)) continue;
     const key = line.replace(/\s+/g, ' ').toLocaleLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);

@@ -151,3 +151,12 @@ Canonical action execution follows `proposal -> validation -> exact owner/contex
 Context arbitration now treats exploratory language such as “I’m thinking about getting a cleaner” as conversation-only, accepts natural reminder phrasing such as “set a reminder for Friday” as an explicit domain switch, and recognises affirmative variants such as “Yes, go ahead” against the selected Economic Request. Relative price language remains attached to the exact request and cannot be stored as a location, provider, quote, payment, or fulfilment value without canonical evidence. The permanent regression is `npm run test:conversation-reconciliation`.
 
 The permanent acceptance boundary remains truthful: a confirmation can be recorded while dispatch, payment, provider selection, fulfilment, delivery, or completion remain blocked by missing fields, evidence, or external activation. Repository tests and local browser acceptance establish repository readiness only; they do not establish external provider activation or real-world fulfilment.
+
+
+## SmolLM2 local runtime and output-boundary truth
+
+The local SmolLM2 runtime targets `HuggingFaceTB/SmolLM2-1.7B-Instruct` with q4 CPU inference when `KURUKOO_SMOLLM2_LOCAL=true`. The default fallback is now the same 1.7B checkpoint, so a load problem cannot silently downgrade the application to 360M. A smaller checkpoint remains possible only when explicitly configured and reviewed; the fallback regression continues to exercise that explicit boundary.
+
+The model-facing conversation guidance is deliberately written as natural-language private instructions rather than self-describing key/value labels such as `model_tier=`, `requirement=` or `instruction=`. This prevents the student model from echoing internal contract metadata into a user response. The output boundary still strips role labels, prompt delimiters, memory markers and known internal-generation language, and retains the bounded Kurukoo template only when a model response cannot be made safe and user-facing. A model being loaded successfully does not by itself make its output suitable for presentation.
+
+The repository-side 1.7B acceptance path has been verified through direct `smolLm2Service`, `unifiedAiEngine`, and canonical Chat execution using the cached q4 checkpoint. The test reports the actual local model and does not claim hosted-provider activation, production quota, or deployment cache availability.

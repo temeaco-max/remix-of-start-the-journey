@@ -50,7 +50,8 @@ const interrupted = buildConversationTurnContract({
 assert.equal(interrupted.requiresContextReconciliation, true);
 assert.equal(interrupted.shouldEscalateModel, true);
 assert.ok(interrupted.modelInstructions.length > 0);
-assert.match(buildConversationalSystemDirective(interrupted), /protected_context_count=2/);
+assert.match(buildConversationalSystemDirective(interrupted), /Keep these 2 conversation contexts distinct/);
+assert.doesNotMatch(buildConversationalSystemDirective(interrupted), /model_tier=|requirement=|instruction=|protected_context_count=/);
 
 const weakResponse = buildConversationTurnContract({
   latestUserMessage: 'Go back to that one.',
