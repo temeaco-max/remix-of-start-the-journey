@@ -21,19 +21,21 @@ for (const file of files) {
   const lines = text.split(/\r?\n/);
   lines.forEach((lineText, index) => {
     const line = index + 1;
-    for (const match of lineText.matchAll(/<img\b([^>]*)>/gi)) {
+    // EJS expressions contain `%>`; remove expression bodies before scanning HTML attributes so the parser cannot terminate an element early.
+    const scanLine = lineText.replace(/<%[\s\S]*?%>/g, '');
+    for (const match of scanLine.matchAll(/<img\b([^>]*)>/gi)) {
       if (!/\balt\s*=/.test(match[1])) add(file, '1.1.1', 'Image is missing an alt attribute.', line);
     }
-    for (const match of lineText.matchAll(/<(input|textarea|select)\b([^>]*)>/gi)) {
+    for (const match of scanLine.matchAll(/<(input|textarea|select)\b([^>]*)>/gi)) {
       const attrs = match[2];
       if (/\btype\s*=\s*["']hidden["']/i.test(attrs)) continue;
       if (!/\baria-label\s*=|\baria-labelledby\s*=|\bid\s*=/i.test(attrs)) add(file, '1.3.1', `${match[1]} has no label, id, or ARIA label hook.`, line);
     }
-    for (const match of lineText.matchAll(/<button\b([^>]*)>/gi)) {
+    for (const match of scanLine.matchAll(/<button\b([^>]*)>/gi)) {
       const attrs = match[1];
       if (!/\btype\s*=|\baria-label\s*=|\btitle\s*=/i.test(attrs)) add(file, '4.1.2', 'Button has no explicit type or accessible name hook.', line);
     }
-    for (const match of lineText.matchAll(/<(div|span)\b([^>]*)\b(onclick|role\s*=\s*["']button)/gi)) {
+    for (const match of scanLine.matchAll(/<(div|span)\b([^>]*)\b(onclick|role\s*=\s*["']button)/gi)) {
       if (!/\btabindex\s*=|\brole\s*=\s*["']button/i.test(match[2])) add(file, '2.1.1', 'Interactive non-native element is missing keyboard semantics.', line);
     }
   });

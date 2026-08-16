@@ -21,7 +21,7 @@ export function getSkillCapabilities(skill:string):EconomicCapability[]{const no
 export interface IntentSuggestion { label:string; prompt:string; }
 const CONTEXTUAL_SUGGESTIONS:Record<string,IntentSuggestion[]>={
   order_food:[{label:'Find food',prompt:'Help me find food nearby'},{label:'Get groceries',prompt:'Help me get groceries'},{label:'Find somewhere nearby',prompt:'What food is nearby?'}],
-  find_worker:[{label:'Find a repairer',prompt:'Help me find a repairer'},{label:'Request roadside help',prompt:'I need roadside help'},{label:'Find a tow service',prompt:'Help me find a tow service'}],
+  find_worker:[{label:'Add the location',prompt:'The location is '},{label:'Set the timing',prompt:'I need it this weekend'},{label:'Share my budget',prompt:'My budget or rate is '}],
   ride_request:[{label:'Choose a ride',prompt:'I need a ride'},{label:'Find a driver',prompt:'Help me find a driver nearby'},{label:'Plan a trip',prompt:'Help me plan a trip'}],
   reminder:[{label:'Create reminder',prompt:'Create a reminder'},{label:'Set reminder date',prompt:'Set a reminder date'},{label:'View reminders',prompt:'Show my reminders'}],
   safety_contact:[{label:'Add emergency contact',prompt:'Add an emergency contact'},{label:'Start safety check-in',prompt:'Set a safety check-in'},{label:'Get urgent guidance',prompt:'I need urgent safety help'}],

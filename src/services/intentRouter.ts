@@ -23,7 +23,7 @@ const CANONICAL_ALIASES: Array<[RegExp, string]> = [
   [/\b(phone|device|laptop|computer|screen)\b.*\brepair\b|\brepair\b.*\b(phone|device|laptop|computer|screen)\b/, 'repair'],
   [/\b(source|source me|find|procure)\b.*\b(product|products|goods|item)\b|\b(phone\s+charger|charger|replacement\s+part|spare\s+part|phone\s+accessory)\b/, 'product_sourcing'],
   [/\b(bodyguard|security guard|security personnel|private security)\b/, 'security_personnel'],
-  [/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/, 'find_worker'],
+  [/\b(?:plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b|\bhelp\s+with\s+(?:my\s+)?(?:house|home|garden|yard|roof|kitchen|bathroom|moving)\b|\b(?:can|could|would)\s+(?:someone|anyone)\s+(?:help|clean|fix|repair|paint|move|install|build|assemble)\b/, 'find_worker'],
   [/\b(order|get|buy)\b.*\b(food|meal|rice|groceries|groceries?)\b/, 'order_food'],
   [/\b(okada|motorbike|motorcycle)\b/, 'okada_rider'],
   [/\bkeke|tricycle\b/, 'keke_driver'],
@@ -32,7 +32,7 @@ const CANONICAL_ALIASES: Array<[RegExp, string]> = [
   [/(?:\b(book|hire|need|get|find|help me with|want)\b.*\b(artist|musician|dj|celebrity|performer|creator)\b|\b(?:artist|musician|dj|celebrity|performer|creator)\b\s+(?:for hire|services?))/, 'verified_artist'],
   [/\b(football|basketball|tennis|pitch|match|league|team|player)\b/, 'sports_matchmaking'],
   [/\b(verify|evidence|capture|report|contributor|event coverage)\b/, 'event_coverage'],
-  [/\b(happening|event|events|weekend|calendar|daily picks)\b/, 'national_events']
+  [/\b(happening|event|events|calendar|daily picks)\b/, 'national_events']
 ];
 
 function skillForIntent(intent: string): string {
@@ -428,6 +428,16 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
 
   const directSkill = matchCanonicalSkill(q);
   const extractedEntities = validateConversationalEntities(extractConversationalEntities(query, directSkill || undefined), directSkill || undefined);
+  if (directSkill && !phone) {
+    const flow = getSkillFlow(directSkill);
+    return {
+      skill: directSkill,
+      reply: flowReply(directSkill, flow),
+      cardData: decorateCardWithSuggestions(actionCard(directSkill), directSkill),
+      extractedEntities: extractedEntities as Record<string, unknown>,
+      extractionSource: 'deterministic',
+    };
+  }
   if (directSkill === 'event_coverage' && phone) {
     return {
       skill: 'event_coverage',
@@ -453,8 +463,8 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
           };
         }
       }
-      const workerMatch = q.match(/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/i)?.[1];
-      const worker = workerMatch ? (/^plumb/i.test(workerMatch) ? 'plumber' : /^electri/i.test(workerMatch) ? 'electrician' : /^paint/i.test(workerMatch) ? 'painter' : /^decorat/i.test(workerMatch) ? 'decorator' : /^til/i.test(workerMatch) ? 'tiler' : /^roof/i.test(workerMatch) ? 'roofer' : workerMatch.toLowerCase()) : undefined;
+      const workerMatch = q.match(/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/i)?.[1];
+      const worker = workerMatch ? (/^plumb/i.test(workerMatch) ? 'plumber' : /^electri/i.test(workerMatch) ? 'electrician' : /^clean|^housekeep/i.test(workerMatch) ? 'house_cleaner' : /^paint/i.test(workerMatch) ? 'painter' : /^decorat/i.test(workerMatch) ? 'decorator' : /^til/i.test(workerMatch) ? 'tiler' : /^roof/i.test(workerMatch) ? 'roofer' : workerMatch.toLowerCase()) : undefined;
       const seed: Record<string, unknown> = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'verified_artist' ? { event_type: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
       const fromTo = query.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:tomorrow|today|on\s+\w+)|[.!?]|$)/i);
       if (fromTo && (directSkill === 'ride_request' || directSkill === 'ride')) {

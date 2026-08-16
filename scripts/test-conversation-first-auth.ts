@@ -61,6 +61,21 @@ try {
   assert.doesNotMatch(String(guestCard?.message || ''), /quotes|book a provider/i, 'Guest identity cards must not promise quotes or booking');
   assert.ok(guestCard?.continuationCard && guestCard.continuationCard.type !== 'auth_gate', 'Identity gates should retain the original safe request projection for resumption');
 
+  const contextSwitchRequest = await fetch(`${baseUrl}/api/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: guestCookie },
+    body: JSON.stringify({ message: 'Please find someone to clean my flat in Ibadan this weekend', channel: 'web', conversationId }),
+  });
+  assert.equal(contextSwitchRequest.status, 200, 'A new service request must remain routable while guest identity capture is active');
+  const contextSwitchEvents = sseEvents(await contextSwitchRequest.text());
+  const contextSwitchDone = contextSwitchEvents.find(event => event.type === 'done');
+  const contextSwitchCard = contextSwitchDone?.cardData as { type?: string; continuationCard?: { type?: string; skill?: string; stage?: string } } | undefined;
+  assert.equal(contextSwitchCard?.type, 'auth_conversation', 'The switched service request should preserve the conversational auth boundary');
+  assert.equal(contextSwitchCard?.continuationCard?.type, 'agentic_storefront', 'The switched service request must retain its canonical Economic Request projection');
+  assert.equal(contextSwitchCard?.continuationCard?.skill, 'find_worker', 'Cleaning language must route to the canonical worker skill');
+  assert.equal(contextSwitchCard?.continuationCard?.stage, 'deferred', 'No-provider local outcome must remain explicitly deferred');
+  assert.match(String(contextSwitchDone?.fullReply || ''), /remains open|re-checked|save or continue/i, 'The switched service request must not be answered as a person name');
+
   const phone = `+234803${String(Date.now()).slice(-7)}`;
   const otpRequest = await fetch(`${baseUrl}/api/auth/request-otp`, {
     method: 'POST',
@@ -96,6 +111,7 @@ try {
   const continuedPayload = await continued.json() as { messages?: Array<{ content?: string }> };
   assert.equal(continued.status, 200, 'Authenticated users should load their preserved conversation');
   assert.ok(continuedPayload.messages?.some(message => message.content === 'I need a plumber.'), 'Guest intent must survive authentication');
+  assert.ok(continuedPayload.messages?.some(message => message.content === 'Please find someone to clean my flat in Ibadan this weekend'), 'Switched guest service intent must survive authentication');
 
   const resumedRequest = await fetch(`${baseUrl}/api/chat/stream`, {
     method: 'POST',

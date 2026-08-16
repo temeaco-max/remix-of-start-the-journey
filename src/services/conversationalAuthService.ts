@@ -57,11 +57,11 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
       await setAuthState(guestPhone, 'awaiting_email_phone', { ...data, email });
       return { reply: 'Email can be used for the verification code, while your phone remains your primary Kurukoo channel identity. What phone number should stay connected to your account?', cardData: { type: 'auth_conversation', step: 'phone', email } };
     }
-    const phone = supplied.replace(/\D/g, '');
-    if (phone.length < 10) return { reply: "That doesn't look like a valid phone number. Please enter your full phone number (e.g. 080...)" };
-    
-    // For now, assume Nigeria prefix if missing
-    const fullPhone = phone.startsWith('+') ? phone : (phone.startsWith('0') ? '+234' + phone.slice(1) : '+234' + phone);
+    const digits = supplied.replace(/\D/g, '');
+    if (digits.length < 10) return { reply: "That doesn't look like a valid phone number. Please enter your full phone number (e.g. 080...)" };
+
+    // Preserve an explicit international prefix so OTP and profile identity remain owner-scoped.
+    const fullPhone = normalizeOtpPhone(supplied);
     
     const result = await requestPhoneOtp(fullPhone);
     if (!result.success) return { reply: `I couldn't request a code for that number: ${result.message || 'unknown error'}. Please try again.` };

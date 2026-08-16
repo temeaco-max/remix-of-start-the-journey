@@ -370,8 +370,13 @@
   }
 
   async function startGuestAuth() {
-    if (!state.isGuest) return;
-    try { await fetch('/api/chat/auth/start', { method: 'POST', credentials: 'same-origin' }); } catch {}
+    if (!state.isGuest) return 'none';
+    try {
+      const response = await fetch('/api/chat/auth/start', { method: 'POST', credentials: 'same-origin' });
+      const data = await response.json().catch(() => ({}));
+      const steps = { awaiting_name: 'name', awaiting_phone: 'phone', awaiting_otp: 'otp', awaiting_email_phone: 'phone', awaiting_email_otp: 'otp' };
+      return steps[data.state] || 'name';
+    } catch { return 'name'; }
   }
 
   function setAuthComposerStep(step = 'none') {
@@ -382,9 +387,9 @@
     input.setAttribute('aria-label', step === 'name' ? 'Your name' : step === 'phone' ? 'Your phone number' : step === 'otp' ? 'Verification code' : 'Message Kurukoo');
   }
 
-  function renderWelcomeAuth() {
+  function renderWelcomeAuth(step = 'name') {
     if (!state.isGuest) return;
-    setAuthComposerStep('name');
+    setAuthComposerStep(step);
     input?.focus();
   }
 
@@ -1165,7 +1170,7 @@
       }
       if (state.isGuest) {
         if (/enter your phone number/i.test(full)) setAuthComposerStep('phone');
-        else if (/6-digit verification code|code sent to your phone/i.test(full)) setAuthComposerStep('otp');
+        else if (/6-digit(?: verification)? code|code sent to your phone/i.test(full)) setAuthComposerStep('otp');
         else if (/profile is now verified|account is now connected/i.test(full)) setAuthComposerStep('none');
       }
       state.messages.push({ role: 'user', text: finalText, id: Number(user.dataset.messageId) || null }); state.messages.push({ role: 'assistant', text: full, id: Number(assistant.dataset.messageId) || null });
@@ -1710,7 +1715,7 @@
       const b = makeElement('button', '', l); b.dataset.prompt = p; qa.appendChild(b);
     });
     chatContent.appendChild(qa); wireQuickActions(qa);
-    if (state.isGuest) { void startGuestAuth().finally(() => renderWelcomeAuth()); }
+    if (state.isGuest) { void startGuestAuth().then(step => renderWelcomeAuth(step)); }
     else setAuthComposerStep('none');
   }
 

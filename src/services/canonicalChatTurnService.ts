@@ -21,12 +21,12 @@ function parseCardData(row: any): any | null {
 function isNewGuestRequestAfterAuthPrompt(message: string): boolean {
   const text = message.trim();
   if (!text || text.length < 3) return false;
-  return /[?]/.test(text) || /^(also\b|can you\b|could you\b|would you\b|what\b|how\b|where\b|when\b|why\b|i\s+(?:need|want|would like|am looking|can)|help\b|give me\b|find\b|show\b|compare\b|plan\b|remind\b|get\b|book\b|check\b)/i.test(text);
+  return /[?]/.test(text) || /^(also\b|please\s+(?:find|help|get|book|arrange|coordinate|source)\b|can you\b|could you\b|would you\b|what\b|how\b|where\b|when\b|why\b|i\s+(?:need|want|would like|am looking|can)|help\b|give me\b|find\b|show\b|compare\b|plan\b|remind\b|get\b|book\b|check\b|someone\b|anyone\b)/i.test(text) || /\b(?:clean|cleaning|housekeeping|house|home|flat|weekend|tomorrow|today)\b/i.test(text);
 }
 
 function isStandaloneName(message: string): boolean {
   const text = message.trim();
-  return text.length >= 2 && text.length <= 60 && /^[A-Za-z][A-Za-z0-9 .'-]*$/.test(text) && !/\b(?:need|want|find|book|repair|plumber|ride|food|help|remind|compare|plan|venue|service)\b/i.test(text);
+  return text.length >= 2 && text.length <= 60 && /^[A-Za-z][A-Za-z0-9 .'-]*$/.test(text) && !/\b(?:need|want|find|book|repair|plumber|ride|food|help|remind|compare|plan|venue|service|please|someone|anyone|clean|cleaning|housekeeping|house|home|flat|weekend|tomorrow|today)\b/i.test(text);
 }
 
 function extractRequirementPatch(message: string, card: any, current: any): Record<string, unknown> {
@@ -64,10 +64,10 @@ function extractRequirementPatch(message: string, card: any, current: any): Reco
   if (!location && /^[A-Za-z][A-Za-z .'-]{1,40}[.!?]?$/.test(text) && (keys.has('location') || keys.has('city') || keys.has('venue'))) {
     setFirst(['location', 'city', 'venue', 'venue_or_city'], text.replace(/[.!?]+$/, '').trim());
   }
-  const service = text.match(/\b(plumb(?:er|ing)?|electri(?:cian|cal)?|paint(?:er|ing)?|decorat(?:or|ing)?|til(?:er|ing)?|roof(?:er|ing)?|mason|welder|mechanic|carpenter|cleaner|tailor|charger|cater(?:ing|er)?|food|ride)\b/i);
+  const service = text.match(/\b(plumb(?:er|ing)?|electri(?:cian|cal)?|paint(?:er|ing)?|decorat(?:or|ing)?|til(?:er|ing)?|roof(?:er|ing)?|mason|welder|mechanic|carpenter|cleaner|clean|cleaning|housekeeping|tailor|charger|cater(?:ing|er)?|food|ride)\b/i);
   if (service) {
     const raw = service[1].toLowerCase();
-    const normalized = raw.startsWith('paint') ? 'painter' : raw.startsWith('plumb') ? 'plumber' : raw.startsWith('electri') ? 'electrician' : raw.startsWith('decorat') ? 'decorator' : raw.startsWith('til') ? 'tiler' : raw.startsWith('roof') ? 'roofer' : raw.startsWith('cater') ? 'catering' : raw;
+    const normalized = raw.startsWith('paint') ? 'painter' : raw.startsWith('plumb') ? 'plumber' : raw.startsWith('electri') ? 'electrician' : raw.startsWith('clean') || raw.startsWith('housekeep') ? 'house_cleaner' : raw.startsWith('decorat') ? 'decorator' : raw.startsWith('til') ? 'tiler' : raw.startsWith('roof') ? 'roofer' : raw.startsWith('cater') ? 'catering' : raw;
     setFirst(['service', 'skill', 'job', 'description', 'product'], normalized);
   }
   const currentMissing = fields.filter((field: any) => field?.required && (current?.requirements?.[field.key] == null || String(current.requirements[field.key]).trim() === '')).map((field: any) => field.key);
@@ -96,8 +96,8 @@ async function continueActiveRequest(phone: string, conversationId: string | und
     if (!request || request.phone !== phone || ['completed', 'cancelled', 'abandoned', 'failed'].includes(request.status)) continue;
     const patch = extractRequirementPatch(effectiveMessage, card, request);
     if (request.skill === 'find_worker') {
-      const workerCorrection = message.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder)\b/i)?.[1]?.toLowerCase();
-      if (workerCorrection) patch.service = workerCorrection;
+      const workerCorrection = message.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|decorator|tiler|roofer|mason|welder)\b/i)?.[1]?.toLowerCase();
+      if (workerCorrection) patch.service = /^(?:clean|housekeep)/i.test(workerCorrection) ? 'house_cleaner' : workerCorrection;
     }
     if (patch.__cancel) {
       const cancelled = await advanceStorefront(phone, request.id, {}, 'cancel');
@@ -247,7 +247,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       cardData = { type: 'memory_fact_not_recorded', reason: 'clarification_context_not_found' };
     }
     progressStage = 'information';
-  } else if (isGuest && (authState.state !== 'none' || standaloneNameAuth) && !(authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message))) {
+  } else if (isGuest && (authState.state !== 'none' || standaloneNameAuth) && !((authState.state === 'awaiting_name' || authState.state === 'awaiting_phone' || authState.state === 'awaiting_otp') && isNewGuestRequestAfterAuthPrompt(message))) {
     if (standaloneNameAuth) await setAuthState(phone, 'awaiting_name', {});
     const result = await handleConversationalAuth(phone, message);
     reply = result.reply;
@@ -290,7 +290,10 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
         reply = updated?.summary || 'The autonomous objective state was updated.';
         progressStage = 'ready';
       }
-    } else if (isGuest && authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message)) {
+    } else if (isGuest && authState.state !== 'none' && isNewGuestRequestAfterAuthPrompt(message)) {
+      // An explicit new request is a semantic context switch, not a malformed
+      // answer to a stale onboarding/OTP prompt. Clear only the guest capture
+      // state; the request branch below will establish its own continuation.
       await setAuthState(phone, 'none');
     }
     if (!(!isGuest && controlAction)) {
