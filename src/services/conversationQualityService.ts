@@ -34,15 +34,16 @@ const INTERNAL_PATTERNS = [
   /\b(?:intent|classification|confidence|route|routing|canonical service|model provider)\s*[:=]/i,
 ];
 
-const TEMPLATE_PATTERNS = [
-  /^I(?:'m| am) here (?:with you|and ready to help)\b/i,
-  /^Tell me a little more about what you mean\b/i,
-  /^I can help (?:with|coordinate)\b/i,
+const GENERIC_TEMPLATE_PATTERNS = [
+  /^(?:I(?:'m| am) here (?:with you|and ready to help))\.?$/i,
+  /^Tell me a little more about what you mean\.?$/i,
+  /^I(?:'m| am) here and ready to help\.?$/i,
+  /^I can help (?:with|coordinate) (?:that|this)\.?$/i,
+  /^I(?:'m| am) ready\.? Tell me what (?:you need|you'd like)\.?$/i,
 ];
 
 const ACTION_LANGUAGE = /\b(?:book|order|hire|find someone|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set a reminder)\b/i;
 const EXPLORATORY_LANGUAGE = /\b(?:thinking about|maybe|might|could|wondering|what do you think|tell me about|how does|what(?:'s| is) a good)\b/i;
-const QUESTION = /\?\s*$/;
 
 function normalize(value: string): string {
   return String(value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -124,7 +125,7 @@ export function assessConversationQuality(context: ConversationQualityContext): 
     score -= 0.2;
   }
 
-  if (TEMPLATE_PATTERNS.some(pattern => pattern.test(reply)) && reply.length < 120 && !ACTION_LANGUAGE.test(user)) {
+  if (GENERIC_TEMPLATE_PATTERNS.some(pattern => pattern.test(reply)) && !ACTION_LANGUAGE.test(user)) {
     issues.push('template_language');
     score -= 0.12;
   }
