@@ -404,6 +404,44 @@ export async function createExecutionRequest(input: {
   return (await getExecutionRequest(id))!;
 }
 
+/**
+ * Complete a local development execution through the same connector/evidence boundary.
+ *
+ * This is deliberately limited to the registered dummy connector and non-production
+ * environments. It is a deterministic local adapter, not evidence of a real-world
+ * provider dispatch, delivery, or completion.
+ */
+export async function completeDevelopmentExecution(id: string): Promise<ExecutionRequestRecord> {
+  const execution = await getExecutionRequest(id);
+  if (!execution) throw new Error('Execution request not found');
+  if (execution.connectorId !== dummyTestConnector.connectorId || process.env.NODE_ENV === 'production') return execution;
+  let current = execution;
+  if (current.status === 'pending' || current.status === 'dispatched') current = await dispatchExecutionRequest(current.id);
+  if (current.status === 'acknowledged') current = await updateExecutionStatus(current.id, 'in_progress');
+  if (current.status === 'in_progress') {
+    current = await recordExecutionEvidence(current.id, {
+      id: `dev-dispatch:${current.id}`,
+      source: 'connector_reported',
+      type: 'development_dispatch_progress',
+      scope: current.role,
+      submittedBy: dummyTestConnector.connectorId,
+      verificationState: 'pending_review',
+      payload: { environment: 'development', simulated: true, action: current.actionRequested },
+    });
+    current = await updateExecutionStatus(current.id, 'succeeded');
+    current = await recordExecutionEvidence(current.id, {
+      id: `dev-completion:${current.id}`,
+      source: 'connector_reported',
+      type: 'development_execution_result',
+      scope: current.role,
+      submittedBy: dummyTestConnector.connectorId,
+      verificationState: 'pending_review',
+      payload: { environment: 'development', simulated: true, result: 'succeeded' },
+    });
+  }
+  return current;
+}
+
 export async function dispatchExecutionRequest(id: string): Promise<ExecutionRequestRecord> {
   const execution = await getExecutionRequest(id);
   if (!execution) throw new Error('Execution request not found');

@@ -21,6 +21,7 @@ const {
   authorizeProviderExecution,
   createExecutionRequest,
   dispatchExecutionRequest,
+  completeDevelopmentExecution,
   getExecutionRequest,
   updateExecutionStatus,
   recordExecutionEvidence,
@@ -123,7 +124,7 @@ const created = await createExecutionRequest({
   actionRequested: 'dispatch_delivery',
   idempotencyKey: 'delivery-dispatch-idempotency-1',
   correlationId: `corr-${requestId}`,
-  authorizationContext: { invoked_by: buyerPhone, reason: 'buyer selected delivery provider' },
+  authorizationContext: { invoked_by: buyerPhone, reason: 'buyer selected delivery provider', environment: 'development' },
 });
 assert.equal(created.status, 'pending', 'creation must persist pending before dispatch');
 assert.equal(created.connectorId, 'kurukoo_dummy_test_v1');
@@ -152,10 +153,13 @@ const duplicate = await createExecutionRequest({
 assert.equal(duplicate.id, created.id, 'repeated idempotency key must return the original execution');
 assert.equal((await getExecutionRequest(created.id))?.evidence.length, 1, 'idempotent creation must not duplicate evidence');
 
-const inProgress = await updateExecutionStatus(created.id, 'in_progress');
-assert.equal(inProgress.status, 'in_progress');
-const succeeded = await updateExecutionStatus(created.id, 'succeeded');
-assert.equal(succeeded.status, 'succeeded');
+process.env.NODE_ENV = 'development';
+const simulated = await completeDevelopmentExecution(created.id);
+assert.equal(simulated.status, 'succeeded', 'the local development adapter should progress the same execution request to succeeded');
+assert.equal(simulated.authorizationContext.environment, 'development');
+assert.equal(simulated.evidence.some((item) => item.type === 'development_dispatch_progress' && item.payload.simulated === true), true, 'development progress must be explicitly marked simulated');
+assert.equal(simulated.evidence.some((item) => item.type === 'development_execution_result' && item.payload.simulated === true), true, 'development completion evidence must be explicitly marked simulated');
+process.env.NODE_ENV = 'production';
 assert.equal((await updateExecutionStatus(created.id, 'succeeded')).status, 'succeeded', 'repeated callback status must be idempotent');
 await assert.rejects(() => updateExecutionStatus(created.id, 'pending'), /Invalid execution transition/i, 'terminal execution state cannot regress');
 
@@ -212,4 +216,4 @@ saveDb(true);
 try { fs.rmSync(dbPath, { force: true }); } catch { /* isolated test cleanup is best-effort */ }
 
 console.log('Execution boundary regression checks passed');
-console.log('Verified: explicit connector authorization, dummy dispatch, constrained execution lifecycle, idempotency, typed evidence sources, no external-provider fabrication, and unchanged Economic Request/escrow boundaries.');
+console.log('Verified: explicit connector authorization, dummy dispatch, bounded local development progression, constrained execution lifecycle, idempotency, typed evidence sources, no external-provider fabrication, and unchanged Economic Request/escrow boundaries.');

@@ -86,6 +86,12 @@ Artists/creators are **not a separate economic system**. Artist booking is a cat
 - Opening a dispute freezes the existing held escrow, transitions its linked Economic Request from `completed` to `disputed` during cooling-off, and blocks escrow release. A duplicate open dispute does not create another dispute or escrow ledger row.
 - Generic customer Economic Request transitions cannot set `disputed`; disputes enter only through the buyer-owned trust boundary so escrow freezing is not bypassed.
 
+## Local development execution adapter
+
+The canonical execution connector now exposes a development-only completion helper for the explicitly registered `kurukoo_dummy_test_v1` connector. When a provider relationship is explicitly authorized in a non-production environment, the existing execution request can progress through dispatch, acknowledgement, in-progress, succeeded, and pending-review evidence states through the same `execution_requests` and evidence boundary used by external connectors. The storefront dispatch action invokes this helper only outside production. Chat labels the result as a **development delivery simulation** and states that no real provider, delivery, live tracking, or external completion is claimed. Production never auto-completes through this adapter.
+
+This is not a second demo flow. It is a bounded local adapter beneath the canonical provider authorization, Economic Request, execution, evidence, notification, and continuation owners.
+
 ## What is intentionally not claimed as implemented
 
 The application does **not** simulate unavailable real-world infrastructure. In particular:
