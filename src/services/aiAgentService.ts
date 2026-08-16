@@ -1,6 +1,6 @@
 import { deductPoints, addPoints } from './pointsEngine.js';
 import { getDb, saveDb } from '../database.js';
-import { getSmolLM2RuntimeStatus, querySmolLM2 } from './smolLm2Service.js';
+import { queryUnifiedAI } from './unifiedAiEngine.js';
 import { coordinatorEventForFirstClassAgent, internalCoordinator } from './internalCoordinator.js';
 import fs from 'fs';
 import path from 'path';
@@ -420,7 +420,7 @@ export async function cloneAIAgent(id: string, newId: string, newName: string): 
     return cloned;
 }
 
-export async function executeAgentTask(agentId: string, taskInput: string, userPhone?: string): Promise<{ success: boolean; result: string; tokensUsed: number; escalated: boolean }> {
+export async function executeAgentTask(agentId: string, taskInput: string, userPhone?: string): Promise<{ success: boolean; result: string; tokensUsed: number; escalated: boolean; provider?: string; model?: string }> {
     const agent = await getAIAgentById(agentId);
     if (!agent) {
         return { success: false, result: 'AI Agent not found', tokensUsed: 0, escalated: true };
@@ -452,9 +452,10 @@ export async function executeAgentTask(agentId: string, taskInput: string, userP
         }
     }
 
-    // Generate through the canonical local SmolLM2 boundary with the configured checkpoint.
-    const aiOutput = await querySmolLM2(taskInput, agent.system_prompt);
-    const smollm2Model = getSmolLM2RuntimeStatus().model.split('/').pop() || getSmolLM2RuntimeStatus().model;
+    // Generate through the existing provider-neutral conversational boundary. The agent persona remains the system contract;
+    // model selection, memory budgeting, hosted escalation and truthful fallback remain unifiedAiEngine responsibilities.
+    const ai = await queryUnifiedAI(taskInput, { systemPrompt: agent.system_prompt, phone: userPhone, conversational: true });
+    const aiOutput = ai.text;
 
     const tokensUsed = Math.floor(taskInput.length / 4) + Math.floor(aiOutput.length / 4) + 30;
     const db = await getDb();
@@ -463,9 +464,11 @@ export async function executeAgentTask(agentId: string, taskInput: string, userP
 
     return {
         success: true,
-        result: `${aiOutput}\n\n*(Processed by ${smollm2Model} under ${agent.name})*`,
+        result: aiOutput,
         tokensUsed,
-        escalated: false
+        escalated: false,
+        provider: ai.provider,
+        model: ai.model
     };
 }
 
@@ -517,7 +520,7 @@ export async function delegateToAgentForSkill(skillTag: string, taskInput: strin
     console.log(`[delegateToAgentForSkill] SUCCESS: agent ${agent.id} executed task.`);
     return {
         agentUsed: agent.id,
-        reply: `🤖 *${agent.name}*\n${execution.result}`,
+        reply: `${agent.name}: ${execution.result}`,
         success: true
     };
 }

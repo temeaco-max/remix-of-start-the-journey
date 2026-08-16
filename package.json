@@ -90,6 +90,7 @@
     "test:coordinator": "tsx scripts/test-coordinator.ts",
     "test:context-arbitration": "tsx scripts/test-context-arbitration.ts",
     "test:natural-interleaving": "tsx scripts/test-natural-interleaving-chat.ts",
+    "test:conversational-intelligence": "tsx scripts/test-conversational-intelligence.ts",
     "test:assistance-outcome": "tsx scripts/test-assistance-outcome.ts",
     "test:agent-control": "tsx scripts/test-agent-control-commands.ts",
     "test:agent-control-commands": "npm run test:agent-control",

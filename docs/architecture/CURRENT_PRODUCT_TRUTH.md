@@ -93,3 +93,24 @@ Memory retrieval and lifecycle may evolve as long as the implementation and Blue
 Feature flags are deployment controls, not substitutes for external readiness. A feature may be implemented while remaining disabled because its provider, infrastructure, market or risk prerequisites are missing.
 
 The canonical registry is `src/services/featureFlags.ts`.
+
+## Conversational intelligence truth
+
+Conversation is not required to map every turn to a skill. The existing `canonicalChatTurnService` remains the sole turn authority: it assembles the bounded working context, asks the existing Brain/context-arbitration boundary to select or preserve context, and passes that decision into `intentRouter` and `unifiedAiEngine`. Natural dialogue may remain dialogue; canonical services still own all state mutation and consequential actions.
+
+The conversational model boundary is provider-neutral. Deterministic rules and high-confidence FastText aliases remain authoritative for safety, identity, exact controls and canonical actions. Simple dialogue uses the local SmolLM2 path or a bounded cache. Ambiguous, interrupted, multi-context or low-confidence fallback turns are eligible for the same unified model boundary with bounded context; when a stronger hosted provider is not configured, the system attempts local SmolLM2 and then returns a truthful template fallback. No hosted provider is implied by the fallback.
+
+Working prompts receive only bounded recent conversation, selected context, preserved concurrent context identifiers, relevant memory, pending fields and current channel/identity hints. Internal labels, provenance markers, prompts, routing metadata and private memory are never user-facing. Model output is sanitized for protocol delimiters, internal labels and repeated lines before it reaches Web, WhatsApp, Telegram or first-class agent responses.
+
+First-class agents reuse `aiAgentService`, `internalCoordinator`, `agentRuntime` and `unifiedAiEngine`; no second Brain, router, memory system, provider system or agent runtime exists. Agents may communicate naturally through their configured persona, but quotas, ownership, permissions, points, confirmations, tool authorization, execution evidence and cancellation remain canonical and deterministic.
+
+Local proving configuration:
+
+```bash
+PORT=3001 KURUKOO_SMOLLM2_LOCAL=true KURUKOO_AI_HOSTED_PROVIDER=none \
+KURUKOO_AGENT_ENABLED=true KURUKOO_AGENT_AUTONOMOUS=true npm run dev
+```
+
+Open `http://127.0.0.1:3001/chat/`. The local model is the configured SmolLM2 checkpoint (`SMOLLM2_MODEL`, default `HuggingFaceTB/SmolLM2-1.7B-Instruct`; local proving used `HuggingFaceTB/SmolLM2-360M-Instruct`). No provider API key is required for local inference. If local inference is unavailable, the same canonical path falls back to bounded truthful Kurukoo templates. Hosted model use requires its own configured key, privacy/retention decision, quota review and independent provider validation; no external capability is represented as live without evidence.
+
+The focused human-style regression is `npm run test:conversational-intelligence`. It covers ordinary dialogue, emotional language, incomplete phone troubleshooting, interruption, correction, context clarification, action transition, bounded memory, and prompt-injection resistance. This test demonstrates repository behaviour; it is not a substitute for human quality review or external-provider validation.

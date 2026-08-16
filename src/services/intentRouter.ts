@@ -1,4 +1,4 @@
-import { queryUnifiedAI, type AIProvider } from './unifiedAiEngine.js';
+import { queryUnifiedAI, type AIProvider, type ConversationalContextHint } from './unifiedAiEngine.js';
 import { getProfile, getMemoryFacts, updateProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
 import { getContextualIntentSuggestions, getEconomicCategory, getKnownSkills, getSkillFlow } from './skillFlows.js';
@@ -213,7 +213,7 @@ async function handleExplicitMemory(phone: string, q: string): Promise<IntentRou
   return null;
 }
 
-export async function routeIntent(query: string, phone?: string, provider?: AIProvider): Promise<IntentRoutingResult> {
+export async function routeIntent(query: string, phone?: string, provider?: AIProvider, contextHint?: ConversationalContextHint, threadId?: string): Promise<IntentRoutingResult> {
   const q = query.trim().toLowerCase().replace(/[.!?]+$/, '');
   if (!q) return { skill: 'general_question', reply: 'Tell me what you need.' };
 
@@ -548,7 +548,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     };
   }
 
-  const ai = await queryUnifiedAI(query, { provider, phone });
+  const ai = await queryUnifiedAI(query, { provider, phone, conversational: true, contextHint, threadId });
   const cardData: any = ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model } : undefined;
 
   // Private conversations never use message text as hidden advertising targeting.

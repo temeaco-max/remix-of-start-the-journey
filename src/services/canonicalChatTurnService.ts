@@ -308,7 +308,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       const selectedRequestId = contextDecision?.selectedContextId?.startsWith('request:') ? contextDecision.selectedContextId.slice('request:'.length) : undefined;
       continued = await continueActiveRequest(phone, input.conversationId, message, selectedRequestId);
     }
-    const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
+    const routing: IntentRoutingResult = continued || await routeIntent(message, phone, undefined, contextDecision, input.conversationId);
     classificationSource = routing.classificationSource;
     intentConfidence = routing.intentConfidence;
     modelProvider = routing.modelProvider;
