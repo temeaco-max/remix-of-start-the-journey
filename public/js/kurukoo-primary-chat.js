@@ -819,6 +819,71 @@
     if (card.requestId) state.activeStorefrontId = card.requestId;
   }
 
+  function renderAssistanceOutcome(card, messageEl) {
+    const holder = makeElement('div', 'provider-card assistance-outcome-card');
+    holder.dataset.assistanceMode = String(card.mode || 'information');
+    holder.dataset.canonicalAction = String(card.canonicalAction || 'assistance.content.open');
+
+    const head = makeElement('div', 'storefront-head');
+    head.append(
+      makeElement('strong', '', card.mode === 'support' ? 'Guidance from Kurukoo' : 'Useful guidance'),
+      makeElement('span', 'storefront-stage', 'source attributed')
+    );
+    holder.appendChild(head);
+    holder.appendChild(makeElement('p', 'storefront-offer-copy', card.mode === 'support'
+      ? 'These sources may help explain the situation. They are not provider availability or execution evidence.'
+      : 'These sources are attributed guidance. They are not provider recommendations or completion claims.'));
+
+    const sources = Array.isArray(card.sources) ? card.sources : [];
+    if (sources.length) {
+      const list = makeElement('ul', 'storefront-offers-list assistance-source-list');
+      sources.forEach(source => {
+        const item = makeElement('li');
+        const details = makeElement('div');
+        details.append(
+          makeElement('strong', '', String(source.title || 'Kurukoo source')),
+          makeElement('span', '', String(source.excerpt || 'Open this attributed source for more context.')),
+          makeElement('small', '', `${String(source.kind || 'source').replace(/_/g, ' ')} · ${String(source.provenance || 'attributed')}`)
+        );
+        const params = new URLSearchParams({
+          prompt: `Review this ${String(source.kind || 'source')} with me`,
+          ...(source.kind === 'topic' ? { topicSlug: String(source.id || '') } : { resourceSlug: String(source.id || '') }),
+        });
+        const open = makeElement('a', 'sf-btn sf-secondary', 'Open in Chat');
+        open.href = `/chat?${params.toString()}`;
+        open.dataset.chatAction = String(card.canonicalAction || 'assistance.content.open');
+        open.dataset.sourceKind = String(source.kind || 'source');
+        open.dataset.sourceId = String(source.id || '');
+        open.setAttribute('aria-label', `Open ${String(source.title || 'source')} in Chat`);
+        item.append(details, open);
+        list.appendChild(item);
+      });
+      holder.appendChild(list);
+    }
+
+    const nextActions = Array.isArray(card.nextActions) ? card.nextActions : [];
+    if (nextActions.length) {
+      const actions = makeElement('div', 'storefront-actions');
+      nextActions.forEach(action => {
+        if (!action?.label || !action?.prompt) return;
+        const button = makeElement('button', 'sf-btn sf-primary', String(action.label));
+        button.type = 'button';
+        button.dataset.chatAction = String(card.canonicalAction || 'assistance.content.open');
+        button.dataset.actionId = String(action.id || 'continue_support');
+        button.addEventListener('click', () => sendMessage(String(action.prompt)));
+        actions.appendChild(button);
+      });
+      holder.appendChild(actions);
+    }
+
+    const truth = card.truth && typeof card.truth === 'object' ? card.truth : {};
+    const truthLabel = truth.sourceAttributed === true && truth.noProviderClaim === true && truth.noExecutionClaim === true
+      ? 'Attributed guidance · no provider or execution claim'
+      : 'Source status requires review';
+    holder.appendChild(makeElement('small', 'storefront-execution-status', truthLabel));
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
   function renderSuggestions(options, messageEl, sponsored = []) {
     if ((!Array.isArray(options) || !options.length) && (!Array.isArray(sponsored) || !sponsored.length)) return;
     const holder = document.createElement('div');
@@ -855,6 +920,7 @@
 
   function renderCard(card, messageEl) {
     if (!card || !messageEl) return;
+    if (card.type === 'assistance_outcome') return renderAssistanceOutcome(card, messageEl);
     if (card.type === 'agentic_storefront') {
       if (card.stage === 'slot_fill' || card.stage === 'intent_extraction') {
         const missing = (Array.isArray(card.fields) ? card.fields : []).filter(field => field?.required && !field.value).map(field => String(field.label || field.key || 'the next detail').toLowerCase());
