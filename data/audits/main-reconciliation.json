@@ -1,0 +1,146 @@
+{
+  "generatedAt": "2026-08-16T12:56:07.364Z",
+  "branch": "main",
+  "head": "beff065e6ba4fa6dd2c4c8e92e010dfd7cf88aad",
+  "originMain": "d910eaa9891cd5da6ae547b482a4f18fccc74ec6",
+  "clean": false,
+  "localOnlyCommits": [
+    "beff065 Merge remote-tracking branch 'origin/feat/kurukoo-student-model-foundation'",
+    "08b4725 Merge remote-tracking branch 'origin/main'",
+    "c4df619 Refresh outcome convergence accessibility evidence",
+    "6f09a85 Add outcome completeness convergence matrix",
+    "bd243e4 Refresh discovery accessibility evidence",
+    "fdeef95 Converge discovery and opportunity network",
+    "e0c057f Consolidate campaign eligibility boundaries",
+    "d3dee65 Complete skill coverage accessibility and bandwidth validation",
+    "b91f467 docs: link canonical AI model architecture",
+    "5906144 docs: add Manus completion directive for student model",
+    "cfadb38 docs: map current AI architecture to student-model pipeline",
+    "96b3301 blueprint: add canonical AI model and learning addendum",
+    "c41fcff ml: add initial model registry contract",
+    "eae927f ml: add scenario generation prompt foundation",
+    "8e28352 ml: add teacher critique prompt foundation",
+    "e228673 ml: add clarification prompt foundation",
+    "5adff58 ml: add context arbitration prompt foundation",
+    "5958f64 ml: add ontology prompt foundation",
+    "b459c25 ml: define dataset lifecycle foundation",
+    "1a90ffc ml: define model registry foundation",
+    "8b14dc3 ml: define model export foundation",
+    "5c76db9 ml: define student model evaluation foundation",
+    "423c850 ml: define training pipeline foundation",
+    "504b382 ml: define teacher interface foundation",
+    "32ac320 ml: define scenario generation foundation",
+    "96f404e ml: define model manifest schema",
+    "73b4c6f ml: define evaluation result schema",
+    "522a591 ml: define training example schema",
+    "c67cdab ml: define scenario schema",
+    "f04a448 ml: define initial student training configuration",
+    "cca11b7 ml: add reproducible training project foundation",
+    "5a1144d ml: add Kurukoo student-model workspace foundation",
+    "4da28c5 docs: define production and learning pipelines",
+    "16c4cf1 docs: define canonical Kurukoo AI model system"
+  ],
+  "remoteOnlyCommits": [],
+  "remoteBranches": [
+    "origin/feat/kurukoo-student-model-foundation",
+    "origin/main"
+  ],
+  "rows": [
+    {
+      "category": "IMPLEMENTED_ON_MAIN",
+      "item": "Canonical Chat / Brain / context arbitration",
+      "evidence": [
+        "src/services/canonicalChatTurnService.ts",
+        "src/services/contextArbitration.ts"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "IMPLEMENTED_ON_MAIN",
+      "item": "205-skill registry and explicit flows",
+      "evidence": [
+        "src/services/skillFlows.ts",
+        "data/audits/outcome-completeness.json"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "IMPLEMENTED_ON_MAIN",
+      "item": "Discovery & Opportunity Network",
+      "evidence": [
+        "src/services/discoveryNetwork.ts",
+        "src/routes/discoveryRoutes.ts"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "IMPLEMENTED_ON_MAIN",
+      "item": "Accessibility and low-bandwidth repairs",
+      "evidence": [
+        "scripts/audit-accessibility.mjs",
+        "src/services/assetOptimization.ts"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "IMPLEMENTED_ON_MAIN",
+      "item": "Outcome completeness generator",
+      "evidence": [
+        "src/services/outcomeCompleteness.ts",
+        "scripts/generate-outcome-completeness.ts"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "IMPLEMENTED_ON_MAIN",
+      "item": "SmolLM2 candidate training universe generator",
+      "evidence": [
+        "scripts/generate-smollm2-training-universe.ts",
+        "ml/datasets/kurukoo-core-v1.manifest.json"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "EXTERNALLY_DEPENDENT",
+      "item": "Provider channels, push, voice, payment settlement, dispatch and live fulfilment",
+      "evidence": [
+        "src/services/featureFlags.ts"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "EXTERNALLY_DEPENDENT",
+      "item": "SmolLM2 training, evaluation, export, promotion and runtime model activation",
+      "evidence": [
+        "ml/config/model-registry.json",
+        "ml/config/training.yaml"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "DOCUMENTED_ONLY",
+      "item": "Historical plans and archived agent directives",
+      "evidence": [
+        "docs",
+        "BLUEPRINT.md"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "DUPLICATE_OR_SUPERSEDED",
+      "item": "Route-level discovery/ad eligibility and duplicate map clients",
+      "evidence": [
+        "src/services/discoveryNetwork.ts",
+        "src/services/adManager.ts",
+        "public/js/kurukoo-discover-map.js"
+      ],
+      "evidencePresent": true
+    },
+    {
+      "category": "GENUINELY_MISSING",
+      "item": "None detected by current canonical audits",
+      "evidence": [],
+      "evidencePresent": true
+    }
+  ]
+}

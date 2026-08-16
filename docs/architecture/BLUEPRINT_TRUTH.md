@@ -122,3 +122,10 @@ The executable outcome matrix is generated from the canonical skill-flow and fea
 The matrix classifies every current skill as **REPOSITORY_READY_EXTERNAL_ACTIVATION** when its canonical repository path exists but a capability-specific provider, operational, delivery or evidence boundary remains deployment-dependent. This does not mean that external execution, payment, messaging, voice, fulfilment, provider availability or completion is live. It means the repository-side lifecycle and activation seam are present and truthfully bounded.
 
 The outcome unit is the user's objective across the applicable lifecycle, not the presence of a skill tag, route or card. Brain/context arbitration remains semantic and planning authority; canonical services remain the sole mutation and authorization owners. The matrix is evidence of convergence and gap detection, not a second orchestration subsystem.
+
+
+## SmolLM2 training-universe truth
+
+The repository now generates `ml/datasets/kurukoo-core-v1.jsonl` and its manifest from the canonical Kurukoo ontology through `npm run ml:generate-universe`. The current candidate universe contains **1,845 synthetic examples covering all 205 skills, 46 families, 9 scenario variants, 6 actor roles and 9 transport/channel surfaces**. It includes normal requests, ambiguity, interruption, correction, unavailable capability, consent, channel continuation, recovery and linked-device continuation cases.
+
+The generated data is provenance-labelled, contains no production user data, marks teacher output as untrusted candidate material, and explicitly forbids models from inventing availability, verification, payment, evidence or direct canonical state mutation. `npm run ml:test-universe` verifies these invariants. This is a validated candidate dataset and not proof of a trained, evaluated, quantized, exported or promoted SmolLM2 artifact. Training, evaluation, resource benchmarking, model manifest creation, shadow/canary promotion and runtime activation remain independent gates.

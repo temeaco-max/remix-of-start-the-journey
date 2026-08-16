@@ -1,0 +1,47 @@
+{
+  "datasetVersion": "kurukoo-core-v1",
+  "generatedAt": "2026-08-16T12:56:12.003Z",
+  "exampleCount": 1845,
+  "skillCount": 205,
+  "variantCount": 9,
+  "actorCoverage": [
+    "consumer",
+    "provider",
+    "business",
+    "contributor",
+    "agent",
+    "support_operator"
+  ],
+  "channelCoverage": [
+    "web_chat",
+    "pwa",
+    "whatsapp",
+    "telegram",
+    "sms",
+    "ussd",
+    "email",
+    "voice",
+    "linked_device"
+  ],
+  "variantCoverage": [
+    "normal",
+    "ambiguity",
+    "interruption",
+    "correction",
+    "unavailable",
+    "consent",
+    "channel",
+    "recovery",
+    "linked_device"
+  ],
+  "sourceOfTruth": [
+    "src/services/skillFlows.ts",
+    "src/services/canonicalChatTurnService.ts",
+    "src/services/featureFlags.ts"
+  ],
+  "teacherOutputAllowed": true,
+  "teacherOutputTrustedAutomatically": false,
+  "productionUserDataIncluded": false,
+  "trainingIsNotRuntimeAuthority": true,
+  "status": "candidate_dataset_requires_validation_and_curation"
+}
