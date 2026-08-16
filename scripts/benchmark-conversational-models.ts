@@ -1,6 +1,7 @@
 import { queryMistral, getMistralModel, testMistralConnection } from '../src/services/mistralService.js';
 import { querySmolLM2, getSmolLM2RuntimeStatus } from '../src/services/smolLm2Service.js';
 import { assessConversationQuality, classifyConversationDifficulty, type ConversationQualityContext } from '../src/services/conversationQualityService.js';
+import { buildConversationTurnContract, buildConversationalSystemDirective } from '../src/services/conversationTurnContractService.js';
 
 interface TurnCase {
   id: string;
@@ -8,19 +9,25 @@ interface TurnCase {
   expectedMode: 'conversation' | 'exploration' | 'action' | 'reference';
   knownFacts?: string[];
   activeContextIds?: string[];
+  pendingFields?: string[];
+  pausedGoals?: string[];
+  currentGoal?: string;
 }
 
 const CASES: TurnCase[] = [
   { id: 'casual-1', user: 'How are you?', expectedMode: 'conversation' },
   { id: 'explore-cleaner', user: "I'm thinking about getting a cleaner this weekend.", expectedMode: 'exploration' },
   { id: 'action-cleaner', user: 'Please find me a cleaner in Ibadan for this weekend.', expectedMode: 'action' },
-  { id: 'repair-uncertain', user: "My phone has been acting weird since yesterday.", expectedMode: 'conversation' },
-  { id: 'correction', user: 'Actually, make that Saturday instead.', expectedMode: 'reference', activeContextIds: ['request:repair-1'] },
+  { id: 'repair-uncertain', user: "My phone has been acting weird since yesterday.", expectedMode: 'exploration' },
+  { id: 'repair-screen', user: 'The screen keeps going black.', expectedMode: 'exploration', knownFacts: ['phone issue'], activeContextIds: ['request:repair-1'] },
+  { id: 'correction', user: 'Actually, make that Saturday instead.', expectedMode: 'reference', activeContextIds: ['request:repair-1'], pendingFields: ['time'] },
   { id: 'relative', user: 'No, the cheaper one.', expectedMode: 'reference', activeContextIds: ['request:repair-1', 'offer:2'] },
+  { id: 'same-time', user: 'Keep the same time, but use the other provider.', expectedMode: 'reference', activeContextIds: ['request:repair-1', 'offer:2'] },
   { id: 'dialect', user: 'Abeg help me find person wey fit fix am sharp sharp.', expectedMode: 'action' },
   { id: 'informal-food', user: 'Where can I get good suya around here tonight?', expectedMode: 'exploration' },
   { id: 'no-action', user: 'What do you think is the best way to deal with a leaking tap?', expectedMode: 'exploration' },
   { id: 'multi-context', user: 'Go back to the phone issue.', expectedMode: 'reference', activeContextIds: ['request:phone', 'reminder:1'] },
+  { id: 'multi-goal', user: 'Actually, remind me about that tomorrow and then show me the cheaper provider.', expectedMode: 'reference', activeContextIds: ['request:phone', 'reminder:1'], pausedGoals: ['goal:1'] },
 ];
 
 function expectedActionLanguage(user: string): boolean {
@@ -33,11 +40,12 @@ function scoreTurn(test: TurnCase, reply: string) {
     assistantReply: reply,
     activeContextIds: test.activeContextIds,
     knownFacts: test.knownFacts,
+    pendingFields: test.pendingFields,
   };
   const quality = assessConversationQuality(qualityContext);
   const difficulty = classifyConversationDifficulty(test.user, qualityContext);
   const hasActionLanguage = /\b(?:book|order|hire|find someone|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set a reminder)\b/i.test(reply);
-  const prematureAction = !expectedActionLanguage(test.user) && hasActionLanguage && /\b(?:thinking about|maybe|might|wondering|what do you think|what is a good|how should)\b/i.test(test.user);
+  const prematureAction = !expectedActionLanguage(test.user) && hasActionLanguage && /\b(?:thinking about|maybe|might|wondering|what do you think|what is a good|how should|acting weird|something is wrong)\b/i.test(test.user);
   return {
     ...test,
     quality,
@@ -45,6 +53,24 @@ function scoreTurn(test: TurnCase, reply: string) {
     prematureAction,
     reply,
   };
+}
+
+function buildSystemPrompt(test: TurnCase): string {
+  const contract = buildConversationTurnContract({
+    userMessage: test.user,
+    latestUserMessage: test.user,
+    assistantReply: '',
+    activeContextIds: test.activeContextIds,
+    knownFacts: test.knownFacts,
+    pendingFields: test.pendingFields,
+    pausedGoals: test.pausedGoals,
+    currentGoal: test.currentGoal,
+  });
+  return [
+    'You are Kurukoo. Respond naturally and directly to the user.',
+    'Never expose internal implementation, routing, memory, policy, model or contract metadata.',
+    buildConversationalSystemDirective(contract),
+  ].join('\n');
 }
 
 async function main() {
@@ -63,10 +89,11 @@ async function main() {
   console.log(`[conversation-benchmark] SmolLM2: ${smollmStatus.model} source=${smollmStatus.source} available=${smollmStatus.available}`);
 
   for (const test of cases) {
+    const systemPrompt = buildSystemPrompt(test);
     const started = Date.now();
     let smollmReply = '';
     try {
-      smollmReply = await querySmolLM2(test.user);
+      smollmReply = await querySmolLM2(test.user, systemPrompt);
     } catch (error) {
       smollmReply = `ERROR: ${error instanceof Error ? error.message : String(error)}`;
     }
@@ -75,7 +102,7 @@ async function main() {
     if (mistralReachable) {
       const mistralStarted = Date.now();
       try {
-        const reply = await queryMistral(test.user, { conversationalContract: true });
+        const reply = await queryMistral(test.user, { systemInstruction: systemPrompt, conversationalContract: true });
         results.push({ model: getMistralModel(), provider: 'Mistral', latencyMs: Date.now() - mistralStarted, ...scoreTurn(test, reply) });
       } catch (error) {
         results.push({ model: getMistralModel(), provider: 'Mistral', latencyMs: Date.now() - mistralStarted, ...scoreTurn(test, `ERROR: ${error instanceof Error ? error.message : String(error)}`) });
@@ -96,7 +123,8 @@ async function main() {
     const avgQuality = items.reduce((sum, item) => sum + Number(item.quality?.score || 0), 0) / Math.max(1, items.length);
     const prematureActions = items.filter(item => item.prematureAction).length;
     const conversational = items.filter(item => item.quality?.conversational).length;
-    console.log(`${provider}: avg_quality=${avgQuality.toFixed(3)} conversational=${conversational}/${items.length} premature_action=${prematureActions}/${items.length}`);
+    const meanLatency = items.reduce((sum, item) => sum + Number(item.latencyMs || 0), 0) / Math.max(1, items.length);
+    console.log(`${provider}: avg_quality=${avgQuality.toFixed(3)} conversational=${conversational}/${items.length} premature_action=${prematureActions}/${items.length} mean_latency_ms=${meanLatency.toFixed(0)}`);
   }
 
   console.log(JSON.stringify({ generatedAt: new Date().toISOString(), cases: cases.length, results }, null, 2));
