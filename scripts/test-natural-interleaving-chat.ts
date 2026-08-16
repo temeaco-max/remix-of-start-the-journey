@@ -9,7 +9,7 @@ process.env.MEMORY_ENCRYPTION_KEY = 'natural-interleaving-test-key';
 process.env.KURUKOO_AGENT_ENABLED = 'true';
 process.env.KURUKOO_AGENT_AUTONOMOUS = 'true';
 
-const { updateProfile } = await import('../src/services/memoryProfile.js');
+const { updateProfile, getMemoryFacts } = await import('../src/services/memoryProfile.js');
 const { processCanonicalChatTurn } = await import('../src/services/canonicalChatTurnService.js');
 const { getDb } = await import('../src/database.js');
 
@@ -50,6 +50,15 @@ assert.equal(ambiguous.cardData?.type, 'context_clarification');
 const accepted = await processCanonicalChatTurn({ phone: clarifyPhone, channel: 'web', conversationId: clarifyStart.conversationId, message: 'Use it for the current request' });
 assert.equal(accepted.contextDecision?.relation, 'answer');
 assert.ok(JSON.stringify(accepted.cardData).toLowerCase().includes('mikel'), 'accepted clarification should update the intended request');
+
+const memoryAlternativePhone = '+2348090000004';
+await updateProfile(memoryAlternativePhone, 'clarification-memory-test', { name: 'Tola', preferences: { onboarding_complete: true } });
+const memoryStart = await processCanonicalChatTurn({ phone: memoryAlternativePhone, channel: 'web', message: 'I need a plumber' });
+await processCanonicalChatTurn({ phone: memoryAlternativePhone, channel: 'web', conversationId: memoryStart.conversationId, message: 'Mikel' });
+const storedAsMemory = await processCanonicalChatTurn({ phone: memoryAlternativePhone, channel: 'web', conversationId: memoryStart.conversationId, message: 'Treat it as new information' });
+assert.equal(storedAsMemory.contextDecision?.selectedContext, 'memory');
+assert.equal(storedAsMemory.cardData?.type, 'memory_fact_recorded');
+assert.ok((await getMemoryFacts(memoryAlternativePhone, ['conversation_context'])).some(fact => fact.value === 'Mikel' && fact.provenance === 'user_declared'));
 
 const db = await getDb();
 const requests = db.exec('SELECT id, status FROM economic_requests WHERE phone = ?', [phone])[0]?.values || [];

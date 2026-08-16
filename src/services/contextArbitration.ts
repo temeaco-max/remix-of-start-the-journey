@@ -90,6 +90,7 @@ function signalType(text: string): { type: ConversationalContextType; confidence
   if (/^(what notifications|show (my )?notifications|mark .* notification|dismiss .* notification)/.test(value)) return { type: 'notification', confidence: 0.97, relation: 'continue' };
   if (/^(go back to|resume (?:my|the)|return to|continue with)\b/.test(value)) return { type: 'economic_request', confidence: 0.9, relation: 'resume' };
   if (/^(use (?:it|that) for the current request|apply (?:it|that) to the current request)\b/.test(value)) return { type: 'economic_request', confidence: 0.96, relation: 'answer' };
+  if (/^(treat (?:it|that) as new information|keep (?:it|that) as new information)\b/.test(value)) return { type: 'memory', confidence: 0.96, relation: 'continue' };
   if (/^(change|correct|update|actually|no[, ]|not\b)/.test(value) || /\b(instead|rather)\b/.test(value)) return { type: 'economic_request', confidence: 0.88, relation: 'correction' };
   if (/^(pause|resume|cancel that|cancel it|stop following|stop checking)\b/.test(value)) return { type: 'agent_goal', confidence: 0.98, relation: 'control' };
   if (/\b(cart|checkout|add .* to cart|buy|purchase|product|charger|groceries|food order)\b/.test(value)) return { type: 'product_cart', confidence: 0.82, relation: 'create' };

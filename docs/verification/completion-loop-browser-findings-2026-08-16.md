@@ -117,3 +117,9 @@ The natural-interleaving regression now covers clarification creation and accept
 ## Broad post-clarification regression
 
 After clarification acceptance was implemented, the complete route suite, 205-skill audit, PWA contract, security audit, provider-capability boundary, voice boundary, WebRTC boundary, FCM boundary, and pilot-readiness assessment passed. Pilot readiness continues to classify external channels, push, voice, payments, relay, MQTT, private-number routing, KYC, inventory, dispatch, and provider networks according to local configuration; no external activation is inferred.
+
+## Clarification alternative and memory provenance increment
+
+“Treat it as new information” is now a canonical memory path. The original ambiguous input is recovered from the owner-scoped clarification card and recorded as a `conversation_context` memory fact with `user_declared` provenance. The active request remains unchanged. If the card cannot be recovered, the operation fails closed without changing either memory or request state.
+
+The expanded natural-interleaving regression passed for both clarification choices. Memory provenance, context arbitration, behavioral Chat, admin routes, TypeScript lint, and production build checks also passed.

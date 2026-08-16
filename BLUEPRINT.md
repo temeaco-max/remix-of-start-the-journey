@@ -5838,3 +5838,10 @@ This correction boundary is repository-side validated. It does not authorize pay
 When an answer is ambiguous between identity information and a pending request field, Chat now stores the ambiguous input inside a bounded clarification card linked to the selected context. If the user chooses “Use it for the current request,” the canonical turn replays only that stored input through the selected request owner and applies the normal bounded field patch. The alternative “Treat it as new information” remains separate from request mutation.
 
 This makes clarification a resumable conversational turn rather than a dead-end prompt. The input is retained only as context-card metadata for the owner-scoped conversation flow; it does not become an authentication claim, provider fact, payment instruction, or external delivery event.
+
+
+## Current Convergence Addendum — Clarification Alternatives and Memory Provenance
+
+The alternative clarification choice is now operational. When the user chooses “Treat it as new information,” Chat retrieves the original ambiguous input from the owner-scoped clarification card and records it through the canonical `recordMemoryFact` owner as `conversation_context` with `user_declared` provenance. The active Economic Request is not changed.
+
+The user receives a truthful confirmation that the information is separate from the current request and can later be forgotten through the existing memory self-service boundary. If the clarification card cannot be found, Kurukoo fails closed and changes neither memory nor the request.

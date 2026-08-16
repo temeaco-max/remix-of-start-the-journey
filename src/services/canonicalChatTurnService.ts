@@ -1,5 +1,5 @@
 import { appendChatMessage, listChatMessages } from './chatConversationService.js';
-import { getProfile } from './memoryProfile.js';
+import { getProfile, recordMemoryFact } from './memoryProfile.js';
 import { isOnboarding, handleOnboardingInput } from './progressiveOnboarding.js';
 import { routeIntent } from './intentRouter.js';
 import { getAuthState, setAuthState, handleConversationalAuth } from './conversationalAuthService.js';
@@ -180,6 +180,18 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       options: ['Use it for the current request', 'Treat it as new information'],
     };
     progressStage = 'understanding';
+  } else if (!isGuest && contextDecision?.selectedContext === 'memory' && /^(treat (?:it|that) as new information|keep (?:it|that) as new information)\b/i.test(message.trim())) {
+    const history = await listChatMessages(phone, { conversationId: input.conversationId, limit: 20 });
+    const clarification = history.map(row => parseCardData(row)).reverse().find(card => card?.type === 'context_clarification' && typeof card?.ambiguousInput === 'string');
+    if (clarification?.ambiguousInput) {
+      await recordMemoryFact(phone, 'conversation_context', clarification.ambiguousInput, 'user_declared', { confidence: 0.82, sourceRef: `chat:${input.conversationId || 'current'}:clarification` });
+      reply = 'I’ll keep that as information you shared, separate from the current request. You can ask me to forget it later.';
+      cardData = { type: 'memory_fact_recorded', field: 'conversation_context', provenance: 'user_declared', sourceConversationId: input.conversationId };
+    } else {
+      reply = 'I could not find the earlier clarification to store safely, so I have not changed your request or memory.';
+      cardData = { type: 'memory_fact_not_recorded', reason: 'clarification_context_not_found' };
+    }
+    progressStage = 'information';
   } else if (isGuest && (authState.state !== 'none' || standaloneNameAuth) && !(authState.state === 'awaiting_name' && isNewGuestRequestAfterAuthPrompt(message))) {
     if (standaloneNameAuth) await setAuthState(phone, 'awaiting_name', {});
     const result = await handleConversationalAuth(phone, message);
