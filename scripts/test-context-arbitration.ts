@@ -8,7 +8,7 @@ process.env.DB_PATH = dbPath;
 process.env.MEMORY_ENCRYPTION_KEY = 'context-arbitration-test-key';
 
 const { updateProfile } = await import('../src/services/memoryProfile.js');
-const { appendChatMessage } = await import('../src/services/chatConversationService.js');
+const { appendChatMessage, ensureConversation } = await import('../src/services/chatConversationService.js');
 const { arbitrateChatContext } = await import('../src/services/contextArbitration.js');
 
 const phone = '+2348090000001';
@@ -45,6 +45,12 @@ const continuation = await arbitrateChatContext({ phone, conversationId, message
 assert.equal(continuation.selectedContext, 'economic_request');
 assert.equal(continuation.relation, 'answer');
 assert.ok(continuation.preserveContextIds.length === 0);
+
+const secondConversationId = await ensureConversation(phone, undefined, 'web', 'Safety thread', true);
+const crossThread = await arbitrateChatContext({ phone, conversationId: secondConversationId, message: 'There is immediate danger near Yaba' });
+assert.equal(crossThread.selectedContext, 'safety');
+assert.ok(crossThread.preserveContextIds.includes('request:request-context-1'));
+assert.ok(crossThread.activeContexts.some(context => context.conversationId === conversationId && context.type === 'economic_request'));
 
 console.log('Context arbitration regression passed: ambiguous identity input clarifies, active requests are preserved, explicit safety switches are isolated, and normal answers continue the request.');
 try { fs.unlinkSync(dbPath); } catch { /* best effort cleanup */ }
