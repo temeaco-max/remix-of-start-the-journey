@@ -3,6 +3,8 @@ import { assessConversationQuality, type ConversationQualityAssessment } from '.
 import { buildConversationTurnContract, type ConversationTurnContract } from './conversationTurnContractService.js';
 import { buildConversationContextPack } from './conversationContextPackService.js';
 
+export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';
+
 export interface ConversationalGenerationInput {
   prompt: string;
   phone?: string;
@@ -18,6 +20,7 @@ export interface ConversationalGenerationInput {
   priorAssistantReplies?: string[];
   canonicalAction?: string;
   cardType?: string;
+  generationMode?: ConversationGenerationMode;
   seedResponse?: AIResponse;
 }
 
@@ -27,6 +30,7 @@ export interface ConversationalGenerationResult extends AIResponse {
   escalated: boolean;
   attemptCount: number;
   contextTurns: number;
+  generationMode: ConversationGenerationMode;
 }
 
 const ACTION_RESPONSE_RE = /\b(?:book|order|hire|find (?:someone|me)|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set (?:a )?reminder|proceed|go ahead)\b/i;
@@ -97,9 +101,10 @@ function assess(input: ConversationalGenerationInput, contract: ConversationTurn
 }
 
 export async function generateConversationalResponse(input: ConversationalGenerationInput): Promise<ConversationalGenerationResult> {
+  const generationMode = input.generationMode || (input.seedResponse ? 'present' : 'generate');
   const contract = buildConversationTurnContract({
     latestUserMessage: input.prompt,
-    assistantReply: input.seedResponse?.text || '',
+    assistantReply: generationMode === 'present' ? input.seedResponse?.text || '' : '',
     userMessage: input.prompt,
     activeContextIds: input.activeContextIds,
     knownFacts: input.knownFacts,
@@ -115,17 +120,21 @@ export async function generateConversationalResponse(input: ConversationalGenera
     input.systemPrompt || '',
     contextPack.transcript ? `\n\n--- Recent conversation for this exact thread (human-facing content only) ---\n${contextPack.transcript}\n---` : '',
     contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '',
+    generationMode === 'present' ? 'Present only the canonical facts supplied to you. Do not invent, revise, or override structured results.' : '',
+    generationMode === 'deterministic' ? 'Do not generate or alter the response; preserve the canonical deterministic wording.' : '',
     turnScope,
   ].filter(Boolean).join('\n');
   const conversationProvider = input.provider && input.provider !== 'auto' ? input.provider : strongerProvider(input.provider);
 
   let base: AIResponse;
-  if (input.seedResponse) {
-    base = {
-      ...input.seedResponse,
-      text: input.seedResponse.text.trim(),
-    };
+  if (generationMode === 'deterministic') {
+    if (!input.seedResponse) throw new Error('Deterministic conversation mode requires a canonical response');
+    base = { ...input.seedResponse, text: input.seedResponse.text.trim() };
+  } else if (generationMode === 'present') {
+    if (!input.seedResponse) throw new Error('Presentation conversation mode requires a canonical result');
+    base = { ...input.seedResponse, text: input.seedResponse.text.trim() };
   } else {
+    // Ordinary conversation: the conversational model is the response author. Router output is never used as a reply seed.
     base = await queryUnifiedAI(input.prompt, {
       provider: conversationProvider,
       systemPrompt: contextualSystemPrompt || input.systemPrompt,
@@ -141,55 +150,57 @@ export async function generateConversationalResponse(input: ConversationalGenera
   let attempts = 1;
   let escalated = false;
 
-  const needsRepair = assessment.issues.length > 0 && (
-    assessment.repairable ||
-    assessment.issues.some(issue => CONVERSATIONAL_REPAIR_REQUIRED.has(issue)) ||
-    !assessment.conversational
-  );
+  if (generationMode !== 'deterministic') {
+    const needsRepair = assessment.issues.length > 0 && (
+      assessment.repairable ||
+      assessment.issues.some(issue => CONVERSATIONAL_REPAIR_REQUIRED.has(issue)) ||
+      !assessment.conversational
+    );
 
-  if (needsRepair && contract.mode !== 'control') {
-    const provider = strongerProvider(conversationProvider);
-    try {
-      const repaired = await queryUnifiedAI(buildRepairPrompt(input.prompt, contract, assessment), {
-        provider,
-        systemPrompt: contextualSystemPrompt || input.systemPrompt,
-        phone: input.phone,
-        threadId: input.threadId,
-        conversational: true,
-        contextHint: input.contextHint,
-      });
-      const repairedAssessment = assess(input, contract, repaired.text);
-      attempts += 1;
-      if (!responseViolatesActionPosture(repaired.text, contract) && (repairedAssessment.score >= assessment.score || repairedAssessment.conversational)) {
-        response = repaired;
-        assessment = repairedAssessment;
-        escalated = repaired.provider !== base.provider || repaired.model !== base.model;
+    if (needsRepair && contract.mode !== 'control') {
+      const provider = strongerProvider(conversationProvider);
+      try {
+        const repaired = await queryUnifiedAI(buildRepairPrompt(input.prompt, contract, assessment), {
+          provider,
+          systemPrompt: contextualSystemPrompt || input.systemPrompt,
+          phone: input.phone,
+          threadId: input.threadId,
+          conversational: true,
+          contextHint: input.contextHint,
+        });
+        const repairedAssessment = assess(input, contract, repaired.text);
+        attempts += 1;
+        if (!responseViolatesActionPosture(repaired.text, contract) && (repairedAssessment.score >= assessment.score || repairedAssessment.conversational)) {
+          response = repaired;
+          assessment = repairedAssessment;
+          escalated = repaired.provider !== base.provider || repaired.model !== base.model;
+        }
+      } catch {
+        // Preserve the original truthful response if bounded repair is unavailable.
       }
-    } catch {
-      // Preserve the original truthful response if bounded repair is unavailable.
     }
-  }
 
-  if (responseViolatesActionPosture(response.text, contract) && contract.mode !== 'control') {
-    const provider = strongerProvider(conversationProvider);
-    try {
-      const strictRepair = await queryUnifiedAI(buildStrictRepairPrompt(input.prompt, contract), {
-        provider,
-        systemPrompt: contextualSystemPrompt || input.systemPrompt,
-        phone: input.phone,
-        threadId: input.threadId,
-        conversational: true,
-        contextHint: input.contextHint,
-      });
-      const strictAssessment = assess(input, contract, strictRepair.text);
-      attempts += 1;
-      if (!responseViolatesActionPosture(strictRepair.text, contract) && strictAssessment.conversational) {
-        response = strictRepair;
-        assessment = strictAssessment;
-        escalated = true;
+    if (responseViolatesActionPosture(response.text, contract) && contract.mode !== 'control') {
+      const provider = strongerProvider(conversationProvider);
+      try {
+        const strictRepair = await queryUnifiedAI(buildStrictRepairPrompt(input.prompt, contract), {
+          provider,
+          systemPrompt: contextualSystemPrompt || input.systemPrompt,
+          phone: input.phone,
+          threadId: input.threadId,
+          conversational: true,
+          contextHint: input.contextHint,
+        });
+        const strictAssessment = assess(input, contract, strictRepair.text);
+        attempts += 1;
+        if (!responseViolatesActionPosture(strictRepair.text, contract) && strictAssessment.conversational) {
+          response = strictRepair;
+          assessment = strictAssessment;
+          escalated = true;
+        }
+      } catch {
+        // Keep the bounded truthful response if the strict retry is unavailable.
       }
-    } catch {
-      // Keep the bounded truthful response if the strict retry is unavailable.
     }
   }
 
@@ -200,5 +211,6 @@ export async function generateConversationalResponse(input: ConversationalGenera
     escalated,
     attemptCount: attempts,
     contextTurns: contextPack.turns,
+    generationMode,
   };
 }
