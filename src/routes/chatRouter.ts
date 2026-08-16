@@ -10,6 +10,8 @@ import { applyQrReferralAttribution } from '../services/qrContextService.js';
 import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 import { getAuthState, setAuthState } from '../services/conversationalAuthService.js';
 import economicRequestRouter from './economicRequestRouter.js';
+import { listUniversalCapabilities } from '../services/universalCapabilityProtocol.js';
+import { executeCanonicalCapabilityProposal } from '../services/canonicalCapabilityExecutor.js';
 
 const router = Router();
 
@@ -46,6 +48,53 @@ function userPhone(req: AuthRequest, res?: any): string | null {
 }
 
 router.use('/economic-requests', authenticateUser, economicRequestRouter);
+
+router.post('/action', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = userPhone(req);
+  const body = req.body?.proposal && typeof req.body.proposal === 'object' ? { ...req.body.proposal, ...req.body } : req.body || {};
+  if (!phone || phone.startsWith('anon_')) return res.status(401).json({ error: 'Authenticated owner is required' });
+  if (typeof body.capability !== 'string' || typeof body.action !== 'string') return res.status(400).json({ error: 'capability and action are required' });
+  try {
+    const result = await executeCanonicalCapabilityProposal({
+      phone,
+      capability: body.capability.slice(0, 120),
+      action: body.action.slice(0, 120),
+      contextId: typeof body.contextId === 'string' ? body.contextId.slice(0, 180) : undefined,
+      canonicalObjectId: typeof body.canonicalObjectId === 'string' ? body.canonicalObjectId.slice(0, 180) : undefined,
+      arguments: body.arguments && typeof body.arguments === 'object' ? body.arguments : undefined,
+      confidence: body.confidence,
+      reason: typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined,
+      confirmationRequired: Boolean(body.confirmationRequired),
+      confirmationGranted: Boolean(body.confirmationGranted || body.confirmed),
+      idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey.slice(0, 180) : undefined,
+      conversationId: typeof body.conversationId === 'string' ? body.conversationId.slice(0, 180) : undefined,
+      channel: typeof body.channel === 'string' ? body.channel.slice(0, 30) : undefined,
+    });
+    const statusCode = result.status === 'unauthorized' ? 403 : result.status === 'invalid' ? 400 : result.status === 'stale_context' ? 409 : 200;
+    res.status(statusCode).json({ success: !['invalid', 'unauthorized', 'stale_context', 'failed', 'blocked'].includes(result.status), protocol: 'kurukoo-universal-capability-v1', result });
+  } catch (error) {
+    console.error('[Chat] canonical capability action failed:', error);
+    res.status(500).json({ error: 'Unable to execute the canonical capability action' });
+  }
+});
+
+router.get('/capabilities', async (req: AuthRequest, res) => {
+  try {
+    const requestedMode = typeof req.query.mode === 'string' ? req.query.mode : undefined;
+    const catalog = await listUniversalCapabilities();
+    const capabilities = requestedMode ? catalog.filter(item => item.mode === requestedMode) : catalog;
+    res.json({
+      success: true,
+      protocol: 'kurukoo-universal-capability-v1',
+      canonicalOwners: ['canonicalChatTurnService', 'canonical domain services', 'agentRuntime'],
+      capabilities,
+    });
+  } catch (error) {
+    console.error('[Chat] capability catalog failed:', error);
+    res.status(500).json({ error: 'Unable to load the canonical capability catalog' });
+  }
+});
+
 function sse(res: any, payload: any) { res.write(`data: ${JSON.stringify(payload)}\n\n`); }
 function chunkText(text: string): string[] { const chunks: string[] = []; const source = String(text || ''); for (let i = 0; i < source.length; i += 24) chunks.push(source.slice(i, i + 24)); return chunks; }
 
@@ -99,9 +148,10 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
     if (turn.progressStage && turn.progressStage !== 'complete') sse(res, { type: 'progress', stage: turn.progressStage, label: turn.progressStage === 'understanding' ? 'Understanding your request…' : turn.progressStage === 'checking' ? 'Checking the available Kurukoo state…' : turn.progressStage === 'coordinating' ? 'Preparing the next supported step…' : 'Preparing your request…', grounded: true });
     if (turn.authSuccess) sse(res, { type: 'auth_success', phone: turn.authSuccess.phone });
     if (turn.agentGoal) sse(res, { type: 'agent_goal', goal: turn.agentGoal });
+    if (turn.capabilityResult) sse(res, { type: 'capability_result', result: turn.capabilityResult });
     for (const chunk of chunkText(fullReply)) sse(res, { type: 'text', content: chunk });
     sse(res, { type: 'status', status: 'complete' });
-    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, diagnostics: { classificationSource: turn.classificationSource, intentConfidence: turn.intentConfidence, modelProvider: turn.modelProvider, model: turn.model, latencyMs: turn.latencyMs, extractionSource: turn.extractionSource, extractedEntities: turn.extractedEntities, canonicalAction: turn.canonicalAction, progressStage: turn.progressStage, contextDecision: turn.contextDecision ? { selectedContext: turn.contextDecision.selectedContext, selectedContextId: turn.contextDecision.selectedContextId, relation: turn.contextDecision.relation, confidence: turn.contextDecision.confidence, ambiguous: turn.contextDecision.ambiguous, preserveContextIds: turn.contextDecision.preserveContextIds } : undefined, finalState: cardData?.status || cardData?.state || cardData?.stage } });
+    sse(res, { type: 'done', fullReply: fullReply.trim(), cardData, conversationId: activeConversation, diagnostics: { classificationSource: turn.classificationSource, intentConfidence: turn.intentConfidence, modelProvider: turn.modelProvider, model: turn.model, latencyMs: turn.latencyMs, extractionSource: turn.extractionSource, extractedEntities: turn.extractedEntities, canonicalAction: turn.canonicalAction, progressStage: turn.progressStage, contextDecision: turn.contextDecision ? { selectedContext: turn.contextDecision.selectedContext, selectedContextId: turn.contextDecision.selectedContextId, relation: turn.contextDecision.relation, confidence: turn.contextDecision.confidence, ambiguous: turn.contextDecision.ambiguous, preserveContextIds: turn.contextDecision.preserveContextIds } : undefined, capabilityResult: turn.capabilityResult, finalState: cardData?.status || cardData?.state || cardData?.stage } });
     sse(res, '[DONE]');
     res.end();
   } catch (error: any) {

@@ -1,6 +1,6 @@
 # Kurukoo Central Chat Surface Contract
 
-**Status:** Current implementation contract as of 2026-08-15.
+**Status:** Current implementation contract as of 2026-08-16.
 
 ## Purpose
 
@@ -73,6 +73,10 @@ Workspace actions returning to Chat use **logo → Ask**. The Kurukoo logo silho
 
 Responsive behavior must support 360px and wider screens. Multi-column content collapses to one column on narrow viewports, long text wraps, images are fluid, and interactive controls remain touch-friendly. Horizontal overflow is not permitted for a surface itself.
 
+### PWA cache freshness
+
+The Chat PWA caches an offline shell, but its canonical Chat controllers and shared style assets are freshness-sensitive. The service worker therefore keeps versioned static, page, and shell caches, while fetching `/js/kurukoo-primary-chat.js`, `/js/kurukoo-workspace.js`, `/css/site.css`, `/css/kurukoo-chat.css`, `/css/kurukoo-workspace.css`, and `/sw.js` network-first with cached fallback. This allows an installed app to recover offline without allowing an old controller or stylesheet to override a later deployment. The Chat entrypoint continues to reference canonical asset paths; temporary alias assets are not part of the product contract.
+
 ## Advert representation
 
 Sponsored, Daily Picks, discovery, workspace promotion, and inline advert images must be active admin-managed campaigns or approved local assets seeded by `src/services/adManager.ts`. Frontend-only placeholder image URLs are not permitted. Campaign records define image, placement, category, audience/keyword, disclosure, priority, schedule, destination and CTA. The Admin advert image library exposes approved Kurukoo assets, including local informal-economy and diaspora-focused creatives.
@@ -138,9 +142,11 @@ A conservative product card should support progressive disclosure: show item/off
 
 Connect is a setup and activation surface, not a generic channel brochure. It explains that WhatsApp, Telegram, SMS, USSD, Email, Push and Voice use the same Kurukoo identity but become connected only after provider credentials, callbacks and delivery verification are present. When Connect is active, the right inspector shows a compact Channel setup card with the current Web Chat, WhatsApp and Telegram capability states and a Manage channels action.
 
+If a workspace route redirects a guest to login, the Chat shell must not inject that login document into the central surface. It renders a view-specific guest panel instead. Discover explains source-attributed entities and verification lifecycle; Connect explains channel evidence; and Topics explains community-context limits. The same rule applies to every auth-gated central surface: retain the shared shell and composer, present the correct surface context, and never create persistent state until authentication succeeds.
+
 Top up and Subscription are central Chat surfaces reachable from the More navigation group. Top up explains Points and credit review while preserving payment-gated language; it must not imply that opening the surface completes a payment. Subscription explains plan review and routes the user back into conversational review, with a payment reference required before any change. Both surfaces use the same generated logo → Ask heading action and the same central surface shell.
 
-The live Chat message presentation follows the homepage request-preview language without copying its legacy green user bubble. Assistant content remains a quiet white surface with the Kurukoo avatar, while user content uses a warm off-white surface, compact rounded geometry, a restrained border, and icon-only actions that appear more clearly on hover or keyboard focus. Existing copy, edit, retry, delete, pin, streaming, accessibility labels and message safety behavior remain unchanged.
+The live Chat message presentation follows the homepage request-preview language without copying its legacy green user bubble. Assistant content remains a quiet white surface with the Kurukoo avatar, while user content uses a clean white surface with compact rounded geometry, a restrained neutral border, and icon-only actions that appear more clearly on hover or keyboard focus. Existing copy, edit, retry, delete, pin, streaming, accessibility labels and message safety behavior remain unchanged.
 
 
 ## Full Chat-first route and role wiring audit
@@ -238,3 +244,12 @@ The idempotency record is evidence of the canonical action response, not evidenc
 Question-form assistance is routed through the existing content and Topic authorities before direct provider matching or generic AI fallback when a relevant source exists. The Chat projection is source-attributed and explicitly carries `noProviderClaim` and `noExecutionClaim` truth markers. It may offer `Find verified help` as the next conversational step, but it does not convert editorial guidance, a public Topic, an affiliate reference, or a sponsored placement into a provider recommendation or availability claim. An explicit user request to find, hire, book, order, or get someone retains the canonical Economic Request flow.
 
 This keeps the path `assistance → information/guidance → optional discovery → selection → Economic Request → execution/evidence/recovery` inside the same Chat relationship. Native Resources, Help, Topics, Discover, Requests, Tasks, Notifications and product cards remain projections of their canonical owners rather than independent state systems.
+
+
+## Universal capability result integration
+
+The central Chat surface consumes the same canonical capability/action contract used by the backend and configured channel adapters. A turn may return ordinary text, an existing structured card, a `capability_result`, progress, confirmation, evidence, failure or recovery actions. The result is presented inside the existing assistant message/workspace renderer; no second action renderer is introduced. The authenticated `POST /api/chat/action` route is the explicit execution boundary for universal capability proposals: it validates the owner, exact canonical object, conversation scope, confirmation policy and idempotency key before dispatching to the existing canonical service owner.
+
+The browser stores only the returned presentation state and exact canonical identity needed for continuation. It does not authorize or execute actions. Supported authenticated Economic Request card decisions such as update, cancellation and provider selection re-enter through `/api/chat/action`; the returned canonical card projection is rendered in place. Other Economic Request decisions and provider-dependent actions continue through their existing canonical Economic Request route until their corresponding universal adapter is implemented, and are not treated as externally completed merely because a card was clicked. Notification, workspace, reminder, memory and agent actions preserve the explicit `contextId`, `objectType` and `objectId` or fail closed. A user can move between conversation, Economic Request, provider selection, reminder, notification, memory, agent, payment and channel context without silently switching canonical objects.
+
+Guest surfaces remain view-specific and do not inject login documents into Chat. Capability status is displayed using the shared Chat message styles. External activation states remain visible as unavailable or externally pending until provider evidence exists.
