@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 
 interface FirebaseServiceAccount {
   project_id?: string;
@@ -22,6 +23,18 @@ export interface FcmSendResult {
 let cachedAccessToken: { token: string; expiresAt: number } | null = null;
 
 function readServiceAccount(): FirebaseServiceAccount | null {
+  const pathValue = process.env.FCM_SERVICE_ACCOUNT_PATH || '';
+  if (pathValue) {
+    try {
+      // fs is only loaded when a file path is actually configured, keeping the
+      // module importable without a Node fs side effect until needed.
+      const require = createRequire(import.meta.url);
+      const parsed = JSON.parse(require('node:fs').readFileSync(pathValue, 'utf8')) as FirebaseServiceAccount;
+      if (parsed.project_id && parsed.client_email && parsed.private_key) return parsed;
+    } catch {
+      return null;
+    }
+  }
   const raw = String(process.env.FCM_SERVICE_ACCOUNT_JSON || '').trim();
   if (raw) {
     try {
