@@ -74,19 +74,16 @@ function inferRetryReason(decision: ConversationIntelligenceDecision): Conversat
 
 export function buildConversationTurnContract(input: ConversationIntelligenceInput): ConversationTurnContract {
   const decision = decideConversationIntelligence(input);
-  const protectedContextIds = unique([
-    ...(input.activeContextIds || []),
-    ...(input.currentGoal ? [input.currentGoal] : []),
-    ...(decision.shouldPreserveExistingContext ? input.contextHint?.preserveContextIds : []),
-  ]);
+  const protectedContextIds = unique(input.activeContextIds || []);
   const protectedGoalIds = unique(input.pausedGoals || []);
+  if (input.currentGoal) protectedGoalIds.push(input.currentGoal);
 
   return {
     ...decision,
     actionPosture: inferActionPosture(decision),
     retryReason: inferRetryReason(decision),
-    protectedContextIds,
-    protectedGoalIds,
+    protectedContextIds: unique(protectedContextIds),
+    protectedGoalIds: unique(protectedGoalIds),
     responseRequirements: buildResponseRequirements(decision),
     modelInstructions: buildModelInstructions(decision),
   } as ConversationTurnContract;
@@ -98,8 +95,8 @@ export function buildConversationalSystemDirective(contract: ConversationTurnCon
     `mode=${contract.mode}`,
     `model_tier=${contract.modelTier}`,
     `action_posture=${contract.actionPosture}`,
-    contract.protectedContextIds.length ? `protected_context_ids=${contract.protectedContextIds.join(',')}` : '',
-    contract.protectedGoalIds.length ? `protected_goal_ids=${contract.protectedGoalIds.join(',')}` : '',
+    contract.protectedContextIds.length ? `protected_context_count=${contract.protectedContextIds.length}` : '',
+    contract.protectedGoalIds.length ? `protected_goal_count=${contract.protectedGoalIds.length}` : '',
     ...contract.responseRequirements.map(item => `requirement=${item}`),
     ...contract.modelInstructions.map(item => `instruction=${item}`),
   ].filter(Boolean);
