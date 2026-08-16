@@ -303,7 +303,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const reminders = await listReminders(phone);
     if (reminders.length && !/^(stop following|stop checking)\b/.test(q)) {
       const cancelled = await cancelReminder(phone, String(reminders[0].id));
-      return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminder.title}**.` : 'I could not cancel that reminder.' };
+      return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminders[0].title}**.` : 'I could not cancel that reminder.' };
     }
     const active = await tryResumeStorefront(phone);
     if (active?.requestId) {
@@ -336,17 +336,10 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const safetyGuidance = 'If anyone is in immediate danger, contact your local emergency service now (112 in Nigeria). I can help you record the situation and coordinate next steps, but I am not an emergency responder.';
     const triageReply = result.success && result.reply && !/service request, payment, dispute, profile, or earning opportunity/i.test(result.reply) ? `\n\n${result.reply}` : '';
     const safetyCard = {
-      type: 'safety_guidance',
-      stage: 'safety',
-      skill: 'emergency',
-      category: 'emergency-dispatch',
-      title: 'Safety guidance',
+      type: 'safety_guidance', stage: 'safety', skill: 'emergency', category: 'emergency-dispatch', title: 'Safety guidance',
       message: 'Triage urgency first, show emergency limitations, and route only to verified public or provider contacts.',
       fields: [{ key: 'objective', label: 'What outcome do you need?', required: true }, { key: 'timing', label: 'When or deadline', required: false }],
-      actions: [{ id: 'continue_guidance', label: 'Continue in Chat', style: 'primary' }],
-      progress: 45,
-      canonicalAction: 'skill_flow.safety',
-      progressStage: 'safety',
+      actions: [{ id: 'continue_guidance', label: 'Continue in Chat', style: 'primary' }], progress: 45, canonicalAction: 'skill_flow.safety', progressStage: 'safety',
     };
     return { skill: 'emergency', reply: `${safetyGuidance}${triageReply}`, cardData: safetyCard, canonicalAction: 'skill_flow.safety', progressStage: 'safety' };
   }
@@ -356,11 +349,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const addMatch = q.match(/add\s+(.+?)\s+as\s+(?:my\s+)?(?:emergency|safety)\s+contact/i);
     if (addMatch) {
       const name = addMatch[1].trim();
-      return {
-        skill: 'safety_contact',
-        reply: `I've captured **${name}** as a potential safety contact. To finish adding them, please provide their phone number.`,
-        cardData: { type: 'safety_contact_capture', name }
-      };
+      return { skill: 'safety_contact', reply: `I've captured **${name}** as a potential safety contact. To finish adding them, please provide their phone number.`, cardData: { type: 'safety_contact_capture', name } };
     }
     return { skill: 'safety_contact', reply: 'I can manage your safety contacts. You can add a contact by saying “Add [Name] as my emergency contact” or review them in the context inspector.', cardData: suggestionCard('safety_contact') };
   }
@@ -370,11 +359,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const providerSkill = providerSkillMatch === 'plumbing' ? 'plumber' : providerSkillMatch;
     if (providerSkill) {
       const location = q.match(/\b(?:in|around|near)\s+([a-z][a-z -]{2,40}?)(?=\s+(?:and|can|tomorrow|today|available)\b|[,.!?]|$)/i)?.[1]?.trim() || null;
-      return {
-        skill: 'provider_onboarding',
-        reply: `I can help you add **${providerSkill}** to your provider profile${location ? ` for ${location}` : ''}. I will not publish or mark you available automatically. Confirm the skill and location, then I can save the profile update; availability, pricing, verification, and job matching remain separate steps.`,
-        cardData: { type: 'provider_profile_setup', status: 'review_required', skill: providerSkill, location, source: 'explicit_provider_statement' },
-      };
+      return { skill: 'provider_onboarding', reply: `I can help you add **${providerSkill}** to your provider profile${location ? ` for ${location}` : ''}. I will not publish or mark you available automatically. Confirm the skill and location, then I can save the profile update; availability, pricing, verification, and job matching remain separate steps.`, cardData: { type: 'provider_profile_setup', status: 'review_required', skill: providerSkill, location, source: 'explicit_provider_statement' } };
     }
   }
 
@@ -386,9 +371,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     try {
       const resumed = await tryResumeStorefront(phone);
       if (resumed) return { skill: resumed.skill || 'find_worker', reply: resumed.message, cardData: resumed };
-    } catch (e) {
-      console.warn('[Router] resume failed:', e);
-    }
+    } catch (e) { console.warn('[Router] resume failed:', e); }
   }
 
   if (phone && q.length <= 80 && !matchCanonicalSkill(q) && !/^(continue|ask the community|keep checking)\b/.test(q)) {
@@ -400,26 +383,14 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     try {
       const offers = await searchKnownEconomicOffers(query, 3);
       if (offers.length) return { skill: 'product_sourcing', reply: `I found ${offers.length === 1 ? 'a known seller offer' : 'known seller offers'} matching that reference. Choose one to start a single Economic Request.`, cardData: { type: 'agentic_storefront', stage: 'offer_review', skill: 'product_sourcing', title: 'Known seller offers', message: 'Choose a verified seller offer to continue.', knownOffers: offers, escrowProtected: false, progress: 55 } };
-    } catch (e) {
-      console.warn('[Router] known offer lookup failed:', e);
-    }
+    } catch (e) { console.warn('[Router] known offer lookup failed:', e); }
   }
 
   const assistanceQuestion = /^(how do i|how can i|what should i do|what is the best way|why is|what does)\b/i.test(q) && !/\b(?:find someone|find me|book|hire|order|get me|need someone|who can)\b/i.test(q);
   if (assistanceQuestion) {
-    const assistance = await getAssistanceOutcome(query).catch((error) => {
-      console.warn('[Router] assistance question projection unavailable:', error);
-      return null;
-    });
+    const assistance = await getAssistanceOutcome(query).catch((error) => { console.warn('[Router] assistance question projection unavailable:', error); return null; });
     if (assistance) {
-      return {
-        skill: assistance.mode === 'support' ? 'support_triage' : 'general_question',
-        reply: `${assistance.mode === 'support' ? 'I found relevant Kurukoo guidance and community context for this issue.' : 'I found relevant Kurukoo guidance and community context.'} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`,
-        cardData: assistance,
-        canonicalAction: assistance.canonicalAction,
-        progressStage: assistance.mode === 'support' ? 'coordination' : 'information',
-        extractionSource: 'deterministic',
-      };
+      return { skill: assistance.mode === 'support' ? 'support_triage' : 'general_question', reply: `${assistance.mode === 'support' ? 'I found relevant Kurukoo guidance and community context for this issue.' : 'I found relevant Kurukoo guidance and community context.'} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`, cardData: assistance, canonicalAction: assistance.canonicalAction, progressStage: assistance.mode === 'support' ? 'coordination' : 'information', extractionSource: 'deterministic' };
     }
   }
 
@@ -436,61 +407,27 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
 
   if (conversationDecision.shouldAvoidAction && (!directSkill || conversationDecision.mode === 'exploration' || conversationDecision.mode === 'clarification')) {
     const ai = await queryUnifiedAI(query, { provider, phone, conversational: true, contextHint, threadId });
-    return {
-      skill: 'general_question',
-      reply: ai.text,
-      cardData: ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model, conversationMode: conversationDecision.mode } : undefined,
-      modelProvider: ai.provider,
-      model: ai.model,
-      extractionSource: Object.keys(extractedEntities).length > 1 ? 'deterministic' : 'none',
-      extractedEntities: extractedEntities as Record<string, unknown>,
-      progressStage: 'complete',
-    };
+    return { skill: 'general_question', reply: ai.text, cardData: ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model, conversationMode: conversationDecision.mode } : undefined, modelProvider: ai.provider, model: ai.model, extractionSource: Object.keys(extractedEntities).length > 1 ? 'deterministic' : 'none', extractedEntities: extractedEntities as Record<string, unknown>, progressStage: 'complete' };
   }
 
   if (directSkill && !phone) {
     const flow = getSkillFlow(directSkill);
-    return {
-      skill: directSkill,
-      reply: flowReply(directSkill, flow),
-      cardData: decorateCardWithSuggestions(actionCard(directSkill), directSkill),
-      extractedEntities: extractedEntities as Record<string, unknown>,
-      extractionSource: 'deterministic',
-    };
+    return { skill: directSkill, reply: flowReply(directSkill, flow), cardData: decorateCardWithSuggestions(actionCard(directSkill), directSkill), extractedEntities: extractedEntities as Record<string, unknown>, extractionSource: 'deterministic' };
   }
-  if (directSkill === 'event_coverage' && phone) {
-    return {
-      skill: 'event_coverage',
-      reply: 'I can help you prepare event evidence for review. Share the event, location, date, and what you personally observed; your submission remains a contributor record and does not verify a provider or create a payment request.',
-      cardData: { type: 'event_coverage', status: 'offer', mode: 'contributor_evidence', moderation: 'required', privateByDefault: true },
-    };
-  }
-  if (directSkill === 'national_events' && phone) {
-    return { skill: 'national_events', reply: 'I can show public event information and daily picks. I will not imply attendance, availability, booking, or payment.', cardData: { type: 'events_list', status: 'public_information' } };
-  }
-  if (directSkill === 'sports_matchmaking' && phone) {
-    return { skill: 'sports_matchmaking', reply: 'I can help coordinate a sports activity. Tell me the sport, location, timing, and number of participants; no participant or venue is confirmed until the supported flow records it.', cardData: { type: 'sports_search', status: 'coordination_needed' } };
-  }
+  if (directSkill === 'event_coverage' && phone) return { skill: 'event_coverage', reply: 'I can help you prepare event evidence for review. Share the event, location, date, and what you personally observed; your submission remains a contributor record and does not verify a provider or create a payment request.', cardData: { type: 'event_coverage', status: 'offer', mode: 'contributor_evidence', moderation: 'required', privateByDefault: true } };
+  if (directSkill === 'national_events' && phone) return { skill: 'national_events', reply: 'I can show public event information and daily picks. I will not imply attendance, availability, booking, or payment.', cardData: { type: 'events_list', status: 'public_information' } };
+  if (directSkill === 'sports_matchmaking' && phone) return { skill: 'sports_matchmaking', reply: 'I can help coordinate a sports activity. Tell me the sport, location, timing, and number of participants; no participant or venue is confirmed until the supported flow records it.', cardData: { type: 'sports_search', status: 'coordination_needed' } };
   if (directSkill && phone) {
     try {
       if (directSkill === 'product_sourcing') {
         const offers = await searchKnownEconomicOffers(query, 3);
-        if (offers.length) {
-          return {
-            skill: directSkill,
-            reply: `I found ${offers.length === 1 ? 'one known seller offer' : `${offers.length} known seller offers`} matching that product. Choose one to continue through the existing Economic Request flow.`,
-            cardData: { type: 'agentic_storefront', stage: 'offer_review', skill: directSkill, title: 'Known seller offers', message: 'These are verified seller references, not a stock or payment confirmation.', knownOffers: offers, escrowProtected: false, progress: 55 },
-          };
-        }
+        if (offers.length) return { skill: directSkill, reply: `I found ${offers.length === 1 ? 'one known seller offer' : `${offers.length} known seller offers`} matching that product. Choose one to continue through the existing Economic Request flow.`, cardData: { type: 'agentic_storefront', stage: 'offer_review', skill: directSkill, title: 'Known seller offers', message: 'These are verified seller references, not a stock or payment confirmation.', knownOffers: offers, escrowProtected: false, progress: 55 } };
       }
       const workerMatch = q.match(/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/i)?.[1];
       const worker = workerMatch ? (/^plumb/i.test(workerMatch) ? 'plumber' : /^electri/i.test(workerMatch) ? 'electrician' : /^clean|^housekeep/i.test(workerMatch) ? 'house_cleaner' : /^paint/i.test(workerMatch) ? 'painter' : /^decorat/i.test(workerMatch) ? 'decorator' : /^til/i.test(workerMatch) ? 'tiler' : /^roof/i.test(workerMatch) ? 'roofer' : workerMatch.toLowerCase()) : undefined;
       const seed: Record<string, unknown> = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'verified_artist' ? { event_type: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
       const fromTo = query.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:tomorrow|today|on\s+\w+)|[.!?]|$)/i);
-      if (fromTo && (directSkill === 'ride_request' || directSkill === 'ride')) {
-        seed.origin = fromTo[1].trim();
-        seed.destination = fromTo[2].trim();
-      }
+      if (fromTo && (directSkill === 'ride_request' || directSkill === 'ride')) { seed.origin = fromTo[1].trim(); seed.destination = fromTo[2].trim(); }
       const departure = query.match(/\b(today|tonight|tomorrow(?:\s+(?:morning|afternoon|evening|night))?|this\s+weekend|next\s+week|saturday|sunday|monday|tuesday|wednesday|thursday|friday)\b/i);
       if (departure && (directSkill === 'ride_request' || directSkill === 'ride')) seed.departure_time = departure[1];
       if (extractedEntities.location) seed.location = extractedEntities.location;
@@ -504,9 +441,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       const progressStage = card.stage === 'information' ? 'information' : card.stage === 'safety' ? 'safety' : card.stage === 'coordination' ? 'coordination' : card.stage === 'slot_fill' || card.stage === 'intent_extraction' ? 'understanding' : card.stage === 'catalog_match' || card.stage === 'offer_review' || card.stage === 'quote_review' ? 'checking' : card.stage === 'complete' ? 'complete' : 'coordinating';
       const canonicalAction = card.requestId ? 'economic_request.start' : `skill_flow.${card.stage}`;
       return { skill: directSkill, reply, cardData: { ...decorateCardWithSuggestions(card, directSkill), extractedEntities, extractionSource: 'deterministic', canonicalAction, progressStage }, extractedEntities: extractedEntities as Record<string, unknown>, extractionSource: 'deterministic', canonicalAction, progressStage };
-    } catch (e) {
-      console.warn('[Router] storefront start failed:', e);
-    }
+    } catch (e) { console.warn('[Router] storefront start failed:', e); }
   }
 
   if (q.includes('price check') || q.includes('market price') || q.includes('how much is')) {
@@ -541,9 +476,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       try {
         const card = await startStorefrontSession(phone, flowSkill, {});
         return { skill: flowSkill, reply: card.message, cardData: card, classificationSource: classification.source, intentConfidence: classification.confidence };
-      } catch (e) {
-        console.warn('[Router] storefront start failed:', e);
-      }
+      } catch (e) { console.warn('[Router] storefront start failed:', e); }
     }
     const cardData = decorateCardWithSuggestions(actionCard(classification.intent), flowSkill) || suggestionCard(flowSkill);
     const reply = flowReply(flowSkill, flow);
@@ -555,24 +488,12 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     return null;
   });
   if (assistance) {
-    const lead = assistance.mode === 'support'
-      ? 'I found relevant Kurukoo guidance and community context for this issue.'
-      : 'I found relevant Kurukoo guidance and community context.';
-    return {
-      skill: assistance.mode === 'support' ? 'support_triage' : 'general_question',
-      reply: `${lead} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`,
-      cardData: assistance,
-      canonicalAction: assistance.canonicalAction,
-      progressStage: assistance.mode === 'support' ? 'coordination' : 'information',
-      extractionSource: 'deterministic',
-    };
+    const lead = assistance.mode === 'support' ? 'I found relevant Kurukoo guidance and community context for this issue.' : 'I found relevant Kurukoo guidance and community context.';
+    return { skill: assistance.mode === 'support' ? 'support_triage' : 'general_question', reply: `${lead} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`, cardData: assistance, canonicalAction: assistance.canonicalAction, progressStage: assistance.mode === 'support' ? 'coordination' : 'information', extractionSource: 'deterministic' };
   }
 
   const ai = await queryUnifiedAI(query, { provider, phone, conversational: true, contextHint, threadId });
   const cardData: any = ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model } : undefined;
-
-  // Private conversations never use message text as hidden advertising targeting.
-  // Sponsored inventory is resolved only by the public opportunity/placement authority.
   const generalEntities = validateConversationalEntities(extractConversationalEntities(query, classification?.intent), classification?.intent);
   return { skill: 'general_question', reply: ai.text, cardData, modelProvider: ai.provider, model: ai.model, extractionSource: Object.keys(generalEntities).length > 1 ? 'deterministic' : 'none', extractedEntities: generalEntities as Record<string, unknown>, progressStage: 'complete' };
 }
