@@ -123,3 +123,7 @@ After clarification acceptance was implemented, the complete route suite, 205-sk
 “Treat it as new information” is now a canonical memory path. The original ambiguous input is recovered from the owner-scoped clarification card and recorded as a `conversation_context` memory fact with `user_declared` provenance. The active request remains unchanged. If the card cannot be recovered, the operation fails closed without changing either memory or request state.
 
 The expanded natural-interleaving regression passed for both clarification choices. Memory provenance, context arbitration, behavioral Chat, admin routes, TypeScript lint, and production build checks also passed.
+
+## Post-alternative broad regression
+
+After the clarification-memory path was added, the complete route suite, 205-skill audit, PWA contract, security audit, provider-capability tests, voice boundary, WebRTC boundary, FCM boundary, and pilot-readiness assessment passed. External channels, push, voice, payments, relay, MQTT, private-number routing, KYC, inventory, dispatch, and provider networks remain classified by actual local configuration and are not claimed live.
