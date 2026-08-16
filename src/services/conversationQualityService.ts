@@ -145,18 +145,20 @@ export function assessConversationQuality(context: ConversationQualityContext): 
 
 export interface RelativeReferenceResolution {
   reference: string;
-  target: 'current' | 'previous' | 'second' | 'first' | 'other' | 'unknown';
+  target: 'current' | 'previous' | 'second' | 'first' | 'other' | 'attribute' | 'unknown';
   confidence: number;
 }
 
 /** Deterministic hints for arbitration; never mutates canonical state. */
 export function detectRelativeReference(message: string): RelativeReferenceResolution | null {
   const text = normalize(message);
-  if (/\b(?:that one|this one|same one|that guy|that person|that place|same place|same thing)\b/.test(text)) return { reference: message, target: 'current', confidence: 0.84 };
+  if (/\b(?:the cheaper|cheaper one|less expensive|lowest price|best value|more expensive|pricier one)\b/.test(text)) return { reference: message, target: 'attribute', confidence: 0.82 };
+  if (/\b(?:same time|same day|same date|tomorrow instead|today instead|same place|same location)\b/.test(text)) return { reference: message, target: 'attribute', confidence: 0.86 };
+  if (/\b(?:that one|this one|same one|that guy|that person|that place|same thing)\b/.test(text)) return { reference: message, target: 'current', confidence: 0.84 };
   if (/\b(?:the other|other guy|other one|different one)\b/.test(text)) return { reference: message, target: 'other', confidence: 0.88 };
   if (/\b(?:the second|number two|option 2|2nd)\b/.test(text)) return { reference: message, target: 'second', confidence: 0.92 };
   if (/\b(?:the first|number one|option 1|1st)\b/.test(text)) return { reference: message, target: 'first', confidence: 0.92 };
-  if (/\b(?:earlier|previous|before|go back to)\b/.test(text)) return { reference: message, target: 'previous', confidence: 0.86 };
+  if (/\b(?:go back to|earlier|previous|before|the one we discussed)\b/.test(text)) return { reference: message, target: 'previous', confidence: 0.86 };
   return null;
 }
 
@@ -168,8 +170,9 @@ export function classifyConversationDifficulty(message: string, context?: Pick<C
   const pending = context?.pendingFields?.length || 0;
   const correction = /\b(?:actually|instead|forget that|wait|no|change|correct|not that|go back|resume)\b/i.test(text);
   const multiPart = /[.!?].+[.!?]/s.test(text);
-  if (references && contexts > 1 || correction && (contexts > 0 || pending > 0) || words > 60 || contexts > 2) return 'deep';
-  if (references || correction || contexts > 1 || multiPart || words > 35) return 'complex';
+  const comparative = /\b(?:cheaper|pricier|better|worse|same|different|instead|rather than)\b/i.test(text);
+  if ((references && contexts > 1) || (correction && (contexts > 0 || pending > 0)) || words > 60 || contexts > 2) return 'deep';
+  if (references || correction || comparative || contexts > 1 || multiPart || words > 35) return 'complex';
   if (pending > 0 || words > 15 || /\b(?:why|how|compare|explain|maybe|could)\b/i.test(text)) return 'normal';
   return 'simple';
 }
