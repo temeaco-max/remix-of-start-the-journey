@@ -12,6 +12,7 @@
     "start": "node dist/server.js",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
+    "test:conversation-quality": "tsx scripts/test-conversation-quality-guard.ts",
     "audit:css": "node scripts/audit-inline-css.mjs",
     "audit:css:strict": "node scripts/audit-inline-css.mjs --strict",
     "audit:css:all": "node scripts/audit-css-system.mjs",
@@ -151,14 +152,12 @@
     "sql.js": "^1.12.0",
     "teleproto": "^1.228.5"
   },
-  "overrides": {
-    "sharp": "0.35.3"
-  },
+  "overrides": {"sharp": "0.35.3"},
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.17",
     "@types/ejs": "^3.1.5",
-    "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.14.0",
     "@types/sql.js": "^1.4.9",
