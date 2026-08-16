@@ -759,7 +759,7 @@
         }
 
         function loadTrustReadiness() {
-            fetch('/api/admin/trust/readiness', { credentials: 'same-origin' })
+            fetch('/api/admin/trust/readiness', { credentials: 'same-origin', headers: { 'x-admin-token': localStorage.getItem('kurukoo_admin') || '' } })
                 .then(res => res.json())
                 .then(data => {
                     const grid = document.getElementById('trust-readiness-grid');
