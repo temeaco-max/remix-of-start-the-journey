@@ -5,7 +5,7 @@ import { routeIntent } from './intentRouter.js';
 import { getAuthState, setAuthState, handleConversationalAuth } from './conversationalAuthService.js';
 import { handleSafetyContactInput, setSafetyCaptureState } from './safetyService.js';
 import { cancelAgentGoal, createConversationGoal, goalTimeline, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
-import { advanceStorefront, tryResumeStorefront } from './agenticStorefront.js';
+import { advanceStorefront, resumeStorefrontFromRequest, tryResumeStorefront } from './agenticStorefront.js';
 import { getEconomicRequest } from './skillFlows.js';
 import type { IntentRoutingResult } from '../types.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
@@ -187,7 +187,7 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
     reply = result.reply;
     cardData = result.cardData;
   } else {
-    const controlAction = message.trim().match(/^(pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\b/i)?.[1].toLowerCase() || '';
+    const controlAction = message.trim().match(/^(?:pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\s*$/i)?.[0].toLowerCase() || '';
     if (!isGuest && controlAction) {
       const timeline = await goalTimeline(phone, input.conversationId);
       if (!timeline.goal) {
@@ -216,9 +216,16 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       await setAuthState(phone, 'none');
     }
     if (!(!isGuest && controlAction)) {
-    const controlCommand = /^(pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\b/i.test(message.trim());
-    const contextSwitch = contextDecision && (contextDecision.relation === 'switch' || (contextDecision.selectedContext !== 'economic_request' && contextDecision.relation === 'create'));
-    const continued = controlCommand || contextSwitch ? null : await continueActiveRequest(phone, input.conversationId, message);
+    const controlCommand = /^(?:pause(?: that| it)?|resume(?: that| it)?|cancel(?: that| it)?|stop following|stop checking)\s*$/i.test(message.trim());
+    const contextSwitch = contextDecision && (contextDecision.relation === 'switch' || contextDecision.relation === 'create');
+    let continued: { reply: string; cardData: any; skill: string } | null = null;
+    if (!controlCommand && !contextSwitch && contextDecision?.relation === 'resume' && contextDecision.selectedContext === 'economic_request') {
+      const requestContextId = contextDecision.selectedContextId?.startsWith('request:') ? contextDecision.selectedContextId.slice('request:'.length) : undefined;
+      const resumed = requestContextId ? await resumeStorefrontFromRequest(phone, requestContextId) : await tryResumeStorefront(phone);
+      if (resumed) continued = { reply: resumed.message, cardData: resumed, skill: resumed.skill };
+    } else if (!controlCommand && !contextSwitch) {
+      continued = await continueActiveRequest(phone, input.conversationId, message);
+    }
     const routing: IntentRoutingResult = continued || await routeIntent(message, phone);
     classificationSource = routing.classificationSource;
     intentConfidence = routing.intentConfidence;

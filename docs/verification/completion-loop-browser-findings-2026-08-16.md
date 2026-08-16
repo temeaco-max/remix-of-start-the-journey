@@ -77,3 +77,11 @@ Validation passed through `test:network-chat`, `test:notification-queue`, `test:
 The local Chat surface rendered the canonical workspace shell with the shared composer, unified left navigation, More control, Radar readiness, notification control, context inspector, channel readiness cards, and central conversation surface. The guest identity flow remained truthful: the UI disclosed that external SMS/WhatsApp delivery was not configured, and the synthetic code was rejected rather than promoting the session. The screenshot was captured at `/home/ubuntu/screenshots/localhost_2026-08-16_08-35-27_9388.webp`.
 
 The arbitration layer now recognizes explicit new-request language and topic-resumption phrases. A new request can be opened without consuming the previous request’s pending slot, while phrases such as “resume my request” select the Economic Request context rather than the agent-control context. The expanded context-arbitration and behavioral Chat regressions passed, and TypeScript validation passed.
+
+## Natural interleaving and exact request resumption increment
+
+The arbitration layer now discovers active Economic Request and other card-backed contexts across the owner’s recent conversations, while retaining conversation IDs and provenance. Explicit new-request language bypasses active-request slot filling, so a second Economic Request receives a distinct canonical record. Explicit phrases such as “resume my request” select the exact preserved request context and call the existing `resumeStorefrontFromRequest` owner.
+
+During validation, a real defect was found in the Chat control-command guard: prefix matching treated “resume my request” as an autonomous-agent control command and returned “There is no active autonomous objective.” Both control detectors now require exact control commands, allowing multi-word request resumption to reach the canonical storefront path.
+
+The new `test:natural-interleaving` regression passed. It proves memory does not corrupt the active request, a second request is preserved separately, and explicit resumption returns a canonical request card. Context arbitration, behavioral Chat, economic lifecycle, TypeScript lint, and the production build also passed.

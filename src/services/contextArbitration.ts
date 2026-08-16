@@ -1,4 +1,4 @@
-import { listChatMessages } from './chatConversationService.js';
+import { listChatConversations, listChatMessages } from './chatConversationService.js';
 import { getProfile } from './memoryProfile.js';
 
 export type ConversationalContextType =
@@ -36,6 +36,7 @@ export interface ActiveContextSummary {
 
 export interface ContextArbitrationDecision {
   selectedContext: ConversationalContextType;
+  selectedContextId?: string;
   relation: ContextTurnRelation;
   confidence: number;
   ambiguous: boolean;
@@ -107,17 +108,22 @@ export async function arbitrateChatContext(input: {
   if (prefs.auth_in_chat_state && prefs.auth_in_chat_state !== 'none') activeContexts.push({ contextId: `auth:${input.phone}`, type: 'onboarding', state: String(prefs.auth_in_chat_state), provenance: 'memory_profile' });
   if (prefs.safety_capture_state && prefs.safety_capture_state !== 'none') activeContexts.push({ contextId: `safety:${input.phone}`, type: 'safety', state: String(prefs.safety_capture_state), provenance: 'memory_profile' });
 
-  if (input.conversationId) {
-    const history = await listChatMessages(input.phone, { conversationId: input.conversationId, limit: 80 });
+  const conversations = await listChatConversations(input.phone, 8);
+  const conversationIds = Array.from(new Set([
+    input.conversationId,
+    ...conversations.map(conversation => String(conversation.id || '')).filter(Boolean),
+  ].filter(Boolean) as string[]));
+  for (const conversationId of conversationIds) {
+    const history = await listChatMessages(input.phone, { conversationId, limit: 80 });
     for (const row of history.slice().reverse()) {
       const card = parseCard((row as any).card_data);
       const type = inferType(card);
       if (!type) continue;
-      const id = type === 'economic_request' ? `request:${String(card.requestId)}` : `${type}:${input.conversationId}`;
+      const id = type === 'economic_request' ? `request:${String(card.requestId)}` : `${type}:${conversationId}`;
       if (activeContexts.some(context => context.contextId === id)) continue;
       const state = card.status || card.state;
       if (type !== 'economic_request' || !state || ACTIVE_REQUEST_STATES.has(String(state))) {
-        activeContexts.push({ contextId: id, type, conversationId: input.conversationId, state: state ? String(state) : undefined, pendingFields: pendingFieldsFor(card), provenance: 'persisted_card', lastActivity: String((row as any).created_at || '') });
+        activeContexts.push({ contextId: id, type, conversationId, state: state ? String(state) : undefined, pendingFields: pendingFieldsFor(card), provenance: 'persisted_card', lastActivity: String((row as any).created_at || '') });
       }
     }
   }
@@ -130,6 +136,7 @@ export async function arbitrateChatContext(input: {
     const conflictingRequest = request && signal.type !== 'economic_request';
     return {
       selectedContext: signal.type,
+      selectedContextId: (signal.type === 'economic_request' ? request?.contextId : activeContexts.find(context => context.type === signal.type)?.contextId),
       relation: conflictingRequest ? 'switch' : signal.relation,
       confidence: signal.confidence,
       ambiguous: false,
@@ -142,6 +149,7 @@ export async function arbitrateChatContext(input: {
   if (request && isLikelyName(text) && request.pendingFields?.some(field => /location|city|venue|origin|pickup|destination/i.test(field))) {
     return {
       selectedContext: 'topic_switch',
+      selectedContextId: request.contextId,
       relation: 'clarify',
       confidence: 0.55,
       ambiguous: true,
@@ -155,6 +163,7 @@ export async function arbitrateChatContext(input: {
   if (request) {
     return {
       selectedContext: 'economic_request',
+      selectedContextId: request.contextId,
       relation: 'answer',
       confidence: request.pendingFields?.length ? 0.72 : 0.61,
       ambiguous: false,
