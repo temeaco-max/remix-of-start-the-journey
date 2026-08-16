@@ -1,6 +1,6 @@
 import { queryUnifiedAI, type AIProvider, type AIResponse, type ConversationalContextHint } from './unifiedAiEngine.js';
 import { assessConversationQuality, type ConversationQualityAssessment } from './conversationQualityService.js';
-import { buildConversationTurnContract, shouldRetryConversationalGeneration, type ConversationTurnContract } from './conversationTurnContractService.js';
+import { buildConversationTurnContract, type ConversationTurnContract } from './conversationTurnContractService.js';
 
 export interface ConversationalGenerationInput {
   prompt: string;
@@ -88,10 +88,9 @@ export async function generateConversationalResponse(input: ConversationalGenera
 
   let attempts = 1;
   let escalated = false;
-  const retryAllowed = shouldRetryConversationalGeneration(contract) || assessment.repairable;
-  const shouldRepair = retryAllowed && !contract.shouldAvoidAction && assessment.issues.length > 0;
+  const shouldRepair = assessment.repairable && !contract.shouldAvoidAction && assessment.issues.length > 0;
 
-  if (shouldRepair || (!assessment.conversational && contract.mode !== 'control')) {
+  if (shouldRepair || (!assessment.conversational && contract.mode !== 'control' && !contract.shouldAvoidAction)) {
     const provider = strongerProvider(input.provider);
     try {
       const repaired = await queryUnifiedAI(buildRepairPrompt(input.prompt, contract, assessment), {
