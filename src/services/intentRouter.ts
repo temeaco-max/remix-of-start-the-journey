@@ -24,7 +24,7 @@ const CANONICAL_ALIASES: Array<[RegExp, string]> = [
   [/\b(phone|device|laptop|computer|screen)\b.*\brepair\b|\brepair\b.*\b(phone|device|laptop|computer|screen)\b/, 'repair'],
   [/\b(source|source me|find|procure)\b.*\b(product|products|goods|item)\b|\b(phone\s+charger|charger|replacement\s+part|spare\s+part|phone\s+accessory)\b/, 'product_sourcing'],
   [/\b(bodyguard|security guard|security personnel|private security)\b/, 'security_personnel'],
-  [/\b(?:plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b|\bhelp\s+with\s+(?:my\s+)?(?:house|home|garden|yard|roof|kitchen|bathroom|moving)\b|\b(?:can|could|would)\s+(?:someone|anyone)\s+(?:help|clean|fix|repair|paint|move|install|build|assemble)\b/, 'find_worker'],
+  [/\b(?:plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b|\b(?:find|need)(?: me)?\s+(?:someone|a person|a worker)\s+(?:to\s+)?(?:help|clean|fix|repair|paint|move|install|build|assemble)\b|\b(?:fix|repair)\b.*\b(?:tap|faucet|leak|plumbing)\b|\bhelp\s+with\s+(?:my\s+)?(?:house|home|garden|yard|roof|kitchen|bathroom|moving)\b|\b(?:can|could|would)\s+(?:someone|anyone)\s+(?:help|clean|fix|repair|paint|move|install|build|assemble)\b/, 'find_worker'],
   [/\b(order|get|buy)\b.*\b(food|meal|rice|groceries|groceries?)\b/, 'order_food'],
   [/\b(okada|motorbike|motorcycle)\b/, 'okada_rider'],
   [/\bkeke|tricycle\b/, 'keke_driver'],
@@ -107,7 +107,8 @@ function isResumePhrase(q: string): boolean {
 }
 
 function parseReminderQuery(q: string): { dueAt: string; title: string; displayTime: string } | null {
-  const rel = q.match(/^remind me\s+(?:in\s+)?(\d+)\s+(minute|minutes|hour|hours|day|days)\s+(?:to\s+)?(.+)$/i);
+  const input = /^(?:set me a reminder|remind me)\b/i.test(q) ? q.replace(/^set me a reminder\b/i, 'remind me') : q;
+  const rel = input.match(/^remind me\s+(?:in\s+)?(\d+)\s+(minute|minutes|hour|hours|day|days)\s+(?:to\s+)?(.+)$/i);
   if (rel) {
     const amount = Number(rel[1]);
     const unit = rel[2].toLowerCase();
@@ -118,7 +119,7 @@ function parseReminderQuery(q: string): { dueAt: string; title: string; displayT
       return { dueAt, title: rel[3].trim(), displayTime: `in ${amount} ${unit}` };
     }
   }
-  const abs = q.match(/^remind me\s+(?:(every\s+day|every\s+week|daily|weekly)?\s*)?(?:on\s+([a-z]+)\s+)?(?:(tomorrow|today)\s+)?(?:(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+)?(?:to\s+)?(.+)$/i);
+  const abs = input.match(/^remind me\s+(?:(every\s+day|every\s+week|daily|weekly)?\s*)?(?:on\s+([a-z]+)\s+)?(?:(tomorrow|today)\s+)?(?:(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+)?(?:to\s+)?(.+)$/i);
   if (abs) {
     const recurrence = abs[1]?.toLowerCase();
     const day = abs[2]?.toLowerCase();
@@ -319,7 +320,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     }
     return { skill: 'general_question', reply: 'There is no active follow-up for me to cancel.' };
   }
-  if (/^remind me\b/.test(q)) {
+  if (/^(?:remind me|set me a reminder)\b/.test(q)) {
     if (!phone || phone.startsWith('anon_')) return { skill: 'reminder', reply: 'I can save that reminder as soon as you sign in, so it stays with your Kurukoo profile.' };
     const reminder = parseReminderQuery(q);
     if (reminder) {

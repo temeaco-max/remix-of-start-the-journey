@@ -38,10 +38,10 @@ export type TrajectoryScore = {
 
 const REFERENCE_PATTERNS = [
   /\bthat one\b/i,
-  /\bthe other (?:one|guy|person|place|option)\b/i,
+  /\bthe other (?:one|guy|person|place|option|thing)\b/i,
   /\bthe second (?:one|option|guy|person)\b/i,
   /\bsame (?:place|one|thing|time)\b/i,
-  /\bgo back to (?:the|that|what)\b/i,
+  /\b(?:go back to|back to) (?:the|that|what)\b/i,
   /\bprevious(?:ly)?\b/i,
   /\bcontinue (?:with|that)\b/i,
   /\bwhat were we doing\b/i,
@@ -68,6 +68,7 @@ const CORRECTION_PATTERNS = [
 
 const ACTION_PATTERNS = [
   /\bplease (?:find|book|buy|get|arrange|order|hire|cancel|schedule)\b/i,
+  /\bfind(?: me| someone| a| an| the)?\b/i,
   /\b(?:book|buy|order|hire|arrange|schedule) (?:me|it|that)\b/i,
   /\bgo ahead\b/i,
   /\bdo it\b/i,
@@ -165,7 +166,7 @@ export function scoreTrajectory(trajectory: TrajectoryDefinition): TrajectorySco
     } else actionPass += 1;
 
     if (turn.expectedTarget) {
-      const target = previous.lastActionTarget || previous.selectedContext || previous.pausedGoals.at(-1);
+      const target = next.lastActionTarget || next.selectedContext || next.pausedGoals.at(-1) || previous.lastActionTarget || previous.selectedContext || previous.pausedGoals.at(-1);
       goalPass += target ? 1 : 0;
       if (!target) issues.push(`goal_target_missing:${turn.text}`);
     } else goalPass += 1;

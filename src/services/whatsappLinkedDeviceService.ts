@@ -66,7 +66,7 @@ function phoneFromJid(jid: string): string {
   return user ? `+${user.replace(/^\+/, '')}` : '';
 }
 
-export async function processWhatsAppLinkedDeviceMessage(message: any, reply?: (jid: string, text: string) => Promise<void>): Promise<{ accepted: boolean; phone?: string; text?: string; reply?: string; reason?: string }> {
+export async function processWhatsAppLinkedDeviceMessage(message: any, reply?: (jid: string, text: string) => Promise<void>): Promise<{ accepted: boolean; phone?: string; text?: string; reply?: string; channel?: 'whatsapp'; reason?: string }> {
   const jid = String(message?.key?.remoteJid || '');
   if (!jid || message?.key?.fromMe || jid === 'status@broadcast') return { accepted: false, reason: 'ignored_system_or_self_message' };
   const allowGroups = process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_ALLOW_GROUPS === 'true';
@@ -88,7 +88,7 @@ export async function processWhatsAppLinkedDeviceMessage(message: any, reply?: (
   const turn = await processCanonicalChatTurn({ phone, message: text, channel: 'whatsapp' });
   const sendReply = reply || (async (targetJid: string, responseText: string) => { if (socket) await socket.sendMessage(targetJid, { text: responseText }); });
   await sendReply(jid, turn.reply);
-  return { accepted: true, phone, text, reply: turn.reply };
+  return { accepted: true, phone, text, reply: turn.reply, channel: 'whatsapp' };
 }
 
 async function handleInboundMessage(message: any): Promise<void> {

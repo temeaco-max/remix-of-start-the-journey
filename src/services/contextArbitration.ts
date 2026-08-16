@@ -87,9 +87,9 @@ function signalType(text: string): { type: ConversationalContextType; confidence
   const value = lower(text);
   if (/\b(immediate danger|life[- ]threatening|emergency|ambulance|fire service|unsafe|hurt|threat)\b/.test(value)) return { type: 'safety', confidence: 0.99, relation: 'create' };
   if (/^(remember that|remember |what do you remember|forget that|forget )/.test(value)) return { type: 'memory', confidence: 0.98, relation: 'continue' };
-  if (/^(remind me|cancel (the )?reminder|show (my )?reminders)/.test(value)) return { type: 'reminder', confidence: 0.97, relation: 'continue' };
+  if (/^(remind me|set me a reminder|cancel (the )?reminder|show (my )?reminders)/.test(value)) return { type: 'reminder', confidence: 0.97, relation: 'create' };
   if (/^(what notifications|show (my )?notifications|mark .* notification|dismiss .* notification)/.test(value)) return { type: 'notification', confidence: 0.97, relation: 'continue' };
-  if (/^(go back to|resume (?:my|the)|return to|continue with)\b/.test(value)) return { type: 'economic_request', confidence: 0.9, relation: 'resume' };
+  if (/^(?:okay[, ]*)?(go back to|resume (?:my|the)|return to|continue with)\b/.test(value)) return { type: 'economic_request', confidence: 0.9, relation: 'resume' };
   if (/^(use (?:it|that) for the current request|apply (?:it|that) to the current request)\b/.test(value)) return { type: 'economic_request', confidence: 0.96, relation: 'answer' };
   if (/^(treat (?:it|that) as new information|keep (?:it|that) as new information)\b/.test(value)) return { type: 'memory', confidence: 0.96, relation: 'continue' };
   if (/^(change|correct|update|actually|no[, ]|not\b)/.test(value) || /\b(instead|rather)\b/.test(value)) return { type: 'economic_request', confidence: 0.88, relation: 'correction' };
@@ -136,6 +136,34 @@ export async function arbitrateChatContext(input: {
   const relative = detectRelativeReference(text);
   const request = activeContexts.find(context => context.type === 'economic_request');
   const preserved = activeContexts.map(context => context.contextId);
+
+  if (signal?.relation === 'resume') {
+    return {
+      selectedContext: signal.type,
+      selectedContextId: signal.type === 'economic_request' ? request?.contextId : activeContexts.find(context => context.type === signal.type)?.contextId,
+      relation: 'resume',
+      confidence: signal.confidence,
+      ambiguous: false,
+      preserveContextIds: preserved.filter(id => id !== request?.contextId),
+      activeContexts,
+      reason: 'Explicit resume language takes precedence over generic relative-reference detection and targets the owner-scoped request context.',
+    };
+  }
+
+  if (request && /^(?:go ahead|yes|confirm|approve|do it|proceed)\s*[.!]?$/i.test(text)) { return { selectedContext: 'economic_request', selectedContextId: request.contextId, relation: 'answer', confidence: 0.96, ambiguous: false, preserveContextIds: preserved.filter(id => id !== request.contextId), activeContexts, reason: 'Affirmative confirmation is scoped to the current owner-selected economic request before identity-like clarification or generic routing.' }; }
+
+  if (request && /\b(?:the )?(?:cheaper|less expensive|lower[- ]priced|more affordable)\b|\b(?:lower|reduce|cut)\s+(?:the )?price\b/i.test(text)) {
+    return {
+      selectedContext: 'economic_request',
+      selectedContextId: request.contextId,
+      relation: 'answer',
+      confidence: 0.93,
+      ambiguous: false,
+      preserveContextIds: preserved.filter(id => id !== request.contextId),
+      activeContexts,
+      reason: 'Explicit price-comparison language is scoped to the active economic request and does not claim reminder or agent-goal context.',
+    };
+  }
 
   if (relative && activeContexts.length > 0) {
     const candidates = activeContexts.filter(context => context.type !== 'onboarding');

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "seed": "kurukoo-provider-outcome-lab-v1",
-  "generatedAt": "2026-08-16T15:06:07.025Z",
-  "generatedCount": 10000,
+  "generatedAt": "2026-08-16T18:56:52.594Z",
+  "generatedCount": 24000,
   "fullUniverseCount": 28700,
-  "target": 10000,
-  "executedCount": 1000,
-  "executedPassed": 1000,
+  "target": 24000,
+  "executedCount": 0,
+  "executedPassed": 0,
   "executedFailed": 0,
   "skillCount": 205,
   "familyCount": 46,
@@ -89,20 +89,31 @@
       "quote_change"
     ],
     "readiness": {
-      "BLOCKED_BY_EXTERNAL_DEPENDENCY": 4085,
-      "LOCALLY_COMPLETE": 2893,
-      "DEVELOPMENT_FIXTURE_COMPLETE": 2290,
-      "REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED": 732
+      "BLOCKED_BY_EXTERNAL_DEPENDENCY": 9930,
+      "LOCALLY_COMPLETE": 6905,
+      "DEVELOPMENT_FIXTURE_COMPLETE": 5460,
+      "REPOSITORY_READY_EXTERNAL_ACTIVATION_REQUIRED": 1705
     },
-    "linkedDevices": 1012,
-    "qrContexts": 1016
+    "linkedDevices": 2497,
+    "qrContexts": 2424,
+    "horizons": {
+      "5": 3995,
+      "10": 3942,
+      "20": 4068,
+      "40": 4030,
+      "80": 3932,
+      "81": 4033
+    },
+    "totalTurns": 943188,
+    "averageTurns": 39.2995,
+    "multiGoalTrajectories": 24000
   },
   "fileSha256": {
-    "scenarios": "1450d698d1757c46d0a492e5832aa8425dc8e2a1b2d827fb732c9fe5327f0466",
-    "training": "f01bcf52377651ef44285462105b3f0021aee8e80cb5e9a4f042acb52248d6cb"
+    "scenarios": "eefa90d261f36b1ff1ede8840c293a7abf599e2de6f96705b4eccff69cfcb03f",
+    "training": "5c76bff39c9ef4ffe828879161d04a9e931e9a4acb34339ccb2629ee385ffb4a"
   },
-  "executionMode": "isolated_stratified_canonical_route_probe",
-  "executionLimit": 1000,
+  "executionMode": "generation_only",
+  "executionLimit": 0,
   "sourceOfTruth": [
     "src/services/skillFlows.ts",
     "src/services/intentRouter.ts",
@@ -121,5 +132,61 @@
     "STRUCTURALLY_INCOMPLETE",
     "BLOCKED_BY_EXTERNAL_DEPENDENCY",
     "INTENTIONALLY_UNSUPPORTED"
+  ],
+  "trajectoryHorizons": [
+    5,
+    10,
+    20,
+    40,
+    80,
+    81
+  ],
+  "gradingDimensions": [
+    "naturalness",
+    "contextRetention",
+    "goalRetention",
+    "interruptionHandling",
+    "correctionHandling",
+    "clarificationQuality",
+    "ambiguityHandling",
+    "relativeReferenceResolution",
+    "multiGoalTracking",
+    "actionTransitionAccuracy",
+    "schemaAdherence",
+    "hallucinationRate",
+    "unnecessaryQuestionRate",
+    "prematureActionRate",
+    "memoryContamination",
+    "safetyCompliance",
+    "latency",
+    "tokenUsage",
+    "inferenceCost",
+    "failureRecovery"
+  ],
+  "failureOwnershipLabels": [
+    "model_capability",
+    "prompt_context_construction",
+    "memory_assembly",
+    "intent_arbitration",
+    "slot_extraction",
+    "canonical_action_proposal",
+    "ui_card_transition",
+    "deterministic_backend_state"
+  ],
+  "contextPatterns": [
+    "ambiguity",
+    "interruption",
+    "correction",
+    "delayed-answer",
+    "topic-resumption",
+    "simultaneous-contexts",
+    "explicit-object-identity",
+    "relative-reference",
+    "emotional-language",
+    "slang",
+    "typo",
+    "incomplete-utterance",
+    "cancellation",
+    "postponement"
   ]
 }

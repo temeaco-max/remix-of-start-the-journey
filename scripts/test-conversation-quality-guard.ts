@@ -54,7 +54,7 @@ const refs = [
 for (const [message, target] of refs) assert.equal(detectRelativeReference(message)?.target, target);
 
 assert.equal(classifyConversationDifficulty('hello'), 'simple');
-assert.equal(classifyConversationDifficulty('Actually change the time to tomorrow', { activeContextIds: ['request:1'], pendingFields: ['time'] }), 'complex');
+assert.equal(classifyConversationDifficulty('Actually change the time to tomorrow', { activeContextIds: ['request:1'], pendingFields: ['time'] }), 'deep');
 assert.equal(classifyConversationDifficulty('The other one, not the first guy — go back to the one we discussed before', { activeContextIds: ['request:1', 'request:2'] }), 'deep');
 assert.equal(classifyConversationDifficulty('Make it cheaper, but keep Saturday and use the second provider', { activeContextIds: ['request:1'], pendingFields: ['budget'] }), 'complex');
 

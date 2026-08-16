@@ -19,6 +19,9 @@ assert.match(serviceWorker, /url\.pathname\.startsWith\('\/api\/chat'\)/);
 assert.match(serviceWorker, /url\.pathname\.startsWith\('\/admin'\)/);
 assert.match(serviceWorker, /kurukoo-pwa\.js/);
 assert.match(serviceWorker, /ignoreSearch:\s*true/);
+assert.match(serviceWorker, /LIVE_STATIC_PATHS/);
+for (const asset of ['/js/kurukoo-primary-chat.js', '/js/kurukoo-workspace.js', '/css/site.css', '/css/kurukoo-chat.css', '/css/kurukoo-workspace.css', '/sw.js']) assert.ok(serviceWorker.includes(asset), `PWA freshness policy must cover ${asset}`);
+assert.match(serviceWorker, /LIVE_STATIC_PATHS\.has\(url\.pathname\)/);
 assert.match(pwaClient, /navigator\.serviceWorker\.register\('\/sw\.js'/);
 assert.match(pwaClient, /updateViaCache:\s*'none'/);
 assert.match(pwaClient, /controllerchange/);
@@ -34,4 +37,4 @@ assert.match(pwaClient, /Back online/);
 assert.match(pwaClient, /You’re offline/);
 assert.match(offline, /id="retry-button"/);
 
-console.log('PWA contract passed: standalone Chat launch, service-worker update lifecycle, offline fallback, and dynamic route exclusions are present.');
+console.log('PWA contract passed: standalone Chat launch, service-worker update lifecycle, offline fallback, dynamic route exclusions, and canonical Chat asset freshness are present.');

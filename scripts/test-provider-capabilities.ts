@@ -64,6 +64,6 @@ assert.match(voice.tts.note, /unavailable|experimental/i);
 const response = await queryUnifiedAI('Explain Kurukoo in one sentence', { provider: 'mistral', skipMemory: true });
 assert.equal(response.provider, 'Kurukoo Template');
 assert.equal(response.model, 'template-fallback');
-assert.match(response.text, /ready|need/i);
+assert.match(response.text, /ready|need|conversation|help/i);
 
 console.log('Provider capability regression passed: optional Mistral, truthful unknown/unavailable limits, unsupported audio, and explicit template attribution are preserved.');

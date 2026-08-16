@@ -1093,7 +1093,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
   box-shadow: 0 1px 1px rgba(0,0,0,0.1);
 }
 .message.bot { background: var(--white); align-self: flex-start; border-top-left-radius: 0; }
-.message.user { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; }
+.message.user { background: transparent; align-self: flex-end; border-top-right-radius: 0; }
 
 .message-time {
   font-size: 0.6rem;
@@ -1102,7 +1102,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
   margin-top: 4px;
   display: block;
 }
-.message.user .message-time { color: #66b466; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.message.user .message-time { color: var(--chat-muted, #777); display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 
 /* Horizontal Scroll for Mobile */
 @media (max-width: 768px) {

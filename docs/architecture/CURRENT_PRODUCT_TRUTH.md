@@ -114,3 +114,14 @@ KURUKOO_AGENT_ENABLED=true KURUKOO_AGENT_AUTONOMOUS=true npm run dev
 Open `http://127.0.0.1:3001/chat/`. The local model is the configured SmolLM2 checkpoint (`SMOLLM2_MODEL`, default `HuggingFaceTB/SmolLM2-1.7B-Instruct`; local proving used `HuggingFaceTB/SmolLM2-360M-Instruct`). No provider API key is required for local inference. If local inference is unavailable, the same canonical path falls back to bounded truthful Kurukoo templates. Hosted model use requires its own configured key, privacy/retention decision, quota review and independent provider validation; no external capability is represented as live without evidence.
 
 The focused human-style regression is `npm run test:conversational-intelligence`. It covers ordinary dialogue, emotional language, incomplete phone troubleshooting, interruption, correction, context clarification, action transition, bounded memory, and prompt-injection resistance. This test demonstrates repository behaviour; it is not a substitute for human quality review or external-provider validation.
+
+
+## Universal capability/action protocol truth
+
+Natural language is the primary user interface. The AI coordinates canonical Kurukoo capabilities, while canonical domain services remain authoritative for state, authorization, consent, execution and evidence.
+
+The shared protocol is implemented by `src/services/universalCapabilityProtocol.ts` and exposed through the existing Chat API at `GET /api/chat/capabilities`. It projects the existing skill catalog and bounded agent tools into one machine-readable descriptor. The descriptor includes owner, mode, permissions, risk, consent and confirmation requirements, inputs, lifecycle, facts, evidence, activation, external dependency, next-action and recovery metadata.
+
+Action proposals are advisory and never mutate state directly. Exact context/object actions re-enter `canonicalChatTurnService`, which preserves owner-scoped identity and fails closed for unsupported, stale, foreign, missing or unauthorized objects. Structured results are streamed through the existing Chat SSE channel as `capability_result` and remain compatible with existing cards and continuation actions.
+
+The result contract distinguishes accepted, waiting, needs-user, confirmation-required, blocked, failed, completed, externally-pending and unavailable-external-dependency. A result may be explained naturally, but no model or channel may invent completion, provider availability, payment, evidence, inventory, price or external delivery. Recovery preserves the canonical object and offers retry, resume, cancel, wait or escalation through the existing canonical owner.

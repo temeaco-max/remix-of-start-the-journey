@@ -6,6 +6,7 @@ import { buildConversationContextPack } from './conversationContextPackService.j
 export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';
 
 export interface ConversationalGenerationInput {
+  owner?: 'conversationalGenerationService';
   prompt: string;
   phone?: string;
   threadId?: string;

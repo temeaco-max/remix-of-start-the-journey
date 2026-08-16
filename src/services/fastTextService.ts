@@ -9,6 +9,8 @@ export type FastTextModelState = 'real' | 'missing' | 'invalid';
 export interface FastTextRuntimeStatus {
     modelState: FastTextModelState;
     realModelPresent: boolean;
+    executableAvailable: boolean;
+    ready: boolean;
     modelPath: string;
     trainingExamples: number;
 }
@@ -37,10 +39,19 @@ function getModelState(binPath: string): FastTextModelState {
     return isRealBinaryModel(binPath) ? 'real' : 'invalid';
 }
 
+function isFastTextExecutableAvailable(): boolean {
+    try {
+        execFileSync('fasttext', ['--help'], { stdio: 'ignore', timeout: 1500 });
+        return true;
+    } catch { return false; }
+}
+
 export function getFastTextRuntimeStatus(rootDir = process.cwd()): FastTextRuntimeStatus {
     const binPath = path.join(rootDir, 'models', 'kurukoo_intent.bin');
     const modelState = getModelState(binPath);
-    return { modelState, realModelPresent: modelState === 'real', modelPath: binPath, trainingExamples: trainingSet.length };
+    const realModelPresent = modelState === 'real';
+    const executableAvailable = realModelPresent && isFastTextExecutableAvailable();
+    return { modelState, realModelPresent, executableAvailable, ready: realModelPresent && executableAvailable, modelPath: binPath, trainingExamples: trainingSet.length };
 }
 
 function loadTrainingData(): void {
@@ -62,7 +73,8 @@ function loadTrainingData(): void {
 
 export function initializeFastText(): void {
     classificationCache.clear();
-    fastTextReady = isRealBinaryModel(modelPath());
+    const binaryModelPath = modelPath();
+    fastTextReady = isRealBinaryModel(binaryModelPath) && isFastTextExecutableAvailable();
     loadTrainingData();
     const status = getFastTextRuntimeStatus();
     console.log(`[FastText] modelState=${status.modelState}, ready=${fastTextReady}, trainingExamples=${trainingSet.length}`);

@@ -72,3 +72,19 @@ body.dark .chat-template-shell{background:#171b18;color:#edf1ec}.dark .chat-temp
 @media(max-width:900px){.workspace-sidebar{backdrop-filter:none}.workspace-header{backdrop-filter:none}.workspace-content{padding-top:18px}}
 @media(max-width:560px){.workspace-header h1{font-size:26px}.workspace-content{padding-left:16px;padding-right:16px}.workspace-hero-card,.workspace-panel{border-radius:14px}.workspace-button,.workspace-new{min-height:46px}}
 @media(prefers-reduced-motion:reduce){.workspace-page a,.workspace-page button{transition:none}.workspace-hero-card:hover,.workspace-data-card:hover,.settings-grid a:hover{transform:none}}
+
+/* In-place Chat secondary surfaces: one shared layout for guest, authenticated, and deferred states. */
+.workspace-surface{width:100%;max-width:980px;margin:0 auto;padding:0 28px 44px;box-sizing:border-box;color:var(--chat-charcoal,#252824)}
+.workspace-surface .surface-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:30px 0 18px;border-bottom:1px solid var(--chat-border,#e4e8e3)}
+.workspace-surface .surface-heading h1{margin:0;min-width:0;font:750 clamp(24px,3vw,34px)/1.12 "Space Grotesk",Inter,system-ui,sans-serif;letter-spacing:-.035em;overflow-wrap:anywhere}
+.workspace-surface .surface-body{min-width:0;padding-top:2px}
+.workspace-surface .surface-loading{padding:34px 0;color:var(--chat-muted,#6b726d);font-size:13px}
+.workspace-surface .surface-guest-panel{margin-top:18px}
+.workspace-surface .surface-guest-panel .panel-heading{align-items:flex-start}
+.workspace-surface .surface-guest-panel .workspace-note{max-width:680px;margin:8px 0 0;color:var(--chat-muted,#6b726d);line-height:1.6}
+.workspace-surface .workspace-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.workspace-surface .workspace-button{min-height:42px}
+.workspace-surface [hidden]{display:none!important}
+@media(max-width:760px){.workspace-surface{padding:0 16px 32px}.workspace-surface .surface-heading{align-items:flex-start;padding-top:22px}.workspace-surface .surface-heading h1{font-size:24px}.workspace-surface .surface-heading .workspace-button{flex:0 0 auto}.workspace-surface .workspace-panel{padding:18px}.workspace-surface .panel-heading{align-items:flex-start}.workspace-surface .status-pill{white-space:nowrap}}
+@media(max-width:420px){.workspace-surface{padding-left:12px;padding-right:12px}.workspace-surface .surface-heading{gap:10px}.workspace-surface .surface-heading h1{font-size:22px}.workspace-surface .surface-heading .workspace-button{padding:9px 10px}.workspace-surface .workspace-actions{flex-direction:column}.workspace-surface .workspace-actions .workspace-button{width:100%}}
+@media(prefers-reduced-motion:reduce){.workspace-surface *{scroll-behavior:auto}}

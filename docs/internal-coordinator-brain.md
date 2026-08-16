@@ -381,3 +381,12 @@ The durable coordinator store now aggregates operator-safe telemetry: event tota
 The targeted coordinator, agent-runtime, notification-queue, and TypeScript checks pass. The broad `npm run test:routes` suite passes, including economic lifecycle, multi-party request, provider entity, execution boundary, native assistance, development authentication, order, admin, SEO, task, and notification regressions.
 
 > A coordinator event means that a canonical Kurukoo owner recorded a state transition or bounded observation. It does not mean that an external action occurred unless the event provenance explicitly says `verified_external` and the corresponding canonical reconciliation succeeded.
+
+
+## Universal capability protocol integration
+
+The coordinator and first-class agents use the existing `src/services/agentToolRegistry.ts` through the shared adapter `src/services/universalCapabilityProtocol.ts`. They do not receive an agent-only action language. Catalog entries expose owner, permission, risk, lifecycle, confirmation, evidence, activation, continuation and recovery metadata alongside the existing 205 skills and 46 families.
+
+A model or coordinator proposal is advisory. Before any state change, the proposal must re-enter the canonical service boundary with owner-scoped context and canonical object identity. Stale, foreign, unsupported, missing or unconfirmed actions fail closed. Agent goals remain owned by `agentRuntime`; requests, payments, notifications, memory, evidence and external effects remain owned by their canonical services.
+
+Canonical Chat turns return a structured `capabilityResult` through the existing SSE stream. The result status may be `accepted`, `waiting`, `needs_user`, `confirmation_required`, `blocked`, `failed`, `completed`, `externally_pending` or `unavailable_external_dependency`. Recovery keeps the same canonical object and offers retry, resume, cancel, wait or escalation rather than creating a duplicate task.
