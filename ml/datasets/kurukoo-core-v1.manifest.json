@@ -1,17 +1,31 @@
 {
   "datasetVersion": "kurukoo-core-v1",
-  "generatedAt": "2026-08-16T13:03:49.827Z",
+  "generatedAt": "2026-08-16T13:24:50.367Z",
   "exampleCount": 1845,
   "splitCounts": {
     "train": 1506,
     "validation": 160,
-    "test": 179
+    "test": 179,
+    "golden": 205,
+    "adversarial": 1435
   },
   "fileSha256": {
     "all": "72909bb873e6f39ee2597d16454f950a91d971dccbb83c2a385410142715da76",
     "train": "ec6c583d3e38c8476b9ad193bdd875911b1796d170bc9afaede5ca579a932474",
     "validation": "f00208f36fbd4b8984b06af2ed18c0c8135ab9ea74ddba7eb03d6f3a1b2af72f",
-    "test": "b065fb8f453eb6f3c05a529789a8200811cb429dd7b3b7db92ebc7f7c8291d0b"
+    "test": "b065fb8f453eb6f3c05a529789a8200811cb429dd7b3b7db92ebc7f7c8291d0b",
+    "golden": "08481e67b1059afd2f101a68f1862ab4dbed7054de8a0a2974fcd6bc40398789",
+    "adversarial": "96f1b9be6cd4c16e93351d6a6f4335db7ba115c94cd7950749b713c89909043b"
+  },
+  "evaluationSets": {
+    "golden": {
+      "count": 205,
+      "status": "candidate_requires_human_curation"
+    },
+    "adversarial": {
+      "count": 1435,
+      "status": "candidate_requires_human_curation"
+    }
   },
   "skillCount": 205,
   "familyCount": 46,

@@ -136,3 +136,8 @@ The generated data is provenance-labelled, contains no production user data, mar
 The offline SmolLM2 candidate-data path now emits deterministic `all`, `train`, `validation`, and `test` JSONL splits plus a manifest containing SHA-256 hashes. The current `kurukoo-core-v1` manifest contains 1,845 examples across 205 skills and 46 families, with 9 ambiguity/interruption/recovery variants, 6 actor roles, 9 channels including linked devices, 7 configured locale/dialect labels, and 18 platform surfaces covering memory, reminders, notifications, Points, subscriptions, Topics, media, support, products, orders, cart, discovery, provider interaction, safety, consent, payment boundaries, locale and dialect.
 
 This is deterministic synthetic candidate material derived from the canonical ontology. It is not a trained model, model weight, evaluation result, quantized export, promoted registry entry or runtime authority. Teacher/critic output remains optional untrusted candidate material and cannot alter policy or canonical state.
+
+
+## SmolLM2 evaluation-set truth
+
+The ontology generator now emits a 205-example golden candidate set and a 1,435-example adversarial candidate set alongside the deterministic train, validation and test splits. Both sets are hash-recorded in `ml/datasets/kurukoo-core-v1.manifest.json` and remain explicitly marked `candidate_requires_human_curation`. They are not golden truth until curated and approved, and they are not evidence of trained model weights or runtime activation.

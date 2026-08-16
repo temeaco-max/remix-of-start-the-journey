@@ -82,12 +82,20 @@ for (const split of ['all', 'train', 'validation', 'test']) {
   writeJsonl(filePath, splitRows);
   files[split] = filePath;
 }
+const goldenRows = rows.filter((row) => row.labels.variant === 'normal');
+const adversarialRows = rows.filter((row) => ['ambiguity', 'interruption', 'correction', 'unavailable', 'consent', 'recovery', 'linked_device'].includes(row.labels.variant));
+for (const [name, setRows] of [['golden', goldenRows], ['adversarial', adversarialRows]] as const) {
+  const filePath = path.join(outputDir, `${datasetVersion}.${name}.jsonl`);
+  writeJsonl(filePath, setRows);
+  files[name] = filePath;
+}
 const manifest = {
   datasetVersion,
   generatedAt: new Date().toISOString(),
   exampleCount: rows.length,
   splitCounts: Object.fromEntries(Object.entries(files).filter(([key]) => key !== 'all').map(([key, filePath]) => [key, fs.readFileSync(filePath, 'utf8').trim().split('\n').filter(Boolean).length])),
   fileSha256: Object.fromEntries(Object.entries(files).map(([key, filePath]) => [key, hashFile(filePath)])),
+  evaluationSets: { golden: { count: goldenRows.length, status: 'candidate_requires_human_curation' }, adversarial: { count: adversarialRows.length, status: 'candidate_requires_human_curation' } },
   skillCount: getKnownSkills().length,
   familyCount: new Set(rows.map((row) => row.labels.family)).size,
   variantCount: variants.length,
