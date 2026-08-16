@@ -42,8 +42,8 @@ const GENERIC_TEMPLATE_PATTERNS = [
   /^I(?:'m| am) ready\.? Tell me what (?:you need|you'd like)\.?$/i,
 ];
 
-const ACTION_LANGUAGE = /\b(?:book|order|hire|find someone|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set a reminder)\b/i;
-const EXPLORATORY_LANGUAGE = /\b(?:thinking about|maybe|might|could|wondering|what do you think|tell me about|how does|what(?:'s| is) a good)\b/i;
+const ACTION_LANGUAGE = /\b(?:book|order|hire|find someone|find a|arrange|schedule|pay|cancel|subscribe|dispatch|send|confirm|create|set a reminder|set the reminder|contact|message|call them)\b/i;
+const EXPLORATORY_LANGUAGE = /\b(?:thinking about|maybe|might|could|wondering|what do you think|what would you do|should i|tell me about|how does|what(?:'s| is) a good|considering|looking at|exploring)\b/i;
 
 function normalize(value: string): string {
   return String(value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -108,9 +108,10 @@ export function assessConversationQuality(context: ConversationQualityContext): 
   }
 
   const exploratory = EXPLORATORY_LANGUAGE.test(user) && !ACTION_LANGUAGE.test(user);
-  if (exploratory && context.cardType && /(?:economic_request|agentic_storefront|checkout|payment|subscription)/i.test(context.cardType)) {
+  const responseAttemptsAction = ACTION_LANGUAGE.test(reply);
+  if (exploratory && (responseAttemptsAction || (context.cardType && /(?:economic_request|agentic_storefront|checkout|payment|subscription)/i.test(context.cardType)))) {
     issues.push('premature_action');
-    score -= 0.55;
+    score -= responseAttemptsAction ? 0.65 : 0.55;
   }
 
   const active = context.activeContextIds || [];
@@ -132,13 +133,13 @@ export function assessConversationQuality(context: ConversationQualityContext): 
 
   const preservedContext = !issues.includes('context_drop') && (!context.selectedContextId || active.includes(context.selectedContextId));
   score = Math.max(0, Math.min(1, score));
-  const repairable = issues.some(issue => ['empty_response', 'internal_metadata_leak', 'repetition', 'asks_known_fact', 'overloaded_questions', 'template_language'].includes(issue));
+  const repairable = issues.some(issue => ['empty_response', 'internal_metadata_leak', 'repetition', 'asks_known_fact', 'premature_action', 'overloaded_questions', 'template_language'].includes(issue));
 
   return {
     score,
     issues,
     repairable,
-    conversational: score >= 0.72 && !issues.includes('internal_metadata_leak'),
+    conversational: score >= 0.72 && !issues.includes('internal_metadata_leak') && !issues.includes('premature_action'),
     preservedContext,
   };
 }
@@ -158,7 +159,7 @@ export function detectRelativeReference(message: string): RelativeReferenceResol
   if (/\b(?:the other|other guy|other one|different one)\b/.test(text)) return { reference: message, target: 'other', confidence: 0.88 };
   if (/\b(?:the second|number two|option 2|2nd)\b/.test(text)) return { reference: message, target: 'second', confidence: 0.92 };
   if (/\b(?:the first|number one|option 1|1st)\b/.test(text)) return { reference: message, target: 'first', confidence: 0.92 };
-  if (/\b(?:go back to|earlier|previous|before|the one we discussed)\b/.test(text)) return { reference: message, target: 'previous', confidence: 0.86 };
+  if (/\b(?:go back to|earlier|previous|before|the one we discussed|back to)\b/.test(text)) return { reference: message, target: 'previous', confidence: 0.86 };
   return null;
 }
 
@@ -173,6 +174,6 @@ export function classifyConversationDifficulty(message: string, context?: Pick<C
   const comparative = /\b(?:cheaper|pricier|better|worse|same|different|instead|rather than)\b/i.test(text);
   if ((references && contexts > 1) || (correction && (contexts > 0 || pending > 0)) || words > 60 || contexts > 2) return 'deep';
   if (references || correction || comparative || contexts > 1 || multiPart || words > 35) return 'complex';
-  if (pending > 0 || words > 15 || /\b(?:why|how|compare|explain|maybe|could)\b/i.test(text)) return 'normal';
+  if (pending > 0 || words > 15 || /\b(?:why|how|compare|explain|maybe|could|should)\b/i.test(text)) return 'normal';
   return 'simple';
 }
