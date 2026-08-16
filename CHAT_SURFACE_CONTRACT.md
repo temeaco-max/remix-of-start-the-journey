@@ -231,3 +231,10 @@ The supported continuation action is `resume_canonical_context`. It is one exten
 Structured storefront decisions such as slot submission, cancellation, quote requests, escrow confirmation, delivery dispatch, completion, and dispute review re-enter through the canonical Economic Request owner. Chat sends a bounded deterministic idempotency key derived from the active conversation, exact request ID, action, and submitted fields. The owner validates the request against the authenticated phone, persists the resulting card in `economic_request_action_events`, and returns the persisted card for a replay. In-process duplicate clicks are coalesced; later retries use the durable owner-scoped record. This protects consequential actions from duplicate execution without creating a second transaction or Chat action system.
 
 The idempotency record is evidence of the canonical action response, not evidence that an external connector, payment provider, delivery service, or fulfilment partner completed its work. External completion still requires the existing connector and evidence boundaries.
+
+
+### Assistance-to-action convergence
+
+Question-form assistance is routed through the existing content and Topic authorities before direct provider matching or generic AI fallback when a relevant source exists. The Chat projection is source-attributed and explicitly carries `noProviderClaim` and `noExecutionClaim` truth markers. It may offer `Find verified help` as the next conversational step, but it does not convert editorial guidance, a public Topic, an affiliate reference, or a sponsored placement into a provider recommendation or availability claim. An explicit user request to find, hire, book, order, or get someone retains the canonical Economic Request flow.
+
+This keeps the path `assistance → information/guidance → optional discovery → selection → Economic Request → execution/evidence/recovery` inside the same Chat relationship. Native Resources, Help, Topics, Discover, Requests, Tasks, Notifications and product cards remain projections of their canonical owners rather than independent state systems.

@@ -9,6 +9,7 @@ import { cancelReminder, createReminder, listReminders } from './reminderService
 import { getInternalNotifications } from './pushNotifications.js';
 import { cancelAgentGoal, listAgentGoals, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
 import { generateReferralCode } from './referralService.js';
+import { getAssistanceOutcome } from './assistanceOutcomeService.js';
 import type { IntentRoutingResult } from '../types.js';
 import { extractConversationalEntities, validateConversationalEntities } from './conversationalExtraction.js';
 
@@ -407,6 +408,24 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     }
   }
 
+  const assistanceQuestion = /^(how do i|how can i|what should i do|what is the best way|why is|what does)\b/i.test(q) && !/\b(?:find someone|find me|book|hire|order|get me|need someone|who can)\b/i.test(q);
+  if (assistanceQuestion) {
+    const assistance = await getAssistanceOutcome(query).catch((error) => {
+      console.warn('[Router] assistance question projection unavailable:', error);
+      return null;
+    });
+    if (assistance) {
+      return {
+        skill: assistance.mode === 'support' ? 'support_triage' : 'general_question',
+        reply: `${assistance.mode === 'support' ? 'I found relevant Kurukoo guidance and community context for this issue.' : 'I found relevant Kurukoo guidance and community context.'} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`,
+        cardData: assistance,
+        canonicalAction: assistance.canonicalAction,
+        progressStage: assistance.mode === 'support' ? 'coordination' : 'information',
+        extractionSource: 'deterministic',
+      };
+    }
+  }
+
   const directSkill = matchCanonicalSkill(q);
   const extractedEntities = validateConversationalEntities(extractConversationalEntities(query, directSkill || undefined), directSkill || undefined);
   if (directSkill === 'event_coverage' && phone) {
@@ -499,6 +518,24 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     const cardData = decorateCardWithSuggestions(actionCard(classification.intent), flowSkill) || suggestionCard(flowSkill);
     const reply = flowReply(flowSkill, flow);
     return { skill: flowSkill, reply, cardData, classificationSource: classification.source, intentConfidence: classification.confidence };
+  }
+
+  const assistance = await getAssistanceOutcome(query).catch((error) => {
+    console.warn('[Router] assistance projection unavailable:', error);
+    return null;
+  });
+  if (assistance) {
+    const lead = assistance.mode === 'support'
+      ? 'I found relevant Kurukoo guidance and community context for this issue.'
+      : 'I found relevant Kurukoo guidance and community context.';
+    return {
+      skill: assistance.mode === 'support' ? 'support_triage' : 'general_question',
+      reply: `${lead} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`,
+      cardData: assistance,
+      canonicalAction: assistance.canonicalAction,
+      progressStage: assistance.mode === 'support' ? 'coordination' : 'information',
+      extractionSource: 'deterministic',
+    };
   }
 
   const ai = await queryUnifiedAI(query, { provider, phone });

@@ -85,6 +85,7 @@
     "test:coordinator": "tsx scripts/test-coordinator.ts",
     "test:context-arbitration": "tsx scripts/test-context-arbitration.ts",
     "test:natural-interleaving": "tsx scripts/test-natural-interleaving-chat.ts",
+    "test:assistance-outcome": "tsx scripts/test-assistance-outcome.ts",
     "test:agent-control": "tsx scripts/test-agent-control-commands.ts",
     "test:agent-control-commands": "npm run test:agent-control",
     "test:stripe-payment": "tsx scripts/test-stripe-payment.ts",
