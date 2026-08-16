@@ -5811,3 +5811,14 @@ Personal Telegram linked devices are a separate MTProto connector from the Teleg
 Privacy number masking protects provider-facing execution contacts; it does not authenticate users. An authorized execution request may allocate an owner-scoped proxy mapping through `privacyBridge`, store the proxy for provider-facing routing, resolve callbacks internally, and release or expire the mapping. Direct replies through a user’s already-bound WhatsApp, Telegram, SMS, or email channel are not masked. A local proxy mapping is not a routable real telephony number, and no delivery is claimed without provider evidence.
 
 The implementation is repository-side complete and ready for external activation, but real Telegram pairing, WhatsApp pairing, Firebase push delivery, Resend inbox delivery, carrier verification, social OAuth, and provider-owned number masking remain externally dependent and must not be reported as live without independent proof.
+
+
+## Current Convergence Addendum — Natural Interleaving and Context Observability
+
+The canonical Chat owner now discovers owner-scoped card-backed contexts across the user’s recent conversations, retaining each context’s conversation ID, state, pending fields, last activity, and persisted provenance. This enables a user to open a second Economic Request without overwriting the first and to resume an exact preserved request through the existing `resumeStorefrontFromRequest` owner.
+
+The control-command boundary is exact-command based. Phrases such as `resume my request` are treated as conversational Economic Request resumption, while exact commands such as `resume`, `pause`, or `cancel that` remain autonomous-goal controls. This distinction prevents natural conversation from being intercepted by the wrong first-class subsystem.
+
+Coordinator telemetry aggregates context decisions without retaining message content. The authenticated Admin readiness surface exposes selected-context totals, relation counts, ambiguity counts, and preserved-context observations. These metrics describe repository behavior and do not constitute proof of model correctness, external delivery, provider availability, or live network activation.
+
+The natural-interleaving regression covers memory isolation, creation of a distinct second request, exact request resumption, and cross-conversation active-context discovery. This is a validated repository-side increment toward the mature conversational-operating-system acceptance threshold; broader natural-language coverage remains an ongoing validation requirement.
