@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { hasConfiguredSecret } from './providerCapabilities.js';
+import { getEconomicRequest, transitionEconomicRequest } from './skillFlows.js';
 
 export interface StripePaymentIntent {
   id: string;
@@ -27,6 +28,35 @@ export function stripeStatus(): { configured: boolean; provider: 'stripe'; requi
 function asPositiveInteger(value: number): number {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error('A positive minor-unit amount is required.');
   return value;
+}
+
+/**
+ * Confirm a payment only inside the explicitly bounded local development sandbox.
+ * This records persisted simulated authorization for the canonical Economic Request;
+ * it is not a PSP settlement and is unavailable in production.
+ */
+export async function confirmDevelopmentEconomicPayment(requestId: string, ownerPhone: string): Promise<{ success: boolean; message: string; reference?: string }> {
+  if (process.env.NODE_ENV === 'production' || String(process.env.KURUKOO_PAY_PROVIDER || 'sandbox').trim().toLowerCase() !== 'sandbox') {
+    return { success: false, message: 'A verified external payment provider is required.' };
+  }
+  const request = await getEconomicRequest(requestId);
+  if (!request || request.phone !== ownerPhone) return { success: false, message: 'Economic Request ownership is required.' };
+  const amount = Number((request.quote as any)?.amount_minor || 0);
+  if (!Number.isInteger(amount) || amount <= 0) return { success: false, message: 'A confirmed positive quote is required.' };
+  if (request.status === 'paid' || request.status === 'in_fulfillment') return { success: true, message: 'Development payment authorization was already recorded.', reference: String((request.fulfillment as any)?.payment_reference || '') };
+  if (!['quoted', 'awaiting_confirmation', 'reserved', 'payment_pending'].includes(request.status)) return { success: false, message: 'This request is not ready for payment confirmation.' };
+  const reference = `KURUKOO-DEV-PAY-${request.id}`;
+  try {
+    let current = await getEconomicRequest(request.id);
+    if (current?.status === 'quoted') { await transitionEconomicRequest(request.id, 'awaiting_confirmation'); current = await getEconomicRequest(request.id); }
+    if (current?.status === 'awaiting_confirmation') { await transitionEconomicRequest(request.id, 'reserved'); current = await getEconomicRequest(request.id); }
+    if (current?.status === 'reserved') { await transitionEconomicRequest(request.id, 'payment_pending'); current = await getEconomicRequest(request.id); }
+    if (current?.status !== 'payment_pending') return { success: false, message: `Payment confirmation is not available from request state ${current?.status || 'unknown'}.` };
+    await transitionEconomicRequest(request.id, 'paid', { fulfillment: { ...(current.fulfillment || {}), payment_verified: true, payment_provider: 'development_sandbox', payment_reference: reference, payment_verified_at: new Date().toISOString(), simulated: true } });
+    return { success: true, message: 'Development payment authorization recorded; no real payment was settled.', reference };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : 'Development payment authorization failed.' };
+  }
 }
 
 export async function createStripePaymentIntent(input: { amountMinor: number; currency: string; economicRequestId: string; idempotencyKey: string }): Promise<StripePaymentIntent> {

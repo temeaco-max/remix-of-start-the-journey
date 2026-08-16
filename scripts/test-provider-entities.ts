@@ -42,6 +42,7 @@ for (const [phone, name, providerType, verified] of [
 
 db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode) VALUES (?, 'plumber', 1, 3000, 4.8, 10, 'stationary')`, [humanPhone]);
 db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode) VALUES (?, 'plumber', 1, 3500, 4.7, 8, 'stationary')`, [businessPhone]);
+db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode) VALUES (?, 'phone_repairer', 1, 18000, 4.9, 12, 'stationary')`, [businessPhone]);
 db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode) VALUES (?, 'delivery', 1, 4500, 4.9, 4, 'delivery')`, [authorizedDronePhone]);
 // A category-specific human verification marker must not authorize a non-human entity.
 db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode, verified_artist) VALUES (?, 'delivery', 1, 100, 5, 99, 'delivery', 1)`, [unauthorizedDronePhone]);
@@ -61,6 +62,11 @@ assert.deepEqual(
   ['human', 'business', 'drone', 'external_platform'],
   'provider type must persist without changing existing human records'
 );
+
+const repairers = await find_worker({ skill: 'repair', service: 'iPhone cracked screen and charging fault', location: 'Ikeja', max: 10 });
+assert.equal(repairers.providers[0]?.phone, businessPhone, 'generic device repair must resolve through the existing phone_repairer skill without a second matcher');
+assert.equal(repairers.providers[0]?.skill, 'phone_repairer');
+assert.equal(repairers.providers[0]?.verified, true);
 
 const plumbers = await find_worker({ skill: 'plumber', location: 'Ikeja', max: 10 });
 assert.deepEqual(
@@ -143,4 +149,4 @@ saveDb(true);
 try { fs.rmSync(dbPath, { force: true }); } catch { /* temporary database cleanup is best-effort */ }
 
 console.log('Provider entity integration checks passed');
-console.log('Verified: canonical human/business discovery, constrained provider types, authorized autonomous concept matching, no verification bypass, no fabricated telemetry, and unchanged Economic Request/escrow gates.');
+console.log('Verified: canonical human/business discovery, generic repair alias matching, constrained provider types, authorized autonomous concept matching, no verification bypass, no fabricated telemetry, and unchanged Economic Request/escrow gates.');

@@ -7,6 +7,7 @@ import { persistCoordinatorEvent } from './coordinatorStore.js';
 export const ECONOMIC_PARTICIPANT_ROLES = [
   'seller',
   'delivery_provider',
+  'service_provider',
   'external_platform',
   'agent',
 ] as const;
@@ -262,7 +263,7 @@ export async function attachEconomicOffer(input: {
 
 /**
  * Add or update a named provider participant. Verification is required for
- * seller, delivery-provider, and external-platform roles; an AI agent remains
+ * seller, delivery-provider, service-provider, and external-platform roles; an AI agent remains
  * representable for orchestration but receives no fulfillment or payment rights.
  */
 export async function addEconomicParticipant(input: {

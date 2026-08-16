@@ -29,10 +29,23 @@ export interface FindWorkerResult {
  * location is a hard service-area constraint; this module deliberately does not
  * invent geocoded distance data, telemetry, availability, or quotes.
  */
-export async function find_worker(options: { skill: string; location?: string; max?: number }): Promise<FindWorkerResult> {
+export async function find_worker(options: { skill: string; location?: string; max?: number; service?: string }): Promise<FindWorkerResult> {
     const db = await getDb();
     const max = Math.min(25, Math.max(1, options.max ?? 5));
     const location = String(options.location || '').trim();
+    const requestedSkill = String(options.skill || '').trim().toLowerCase();
+    const service = String(options.service || '').trim().toLowerCase();
+    const searchSkills = new Set<string>([requestedSkill]);
+    if (requestedSkill === 'find_worker' && service) searchSkills.add(service.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''));
+    if (requestedSkill === 'repair') {
+        const deviceRepair = /iphone|ipad|android|phone|mobile|tablet|screen|laptop|computer|device/.test(`${service} ${requestedSkill}`);
+        if (deviceRepair) {
+            searchSkills.add('phone_repairer');
+            searchSkills.add('phone_repair');
+        }
+    }
+    const skillValues = Array.from(searchSkills).filter(Boolean).slice(0, 5);
+    const skillPlaceholders = skillValues.map(() => '?').join(', ');
     const locationClause = location
         ? `AND (
             lower(COALESCE(p.location, '')) LIKE '%' || lower(?) || '%'
@@ -48,7 +61,7 @@ export async function find_worker(options: { skill: string; location?: string; m
                p.name, p.location, p.verified_provider, p.provider_type
         FROM skills s
         LEFT JOIN memory_profiles p ON p.phone = s.phone
-        WHERE lower(s.skill) = lower(?)
+        WHERE lower(s.skill) IN (${skillPlaceholders})
           AND s.is_available = 1
           AND (
             COALESCE(p.verified_provider, 0) = 1
@@ -61,7 +74,7 @@ export async function find_worker(options: { skill: string; location?: string; m
         ORDER BY s.rating DESC, s.jobs_completed DESC
         LIMIT ?
     `);
-    const bindParams: unknown[] = [options.skill.toLowerCase()];
+    const bindParams: unknown[] = [...skillValues];
     if (location) bindParams.push(location, location, location);
     bindParams.push(max);
     stmt.bind(bindParams);
@@ -73,7 +86,7 @@ export async function find_worker(options: { skill: string; location?: string; m
             phone: String(r.phone ?? ''),
             name: String(r.name ?? 'Provider'),
             business_name: undefined,
-            skill: String(r.skill ?? options.skill),
+            skill: String(r.skill ?? requestedSkill),
             rating: Number(r.rating ?? 0),
             jobs_completed: Number(r.jobs_completed ?? 0),
             hourly_rate: Number(r.hourly_rate ?? 0),

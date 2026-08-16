@@ -92,6 +92,16 @@ The canonical execution connector now exposes a development-only completion help
 
 This is not a second demo flow. It is a bounded local adapter beneath the canonical provider authorization, Economic Request, execution, evidence, notification, and continuation owners.
 
+## Generic service-provider execution and local repair acceptance
+
+The shared Economic Request lifecycle now supports a canonical `service_provider` participant role for non-delivery work such as repairs. Generic repair discovery can resolve a `repair` request to existing verified `phone_repairer` or `phone_repair` capabilities when the requirement text identifies a device or screen repair; this is an alias composition over `find_worker`, not a second provider matcher.
+
+Provider choice is explicit in Chat. A discovery card presents only current verified provider evidence and requires a user `select_provider` action before the selected provider is added to the owner-scoped request. The selected provider’s declared rate remains an indicative quote until the existing quote/payment boundary is used.
+
+In non-production sandbox mode, the canonical payment boundary can record a clearly marked development payment authorization, move the request through `awaiting_confirmation → reserved → payment_pending → paid`, and then allow the existing escrow owner to create the ledger. If the provider’s connector relationship is explicitly authorized for `perform_service`, the same execution connector records a development service simulation and pending-review evidence. Chat labels it as simulated; it never claims real provider fulfilment, settlement, delivery, live tracking, or verified completion. User confirmation still drives the existing Economic Request completion path.
+
+`npm run test:local-repair-outcome` exercises this complete local journey: conversational repair requirements → canonical discovery → explicit provider selection → provider-listed quote → sandbox payment authorization → escrow → service-provider execution evidence → user-confirmed completion. It uses temporary development fixtures and does not seed providers into production data.
+
 ## What is intentionally not claimed as implemented
 
 The application does **not** simulate unavailable real-world infrastructure. In particular:

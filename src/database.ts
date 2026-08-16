@@ -289,7 +289,7 @@ function initEconomicParticipantTables(database: any) {
     CREATE TABLE IF NOT EXISTS economic_participants (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       request_id TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('seller', 'delivery_provider', 'external_platform', 'agent')),
+      role TEXT NOT NULL CHECK(role IN ('seller', 'delivery_provider', 'service_provider', 'external_platform', 'agent')),
       provider_phone TEXT NOT NULL,
       capability TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'invited' CHECK(status IN ('invited', 'offered', 'selected', 'confirmed', 'handover_pending', 'handed_over', 'collected', 'in_progress', 'delivered', 'declined', 'withdrawn')),
@@ -301,6 +301,33 @@ function initEconomicParticipantTables(database: any) {
     CREATE INDEX IF NOT EXISTS idx_economic_participants_request ON economic_participants(request_id);
     CREATE INDEX IF NOT EXISTS idx_economic_offers_seller_status ON economic_offers(seller_phone, status);
   `);
+
+  // Existing databases created before generic service execution used a role
+  // constraint that excluded service_provider. Rebuild only that table while
+  // preserving all participant rows and indexes; no participant is fabricated.
+  const participantSchema = database.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='economic_participants'")[0]?.values?.[0]?.[0];
+  if (typeof participantSchema === 'string' && !participantSchema.includes("'service_provider'")) {
+    database.run(`
+      BEGIN;
+      CREATE TABLE economic_participants_migrated (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        request_id TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('seller', 'delivery_provider', 'service_provider', 'external_platform', 'agent')),
+        provider_phone TEXT NOT NULL,
+        capability TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'invited' CHECK(status IN ('invited', 'offered', 'selected', 'confirmed', 'handover_pending', 'handed_over', 'collected', 'in_progress', 'delivered', 'declined', 'withdrawn')),
+        evidence_json TEXT NOT NULL DEFAULT '{}',
+        added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(request_id, role, provider_phone)
+      );
+      INSERT INTO economic_participants_migrated (id, request_id, role, provider_phone, capability, status, evidence_json, added_at)
+        SELECT id, request_id, role, provider_phone, capability, status, evidence_json, added_at FROM economic_participants;
+      DROP TABLE economic_participants;
+      ALTER TABLE economic_participants_migrated RENAME TO economic_participants;
+      CREATE INDEX IF NOT EXISTS idx_economic_participants_request ON economic_participants(request_id);
+      COMMIT;
+    `);
+  }
 }
 
 function initExecutionTables(database: any) {
@@ -322,7 +349,7 @@ function initExecutionTables(database: any) {
       request_id TEXT NOT NULL,
       action_id TEXT NOT NULL,
       provider_phone TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('seller', 'delivery_provider', 'external_platform', 'agent')),
+      role TEXT NOT NULL CHECK(role IN ('seller', 'delivery_provider', 'service_provider', 'external_platform', 'agent')),
       capability TEXT NOT NULL,
       action_requested TEXT NOT NULL,
       idempotency_key TEXT NOT NULL UNIQUE,
