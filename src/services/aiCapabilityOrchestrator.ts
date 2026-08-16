@@ -26,9 +26,8 @@ export interface AICapabilityOrchestrationDecision {
   reason: string;
 }
 
-const NON_CAPABILITY_SKILLS = new Set([
-  'general_question',
-]);
+const NON_CAPABILITY_SKILLS = new Set(['general_question']);
+const OBJECT_ID_KEYS = ['requestId', 'economicRequestId', 'orderId', 'productId', 'cartId', 'agentGoalId', 'notificationId', 'topicId', 'postId', 'discoveryEntityId', 'subscriptionId'];
 
 function normaliseCapability(skill?: string, targetSkill?: string): string | undefined {
   const value = String(targetSkill || skill || '').trim();
@@ -42,10 +41,20 @@ function inferPosture(contract: ConversationTurnContract): CapabilityProposalPos
   return 'none';
 }
 
+function extractCanonicalObjectId(entities: Record<string, unknown> | undefined): string | undefined {
+  if (!entities) return undefined;
+  for (const key of OBJECT_ID_KEYS) {
+    const value = entities[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isSafeInteger(value)) return String(value);
+  }
+  return undefined;
+}
+
 /**
  * Translates an already-canonical routing result into a bounded AI proposal.
- * This is deliberately read-only: it never executes, mutates state, resolves
- * ownership, or replaces the canonical Chat action boundary.
+ * This bridge is deliberately read-only: it never executes, mutates state,
+ * resolves ownership, authorizes payment, or replaces the canonical action boundary.
  */
 export function buildAICapabilityOrchestration(
   routing: IntentRoutingResult,
@@ -70,11 +79,11 @@ export function buildAICapabilityOrchestration(
     capability,
     action: routing.canonicalAction,
     contextId: contract.protectedContextIds[0],
-    canonicalObjectId: contract.protectedContextIds[0],
+    canonicalObjectId: extractCanonicalObjectId(routing.extractedEntities),
     arguments: { ...(routing.extractedEntities || {}) },
     confidence: routing.intentConfidence,
     posture,
-    confirmationRequired: contract.actionPosture === 'control' || contract.shouldRequireCanonicalAction,
+    confirmationRequired: contract.actionPosture === 'control',
     preserveContext: contract.shouldPreserveExistingContext,
     requiresCanonicalValidation: true,
     source: 'canonical-routing',
