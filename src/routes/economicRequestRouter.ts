@@ -127,8 +127,9 @@ router.post('/storefront/:id/advance', authenticateUser, async (req: AuthRequest
   const action = typeof req.body?.action === 'string' ? req.body.action : undefined;
   const patch = cleanRequirements(req.body?.requirements || req.body?.fields);
   const conversationId = typeof req.body?.conversationId === 'string' ? req.body.conversationId.trim() : undefined;
+  const idempotencyKey = typeof req.body?.idempotencyKey === 'string' ? req.body.idempotencyKey.trim().slice(0, 180) : undefined;
   try {
-    const card = await advanceStorefront(phone, requestId, patch, action);
+    const card = await advanceStorefront(phone, requestId, patch, action, idempotencyKey);
     await appendChatMessage({
       phone,
       sender: 'assistant',

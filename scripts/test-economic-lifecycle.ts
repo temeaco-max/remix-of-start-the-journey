@@ -11,6 +11,7 @@ process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 const { getDb, saveDb } = await import('../src/database.js');
 const { createEconomicRequest, getEconomicRequest, transitionEconomicRequest } = await import('../src/services/skillFlows.js');
 const { startKnownOfferEconomicRequest } = await import('../src/services/economicParticipants.js');
+const { advanceStorefront } = await import('../src/services/agenticStorefront.js');
 const { createOpenIntention, getIntentionByEconomicRequestId } = await import('../src/services/deferredRequestService.js');
 const { processDueDeferred } = await import('../src/services/backgroundWorkers.js');
 const { createEscrow } = await import('../src/services/escrow.js');
@@ -45,6 +46,13 @@ const linkedOfferRequest = await startKnownOfferEconomicRequest({ buyerPhone: cu
 assert.equal(linkedOfferRequest.request.skill, 'product_sourcing', 'known cart offers must enter the canonical product Economic Request flow');
 assert.equal(linkedOfferRequest.request.requirements.offer_id, 'lifecycle-offer', 'the canonical request must retain the source offer reference');
 assert.equal(linkedOfferRequest.request.status, 'requested', 'connecting a cart offer must not imply payment or fulfilment');
+
+const replayRequestId = 'replay-safe-storefront-request';
+await createEconomicRequest({ id: replayRequestId, phone: customerPhone, skill: 'product_sourcing', requirements: { product: 'Replay-safe test item' } });
+const firstAction = await advanceStorefront(customerPhone, replayRequestId, {}, 'cancel', 'chat:test:replay-safe-storefront-request:cancel');
+const replayedAction = await advanceStorefront(customerPhone, replayRequestId, {}, 'cancel', 'chat:test:replay-safe-storefront-request:cancel');
+assert.deepEqual(replayedAction, firstAction, 'replayed Chat storefront actions must return the persisted canonical result');
+assert.equal((db.exec('SELECT COUNT(*) FROM economic_request_action_events WHERE request_id = ?', [replayRequestId])[0]?.values?.[0]?.[0]), 1, 'one idempotency record must represent the replayed action');
 
 const deferredRequestId = 'deferred-lifecycle-request';
 await createEconomicRequest({

@@ -5867,3 +5867,8 @@ The iPhone-repair journey remains the reference economic outcome: problem, diagn
 ## Exact asynchronous continuation and action identity
 
 Asynchronous notifications are part of the same conversational operating relationship. A notification that represents a canonical result stores an owner-scoped context ID, conversation ID, canonical action, object type, object ID, owner scope, idempotency key and surface. Chat re-enters through the existing `resume_canonical_context` action, validates the exact object through its canonical owner, and fails closed for stale, inaccessible, malformed or cross-owner references. It must never substitute another object through recency or semantic similarity. This is a continuation of the universal Chat action protocol, not a parallel notification workflow.
+
+
+### Replay-safe structured Economic Request actions
+
+All structured storefront decisions that can mutate an Economic Request—slot submission, cancellation, quote requests, escrow confirmation, delivery dispatch, completion, and dispute review—remain owned by the canonical Economic Request service. Chat submits one bounded deterministic idempotency key tied to the authenticated conversation, exact request ID, action, and fields. The request owner persists the canonical response and returns it on replay; in-process duplicate actions are coalesced. This is a replay-safety boundary, not a second workflow or transaction engine. An idempotency record proves only that Kurukoo handled the canonical action once; it does not prove external payment, dispatch, provider availability, delivery, fulfilment, or completion.

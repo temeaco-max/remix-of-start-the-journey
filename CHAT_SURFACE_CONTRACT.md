@@ -224,3 +224,10 @@ The central Chat surface consumes explicit skill-flow definitions for every cano
 Internal notifications are not merely inbox text. When an asynchronous result has a canonical context, the notification stores the owner-scoped context ID, conversation ID, canonical action, object type, object ID, owner scope, idempotency key, and surface. Its Chat link carries the same exact identity. Chat validates the referenced object through the canonical owner before reopening it; inaccessible, stale, malformed, or cross-owner references fail closed and are never replaced by a recent or semantically similar object.
 
 The supported continuation action is `resume_canonical_context`. It is one extension of the universal Chat action protocol, not a second notification workflow. Current validated object/action pairs include agent goals, Economic Requests, discovery entities, and notifications.
+
+
+### Replay-safe Economic Request actions
+
+Structured storefront decisions such as slot submission, cancellation, quote requests, escrow confirmation, delivery dispatch, completion, and dispute review re-enter through the canonical Economic Request owner. Chat sends a bounded deterministic idempotency key derived from the active conversation, exact request ID, action, and submitted fields. The owner validates the request against the authenticated phone, persists the resulting card in `economic_request_action_events`, and returns the persisted card for a replay. In-process duplicate clicks are coalesced; later retries use the durable owner-scoped record. This protects consequential actions from duplicate execution without creating a second transaction or Chat action system.
+
+The idempotency record is evidence of the canonical action response, not evidence that an external connector, payment provider, delivery service, or fulfilment partner completed its work. External completion still requires the existing connector and evidence boundaries.

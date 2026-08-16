@@ -544,7 +544,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ action, requirements: fields || {}, conversationId: state.conversationId || undefined })
+        body: JSON.stringify({ action, requirements: fields || {}, conversationId: state.conversationId || undefined, idempotencyKey: `chat:${state.conversationId || 'draft'}:${requestId}:${action}:${Object.entries(fields || {}).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => `${key}=${String(value || '').slice(0, 120)}`).join('|')}`.slice(0, 180) })
       });
       if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
       const data = await res.json().catch(() => ({}));
