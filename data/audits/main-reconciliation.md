@@ -1,14 +1,14 @@
 # Main-Branch Reconciliation
 
-Generated at 2026-08-16T12:56:07.364Z.
+Generated at 2026-08-16T12:57:44.918Z.
 
 | Field | Value |
 | --- | --- |
 | Branch | main |
-| Local HEAD | beff065e6ba4fa6dd2c4c8e92e010dfd7cf88aad |
-| origin/main | d910eaa9891cd5da6ae547b482a4f18fccc74ec6 |
-| Working tree clean | no |
-| Local-only commits | 34 |
+| Local HEAD | e01087036e4716c22b36f75d6e9a875704cc4e50 |
+| origin/main | e01087036e4716c22b36f75d6e9a875704cc4e50 |
+| Working tree clean | yes |
+| Local-only commits | 0 |
 | Remote-only commits | 0 |
 
 | Classification | Item | Evidence | Evidence present |
@@ -27,7 +27,6 @@ Generated at 2026-08-16T12:56:07.364Z.
 
 ## Remote branches
 
-- origin/feat/kurukoo-student-model-foundation
 - origin/main
 
 > This reconciliation distinguishes repository presence from external activation. A file, route, test, matrix, readiness flag or model manifest is not proof of live provider delivery, settlement, fulfilment, or a trained/promoted model.
