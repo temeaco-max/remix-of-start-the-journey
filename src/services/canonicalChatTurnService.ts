@@ -91,6 +91,7 @@ async function continueActiveRequest(phone: string, conversationId: string | und
     if (selectedRequestId && String(card.requestId) !== selectedRequestId) continue;
     const request = await getEconomicRequest(String(card.requestId));
     if (!request || request.phone !== phone || ['completed', 'cancelled', 'abandoned', 'failed'].includes(request.status)) continue;
+    if (/\b(?:the )?(?:cheaper|less expensive|lower[- ]priced|more affordable)\b|\b(?:lower|reduce|cut)\s+(?:the )?price\b/i.test(effectiveMessage)) { const current = await resumeStorefrontFromRequest(phone, request.id); if (current) return { reply: 'I’ll keep that price comparison attached to this exact request. I do not have two verified offers to compare yet, and I have not treated it as a location, provider, quote, payment, or fulfilment instruction.', cardData: { ...current, type: 'agentic_storefront', exactContext: true, canonicalAction: 'economic_request.price_reference_pending' }, skill: request.skill }; }
     const patch = extractRequirementPatch(effectiveMessage, card, request);
     if (request.skill === 'find_worker') {
       const workerCorrection = message.match(/\b(plumber|electrician|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|decorator|tiler|roofer|mason|welder)\b/i)?.[1]?.toLowerCase();
