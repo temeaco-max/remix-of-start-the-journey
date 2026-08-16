@@ -3,17 +3,16 @@ import { resolve } from 'node:path';
 
 const file = readFileSync(resolve(process.cwd(), 'src/services/conversationalGenerationService.ts'), 'utf8');
 
-if (!file.includes("export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';")) {
-  throw new Error('Conversation generation modes are not defined');
+function assert(condition: boolean, message: string): void {
+  if (!condition) throw new Error(`Conversation generation ownership guard failed: ${message}`);
 }
-if (!file.includes("const generationMode = input.generationMode || 'generate';")) {
-  throw new Error('Ordinary conversation is not explicitly model-authored by default');
-}
-if (!file.includes("generationMode === 'present' || generationMode === 'deterministic'")) {
-  throw new Error('Seed responses are not restricted to explicit presentation/deterministic modes');
-}
-if (!file.includes('Router output is never used as a reply seed')) {
-  throw new Error('Conversation ownership invariant is not documented in the implementation');
-}
+
+assert(file.includes("export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';"), 'generation modes are not defined');
+assert(file.includes("const generationMode = input.generationMode || 'generate';"), 'ordinary conversation is not explicitly model-authored by default');
+assert(file.includes("generationMode === 'present' || generationMode === 'deterministic'"), 'seed responses are not restricted to explicit presentation/deterministic modes');
+assert(file.includes('Ordinary Chat is model-authored.'), 'ordinary Chat ownership rule is not documented in implementation');
+assert(file.includes("base = await queryUnifiedAI(input.prompt"), 'generate mode does not call the canonical model boundary');
+assert(file.includes("if (generationMode === 'deterministic')"), 'deterministic mode is not explicit');
+assert(file.includes("else if (generationMode === 'present')"), 'presentation mode is not explicit');
 
 console.log('Conversational generation ownership guard passed');
