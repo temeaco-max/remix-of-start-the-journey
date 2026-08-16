@@ -1,7 +1,7 @@
 # Kurukoo — Final Consolidated Blueprint v5.66
 
 **Status:** CURRENT canonical product and architecture source of truth. Historical version entries below are preserved for provenance and do not override current implementation truth.
-**Current version:** v5.67
+**Current version:** v5.66.0
 **Canonical product definition:** Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**.
 **Terminology:** “Economic OS” and “orchestration network” are internal architecture terms; “marketplace” and “chatbot” are not product definitions.
 
