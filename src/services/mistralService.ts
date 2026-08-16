@@ -44,15 +44,12 @@ function transcriptionEnabled(): boolean {
 let lastConnection: { keyMarker: string; reachable: boolean; testedAt: string; note: string } | null = null;
 
 function keyMarker(value: string): string { return `${value.length}:${value.slice(-4)}`; }
-
 function rememberConnection(key: string, reachable: boolean, note: string): void {
   lastConnection = { keyMarker: keyMarker(key), reachable, testedAt: new Date().toISOString(), note };
 }
-
 function connectionVerified(key: string): boolean {
   return Boolean(lastConnection && lastConnection.keyMarker === keyMarker(key) && lastConnection.reachable);
 }
-
 function apiKey(): string {
   const value = String(process.env.MISTRAL_API_KEY || '').trim();
   if (!hasConfiguredSecret(value)) throw new MistralProviderError('MISTRAL_NOT_CONFIGURED', 'Mistral is not configured for this deployment.');
@@ -75,7 +72,11 @@ export function getMistralStatus(): ProviderReadiness {
     limits: configured
       ? unknownLimits('Mistral account limits are not exposed by environment configuration; no allowance is assumed.')
       : { status: 'unavailable', note: 'MISTRAL_API_KEY is not configured.' },
-    note: !configured ? 'Optional hosted text generation is not configured.' : verified ? 'Mistral models endpoint was independently verified in this process; routing policy must still select it.' : 'Mistral credentials are present, but provider availability is unverified until the protected connection test succeeds.',
+    note: !configured
+      ? 'Optional hosted text generation is not configured.'
+      : verified
+        ? 'Mistral models endpoint was independently verified in this process; routing policy must still select it.'
+        : 'Mistral credentials are present, but provider availability is unverified until the protected connection test succeeds.',
   };
   return {
     provider: 'mistral',
@@ -104,7 +105,7 @@ export async function transcribeMistralAudio(input: MistralTranscriptionInput): 
     form.append('model', transcriptionModel());
     form.append('file', new Blob([input.data], { type: input.mimeType || 'application/octet-stream' }), input.filename || 'kurukoo-audio');
     if (input.language) form.append('language', input.language.slice(0, 16));
-    const response = await fetch(String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '') + '/audio/transcriptions', {
+    const response = await fetch(`${String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '')}/audio/transcriptions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}` },
       signal: input.signal || controller.signal,
@@ -125,24 +126,39 @@ export async function transcribeMistralAudio(input: MistralTranscriptionInput): 
 
 export async function testMistralConnection(): Promise<{ configured: boolean; reachable: boolean; modelCount?: number; status: number; note: string }> {
   const key = String(process.env.MISTRAL_API_KEY || '').trim();
-  if (!hasConfiguredSecret(key)) { rememberConnection('', false, 'Mistral API key is not configured.'); return { configured: false, reachable: false, status: 0, note: 'Mistral API key is not configured.' }; }
+  if (!hasConfiguredSecret(key)) {
+    rememberConnection('', false, 'Mistral API key is not configured.');
+    return { configured: false, reachable: false, status: 0, note: 'Mistral API key is not configured.' };
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Number(process.env.MISTRAL_TIMEOUT_MS || 15_000));
   try {
-    const response = await fetch(String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '') + '/models', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${key}` },
-      signal: controller.signal,
+    const response = await fetch(`${String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '')}/models`, {
+      method: 'GET', headers: { Authorization: `Bearer ${key}` }, signal: controller.signal,
     });
-    if (!response.ok) { const note = `Mistral models endpoint returned HTTP ${response.status}.`; rememberConnection(key, false, note); return { configured: true, reachable: false, status: response.status, note }; }
+    if (!response.ok) {
+      const note = `Mistral models endpoint returned HTTP ${response.status}.`;
+      rememberConnection(key, false, note);
+      return { configured: true, reachable: false, status: response.status, note };
+    }
     const payload = await response.json() as any;
     const models = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
-    const note = 'Mistral models endpoint responded successfully; account limits and production suitability remain unverified.'; rememberConnection(key, true, note); return { configured: true, reachable: true, modelCount: models.length, status: response.status, note };
+    const note = 'Mistral models endpoint responded successfully; account limits and production suitability remain unverified.';
+    rememberConnection(key, true, note);
+    return { configured: true, reachable: true, modelCount: models.length, status: response.status, note };
   } catch {
-    const note = 'Mistral models endpoint could not be reached; no provider availability is claimed.'; rememberConnection(key, false, note); return { configured: true, reachable: false, status: 0, note };
+    const note = 'Mistral models endpoint could not be reached; no provider availability is claimed.';
+    rememberConnection(key, false, note);
+    return { configured: true, reachable: false, status: 0, note };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function augmentConversationInstruction(prompt: string, base: string, enabled: boolean): string {
+  if (!enabled) return base;
+  const contract = buildConversationTurnContract({ latestUserMessage: prompt, assistantReply: '' });
+  return `${base}\n\n${buildConversationalSystemDirective(contract)}`;
 }
 
 export async function queryMistral(prompt: string, options: MistralChatOptions = {}): Promise<string> {
@@ -152,15 +168,8 @@ export async function queryMistral(prompt: string, options: MistralChatOptions =
   const timeout = setTimeout(() => controller.abort(), Number(process.env.MISTRAL_TIMEOUT_MS || 15_000));
   try {
     const baseSystemInstruction = options.systemInstruction || 'You are Kurukoo, a concise and evidence-based utility assistant. Never claim an external action without authoritative confirmation.';
-    const contract = options.conversationalContract === false
-      ? ''
-      : buildConversationalSystemDirective(buildConversationTurnContract({
-        latestUserMessage: prompt,
-        assistantReply: '',
-        userMessage: prompt,
-      }));
-    const systemInstruction = contract ? `${baseSystemInstruction}\n\n${contract}` : baseSystemInstruction;
-    const response = await fetch(String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '') + '/chat/completions', {
+    const systemInstruction = augmentConversationInstruction(prompt, baseSystemInstruction, options.conversationalContract !== false);
+    const response = await fetch(`${String(process.env.MISTRAL_API_BASE || 'https://api.mistral.ai/v1').replace(/\/$/, '')}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       signal: options.signal || controller.signal,
