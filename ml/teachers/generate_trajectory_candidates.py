@@ -133,6 +133,15 @@ def candidate_id(row, index):
     return hashlib.sha256(raw.encode()).hexdigest()[:24]
 
 
+def normalize_turn(turn):
+    if not isinstance(turn, dict):
+        return {"role": "user", "content": str(turn)}
+    role = str(turn.get("role") or "user").lower()
+    if role not in ("user", "assistant", "system"):
+        role = "user"
+    return {"role": role, "content": str(turn.get("content") or "").strip()}
+
+
 def main():
     rows = load_rows()
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -141,7 +150,8 @@ def main():
 
     for index, row in enumerate(rows):
         trajectory = row.get("trajectory") or []
-        compact = "\n".join(f"{turn.get('role')}: {turn.get('content')}" for turn in trajectory[-12:])
+        normalized_trajectory = [normalize_turn(turn) for turn in trajectory if normalize_turn(turn)["content"]]
+        compact = "\n".join(f"{turn['role']}: {turn['content']}" for turn in normalized_trajectory[-12:])
         prompt = (
             "Generate the next 1-4 assistant turns for this synthetic Kurukoo trajectory. "
             "The turns should feel like one continuous human conversation. If the user interrupts, preserve the paused goal. "
@@ -160,9 +170,7 @@ def main():
             record = {
                 "exampleId": candidate_id(row, index),
                 "scenarioId": row.get("scenarioId"),
-                "messages": [{"role": "user", "content": turn.get("content", "")} for turn in trajectory] + [
-                    {"role": "assistant", "content": turn} for turn in turns
-                ],
+                "messages": normalized_trajectory + [{"role": "assistant", "content": turn} for turn in turns],
                 "labels": {
                     "skill": row.get("skill"),
                     "family": row.get("family"),
