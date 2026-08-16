@@ -1121,7 +1121,13 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
     flex: 0 0 85%;
     scroll-snap-align: start;
   }
-  .scroll-x::-webkit-scrollbar { display: none; }
+  .scroll-x::-webkit-scrollbar,
+  .quick-replies-container::-webkit-scrollbar,
+  #quick-replies-bar::-webkit-scrollbar,
+  .channels-slider-container::-webkit-scrollbar,
+  .inline-cards-slider::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .message:nth-child(1) { animation-delay: 0.5s; }
@@ -1616,9 +1622,6 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
   scrollbar-width: none;
 }
 
-.quick-replies-container::-webkit-scrollbar {
-  display: none;
-}
 
 .chat-input {
   flex: 1;
@@ -1784,9 +1787,6 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
   border-top: 1.5px solid rgba(217, 122, 92, 0.1);
   align-items: center;
   scrollbar-width: none;
-}
-#quick-replies-bar::-webkit-scrollbar {
-  display: none;
 }
 
 #quick-replies-bar .quick-reply-pill {
@@ -4041,9 +4041,6 @@ table td, .admin-table td {
   mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent) !important;
   -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent) !important;
 }
-.channels-slider-container::-webkit-scrollbar {
-  display: none !important;
-}
 .channels-marquee {
   display: flex !important;
   align-items: center !important;
@@ -5752,9 +5749,6 @@ table td, .admin-table td {
   width: 100% !important;
   box-sizing: border-box !important;
   margin: 8px 0 !important;
-}
-.inline-cards-slider::-webkit-scrollbar {
-  display: none !important;
 }
 .inline-cards-slider .inline-card {
   flex: 0 0 150px !important;
