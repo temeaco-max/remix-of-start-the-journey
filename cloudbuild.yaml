@@ -1,0 +1,58 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-t', '$_IMAGE', '.']
+
+  - name: gcr.io/cloud-builders/docker
+    args: ['push', '$_IMAGE']
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - '$_SERVICE'
+      - '--image'
+      - '$_IMAGE'
+      - '--region'
+      - '$_REGION'
+      - '--platform'
+      - managed
+      - '--memory'
+      - '$_MEMORY'
+      - '--cpu'
+      - '$_CPU'
+      - '--concurrency'
+      - '$_CONCURRENCY'
+      - '--timeout'
+      - '$_TIMEOUT'
+      - '--min'
+      - '$_MIN_INSTANCES'
+      - '--max'
+      - '$_MAX_INSTANCES'
+      - '--port'
+      - '8080'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,KURUKOO_SMOLLM2_LOCAL=$_SMOLLM2_LOCAL,SMOLLM2_MODEL=$_SMOLLM2_MODEL,SMOLLM2_FALLBACK_MODEL=$_SMOLLM2_FALLBACK_MODEL,SMOLLM2_DTYPE=$_SMOLLM2_DTYPE,KURUKOO_CLOUD_RUN_REQUIRE_MODEL=$_REQUIRE_MODEL,HOST=0.0.0.0,PORT=8080'
+      - '--quiet'
+
+images:
+  - '$_IMAGE'
+
+substitutions:
+  _SERVICE: kurukoo
+  _REGION: europe-west2
+  _IMAGE: europe-west2-docker.pkg.dev/$PROJECT_ID/kurukoo/kurukoo:$SHORT_SHA
+  _MEMORY: 8Gi
+  _CPU: '4'
+  _CONCURRENCY: '1'
+  _TIMEOUT: '300s'
+  _MIN_INSTANCES: '0'
+  _MAX_INSTANCES: '3'
+  _SMOLLM2_LOCAL: 'true'
+  _SMOLLM2_MODEL: HuggingFaceTB/SmolLM2-1.7B-Instruct
+  _SMOLLM2_FALLBACK_MODEL: HuggingFaceTB/SmolLM2-1.7B-Instruct
+  _SMOLLM2_DTYPE: q4
+  _REQUIRE_MODEL: 'true'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
