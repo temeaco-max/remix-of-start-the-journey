@@ -16,6 +16,7 @@ import { revokeMemoryFact } from './memoryProfile.js';
 import { getEconomicRequest } from './skillFlows.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { deriveCapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
+import { getPreferredEmergencyNumber } from './emergencyDirectoryService.js';
 
 type ExecutorStatus = UniversalCapabilityResult['status'] | 'in_progress' | 'external_unavailable' | 'stale_context' | 'unauthorized' | 'invalid';
 
@@ -130,6 +131,19 @@ async function verifyExactOwner(input: CanonicalCapabilityExecutionInput): Promi
 
 async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput, object?: any): Promise<CanonicalCapabilityExecutionResult> {
   const args = input.arguments || {};
+  if (input.capability === 'safety' && input.action === 'emergency_dispatch') {
+    const service = String(args.service || 'emergency').toLowerCase() as 'national' | 'police' | 'ambulance' | 'fire' | 'disaster';
+    const country = String(args.country || 'NG').toUpperCase();
+    const contact = getPreferredEmergencyNumber(country, ['police', 'ambulance', 'fire'].includes(service) ? service : 'national');
+    if (!contact) return baseResult(input, 'unavailable_external', 'I could not verify an emergency contact for this location. Use the emergency number available from your local emergency service now.', { externalActivation: 'unavailable_external_dependency', retryRecovery: [{ action: 'clarify_location', label: 'Provide your country or location' }, { action: 'retry', label: 'Retry emergency routing' }] });
+    return baseResult(input, 'externally_pending', `Emergency ${service} routing is ready to hand off to ${contact.name} on ${contact.number}. Live dialing/connection is not activated in this deployment, so Kurukoo has not claimed that a call or dispatch occurred.`, {
+      canonicalFacts: { service, country, emergencyNumber: contact.number, contactName: contact.name, source: contact.source, verificationState: contact.verificationState, dialable: contact.dialable },
+      evidenceLevel: 'canonical_service',
+      externalActivation: 'repository_ready_external_activation',
+      nextActions: [{ action: 'dial', label: `Call ${contact.number}` }, { action: 'open_voice', label: 'Open Kurukoo voice' }],
+      retryRecovery: [{ action: 'retry', label: 'Retry emergency routing' }, { action: 'continue_chat', label: 'Continue here while you seek emergency help' }],
+    });
+  }
   if (input.capability === 'reminder' && input.action === 'create') {
     const reminder = await createReminder(input.phone, { title: String(args.title || ''), note: args.note ? String(args.note) : undefined, dueAt: String(args.dueAt || args.due_at || ''), recurrence: args.recurrence ? String(args.recurrence) : null });
     return baseResult(input, 'completed', `Reminder created for ${reminder.due_at}.`, { canonicalObjectId: reminder.id, canonicalFacts: { reminderId: reminder.id, dueAt: reminder.due_at, status: reminder.status }, evidenceLevel: 'canonical_service', nextActions: [{ action: 'open', label: 'Open reminder' }, { action: 'cancel', label: 'Cancel reminder', confirmationRequired: false }] });
@@ -142,9 +156,7 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
     const goal = input.action === 'pause' ? await pauseAgentGoal(input.phone, input.canonicalObjectId!) : input.action === 'resume' ? await resumeAgentGoal(input.phone, input.canonicalObjectId!) : await cancelAgentGoal(input.phone, input.canonicalObjectId!);
     return goal ? baseResult(input, 'completed', `The exact agent goal was ${input.action}d.`, { canonicalFacts: { goalId: goal.id, status: goal.status, objective: goal.objective }, evidenceLevel: 'canonical_service', canonicalObjectId: goal.id }) : invalidResult(input, 'stale_context', 'That exact agent goal is no longer available. I did not substitute another goal.', 'agent_goal_not_active');
   }
-  if (input.capability === 'notification' && input.action === 'open') {
-    return baseResult(input, 'completed', 'The exact notification is available.', { canonicalFacts: { notification: object }, evidenceLevel: 'canonical_service' });
-  }
+  if (input.capability === 'notification' && input.action === 'open') return baseResult(input, 'completed', 'The exact notification is available.', { canonicalFacts: { notification: object }, evidenceLevel: 'canonical_service' });
   if (input.capability === 'notification' && input.action === 'dismiss') {
     const dismissed = await markNotificationRead(Number(input.canonicalObjectId), input.phone);
     return dismissed ? baseResult(input, 'completed', 'The exact notification was marked as read.', { canonicalFacts: { notificationId: input.canonicalObjectId, status: 'read' }, evidenceLevel: 'canonical_service' }) : invalidResult(input, 'stale_context', 'That exact notification is no longer available.', 'notification_not_active');
@@ -172,7 +184,7 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
 
   const descriptor = getCanonicalOperationDescriptor(normalized.capability) || (await listUniversalCapabilities()).find(item => item.capability === normalized.capability);
   if (!descriptor) return invalidResult(normalized, 'invalid', 'That capability is not registered. No alternate action was selected.', 'missing_capability');
-  const interactionPolicy = deriveCapabilityInteractionPolicy(descriptor);
+  const interactionPolicy = deriveCapabilityInteractionPolicy(normalized.capability === 'safety' ? { ...descriptor, actions: [...descriptor.actions, 'emergency_dispatch'], mode: 'external_execution', risk: 'high_risk', activationState: 'repository_ready_external_activation' } : descriptor);
   const criticalGuestInitialHelp = interactionPolicy.priority === 'critical' && interactionPolicy.guestAccess === 'allowed_for_initial_help';
   const hasAuthenticatedOwner = Boolean(normalized.phone && !normalized.phone.startsWith('anon_'));
 
@@ -192,13 +204,16 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
   }
 
   const missing = requiredArgumentMissing(descriptor, normalized);
-  if (missing) {
+  if (missing && !criticalGuestInitialHelp) {
     const result = invalidResult(normalized, 'needs_user', `I still need ${missing} before the canonical service can proceed.`, 'missing_required_argument');
     await persistResult(normalized, idempotencyKey, result);
     return result;
   }
 
-  const validation = validateCapabilityProposal(normalized, descriptor, { ownerVerified: hasAuthenticatedOwner || criticalGuestInitialHelp, objectVerified: true, stale: false, confirmationGranted: Boolean(normalized.confirmationGranted) });
+  const emergencyAction = normalized.capability === 'safety' && normalized.action === 'emergency_dispatch';
+  const validation = emergencyAction && criticalGuestInitialHelp
+    ? { valid: true as const }
+    : validateCapabilityProposal(normalized, descriptor, { ownerVerified: hasAuthenticatedOwner || criticalGuestInitialHelp, objectVerified: true, stale: false, confirmationGranted: Boolean(normalized.confirmationGranted) });
   if (!validation.valid) {
     const status: ExecutorStatus = validation.code === 'stale_context' ? 'stale_context' : validation.code === 'foreign_context' ? 'unauthorized' : validation.code === 'missing_confirmation' ? 'confirmation_required' : 'invalid';
     const result = invalidResult(normalized, status, validation.message || 'The canonical action was not accepted.', validation.code || 'invalid');
@@ -207,7 +222,7 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
   }
 
   const explicitConfirmationRequired = interactionPolicy.confirmation === 'explicit';
-  if (explicitConfirmationRequired && !normalized.confirmationGranted) {
+  if (explicitConfirmationRequired && !normalized.confirmationGranted && !emergencyAction) {
     const result = baseResult(normalized, 'confirmation_required', 'This action requires your explicit confirmation before any state or external effect can occur.', { retryRecovery: [{ action: 'confirm', label: 'Confirm this exact action' }, { action: 'cancel', label: 'Cancel without changing state' }] });
     await persistResult(normalized, idempotencyKey, result);
     return result;
