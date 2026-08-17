@@ -209,6 +209,7 @@ const CANONICAL_OPERATION_DEFINITIONS: Array<{ capability: string; family: strin
   { capability: 'content', family: 'public-content', actions: ['open'], owner: ['contentManager'], risk: 'read_only', activationState: 'locally_available' },
   { capability: 'channel', family: 'communications', actions: ['send', 'continue'], owner: ['channelRegistry', 'channelUsageService'], risk: 'confirmation_required', activationState: 'repository_ready_external_activation' },
   { capability: 'execution', family: 'external-execution', actions: ['dispatch'], owner: ['executionConnector'], risk: 'confirmation_required', activationState: 'repository_ready_external_activation' },
+  { capability: 'emergency', family: 'emergency-dispatch', actions: ['assess', 'location', 'dial', 'connect', 'end', 'followup'], owner: ['emergencyService', 'canonicalChatTurnService', 'voiceBoundary', 'webrtcSignalling'], risk: 'high_risk', activationState: 'repository_ready_external_activation' },
 ];
 
 function operationDescriptor(definition: typeof CANONICAL_OPERATION_DEFINITIONS[number]): UniversalCapabilityDescriptor {
@@ -216,7 +217,7 @@ function operationDescriptor(definition: typeof CANONICAL_OPERATION_DEFINITIONS[
   return {
     kind: 'operation',
     capability: definition.capability, family: definition.family, mode: definition.risk === 'read_only' ? 'read_only' : definition.activationState === 'repository_ready_external_activation' ? 'external_execution' : 'state_change',
-    actions: definition.actions, context: { requiredInputs: [], optionalInputs: [] }, permissions: ['authenticated_owner'], owner: definition.owner, risk: definition.risk,
+    actions: definition.actions, context: { requiredInputs: [], optionalInputs: [] }, permissions: definition.capability === 'emergency' ? ['guest_initial_help', 'authenticated_owner'] : ['authenticated_owner'], owner: definition.owner, risk: definition.risk,
     consentRequired: confirmationRequired, confirmationRequired, lifecycle: ['requested', 'awaiting_confirmation', 'accepted', 'waiting', 'executing', 'completed', 'cancelled', 'failed'],
     canonicalFactsAvailable: ['canonical_object_identity', 'lifecycle', 'evidence', 'external_activation'], executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
     evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'], nextAllowedActions: definition.actions,

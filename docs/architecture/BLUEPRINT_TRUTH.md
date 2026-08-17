@@ -179,3 +179,12 @@ The model registry remains unchanged. Any future candidate must provide an immut
 | Rewrite lineage | A rewrite creates a new pending candidate linked to the original through `rewrite_of`, `original_id`, version, provenance and audit records. | IMPLEMENTED_AND_VERIFIED |
 | Accepted-corpus gate | `reviewed=true AND accepted=true` is mandatory; scores, teacher confidence and provider identity never imply acceptance. Configurable coverage minimums fail closed before training. | IMPLEMENTED_AND_VERIFIED |
 | Offline training | The Control Room prepares and audits corpus readiness but never launches training. QLoRA remains an explicit offline operation and no trained adapter is claimed until accepted data, coverage, training and verification exist. | IMPLEMENTED_FEATURE_FLAGGED |
+
+
+## Emergency interrupt truth — 17 August 2026
+
+Emergency is now an interruptive canonical capability at `canonicalChatTurnService`, ahead of guest onboarding, authentication, Economic Requests, provider discovery, reminders, agents, memory and ordinary conversation. The existing universal capability registry exposes `emergency` actions `assess`, `location`, `dial`, `connect`, `end` and `followup`, with `guest_initial_help` permission and existing canonical emergency/voice/WebRTC owners.
+
+The repository directory contains the Nigeria nationwide 112 route for ambulance, police and fire, sourced from the Nigerian Communications Commission public release. The record is source-attributed and verification-labelled; Kurukoo does not invent local alternatives. Chat supports explicit service selection, approximate or unknown location, visible dial state and end/continuation. A browser `tel:112` option is repository-ready where supported, but actual dialing, ringing, connection, responder acceptance and dispatch remain **PROVIDER_DEPENDENT** and are not claimed.
+
+Guest emergency assistance is **IMPLEMENTED_AND_VERIFIED** by regression: it does not enter name, phone or OTP onboarding, while ordinary guest economic action continues to require the existing authentication path. The emergency Chat card is now rendered through the shared Chat surface with service, location, dial state, verified number, call control and truthful limitation copy.

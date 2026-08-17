@@ -988,6 +988,16 @@
     if (card.type === 'suggestions') return renderSuggestions(card.options, messageEl, card.sponsored);
     if (card.type === 'intent_suggestions') return renderSuggestions(card.suggestions, messageEl, card.sponsored);
     if (card.type === 'ai_metadata') return updateModelStatus(card);
+    if (card.type === 'emergency') {
+      const holder = makeElement('section', 'emergency-chat-card'); holder.setAttribute('aria-label', 'Emergency assistance');
+      const heading = makeChildren('div', 'emergency-chat-card__heading', [makeIcon('safety', 'Emergency'), makeElement('strong', '', 'Emergency mode')]);
+      const service = makeElement('p', 'emergency-chat-card__service', `${String(card.service?.serviceType || card.session?.serviceType || 'emergency')} · ${String(card.status || card.session?.dialState || 'unavailable').replaceAll('_', ' ')}`);
+      const location = makeElement('p', 'emergency-chat-card__location', `Location: ${card.locationStatus === 'approximate' ? 'approximate location shared' : 'not known yet'}`);
+      const truth = makeElement('p', 'emergency-chat-card__truth', 'Kurukoo is a coordination interface, not an emergency responder. Connection and dispatch are never claimed without evidence.');
+      const actions = makeElement('div', 'emergency-chat-card__actions');
+      (Array.isArray(card.actions) ? card.actions : []).forEach(action => { const button = makeElement(action.href ? 'a' : 'button', 'emergency-chat-card__action', action.label || action.id); if (action.href) { button.href = action.href; button.setAttribute('aria-label', action.label || action.id); } else { button.type = 'button'; button.addEventListener('click', () => { if (action.canonicalAction === 'emergency.end') sendMessage('Actually this is not an emergency anymore.'); else if (action.canonicalAction === 'emergency.location') sendMessage('I do not know exactly where I am. Help me share an approximate location.'); }); } actions.appendChild(button); });
+      holder.append(heading, service, location, truth, actions); messageEl.querySelector('.bubble')?.appendChild(holder); return;
+    }
 
     if (card.type === 'auth_otp_input' || card.type === 'auth_conversation') {
       const step = card.type === 'auth_otp_input' ? 'otp' : String(card.step || 'name');
