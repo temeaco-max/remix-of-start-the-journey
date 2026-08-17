@@ -18,6 +18,7 @@ import { advanceStorefront } from './agenticStorefront.js';
 import { deriveCapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 import { getPreferredEmergencyNumber } from './emergencyDirectoryService.js';
 import { controlConnectedResource, getConnectedResource, viewConnectedResource } from './connectedResourceService.js';
+import { getExecutionAdapter } from './capabilityExecutionAdapterBridge.js';
 
 type ExecutorStatus = UniversalCapabilityResult['status'] | 'in_progress' | 'external_unavailable' | 'stale_context' | 'unauthorized' | 'invalid';
 
@@ -233,6 +234,41 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
 
   const owner = hasAuthenticatedOwner ? await verifyExactOwner(normalized) : { ok: true };
   if (!owner.ok) { const result = invalidResult(normalized, 'unauthorized', 'The exact referenced object is not available to this account. No replacement object was selected.', owner.code || 'foreign_context'); await persistResult(normalized, idempotencyKey, result); return result; }
+
+  const adapter = getExecutionAdapter(normalized.capability);
+  const adapterAllowsAction = adapter?.actions.some(action => action.toLowerCase() === normalized.action.toLowerCase()) ?? false;
+  if (adapter?.execute && adapterAllowsAction) {
+    try {
+      const adapted = await adapter.execute({
+        phone: normalized.phone,
+        conversationId: normalized.conversationId,
+        contextId: normalized.contextId,
+        capability: normalized.capability,
+        action: normalized.action,
+        canonicalObjectId: normalized.canonicalObjectId,
+        arguments: normalized.arguments || {},
+        confirmationGranted: normalized.confirmationGranted,
+        idempotencyKey,
+        ownerObject: owner.object,
+      });
+      if (adapted) {
+        const result = baseResult(normalized, adapted.status as ExecutorStatus, adapted.message, {
+          canonicalFacts: adapted.canonicalFacts || {},
+          evidenceLevel: adapted.evidenceLevel || 'canonical_service',
+          externalActivation: adapted.externalActivation || 'locally_available',
+          nextActions: adapted.nextActions || [],
+          retryRecovery: adapted.retryRecovery || [],
+        });
+        result.idempotencyKey = idempotencyKey;
+        await persistResult(normalized, idempotencyKey, result);
+        return result;
+      }
+    } catch (error) {
+      const result = invalidResult(normalized, 'invalid', error instanceof Error ? error.message : 'The capability adapter failed safely.', 'capability_adapter_failed');
+      await persistResult(normalized, idempotencyKey, result);
+      return result;
+    }
+  }
 
   const result = await dispatchCanonicalAction(normalized, owner.object); result.idempotencyKey = idempotencyKey; await persistResult(normalized, idempotencyKey, result); return result;
 }
