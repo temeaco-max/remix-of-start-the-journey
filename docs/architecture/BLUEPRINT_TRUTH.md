@@ -58,7 +58,7 @@ This document is the current convergence index between the Blueprint and the rep
 | Voice | Repository voice boundary exists; real provider activation remains external. | PROVIDER_DEPENDENT |
 | Private-number masking | Owner-scoped proxy allocation, resolution, expiry/release, execution-connector integration, and protected Coordinator lifecycle telemetry exist; a local proxy number is not a routable real telephony number. | PROVIDER_DEPENDENT |
 | WebRTC | Authenticated signalling foundation exists, but create/peer/signal endpoints now fail closed unless `FF_WEBRTC=true` and an approved STUN/TURN or relay prerequisite is configured. TURN/STUN, client media lifecycle, consent, browser interoperability, and production relay remain external activation tasks. | FOUNDATION_ONLY |
-| MQTT / IoT | MQTT bridge foundation exists; secure device identity, discovery, authorisation, state sync and production broker architecture are not yet a complete product capability. | FOUNDATION_ONLY |
+| MQTT / IoT | Owner-scoped connected-resource registration, pairing, capability gating, persistent command records, idempotent command replay, and truthful broker readiness now exist through the canonical connected-resource owner. Secure device identity, discovery, inbound state synchronization, durable broker operations and production broker architecture remain incomplete. | FOUNDATION_ONLY |
 
 ## Economic / network truth
 
