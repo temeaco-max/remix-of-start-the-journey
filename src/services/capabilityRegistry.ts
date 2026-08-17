@@ -61,6 +61,18 @@ export function registerCapabilities(registrations: CapabilityRegistration[]): v
   for (const registration of registrations) registerCapability(registration);
 }
 
+export function extendCapabilityActions(name: string, actions: string[]): CapabilityRegistration {
+  const normalized = normalizeName(name);
+  const canonicalName = registry.has(normalized) ? normalized : aliasIndex.get(normalized);
+  if (!canonicalName) throw new Error(`Cannot extend unknown capability ${normalized}.`);
+  const registration = registry.get(canonicalName);
+  if (!registration) throw new Error(`Capability ${canonicalName} is unavailable.`);
+  const nextActions = [...new Set([...registration.descriptor.actions, ...actions.map(action => String(action || '').trim()).filter(Boolean)])];
+  registration.descriptor = { ...registration.descriptor, actions: nextActions, nextAllowedActions: [...new Set([...registration.descriptor.nextAllowedActions, ...nextActions])] };
+  registry.set(canonicalName, registration);
+  return cloneRegistration(registration);
+}
+
 export function getCapabilityRegistration(name: string): CapabilityRegistration | undefined {
   const normalized = normalizeName(name);
   const canonicalName = registry.has(normalized) ? normalized : aliasIndex.get(normalized);
