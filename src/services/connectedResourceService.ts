@@ -41,6 +41,7 @@ async function ensureSchema(): Promise<void> {
       revoked_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_connected_resources_phone_status ON connected_resources(phone, status, last_seen_at);
+    CREATE INDEX IF NOT EXISTS idx_connected_resources_phone_label ON connected_resources(phone, label, status);
   `);
 }
 
@@ -49,12 +50,14 @@ function safeJson(value: unknown, fallback: unknown): unknown {
 }
 
 function rowToResource(row: any[]): ConnectedResource {
+  const parsedCapabilities = safeJson(row[6], []);
+  const parsedMetadata = safeJson(row[7], {});
   return {
     id: String(row[0]), phone: String(row[1]), kind: String(row[2]) as ConnectedResourceKind,
     label: String(row[3]), vendor: row[4] ? String(row[4]) : undefined,
     protocol: String(row[5]) as ConnectedResourceProtocol,
-    capabilities: Array.isArray(safeJson(row[6], [])) ? (safeJson(row[6], []) as unknown[]).map(String) : [],
-    metadata: (safeJson(row[7], {}) as Record<string, unknown>) || {},
+    capabilities: Array.isArray(parsedCapabilities) ? (parsedCapabilities as unknown[]).map(String) : [],
+    metadata: parsedMetadata && typeof parsedMetadata === 'object' ? parsedMetadata as Record<string, unknown> : {},
     viewUrl: row[8] ? String(row[8]) : undefined,
     streamUrl: row[9] ? String(row[9]) : undefined,
     status: String(row[10] || 'pending') as ConnectedResource['status'],
@@ -107,6 +110,24 @@ export async function getConnectedResource(phone: string, id: string): Promise<C
   const row = db.exec(`SELECT id, phone, kind, label, vendor, protocol, capabilities_json, metadata_json, view_url, stream_url, status, created_at, last_seen_at
     FROM connected_resources WHERE id = ? AND phone = ? LIMIT 1`, [id, String(phone || '').trim()])[0]?.values?.[0] as any[] | undefined;
   return row ? rowToResource(row) : null;
+}
+
+export async function resolveConnectedResource(input: { phone: string; id?: string; label?: string; kind?: ConnectedResourceKind }): Promise<{ resource: ConnectedResource } | { ambiguous: ConnectedResource[] } | null> {
+  await ensureSchema();
+  if (input.id) {
+    const resource = await getConnectedResource(input.phone, input.id);
+    return resource ? { resource } : null;
+  }
+  const label = String(input.label || '').trim().toLowerCase();
+  if (!label) return null;
+  const resources = await listConnectedResources(input.phone);
+  const exact = resources.filter(resource => resource.label.toLowerCase() === label && (!input.kind || resource.kind === input.kind));
+  if (exact.length === 1) return { resource: exact[0] };
+  if (exact.length > 1) return { ambiguous: exact };
+  const partial = resources.filter(resource => resource.label.toLowerCase().includes(label) && (!input.kind || resource.kind === input.kind));
+  if (partial.length === 1) return { resource: partial[0] };
+  if (partial.length > 1) return { ambiguous: partial.slice(0, 5) };
+  return null;
 }
 
 export async function markConnectedResourceSeen(phone: string, id: string): Promise<void> {
