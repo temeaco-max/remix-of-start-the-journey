@@ -17,6 +17,7 @@ import { getEconomicRequest } from './skillFlows.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { deriveCapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 import { getPreferredEmergencyNumber } from './emergencyDirectoryService.js';
+import { controlConnectedResource, getConnectedResource, viewConnectedResource } from './connectedResourceService.js';
 
 type ExecutorStatus = UniversalCapabilityResult['status'] | 'in_progress' | 'external_unavailable' | 'stale_context' | 'unauthorized' | 'invalid';
 
@@ -126,6 +127,10 @@ async function verifyExactOwner(input: CanonicalCapabilityExecutionInput): Promi
     const id = Number(input.canonicalObjectId);
     return Number.isSafeInteger(id) && id > 0 ? { ok: true, object: { factId: id } } : { ok: false, code: 'invalid_memory_fact_id' };
   }
+  if (capability === 'execution' && input.canonicalObjectId) {
+    const object = await getConnectedResource(input.phone, input.canonicalObjectId);
+    return object ? { ok: true, object } : { ok: false, code: 'foreign_or_missing_connected_resource' };
+  }
   return { ok: true };
 }
 
@@ -142,6 +147,30 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
       externalActivation: 'repository_ready_external_activation',
       nextActions: [{ action: 'dial', label: `Call ${contact.number}` }, { action: 'open_voice', label: 'Open Kurukoo voice' }],
       retryRecovery: [{ action: 'retry', label: 'Retry emergency routing' }, { action: 'continue_chat', label: 'Continue here while you seek emergency help' }],
+    });
+  }
+  if (input.capability === 'execution' && input.action === 'dispatch') {
+    const resourceId = String(input.canonicalObjectId || args.resourceId || '').trim();
+    const command = String(args.command || args.action || '').trim();
+    if (!resourceId) return invalidResult(input, 'needs_user', 'Tell me which connected device or resource to control.', 'connected_resource_required');
+    const resource = await getConnectedResource(input.phone, resourceId);
+    if (!resource) return invalidResult(input, 'unauthorized', 'That connected device is not available to this account.', 'foreign_or_missing_connected_resource');
+    if (command === 'view' || command === 'inspect' || command === 'show') {
+      const view = await viewConnectedResource(input.phone, resourceId);
+      if (!view?.media.length) return baseResult(input, 'externally_pending', `The connected ${resource.kind} is registered, but it does not currently expose a view stream to Kurukoo.`, {
+        canonicalFacts: { resource, viewAvailable: false }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation',
+        nextActions: [{ action: 'configure_view', label: 'Configure an authorised view/stream' }],
+      });
+      return baseResult(input, 'completed', `Here is the connected ${resource.label}.`, {
+        canonicalFacts: { resource, viewAvailable: true, media: view.media }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation',
+        nextActions: [{ action: 'control', label: 'Control device' }, { action: 'close', label: 'Close view' }],
+      });
+    }
+    if (!command) return invalidResult(input, 'needs_user', 'Tell me what you want Kurukoo to do with that connected device.', 'connected_command_required');
+    const result = await controlConnectedResource({ phone: input.phone, id: resourceId, command, payload: args.payload == null ? undefined : String(args.payload) });
+    return baseResult(input, result.accepted ? 'externally_pending' : 'external_unavailable', result.accepted ? `The ${command} command was accepted by Kurukoo for ${resource.label}. Delivery to the connected device remains external and has not been claimed.` : `Kurukoo could not send the ${command} command to ${resource.label}.`, {
+      canonicalFacts: { resource: result.resource, command, state: result.state, reason: result.reason }, evidenceLevel: 'canonical_service', externalActivation: result.accepted ? 'repository_ready_external_activation' : 'unavailable_external_dependency',
+      nextActions: result.accepted ? [{ action: 'status', label: 'Check device status' }] : [{ action: 'retry', label: 'Retry command' }],
     });
   }
   if (input.capability === 'reminder' && input.action === 'create') {
