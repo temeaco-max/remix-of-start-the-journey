@@ -15,6 +15,7 @@ import { getInternalNotificationById, markNotificationRead } from './pushNotific
 import { revokeMemoryFact } from './memoryProfile.js';
 import { getEconomicRequest } from './skillFlows.js';
 import { advanceStorefront } from './agenticStorefront.js';
+import { deriveCapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 
 type ExecutorStatus = UniversalCapabilityResult['status'] | 'in_progress' | 'external_unavailable' | 'stale_context' | 'unauthorized' | 'invalid';
 
@@ -168,8 +169,20 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
   const normalized = { ...input, phone: String(input.phone || '').trim(), idempotencyKey };
   const duplicate = await readIdempotentResult(normalized.phone, idempotencyKey);
   if (duplicate) return duplicate;
-  if (!normalized.phone || normalized.phone.startsWith('anon_')) return invalidResult(normalized, 'unauthorized', 'Sign in before asking Kurukoo to execute an account-owned action.', 'authenticated_owner_required');
-  if (normalized.conversationId) {
+
+  const descriptor = getCanonicalOperationDescriptor(normalized.capability) || (await listUniversalCapabilities()).find(item => item.capability === normalized.capability);
+  if (!descriptor) return invalidResult(normalized, 'invalid', 'That capability is not registered. No alternate action was selected.', 'missing_capability');
+  const interactionPolicy = deriveCapabilityInteractionPolicy(descriptor);
+  const criticalGuestInitialHelp = interactionPolicy.priority === 'critical' && interactionPolicy.guestAccess === 'allowed_for_initial_help';
+  const hasAuthenticatedOwner = Boolean(normalized.phone && !normalized.phone.startsWith('anon_'));
+
+  if (!hasAuthenticatedOwner && !criticalGuestInitialHelp) {
+    const result = invalidResult(normalized, 'unauthorized', 'Sign in before asking Kurukoo to execute this account-owned action.', 'authenticated_owner_required');
+    await persistResult(normalized, idempotencyKey, result);
+    return result;
+  }
+
+  if (normalized.conversationId && hasAuthenticatedOwner) {
     const messages = await listChatMessages(normalized.phone, { conversationId: normalized.conversationId, limit: 1 });
     if (!messages.length) {
       const result = invalidResult(normalized, 'unauthorized', 'The conversation context is not owned by this account. No alternate conversation was selected.', 'foreign_conversation');
@@ -177,28 +190,36 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
       return result;
     }
   }
-  const descriptor = getCanonicalOperationDescriptor(normalized.capability) || (await listUniversalCapabilities()).find(item => item.capability === normalized.capability);
-  if (!descriptor) return invalidResult(normalized, 'invalid', 'That capability is not registered. No alternate action was selected.', 'missing_capability');
+
   const missing = requiredArgumentMissing(descriptor, normalized);
-  if (missing) return invalidResult(normalized, 'needs_user', `I still need ${missing} before the canonical service can proceed.`, 'missing_required_argument');
-  const validation = validateCapabilityProposal(normalized, descriptor, { ownerVerified: true, objectVerified: true, stale: false, confirmationGranted: Boolean(normalized.confirmationGranted) });
+  if (missing) {
+    const result = invalidResult(normalized, 'needs_user', `I still need ${missing} before the canonical service can proceed.`, 'missing_required_argument');
+    await persistResult(normalized, idempotencyKey, result);
+    return result;
+  }
+
+  const validation = validateCapabilityProposal(normalized, descriptor, { ownerVerified: hasAuthenticatedOwner || criticalGuestInitialHelp, objectVerified: true, stale: false, confirmationGranted: Boolean(normalized.confirmationGranted) });
   if (!validation.valid) {
     const status: ExecutorStatus = validation.code === 'stale_context' ? 'stale_context' : validation.code === 'foreign_context' ? 'unauthorized' : validation.code === 'missing_confirmation' ? 'confirmation_required' : 'invalid';
     const result = invalidResult(normalized, status, validation.message || 'The canonical action was not accepted.', validation.code || 'invalid');
     await persistResult(normalized, idempotencyKey, result);
     return result;
   }
-  if (descriptor.confirmationRequired && !normalized.confirmationGranted) {
+
+  const explicitConfirmationRequired = interactionPolicy.confirmation === 'explicit';
+  if (explicitConfirmationRequired && !normalized.confirmationGranted) {
     const result = baseResult(normalized, 'confirmation_required', 'This action requires your explicit confirmation before any state or external effect can occur.', { retryRecovery: [{ action: 'confirm', label: 'Confirm this exact action' }, { action: 'cancel', label: 'Cancel without changing state' }] });
     await persistResult(normalized, idempotencyKey, result);
     return result;
   }
-  const owner = await verifyExactOwner(normalized);
+
+  const owner = hasAuthenticatedOwner ? await verifyExactOwner(normalized) : { ok: true };
   if (!owner.ok) {
     const result = invalidResult(normalized, 'unauthorized', 'The exact referenced object is not available to this account. No replacement object was selected.', owner.code || 'foreign_context');
     await persistResult(normalized, idempotencyKey, result);
     return result;
   }
+
   const result = await dispatchCanonicalAction(normalized, owner.object);
   result.idempotencyKey = idempotencyKey;
   await persistResult(normalized, idempotencyKey, result);
