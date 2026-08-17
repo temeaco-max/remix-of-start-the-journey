@@ -5,6 +5,7 @@ import { developmentTestOtpLabel, isDevelopmentTestIdentity, verifyDevelopmentTe
 import { issueUserToken, upsertProfile } from '../routes/authRoutes.js';
 import { sendFcmPush } from './pushNotifications.js';
 import { generateConversationalResponse } from './conversationalGenerationService.js';
+import { resolveConversationPriority } from './conversationPriorityService.js';
 
 export type AuthState = 'none' | 'awaiting_name' | 'awaiting_phone' | 'awaiting_otp' | 'awaiting_email_phone' | 'awaiting_email_otp';
 
@@ -33,12 +34,27 @@ export async function setAuthState(guestPhone: string, state: AuthState, data: a
   const prefs = profile?.preferences && typeof profile.preferences === 'object' ? { ...profile.preferences } : {};
   prefs.auth_in_chat_state = state;
   prefs.auth_in_chat_data = data;
-  // updateProfile creates the lightweight guest record when needed and keeps
-  // conversational-auth state inside the canonical encrypted profile boundary.
   await updateProfile(guestPhone, 'conversational_auth', { preferences: prefs });
 }
 
 export async function handleConversationalAuth(guestPhone: string, text: string): Promise<ConversationalAuthResult> {
+  const priority = resolveConversationPriority(text);
+  if (priority.kind === 'emergency') {
+    await setAuthState(guestPhone, 'none', {});
+    const serviceHint = /ambulance/i.test(text) ? 'ambulance' : /police/i.test(text) ? 'police' : /fire/i.test(text) ? 'fire' : 'emergency';
+    return {
+      reply: `This sounds urgent. You do not need to register before getting emergency help. I can keep this emergency flow separate from your account setup. ${serviceHint === 'ambulance' ? 'I’ll prioritise an ambulance route.' : serviceHint === 'police' ? 'I’ll prioritise the police route.' : serviceHint === 'fire' ? 'I’ll prioritise the fire-service route.' : 'I’ll prioritise the appropriate emergency route.'}`,
+      cardData: {
+        type: 'emergency_dispatch',
+        canonicalAction: 'safety.emergency_dispatch',
+        service: serviceHint,
+        guestAllowed: true,
+        authenticationRequired: false,
+        preservePriorContext: true,
+      },
+    };
+  }
+
   const { state, data } = await getAuthState(guestPhone);
 
   if (state === 'awaiting_name') {
