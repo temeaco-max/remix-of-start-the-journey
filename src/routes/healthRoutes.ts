@@ -2,9 +2,36 @@ import { Router } from 'express';
 import { getDb } from '../database.js';
 import { getSmolLM2RuntimeStatus } from '../services/smolLm2Service.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
+import { ensureCapabilityFoundation } from '../services/capabilityFoundation.js';
+import { listCapabilityRegistrations, validateCapabilityRegistry } from '../services/capabilityRegistry.js';
 
 const router = Router();
 const startedAt = Date.now();
+
+function capabilitySnapshot() {
+  try {
+    ensureCapabilityFoundation();
+    const registrations = listCapabilityRegistrations();
+    const validation = validateCapabilityRegistry();
+    return {
+      registry: {
+        state: validation.valid ? 'healthy' : 'degraded',
+        count: registrations.length,
+        namespaces: [...new Set(registrations.map(item => item.namespace || 'kurukoo'))].sort(),
+        unresolved_dependencies: validation.unresolvedDependencies.length,
+        cycles: validation.cycles.length,
+        duplicate_aliases: validation.duplicateAliases.length,
+      },
+      composition: {
+        skills_are_compositions: true,
+        atomic_capabilities: registrations.filter(item => item.namespace === 'kurukoo.atomic').length,
+        skill_compositions: registrations.filter(item => item.namespace === 'kurukoo.skills').length,
+      },
+    };
+  } catch (error) {
+    return { registry: { state: 'degraded', count: 0, error: String((error as Error)?.message || error) }, composition: { skills_are_compositions: false, atomic_capabilities: 0, skill_compositions: 0 } };
+  }
+}
 
 function runtimeSnapshot() {
   const model = getSmolLM2RuntimeStatus();
@@ -65,6 +92,7 @@ router.get('/health', async (_req, res) => {
       scheduled_reminders: reminderCount,
       active_check_ins: safetyCount,
       ...runtimeSnapshot(),
+      ...capabilitySnapshot(),
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -78,15 +106,18 @@ router.get('/readyz', async (_req, res) => {
     const db = await getDb();
     db.exec('SELECT 1');
     const runtime = runtimeSnapshot();
+    const capability = capabilitySnapshot();
     const requireModel = process.env.KURUKOO_CLOUD_RUN_REQUIRE_MODEL === 'true';
     const modelReady = !requireModel || runtime.model.localEnabled || runtime.model.hostedConfigured;
-    const status = modelReady ? 'ready' : 'not_ready';
-    res.status(modelReady ? 200 : 503).json({
+    const capabilityReady = capability.registry.state === 'healthy';
+    const status = modelReady && capabilityReady ? 'ready' : 'not_ready';
+    res.status(modelReady && capabilityReady ? 200 : 503).json({
       status,
       service: 'kurukoo',
       database: 'ok',
       model: runtime.model,
       model_required: requireModel,
+      capabilities: capability,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
