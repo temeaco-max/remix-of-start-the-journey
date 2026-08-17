@@ -1,10 +1,43 @@
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 import { deriveCapabilityInteractionPolicy, deriveInteractionPolicyForCapabilityName, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 
+export type { CapabilityInteractionPolicy };
+
 const READ_ONLY = /^(answer|clarify|continue|inspect|view|list|open|preview|show|check|status|read|availability|quote|search|find|discover|explain)$/i;
 const COMMIT = /^(create|update|change|save|send|publish|post|reply|invite|claim|redeem|select|book|hire|order|purchase|pay|authorize|confirm|cancel|delete|forget|revoke|pause|resume|stop|dispatch|connect|dial|execute|complete)$/i;
 
 function actionName(action?: string): string { return String(action || '').trim().toLowerCase(); }
+
+function descriptorForName(capability: string, action: string, fallback: Partial<UniversalCapabilityDescriptor>): UniversalCapabilityDescriptor {
+  const mode = fallback.mode || 'conversation';
+  const risk = fallback.risk || 'read_only';
+  const activationState = fallback.activationState || 'locally_available';
+  const actions = fallback.actions || [action || 'answer'];
+  return {
+    kind: fallback.kind || 'operation',
+    capability,
+    family: fallback.family || 'uncategorized',
+    mode,
+    actions,
+    context: fallback.context || { requiredInputs: [], optionalInputs: [] },
+    permissions: fallback.permissions || (mode === 'conversation' || mode === 'read_only' ? ['guest_initial_help', 'authenticated_owner'] : ['authenticated_owner']),
+    owner: fallback.owner || ['canonicalCapabilityExecutor'],
+    risk,
+    consentRequired: fallback.consentRequired ?? (risk === 'confirmation_required' || risk === 'high_risk'),
+    confirmationRequired: fallback.confirmationRequired ?? (risk === 'confirmation_required' || risk === 'high_risk'),
+    lifecycle: fallback.lifecycle || ['available', 'requested', 'awaiting_confirmation', 'executing', 'completed', 'failed', 'cancelled'],
+    canonicalFactsAvailable: fallback.canonicalFactsAvailable || ['canonical_object_identity', 'lifecycle', 'evidence'],
+    executionStatus: fallback.executionStatus || ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
+    evidenceStatus: fallback.evidenceStatus || ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'],
+    nextAllowedActions: fallback.nextAllowedActions || actions,
+    failureStates: fallback.failureStates || [],
+    retryPolicy: fallback.retryPolicy || ['retry only through the canonical owner'],
+    recoveryActions: fallback.recoveryActions || ['clarify missing requirements', 'retry', 'resume', 'cancel'],
+    continuationContext: fallback.continuationContext || ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope'],
+    externalDependencyState: fallback.externalDependencyState || [],
+    activationState,
+  };
+}
 
 export function deriveActionInteractionPolicy(descriptor: UniversalCapabilityDescriptor, action?: string): CapabilityInteractionPolicy {
   const base = deriveCapabilityInteractionPolicy(descriptor);
@@ -39,19 +72,9 @@ export function deriveActionInteractionPolicy(descriptor: UniversalCapabilityDes
 }
 
 export function deriveActionInteractionPolicyForName(capability: string, action?: string, fallback: Partial<UniversalCapabilityDescriptor> = {}): CapabilityInteractionPolicy {
+  const normalized = actionName(action) || 'answer';
+  const direct = descriptorForName(capability, normalized, fallback);
   const base = deriveInteractionPolicyForCapabilityName(capability, fallback);
-  return deriveActionInteractionPolicy({
-    capability: base.capability,
-    family: fallback.family || 'uncategorized',
-    mode: fallback.mode || 'conversation',
-    actions: fallback.actions || [action || 'answer'],
-    risk: fallback.risk || 'read_only',
-    activationState: fallback.activationState || 'locally_available',
-    context: { requiredInputs: fallback.context?.requiredInputs || [], optionalInputs: fallback.context?.optionalInputs || [] },
-    owner: fallback.owner || 'universal',
-    lifecycle: fallback.lifecycle || ['available'],
-    evidence: fallback.evidence || { level: 'none' },
-    continuation: fallback.continuation || { resumable: true },
-    externalDependencies: fallback.externalDependencies || [],
-  } as UniversalCapabilityDescriptor, action);
+  const policy = deriveActionInteractionPolicy(direct, normalized);
+  return { ...base, ...policy, action: normalized };
 }

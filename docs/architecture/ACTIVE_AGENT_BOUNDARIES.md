@@ -115,3 +115,10 @@ Can proceed when it uses existing canonical owners and does not change the conve
 Do not rename or remove a component solely because its name no longer perfectly describes its logical role if doing so would destabilize active work.
 
 Prefer repurposing and documenting the role first. Perform disruptive renames only when all callers can be migrated coherently in one controlled change.
+
+
+## Whole-system proving status — 17 August 2026
+
+The bounded agent runtime remains the sole owner of long-running agent goals. The interaction policy now classifies agent control actions before ordinary routing; pause, resume and cancel resolve the exact owner-scoped goal and do not use recency to substitute another goal. Ordinary conversation can pivot away from a goal and later resume it through preserved conversation, goal and canonical-object identity.
+
+The whole-system proving pass verified persistent owned goals, idempotency, bounded tools, waiting and worker re-entry, cancellation, disabled mode, high-risk denial, natural-language pause/resume/cancel, and no duplicate runtime. Background execution remains quota-, feature-flag-, evidence- and notification-bounded. A model proposal cannot mutate goal state directly, and no external completion is claimed without canonical evidence.

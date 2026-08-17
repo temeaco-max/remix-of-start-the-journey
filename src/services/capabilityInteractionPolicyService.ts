@@ -9,6 +9,7 @@ export type AutonomyMode = 'none' | 'bounded' | 'long_running';
 
 export interface CapabilityInteractionPolicy {
   capability: string;
+  action?: string;
   priority: InteractionPriority;
   interruption: InterruptionMode;
   guestAccess: GuestAccess;

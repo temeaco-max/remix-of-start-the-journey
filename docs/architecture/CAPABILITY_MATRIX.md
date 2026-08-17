@@ -39,3 +39,12 @@ The complete list is generated from the existing skill catalog rather than copie
 ## External truth
 
 Repository readiness is not external activation. Payment, settlement, provider availability, inventory, dispatch, FCM, WhatsApp, Telegram, SMS, USSD, voice, QR-linked delivery, KYC, WebRTC and hosted-model limits remain unavailable or externally pending until the configured adapter returns independent evidence. No catalog entry authorizes the model to invent those facts.
+
+
+## Whole-system proving status — 17 August 2026
+
+The universal capability protocol remains the single catalog and execution contract. The action-sensitive compatibility projection in `actionInteractionPolicyService.ts` narrows the shared policy for a specific action without creating a second registry or mutation owner. It preserves the same canonical capability descriptor, owner, exact identity, confirmation, evidence, activation and continuation fields.
+
+The interaction-policy matrix currently covers 227 descriptors. The whole-system proving pass verified emergency guest access, security interruption, reminder and agent controls, memory provenance, payment and remote external-unavailable states, public draft-versus-commit, canonical executor aliasing, exact owner boundaries, and resumable context. Direct legacy route projections remain read/response compatibility surfaces; canonical Chat and canonical services remain authoritative for mutation.
+
+Scenario and trajectory proving passed with 24,000 provider-outcome scenarios across 205 skills, 46 families, 7 market configurations, 10 channels and 20 lifecycle variants; 1,003 conversation trajectories, 12,040 turns and 3,007 relative references; and long-horizon horizons of 5, 10, 20, 40, 80 and 81 turns with zero harness failures. These are repository proving results, not evidence that external providers, dispatch, payment settlement, or channel delivery are live.

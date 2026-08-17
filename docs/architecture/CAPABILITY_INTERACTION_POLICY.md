@@ -76,3 +76,12 @@ The canonical executor also applies the interaction policy at execution time. Th
 `scripts/test-capability-interaction-policy.ts` validates the current capability catalog and representative virtual profiles for emergency dispatch, remote/device control, reminders and subscription changes.
 
 `scripts/test-interaction-priority-emergency.ts` validates emergency pre-emption, guest initial handling, canonical 112 routing and the distinction between emergency guest handling and ordinary guest account-owned actions.
+
+
+## Whole-system convergence proof — 17 August 2026
+
+The interaction policy is enforced at the canonical Chat boundary before guest onboarding, authentication, context arbitration, generic intent routing and model generation. Policy metadata is retained in the canonical turn result and assistant message telemetry. Ordinary conversation remains ordinary conversation; a turn is not forced into a capability merely because the catalog contains a matching skill.
+
+A small action-policy projection now narrows the shared policy for reminder, memory, agent, payment, remote/device, communication and public actions. It is a typed compatibility layer over the existing descriptor and canonical policy service, not a second router, registry or executor. Direct legacy `safety/emergency_dispatch` inputs resolve through the registered emergency owner.
+
+The proven policy matrix covers 227 descriptors and representative virtual actions. It verifies guest critical bypass only for initial help, authenticated owner boundaries for mutations, explicit confirmation for payment and high-risk operations, exact object identity, external evidence requirements, draft-versus-commit separation, memory provenance, reminder interruption, bounded agent controls and failure-context preservation. The resulting states remain truthful when an external adapter is disabled or unavailable.
