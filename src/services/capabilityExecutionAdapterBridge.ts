@@ -1,5 +1,8 @@
 import { getCapabilityExecutionAdapter, listCapabilityExecutionAdapters, registerCapabilityExecutionAdapter } from './capabilityExtensionService.js';
+import type { CapabilityExtensionExecutionAdapter } from './capabilityExtensionExecutionTypes.js';
 
-export const getExecutionAdapter = getCapabilityExecutionAdapter;
+export const getExecutionAdapter = (name: string): CapabilityExtensionExecutionAdapter | undefined =>
+  getCapabilityExecutionAdapter(name) as CapabilityExtensionExecutionAdapter | undefined;
+
 export const listExecutionAdapters = listCapabilityExecutionAdapters;
 export const registerExecutionAdapter = registerCapabilityExecutionAdapter;
