@@ -1,4 +1,4 @@
-import { listUniversalCapabilities, type CapabilityRisk, type UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
+import { listUniversalCapabilities, type CapabilityRisk, type UniversalCapabilityDescriptor, getCanonicalOperationDescriptor } from './universalCapabilityProtocol.js';
 
 export type InteractionPriority = 'background' | 'normal' | 'high' | 'critical';
 export type InterruptionMode = 'never' | 'at_trigger' | 'conditional' | 'immediate';
@@ -41,182 +41,87 @@ function riskToConfirmation(risk: CapabilityRisk): ConfirmationMode {
   return 'none';
 }
 
-export function deriveCapabilityInteractionPolicy(descriptor: UniversalCapabilityDescriptor): CapabilityInteractionPolicy {
-  const key = `${descriptor.capability}`;
-  const actionKey = descriptor.actions.join('|');
-  const emergency = EMERGENCY_TERMS.test(key) || EMERGENCY_TERMS.test(actionKey) || /\bemergency\b/i.test(descriptor.family);
-  const reminder = REMINDER_TERMS.test(key) || REMINDER_TERMS.test(actionKey) || /reminder/i.test(descriptor.family);
-  const agent = AGENT_TERMS.test(key) || AGENT_TERMS.test(actionKey) || /agent/i.test(descriptor.family);
-  const payment = PAYMENT_TERMS.test(key) || PAYMENT_TERMS.test(actionKey) || descriptor.risk === 'confirmation_required' && /economic|commerce|subscription|payment/i.test(descriptor.family);
+function policyFromParts(capability: string, family: string, mode: UniversalCapabilityDescriptor['mode'], actions: string[], risk: CapabilityRisk, activationState: UniversalCapabilityDescriptor['activationState'], requiredInputs: UniversalCapabilityDescriptor['context']['requiredInputs'], optionalInputs: UniversalCapabilityDescriptor['context']['optionalInputs']): CapabilityInteractionPolicy {
+  const key = `${capability}`;
+  const actionKey = actions.join('|');
+  const emergency = EMERGENCY_TERMS.test(key) || EMERGENCY_TERMS.test(actionKey) || /\bemergency\b/i.test(family);
+  const reminder = REMINDER_TERMS.test(key) || REMINDER_TERMS.test(actionKey) || /reminder/i.test(family);
+  const agent = AGENT_TERMS.test(key) || AGENT_TERMS.test(actionKey) || /agent/i.test(family);
+  const payment = PAYMENT_TERMS.test(key) || PAYMENT_TERMS.test(actionKey) || risk === 'confirmation_required' && /economic|commerce|subscription|payment/i.test(family);
   const remote = REMOTE_TERMS.test(key) || REMOTE_TERMS.test(actionKey);
   const memory = MEMORY_TERMS.test(key) || MEMORY_TERMS.test(actionKey);
   const channelSend = CHANNEL_SEND_TERMS.test(key) || CHANNEL_SEND_TERMS.test(actionKey);
 
-  if (emergency) {
-    return {
-      capability: descriptor.capability,
-      priority: 'critical',
-      interruption: 'immediate',
-      guestAccess: 'allowed_for_initial_help',
-      authentication: 'after_initial_help',
-      confirmation: 'contextual',
-      autonomy: 'bounded',
-      backgroundAllowed: false,
-      resumable: true,
-      preemptsOtherGoals: true,
-      preservesPriorGoals: true,
-      exactIdentityRequired: false,
-      locationMode: 'recommended',
-      voiceMode: 'preferred',
-      externalEvidenceRequired: true,
-      draftVsCommitRequired: false,
-      failureMustPreserveContext: true,
-      notes: ['Emergency/safety capabilities interrupt ordinary onboarding and unrelated goals.', 'Never require registration before initial emergency assistance when legally and technically unnecessary.', 'Never claim dispatch or connection without external evidence.'],
-    };
-  }
+  if (emergency) return {
+    capability, priority: 'critical', interruption: 'immediate', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'contextual', autonomy: 'bounded', backgroundAllowed: false, resumable: true, preemptsOtherGoals: true, preservesPriorGoals: true, exactIdentityRequired: false, locationMode: 'recommended', voiceMode: 'preferred', externalEvidenceRequired: true, draftVsCommitRequired: false, failureMustPreserveContext: true,
+    notes: ['Emergency/safety capabilities interrupt ordinary onboarding and unrelated goals.', 'Do not require registration before initial emergency assistance when legally and technically unnecessary.', 'Never claim dispatch or connection without external evidence.'],
+  };
+  if (reminder) return {
+    capability, priority: 'high', interruption: 'at_trigger', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'none', autonomy: 'long_running', backgroundAllowed: true, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'none', voiceMode: 'optional', externalEvidenceRequired: false, draftVsCommitRequired: false, failureMustPreserveContext: true,
+    notes: ['Reminder triggers may interrupt a current conversation according to user preference.', 'The pre-trigger conversation remains resumable.'],
+  };
+  if (agent) return {
+    capability, priority: 'high', interruption: 'conditional', guestAccess: 'blocked', authentication: 'required_before_action', confirmation: 'contextual', autonomy: 'long_running', backgroundAllowed: true, resumable: true, preemptsOtherGoals: true, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'optional', voiceMode: 'optional', externalEvidenceRequired: false, draftVsCommitRequired: false, failureMustPreserveContext: true,
+    notes: ['Agent control commands override the goal they target.', 'Agent autonomy remains bounded by existing runtime quotas and action policy.'],
+  };
+  if (remote) return {
+    capability, priority: 'high', interruption: 'conditional', guestAccess: 'blocked', authentication: 'required_before_action', confirmation: risk === 'read_only' ? 'none' : 'explicit', autonomy: 'bounded', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'optional', voiceMode: /voice|webrtc|call|dial/i.test(key) ? 'preferred' : 'optional', externalEvidenceRequired: activationState !== 'locally_available', draftVsCommitRequired: channelSend, failureMustPreserveContext: true,
+    notes: ['Remote/device/calling actions require exact target identity and authorization.', 'Drafting and sending communications are separate actions.'],
+  };
+  if (payment) return {
+    capability, priority: 'high', interruption: 'conditional', guestAccess: 'blocked', authentication: 'required_before_action', confirmation: 'explicit', autonomy: 'bounded', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'optional', voiceMode: 'optional', externalEvidenceRequired: activationState !== 'locally_available', draftVsCommitRequired: true, failureMustPreserveContext: true,
+    notes: ['Discussion of price or payment is not authorization.', 'Payment state is authoritative only from the canonical payment owner.'],
+  };
+  if (memory) return {
+    capability, priority: 'normal', interruption: 'never', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'explicit', autonomy: 'none', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'none', voiceMode: 'none', externalEvidenceRequired: false, draftVsCommitRequired: false, failureMustPreserveContext: true,
+    notes: ['Conversation facts are not automatically persisted as memory without the existing memory policy.', 'Forget operations must target the exact memory object/context.'],
+  };
 
-  if (reminder) {
-    return {
-      capability: descriptor.capability,
-      priority: 'high',
-      interruption: 'at_trigger',
-      guestAccess: 'allowed_for_initial_help',
-      authentication: 'after_initial_help',
-      confirmation: 'none',
-      autonomy: 'long_running',
-      backgroundAllowed: true,
-      resumable: true,
-      preemptsOtherGoals: false,
-      preservesPriorGoals: true,
-      exactIdentityRequired: true,
-      locationMode: 'none',
-      voiceMode: 'optional',
-      externalEvidenceRequired: false,
-      draftVsCommitRequired: false,
-      failureMustPreserveContext: true,
-      notes: ['Reminder triggers may interrupt a current conversation according to user preference.', 'The pre-trigger conversation remains resumable.'],
-    };
-  }
-
-  if (agent) {
-    return {
-      capability: descriptor.capability,
-      priority: 'high',
-      interruption: 'conditional',
-      guestAccess: 'blocked',
-      authentication: 'required_before_action',
-      confirmation: 'contextual',
-      autonomy: 'long_running',
-      backgroundAllowed: true,
-      resumable: true,
-      preemptsOtherGoals: true,
-      preservesPriorGoals: true,
-      exactIdentityRequired: true,
-      locationMode: 'optional',
-      voiceMode: 'optional',
-      externalEvidenceRequired: false,
-      draftVsCommitRequired: false,
-      failureMustPreserveContext: true,
-      notes: ['Agent control commands override the agent goal they target.', 'Agent autonomy remains bounded by the existing runtime quotas and action policy.'],
-    };
-  }
-
-  if (remote) {
-    return {
-      capability: descriptor.capability,
-      priority: 'high',
-      interruption: 'conditional',
-      guestAccess: 'blocked',
-      authentication: 'required_before_action',
-      confirmation: descriptor.risk === 'read_only' ? 'none' : 'explicit',
-      autonomy: 'bounded',
-      backgroundAllowed: false,
-      resumable: true,
-      preemptsOtherGoals: false,
-      preservesPriorGoals: true,
-      exactIdentityRequired: true,
-      locationMode: 'optional',
-      voiceMode: /voice|webrtc|call|dial/i.test(key) ? 'preferred' : 'optional',
-      externalEvidenceRequired: descriptor.activationState !== 'locally_available',
-      draftVsCommitRequired: channelSend,
-      failureMustPreserveContext: true,
-      notes: ['Remote/device/calling actions require exact target identity and authorization.', 'Drafting and sending communications are separate actions.'],
-    };
-  }
-
-  if (payment) {
-    return {
-      capability: descriptor.capability,
-      priority: 'high',
-      interruption: 'conditional',
-      guestAccess: 'blocked',
-      authentication: 'required_before_action',
-      confirmation: 'explicit',
-      autonomy: 'bounded',
-      backgroundAllowed: false,
-      resumable: true,
-      preemptsOtherGoals: false,
-      preservesPriorGoals: true,
-      exactIdentityRequired: true,
-      locationMode: 'optional',
-      voiceMode: 'optional',
-      externalEvidenceRequired: descriptor.activationState !== 'locally_available',
-      draftVsCommitRequired: true,
-      failureMustPreserveContext: true,
-      notes: ['Discussion of price or payment is not authorization.', 'Payment state is authoritative only from the canonical payment owner.'],
-    };
-  }
-
-  if (memory) {
-    return {
-      capability: descriptor.capability,
-      priority: 'normal',
-      interruption: 'never',
-      guestAccess: 'allowed_for_initial_help',
-      authentication: 'after_initial_help',
-      confirmation: 'explicit',
-      autonomy: 'none',
-      backgroundAllowed: false,
-      resumable: true,
-      preemptsOtherGoals: false,
-      preservesPriorGoals: true,
-      exactIdentityRequired: true,
-      locationMode: 'none',
-      voiceMode: 'none',
-      externalEvidenceRequired: false,
-      draftVsCommitRequired: false,
-      failureMustPreserveContext: true,
-      notes: ['Conversation facts are not automatically persisted as memory without the existing memory policy.', 'Forget operations must target the exact memory object/context.'],
-    };
-  }
-
-  const confirmation = riskToConfirmation(descriptor.risk);
   return {
-    capability: descriptor.capability,
-    priority: descriptor.mode === 'external_execution' ? 'high' : descriptor.mode === 'state_change' ? 'normal' : 'background',
-    interruption: descriptor.mode === 'external_execution' ? 'conditional' : 'never',
-    guestAccess: descriptor.mode === 'read_only' || descriptor.mode === 'conversation' ? 'allowed' : 'blocked',
-    authentication: descriptor.mode === 'read_only' || descriptor.mode === 'conversation' ? 'none' : 'required_before_action',
-    confirmation,
+    capability,
+    priority: mode === 'external_execution' ? 'high' : mode === 'state_change' ? 'normal' : 'background',
+    interruption: mode === 'external_execution' ? 'conditional' : 'never',
+    guestAccess: mode === 'read_only' || mode === 'conversation' ? 'allowed' : 'blocked',
+    authentication: mode === 'read_only' || mode === 'conversation' ? 'none' : 'required_before_action',
+    confirmation: riskToConfirmation(risk),
     autonomy: 'none',
-    backgroundAllowed: descriptor.mode === 'read_only' || descriptor.mode === 'conversation',
+    backgroundAllowed: mode === 'read_only' || mode === 'conversation',
     resumable: true,
     preemptsOtherGoals: false,
     preservesPriorGoals: true,
-    exactIdentityRequired: descriptor.mode !== 'conversation',
-    locationMode: descriptor.context.requiredInputs.some(input => /location|address|pickup|destination/i.test(input.key)) ? 'required' : 'none',
-    voiceMode: descriptor.mode === 'external_execution' ? 'optional' : 'none',
-    externalEvidenceRequired: descriptor.activationState !== 'locally_available',
+    exactIdentityRequired: mode !== 'conversation',
+    locationMode: requiredInputs.some(input => /location|address|pickup|destination/i.test(input.key)) ? 'required' : optionalInputs.some(input => /location|address|pickup|destination/i.test(input.key)) ? 'optional' : 'none',
+    voiceMode: mode === 'external_execution' ? 'optional' : 'none',
+    externalEvidenceRequired: activationState !== 'locally_available',
     draftVsCommitRequired: false,
     failureMustPreserveContext: true,
     notes: ['Canonical domain services remain authoritative for state, authorization, execution and evidence.'],
   };
 }
 
+export function deriveCapabilityInteractionPolicy(descriptor: UniversalCapabilityDescriptor): CapabilityInteractionPolicy {
+  return policyFromParts(descriptor.capability, descriptor.family, descriptor.mode, descriptor.actions, descriptor.risk, descriptor.activationState, descriptor.context.requiredInputs, descriptor.context.optionalInputs);
+}
+
 export async function getCapabilityInteractionPolicy(capability: string): Promise<CapabilityInteractionPolicy | null> {
+  const direct = getCanonicalOperationDescriptor(capability);
+  if (direct) return deriveCapabilityInteractionPolicy(direct);
   const descriptors = await listUniversalCapabilities();
   const descriptor = descriptors.find(item => item.capability === capability);
   return descriptor ? deriveCapabilityInteractionPolicy(descriptor) : null;
+}
+
+export function deriveInteractionPolicyForCapabilityName(capability: string, fallback: Partial<UniversalCapabilityDescriptor> = {}): CapabilityInteractionPolicy {
+  return policyFromParts(
+    capability,
+    fallback.family || 'uncategorized',
+    fallback.mode || 'conversation',
+    fallback.actions || ['answer', 'clarify', 'continue'],
+    fallback.risk || 'read_only',
+    fallback.activationState || 'locally_available',
+    fallback.context?.requiredInputs || [],
+    fallback.context?.optionalInputs || [],
+  );
 }
 
 export async function getAllCapabilityInteractionPolicies(): Promise<CapabilityInteractionPolicy[]> {
@@ -229,5 +134,5 @@ export function policyAllowsGuestInitialAction(policy: CapabilityInteractionPoli
 }
 
 export function shouldInterruptCurrentConversation(policy: CapabilityInteractionPolicy): boolean {
-  return policy.interruption === 'immediate' || policy.interruption === 'at_trigger' || policy.interruption === 'conditional' && policy.priority === 'high';
+  return policy.interruption === 'immediate' || policy.interruption === 'at_trigger' || (policy.interruption === 'conditional' && policy.priority === 'high');
 }
