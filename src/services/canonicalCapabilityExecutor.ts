@@ -13,10 +13,12 @@ import { createReminder, cancelReminder } from './reminderService.js';
 import { cancelAgentGoal, getAgentGoal, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
 import { getInternalNotificationById, markNotificationRead } from './pushNotifications.js';
 import { revokeMemoryFact } from './memoryProfile.js';
+import { getPointsBalance, getPointsHistory } from './pointsEngine.js';
 import { getEconomicRequest } from './skillFlows.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { deriveCapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 import { getPreferredEmergencyNumber } from './emergencyDirectoryService.js';
+import { getDiscoveryEntity } from './discoveryNetwork.js';
 import { controlConnectedResource, getConnectedResource, viewConnectedResource } from './connectedResourceService.js';
 import { getExecutionAdapter } from './capabilityExecutionAdapterBridgeV2.js';
 
@@ -184,6 +186,27 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
   if (input.capability === 'memory' && input.action === 'forget') {
     const outcome = await revokeMemoryFact(input.phone, Number(input.canonicalObjectId));
     return outcome.revoked ? baseResult(input, 'completed', 'The exact memory fact was revoked from active retrieval.', { canonicalFacts: { factId: input.canonicalObjectId, revoked: true }, evidenceLevel: 'canonical_service' }) : invalidResult(input, 'stale_context', 'That exact memory fact was not available for revocation.', 'memory_fact_not_found');
+  }
+  if (input.capability === 'points' && ['inspect', 'status', 'history'].includes(input.action)) {
+    const balance = await getPointsBalance(input.phone);
+    const history = input.action === 'history' ? await getPointsHistory(input.phone, 25) : undefined;
+    return baseResult(input, 'completed', input.action === 'history' ? `You have ${balance} Kurukoo Points. I’ve also retrieved your recent Points activity.` : `You have ${balance} Kurukoo Points.`, { canonicalFacts: { pointsBalance: balance, history }, evidenceLevel: 'canonical_service', nextActions: [{ action: 'history', label: 'View Points history' }] });
+  }
+  if (input.capability === 'subscription' && ['inspect', 'status'].includes(input.action)) {
+    const db = await getDb();
+    const profile = db.exec('SELECT subscription_tier, country, updated_at FROM memory_profiles WHERE phone = ? LIMIT 1', [input.phone]);
+    const profileRow = profile[0]?.values?.[0];
+    const provider = db.exec('SELECT tier, status, next_billing_date, leads_this_month FROM provider_subscriptions WHERE phone = ? LIMIT 1', [input.phone]);
+    const providerRow = provider[0]?.values?.[0];
+    const subscription = { tier: profileRow?.[0] ? String(profileRow[0]) : 'Base', country: profileRow?.[1] ? String(profileRow[1]) : undefined, updatedAt: profileRow?.[2] ? String(profileRow[2]) : undefined, providerTier: providerRow?.[0] ? String(providerRow[0]) : undefined, providerStatus: providerRow?.[1] ? String(providerRow[1]) : undefined, nextBillingDate: providerRow?.[2] ? String(providerRow[2]) : undefined, leadsThisMonth: providerRow?.[3] == null ? undefined : Number(providerRow[3]) };
+    return baseResult(input, 'completed', `Your current Kurukoo subscription is ${subscription.tier}.`, { canonicalFacts: { subscription }, evidenceLevel: 'canonical_service', nextActions: [{ action: 'change', label: 'Change subscription' }, { action: 'cancel', label: 'Cancel subscription' }] });
+  }
+  if (input.capability === 'discovery' && ['inspect', 'open', 'status'].includes(input.action)) {
+    const entityId = String(input.canonicalObjectId || args.entityId || '').trim();
+    if (!entityId) return invalidResult(input, 'needs_user', 'Tell me which discovery result you want me to inspect.', 'discovery_entity_required');
+    const entity = await getDiscoveryEntity(entityId);
+    if (!entity) return invalidResult(input, 'stale_context', 'That exact discovery result is no longer available, so I did not substitute another result.', 'discovery_entity_not_found');
+    return baseResult(input, 'completed', `${entity.name} is currently recorded as ${entity.lifecycle}.`, { canonicalFacts: { entity }, evidenceLevel: entity.evidenceLevel === 'verified_state' ? 'verified_external_evidence' : 'canonical_service', nextActions: entity.available ? [{ action: 'select', label: 'Use this discovery result' }] : [{ action: 'refresh', label: 'Refresh discovery' }] });
   }
   if (input.capability === 'economic_request' && ['update', 'cancel', 'select_provider'].includes(input.action)) {
     const card = await advanceStorefront(input.phone, input.canonicalObjectId!, input.action === 'select_provider' ? { providerPhone: String(args.providerPhone || '') } : (args as Record<string, unknown>), input.action === 'update' ? undefined : input.action, input.idempotencyKey);
