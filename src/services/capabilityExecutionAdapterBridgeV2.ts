@@ -6,6 +6,7 @@ import { getDiscoveryEntity } from './discoveryNetwork.js';
 import { getEconomicRequest } from './skillFlows.js';
 import { getDb } from '../database.js';
 import { activateConnectedResource, getConnectedResource, registerConnectedResource, revokeConnectedResource, viewConnectedResource } from './connectedResourceService.js';
+import { isChannelConfigured } from '../channels/channelRegistry.js';
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 
 export const getExecutionAdapter = (name: string): CapabilityExtensionExecutionAdapter | undefined =>
@@ -18,166 +19,45 @@ export function registerExecutionAdapter(name: string, adapter: CapabilityExtens
 export const listExecutionAdapters = listCapabilityExecutionAdapters as unknown as () => Array<{ capability: string } & CapabilityExtensionExecutionAdapter>;
 
 const connectedResourceDescriptor: UniversalCapabilityDescriptor = {
-  kind: 'operation',
-  capability: 'connected_resource',
-  family: 'connected-resource',
-  mode: 'structured_action',
+  kind: 'operation', capability: 'connected_resource', family: 'connected-resource', mode: 'structured_action',
   actions: ['register', 'activate', 'inspect', 'status', 'view', 'control', 'revoke'],
-  context: {
-    requiredInputs: [],
-    optionalInputs: [
-      { key: 'resourceId', label: 'Connected resource id', required: false },
-      { key: 'kind', label: 'Device/resource kind', required: false },
-      { key: 'label', label: 'Device/resource label', required: false },
-      { key: 'code', label: 'Pairing code', required: false },
-      { key: 'command', label: 'Device command', required: false },
-      { key: 'payload', label: 'Command payload', required: false },
-    ],
-  },
-  permissions: ['authenticated_owner'],
-  owner: ['connectedResourceService', 'capabilityRegistry'],
-  risk: 'confirmation_required',
-  consentRequired: true,
-  confirmationRequired: true,
+  context: { requiredInputs: [], optionalInputs: [
+    { key: 'resourceId', label: 'Connected resource id', required: false },
+    { key: 'kind', label: 'Device/resource kind', required: false },
+    { key: 'label', label: 'Device/resource label', required: false },
+    { key: 'code', label: 'Pairing code', required: false },
+    { key: 'command', label: 'Device command', required: false },
+    { key: 'payload', label: 'Command payload', required: false },
+  ] },
+  permissions: ['authenticated_owner'], owner: ['connectedResourceService', 'capabilityRegistry'], risk: 'confirmation_required', consentRequired: true, confirmationRequired: true,
   lifecycle: ['requested', 'clarifying', 'ready', 'accepted', 'waiting', 'executing', 'completed', 'cancelled', 'failed'],
   canonicalFactsAvailable: ['connected_resource_identity', 'pairing_state', 'exposed_capabilities', 'view_state', 'control_state', 'lifecycle', 'evidence', 'external_activation'],
-  executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
-  evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'],
-  nextAllowedActions: ['register', 'activate', 'inspect', 'status', 'view', 'control', 'revoke'],
-  failureStates: ['blocked', 'failed', 'stale_context', 'foreign_context', 'confirmation_required', 'unavailable_external_dependency'],
-  retryPolicy: ['preserve exact resource identity and pairing lineage', 'never activate from an unverified or foreign pairing code'],
-  recoveryActions: ['clarify', 'review', 'resume', 'cancel', 'retry', 'revoke'],
+  executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'], evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'],
+  nextAllowedActions: ['register', 'activate', 'inspect', 'status', 'view', 'control', 'revoke'], failureStates: ['blocked', 'failed', 'stale_context', 'foreign_context', 'confirmation_required', 'unavailable_external_dependency'],
+  retryPolicy: ['preserve exact resource identity and pairing lineage', 'never activate from an unverified or foreign pairing code'], recoveryActions: ['clarify', 'review', 'resume', 'cancel', 'retry', 'revoke'],
   continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope', 'lifecycle', 'nextAllowedActions'],
-  externalDependencyState: ['Device vendor/protocol delivery remains adapter-dependent; Kurukoo never claims device control without transport evidence.'],
-  activationState: 'repository_ready_external_activation',
+  externalDependencyState: ['Device vendor/protocol delivery remains adapter-dependent; Kurukoo never claims device control without transport evidence.'], activationState: 'repository_ready_external_activation',
 };
 
 if (!getCapabilityRegistration('connected_resource')) {
-  registerCapability({
-    descriptor: connectedResourceDescriptor,
-    namespace: 'kurukoo.connected',
-    version: '1',
-    aliases: ['device', 'connected_device', 'cctv', 'camera', 'iot'],
-    requiresCapabilities: ['atomic.observe', 'atomic.view', 'atomic.control'],
-    providesCapabilities: ['connected_resource'],
-    source: 'connectedResourceService',
-  });
+  registerCapability({ descriptor: connectedResourceDescriptor, namespace: 'kurukoo.connected', version: '1', aliases: ['device', 'connected_device', 'cctv', 'camera', 'iot'], requiresCapabilities: ['atomic.observe', 'atomic.view', 'atomic.control'], providesCapabilities: ['connected_resource'], source: 'connectedResourceService' });
 }
 
 const builtInAdapters: Array<{ capability: string; adapter: CapabilityExtensionExecutionAdapter }> = [
   {
-    capability: 'points',
-    adapter: {
-      owner: 'pointsEngine',
-      actions: ['inspect', 'status', 'history'],
-      mode: 'read_only',
-      execute: async (context) => {
-        const balance = await getPointsBalance(context.phone);
-        const history = context.action === 'history' ? await getPointsHistory(context.phone, 25) : undefined;
-        return { status: 'completed', message: context.action === 'history' ? `You have ${balance} Kurukoo Points. I retrieved your recent Points activity.` : `You have ${balance} Kurukoo Points.`, canonicalFacts: { pointsBalance: balance, history }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available', nextActions: [{ action: 'history', label: 'View Points history' }] };
-      },
-    },
-  },
+    capability: 'points', adapter: { owner: 'pointsEngine', actions: ['inspect', 'status', 'history'], mode: 'read_only', execute: async (context) => { const balance = await getPointsBalance(context.phone); const history = context.action === 'history' ? await getPointsHistory(context.phone, 25) : undefined; return { status: 'completed', message: context.action === 'history' ? `You have ${balance} Kurukoo Points. I retrieved your recent Points activity.` : `You have ${balance} Kurukoo Points.`, canonicalFacts: { pointsBalance: balance, history }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available', nextActions: [{ action: 'history', label: 'View Points history' }] }; } },
   {
-    capability: 'discovery',
-    adapter: {
-      owner: 'discoveryNetwork',
-      actions: ['inspect', 'open', 'status'],
-      mode: 'read_only',
-      execute: async (context) => {
-        const entityId = String(context.canonicalObjectId || context.arguments.entityId || '').trim();
-        if (!entityId) return { status: 'needs_user', message: 'Tell me which discovery result you want me to inspect.', canonicalFacts: { validationCode: 'discovery_entity_required' } };
-        const entity = await getDiscoveryEntity(entityId);
-        if (!entity) return { status: 'stale_context', message: 'That exact discovery result is no longer available, so I did not substitute another result.', canonicalFacts: { validationCode: 'discovery_entity_not_found' } };
-        return { status: 'completed', message: `${entity.name} is currently recorded as ${entity.lifecycle}.`, canonicalFacts: { entity }, evidenceLevel: entity.evidenceLevel === 'verified_state' ? 'verified_external_evidence' : 'canonical_service', externalActivation: 'locally_available', nextActions: entity.available ? [{ action: 'select', label: 'Use this discovery result' }] : [{ action: 'refresh', label: 'Refresh discovery' }] };
-      },
-    },
-  },
+    capability: 'discovery', adapter: { owner: 'discoveryNetwork', actions: ['inspect', 'open', 'status'], mode: 'read_only', execute: async (context) => { const entityId = String(context.canonicalObjectId || context.arguments.entityId || '').trim(); if (!entityId) return { status: 'needs_user', message: 'Tell me which discovery result you want me to inspect.', canonicalFacts: { validationCode: 'discovery_entity_required' } }; const entity = await getDiscoveryEntity(entityId); if (!entity) return { status: 'stale_context', message: 'That exact discovery result is no longer available, so I did not substitute another result.', canonicalFacts: { validationCode: 'discovery_entity_not_found' } }; return { status: 'completed', message: `${entity.name} is currently recorded as ${entity.lifecycle}.`, canonicalFacts: { entity }, evidenceLevel: entity.evidenceLevel === 'verified_state' ? 'verified_external_evidence' : 'canonical_service', externalActivation: 'locally_available', nextActions: entity.available ? [{ action: 'select', label: 'Use this discovery result' }] : [{ action: 'refresh', label: 'Refresh discovery' }] }; } },
   {
-    capability: 'subscription',
-    adapter: {
-      owner: 'subscriptionService',
-      actions: ['inspect', 'status'],
-      mode: 'read_only',
-      execute: async (context) => {
-        const db = await getDb();
-        const profile = db.exec('SELECT subscription_tier, country, updated_at FROM memory_profiles WHERE phone = ? LIMIT 1', [context.phone]);
-        const profileRow = profile[0]?.values?.[0];
-        const provider = db.exec('SELECT tier, status, next_billing_date, leads_this_month FROM provider_subscriptions WHERE phone = ? LIMIT 1', [context.phone]);
-        const providerRow = provider[0]?.values?.[0];
-        const subscription = { tier: profileRow?.[0] ? String(profileRow[0]) : 'Base', country: profileRow?.[1] ? String(profileRow[1]) : undefined, updatedAt: profileRow?.[2] ? String(profileRow[2]) : undefined, providerTier: providerRow?.[0] ? String(providerRow[0]) : undefined, providerStatus: providerRow?.[1] ? String(providerRow[1]) : undefined, nextBillingDate: providerRow?.[2] ? String(providerRow[2]) : undefined, leadsThisMonth: providerRow?.[3] == null ? undefined : Number(providerRow[3]) };
-        return { status: 'completed', message: `Your current Kurukoo subscription is ${subscription.tier}.`, canonicalFacts: { subscription }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available', nextActions: [{ action: 'change', label: 'Change subscription' }] };
-      },
-    },
-  },
+    capability: 'subscription', adapter: { owner: 'subscriptionService', actions: ['inspect', 'status'], mode: 'read_only', execute: async (context) => { const db = await getDb(); const profile = db.exec('SELECT subscription_tier, country, updated_at FROM memory_profiles WHERE phone = ? LIMIT 1', [context.phone]); const profileRow = profile[0]?.values?.[0]; const provider = db.exec('SELECT tier, status, next_billing_date, leads_this_month FROM provider_subscriptions WHERE phone = ? LIMIT 1', [context.phone]); const providerRow = provider[0]?.values?.[0]; const subscription = { tier: profileRow?.[0] ? String(profileRow[0]) : 'Base', country: profileRow?.[1] ? String(profileRow[1]) : undefined, updatedAt: profileRow?.[2] ? String(profileRow[2]) : undefined, providerTier: providerRow?.[0] ? String(providerRow[0]) : undefined, providerStatus: providerRow?.[1] ? String(providerRow[1]) : undefined, nextBillingDate: providerRow?.[2] ? String(providerRow[2]) : undefined, leadsThisMonth: providerRow?.[3] == null ? undefined : Number(providerRow[3]) }; return { status: 'completed', message: `Your current Kurukoo subscription is ${subscription.tier}.`, canonicalFacts: { subscription }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available', nextActions: [{ action: 'change', label: 'Change subscription' }] }; } },
   {
-    capability: 'payment',
-    adapter: {
-      owner: 'skillFlows',
-      actions: ['inspect', 'status'],
-      mode: 'read_only',
-      execute: async (context) => {
-        const requestId = String(context.canonicalObjectId || context.arguments.economicRequestId || '').trim();
-        if (!requestId) return { status: 'needs_user', message: 'Tell me which request payment status you want me to inspect.', canonicalFacts: { validationCode: 'economic_request_required' } };
-        const request = await getEconomicRequest(requestId);
-        if (!request || request.phone !== context.phone) return { status: 'unauthorized', message: 'That payment context is not available to this account.', canonicalFacts: { validationCode: 'foreign_or_missing_economic_request' } };
-        return { status: 'completed', message: `Payment state for this request is ${request.status}.`, canonicalFacts: { economicRequestId: request.id, requestStatus: request.status, quote: request.quote || null, fulfillment: request.fulfillment || null }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available', nextActions: request.status === 'quoted' || request.status === 'awaiting_confirmation' ? [{ action: 'pay', label: 'Continue to payment' }] : [] };
-      },
-    },
-  },
+    capability: 'payment', adapter: { owner: 'skillFlows', actions: ['inspect', 'status'], mode: 'read_only', execute: async (context) => { const requestId = String(context.canonicalObjectId || context.arguments.economicRequestId || '').trim(); if (!requestId) return { status: 'needs_user', message: 'Tell me which request payment status you want me to inspect.', canonicalFacts: { validationCode: 'economic_request_required' } }; const request = await getEconomicRequest(requestId); if (!request || request.phone !== context.phone) return { status: 'unauthorized', message: 'That payment context is not available to this account.', canonicalFacts: { validationCode: 'foreign_or_missing_economic_request' } }; return { status: 'completed', message: `Payment state for this request is ${request.status}.`, canonicalFacts: { economicRequestId: request.id, requestStatus: request.status, quote: request.quote || null, fulfillment: request.fulfillment || null }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available', nextActions: request.status === 'quoted' || request.status === 'awaiting_confirmation' ? [{ action: 'pay', label: 'Continue to payment' }] : [] }; } },
   {
-    capability: 'order',
-    adapter: {
-      owner: 'skillFlows',
-      actions: ['inspect', 'status'],
-      mode: 'read_only',
-      execute: async (context) => {
-        const requestId = String(context.canonicalObjectId || context.arguments.economicRequestId || '').trim();
-        if (!requestId) return { status: 'needs_user', message: 'Tell me which order you want me to inspect.', canonicalFacts: { validationCode: 'economic_request_required' } };
-        const request = await getEconomicRequest(requestId);
-        if (!request || request.phone !== context.phone) return { status: 'unauthorized', message: 'That order is not available to this account.', canonicalFacts: { validationCode: 'foreign_or_missing_order' } };
-        return { status: 'completed', message: `That order/request is currently ${request.status}.`, canonicalFacts: { economicRequestId: request.id, status: request.status, requirements: request.requirements || {}, quote: request.quote || null, fulfillment: request.fulfillment || null }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available' };
-      },
-    },
-  },
+    capability: 'order', adapter: { owner: 'skillFlows', actions: ['inspect', 'status'], mode: 'read_only', execute: async (context) => { const requestId = String(context.canonicalObjectId || context.arguments.economicRequestId || '').trim(); if (!requestId) return { status: 'needs_user', message: 'Tell me which order you want me to inspect.', canonicalFacts: { validationCode: 'economic_request_required' } }; const request = await getEconomicRequest(requestId); if (!request || request.phone !== context.phone) return { status: 'unauthorized', message: 'That order is not available to this account.', canonicalFacts: { validationCode: 'foreign_or_missing_order' } }; return { status: 'completed', message: `That order/request is currently ${request.status}.`, canonicalFacts: { economicRequestId: request.id, status: request.status, requirements: request.requirements || {}, quote: request.quote || null, fulfillment: request.fulfillment || null }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available' }; } },
   {
-    capability: 'connected_resource',
-    adapter: {
-      owner: 'connectedResourceService',
-      actions: ['register', 'activate', 'inspect', 'status', 'view', 'control', 'revoke'],
-      mode: 'structured_action',
-      execute: async (context) => {
-        const args = context.arguments || {};
-        if (context.action === 'register') {
-          const kind = String(args.kind || 'other').toLowerCase() as any;
-          const result = await registerConnectedResource({ phone: context.phone, kind, label: String(args.label || ''), vendor: args.vendor ? String(args.vendor) : undefined, protocol: args.protocol as any, capabilities: Array.isArray(args.capabilities) ? args.capabilities.map(String) : [], metadata: args.metadata && typeof args.metadata === 'object' ? args.metadata as Record<string, unknown> : {}, viewUrl: args.viewUrl ? String(args.viewUrl) : undefined, streamUrl: args.streamUrl ? String(args.streamUrl) : undefined });
-          return { status: 'completed', message: `I registered ${result.resource.label}. Use the pairing code to activate it.`, canonicalFacts: { resource: result.resource, pairingChallenge: result.challenge }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'activate', label: 'Activate with pairing code' }] };
-        }
-        if (context.action === 'activate') {
-          const resourceId = String(context.canonicalObjectId || args.resourceId || '').trim();
-          const code = String(args.code || '').trim();
-          if (!resourceId || !code) return { status: 'needs_user', message: 'I need the exact resource and pairing code to activate it.' };
-          const resource = await activateConnectedResource(context.phone, resourceId, code);
-          if (!resource) return { status: 'unauthorized', message: 'That pairing code is invalid, expired, already used for another resource, or does not belong to this account.' };
-          return { status: 'completed', message: `${resource.label} is now connected to Kurukoo.`, canonicalFacts: { resource }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'inspect', label: 'Inspect device capabilities' }] };
-        }
-        const resourceId = String(context.canonicalObjectId || args.resourceId || '').trim();
-        if (!resourceId) return { status: 'needs_user', message: 'Tell me which connected device or resource you mean.' };
-        const resource = await getConnectedResource(context.phone, resourceId);
-        if (!resource) return { status: 'unauthorized', message: 'That connected resource is not available to this account.' };
-        if (context.action === 'inspect' || context.action === 'status') return { status: 'completed', message: `${resource.label} is ${resource.status} and exposes ${resource.capabilities.length} declared capabilities.`, canonicalFacts: { resource }, evidenceLevel: 'canonical_service', externalActivation: resource.status === 'active' ? 'repository_ready_external_activation' : 'locally_available', nextActions: resource.status === 'active' ? [{ action: 'view', label: 'View' }, { action: 'control', label: 'Control' }] : [{ action: 'activate', label: 'Activate' }] };
-        if (context.action === 'view') {
-          const view = await viewConnectedResource(context.phone, resourceId);
-          if (!view?.media.length) return { status: 'externally_pending', message: `${resource.label} is connected, but it has not exposed a view stream to Kurukoo.`, canonicalFacts: { resource, media: [] }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'configure_view', label: 'Configure an authorised view' }] };
-          return { status: 'completed', message: `Here is ${resource.label}.`, canonicalFacts: { resource, media: view.media }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'control', label: 'Control' }] };
-        }
-        if (context.action === 'revoke') {
-          const revoked = await revokeConnectedResource(context.phone, resourceId);
-          return revoked ? { status: 'completed', message: `${resource.label} has been disconnected from Kurukoo.`, canonicalFacts: { resourceId, revoked: true }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available' } : { status: 'stale_context', message: 'That resource was already disconnected or is no longer available.' };
-        }
-        return { status: 'needs_user', message: 'Tell me the exact control command to send to this connected resource.' };
-      },
-    },
+    capability: 'channel', adapter: { owner: 'channelRegistry', actions: ['inspect', 'status'], mode: 'read_only', execute: async (context) => { const names = ['web', 'whatsapp', 'telegram', 'sms', 'ussd', 'email', 'ivr']; const requested = String(context.arguments.channel || context.canonicalObjectId || '').trim().toLowerCase(); const channels = (requested ? names.filter(name => name === requested) : names).map(name => ({ channel: name, configured: isChannelConfigured(name), nativeChat: name === 'web', externalDelivery: name !== 'web' })); return { status: 'completed', message: requested ? `${requested} is ${channels[0]?.configured ? 'configured' : 'not configured'} for Kurukoo.` : `I checked Kurukoo's available channel adapters.`, canonicalFacts: { channels }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available' }; } },
+  {
+    capability: 'connected_resource', adapter: { owner: 'connectedResourceService', actions: ['register', 'activate', 'inspect', 'status', 'view', 'control', 'revoke'], mode: 'structured_action', execute: async (context) => { const args = context.arguments || {}; if (context.action === 'register') { const kind = String(args.kind || 'other').toLowerCase() as any; const result = await registerConnectedResource({ phone: context.phone, kind, label: String(args.label || ''), vendor: args.vendor ? String(args.vendor) : undefined, protocol: args.protocol as any, capabilities: Array.isArray(args.capabilities) ? args.capabilities.map(String) : [], metadata: args.metadata && typeof args.metadata === 'object' ? args.metadata as Record<string, unknown> : {}, viewUrl: args.viewUrl ? String(args.viewUrl) : undefined, streamUrl: args.streamUrl ? String(args.streamUrl) : undefined }); return { status: 'completed', message: `I registered ${result.resource.label}. Use the pairing code to activate it.`, canonicalFacts: { resource: result.resource, pairingChallenge: result.challenge }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'activate', label: 'Activate with pairing code' }] }; } if (context.action === 'activate') { const resourceId = String(context.canonicalObjectId || args.resourceId || '').trim(); const code = String(args.code || '').trim(); if (!resourceId || !code) return { status: 'needs_user', message: 'I need the exact resource and pairing code to activate it.' }; const resource = await activateConnectedResource(context.phone, resourceId, code); if (!resource) return { status: 'unauthorized', message: 'That pairing code is invalid, expired, already used for another resource, or does not belong to this account.' }; return { status: 'completed', message: `${resource.label} is now connected to Kurukoo.`, canonicalFacts: { resource }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'inspect', label: 'Inspect device capabilities' }] }; } const resourceId = String(context.canonicalObjectId || args.resourceId || '').trim(); if (!resourceId) return { status: 'needs_user', message: 'Tell me which connected device or resource you mean.' }; const resource = await getConnectedResource(context.phone, resourceId); if (!resource) return { status: 'unauthorized', message: 'That connected resource is not available to this account.' }; if (context.action === 'inspect' || context.action === 'status') return { status: 'completed', message: `${resource.label} is ${resource.status} and exposes ${resource.capabilities.length} declared capabilities.`, canonicalFacts: { resource }, evidenceLevel: 'canonical_service', externalActivation: resource.status === 'active' ? 'repository_ready_external_activation' : 'locally_available', nextActions: resource.status === 'active' ? [{ action: 'view', label: 'View' }, { action: 'control', label: 'Control' }] : [{ action: 'activate', label: 'Activate' }] }; if (context.action === 'view') { const view = await viewConnectedResource(context.phone, resourceId); if (!view?.media.length) return { status: 'externally_pending', message: `${resource.label} is connected, but it has not exposed a view stream to Kurukoo.`, canonicalFacts: { resource, media: [] }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'configure_view', label: 'Configure an authorised view' }] }; return { status: 'completed', message: `Here is ${resource.label}.`, canonicalFacts: { resource, media: view.media }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'control', label: 'Control' }] }; } if (context.action === 'revoke') { const revoked = await revokeConnectedResource(context.phone, resourceId); return revoked ? { status: 'completed', message: `${resource.label} has been disconnected from Kurukoo.`, canonicalFacts: { resourceId, revoked: true }, evidenceLevel: 'canonical_service', externalActivation: 'locally_available' } : { status: 'stale_context', message: 'That resource was already disconnected or is no longer available.' }; } return { status: 'needs_user', message: 'Tell me the exact control command to send to this connected resource.' }; } },
   },
 ];
 
