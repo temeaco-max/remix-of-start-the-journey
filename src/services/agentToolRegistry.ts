@@ -4,11 +4,11 @@ import { listReminders } from './reminderService.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { listConnectedResources, viewConnectedResource } from './connectedResourceService.js';
 import { ensureCapabilityFoundation } from './capabilityFoundation.js';
-import { getCapabilityRegistration, resolveCapabilityComposition } from './capabilityRegistry.js';
+import { getCapabilityRegistration, listCapabilityRegistrations, resolveCapabilityComposition } from './capabilityRegistry.js';
 
 export type AgentToolPermission = 'read' | 'low_risk_write' | 'coordination' | 'high_risk';
 export type AgentToolRisk = 'read_only' | 'reversible' | 'user_confirmation_required' | 'high_risk';
-export type AgentToolName = 'get_request_state' | 'get_memory_context' | 'get_reminders' | 'get_connected_resources' | 'view_connected_resource' | 'inspect_capability_plan' | 'execute_capability' | 'recheck_economic_request';
+export type AgentToolName = 'get_request_state' | 'get_memory_context' | 'get_reminders' | 'get_connected_resources' | 'view_connected_resource' | 'inspect_capability_plan' | 'list_capabilities' | 'execute_capability' | 'recheck_economic_request';
 
 export interface AgentToolContext { phone: string; conversationId?: string; goalId: string; }
 export interface AgentToolResult { ok: boolean; tool: AgentToolName; permission: AgentToolPermission; data?: Record<string, unknown>; evidence?: string; message?: string; }
@@ -21,6 +21,7 @@ const definitions: Record<AgentToolName, AgentToolDefinition> = {
   get_connected_resources: { description: 'Read the currently active connected phones, cameras, TVs, computers and IoT resources owned by the user, including their exposed capabilities.', inputSchema: {}, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'owned_connected_resource_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
   view_connected_resource: { description: 'View authorised media exposed by one exact active connected resource, such as a CCTV/camera stream, without changing device state.', inputSchema: { resourceId: 'string' }, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'owned_connected_resource_view', idempotency: 'none', audit: 'goal_event', autonomous: true },
   inspect_capability_plan: { description: 'Inspect the canonical capability composition for a skill/capability without executing it.', inputSchema: { skill: 'string' }, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'canonical_capability_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
+  list_capabilities: { description: 'Discover the canonical capabilities available to this Kurukoo runtime, including their actions, risk and activation state. This is read-only and never authorizes an action.', inputSchema: { query: 'string' }, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'canonical_capability_catalog_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
   execute_capability: { description: 'Invoke one exact capability action through the canonical executor. The executor remains authoritative for policy, identity, confirmation, idempotency and external activation.', inputSchema: { capability: 'string', action: 'string', contextId: 'string', canonicalObjectId: 'string', argumentsJson: 'json', confirmationGranted: 'boolean' }, permission: 'coordination', risk: 'user_confirmation_required', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'canonical_executor_policy', idempotency: 'service_owned', audit: 'goal_event', autonomous: true },
   recheck_economic_request: { description: 'Safely re-evaluate an unresolved request through the canonical storefront only when explicitly enabled.', inputSchema: { requestId: 'string' }, permission: 'coordination', risk: 'reversible', supportedContexts: ['text', 'voice', 'event'], authorization: 'owned_unresolved_request_and_deployment_flag', idempotency: 'service_owned', audit: 'goal_event', autonomous: true },
 };
@@ -75,6 +76,35 @@ export async function executeAgentTool(name: AgentToolName, args: Record<string,
     if (!registration) return { ok: false, tool: name, permission: 'read', message: 'That capability is not registered.' };
     const composition = resolveCapabilityComposition([registration.descriptor.capability]);
     return { ok: composition.unresolved.length === 0 && !composition.cycle?.length, tool: name, permission: 'read', data: { requested: composition.requested, capabilities: composition.ordered.map(item => item.descriptor.capability), unresolved: composition.unresolved, cycle: composition.cycle || null }, evidence: `capability_plan:${registration.descriptor.capability}:${composition.ordered.length}` };
+  }
+
+  if (name === 'list_capabilities') {
+    const query = typeof args.query === 'string' ? args.query.trim().toLowerCase().slice(0, 120) : '';
+    ensureCapabilityFoundation();
+    const matches = listCapabilityRegistrations()
+      .filter(registration => {
+        if (!query) return true;
+        const descriptor = registration.descriptor;
+        const haystack = [descriptor.capability, descriptor.family, descriptor.mode, descriptor.actions.join(' '), descriptor.owner.join(' ')].join(' ').toLowerCase();
+        return haystack.includes(query);
+      })
+      .slice(0, 64)
+      .map(registration => {
+        const descriptor = registration.descriptor;
+        return {
+          capability: descriptor.capability,
+          family: descriptor.family,
+          kind: descriptor.kind,
+          mode: descriptor.mode,
+          actions: descriptor.actions,
+          risk: descriptor.risk,
+          activationState: descriptor.activationState,
+          owner: descriptor.owner,
+          aliases: registration.aliases || [],
+          source: registration.source || 'core',
+        };
+      });
+    return { ok: true, tool: name, permission: 'read', data: { query, count: matches.length, capabilities: matches }, evidence: `capability_catalog:${matches.length}` };
   }
 
   if (name === 'execute_capability') {
