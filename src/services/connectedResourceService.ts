@@ -21,6 +21,8 @@ export interface ConnectedResource {
   lastSeenAt: string;
 }
 
+export interface ConnectedResourceChallenge { id: string; resourceId: string; code: string; expiresAt: string; }
+
 async function ensureSchema(): Promise<void> {
   const db = await getDb();
   db.run(`
@@ -42,6 +44,16 @@ async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_connected_resources_phone_status ON connected_resources(phone, status, last_seen_at);
     CREATE INDEX IF NOT EXISTS idx_connected_resources_phone_label ON connected_resources(phone, label, status);
+    CREATE TABLE IF NOT EXISTS connected_resource_challenges (
+      id TEXT PRIMARY KEY,
+      resource_id TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_connected_resource_challenges_resource ON connected_resource_challenges(resource_id, phone, consumed_at, expires_at);
   `);
 }
 
@@ -65,6 +77,14 @@ function rowToResource(row: any[]): ConnectedResource {
   };
 }
 
+function hashChallenge(code: string): string {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
+function makePairingCode(): string {
+  return String(crypto.randomInt(100000, 999999));
+}
+
 export async function registerConnectedResource(input: {
   phone: string;
   kind: ConnectedResourceKind;
@@ -75,8 +95,7 @@ export async function registerConnectedResource(input: {
   metadata?: Record<string, unknown>;
   viewUrl?: string;
   streamUrl?: string;
-  status?: 'active' | 'pending';
-}): Promise<ConnectedResource> {
+}): Promise<{ resource: ConnectedResource; challenge: ConnectedResourceChallenge }> {
   await ensureSchema();
   const db = await getDb();
   const phone = String(input.phone || '').trim();
@@ -84,16 +103,45 @@ export async function registerConnectedResource(input: {
   const capabilities = [...new Set((input.capabilities || []).map(item => String(item).trim()).filter(Boolean))].slice(0, 64);
   const metadata = input.metadata || {};
   db.run(`INSERT INTO connected_resources(id, phone, kind, label, vendor, protocol, capabilities_json, metadata_json, view_url, stream_url, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`, [
     id, phone, input.kind, String(input.label || '').slice(0, 160), String(input.vendor || '').slice(0, 120) || null,
     input.protocol || 'custom', JSON.stringify(capabilities), JSON.stringify(metadata),
     String(input.viewUrl || '').slice(0, 2048) || null, String(input.streamUrl || '').slice(0, 2048) || null,
-    input.status || 'pending',
   ]);
   saveDb();
+  const challenge = await issueConnectedResourceChallenge(phone, id);
   const resource = await getConnectedResource(phone, id);
   if (!resource) throw new Error('Connected resource could not be persisted.');
-  return resource;
+  return { resource, challenge };
+}
+
+export async function issueConnectedResourceChallenge(phone: string, resourceId: string, ttlSeconds = 600): Promise<ConnectedResourceChallenge> {
+  await ensureSchema();
+  const resource = await getConnectedResource(phone, resourceId);
+  if (!resource || resource.status === 'revoked') throw new Error('Connected resource not found.');
+  const id = `crch_${crypto.randomUUID()}`;
+  const code = makePairingCode();
+  const expiresAt = new Date(Date.now() + Math.max(60, Math.min(ttlSeconds, 1800)) * 1000).toISOString();
+  const db = await getDb();
+  db.run('UPDATE connected_resource_challenges SET consumed_at = CURRENT_TIMESTAMP WHERE resource_id = ? AND phone = ? AND consumed_at IS NULL', [resourceId, String(phone || '').trim()]);
+  db.run('INSERT INTO connected_resource_challenges(id, resource_id, phone, code_hash, expires_at) VALUES(?,?,?,?,?)', [id, resourceId, String(phone || '').trim(), hashChallenge(code), expiresAt]);
+  saveDb();
+  return { id, resourceId, code, expiresAt };
+}
+
+export async function activateConnectedResource(phone: string, resourceId: string, code: string): Promise<ConnectedResource | null> {
+  await ensureSchema();
+  const normalizedPhone = String(phone || '').trim();
+  const normalizedCode = String(code || '').trim();
+  const resource = await getConnectedResource(normalizedPhone, resourceId);
+  if (!resource || resource.status === 'revoked') return null;
+  const db = await getDb();
+  const row = db.exec(`SELECT id, expires_at FROM connected_resource_challenges WHERE resource_id = ? AND phone = ? AND code_hash = ? AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1`, [resourceId, normalizedPhone, hashChallenge(normalizedCode)])[0]?.values?.[0] as any[] | undefined;
+  if (!row || new Date(String(row[1])).getTime() <= Date.now()) return null;
+  db.run('UPDATE connected_resource_challenges SET consumed_at = CURRENT_TIMESTAMP WHERE id = ?', [String(row[0])]);
+  db.run(`UPDATE connected_resources SET status = 'active', last_seen_at = CURRENT_TIMESTAMP WHERE id = ? AND phone = ? AND status = 'pending'`, [resourceId, normalizedPhone]);
+  saveDb();
+  return getConnectedResource(normalizedPhone, resourceId);
 }
 
 export async function listConnectedResources(phone: string): Promise<ConnectedResource[]> {
@@ -114,10 +162,7 @@ export async function getConnectedResource(phone: string, id: string): Promise<C
 
 export async function resolveConnectedResource(input: { phone: string; id?: string; label?: string; kind?: ConnectedResourceKind }): Promise<{ resource: ConnectedResource } | { ambiguous: ConnectedResource[] } | null> {
   await ensureSchema();
-  if (input.id) {
-    const resource = await getConnectedResource(input.phone, input.id);
-    return resource?.status === 'active' ? { resource } : null;
-  }
+  if (input.id) { const resource = await getConnectedResource(input.phone, input.id); return resource?.status === 'active' ? { resource } : null; }
   const label = String(input.label || '').trim().toLowerCase();
   if (!label) return null;
   const resources = (await listConnectedResources(input.phone)).filter(resource => resource.status === 'active');
@@ -134,12 +179,11 @@ export async function buildConnectedResourceContext(phone?: string): Promise<str
   if (!phone || phone.startsWith('anon_')) return '';
   const resources = (await listConnectedResources(phone)).filter(resource => resource.status === 'active');
   if (!resources.length) return '';
-  const lines = resources.slice(0, 24).map(resource => {
+  return resources.slice(0, 24).map(resource => {
     const caps = resource.capabilities.length ? resource.capabilities.join(', ') : 'no controls declared';
     const views = resource.viewUrl || resource.streamUrl ? 'live/view media available' : 'no view media exposed';
     return `- ${resource.label} (${resource.kind}${resource.vendor ? `, ${resource.vendor}` : ''}, internal_id=${resource.id}): ${caps}; ${views}`;
-  });
-  return lines.join('\n');
+  }).join('\n');
 }
 
 export async function markConnectedResourceSeen(phone: string, id: string): Promise<void> {
@@ -165,7 +209,6 @@ export async function viewConnectedResource(phone: string, id: string): Promise<
   const media: Array<{ kind: 'image' | 'video' | 'stream'; url: string }> = [];
   if (resource.viewUrl) media.push({ kind: 'image', url: resource.viewUrl });
   if (resource.streamUrl) media.push({ kind: 'stream', url: resource.streamUrl });
-  if (!media.length) return { resource, media: [] };
   return { resource, media };
 }
 
