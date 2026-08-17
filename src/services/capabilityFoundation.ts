@@ -96,7 +96,7 @@ export function capabilityRegistrationForSkill(skill: string, requiredCapabiliti
       continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope'],
       externalDependencyState: [],
       activationState: 'locally_available' as const,
-      description,
+      description: `Composable skill ${skill} over registered capabilities.`,
     } as UniversalCapabilityDescriptor & { description?: string },
     namespace: 'kurukoo.skills', version: '1',
     requiresCapabilities: requiredCapabilities.map(normalizeSkillCapabilityReference),
