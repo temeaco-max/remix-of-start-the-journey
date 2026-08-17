@@ -2,10 +2,11 @@ import { getEconomicRequest } from './skillFlows.js';
 import { buildWorkingContext } from './livingMemoryEngine.js';
 import { listReminders } from './reminderService.js';
 import { advanceStorefront } from './agenticStorefront.js';
+import { listConnectedResources } from './connectedResourceService.js';
 
 export type AgentToolPermission = 'read' | 'low_risk_write' | 'coordination' | 'high_risk';
 export type AgentToolRisk = 'read_only' | 'reversible' | 'user_confirmation_required' | 'high_risk';
-export type AgentToolName = 'get_request_state' | 'get_memory_context' | 'get_reminders' | 'recheck_economic_request';
+export type AgentToolName = 'get_request_state' | 'get_memory_context' | 'get_reminders' | 'get_connected_resources' | 'recheck_economic_request';
 
 export interface AgentToolContext {
   phone: string;
@@ -27,6 +28,7 @@ const definitions: Record<AgentToolName, AgentToolDefinition> = {
   get_request_state: { description: 'Read the current state of an Economic Request owned by the user.', inputSchema: { requestId: 'string' }, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'owned_request_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
   get_memory_context: { description: 'Retrieve the minimum relevant bounded Living Memory context for an owned goal.', inputSchema: { query: 'string' }, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'owned_memory_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
   get_reminders: { description: 'Read scheduled reminders owned by the current user.', inputSchema: {}, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'event'], authorization: 'owned_reminder_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
+  get_connected_resources: { description: 'Read the currently active connected phones, cameras, TVs, computers and IoT resources owned by the user, including their exposed capabilities.', inputSchema: {}, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'owned_connected_resource_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
   recheck_economic_request: { description: 'Safely re-evaluate an unresolved request through the canonical storefront only when explicitly enabled.', inputSchema: { requestId: 'string' }, permission: 'coordination', risk: 'reversible', supportedContexts: ['text', 'voice', 'event'], authorization: 'owned_unresolved_request_and_deployment_flag', idempotency: 'service_owned', audit: 'goal_event', autonomous: true },
 };
 
@@ -64,6 +66,29 @@ export async function executeAgentTool(
   if (name === 'get_reminders') {
     const reminders = await listReminders(context.phone);
     return { ok: true, tool: name, permission: 'read', data: { reminders: reminders.slice(0, 10).map(reminder => ({ id: reminder.id, title: reminder.title, dueAt: reminder.due_at, status: reminder.status })) }, evidence: `reminders:${reminders.length}` };
+  }
+
+  if (name === 'get_connected_resources') {
+    const resources = await listConnectedResources(context.phone);
+    const active = resources.filter(resource => resource.status === 'active');
+    return {
+      ok: true,
+      tool: name,
+      permission: 'read',
+      data: {
+        resources: active.slice(0, 24).map(resource => ({
+          id: resource.id,
+          kind: resource.kind,
+          label: resource.label,
+          vendor: resource.vendor || null,
+          protocol: resource.protocol,
+          capabilities: resource.capabilities,
+          hasView: Boolean(resource.viewUrl || resource.streamUrl),
+          lastSeenAt: resource.lastSeenAt,
+        })),
+      },
+      evidence: `connected_resources:${active.length}`,
+    };
   }
 
   if (name === 'recheck_economic_request') {
