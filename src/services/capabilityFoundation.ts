@@ -1,6 +1,6 @@
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 import { registerCapabilities, getCapabilityRegistration } from './capabilityRegistry.js';
-import { getEconomicCategory, getKnownSkills, getSkillCapabilities, getSkillRequirements } from './skillFlows.js';
+import { getEconomicCategory, getKnownCapabilitySkills, getSkillCapabilities, getSkillRequirements } from './skillFlows.js';
 
 const ECONOMIC_ATOMS = [
   ['discovery', 'Discover relevant entities, opportunities or sources.', 'read_only'],
@@ -127,7 +127,7 @@ export function ensureCapabilityFoundation(): void {
     source: 'capability-foundation',
   }));
   registerCapabilities(registrations);
-  const skillRegistrations = getKnownSkills().map(skill => {
+  const skillRegistrations = getKnownCapabilitySkills().map(skill => {
     const category = getEconomicCategory(skill);
     const capabilities = category ? getSkillCapabilities(skill) : inferNativeComposition(skill);
     return capabilityRegistrationForSkill(skill, capabilities);
