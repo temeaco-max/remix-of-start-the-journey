@@ -11,6 +11,8 @@ import { getInternalNotifications } from './pushNotifications.js';
 import { cancelAgentGoal, listAgentGoals, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
 import { generateReferralCode } from './referralService.js';
 import { getAssistanceOutcome } from './assistanceOutcomeService.js';
+import { resolveConversationPriority } from './conversationPriorityService.js';
+import { executeCanonicalCapabilityProposal } from './canonicalCapabilityExecutor.js';
 import type { IntentRoutingResult } from '../types.js';
 import { extractConversationalEntities, validateConversationalEntities } from './conversationalExtraction.js';
 
@@ -110,109 +112,42 @@ function parseReminderQuery(q: string): { dueAt: string; title: string; displayT
   const input = /^(?:set (?:me )?a reminder|remind me)\b/i.test(q) ? q.replace(/^set (?:me )?a reminder\b/i, 'remind me') : q;
   const rel = input.match(/^remind me\s+(?:in\s+)?(\d+)\s+(minute|minutes|hour|hours|day|days)\s+(?:to\s+)?(.+)$/i);
   if (rel) {
-    const amount = Number(rel[1]);
-    const unit = rel[2].toLowerCase();
-    const multiplier = unit.startsWith('hour') ? 3600_000 : unit.startsWith('day') ? 86400_000 : 60_000;
-    const ms = amount * multiplier;
-    if (Number.isFinite(ms) && ms > 0) {
-      const dueAt = new Date(Date.now() + ms).toISOString();
-      return { dueAt, title: rel[3].trim(), displayTime: `in ${amount} ${unit}` };
-    }
+    const amount = Number(rel[1]); const unit = rel[2].toLowerCase(); const multiplier = unit.startsWith('hour') ? 3600_000 : unit.startsWith('day') ? 86400_000 : 60_000; const ms = amount * multiplier;
+    if (Number.isFinite(ms) && ms > 0) return { dueAt: new Date(Date.now() + ms).toISOString(), title: rel[3].trim(), displayTime: `in ${amount} ${unit}` };
   }
   const abs = input.match(/^remind me\s+(?:(every\s+day|every\s+week|daily|weekly)?\s*)?(?:on\s+([a-z]+)\s+)?(?:(tomorrow|today)\s+)?(?:(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+)?(?:to\s+)?(.+)$/i);
   if (abs) {
-    const recurrence = abs[1]?.toLowerCase();
-    const day = abs[2]?.toLowerCase();
-    const relative = abs[3]?.toLowerCase();
-    let hour = Number(abs[4] || 9);
-    const min = Number(abs[5] || 0);
-    const meridiem = abs[6]?.toLowerCase();
-    if (meridiem === 'pm' && hour < 12) hour += 12;
-    if (meridiem === 'am' && hour === 12) hour = 0;
-    const d = new Date();
-    d.setHours(hour, min, 0, 0);
-    if (relative === 'tomorrow') d.setDate(d.getDate() + 1);
-    if (day) {
-      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      const target = days.indexOf(day);
-      if (target !== -1) {
-        let diff = target - d.getDay();
-        if (diff <= 0) diff += 7;
-        d.setDate(d.getDate() + diff);
-      }
-    }
+    const recurrence = abs[1]?.toLowerCase(), day = abs[2]?.toLowerCase(), relative = abs[3]?.toLowerCase(); let hour = Number(abs[4] || 9); const min = Number(abs[5] || 0); const meridiem = abs[6]?.toLowerCase(); if (meridiem === 'pm' && hour < 12) hour += 12; if (meridiem === 'am' && hour === 12) hour = 0;
+    const d = new Date(); d.setHours(hour, min, 0, 0); if (relative === 'tomorrow') d.setDate(d.getDate() + 1);
+    if (day) { const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']; const target = days.indexOf(day); if (target !== -1) { let diff = target - d.getDay(); if (diff <= 0) diff += 7; d.setDate(d.getDate() + diff); } }
     if (d.getTime() <= Date.now() && !day && !relative) d.setDate(d.getDate() + 1);
     return { dueAt: d.toISOString(), title: abs[7].trim(), displayTime: `${relative || day ? `${relative || day} at ` : ''}${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${recurrence ? ` (${recurrence})` : ''}` };
   }
   return null;
 }
 
-function suggestionCard(intent: string) {
-  const suggestions = getContextualIntentSuggestions(intent);
-  return suggestions.length ? { type: 'intent_suggestions', intent, suggestions } : undefined;
-}
-
-function decorateCardWithSuggestions(card: any, intent: string) {
-  const suggestions = getContextualIntentSuggestions(intent);
-  return suggestions.length ? { ...(card || {}), suggestions } : card;
-}
+function suggestionCard(intent: string) { const suggestions = getContextualIntentSuggestions(intent); return suggestions.length ? { type: 'intent_suggestions', intent, suggestions } : undefined; }
+function decorateCardWithSuggestions(card: any, intent: string) { const suggestions = getContextualIntentSuggestions(intent); return suggestions.length ? { ...(card || {}), suggestions } : card; }
 
 function extractFollowUpPatch(q: string, skill: string): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
-  if (skill === 'find_worker') {
-    const location = q.match(/\b(?:in|at)\s+([a-z][a-z\s-]{2,40})$/i)?.[1] || (q.includes('ikeja') ? 'Ikeja' : undefined);
-    if (location) patch.location = location.trim().replace(/[.!?]+$/, '');
-    if (/\b(tomorrow|today|tonight|evening|morning|afternoon|this week)\b/i.test(q)) patch.time = q.trim();
-    if (!location && !patch.time && /^(the )?(bathroom|kitchen|roof|car|phone|fridge|sink)\b/i.test(q)) patch.service = q.trim().replace(/[.!?]+$/, '');
-  }
-  if (skill === 'order_food') {
-    const quantity = q.match(/\bfor\s+(\d+)\s*(?:people|persons)?\b/i)?.[1];
-    if (quantity) patch.quantity = quantity;
-    const items = q.replace(/\bfor\s+\d+\s*(?:people|persons)?\b/i, '').trim().replace(/[.!?]+$/, '');
-    if (items && !/^(in|at)\b/i.test(items)) patch.items = items;
-    const location = q.match(/\b(?:in|at)\s+([a-z][a-z\s-]{2,40})$/i)?.[1];
-    if (location) patch.location = location.trim().replace(/[.!?]+$/, '');
-  }
+  if (skill === 'find_worker') { const location = q.match(/\b(?:in|at)\s+([a-z][a-z\s-]{2,40})$/i)?.[1] || (q.includes('ikeja') ? 'Ikeja' : undefined); if (location) patch.location = location.trim().replace(/[.!?]+$/, ''); if (/\b(tomorrow|today|tonight|evening|morning|afternoon|this week)\b/i.test(q)) patch.time = q.trim(); if (!location && !patch.time && /^(the )?(bathroom|kitchen|roof|car|phone|fridge|sink)\b/i.test(q)) patch.service = q.trim().replace(/[.!?]+$/, ''); }
+  if (skill === 'order_food') { const quantity = q.match(/\bfor\s+(\d+)\s*(?:people|persons)?\b/i)?.[1]; if (quantity) patch.quantity = quantity; const items = q.replace(/\bfor\s+\d+\s*(?:people|persons)?\b/i, '').trim().replace(/[.!?]+$/, ''); if (items && !/^(in|at)\b/i.test(items)) patch.items = items; const location = q.match(/\b(?:in|at)\s+([a-z][a-z\s-]{2,40})$/i)?.[1]; if (location) patch.location = location.trim().replace(/[.!?]+$/, ''); }
   return patch;
 }
 
-async function applyFollowUpSlot(phone: string, q: string): Promise<IntentRoutingResult | null> {
-  const active = await tryResumeStorefront(phone);
-  if (!active?.requestId) return null;
-  const patch = extractFollowUpPatch(q, active.skill);
-  if (!Object.keys(patch).length) return null;
-  const card = await advanceStorefront(phone, active.requestId, patch);
-  return { skill: active.skill, reply: card.message, cardData: card };
-}
+async function applyFollowUpSlot(phone: string, q: string): Promise<IntentRoutingResult | null> { const active = await tryResumeStorefront(phone); if (!active?.requestId) return null; const patch = extractFollowUpPatch(q, active.skill); if (!Object.keys(patch).length) return null; const card = await advanceStorefront(phone, active.requestId, patch); return { skill: active.skill, reply: card.message, cardData: card }; }
 
 async function handleExplicitMemory(phone: string, q: string): Promise<IntentRoutingResult | null> {
   const remember = q.match(/^remember that\s+(.+)$/i);
   if (remember) {
-    const statement = remember[1].trim();
-    const profile = await getProfile(phone, 'conversation_memory');
-    const preferences = { ...(profile?.preferences || {}) };
-    const locationMatch = statement.match(/\busual area is\s+([a-z][a-z -]{1,40}?)(?:\s+and\b|$)/i);
-    if (/\b(prefer|want|like)\b.*\b(short|simple|concise|brief)\b/i.test(statement)) preferences.response_style = 'concise';
-    else if (/\bevening\b.*\breminder/i.test(statement)) preferences.reminder_time_preference = 'evening';
-    else if (!locationMatch) return { skill: 'memory', reply: 'I can remember preferences such as how you like answers, your usual area, or when you prefer reminders. Tell me that preference in a specific way.' };
-    await updateProfile(phone, 'conversation_memory', {
-      preferences,
-      ...(locationMatch ? { location: locationMatch[1].trim(), provenance: 'user_declared' as const, source_ref: 'conversation_memory' } : {}),
-    });
+    const statement = remember[1].trim(); const profile = await getProfile(phone, 'conversation_memory'); const preferences = { ...(profile?.preferences || {}) }; const locationMatch = statement.match(/\busual area is\s+([a-z][a-z -]{1,40}?)(?:\s+and\b|$)/i);
+    if (/\b(prefer|want|like)\b.*\b(short|simple|concise|brief)\b/i.test(statement)) preferences.response_style = 'concise'; else if (/\bevening\b.*\breminder/i.test(statement)) preferences.reminder_time_preference = 'evening'; else if (!locationMatch) return { skill: 'memory', reply: 'I can remember preferences such as how you like answers, your usual area, or when you prefer reminders. Tell me that preference in a specific way.' };
+    await updateProfile(phone, 'conversation_memory', { preferences, ...(locationMatch ? { location: locationMatch[1].trim(), provenance: 'user_declared' as const, source_ref: 'conversation_memory' } : {}) });
     return { skill: 'memory', reply: locationMatch ? `Got it. I’ll remember **${locationMatch[1].trim()}** as your usual area and keep your preference with your Kurukoo Memory Profile.` : 'Got it. I’ll keep that preference with your Kurukoo Memory Profile.' };
   }
   if (/^what do you remember\b|^what do you know about me\b/i.test(q)) {
-    const profile = await getProfile(phone, 'conversation_memory');
-    const facts = await getMemoryFacts(phone, ['name', 'location']);
-    const preferences = profile?.preferences || {};
-    const nameFact = facts.find((fact) => fact.field === 'name');
-    const locationFact = facts.find((fact) => fact.field === 'location');
-    const items = [
-      nameFact ? `your name is ${nameFact.value}` : '',
-      locationFact ? `your usual area is ${locationFact.value}` : '',
-      preferences.response_style === 'concise' ? 'you prefer short, simple answers' : '',
-      preferences.reminder_time_preference === 'evening' ? 'you prefer evening reminders' : '',
-    ].filter(Boolean);
+    const profile = await getProfile(phone, 'conversation_memory'); const facts = await getMemoryFacts(phone, ['name', 'location']); const preferences = profile?.preferences || {}; const nameFact = facts.find((fact) => fact.field === 'name'); const locationFact = facts.find((fact) => fact.field === 'location'); const items = [nameFact ? `your name is ${nameFact.value}` : '', locationFact ? `your usual area is ${locationFact.value}` : '', preferences.response_style === 'concise' ? 'you prefer short, simple answers' : '', preferences.reminder_time_preference === 'evening' ? 'you prefer evening reminders' : ''].filter(Boolean);
     return { skill: 'memory', reply: items.length ? `I remember that ${items.join('; ')}.` : 'I do not have any saved preferences or declared profile facts for you yet.' };
   }
   return null;
@@ -222,300 +157,86 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   const q = query.trim().toLowerCase().replace(/[.!?]+$/, '');
   if (!q) return { skill: 'general_question', reply: 'Tell me what you need.' };
 
-  if (phone) {
-    const memoryResult = await handleExplicitMemory(phone, q);
-    if (memoryResult) return memoryResult;
-  }
-  if (phone && /^(what notifications|show (my )?notifications|what updates are waiting|show (my )?updates)\b/i.test(q)) {
-    const notifications = await getInternalNotifications(phone, 10);
-    if (!notifications.length) return { skill: 'notifications', reply: 'There are no stored notifications waiting for you right now. External push delivery is not assumed unless the delivery state says so.' };
-    const summary = notifications.slice(0, 5).map(item => `${item.title}: ${item.body} (${item.delivery_state})`).join('; ');
-    return { skill: 'notifications', reply: `I found ${notifications.length} stored notification${notifications.length === 1 ? '' : 's'}: ${summary}`, cardData: { type: 'notifications', status: 'stored', count: notifications.length } };
-  }
-  if (/^what provider and model handled (that|the) turn\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'The Chat diagnostics for each turn are the source of truth for classification source, provider, model, latency, action, and final state. This request is handled by the canonical Chat path; it does not imply that a hosted provider was used.' };
-  }
-  if (/\b(?:verified capability|do not invent (?:availability|price|reviews)|provider availability)\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'Understood. I will use only recorded provider evidence and will keep availability, price, reviews, verification, payment, and fulfilment in explicit states. If evidence is missing, the request remains waiting or deferred.' };
-  }
-  if (/^(what is kurukoo|what does kurukoo do|explain kurukoo)\??$/i.test(q)) {
-    const profile = phone ? await getProfile(phone, 'conversation_explanation') : null;
-    const concise = profile?.preferences?.response_style === 'concise';
-    return { skill: 'general_question', reply: concise ? 'Kurukoo is one conversation for everyday help: it can answer questions, remember preferences, set reminders, coordinate verified services, and keep requests moving without pretending a payment or provider action happened.' : 'Kurukoo is an everyday utility assistant in one conversation. It can answer questions, remember preferences, set reminders, coordinate verified services and products, and keep requests moving through truthful states before any payment or external action.' };
-  }
-  if (/^explain the difference between (?:a )?reminder and (?:an )?agent(?: simply)?\??$/i.test(q)) {
-    return { skill: 'general_question', reply: 'A reminder is a scheduled nudge for you. A bounded agent is an explicit follow-up that can re-check an owned request under limited permissions, report its actual status, and pause or stop when you ask.' };
-  }
-  if (/(?:compare|comparing)\b.*\b(?:venues?|locations?|spaces?)\b|\bvenue comparison\b/i.test(q) && /\b(?:workshop|event|community|meeting)\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'Here is a short venue-comparison plan:\n\n1. Define the essentials: date, expected attendance, accessibility, transport, and budget.\n2. Score each venue on capacity, total cost, location, facilities, reliability, and cancellation terms.\n3. Visit or verify the two strongest options, then choose the one with the best practical fit—not just the lowest price.\n\nA simple 1–5 scorecard with weighted priorities will make the trade-offs clear.' };
-  }
-  if (/^(i(?:'|’)ve|i have|i just)(?: just)? moved\b|^i(?:'|’)m in\b|^i am in\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'Welcome to the area. I can help you understand a problem, find a verified service, set a reminder, or answer a question. Tell me what you would like to get done; I will not create a request from your location alone.' };
-  }
-  if (/\bbathroom\b.*\bleak|\bleak(?:ing)?\b.*\bbathroom\b/i.test(q) && !/\b(?:need|find|hire|book|arrange|get me)\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'A bathroom leak often points to a plumbing, seal, drain, or shower fitting issue. I can help narrow it down first. Is the water coming from the shower, a pipe, or a fixture, and which area are you in?' };
-  }
-  if (/\b(?:don['’]t|do not) know whether i need\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'A plumber is a likely starting point, but I do not need to create a request yet. Is the leak only during the shower, is there visible damage, and which area should I use if you decide to find someone?' };
-  }
-  if (/^it only happens when i use the shower\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'That pattern suggests the shower fitting, drain, seal, or nearby plumbing may be involved. If you want, tell me your area and whether water reaches the floor or wall; then I can suggest the next supported step.' };
-  }
-  if (/^what do you suggest\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'Based on what you described, start by checking the shower fitting, drain, and seal for the source of the water. If there is visible damage or the leak is worsening, tell me your area and I can help you decide whether to open a plumber request; I will not create one without your confirmation.' };
-  }
-  if (/^what are my options\b/i.test(q)) {
-    return { skill: 'general_question', reply: 'Your options depend on what you want to do: I can answer a question, remember a preference, set a reminder, coordinate a verified service, or explain a public Kurukoo business surface. Tell me which outcome you want and I will show the next supported step.' };
-  }
-  if (phone && /^(what have you been doing(?: for me)?|what are you doing(?: for me)?)\??$/i.test(q)) {
-    const [reminders, active, goals] = await Promise.all([listReminders(phone), tryResumeStorefront(phone), listAgentGoals(phone)]);
-    const parts = [];
-    if (reminders.length) parts.push(`one active reminder (${reminders[0].title})`);
-    if (active) parts.push(`an open ${active.skill.replace(/_/g, ' ')} request (${active.stage})`);
-    const activeGoal = goals.find(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status));
-    if (activeGoal) parts.push(`a bounded follow-up goal (${activeGoal.status})`);
-    return { skill: 'general_question', reply: parts.length ? `Right now I’m tracking ${parts.join(', ')}. I have not claimed a provider, price, payment, or external action unless the relevant evidence is recorded.` : 'Nothing is actively running for you right now. I can answer a question, remember a preference, set a reminder, or help coordinate a request.' };
-  }
-  if (phone && /^(pause|pause that|pause it|stop temporarily)\b/.test(q)) {
-    const goals = await listAgentGoals(phone);
-    const goal = goals.find(item => ['active', 'waiting', 'needs_user', 'blocked'].includes(item.status));
-    if (goal) {
-      const paused = await pauseAgentGoal(phone, goal.id);
-      return { skill: 'autonomous_agent', reply: paused?.summary || 'Paused that bounded follow-up. Nothing else will run until you resume it.', cardData: { type: 'agent_goal', goal: paused } };
-    }
-    return { skill: 'general_question', reply: 'There is no active bounded agent follow-up to pause.' };
-  }
-  if (phone && /^(resume|resume that|resume it|continue checking)\b/.test(q)) {
-    const goals = await listAgentGoals(phone, true);
-    const goal = goals.find(item => ['waiting', 'active', 'needs_user', 'blocked'].includes(item.status) && /paused|follow-up|check/i.test(item.summary || item.objective));
-    if (goal) {
-      const resumed = await resumeAgentGoal(phone, goal.id);
-      return { skill: 'autonomous_agent', reply: resumed?.summary || 'Resumed that bounded follow-up.', cardData: { type: 'agent_goal', goal: resumed } };
-    }
-    return { skill: 'general_question', reply: 'I could not find a paused bounded agent follow-up to resume.' };
-  }
-  if (phone && /^cancel\s+(the\s+)?reminder\b/.test(q)) {
-    const reminders = await listReminders(phone);
-    const reminder = reminders[0];
-    if (!reminder) return { skill: 'reminder', reply: 'There is no active reminder to cancel.' };
-    const cancelled = await cancelReminder(phone, String(reminder.id));
-    return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminder.title}**.` : 'I could not cancel that reminder.' };
-  }
-  if (phone && /^(cancel that|cancel it|stop following|stop checking)\b/.test(q)) {
-    const goals = await listAgentGoals(phone);
-    const activeGoal = goals.find(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status));
-    if (activeGoal) {
-      const cancelled = await cancelAgentGoal(phone, activeGoal.id);
-      return { skill: 'autonomous_agent', reply: cancelled?.summary || 'I stopped following up on that objective.', cardData: { type: 'agent_goal', goal: cancelled } };
-    }
-    const reminders = await listReminders(phone);
-    if (reminders.length && !/^(stop following|stop checking)\b/.test(q)) {
-      const cancelled = await cancelReminder(phone, String(reminders[0].id));
-      return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminders[0].title}**.` : 'I could not cancel that reminder.' };
-    }
-    const active = await tryResumeStorefront(phone);
-    if (active?.requestId) {
-      const card = await advanceStorefront(phone, active.requestId, {}, 'cancel');
-      return { skill: active.skill, reply: card.message, cardData: card };
-    }
-    return { skill: 'general_question', reply: 'There is no active follow-up for me to cancel.' };
-  }
-  if (/^(?:remind me|set (?:me )?a reminder)\b/.test(q)) {
-    if (!phone || phone.startsWith('anon_')) return { skill: 'reminder', reply: 'I can save that reminder as soon as you sign in, so it stays with your Kurukoo profile.' };
-    const reminder = parseReminderQuery(q);
-    if (reminder) {
-      try {
-        const created = await createReminder(phone, { title: reminder.title, dueAt: reminder.dueAt });
-        return { skill: 'reminder', reply: `⏰ Done. I’ll remind you **${created.title}** (${reminder.displayTime}).`, cardData: decorateCardWithSuggestions({ type: 'reminder', reminder: created }, 'reminder') };
-      } catch (e) {
-        return { skill: 'reminder', reply: e instanceof Error ? e.message : 'I could not create that reminder.' };
-      }
-    }
-    return { skill: 'reminder', reply: 'I can set that reminder. Tell me the time, for example: “Remind me in 20 minutes to call Mum” or “Remind me tomorrow at 9am to check reports”.' };
+  const priority = resolveConversationPriority(query);
+  if (priority.kind === 'emergency') {
+    const service = /\bambulance\b/i.test(q) ? 'ambulance' : /\bpolice\b/i.test(q) ? 'police' : /\bfire\b/i.test(q) ? 'fire' : 'national';
+    const result = await executeCanonicalCapabilityProposal({ capability: 'safety', action: 'emergency_dispatch', arguments: { service, country: 'NG' }, phone: phone || 'anon_router', conversationId: threadId, channel: 'chat', idempotencyKey: `route-emergency:${threadId || 'turn'}:${q}` });
+    return { skill: 'emergency', reply: result.message, cardData: { type: 'emergency_dispatch', status: result.status, service, ...(result.canonicalFacts || {}), actions: result.nextActions, recovery: result.retryRecovery, canonicalAction: 'safety.emergency_dispatch', priority: priority.kind }, canonicalAction: 'safety.emergency_dispatch', progressStage: 'safety', extractionSource: 'deterministic' };
   }
 
+  if (phone) { const memoryResult = await handleExplicitMemory(phone, q); if (memoryResult) return memoryResult; }
+  if (phone && /^(what notifications|show (my )?notifications|what updates are waiting|show (my )?updates)\b/i.test(q)) {
+    const notifications = await getInternalNotifications(phone, 10); if (!notifications.length) return { skill: 'notifications', reply: 'There are no stored notifications waiting for you right now. External push delivery is not assumed unless the delivery state says so.' }; const summary = notifications.slice(0, 5).map(item => `${item.title}: ${item.body} (${item.delivery_state})`).join('; '); return { skill: 'notifications', reply: `I found ${notifications.length} stored notification${notifications.length === 1 ? '' : 's'}: ${summary}`, cardData: { type: 'notifications', status: 'stored', count: notifications.length } };
+  }
+  if (/^what provider and model handled (that|the) turn\b/i.test(q)) return { skill: 'general_question', reply: 'The Chat diagnostics for each turn are the source of truth for classification source, provider, model, latency, action, and final state. This request is handled by the canonical Chat path; it does not imply that a hosted provider was used.' };
+  if (/\b(?:verified capability|do not invent (?:availability|price|reviews)|provider availability)\b/i.test(q)) return { skill: 'general_question', reply: 'Understood. I will use only recorded provider evidence and will keep availability, price, reviews, verification, payment, and fulfilment in explicit states. If evidence is missing, the request remains waiting or deferred.' };
+  if (/^(what is kurukoo|what does kurukoo do|explain kurukoo)\??$/i.test(q)) { const profile = phone ? await getProfile(phone, 'conversation_explanation') : null; const concise = profile?.preferences?.response_style === 'concise'; return { skill: 'general_question', reply: concise ? 'Kurukoo is one conversation for everyday help: it can answer questions, remember preferences, set reminders, coordinate verified services, and keep requests moving without pretending a payment or provider action happened.' : 'Kurukoo is an everyday utility assistant in one conversation. It can answer questions, remember preferences, set reminders, coordinate verified services and products, and keep requests moving through truthful states before any payment or external action.' }; }
+  if (/^explain the difference between (?:a )?reminder and (?:an )?agent(?: simply)?\??$/i.test(q)) return { skill: 'general_question', reply: 'A reminder is a scheduled nudge for you. A bounded agent is an explicit follow-up that can re-check an owned request under limited permissions, report its actual status, and pause or stop when you ask.' };
+  if (/(?:compare|comparing)\b.*\b(?:venues?|locations?|spaces?)\b|\bvenue comparison\b/i.test(q) && /\b(?:workshop|event|community|meeting)\b/i.test(q)) return { skill: 'general_question', reply: 'Here is a short venue-comparison plan:\n\n1. Define the essentials: date, expected attendance, accessibility, transport, and budget.\n2. Score each venue on capacity, total cost, location, facilities, reliability, and cancellation terms.\n3. Visit or verify the two strongest options, then choose the one with the best practical fit—not just the lowest price.\n\nA simple 1–5 scorecard with weighted priorities will make the trade-offs clear.' };
+  if (/^(i(?:'|’)ve|i have|i just)(?: just)? moved\b|^i(?:'|’)m in\b|^i am in\b/i.test(q)) return { skill: 'general_question', reply: 'Welcome to the area. I can help you understand a problem, find a verified service, set a reminder, or answer a question. Tell me what you would like to get done; I will not create a request from your location alone.' };
+  if (/\bbathroom\b.*\bleak|\bleak(?:ing)?\b.*\bbathroom\b/i.test(q) && !/\b(?:need|find|hire|book|arrange|get me)\b/i.test(q)) return { skill: 'general_question', reply: 'A bathroom leak often points to a plumbing, seal, drain, or shower fitting issue. I can help narrow it down first. Is the water coming from the shower, a pipe, or a fixture, and which area are you in?' };
+  if (/\b(?:don['’]t|do not) know whether i need\b/i.test(q)) return { skill: 'general_question', reply: 'A plumber is a likely starting point, but I do not need to create a request yet. Is the leak only during the shower, is there visible damage, and which area should I use if you decide to find someone?' };
+  if (/^it only happens when i use the shower\b/i.test(q)) return { skill: 'general_question', reply: 'That pattern suggests the shower fitting, drain, seal, or nearby plumbing may be involved. If you want, tell me your area and whether water reaches the floor or wall; then I can suggest the next supported step.' };
+  if (/^what do you suggest\b/i.test(q)) return { skill: 'general_question', reply: 'Based on what you described, start by checking the shower fitting, drain, and seal for the source of the water. If there is visible damage or the leak is worsening, tell me your area and I can help you decide whether to open a plumber request; I will not create one without your confirmation.' };
+  if (/^what are my options\b/i.test(q)) return { skill: 'general_question', reply: 'Your options depend on what you want to do: I can answer a question, remember a preference, set a reminder, coordinate a verified service, or explain a public Kurukoo business surface. Tell me which outcome you want and I will show the next supported step.' };
+  if (phone && /^(what have you been doing(?: for me)?|what are you doing(?: for me)?)\??$/i.test(q)) { const [reminders, active, goals] = await Promise.all([listReminders(phone), tryResumeStorefront(phone), listAgentGoals(phone)]); const parts: string[] = []; if (reminders.length) parts.push(`one active reminder (${reminders[0].title})`); if (active) parts.push(`an open ${active.skill.replace(/_/g, ' ')} request (${active.stage})`); const activeGoal = goals.find(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status)); if (activeGoal) parts.push(`a bounded follow-up goal (${activeGoal.status})`); return { skill: 'general_question', reply: parts.length ? `Right now I’m tracking ${parts.join(', ')}. I have not claimed a provider, price, payment, or external action unless the relevant evidence is recorded.` : 'Nothing is actively running for you right now. I can answer a question, remember a preference, set a reminder, or help coordinate a request.' }; }
+  if (phone && /^(pause|pause that|pause it|stop temporarily)\b/.test(q)) { const goals = await listAgentGoals(phone); const goal = goals.find(item => ['active', 'waiting', 'needs_user', 'blocked'].includes(item.status)); if (goal) { const paused = await pauseAgentGoal(phone, goal.id); return { skill: 'autonomous_agent', reply: paused?.summary || 'Paused that bounded follow-up. Nothing else will run until you resume it.', cardData: { type: 'agent_goal', goal: paused } }; } return { skill: 'general_question', reply: 'There is no active bounded agent follow-up to pause.' }; }
+  if (phone && /^(resume|resume that|resume it|continue checking)\b/.test(q)) { const goals = await listAgentGoals(phone, true); const goal = goals.find(item => ['waiting', 'active', 'needs_user', 'blocked'].includes(item.status) && /paused|follow-up|check/i.test(item.summary || item.objective)); if (goal) { const resumed = await resumeAgentGoal(phone, goal.id); return { skill: 'autonomous_agent', reply: resumed?.summary || 'Resumed that bounded follow-up.', cardData: { type: 'agent_goal', goal: resumed } }; } return { skill: 'general_question', reply: 'I could not find a paused bounded agent follow-up to resume.' }; }
+  if (phone && /^cancel\s+(the\s+)?reminder\b/.test(q)) { const reminders = await listReminders(phone); const reminder = reminders[0]; if (!reminder) return { skill: 'reminder', reply: 'There is no active reminder to cancel.' }; const cancelled = await cancelReminder(phone, String(reminder.id)); return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminder.title}**.` : 'I could not cancel that reminder.' }; }
+  if (phone && /^(cancel that|cancel it|stop following|stop checking)\b/.test(q)) { const goals = await listAgentGoals(phone); const activeGoal = goals.find(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status)); if (activeGoal) { const cancelled = await cancelAgentGoal(phone, activeGoal.id); return { skill: 'autonomous_agent', reply: cancelled?.summary || 'I stopped following up on that objective.', cardData: { type: 'agent_goal', goal: cancelled } }; } const reminders = await listReminders(phone); if (reminders.length && !/^(stop following|stop checking)\b/.test(q)) { const cancelled = await cancelReminder(phone, String(reminders[0].id)); return { skill: 'reminder', reply: cancelled ? `Cancelled your reminder: **${reminder.title}**.` : 'I could not cancel that reminder.' }; } const active = await tryResumeStorefront(phone); if (active?.requestId) { const card = await advanceStorefront(phone, active.requestId, {}, 'cancel'); return { skill: active.skill, reply: card.message, cardData: card }; } return { skill: 'general_question', reply: 'There is no active follow-up for me to cancel.' }; }
+  if (/^(?:remind me|set (?:me )?a reminder)\b/.test(q)) { if (!phone || phone.startsWith('anon_')) return { skill: 'reminder', reply: 'I can save that reminder as soon as you sign in, so it stays with your Kurukoo profile.' }; const reminder = parseReminderQuery(q); if (reminder) { try { const created = await createReminder(phone, { title: reminder.title, dueAt: reminder.dueAt }); return { skill: 'reminder', reply: `⏰ Done. I’ll remind you **${created.title}** (${reminder.displayTime}).`, cardData: decorateCardWithSuggestions({ type: 'reminder', reminder: created }, 'reminder') }; } catch (e) { return { skill: 'reminder', reply: e instanceof Error ? e.message : 'I could not create that reminder.' }; } } return { skill: 'reminder', reply: 'I can set that reminder. Tell me the time, for example: “Remind me in 20 minutes to call Mum” or “Remind me tomorrow at 9am to check reports”.' }; }
   if (q === 'reset onboarding') return { skill: 'general_question', reply: 'Onboarding reset is available from your profile settings.' };
   if (/^(ask the community|share with the community|post to the community)\b/i.test(q)) return { skill: 'topic', reply: 'I can help you draft a community Topic. Nothing from this private conversation will be shared automatically; review the draft and choose what to publish.', cardData: { type: 'topic_draft', status: 'review_required', privacy: 'private_by_default', source: 'explicit_user_request', content: '' } };
   if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone) };
   if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
 
   if (/\b(emergency|ambulance|fire service|flood line|swep alert|immediate danger|life[- ]threatening)\b/i.test(q) && !/\b(emergency|safety) contact\b/i.test(q)) {
-    const result = await delegateToAgentForSkill('support_triage', query, phone);
-    const safetyGuidance = 'If anyone is in immediate danger, contact your local emergency service now (112 in Nigeria). I can help you record the situation and coordinate next steps, but I am not an emergency responder.';
-    const triageReply = result.success && result.reply && !/service request, payment, dispute, profile, or earning opportunity/i.test(result.reply) ? `\n\n${result.reply}` : '';
-    const safetyCard = {
-      type: 'safety_guidance', stage: 'safety', skill: 'emergency', category: 'emergency-dispatch', title: 'Safety guidance',
-      message: 'Triage urgency first, show emergency limitations, and route only to verified public or provider contacts.',
-      fields: [{ key: 'objective', label: 'What outcome do you need?', required: true }, { key: 'timing', label: 'When or deadline', required: false }],
-      actions: [{ id: 'continue_guidance', label: 'Continue in Chat', style: 'primary' }], progress: 45, canonicalAction: 'skill_flow.safety', progressStage: 'safety',
-    };
-    return { skill: 'emergency', reply: `${safetyGuidance}${triageReply}`, cardData: safetyCard, canonicalAction: 'skill_flow.safety', progressStage: 'safety' };
+    const result = await executeCanonicalCapabilityProposal({ capability: 'safety', action: 'emergency_dispatch', arguments: { service: /\bambulance\b/i.test(q) ? 'ambulance' : /\bpolice\b/i.test(q) ? 'police' : /\bfire\b/i.test(q) ? 'fire' : 'national', country: 'NG' }, phone: phone || 'anon_router', conversationId: threadId, channel: 'chat', idempotencyKey: `route-emergency:${threadId || 'turn'}:${q}` });
+    return { skill: 'emergency', reply: result.message, cardData: { type: 'emergency_dispatch', status: result.status, service: /\bambulance\b/i.test(q) ? 'ambulance' : /\bpolice\b/i.test(q) ? 'police' : /\bfire\b/i.test(q) ? 'fire' : 'national', ...(result.canonicalFacts || {}), actions: result.nextActions, recovery: result.retryRecovery, canonicalAction: 'safety.emergency_dispatch', priority: 'critical' }, canonicalAction: 'safety.emergency_dispatch', progressStage: 'safety', extractionSource: 'deterministic' };
   }
+  if (q.includes('emergency contact') || q.includes('safety contact')) { if (!phone || phone.startsWith('anon_')) return { skill: 'safety_contact', reply: 'I can save your personal emergency contacts as soon as you sign in, so they stay with your Kurukoo profile.' }; const addMatch = q.match(/add\s+(.+?)\s+as\s+(?:my\s+)?(?:emergency|safety)\s+contact/i); if (addMatch) { const name = addMatch[1].trim(); return { skill: 'safety_contact', reply: `I've captured **${name}** as a potential safety contact. To finish adding them, please provide their phone number.`, cardData: { type: 'safety_contact_capture', name } }; } return { skill: 'safety_contact', reply: 'I can manage your safety contacts. You can add a contact by saying “Add [Name] as my emergency contact” or review them in the context inspector.', cardData: suggestionCard('safety_contact') }; }
 
-  if (q.includes('emergency contact') || q.includes('safety contact')) {
-    if (!phone || phone.startsWith('anon_')) return { skill: 'safety_contact', reply: 'I can save your personal emergency contacts as soon as you sign in, so they stay with your Kurukoo profile.' };
-    const addMatch = q.match(/add\s+(.+?)\s+as\s+(?:my\s+)?(?:emergency|safety)\s+contact/i);
-    if (addMatch) {
-      const name = addMatch[1].trim();
-      return { skill: 'safety_contact', reply: `I've captured **${name}** as a potential safety contact. To finish adding them, please provide their phone number.`, cardData: { type: 'safety_contact_capture', name } };
-    }
-    return { skill: 'safety_contact', reply: 'I can manage your safety contacts. You can add a contact by saying “Add [Name] as my emergency contact” or review them in the context inspector.', cardData: suggestionCard('safety_contact') };
-  }
-
-  if (phone && /\b(i want to earn|i can|i offer|offer(?:ing)? .*service|provide .*service|take jobs|find work)\b/i.test(q)) {
-    const providerSkillMatch = q.match(/\b(plumb(?:er|ing)|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder|driver|baker|coder)\b/i)?.[1]?.toLowerCase();
-    const providerSkill = providerSkillMatch === 'plumbing' ? 'plumber' : providerSkillMatch;
-    if (providerSkill) {
-      const location = q.match(/\b(?:in|around|near)\s+([a-z][a-z -]{2,40}?)(?=\s+(?:and|can|tomorrow|today|available)\b|[,.!?]|$)/i)?.[1]?.trim() || null;
-      return { skill: 'provider_onboarding', reply: `I can help you add **${providerSkill}** to your provider profile${location ? ` for ${location}` : ''}. I will not publish or mark you available automatically. Confirm the skill and location, then I can save the profile update; availability, pricing, verification, and job matching remain separate steps.`, cardData: { type: 'provider_profile_setup', status: 'review_required', skill: providerSkill, location, source: 'explicit_provider_statement' } };
-    }
-  }
-
-  if (phone && /\b(?:seller|known seller offers?)\b/i.test(q) && /\b(?:sell|offer|product|charger|stock|catalogue|catalog)\b/i.test(q)) {
-    return { skill: 'seller_offer_review', reply: 'I can help review your seller or product offer details. I will keep the offer in review until the product, price, inventory, evidence, and fulfilment terms are explicitly recorded; nothing is published or sold from this message alone.', cardData: { type: 'seller_offer_review', status: 'review_required', source: 'explicit_seller_statement' } };
-  }
-
-  if (isExploratoryQuestion(query)) {
-    const conversational = await queryUnifiedAI(query, { phone, conversational: true, contextHint, threadId });
-    return {
-      skill: 'general_question',
-      reply: conversational.text,
-      modelProvider: conversational.provider,
-      model: conversational.model,
-      intentConfidence: conversational.confidence,
-      classificationSource: conversational.provider === 'Kurukoo Template' ? 'fallback' : 'rules',
-    };
-  }
-
-  if (phone && isResumePhrase(q)) {
-    try {
-      const resumed = await tryResumeStorefront(phone);
-      if (resumed) return { skill: resumed.skill || 'find_worker', reply: resumed.message, cardData: resumed };
-    } catch (e) { console.warn('[Router] resume failed:', e); }
-  }
-
-  if (phone && q.length <= 80 && !matchCanonicalSkill(q) && !/^(continue|ask the community|keep checking)\b/.test(q)) {
-    const followUp = await applyFollowUpSlot(phone, q);
-    if (followUp) return followUp;
-  }
-
-  if (phone && (/\b(listing|offer)\b/.test(q) || /\b[a-z][a-z-]{1,40}['’]s\b/.test(q))) {
-    try {
-      const offers = await searchKnownEconomicOffers(query, 3);
-      if (offers.length) return { skill: 'product_sourcing', reply: `I found ${offers.length === 1 ? 'a known seller offer' : 'known seller offers'} matching that reference. Choose one to start a single Economic Request.`, cardData: { type: 'agentic_storefront', stage: 'offer_review', skill: 'product_sourcing', title: 'Known seller offers', message: 'Choose a verified seller offer to continue.', knownOffers: offers, escrowProtected: false, progress: 55 } };
-    } catch (e) { console.warn('[Router] known offer lookup failed:', e); }
-  }
-
+  if (phone && /\b(i want to earn|i can|i offer|offer(?:ing)? .*service|provide .*service|take jobs|find work)\b/i.test(q)) { const providerSkillMatch = q.match(/\b(plumb(?:er|ing)|electrician|mechanic|carpenter|tailor|cleaner|technician|painter|decorator|tiler|roofer|mason|welder|driver|baker|coder)\b/i)?.[1]?.toLowerCase(); const providerSkill = providerSkillMatch === 'plumbing' ? 'plumber' : providerSkillMatch; if (providerSkill) { const location = q.match(/\b(?:in|around|near)\s+([a-z][a-z -]{2,40}?)(?=\s+(?:and|can|tomorrow|today|available)\b|[,.!?]|$)/i)?.[1]?.trim() || null; return { skill: 'provider_onboarding', reply: `I can help you add **${providerSkill}** to your provider profile${location ? ` for ${location}` : ''}. I will not publish or mark you available automatically. Confirm the skill and location, then I can save the profile update; availability, pricing, verification, and job matching remain separate steps.`, cardData: { type: 'provider_profile_setup', status: 'review_required', skill: providerSkill, location, source: 'explicit_provider_statement' } }; } }
+  if (phone && /\b(?:seller|known seller offers?)\b/i.test(q) && /\b(?:sell|offer|product|charger|stock|catalogue|catalog)\b/i.test(q)) return { skill: 'seller_offer_review', reply: 'I can help review your seller or product offer details. I will keep the offer in review until the product, price, inventory, evidence, and fulfilment terms are explicitly recorded; nothing is published or sold from this message alone.', cardData: { type: 'seller_offer_review', status: 'review_required', source: 'explicit_seller_statement' } };
+  if (isExploratoryQuestion(query)) { const conversational = await queryUnifiedAI(query, { phone, conversational: true, contextHint, threadId }); return { skill: 'general_question', reply: conversational.text, modelProvider: conversational.provider, model: conversational.model, intentConfidence: conversational.confidence, classificationSource: conversational.provider === 'Kurukoo Template' ? 'fallback' : 'rules' }; }
+  if (phone && isResumePhrase(q)) { try { const resumed = await tryResumeStorefront(phone); if (resumed) return { skill: resumed.skill || 'find_worker', reply: resumed.message, cardData: resumed }; } catch (e) { console.warn('[Router] resume failed:', e); } }
+  if (phone && q.length <= 80 && !matchCanonicalSkill(q) && !/^(continue|ask the community|keep checking)\b/.test(q)) { const followUp = await applyFollowUpSlot(phone, q); if (followUp) return followUp; }
+  if (phone && (/\b(listing|offer)\b/.test(q) || /\b[a-z][a-z-]{1,40}['’]s\b/.test(q))) { try { const offers = await searchKnownEconomicOffers(query, 3); if (offers.length) return { skill: 'product_sourcing', reply: `I found ${offers.length === 1 ? 'a known seller offer' : 'known seller offers'} matching that reference. Choose one to start a single Economic Request.`, cardData: { type: 'agentic_storefront', stage: 'offer_review', skill: 'product_sourcing', title: 'Known seller offers', message: 'Choose a verified seller offer to continue.', knownOffers: offers, escrowProtected: false, progress: 55 } }; } catch (e) { console.warn('[Router] known offer lookup failed:', e); } }
   const assistanceQuestion = /^(how do i|how can i|what should i do|what is the best way|why is|what does)\b/i.test(q) && !/\b(?:find someone|find me|book|hire|order|get me|need someone|who can)\b/i.test(q);
-  if (assistanceQuestion) {
-    const assistance = await getAssistanceOutcome(query).catch((error) => { console.warn('[Router] assistance question projection unavailable:', error); return null; });
-    if (assistance) {
-      return { skill: assistance.mode === 'support' ? 'support_triage' : 'general_question', reply: `${assistance.mode === 'support' ? 'I found relevant Kurukoo guidance and community context for this issue.' : 'I found relevant Kurukoo guidance and community context.'} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`, cardData: assistance, canonicalAction: assistance.canonicalAction, progressStage: assistance.mode === 'support' ? 'coordination' : 'information', extractionSource: 'deterministic' };
-    }
-  }
-
-  const directSkill = matchCanonicalSkill(q);
-  const extractedEntities = validateConversationalEntities(extractConversationalEntities(query, directSkill || undefined), directSkill || undefined);
-  const conversationDecision = decideConversationIntelligence({
-    userMessage: query,
-    latestUserMessage: query,
-    assistantReply: '',
-    activeContextIds: contextHint?.activeContexts?.map(context => context.contextId),
-    selectedContextId: contextHint?.selectedContext,
-    relation: contextHint?.relation,
-    pendingFields: contextHint?.activeContexts?.flatMap(context => context.pendingFields || []).slice(0, 8),
-  });
-
-  if (conversationDecision.shouldAvoidAction && (!directSkill || conversationDecision.mode === 'exploration' || conversationDecision.mode === 'clarification')) {
-    const ai = await queryUnifiedAI(query, { provider, phone, conversational: true, contextHint, threadId });
-    return { skill: 'general_question', reply: ai.text, cardData: ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model, conversationMode: conversationDecision.mode } : undefined, modelProvider: ai.provider, model: ai.model, extractionSource: Object.keys(extractedEntities).length > 1 ? 'deterministic' : 'none', extractedEntities: extractedEntities as Record<string, unknown>, progressStage: 'complete' };
-  }
-
-  if (directSkill && !phone) {
-    const flow = getSkillFlow(directSkill);
-    return { skill: directSkill, reply: flowReply(directSkill, flow), cardData: decorateCardWithSuggestions(actionCard(directSkill), directSkill), extractedEntities: extractedEntities as Record<string, unknown>, extractionSource: 'deterministic' };
-  }
+  if (assistanceQuestion) { const assistance = await getAssistanceOutcome(query).catch((error) => { console.warn('[Router] assistance question projection unavailable:', error); return null; }); if (assistance) return { skill: assistance.mode === 'support' ? 'support_triage' : 'general_question', reply: `${assistance.mode === 'support' ? 'I found relevant Kurukoo guidance and community context for this issue.' : 'I found relevant Kurukoo guidance and community context.'} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`, cardData: assistance, canonicalAction: assistance.canonicalAction, progressStage: assistance.mode === 'support' ? 'coordination' : 'information', extractionSource: 'deterministic' }; }
+  const directSkill = matchCanonicalSkill(q); const extractedEntities = validateConversationalEntities(extractConversationalEntities(query, directSkill || undefined), directSkill || undefined); const conversationDecision = decideConversationIntelligence({ userMessage: query, latestUserMessage: query, assistantReply: '', activeContextIds: contextHint?.activeContexts?.map(context => context.contextId), selectedContextId: contextHint?.selectedContext, relation: contextHint?.relation, pendingFields: contextHint?.activeContexts?.flatMap(context => context.pendingFields || []).slice(0, 8) });
+  if (conversationDecision.shouldAvoidAction && (!directSkill || conversationDecision.mode === 'exploration' || conversationDecision.mode === 'clarification')) { const ai = await queryUnifiedAI(query, { provider, phone, conversational: true, contextHint, threadId }); return { skill: 'general_question', reply: ai.text, cardData: ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model, conversationMode: conversationDecision.mode } : undefined, modelProvider: ai.provider, model: ai.model, extractionSource: Object.keys(extractedEntities).length > 1 ? 'deterministic' : 'none', extractedEntities: extractedEntities as Record<string, unknown>, progressStage: 'complete' }; }
+  if (directSkill && !phone) { const flow = getSkillFlow(directSkill); return { skill: directSkill, reply: flowReply(directSkill, flow), cardData: decorateCardWithSuggestions(actionCard(directSkill), directSkill), extractedEntities: extractedEntities as Record<string, unknown>, extractionSource: 'deterministic' }; }
   if (directSkill === 'event_coverage' && phone) return { skill: 'event_coverage', reply: 'I can help you prepare event evidence for review. Share the event, location, date, and what you personally observed; your submission remains a contributor record and does not verify a provider or create a payment request.', cardData: { type: 'event_coverage', status: 'offer', mode: 'contributor_evidence', moderation: 'required', privateByDefault: true } };
   if (directSkill === 'national_events' && phone) return { skill: 'national_events', reply: 'I can show public event information and daily picks. I will not imply attendance, availability, booking, or payment.', cardData: { type: 'events_list', status: 'public_information' } };
   if (directSkill === 'sports_matchmaking' && phone) return { skill: 'sports_matchmaking', reply: 'I can help coordinate a sports activity. Tell me the sport, location, timing, and number of participants; no participant or venue is confirmed until the supported flow records it.', cardData: { type: 'sports_search', status: 'coordination_needed' } };
   if (directSkill && phone) {
     try {
-      if (directSkill === 'product_sourcing') {
-        const offers = await searchKnownEconomicOffers(query, 3);
-        if (offers.length) return { skill: directSkill, reply: `I found ${offers.length === 1 ? 'one known seller offer' : `${offers.length} known seller offers`} matching that product. Choose one to continue through the existing Economic Request flow.`, cardData: { type: 'agentic_storefront', stage: 'offer_review', skill: directSkill, title: 'Known seller offers', message: 'These are verified seller references, not a stock or payment confirmation.', knownOffers: offers, escrowProtected: false, progress: 55 } };
-      }
-      const workerMatch = q.match(/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/i)?.[1];
-      const worker = workerMatch ? (/^plumb/i.test(workerMatch) ? 'plumber' : /^electri/i.test(workerMatch) ? 'electrician' : /^clean|^housekeep/i.test(workerMatch) ? 'house_cleaner' : /^paint/i.test(workerMatch) ? 'painter' : /^decorat/i.test(workerMatch) ? 'decorator' : /^til/i.test(workerMatch) ? 'tiler' : /^roof/i.test(workerMatch) ? 'roofer' : workerMatch.toLowerCase()) : undefined;
+      if (directSkill === 'product_sourcing') { const offers = await searchKnownEconomicOffers(query, 3); if (offers.length) return { skill: directSkill, reply: `I found ${offers.length === 1 ? 'one known seller offer' : `${offers.length} known seller offers`} matching that product. Choose one to continue through the existing Economic Request flow.`, cardData: { type: 'agentic_storefront', stage: 'offer_review', skill: directSkill, title: 'Known seller offers', message: 'These are verified seller references, not a stock or payment confirmation.', knownOffers: offers, escrowProtected: false, progress: 55 } }; }
+      const workerMatch = q.match(/\b(plumber|plumb|electrician|electrical|mechanic|carpenter|tailor|cleaner|clean|cleaning|housekeeping|technician|painter|paint|painting|decorator|decorating|tiler|tiling|roofer|roofing|mason|welder)\b/i)?.[1]; const worker = workerMatch ? (/^plumb/i.test(workerMatch) ? 'plumber' : /^electri/i.test(workerMatch) ? 'electrician' : /^clean|^housekeep/i.test(workerMatch) ? 'house_cleaner' : /^paint/i.test(workerMatch) ? 'painter' : /^decorat/i.test(workerMatch) ? 'decorator' : /^til/i.test(workerMatch) ? 'tiler' : /^roof/i.test(workerMatch) ? 'roofer' : workerMatch.toLowerCase()) : undefined;
       const seed: Record<string, unknown> = directSkill === 'find_worker' && worker ? { service: worker } : directSkill === 'product_sourcing' ? { product: query.trim() } : directSkill === 'verified_artist' ? { event_type: query.trim() } : directSkill === 'order_food' && /\b(jollof|fried rice|for\s+\d+)\b/i.test(q) ? extractFollowUpPatch(q, directSkill) : {};
-      const fromTo = query.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:tomorrow|today|on\s+\w+)|[.!?]|$)/i);
-      if (fromTo && (directSkill === 'ride_request' || directSkill === 'ride')) { seed.origin = fromTo[1].trim(); seed.destination = fromTo[2].trim(); }
-      const departure = query.match(/\b(today|tonight|tomorrow(?:\s+(?:morning|afternoon|evening|night))?|this\s+weekend|next\s+week|saturday|sunday|monday|tuesday|wednesday|thursday|friday)\b/i);
-      if (departure && (directSkill === 'ride_request' || directSkill === 'ride')) seed.departure_time = departure[1];
-      if (extractedEntities.location) seed.location = extractedEntities.location;
-      if (extractedEntities.date) seed.date = extractedEntities.date;
-      if (extractedEntities.time) seed.time = extractedEntities.time;
-      if (extractedEntities.budget !== undefined) seed.budget = extractedEntities.budget;
-      if (extractedEntities.quantity !== undefined) seed.quantity = extractedEntities.quantity;
-      if (extractedEntities.product) seed.product = extractedEntities.product;
-      const card = await startStorefrontSession(phone, directSkill, seed, { forceNew: contextHint?.relation === 'create' });
-      const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message;
-      const progressStage = card.stage === 'information' ? 'information' : card.stage === 'safety' ? 'safety' : card.stage === 'coordination' ? 'coordination' : card.stage === 'slot_fill' || card.stage === 'intent_extraction' ? 'understanding' : card.stage === 'catalog_match' || card.stage === 'offer_review' || card.stage === 'quote_review' ? 'checking' : card.stage === 'complete' ? 'complete' : 'coordinating';
-      const canonicalAction = card.requestId ? 'economic_request.start' : `skill_flow.${card.stage}`;
+      const fromTo = query.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:tomorrow|today|on\s+\w+)|[.!?]|$)/i); if (fromTo && (directSkill === 'ride_request' || directSkill === 'ride')) { seed.origin = fromTo[1].trim(); seed.destination = fromTo[2].trim(); }
+      const departure = query.match(/\b(today|tonight|tomorrow(?:\s+(?:morning|afternoon|evening|night))?|this\s+weekend|next\s+week|saturday|sunday|monday|tuesday|wednesday|thursday|friday)\b/i); if (departure && (directSkill === 'ride_request' || directSkill === 'ride')) seed.departure_time = departure[1];
+      if (extractedEntities.location) seed.location = extractedEntities.location; if (extractedEntities.date) seed.date = extractedEntities.date; if (extractedEntities.time) seed.time = extractedEntities.time; if (extractedEntities.budget !== undefined) seed.budget = extractedEntities.budget; if (extractedEntities.quantity !== undefined) seed.quantity = extractedEntities.quantity; if (extractedEntities.product) seed.product = extractedEntities.product;
+      const card = await startStorefrontSession(phone, directSkill, seed, { forceNew: contextHint?.relation === 'create' }); const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message; const progressStage = card.stage === 'information' ? 'information' : card.stage === 'safety' ? 'safety' : card.stage === 'coordination' ? 'coordination' : card.stage === 'slot_fill' || card.stage === 'intent_extraction' ? 'understanding' : card.stage === 'catalog_match' || card.stage === 'offer_review' || card.stage === 'quote_review' ? 'checking' : card.stage === 'complete' ? 'complete' : 'coordinating'; const canonicalAction = card.requestId ? 'economic_request.start' : `skill_flow.${card.stage}`;
       return { skill: directSkill, reply, cardData: { ...decorateCardWithSuggestions(card, directSkill), extractedEntities, extractionSource: 'deterministic', canonicalAction, progressStage }, extractedEntities: extractedEntities as Record<string, unknown>, extractionSource: 'deterministic', canonicalAction, progressStage };
     } catch (e) { console.warn('[Router] storefront start failed:', e); }
   }
-
-  if (q.includes('price check') || q.includes('market price') || q.includes('how much is')) {
-    const result = await delegateToAgentForSkill('price_checker', query, phone);
-    if (result.success) return { skill: 'price_check', reply: result.reply };
-  }
-  if (q.includes('dispute') || q.includes('complain') || q.includes('scam') || q.includes('safety')) {
-    const result = await delegateToAgentForSkill('support_triage', query, phone);
-    if (result.success) return { skill: 'support_triage', reply: result.reply };
-  }
-
-  const classification = classifyWithFastText(query);
-  const trustedActionClassification = classification && ACTION_INTENTS.has(classification.intent) && !(classification.source === 'fallback' && classification.confidence < 0.85);
+  if (q.includes('price check') || q.includes('market price') || q.includes('how much is')) { const result = await delegateToAgentForSkill('price_checker', query, phone); if (result.success) return { skill: 'price_check', reply: result.reply }; }
+  if (q.includes('dispute') || q.includes('complain') || q.includes('scam') || q.includes('safety')) { const result = await delegateToAgentForSkill('support_triage', query, phone); if (result.success) return { skill: 'support_triage', reply: result.reply }; }
+  const classification = classifyWithFastText(query); const trustedActionClassification = classification && ACTION_INTENTS.has(classification.intent) && !(classification.source === 'fallback' && classification.confidence < 0.85);
   if (trustedActionClassification) {
     const source = { classificationSource: classification.source, intentConfidence: classification.confidence } as const;
     if (classification.intent === 'subscription') return { skill: 'subscription', reply: 'I can show the available Consumer and Provider plans. Payment and entitlement activation remain separate, sandbox-gated steps.', cardData: { type: 'subscription_plans', status: 'information_only', destination: '/pricing' }, ...source };
     if (classification.intent === 'advertising') return { skill: 'advertising', reply: 'Kurukoo advertising uses disclosed public placements only. I can take you to the advertiser guidance and campaign entry surface; no private Chat text is used for hidden targeting.', cardData: { type: 'advertising_info', status: 'public_only', destination: '/advertise' }, ...source };
-    if (classification.intent === 'referral') {
-      const code = phone && !phone.startsWith('anon_') ? await generateReferralCode(phone) : null;
-      return { skill: 'referral', reply: code ? `Your referral link is ready through the Referral QR surface. Share it only with people you choose; reward eligibility is recorded by the referral authority.` : 'Sign in first and I can create your owner-scoped referral link.', cardData: { type: 'referral', status: code ? 'ready' : 'sign_in_required', destination: '/referral-qr/' }, ...source };
-    }
-    if (classification.intent === 'autonomous_agent') {
-      if (!phone || phone.startsWith('anon_')) return { skill: 'autonomous_agent', reply: 'Sign in first to review or create your owner-scoped bounded agents.', cardData: { type: 'agent_goals', status: 'sign_in_required' }, ...source };
-      const goals = await listAgentGoals(phone);
-      const active = goals.filter(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status));
-      return { skill: 'autonomous_agent', reply: active.length ? `You have ${active.length} bounded agent ${active.length === 1 ? 'goal' : 'goals'} in progress. I can show their status, activity and controls without claiming completion.` : 'You do not have an active bounded agent goal yet. Ask me to keep checking a specific request and I will show the required confirmation and limits.', cardData: { type: 'agent_goals', status: active.length ? 'active' : 'empty', goals: active }, ...source };
-    }
+    if (classification.intent === 'referral') { const code = phone && !phone.startsWith('anon_') ? await generateReferralCode(phone) : null; return { skill: 'referral', reply: code ? `Your referral link is ready through the Referral QR surface. Share it only with people you choose; reward eligibility is recorded by the referral authority.` : 'Sign in first and I can create your owner-scoped referral link.', cardData: { type: 'referral', status: code ? 'ready' : 'sign_in_required', destination: '/referral-qr/' }, ...source }; }
+    if (classification.intent === 'autonomous_agent') { if (!phone || phone.startsWith('anon_')) return { skill: 'autonomous_agent', reply: 'Sign in first to review or create your owner-scoped bounded agents.', cardData: { type: 'agent_goals', status: 'sign_in_required' }, ...source }; const goals = await listAgentGoals(phone); const active = goals.filter(goal => ['active', 'waiting', 'needs_user', 'blocked'].includes(goal.status)); return { skill: 'autonomous_agent', reply: active.length ? `You have ${active.length} bounded agent ${active.length === 1 ? 'goal' : 'goals'} in progress. I can show their status, activity and controls without claiming completion.` : 'You do not have an active bounded agent goal yet. Ask me to keep checking a specific request and I will show the required confirmation and limits.', cardData: { type: 'agent_goals', status: active.length ? 'active' : 'empty', goals: active }, ...source }; }
     if (classification.intent === 'circle_create') return { skill: 'circle_create', reply: 'I can help you set up or join a Money Circle. Confirm the members, contribution cadence and rules before anything is recorded; no funds move from this conversation alone.', cardData: { type: 'money_circle', status: 'setup_required', destination: '/chat?prompt=Set%20up%20a%20Money%20Circle' }, ...source };
     if (classification.intent === 'nearby_pulse_start' || classification.intent === 'nearby_pulse_stop') return { skill: classification.intent, reply: classification.intent === 'nearby_pulse_start' ? 'Go Live shares only the presence details you approve for Nearby and Radar, subject to the existing presence authority and duration controls. Confirm your location and skill before activation.' : 'I can turn off your Go Live presence through the existing Pulse authority. No hidden background sharing is claimed.', cardData: { type: 'nearby_pulse', status: classification.intent === 'nearby_pulse_start' ? 'consent_required' : 'stop_available' }, ...source };
-    const flowSkill = skillForIntent(classification.intent);
-    const flow = await getSkillFlow(flowSkill).catch(() => null);
-    if (phone && STOREFRONT_INTENTS.has(classification.intent)) {
-      try {
-        const card = await startStorefrontSession(phone, flowSkill, {});
-        return { skill: flowSkill, reply: card.message, cardData: card, classificationSource: classification.source, intentConfidence: classification.confidence };
-      } catch (e) { console.warn('[Router] storefront start failed:', e); }
-    }
-    const cardData = decorateCardWithSuggestions(actionCard(classification.intent), flowSkill) || suggestionCard(flowSkill);
-    const reply = flowReply(flowSkill, flow);
-    return { skill: flowSkill, reply, cardData, classificationSource: classification.source, intentConfidence: classification.confidence };
+    const flowSkill = skillForIntent(classification.intent); const flow = await getSkillFlow(flowSkill).catch(() => null); if (phone && STOREFRONT_INTENTS.has(classification.intent)) { try { const card = await startStorefrontSession(phone, flowSkill, {}); return { skill: flowSkill, reply: card.message, cardData: card, classificationSource: classification.source, intentConfidence: classification.confidence }; } catch (e) { console.warn('[Router] storefront start failed:', e); } }
+    const cardData = decorateCardWithSuggestions(actionCard(classification.intent), flowSkill) || suggestionCard(flowSkill); const reply = flowReply(flowSkill, flow); return { skill: flowSkill, reply, cardData, classificationSource: classification.source, intentConfidence: classification.confidence };
   }
-
-  const assistance = await getAssistanceOutcome(query).catch((error) => {
-    console.warn('[Router] assistance projection unavailable:', error);
-    return null;
-  });
-  if (assistance) {
-    const lead = assistance.mode === 'support' ? 'I found relevant Kurukoo guidance and community context for this issue.' : 'I found relevant Kurukoo guidance and community context.';
-    return { skill: assistance.mode === 'support' ? 'support_triage' : 'general_question', reply: `${lead} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`, cardData: assistance, canonicalAction: assistance.canonicalAction, progressStage: assistance.mode === 'support' ? 'coordination' : 'information', extractionSource: 'deterministic' };
-  }
-
-  const ai = await queryUnifiedAI(query, { provider, phone, conversational: true, contextHint, threadId });
-  const cardData: any = ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model } : undefined;
-  const generalEntities = validateConversationalEntities(extractConversationalEntities(query, classification?.intent), classification?.intent);
-  return { skill: 'general_question', reply: ai.text, cardData, modelProvider: ai.provider, model: ai.model, extractionSource: Object.keys(generalEntities).length > 1 ? 'deterministic' : 'none', extractedEntities: generalEntities as Record<string, unknown>, progressStage: 'complete' };
+  const assistance = await getAssistanceOutcome(query).catch((error) => { console.warn('[Router] assistance projection unavailable:', error); return null; });
+  if (assistance) { const lead = assistance.mode === 'support' ? 'I found relevant Kurukoo guidance and community context for this issue.' : 'I found relevant Kurukoo guidance and community context.'; return { skill: assistance.mode === 'support' ? 'support_triage' : 'general_question', reply: `${lead} I have not treated any source as a provider, recommendation, availability or completed action. ${assistance.nextActions[0]?.prompt || 'Tell me what you want to do next.'}`, cardData: assistance, canonicalAction: assistance.canonicalAction, progressStage: assistance.mode === 'support' ? 'coordination' : 'information', extractionSource: 'deterministic' }; }
+  const ai = await queryUnifiedAI(query, { provider, phone, conversational: true, contextHint, threadId }); const cardData: any = ai.provider === 'SmolLM2' ? { type: 'ai_metadata', provider: ai.provider, model: ai.model } : undefined; const generalEntities = validateConversationalEntities(extractConversationalEntities(query, classification?.intent), classification?.intent); return { skill: 'general_question', reply: ai.text, cardData, modelProvider: ai.provider, model: ai.model, extractionSource: Object.keys(generalEntities).length > 1 ? 'deterministic' : 'none', extractedEntities: generalEntities as Record<string, unknown>, progressStage: 'complete' };
 }
