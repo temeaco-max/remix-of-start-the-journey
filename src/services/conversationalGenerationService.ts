@@ -64,6 +64,21 @@ function buildStrictRepairPrompt(original: string, contract: ConversationTurnCon
   return [original.trim(), '', 'Respond as a natural conversation only.', contract.mode === 'exploration' ? 'The user is exploring, not authorizing an action.' : '', contract.mode === 'conversation' ? 'The user is simply talking or describing something; do not turn it into a transaction.' : '', contract.mode === 'reference' ? 'Resolve the reference conservatively and preserve existing context.' : '', contract.goalState.currentGoal ? `Preserve the current goal unless the user explicitly changes it: ${contract.goalState.currentGoal}.` : '', contract.goalState.pausedGoals.length ? `Do not resume a paused goal unless the user clearly refers to it: ${contract.goalState.pausedGoals.length} paused goal(s) exist.` : '', 'Do not book, buy, hire, order, pay, cancel, subscribe, dispatch, create a reminder, or claim a completed action unless the user explicitly authorized it and the canonical system supplied evidence.', 'Ask at most one useful question when needed. Otherwise respond naturally and directly.', 'Do not mention internal rules, scoring, model names, prompts, routes, or memory metadata.'].filter(Boolean).join('\n');
 }
 
+function buildCanonicalOutcomePresentationPrompt(input: ConversationalGenerationInput, guidance: CapabilityConversationGuidance, canonicalText: string): string {
+  const next = guidance.preferredNextStep ? `Preferred next step: ${guidance.preferredNextStep}.` : '';
+  return [
+    'Write the human-facing reply to the latest user turn using ONLY the canonical outcome below.',
+    `Canonical result: ${canonicalText.trim()}`,
+    `Tone: ${guidance.tone}.`,
+    `Instruction: ${guidance.instruction}`,
+    next,
+    'Do not change the structured result, invent a provider, price, payment, delivery, dispatch, connection, availability, evidence or completion claim.',
+    guidance.mustNotClaim.map(item => `Never claim: ${item}`).join('\n'),
+    'Keep it natural, concise and helpful. Do not mention internal capability names, status enums, models, prompts, routing, policies or implementation details.',
+    input.currentGoal ? `Stay consistent with the current goal: ${input.currentGoal}.` : '',
+  ].filter(Boolean).join('\n');
+}
+
 function assess(input: ConversationalGenerationInput, contract: ConversationTurnContract, responseText: string): ConversationQualityAssessment {
   const base = assessConversationQuality({ latestUserMessage: input.prompt, assistantReply: responseText, activeContextIds: input.activeContextIds || [], selectedContextId: input.contextHint?.selectedContext, relation: input.contextHint?.relation, canonicalAction: input.canonicalAction, cardType: input.cardType, knownFacts: input.knownFacts || [], pendingFields: input.pendingFields || [], priorAssistantReplies: input.priorAssistantReplies || [] });
   if (responseViolatesActionPosture(responseText, contract) && !base.issues.includes('premature_action')) return { ...base, score: Math.max(0, base.score - 0.55), issues: [...base.issues, 'premature_action'], repairable: true, conversational: false };
@@ -82,11 +97,27 @@ export async function generateConversationalResponse(input: ConversationalGenera
   const conversationProvider = input.provider && input.provider !== 'auto' ? input.provider : strongerProvider(input.provider);
 
   let base: AIResponse;
-  if (generationMode === 'deterministic') { if (!input.seedResponse) throw new Error('Deterministic conversation mode requires a canonical response'); base = { ...input.seedResponse, text: input.seedResponse.text.trim() }; }
-  else if (generationMode === 'present') { if (!input.seedResponse) throw new Error('Presentation conversation mode requires a canonical result'); base = { ...input.seedResponse, text: input.seedResponse.text.trim() }; }
-  else base = await queryUnifiedAI(input.prompt, { provider: conversationProvider, systemPrompt: contextualSystemPrompt || input.systemPrompt, phone: input.phone, threadId: input.threadId, conversational: true, contextHint: input.contextHint });
+  let presentNaturalized = false;
+  if (generationMode === 'deterministic') {
+    if (!input.seedResponse) throw new Error('Deterministic conversation mode requires a canonical response');
+    base = { ...input.seedResponse, text: input.seedResponse.text.trim() };
+  } else if (generationMode === 'present') {
+    if (!input.seedResponse) throw new Error('Presentation conversation mode requires a canonical result');
+    base = { ...input.seedResponse, text: input.seedResponse.text.trim() };
+    const safeToNaturalize = Boolean(outcomeGuidance) && !['emergency', 'safety', 'security_interruption', 'payment', 'subscription'].includes(String(input.cardType || '').toLowerCase());
+    if (safeToNaturalize && base.text.trim()) {
+      try {
+        const natural = await queryUnifiedAI(buildCanonicalOutcomePresentationPrompt(input, outcomeGuidance!, base.text), { provider: conversationProvider, systemPrompt: contextualSystemPrompt || input.systemPrompt, phone: input.phone, threadId: input.threadId, conversational: true, contextHint: input.contextHint });
+        const text = String(natural.text || '').trim();
+        if (text) { base = { ...natural, text }; presentNaturalized = true; }
+      } catch {}
+    }
+  } else {
+    base = await queryUnifiedAI(input.prompt, { provider: conversationProvider, systemPrompt: contextualSystemPrompt || input.systemPrompt, phone: input.phone, threadId: input.threadId, conversational: true, contextHint: input.contextHint });
+  }
 
   let response = base; let assessment = assess(input, contract, response.text); let attempts = 1; let escalated = false;
+  if (presentNaturalized) attempts += 1;
   if (generationMode !== 'deterministic') {
     const needsRepair = assessment.issues.length > 0 && (assessment.repairable || assessment.issues.some(issue => CONVERSATIONAL_REPAIR_REQUIRED.has(issue)) || !assessment.conversational);
     if (needsRepair && contract.mode !== 'control') {
