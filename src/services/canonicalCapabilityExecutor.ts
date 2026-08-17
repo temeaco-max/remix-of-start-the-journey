@@ -18,7 +18,7 @@ import { advanceStorefront } from './agenticStorefront.js';
 import { deriveCapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 import { getPreferredEmergencyNumber } from './emergencyDirectoryService.js';
 import { controlConnectedResource, getConnectedResource, viewConnectedResource } from './connectedResourceService.js';
-import { getExecutionAdapter } from './capabilityExecutionAdapterBridge.js';
+import { getExecutionAdapter } from './capabilityExecutionAdapterBridgeV2.js';
 
 type ExecutorStatus = UniversalCapabilityResult['status'] | 'in_progress' | 'external_unavailable' | 'stale_context' | 'unauthorized' | 'invalid';
 
