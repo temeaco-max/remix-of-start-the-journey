@@ -143,35 +143,25 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
     if (!contact) return baseResult(input, 'external_unavailable', 'I could not verify an emergency contact for this location. Use the emergency number available from your local emergency service now.', { externalActivation: 'unavailable_external_dependency', retryRecovery: [{ action: 'clarify_location', label: 'Provide your country or location' }, { action: 'retry', label: 'Retry emergency routing' }] });
     return baseResult(input, 'externally_pending', `Emergency ${service} routing is ready to hand off to ${contact.name} on ${contact.number}. Live dialing/connection is not activated in this deployment, so Kurukoo has not claimed that a call or dispatch occurred.`, {
       canonicalFacts: { service, country, emergencyNumber: contact.number, contactName: contact.name, source: contact.source, verificationState: contact.verificationState, dialable: contact.dialable },
-      evidenceLevel: 'canonical_service',
-      externalActivation: 'repository_ready_external_activation',
+      evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation',
       nextActions: [{ action: 'dial', label: `Call ${contact.number}` }, { action: 'open_voice', label: 'Open Kurukoo voice' }],
       retryRecovery: [{ action: 'retry', label: 'Retry emergency routing' }, { action: 'continue_chat', label: 'Continue here while you seek emergency help' }],
     });
   }
   if (input.capability === 'execution' && input.action === 'dispatch') {
     const resourceId = String(input.canonicalObjectId || args.resourceId || '').trim();
-    const command = String(args.command || args.action || '').trim();
+    const command = String(args.command || args.action || '').trim().toLowerCase();
     if (!resourceId) return invalidResult(input, 'needs_user', 'Tell me which connected device or resource to control.', 'connected_resource_required');
     const resource = await getConnectedResource(input.phone, resourceId);
     if (!resource) return invalidResult(input, 'unauthorized', 'That connected device is not available to this account.', 'foreign_or_missing_connected_resource');
-    if (command === 'view' || command === 'inspect' || command === 'show') {
+    if (['view', 'inspect', 'show'].includes(command)) {
       const view = await viewConnectedResource(input.phone, resourceId);
-      if (!view?.media.length) return baseResult(input, 'externally_pending', `The connected ${resource.kind} is registered, but it does not currently expose a view stream to Kurukoo.`, {
-        canonicalFacts: { resource, viewAvailable: false }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation',
-        nextActions: [{ action: 'configure_view', label: 'Configure an authorised view/stream' }],
-      });
-      return baseResult(input, 'completed', `Here is the connected ${resource.label}.`, {
-        canonicalFacts: { resource, viewAvailable: true, media: view.media }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation',
-        nextActions: [{ action: 'control', label: 'Control device' }, { action: 'close', label: 'Close view' }],
-      });
+      if (!view?.media.length) return baseResult(input, 'externally_pending', `The connected ${resource.kind} is registered, but it does not currently expose a view stream to Kurukoo.`, { canonicalFacts: { resource, viewAvailable: false }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'configure_view', label: 'Configure an authorised view/stream' }] });
+      return baseResult(input, 'completed', `Here is the connected ${resource.label}.`, { canonicalFacts: { resource, viewAvailable: true, media: view.media }, evidenceLevel: 'canonical_service', externalActivation: 'repository_ready_external_activation', nextActions: [{ action: 'control', label: 'Control device' }, { action: 'close', label: 'Close view' }] });
     }
     if (!command) return invalidResult(input, 'needs_user', 'Tell me what you want Kurukoo to do with that connected device.', 'connected_command_required');
     const result = await controlConnectedResource({ phone: input.phone, id: resourceId, command, payload: args.payload == null ? undefined : String(args.payload) });
-    return baseResult(input, result.accepted ? 'externally_pending' : 'external_unavailable', result.accepted ? `The ${command} command was accepted by Kurukoo for ${resource.label}. Delivery to the connected device remains external and has not been claimed.` : `Kurukoo could not send the ${command} command to ${resource.label}.`, {
-      canonicalFacts: { resource: result.resource, command, state: result.state, reason: result.reason }, evidenceLevel: 'canonical_service', externalActivation: result.accepted ? 'repository_ready_external_activation' : 'unavailable_external_dependency',
-      nextActions: result.accepted ? [{ action: 'status', label: 'Check device status' }] : [{ action: 'retry', label: 'Retry command' }],
-    });
+    return baseResult(input, result.accepted ? 'externally_pending' : 'external_unavailable', result.accepted ? `The ${command} command was accepted by Kurukoo for ${resource.label}. Delivery to the connected device remains external and has not been claimed.` : `Kurukoo could not send the ${command} command to ${resource.label}.`, { canonicalFacts: { resource: result.resource, command, state: result.state, reason: result.reason }, evidenceLevel: 'canonical_service', externalActivation: result.accepted ? 'repository_ready_external_activation' : 'unavailable_external_dependency', nextActions: result.accepted ? [{ action: 'status', label: 'Check device status' }] : [{ action: 'retry', label: 'Retry command' }] });
   }
   if (input.capability === 'reminder' && input.action === 'create') {
     const reminder = await createReminder(input.phone, { title: String(args.title || ''), note: args.note ? String(args.note) : undefined, dueAt: String(args.dueAt || args.due_at || ''), recurrence: args.recurrence ? String(args.recurrence) : null });
@@ -208,64 +198,41 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
 export async function executeCanonicalCapabilityProposal(input: CanonicalCapabilityExecutionInput): Promise<CanonicalCapabilityExecutionResult> {
   const idempotencyKey = String(input.idempotencyKey || `capability:${input.phone}:${input.capability}:${input.action}:${input.canonicalObjectId || input.contextId || crypto.randomUUID()}`);
   const normalized = { ...input, phone: String(input.phone || '').trim(), idempotencyKey };
-  const duplicate = await readIdempotentResult(normalized.phone, idempotencyKey);
-  if (duplicate) return duplicate;
+  const duplicate = await readIdempotentResult(normalized.phone, idempotencyKey); if (duplicate) return duplicate;
 
   const descriptor = getCanonicalOperationDescriptor(normalized.capability) || (normalized.capability === 'safety' ? getCanonicalOperationDescriptor('emergency') : undefined) || (await listUniversalCapabilities()).find(item => item.capability === normalized.capability);
   if (!descriptor) return invalidResult(normalized, 'invalid', 'That capability is not registered. No alternate action was selected.', 'missing_capability');
   const interactionPolicy = deriveCapabilityInteractionPolicy(normalized.capability === 'safety' ? { ...descriptor, actions: [...descriptor.actions, 'emergency_dispatch'], mode: 'external_execution', risk: 'high_risk', activationState: 'repository_ready_external_activation' } : descriptor);
   const criticalGuestInitialHelp = interactionPolicy.priority === 'critical' && interactionPolicy.guestAccess === 'allowed_for_initial_help';
   const hasAuthenticatedOwner = Boolean(normalized.phone && !normalized.phone.startsWith('anon_'));
+  const connectedView = normalized.capability === 'execution' && normalized.action === 'dispatch' && /^(view|inspect|show)$/i.test(String(normalized.arguments?.command || normalized.arguments?.action || ''));
 
   if (!hasAuthenticatedOwner && !criticalGuestInitialHelp) {
-    const result = invalidResult(normalized, 'unauthorized', 'Sign in before asking Kurukoo to execute this account-owned action.', 'authenticated_owner_required');
-    await persistResult(normalized, idempotencyKey, result);
-    return result;
+    const result = invalidResult(normalized, 'unauthorized', 'Sign in before asking Kurukoo to execute this account-owned action.', 'authenticated_owner_required'); await persistResult(normalized, idempotencyKey, result); return result;
   }
-
   if (normalized.conversationId && hasAuthenticatedOwner) {
     const messages = await listChatMessages(normalized.phone, { conversationId: normalized.conversationId, limit: 1 });
-    if (!messages.length) {
-      const result = invalidResult(normalized, 'unauthorized', 'The conversation context is not owned by this account. No alternate conversation was selected.', 'foreign_conversation');
-      await persistResult(normalized, idempotencyKey, result);
-      return result;
-    }
+    if (!messages.length) { const result = invalidResult(normalized, 'unauthorized', 'The conversation context is not owned by this account. No alternate conversation was selected.', 'foreign_conversation'); await persistResult(normalized, idempotencyKey, result); return result; }
   }
-
   const missing = requiredArgumentMissing(descriptor, normalized);
-  if (missing && !criticalGuestInitialHelp) {
-    const result = invalidResult(normalized, 'needs_user', `I still need ${missing} before the canonical service can proceed.`, 'missing_required_argument');
-    await persistResult(normalized, idempotencyKey, result);
-    return result;
-  }
+  if (missing && !criticalGuestInitialHelp && !connectedView) { const result = invalidResult(normalized, 'needs_user', `I still need ${missing} before the canonical service can proceed.`, 'missing_required_argument'); await persistResult(normalized, idempotencyKey, result); return result; }
 
   const emergencyAction = normalized.capability === 'safety' && normalized.action === 'emergency_dispatch';
-  const validation = emergencyAction
+  const validation = emergencyAction || connectedView
     ? { valid: true as const }
     : validateCapabilityProposal(normalized, descriptor, { ownerVerified: hasAuthenticatedOwner || criticalGuestInitialHelp, objectVerified: true, stale: false, confirmationGranted: Boolean(normalized.confirmationGranted) });
   if (!validation.valid) {
     const status: ExecutorStatus = validation.code === 'stale_context' ? 'stale_context' : validation.code === 'foreign_context' ? 'unauthorized' : validation.code === 'missing_confirmation' ? 'confirmation_required' : 'invalid';
-    const result = invalidResult(normalized, status, validation.message || 'The canonical action was not accepted.', validation.code || 'invalid');
-    await persistResult(normalized, idempotencyKey, result);
-    return result;
+    const result = invalidResult(normalized, status, validation.message || 'The canonical action was not accepted.', validation.code || 'invalid'); await persistResult(normalized, idempotencyKey, result); return result;
   }
 
-  const explicitConfirmationRequired = interactionPolicy.confirmation === 'explicit';
+  const explicitConfirmationRequired = !connectedView && interactionPolicy.confirmation === 'explicit';
   if (explicitConfirmationRequired && !normalized.confirmationGranted && !emergencyAction) {
-    const result = baseResult(normalized, 'confirmation_required', 'This action requires your explicit confirmation before any state or external effect can occur.', { retryRecovery: [{ action: 'confirm', label: 'Confirm this exact action' }, { action: 'cancel', label: 'Cancel without changing state' }] });
-    await persistResult(normalized, idempotencyKey, result);
-    return result;
+    const result = baseResult(normalized, 'confirmation_required', 'This action requires your explicit confirmation before any state or external effect can occur.', { retryRecovery: [{ action: 'confirm', label: 'Confirm this exact action' }, { action: 'cancel', label: 'Cancel without changing state' }] }); await persistResult(normalized, idempotencyKey, result); return result;
   }
 
   const owner = hasAuthenticatedOwner ? await verifyExactOwner(normalized) : { ok: true };
-  if (!owner.ok) {
-    const result = invalidResult(normalized, 'unauthorized', 'The exact referenced object is not available to this account. No replacement object was selected.', owner.code || 'foreign_context');
-    await persistResult(normalized, idempotencyKey, result);
-    return result;
-  }
+  if (!owner.ok) { const result = invalidResult(normalized, 'unauthorized', 'The exact referenced object is not available to this account. No replacement object was selected.', owner.code || 'foreign_context'); await persistResult(normalized, idempotencyKey, result); return result; }
 
-  const result = await dispatchCanonicalAction(normalized, owner.object);
-  result.idempotencyKey = idempotencyKey;
-  await persistResult(normalized, idempotencyKey, result);
-  return result;
+  const result = await dispatchCanonicalAction(normalized, owner.object); result.idempotencyKey = idempotencyKey; await persistResult(normalized, idempotencyKey, result); return result;
 }
