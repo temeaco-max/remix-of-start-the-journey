@@ -2,7 +2,7 @@ import type { IntentRoutingResult } from '../types.js';
 import type { ConversationTurnContract } from './conversationTurnContractService.js';
 import type { AISemanticCapabilityProposal } from './aiSemanticProposalService.js';
 import { reconcileAICapabilityProposal } from './aiCapabilityReconciliationService.js';
-import { deriveCapabilityInteractionPolicy, deriveInteractionPolicyForCapabilityName, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
+import { deriveActionInteractionPolicy, deriveActionInteractionPolicyForName, type CapabilityInteractionPolicy } from './actionInteractionPolicyService.js';
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 
 export type CapabilityProposalPosture = 'none' | 'clarify' | 'propose' | 'control';
@@ -62,12 +62,6 @@ function descriptorFromDecision(capability: string, routing: IntentRoutingResult
   return undefined;
 }
 
-/**
- * Translates canonical routing, optionally reconciled with a model semantic
- * proposal, into a bounded AI proposal. The output remains proposal-only.
- * Interaction policy is derived from the universal capability vocabulary and
- * is available even when the routing result does not carry the full descriptor.
- */
 export function buildAICapabilityOrchestration(
   routing: IntentRoutingResult,
   contract: ConversationTurnContract,
@@ -82,26 +76,15 @@ export function buildAICapabilityOrchestration(
   const finalPosture = reconciled.posture === 'none' ? posture : reconciled.posture;
 
   if (!finalCapability || NON_CAPABILITY_SKILLS.has(routing.skill)) {
-    return {
-      mode: contract.mode,
-      shouldTalk: true,
-      shouldPresentCanonicalResult,
-      shouldProposeCapability: false,
-      reason: 'ordinary-conversation-or-non-capability-turn',
-    };
+    return { mode: contract.mode, shouldTalk: true, shouldPresentCanonicalResult, shouldProposeCapability: false, reason: 'ordinary-conversation-or-non-capability-turn' };
   }
 
   const descriptor = descriptorFromDecision(finalCapability, routing);
   const interactionPolicy = descriptor
-    ? deriveCapabilityInteractionPolicy(descriptor)
-    : deriveInteractionPolicyForCapabilityName(finalCapability);
+    ? deriveActionInteractionPolicy(descriptor, finalAction)
+    : deriveActionInteractionPolicyForName(finalCapability, finalAction);
   const forcedInterrupt = interactionPolicy.interruption === 'immediate';
-  const shouldProposeCapability = Boolean(
-    finalCapability &&
-    (finalAction || semanticProposal) &&
-    (finalPosture !== 'none' || forcedInterrupt) &&
-    (contract.requiresStructuredProposal || forcedInterrupt),
-  );
+  const shouldProposeCapability = Boolean(finalCapability && (finalAction || semanticProposal) && (finalPosture !== 'none' || forcedInterrupt) && (contract.requiresStructuredProposal || forcedInterrupt));
 
   const proposal: AICapabilityProposal = {
     capability: finalCapability,
