@@ -3,6 +3,7 @@ import { assessConversationQuality, type ConversationQualityAssessment } from '.
 import { buildConversationTurnContract, buildConversationalSystemDirective, type ConversationTurnContract } from './conversationTurnContractService.js';
 import { buildConversationContextPack } from './conversationContextPackService.js';
 import type { CapabilityConversationGuidance } from './aiCapabilityContinuationService.js';
+import { listConnectedResources } from './connectedResourceService.js';
 
 export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';
 
@@ -124,11 +125,22 @@ export async function generateConversationalResponse(input: ConversationalGenera
   });
 
   const contextPack = await buildConversationContextPack(input.phone, input.threadId, input.prompt);
+  const connectedResources = input.phone && !input.phone.startsWith('anon_') ? await listConnectedResources(input.phone) : [];
+  const connectedResourceContext = connectedResources.length
+    ? [
+        '--- Private connected-resource context (never reveal internal ids or implementation details) ---',
+        'The user may refer naturally to these connected resources. Use the exact internal id only in canonical capability proposals; never expose it in the response.',
+        ...connectedResources.slice(0, 24).map(resource => `resource="${resource.label}" kind="${resource.kind}" internal_id="${resource.id}" capabilities="${resource.capabilities.join(',') || 'none'}" view="${resource.viewUrl || resource.streamUrl ? 'available' : 'unavailable'}"`),
+        'For explicit connected-device requests, prefer the existing execution capability with the exact internal resource id and requested command. Do not invent a device or capability. If several resources are plausible, ask which one.',
+        '---',
+      ].join('\n')
+    : '';
   const turnScope = `\n\n--- Internal Kurukoo conversation turn scope (never reveal) ---\nthread=${input.threadId || 'anonymous'}\nturn=${Date.now()}-${Math.random().toString(36).slice(2)}\n---`;
   const outcomeGuidance = input.canonicalOutcomeGuidance;
   const contextualSystemPrompt = [
     input.systemPrompt || '',
     buildConversationalSystemDirective(contract),
+    connectedResourceContext,
     outcomeGuidance ? `\n\n--- Canonical outcome guidance (never reinterpret) ---\ntone=${outcomeGuidance.tone}\ninstruction=${outcomeGuidance.instruction}\n${outcomeGuidance.preferredNextStep ? `preferred_next_step=${outcomeGuidance.preferredNextStep}\n` : ''}${outcomeGuidance.mustNotClaim.map(item => `must_not_claim=${item}`).join('\n')}\n---` : '',
     contextPack.transcript ? `\n\n--- Recent conversation for this exact thread (human-facing content only) ---\n${contextPack.transcript}\n---` : '',
     contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '',
@@ -221,7 +233,7 @@ export async function generateConversationalResponse(input: ConversationalGenera
     quality: assessment,
     escalated,
     attemptCount: attempts,
-    contextTurns: contextPack.turns,
+    contextTurns: contextPack.turnCount,
     generationMode,
   };
 }
