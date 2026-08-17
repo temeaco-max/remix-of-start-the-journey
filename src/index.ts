@@ -44,6 +44,7 @@ import fcmRouter from './server.js';
 import whatsappLinkedDeviceRoutes from './routes/whatsappLinkedDeviceRoutes.js';
 import telegramLinkedDeviceRoutes from './routes/telegramLinkedDeviceRoutes.js';
 import topicRoutes from './routes/topicRoutes.js';
+import connectionRoutes from './routes/connectionRoutes.js';
 import { startBackgroundServices, stopBackgroundServices } from './startup/backgroundServices.js';
 
 if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
@@ -89,6 +90,7 @@ app.use('/api/fcm', fcmRouter);
 app.use('/api/whatsapp-linked-device', whatsappLinkedDeviceRoutes);
 app.use('/api/telegram-linked-device', telegramLinkedDeviceRoutes);
 app.use('/api', topicRoutes);
+app.use('/api', connectionRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', cartRoutes);
 app.use('/api', reminderRoutes);
