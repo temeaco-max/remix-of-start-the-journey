@@ -1,5 +1,7 @@
 import { getEconomicCategory, getKnownSkills, getSkillCapabilities, getSkillFlow, getSkillRequirements, type EconomicCapability, type SkillFlow } from './skillFlows.js';
 import { listAgentTools } from './agentToolRegistry.js';
+import { ensureCapabilityFoundation } from './capabilityFoundation.js';
+import { listCapabilityRegistrations, getCapabilityRegistration } from './capabilityRegistry.js';
 
 export type CapabilityMode = 'read_only' | 'conversation' | 'structured_action' | 'state_change' | 'external_execution';
 export type UniversalCapabilityKind = 'skill' | 'operation' | 'agent_tool';
@@ -166,28 +168,14 @@ function descriptorForSkill(skill: string, flow: SkillFlow | null): UniversalCap
     ? ['External provider/payment/dispatch/evidence activation is not proven in this environment.']
     : [];
   return {
-    kind: 'skill',
-    capability: skill,
-    family: category,
-    mode,
-    actions,
-    context: { requiredInputs, optionalInputs },
-    permissions: ['authenticated_owner', ...(risk === 'read_only' ? [] : ['canonical_service_authorization'])],
-    owner: ownersFor(flow, capabilities),
-    risk,
-    consentRequired: risk === 'confirmation_required',
-    confirmationRequired: risk === 'confirmation_required',
-    lifecycle: flow ? LIFECYCLE_FOR_MODE[mode] : ['requested', 'clarifying', 'failed'],
-    canonicalFactsAvailable: ['intent', 'requirements', 'canonical_object_identity', 'lifecycle', 'evidence', 'external_activation'],
-    executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
-    evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'],
-    nextAllowedActions: actions,
-    failureStates: FAILURE_STATES,
-    retryPolicy: ['retry only through the canonical service', 'preserve the existing object and idempotency key', 'do not duplicate a request or payment'],
-    recoveryActions: ['clarify missing requirements', 'retry', 'resume', 'cancel', 'wait for external activation', 'escalate to an authorized operator'],
-    continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope', 'lifecycle', 'nextAllowedActions'],
-    externalDependencyState: external,
-    activationState: activationFor(capabilities, mode),
+    kind: 'skill', capability: `skill.${skill}`, family: category, mode, actions, context: { requiredInputs, optionalInputs },
+    permissions: ['authenticated_owner', ...(risk === 'read_only' ? [] : ['canonical_service_authorization'])], owner: ownersFor(flow, capabilities), risk,
+    consentRequired: risk === 'confirmation_required', confirmationRequired: risk === 'confirmation_required', lifecycle: flow ? LIFECYCLE_FOR_MODE[mode] : ['requested', 'clarifying', 'failed'],
+    canonicalFactsAvailable: ['intent', 'requirements', 'canonical_object_identity', 'lifecycle', 'evidence', 'external_activation'], executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
+    evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'], nextAllowedActions: actions,
+    failureStates: FAILURE_STATES, retryPolicy: ['retry only through the canonical service', 'preserve the existing object and idempotency key', 'do not duplicate a request or payment'],
+    recoveryActions: ['clarify missing requirements', 'retry', 'resume', 'cancel', 'wait for external activation', 'escalate to an authorized operator'], continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope', 'lifecycle', 'nextAllowedActions'],
+    externalDependencyState: external, activationState: activationFor(capabilities, mode),
   };
 }
 
@@ -208,58 +196,57 @@ const CANONICAL_OPERATION_DEFINITIONS: Array<{ capability: string; family: strin
   { capability: 'topic', family: 'community', actions: ['create', 'reply'], owner: ['topicService'], risk: 'low_risk', activationState: 'locally_available' },
   { capability: 'content', family: 'public-content', actions: ['open'], owner: ['contentManager'], risk: 'read_only', activationState: 'locally_available' },
   { capability: 'channel', family: 'communications', actions: ['send', 'continue'], owner: ['channelRegistry', 'channelUsageService'], risk: 'confirmation_required', activationState: 'repository_ready_external_activation' },
-  { capability: 'execution', family: 'external-execution', actions: ['dispatch'], owner: ['executionConnector'], risk: 'confirmation_required', activationState: 'repository_ready_external_activation' },
+  { capability: 'execution', family: 'external-execution', actions: ['dispatch', 'view'], owner: ['executionConnector', 'connectedResourceService'], risk: 'confirmation_required', activationState: 'repository_ready_external_activation' },
   { capability: 'emergency', family: 'emergency-dispatch', actions: ['assess', 'location', 'dial', 'connect', 'end', 'followup'], owner: ['emergencyService', 'canonicalChatTurnService', 'voiceBoundary', 'webrtcSignalling'], risk: 'high_risk', activationState: 'repository_ready_external_activation' },
 ];
 
 function operationDescriptor(definition: typeof CANONICAL_OPERATION_DEFINITIONS[number]): UniversalCapabilityDescriptor {
   const confirmationRequired = definition.risk === 'confirmation_required';
+  const readOnlyActions = new Set(['view', 'inspect', 'open', 'context']);
+  const allReadOnly = definition.actions.every(action => readOnlyActions.has(action));
+  const risk = allReadOnly ? 'read_only' : definition.risk;
   return {
-    kind: 'operation',
-    capability: definition.capability, family: definition.family, mode: definition.risk === 'read_only' ? 'read_only' : definition.activationState === 'repository_ready_external_activation' ? 'external_execution' : 'state_change',
-    actions: definition.actions, context: { requiredInputs: [], optionalInputs: [] }, permissions: definition.capability === 'emergency' ? ['guest_initial_help', 'authenticated_owner'] : ['authenticated_owner'], owner: definition.owner, risk: definition.risk,
-    consentRequired: confirmationRequired, confirmationRequired, lifecycle: ['requested', 'awaiting_confirmation', 'accepted', 'waiting', 'executing', 'completed', 'cancelled', 'failed'],
+    kind: 'operation', capability: definition.capability, family: definition.family, mode: risk === 'read_only' ? 'read_only' : definition.activationState === 'repository_ready_external_activation' ? 'external_execution' : 'state_change',
+    actions: definition.actions, context: { requiredInputs: [], optionalInputs: [] }, permissions: definition.capability === 'emergency' ? ['guest_initial_help', 'authenticated_owner'] : ['authenticated_owner'], owner: definition.owner, risk,
+    consentRequired: risk !== 'read_only' && confirmationRequired, confirmationRequired: risk !== 'read_only' && confirmationRequired, lifecycle: ['requested', 'awaiting_confirmation', 'accepted', 'waiting', 'executing', 'completed', 'cancelled', 'failed'],
     canonicalFactsAvailable: ['canonical_object_identity', 'lifecycle', 'evidence', 'external_activation'], executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
     evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'], nextAllowedActions: definition.actions,
-    failureStates: FAILURE_STATES, retryPolicy: ['retry only through the canonical owner', 'preserve idempotency and exact identity', 'do not duplicate external effects'],
-    recoveryActions: ['clarify missing requirements', 'retry', 'resume', 'cancel', 'wait for activation', 'escalate'], continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope', 'lifecycle'],
-    externalDependencyState: definition.activationState === 'repository_ready_external_activation' ? ['External activation and evidence are not proven in this environment.'] : [], activationState: definition.activationState,
+    failureStates: FAILURE_STATES, retryPolicy: ['retry only through the canonical owner', 'preserve idempotency and exact identity', 'do not duplicate external effects'], recoveryActions: ['clarify missing requirements', 'retry', 'resume', 'cancel', 'wait for activation', 'escalate'],
+    continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope', 'lifecycle'], externalDependencyState: definition.activationState === 'repository_ready_external_activation' ? ['External activation and evidence are not proven in this environment.'] : [], activationState: definition.activationState,
   };
 }
 
 export function getCanonicalOperationDescriptor(capability: string): UniversalCapabilityDescriptor | undefined {
-  const definition = CANONICAL_OPERATION_DEFINITIONS.find(item => item.capability === capability);
-  return definition ? operationDescriptor(definition) : undefined;
+  ensureCapabilityFoundation();
+  const direct = CANONICAL_OPERATION_DEFINITIONS.find(item => item.capability === capability);
+  return direct ? operationDescriptor(direct) : getCapabilityRegistration(capability)?.descriptor;
 }
 
 export async function listUniversalCapabilities(): Promise<UniversalCapabilityDescriptor[]> {
-  const rows: UniversalCapabilityDescriptor[] = CANONICAL_OPERATION_DEFINITIONS.map(operationDescriptor);
-  for (const skill of getKnownSkills()) rows.push(descriptorForSkill(skill, await getSkillFlow(skill)));
+  ensureCapabilityFoundation();
+  const rows: UniversalCapabilityDescriptor[] = [];
+  const seen = new Set<string>();
+  for (const registration of listCapabilityRegistrations()) {
+    const descriptor = registration.descriptor as UniversalCapabilityDescriptor;
+    if (!seen.has(descriptor.capability)) { rows.push(descriptor); seen.add(descriptor.capability); }
+  }
+  for (const definition of CANONICAL_OPERATION_DEFINITIONS) {
+    const descriptor = operationDescriptor(definition);
+    if (!seen.has(descriptor.capability)) { rows.push(descriptor); seen.add(descriptor.capability); }
+  }
+  for (const skill of getKnownSkills()) {
+    const descriptor = descriptorForSkill(skill, await getSkillFlow(skill));
+    if (!seen.has(descriptor.capability)) { rows.push(descriptor); seen.add(descriptor.capability); }
+  }
   for (const tool of listAgentTools()) {
-    rows.push({
-      kind: 'agent_tool',
-      capability: `agent.${tool.name}`,
-      family: 'agent-runtime',
-      mode: tool.permission === 'read' ? 'read_only' : 'state_change',
-      actions: ['inspect', 'invoke', 'wait', 'resume', 'recover'],
-      context: { requiredInputs: Object.keys(tool.inputSchema).map(key => ({ key, label: key, required: true })), optionalInputs: [] },
-      permissions: [tool.authorization],
-      owner: ['agentRuntime', 'agentToolRegistry'],
-      risk: tool.risk === 'read_only' ? 'read_only' : tool.risk === 'reversible' ? 'low_risk' : 'confirmation_required',
-      consentRequired: tool.risk !== 'read_only',
-      confirmationRequired: tool.risk === 'user_confirmation_required' || tool.risk === 'high_risk',
-      lifecycle: ['planned', 'waiting', 'needs_user', 'running', 'completed', 'failed', 'cancelled'],
-      canonicalFactsAvailable: ['goal', 'owner', 'timeline', 'tool_evidence'],
-      executionStatus: ['not_started', 'accepted', 'waiting', 'executing', 'completed', 'failed'],
-      evidenceStatus: ['none', 'internal_record', 'canonical_service'],
-      nextAllowedActions: ['inspect', 'invoke', 'wait', 'resume', 'recover'],
-      failureStates: FAILURE_STATES,
-      retryPolicy: ['respect tool idempotency and runtime flags', 'retry only through agentRuntime'],
-      recoveryActions: ['wait', 'resume', 'pause', 'cancel', 'request user confirmation'],
-      continuationContext: ['goalId', 'conversationId', 'ownerScope'],
-      externalDependencyState: [],
-      activationState: tool.autonomous ? 'locally_available' : 'repository_ready_external_activation',
-    });
+    const descriptor: UniversalCapabilityDescriptor = {
+      kind: 'agent_tool', capability: `agent.${tool.name}`, family: 'agent-runtime', mode: tool.permission === 'read' ? 'read_only' : 'state_change',
+      actions: ['inspect', 'invoke', 'wait', 'resume', 'recover'], context: { requiredInputs: Object.keys(tool.inputSchema).map(key => ({ key, label: key, required: true })), optionalInputs: [] }, permissions: [tool.authorization], owner: ['agentRuntime', 'agentToolRegistry'],
+      risk: tool.risk === 'read_only' ? 'read_only' : tool.risk === 'reversible' ? 'low_risk' : 'confirmation_required', consentRequired: tool.risk !== 'read_only', confirmationRequired: tool.risk === 'user_confirmation_required' || tool.risk === 'high_risk', lifecycle: ['planned', 'waiting', 'needs_user', 'running', 'completed', 'failed', 'cancelled'],
+      canonicalFactsAvailable: ['goal', 'owner', 'timeline', 'tool_evidence'], executionStatus: ['not_started', 'accepted', 'waiting', 'executing', 'completed', 'failed'], evidenceStatus: ['none', 'internal_record', 'canonical_service'], nextAllowedActions: ['inspect', 'invoke', 'wait', 'resume', 'recover'], failureStates: FAILURE_STATES,
+      retryPolicy: ['respect tool idempotency and runtime flags', 'retry only through agentRuntime'], recoveryActions: ['wait', 'resume', 'pause', 'cancel', 'request user confirmation'], continuationContext: ['goalId', 'conversationId', 'ownerScope'], externalDependencyState: [], activationState: tool.autonomous ? 'locally_available' : 'repository_ready_external_activation',
+    };
+    if (!seen.has(descriptor.capability)) { rows.push(descriptor); seen.add(descriptor.capability); }
   }
   return rows;
 }
@@ -287,23 +274,6 @@ export function projectCapabilityResult(input: { capability?: string; action?: s
             : card.actions?.length ? 'needs_user' : 'accepted';
   const externalActivation = input.activationState || (card.externalActivationState as CapabilityActivationState) || 'locally_available';
   const nextActions = Array.isArray(card.actions) ? card.actions.map((item: any) => ({ action: String(item.id || item.action || 'continue'), label: String(item.label || item.title || item.id || 'Continue'), confirmationRequired: Boolean(item.confirmationRequired) })) : [];
-  const recovery = status === 'failed' || status === 'unavailable_external_dependency' ? [
-    { action: 'retry', label: 'Retry through the canonical service' },
-    { action: 'resume', label: 'Keep this exact context and resume later' },
-    { action: 'cancel', label: 'Cancel without creating a duplicate' },
-  ] : [];
-  return {
-    status,
-    capability: input.capability,
-    action: input.action,
-    contextId: input.contextId,
-    canonicalObjectId: input.canonicalObjectId || card.requestId || card.goalId || card.objectId,
-    canonicalFacts: { ...card, status: card.status || card.stage || card.state || undefined },
-    evidenceLevel: card.evidenceLevel || card.evidence ? 'canonical_service' : 'none',
-    externalActivation,
-    nextActions,
-    retryRecovery: recovery,
-    continuationContext: { contextId: input.contextId, canonicalObjectId: input.canonicalObjectId || card.requestId || card.goalId || card.objectId, ownerScoped: true, lifecycle: card.status || card.stage || card.state || 'active' },
-    message: input.message,
-  };
+  const recovery = status === 'failed' || status === 'unavailable_external_dependency' ? [{ action: 'retry', label: 'Retry through the canonical service' }, { action: 'resume', label: 'Keep this exact context and resume later' }, { action: 'cancel', label: 'Cancel without creating a duplicate' }] : [];
+  return { status, capability: input.capability, action: input.action, contextId: input.contextId, canonicalObjectId: input.canonicalObjectId || card.requestId || card.goalId || card.objectId, canonicalFacts: { ...card, status: card.status || card.stage || card.state || undefined }, evidenceLevel: card.evidenceLevel || card.evidence ? 'canonical_service' : 'none', externalActivation, nextActions, retryRecovery: recovery, continuationContext: { contextId: input.contextId, canonicalObjectId: input.canonicalObjectId || card.requestId || card.goalId || card.objectId, ownerScoped: true, lifecycle: card.status || card.stage || card.state || 'active' }, message: input.message };
 }
