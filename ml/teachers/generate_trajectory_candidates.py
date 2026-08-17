@@ -124,8 +124,27 @@ def load_rows():
     if not SCENARIO_PATH.exists():
         raise SystemExit("Run npm run scenario-lab:generate before generating teacher candidates.")
     rows = [json.loads(line) for line in SCENARIO_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
-    random.Random(SEED).shuffle(rows)
-    return rows[:LIMIT]
+    rng = random.Random(SEED)
+    rng.shuffle(rows)
+    # Stratify deterministically before filling the remaining budget. This prevents
+    # a random sample from silently overrepresenting a few popular skills/families.
+    selected = []
+    selected_ids = set()
+    for field in ("skill", "family", "actor", "channel", "market", "locale"):
+        for value in sorted({str(row.get(field) or "unknown") for row in rows}):
+            row = next((item for item in rows if str(item.get(field) or "unknown") == value and item.get("scenarioId") not in selected_ids), None)
+            if row:
+                selected.append(row)
+                selected_ids.add(row.get("scenarioId"))
+            if len(selected) >= LIMIT:
+                return selected[:LIMIT]
+    for row in rows:
+        if row.get("scenarioId") not in selected_ids:
+            selected.append(row)
+            selected_ids.add(row.get("scenarioId"))
+        if len(selected) >= LIMIT:
+            break
+    return selected[:LIMIT]
 
 
 def candidate_id(row, index):
@@ -150,6 +169,8 @@ def main():
 
     for index, row in enumerate(rows):
         trajectory = row.get("trajectory") or []
+        if not trajectory and row.get("userMessage"):
+            trajectory = [{"role": "user", "content": row.get("userMessage")}]
         normalized_trajectory = [normalize_turn(turn) for turn in trajectory if normalize_turn(turn)["content"]]
         compact = "\n".join(f"{turn['role']}: {turn['content']}" for turn in normalized_trajectory[-12:])
         prompt = (
@@ -157,7 +178,7 @@ def main():
             "The turns should feel like one continuous human conversation. If the user interrupts, preserve the paused goal. "
             "If the user merely discusses an option, do not act. If action is justified, emit a bounded actionProposal using only the stated facts. "
             "Do not invent availability, prices or completion. "
-            f"\nScenario: skill={row.get('skill')} family={row.get('family')} variant={row.get('lifecycleVariant')} market={row.get('market')} actor={row.get('actor')} channel={row.get('channel')}\n"
+            f"\nScenario: skill={row.get('skill')} family={row.get('family')} variant={row.get('lifecycleVariant')} market={row.get('market')} locale={row.get('locale')} actor={row.get('actor')} channel={row.get('channel')} providerType={row.get('providerType')}\n"
             f"Recent trajectory:\n{compact}\n"
             "Return candidate assistant turns and a concise quality note."
         )

@@ -94,6 +94,9 @@ function signalType(text: string): { type: ConversationalContextType; confidence
   if (/\b(immediate danger|life[- ]threatening|emergency|ambulance|fire service|unsafe|hurt|threat)\b/.test(value)) return { type: 'safety', confidence: 0.99, relation: 'create' };
   if (/^(remember that|remember |what do you remember|forget that|forget )/.test(value)) return { type: 'memory', confidence: 0.98, relation: 'continue' };
   if (/^(remind me|set (?:me )?a reminder|cancel (the )?reminder|show (my )?reminders)/.test(value)) return { type: 'reminder', confidence: 0.97, relation: 'create' };
+  // A problem description is exploration, not authorization. It must switch the
+  // conversational focus without allowing an active request to claim the turn.
+  if (/(?:^|\b)(?:my|the)\s+(?:phone|iphone|android|laptop|computer|screen|device)\s+(?:is\s+)?(?:acting\s+(?:weird|strange)|not\s+working|keeps?\s+going|has\s+been\s+acting)|\b(?:acting\s+(?:weird|strange)|not\s+working|having\s+(?:a\s+)?problem|something\s+is\s+wrong)\b/.test(value) && !/^i\s+(?:need|want)\s+someone\b/.test(value)) return { type: 'topic_switch', confidence: 0.94, relation: 'switch' };
   if (/^(what notifications|show (my )?notifications|mark .* notification|dismiss .* notification)/.test(value)) return { type: 'notification', confidence: 0.97, relation: 'continue' };
   if (/^(?:okay[, ]*)?(go back to|resume (?:my|the)|return to|continue with)\b/.test(value)) return { type: 'economic_request', confidence: 0.9, relation: 'resume' };
   if (/^(use (?:it|that) for the current request|apply (?:it|that) to the current request)\b/.test(value)) return { type: 'economic_request', confidence: 0.96, relation: 'answer' };
@@ -142,6 +145,30 @@ export async function arbitrateChatContext(input: {
   const relative = detectRelativeReference(text);
   const request = activeContexts.find(context => context.type === 'economic_request');
   const preserved = activeContexts.map(context => context.contextId);
+
+  if (request && /\b(?:thinking about|considering|maybe|wondering whether|not sure whether)\b/.test(lower(text))) {
+    return {
+      selectedContext: 'general',
+      relation: 'switch',
+      confidence: 0.86,
+      ambiguous: false,
+      preserveContextIds: preserved,
+      activeContexts,
+      reason: 'Exploratory language remains conversation-only and cannot mutate or continue an active request.'
+    };
+  }
+
+  if (signal?.type === 'topic_switch' && !request) {
+    return {
+      selectedContext: 'general',
+      relation: 'continue',
+      confidence: 0.72,
+      ambiguous: false,
+      preserveContextIds: preserved,
+      activeContexts,
+      reason: 'Problem description remains ordinary conversation when no active request needs protection.',
+    };
+  }
 
   if (signal?.relation === 'resume') {
     return {
@@ -203,7 +230,7 @@ export async function arbitrateChatContext(input: {
     const conflictingRequest = request && signal.type !== 'economic_request';
     return {
       selectedContext: signal.type,
-      selectedContextId: (signal.type === 'economic_request' ? request?.contextId : activeContexts.find(context => context.type === signal.type)?.contextId),
+      selectedContextId: signal.type === 'economic_request' && signal.relation !== 'create' ? request?.contextId : activeContexts.find(context => context.type === signal.type)?.contextId,
       relation: conflictingRequest ? 'switch' : signal.relation,
       confidence: signal.confidence,
       ambiguous: false,

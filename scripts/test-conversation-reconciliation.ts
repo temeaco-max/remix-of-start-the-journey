@@ -34,6 +34,12 @@ assert.equal(request.cardData?.type, 'agentic_storefront');
 const requestId = String(request.cardData?.requestId || '');
 assert.ok(requestId);
 
+const phoneProblem = await send('My phone is acting weird.');
+assert.equal(phoneProblem.contextDecision?.selectedContext, 'topic_switch');
+assert.equal(phoneProblem.contextDecision?.relation, 'switch');
+assert.equal(phoneProblem.cardData?.type, undefined);
+assert.doesNotMatch(phoneProblem.reply, /person.s name|use it as the location|location for this request/i);
+
 const correction = await send('Actually make that Saturday morning.');
 assert.equal(correction.contextDecision?.relation, 'correction');
 assert.equal(String(correction.cardData?.requestId), requestId);

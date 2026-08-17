@@ -19,6 +19,17 @@ DEFAULT_INPUTS = [
 ]
 DEFAULT_OUTPUT = ROOT / "ml" / "datasets" / "kurukoo-accepted-v1.jsonl"
 DEFAULT_MANIFEST = ROOT / "ml" / "datasets" / "kurukoo-accepted-v1.manifest.json"
+QUALITY_THRESHOLDS = {
+    "naturalness": 0.75,
+    "contextRetention": 0.90,
+    "goalRetention": 0.90,
+    "actionDiscipline": 0.90,
+    "truthfulness": 0.95,
+    "safety": 0.95,
+    "failureRecovery": 0.80,
+}
+MAX_PREMATURE_ACTION_RATE = 0.05
+MAX_HALLUCINATION_RATE = 0.05
 
 
 def sha256(path: pathlib.Path) -> str:
@@ -33,6 +44,23 @@ def explicit_true(value: object) -> bool:
     return value is True
 
 
+def quality_scores(row: dict) -> dict:
+    quality = row.get("quality") or {}
+    scores = quality.get("scores") or row.get("scores") or row.get("grade") or {}
+    if not isinstance(scores, dict):
+        return {}
+    normalized = dict(scores)
+    normalized.setdefault("actionDiscipline", normalized.get("action_discipline"))
+    normalized.setdefault("truthfulness", normalized.get("kurukooTruthfulness"))
+    normalized.setdefault("safety", normalized.get("safetyCompliance"))
+    normalized.setdefault("contextRetention", normalized.get("context_retention"))
+    normalized.setdefault("goalRetention", normalized.get("goal_retention"))
+    normalized.setdefault("failureRecovery", normalized.get("failure_recovery"))
+    normalized.setdefault("prematureActionRate", normalized.get("premature_action_rate"))
+    normalized.setdefault("hallucinationRate", normalized.get("hallucination_rate"))
+    return normalized
+
+
 def approval(row: dict) -> tuple[bool, str]:
     provenance = row.get("provenance") or {}
     quality = row.get("quality") or {}
@@ -44,6 +72,20 @@ def approval(row: dict) -> tuple[bool, str]:
         return False, "accepted_not_true"
     if (provenance.get("productionUserData") is True) or (row.get("privacy") or {}).get("containsPersonalData") is True:
         return False, "production_or_personal_data"
+    scores = quality_scores(row)
+    if not scores:
+        return False, "quality_scores_missing"
+    for field, minimum in QUALITY_THRESHOLDS.items():
+        value = scores.get(field)
+        if not isinstance(value, (int, float)) or float(value) < minimum:
+            return False, f"quality_below_threshold:{field}"
+    for field, maximum in (("prematureActionRate", MAX_PREMATURE_ACTION_RATE), ("hallucinationRate", MAX_HALLUCINATION_RATE)):
+        value = scores.get(field)
+        if not isinstance(value, (int, float)) or float(value) > maximum:
+            return False, f"quality_above_threshold:{field}"
+    rewrite = row.get("rewrite") or (quality.get("rewrite") if isinstance(quality, dict) else None)
+    if rewrite and not (isinstance(rewrite, dict) and rewrite.get("reviewed") is True and rewrite.get("accepted") is True):
+        return False, "rewrite_not_reviewed_and_accepted"
     messages = row.get("messages") or []
     if not messages or not all(str(item.get("content", "")).strip() for item in messages if isinstance(item, dict)):
         return False, "missing_message_content"
@@ -113,6 +155,10 @@ def main() -> int:
         "syntheticOnly": True,
         "teacherOutputTrustedAutomatically": False,
         "requiresExplicitReviewAndAcceptance": True,
+        "qualityThresholds": QUALITY_THRESHOLDS,
+        "maxPrematureActionRate": MAX_PREMATURE_ACTION_RATE,
+        "maxHallucinationRate": MAX_HALLUCINATION_RATE,
+        "teacherRewriteRequiresSeparateReview": True,
         "trainingIsNotRuntimeAuthority": True,
         "status": "ready_for_training" if accepted else "blocked_no_explicitly_accepted_examples",
     }

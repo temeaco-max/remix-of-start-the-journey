@@ -457,7 +457,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       if (extractedEntities.budget !== undefined) seed.budget = extractedEntities.budget;
       if (extractedEntities.quantity !== undefined) seed.quantity = extractedEntities.quantity;
       if (extractedEntities.product) seed.product = extractedEntities.product;
-      const card = await startStorefrontSession(phone, directSkill, seed);
+      const card = await startStorefrontSession(phone, directSkill, seed, { forceNew: contextHint?.relation === 'create' });
       const reply = directSkill === 'product_sourcing' ? `${card.message} I’ll only show a product card when a verified seller reference is available; I will not invent stock, price, or delivery.` : card.message;
       const progressStage = card.stage === 'information' ? 'information' : card.stage === 'safety' ? 'safety' : card.stage === 'coordination' ? 'coordination' : card.stage === 'slot_fill' || card.stage === 'intent_extraction' ? 'understanding' : card.stage === 'catalog_match' || card.stage === 'offer_review' || card.stage === 'quote_review' ? 'checking' : card.stage === 'complete' ? 'complete' : 'coordinating';
       const canonicalAction = card.requestId ? 'economic_request.start' : `skill_flow.${card.stage}`;

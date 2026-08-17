@@ -1,0 +1,63 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: kurukoo
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "1"
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      containerConcurrency: 1
+      timeoutSeconds: 300
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY/kurukoo:TAG
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          env:
+            - name: PORT
+              value: "8080"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: KURUKOO_SMOLLM2_LOCAL
+              value: "false"
+            - name: SMOLLM2_MODEL
+              value: HuggingFaceTB/SmolLM2-1.7B-Instruct
+            - name: SMOLLM2_FALLBACK_MODEL
+              value: HuggingFaceTB/SmolLM2-1.7B-Instruct
+            - name: SMOLLM2_DTYPE
+              value: q4
+            - name: HF_HOME
+              value: /tmp/huggingface
+            - name: HF_HUB_CACHE
+              value: /tmp/huggingface
+            - name: KURUKOO_WORKERS
+              value: "0"
+            - name: KURUKOO_EXTERNAL_EXECUTION_ENABLED
+              value: "false"
+            - name: KURUKOO_COORDINATOR_TEACHER_ENABLED
+              value: "false"
+            - name: KURUKOO_COORDINATOR_PROMOTION_ENABLED
+              value: "false"
