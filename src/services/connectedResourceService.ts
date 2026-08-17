@@ -116,11 +116,11 @@ export async function resolveConnectedResource(input: { phone: string; id?: stri
   await ensureSchema();
   if (input.id) {
     const resource = await getConnectedResource(input.phone, input.id);
-    return resource ? { resource } : null;
+    return resource?.status === 'active' ? { resource } : null;
   }
   const label = String(input.label || '').trim().toLowerCase();
   if (!label) return null;
-  const resources = await listConnectedResources(input.phone);
+  const resources = (await listConnectedResources(input.phone)).filter(resource => resource.status === 'active');
   const exact = resources.filter(resource => resource.label.toLowerCase() === label && (!input.kind || resource.kind === input.kind));
   if (exact.length === 1) return { resource: exact[0] };
   if (exact.length > 1) return { ambiguous: exact };
@@ -132,12 +132,12 @@ export async function resolveConnectedResource(input: { phone: string; id?: stri
 
 export async function buildConnectedResourceContext(phone?: string): Promise<string> {
   if (!phone || phone.startsWith('anon_')) return '';
-  const resources = await listConnectedResources(phone);
+  const resources = (await listConnectedResources(phone)).filter(resource => resource.status === 'active');
   if (!resources.length) return '';
   const lines = resources.slice(0, 24).map(resource => {
     const caps = resource.capabilities.length ? resource.capabilities.join(', ') : 'no controls declared';
     const views = resource.viewUrl || resource.streamUrl ? 'live/view media available' : 'no view media exposed';
-    return `- ${resource.label} (${resource.kind}${resource.vendor ? `, ${resource.vendor}` : ''}): ${caps}; ${views}`;
+    return `- ${resource.label} (${resource.kind}${resource.vendor ? `, ${resource.vendor}` : ''}, internal_id=${resource.id}): ${caps}; ${views}`;
   });
   return lines.join('\n');
 }
@@ -160,7 +160,7 @@ export async function revokeConnectedResource(phone: string, id: string): Promis
 
 export async function viewConnectedResource(phone: string, id: string): Promise<{ resource: ConnectedResource; media: Array<{ kind: 'image' | 'video' | 'stream'; url: string }> } | null> {
   const resource = await getConnectedResource(phone, id);
-  if (!resource) return null;
+  if (!resource || resource.status !== 'active') return null;
   await markConnectedResourceSeen(phone, id);
   const media: Array<{ kind: 'image' | 'video' | 'stream'; url: string }> = [];
   if (resource.viewUrl) media.push({ kind: 'image', url: resource.viewUrl });
@@ -172,12 +172,9 @@ export async function viewConnectedResource(phone: string, id: string): Promise<
 export async function controlConnectedResource(input: { phone: string; id: string; command: string; payload?: string }): Promise<{ resource: ConnectedResource; accepted: boolean; state: string; reason?: string }> {
   const resource = await getConnectedResource(input.phone, input.id);
   if (!resource) throw new Error('Connected resource not found for this user.');
-  if (!resource.capabilities.includes('control') && !resource.capabilities.includes(input.command)) {
-    return { resource, accepted: false, state: 'blocked', reason: 'This connected resource has not exposed that control capability.' };
-  }
-  if (resource.protocol !== 'mqtt') {
-    return { resource, accepted: false, state: 'activation_required', reason: `The ${resource.protocol} control adapter is not activated in this deployment.` };
-  }
+  if (resource.status !== 'active') return { resource, accepted: false, state: 'activation_required', reason: 'This connected resource is not activated for control yet.' };
+  if (!resource.capabilities.includes('control') && !resource.capabilities.includes(input.command)) return { resource, accepted: false, state: 'blocked', reason: 'This connected resource has not exposed that control capability.' };
+  if (resource.protocol !== 'mqtt') return { resource, accepted: false, state: 'activation_required', reason: `The ${resource.protocol} control adapter is not activated in this deployment.` };
   const baseTopic = String(resource.metadata.baseTopic || '').trim();
   if (!baseTopic) return { resource, accepted: false, state: 'not_configured', reason: 'This resource has no authorized MQTT base topic.' };
   const result = sendMqttCommand(`${baseTopic.replace(/\/$/, '')}/${input.command}`, String(input.payload ?? ''));
