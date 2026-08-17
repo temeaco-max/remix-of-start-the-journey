@@ -35,6 +35,8 @@ const PAYMENT_TERMS = /(^|[._:-])(payment|escrow|refund|subscription|order|check
 const REMOTE_TERMS = /(^|[._:-])(remote|device|linked_device|voice|webrtc|call|dial)([._:-]|$)/i;
 const MEMORY_TERMS = /(^|[._:-])memory([._:-]|$)/i;
 const CHANNEL_SEND_TERMS = /(^|[._:-])(channel|message|sms|whatsapp|telegram|email)([._:-]|$)/i;
+const SECURITY_TERMS = /(^|[._:-])(security|fraud|scam|account|identity|stolen|lost|unauthorized|privacy|breach)([._:-]|$)/i;
+const PUBLIC_COMMIT_TERMS = /(^|[._:-])(publish|post|topic|reply|advertising|campaign|referral|points|claim|invite)([._:-]|$)/i;
 
 function riskToConfirmation(risk: CapabilityRisk): ConfirmationMode {
   if (risk === 'confirmation_required' || risk === 'high_risk') return 'explicit';
@@ -51,6 +53,8 @@ function policyFromParts(capability: string, family: string, mode: UniversalCapa
   const remote = REMOTE_TERMS.test(key) || REMOTE_TERMS.test(actionKey);
   const memory = MEMORY_TERMS.test(key) || MEMORY_TERMS.test(actionKey);
   const channelSend = CHANNEL_SEND_TERMS.test(key) || CHANNEL_SEND_TERMS.test(actionKey);
+  const security = SECURITY_TERMS.test(key) || SECURITY_TERMS.test(actionKey) || /security|privacy|trust/i.test(family);
+  const publicCommit = PUBLIC_COMMIT_TERMS.test(key) || PUBLIC_COMMIT_TERMS.test(actionKey) || /community|advertising|growth|public/i.test(family);
 
   if (emergency) return {
     capability, priority: 'critical', interruption: 'immediate', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'contextual', autonomy: 'bounded', backgroundAllowed: false, resumable: true, preemptsOtherGoals: true, preservesPriorGoals: true, exactIdentityRequired: false, locationMode: 'recommended', voiceMode: 'preferred', externalEvidenceRequired: true, draftVsCommitRequired: false, failureMustPreserveContext: true,
@@ -64,6 +68,10 @@ function policyFromParts(capability: string, family: string, mode: UniversalCapa
     capability, priority: 'high', interruption: 'conditional', guestAccess: 'blocked', authentication: 'required_before_action', confirmation: 'contextual', autonomy: 'long_running', backgroundAllowed: true, resumable: true, preemptsOtherGoals: true, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'optional', voiceMode: 'optional', externalEvidenceRequired: false, draftVsCommitRequired: false, failureMustPreserveContext: true,
     notes: ['Agent control commands override the goal they target.', 'Agent autonomy remains bounded by existing runtime quotas and action policy.'],
   };
+  if (security) return {
+    capability, priority: 'high', interruption: 'conditional', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'contextual', autonomy: 'bounded', backgroundAllowed: false, resumable: true, preemptsOtherGoals: true, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'optional', voiceMode: 'optional', externalEvidenceRequired: activationState !== 'locally_available', draftVsCommitRequired: false, failureMustPreserveContext: true,
+    notes: ['Security incidents may interrupt ordinary workflows for initial containment and guidance.', 'Account recovery, identity changes and destructive security actions still require exact authenticated ownership.'],
+  };
   if (remote) return {
     capability, priority: 'high', interruption: 'conditional', guestAccess: 'blocked', authentication: 'required_before_action', confirmation: risk === 'read_only' ? 'none' : 'explicit', autonomy: 'bounded', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'optional', voiceMode: /voice|webrtc|call|dial/i.test(key) ? 'preferred' : 'optional', externalEvidenceRequired: activationState !== 'locally_available', draftVsCommitRequired: channelSend, failureMustPreserveContext: true,
     notes: ['Remote/device/calling actions require exact target identity and authorization.', 'Drafting and sending communications are separate actions.'],
@@ -76,7 +84,10 @@ function policyFromParts(capability: string, family: string, mode: UniversalCapa
     capability, priority: 'normal', interruption: 'never', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'explicit', autonomy: 'none', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'none', voiceMode: 'none', externalEvidenceRequired: false, draftVsCommitRequired: false, failureMustPreserveContext: true,
     notes: ['Conversation facts are not automatically persisted as memory without the existing memory policy.', 'Forget operations must target the exact memory object/context.'],
   };
-
+  if (publicCommit) return {
+    capability, priority: 'normal', interruption: 'never', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'explicit', autonomy: 'none', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'none', voiceMode: 'none', externalEvidenceRequired: activationState !== 'locally_available', draftVsCommitRequired: true, failureMustPreserveContext: true,
+    notes: ['Drafting is not publishing, replying or sending.', 'Public/attribution actions require explicit user intent and canonical ownership/evidence.'],
+  };
   return {
     capability,
     priority: mode === 'external_execution' ? 'high' : mode === 'state_change' ? 'normal' : 'background',
@@ -102,37 +113,8 @@ function policyFromParts(capability: string, family: string, mode: UniversalCapa
 export function deriveCapabilityInteractionPolicy(descriptor: UniversalCapabilityDescriptor): CapabilityInteractionPolicy {
   return policyFromParts(descriptor.capability, descriptor.family, descriptor.mode, descriptor.actions, descriptor.risk, descriptor.activationState, descriptor.context.requiredInputs, descriptor.context.optionalInputs);
 }
-
-export async function getCapabilityInteractionPolicy(capability: string): Promise<CapabilityInteractionPolicy | null> {
-  const direct = getCanonicalOperationDescriptor(capability);
-  if (direct) return deriveCapabilityInteractionPolicy(direct);
-  const descriptors = await listUniversalCapabilities();
-  const descriptor = descriptors.find(item => item.capability === capability);
-  return descriptor ? deriveCapabilityInteractionPolicy(descriptor) : null;
-}
-
-export function deriveInteractionPolicyForCapabilityName(capability: string, fallback: Partial<UniversalCapabilityDescriptor> = {}): CapabilityInteractionPolicy {
-  return policyFromParts(
-    capability,
-    fallback.family || 'uncategorized',
-    fallback.mode || 'conversation',
-    fallback.actions || ['answer', 'clarify', 'continue'],
-    fallback.risk || 'read_only',
-    fallback.activationState || 'locally_available',
-    fallback.context?.requiredInputs || [],
-    fallback.context?.optionalInputs || [],
-  );
-}
-
-export async function getAllCapabilityInteractionPolicies(): Promise<CapabilityInteractionPolicy[]> {
-  const descriptors = await listUniversalCapabilities();
-  return descriptors.map(deriveCapabilityInteractionPolicy);
-}
-
-export function policyAllowsGuestInitialAction(policy: CapabilityInteractionPolicy): boolean {
-  return policy.guestAccess === 'allowed' || policy.guestAccess === 'allowed_for_initial_help';
-}
-
-export function shouldInterruptCurrentConversation(policy: CapabilityInteractionPolicy): boolean {
-  return policy.interruption === 'immediate' || policy.interruption === 'at_trigger' || (policy.interruption === 'conditional' && policy.priority === 'high');
-}
+export async function getCapabilityInteractionPolicy(capability: string): Promise<CapabilityInteractionPolicy | null> { const direct = getCanonicalOperationDescriptor(capability); if (direct) return deriveCapabilityInteractionPolicy(direct); const descriptors = await listUniversalCapabilities(); const descriptor = descriptors.find(item => item.capability === capability); return descriptor ? deriveCapabilityInteractionPolicy(descriptor) : null; }
+export function deriveInteractionPolicyForCapabilityName(capability: string, fallback: Partial<UniversalCapabilityDescriptor> = {}): CapabilityInteractionPolicy { return policyFromParts(capability, fallback.family || 'uncategorized', fallback.mode || 'conversation', fallback.actions || ['answer', 'clarify', 'continue'], fallback.risk || 'read_only', fallback.activationState || 'locally_available', fallback.context?.requiredInputs || [], fallback.context?.optionalInputs || []); }
+export async function getAllCapabilityInteractionPolicies(): Promise<CapabilityInteractionPolicy[]> { const descriptors = await listUniversalCapabilities(); return descriptors.map(deriveCapabilityInteractionPolicy); }
+export function policyAllowsGuestInitialAction(policy: CapabilityInteractionPolicy): boolean { return policy.guestAccess === 'allowed' || policy.guestAccess === 'allowed_for_initial_help'; }
+export function shouldInterruptCurrentConversation(policy: CapabilityInteractionPolicy): boolean { return policy.interruption === 'immediate' || policy.interruption === 'at_trigger' || (policy.interruption === 'conditional' && policy.priority === 'high'); }
