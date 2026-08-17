@@ -1,13 +1,7 @@
 import { Router } from 'express';
 import { authenticateUser, type AuthRequest } from '../middleware/auth.js';
-import {
-  controlConnectedResource,
-  getConnectedResource,
-  listConnectedResources,
-  registerConnectedResource,
-  revokeConnectedResource,
-  viewConnectedResource,
-} from '../services/connectedResourceService.js';
+import { executeCanonicalCapabilityProposal } from '../services/canonicalCapabilityExecutor.js';
+import { getConnectedResource, listConnectedResources, registerConnectedResource, revokeConnectedResource, viewConnectedResource } from '../services/connectedResourceService.js';
 
 const router = Router();
 router.use(authenticateUser);
@@ -27,12 +21,14 @@ router.post('/connect/resources', async (req: AuthRequest, res) => {
   try {
     const input = req.body || {};
     const kind = String(input.kind || 'other') as any;
-    const allowedKinds = new Set(['phone','tv','cctv','camera','laptop','desktop','tablet','vehicle','iot','other']);
+    const allowedKinds = new Set(['phone', 'tv', 'cctv', 'camera', 'laptop', 'desktop', 'tablet', 'vehicle', 'iot', 'other']);
     if (!allowedKinds.has(kind)) return res.status(400).json({ success: false, error: 'Unsupported connected-resource kind' });
+    const label = String(input.label || '').trim();
+    if (!label) return res.status(400).json({ success: false, error: 'A connected resource label is required' });
     const resource = await registerConnectedResource({
       phone: phone(req),
       kind,
-      label: String(input.label || '').trim(),
+      label,
       vendor: input.vendor ? String(input.vendor) : undefined,
       protocol: input.protocol || 'custom',
       capabilities: Array.isArray(input.capabilities) ? input.capabilities : [],
@@ -59,12 +55,23 @@ router.get('/connect/resources/:id/view', async (req: AuthRequest, res) => {
 
 router.post('/connect/resources/:id/control', async (req: AuthRequest, res) => {
   try {
-    const command = String(req.body?.command || '').trim();
-    if (!command) return res.status(400).json({ success: false, error: 'command is required' });
-    const result = await controlConnectedResource({ phone: phone(req), id: String(req.params.id), command, payload: req.body?.payload == null ? undefined : String(req.body.payload) });
-    return res.json({ success: result.accepted, resource: result.resource, state: result.state, reason: result.reason });
+    const result = await executeCanonicalCapabilityProposal({
+      phone: phone(req),
+      capability: 'execution',
+      action: 'dispatch',
+      canonicalObjectId: String(req.params.id),
+      contextId: req.body?.contextId ? String(req.body.contextId) : undefined,
+      arguments: {
+        command: String(req.body?.command || '').trim(),
+        payload: req.body?.payload == null ? undefined : String(req.body.payload),
+      },
+      confirmationGranted: req.body?.confirmationGranted === true,
+      idempotencyKey: req.body?.idempotencyKey ? String(req.body.idempotencyKey) : undefined,
+      channel: 'chat-connect',
+    });
+    return res.status(result.status === 'unauthorized' ? 403 : 200).json({ success: ['externally_pending', 'completed', 'accepted'].includes(result.status), ...result });
   } catch (error) {
-    return res.status(404).json({ success: false, error: String((error as Error)?.message || error) });
+    return res.status(500).json({ success: false, error: String((error as Error)?.message || error) });
   }
 });
 
@@ -82,7 +89,7 @@ router.get('/connect/resources/:id', async (req: AuthRequest, res) => {
     const resource = await getConnectedResource(phone(req), String(req.params.id));
     return resource ? res.json({ success: true, resource }) : res.status(404).json({ success: false, error: 'Connected resource not found' });
   } catch (error) {
-    return res.status(500).json({ success: false, error: String((error as Error)?.message || error) });
+    return res.status(404).json({ success: false, error: String((error as Error)?.message || error) });
   }
 });
 
