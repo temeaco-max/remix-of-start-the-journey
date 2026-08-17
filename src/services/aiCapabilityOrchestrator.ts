@@ -2,7 +2,7 @@ import type { IntentRoutingResult } from '../types.js';
 import type { ConversationTurnContract } from './conversationTurnContractService.js';
 import type { AISemanticCapabilityProposal } from './aiSemanticProposalService.js';
 import { reconcileAICapabilityProposal } from './aiCapabilityReconciliationService.js';
-import { deriveCapabilityInteractionPolicy, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
+import { deriveCapabilityInteractionPolicy, deriveInteractionPolicyForCapabilityName, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 
 export type CapabilityProposalPosture = 'none' | 'clarify' | 'propose' | 'control';
@@ -56,16 +56,17 @@ function extractCanonicalObjectId(entities: Record<string, unknown> | undefined)
   return undefined;
 }
 
-function descriptorFromDecision(capability: string, routing: IntentRoutingResult): UniversalCapabilityDescriptor | null {
+function descriptorFromDecision(capability: string, routing: IntentRoutingResult): UniversalCapabilityDescriptor | undefined {
   const candidate = (routing as IntentRoutingResult & { capabilityDescriptor?: UniversalCapabilityDescriptor }).capabilityDescriptor;
-  return candidate && candidate.capability === capability ? candidate : null;
+  if (candidate?.capability === capability) return candidate;
+  return undefined;
 }
 
 /**
  * Translates canonical routing, optionally reconciled with a model semantic
  * proposal, into a bounded AI proposal. The output remains proposal-only.
- * Interaction priority/auth/confirmation/interruption policy is derived from
- * the same universal capability descriptor rather than feature-specific rules.
+ * Interaction policy is derived from the universal capability vocabulary and
+ * is available even when the routing result does not carry the full descriptor.
  */
 export function buildAICapabilityOrchestration(
   routing: IntentRoutingResult,
@@ -91,8 +92,10 @@ export function buildAICapabilityOrchestration(
   }
 
   const descriptor = descriptorFromDecision(finalCapability, routing);
-  const interactionPolicy = descriptor ? deriveCapabilityInteractionPolicy(descriptor) : undefined;
-  const forcedInterrupt = interactionPolicy?.interruption === 'immediate';
+  const interactionPolicy = descriptor
+    ? deriveCapabilityInteractionPolicy(descriptor)
+    : deriveInteractionPolicyForCapabilityName(finalCapability);
+  const forcedInterrupt = interactionPolicy.interruption === 'immediate';
   const shouldProposeCapability = Boolean(
     finalCapability &&
     (finalAction || semanticProposal) &&
@@ -108,8 +111,8 @@ export function buildAICapabilityOrchestration(
     arguments: { ...(reconciled.arguments || {}), ...(routing.extractedEntities || {}) },
     confidence: reconciled.confidence || routing.intentConfidence,
     posture: forcedInterrupt ? 'propose' : finalPosture,
-    confirmationRequired: interactionPolicy?.confirmation === 'explicit' || finalPosture === 'control' || contract.actionPosture === 'control',
-    preserveContext: interactionPolicy?.preservesPriorGoals ?? (contract.shouldPreserveExistingContext || reconciled.preserveContext),
+    confirmationRequired: interactionPolicy.confirmation === 'explicit' || finalPosture === 'control' || contract.actionPosture === 'control',
+    preserveContext: interactionPolicy.preservesPriorGoals,
     requiresCanonicalValidation: true,
     source: reconciled.source === 'semantic' || reconciled.source === 'reconciled' ? 'semantic-model' : 'canonical-routing',
   };
