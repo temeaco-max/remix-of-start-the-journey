@@ -33,6 +33,34 @@ user request
   -> continuation / memory / notification
 ```
 
+Every known canonical skill is registered automatically as `skill.<name>` over the atomic capability foundation. Downstream systems therefore resolve agent eligibility, capability discovery and orchestration from the same composition fabric instead of maintaining vertical allow-lists.
+
+## Atomic capability foundation
+
+The reusable foundation includes economic powers such as discovery, availability, quote, verification, reservation, payment, escrow, contract, fulfilment, tracking, evidence, cancellation, dispute and completion, plus universal powers such as observe, view, control, communicate, notify, schedule, remember, delegate, coordinate, locate, authenticate, authorize, execute, recover and audit.
+
+A skill can compose several of these powers. A connected resource exposes some of them. An agent can coordinate them. A canonical owner still governs actual state mutation and evidence.
+
+## Connected resource convergence
+
+```text
+connect
+  -> owner / trust
+  -> pending
+  -> device-paired
+  -> active
+  -> exposed capabilities
+  -> conversational context
+  -> interaction policy
+  -> canonical execution
+```
+
+Pending or revoked resources cannot be treated as active. Resource identity and permissions remain owner-scoped. Read-only viewing is distinct from state-changing control.
+
+## Agents
+
+The autonomous runtime derives whether a goal is composable from the canonical skill/capability fabric rather than a hand-maintained list of economic skills. Agent runtime owns goal scheduling, autonomy, pause/resume/cancel, quotas and notifications; canonical domain owners continue to own payment, provider, execution and evidence state.
+
 ## Endless-capability rule
 
 A new pain point should first be mapped onto existing skills, capabilities, actors, objects, lifecycle states, evidence, execution and presentation surfaces. A new canonical owner is justified only when the semantics cannot be represented safely by existing primitives.
