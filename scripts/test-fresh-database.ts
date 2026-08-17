@@ -16,6 +16,7 @@ const { app } = await import('../src/index.js');
 const { getDb } = await import('../src/database.js');
 const { sendFcmPush } = await import('../src/services/pushNotifications.js');
 const { getPilotReadiness } = await import('../src/services/pilotReadiness.js');
+const { registerConnectedResource, activateConnectedResource, viewConnectedResource } = await import('../src/services/connectedResourceService.js');
 
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
@@ -35,7 +36,17 @@ try {
   const readiness = getPilotReadiness(process.env, process.cwd());
   assert.equal(readiness.categories.CHANNELS.FCM.state, 'NOT_CONFIGURED');
   assert.equal(readiness.categories.AGENT.runtime.state, 'DISABLED');
-  console.log('Fresh database regression passed: schema bootstrap, core routes, internal notification queue, readiness state, Topics, trust, and request tables are deployment-independent.');
+
+  const registration = await registerConnectedResource({ phone: '+2348000000000', kind: 'cctv', label: 'Back Garden Camera', protocol: 'mqtt', capabilities: ['view', 'control'], metadata: { baseTopic: 'kurukoo/device/back-garden' } });
+  assert.equal(registration.resource.status, 'pending', 'new connected resources must never self-declare as active');
+  assert.ok(/^\d{6}$/.test(registration.challenge.code), 'pairing challenge must be a six-digit one-time code');
+  assert.equal(await viewConnectedResource('+2348000000000', registration.resource.id), null, 'pending connected resources must not expose their view');
+  const activated = await activateConnectedResource('+2348000000000', registration.resource.id, registration.challenge.code);
+  assert.equal(activated?.status, 'active', 'a valid pairing challenge must activate the exact owner-scoped resource');
+  assert.ok(await viewConnectedResource('+2348000000000', registration.resource.id), 'activated connected resource should be viewable through the owner boundary');
+  assert.equal(await activateConnectedResource('+2348000000000', registration.resource.id, registration.challenge.code), activated, 'a pairing challenge must not be reusable to create a second activation effect');
+
+  console.log('Fresh database regression passed: schema bootstrap, core routes, internal notification queue, readiness state, Topics, trust, request tables, and owner-scoped connected-resource pairing/activation are deployment-independent.');
 } finally {
   server.close();
   fs.rmSync(tempDir, { recursive: true, force: true });
