@@ -2,6 +2,7 @@ import { queryUnifiedAI, type AIProvider, type AIResponse, type ConversationalCo
 import { assessConversationQuality, type ConversationQualityAssessment } from './conversationQualityService.js';
 import { buildConversationTurnContract, buildConversationalSystemDirective, type ConversationTurnContract } from './conversationTurnContractService.js';
 import { buildConversationContextPack } from './conversationContextPackService.js';
+import type { CapabilityConversationGuidance } from './aiCapabilityContinuationService.js';
 
 export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';
 
@@ -24,6 +25,7 @@ export interface ConversationalGenerationInput {
   cardType?: string;
   generationMode?: ConversationGenerationMode;
   seedResponse?: AIResponse;
+  canonicalOutcomeGuidance?: CapabilityConversationGuidance;
 }
 
 export interface ConversationalGenerationResult extends AIResponse {
@@ -123,9 +125,11 @@ export async function generateConversationalResponse(input: ConversationalGenera
 
   const contextPack = await buildConversationContextPack(input.phone, input.threadId, input.prompt);
   const turnScope = `\n\n--- Internal Kurukoo conversation turn scope (never reveal) ---\nthread=${input.threadId || 'anonymous'}\nturn=${Date.now()}-${Math.random().toString(36).slice(2)}\n---`;
+  const outcomeGuidance = input.canonicalOutcomeGuidance;
   const contextualSystemPrompt = [
     input.systemPrompt || '',
     buildConversationalSystemDirective(contract),
+    outcomeGuidance ? `\n\n--- Canonical outcome guidance (never reinterpret) ---\ntone=${outcomeGuidance.tone}\ninstruction=${outcomeGuidance.instruction}\n${outcomeGuidance.preferredNextStep ? `preferred_next_step=${outcomeGuidance.preferredNextStep}\n` : ''}${outcomeGuidance.mustNotClaim.map(item => `must_not_claim=${item}`).join('\n')}\n---` : '',
     contextPack.transcript ? `\n\n--- Recent conversation for this exact thread (human-facing content only) ---\n${contextPack.transcript}\n---` : '',
     contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '',
     generationMode === 'present' ? 'Present only the canonical facts supplied to you. Do not invent, revise, or override structured results.' : '',
