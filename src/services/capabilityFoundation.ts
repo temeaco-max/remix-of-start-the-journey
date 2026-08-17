@@ -54,6 +54,34 @@ function atomDescriptor(name: string, description: string, mode: string): Univer
   };
 }
 
+function connectedResourceDescriptor(): UniversalCapabilityDescriptor {
+  return {
+    kind: 'operation', capability: 'connected_resource', family: 'connected-resource', mode: 'structured_action',
+    actions: ['register', 'activate', 'inspect', 'status', 'view', 'control', 'revoke'],
+    context: { requiredInputs: [], optionalInputs: [
+      { key: 'resourceId', label: 'Connected resource id', required: false },
+      { key: 'kind', label: 'Device/resource kind', required: false },
+      { key: 'label', label: 'Device/resource label', required: false },
+      { key: 'code', label: 'Pairing code', required: false },
+      { key: 'command', label: 'Device command', required: false },
+      { key: 'payload', label: 'Command payload', required: false },
+    ] },
+    permissions: ['authenticated_owner'], owner: ['connectedResourceService', 'capabilityRegistry'], risk: 'confirmation_required',
+    consentRequired: true, confirmationRequired: true,
+    lifecycle: ['requested', 'clarifying', 'ready', 'accepted', 'waiting', 'executing', 'completed', 'cancelled', 'failed'],
+    canonicalFactsAvailable: ['connected_resource_identity', 'pairing_state', 'exposed_capabilities', 'view_state', 'control_state', 'lifecycle', 'evidence', 'external_activation'],
+    executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
+    evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'],
+    nextAllowedActions: ['register', 'activate', 'inspect', 'status', 'view', 'control', 'revoke'],
+    failureStates: ['blocked', 'failed', 'stale_context', 'foreign_context', 'confirmation_required', 'unavailable_external_dependency'],
+    retryPolicy: ['preserve exact resource identity and pairing lineage', 'never activate from an unverified or foreign pairing code'],
+    recoveryActions: ['clarify', 'review', 'resume', 'cancel', 'retry', 'revoke'],
+    continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope', 'lifecycle', 'nextAllowedActions'],
+    externalDependencyState: ['Device vendor/protocol delivery remains adapter-dependent; Kurukoo never claims device control without transport evidence.'],
+    activationState: 'repository_ready_external_activation',
+  };
+}
+
 function inferNativeComposition(skill: string): string[] {
   const normalized = String(skill || '').trim().toLowerCase();
   const capabilities = new Set<string>(['observe']);
@@ -87,60 +115,31 @@ export function capabilityRegistrationForSkill(skill: string, requiredCapabiliti
   const mode = category === 'uncategorized' ? 'conversation' as const : 'structured_action' as const;
   return {
     descriptor: {
-      kind: 'skill' as const,
-      capability: `skill.${skill}`,
-      family: category,
-      mode,
-      actions: ['understand', 'clarify', 'start', 'review', 'update', 'cancel', 'resume'],
+      kind: 'skill' as const, capability: `skill.${skill}`, family: category, mode, actions: ['understand', 'clarify', 'start', 'review', 'update', 'cancel', 'resume'],
       context: { requiredInputs, optionalInputs },
       permissions: requiredCapabilities.some(capability => ['payment', 'control', 'remember', 'delegate'].includes(String(capability).toLowerCase())) ? ['authenticated_owner'] : ['guest_initial_help', 'authenticated_owner'],
-      owner: ['canonicalChatTurnService', 'skillFlows', 'capabilityRegistry'],
-      risk: confirmationRequired ? 'confirmation_required' as const : 'low_risk' as const,
-      consentRequired: confirmationRequired,
-      confirmationRequired,
+      owner: ['canonicalChatTurnService', 'skillFlows', 'capabilityRegistry'], risk: confirmationRequired ? 'confirmation_required' as const : 'low_risk' as const,
+      consentRequired: confirmationRequired, confirmationRequired,
       lifecycle: ['requested', 'clarifying', 'ready', 'accepted', 'executing', 'completed', 'cancelled', 'failed'],
       canonicalFactsAvailable: ['intent', 'requirements', 'canonical_object_identity', 'lifecycle', 'evidence', 'external_activation'],
-      executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
-      evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'],
-      nextAllowedActions: ['understand', 'clarify', 'start', 'review', 'update', 'cancel', 'resume'],
-      failureStates: ['blocked', 'failed', 'stale_context', 'foreign_context', 'confirmation_required'],
-      retryPolicy: ['continue the exact canonical skill/request', 'do not create duplicate economic objects'],
-      recoveryActions: ['clarify', 'review', 'resume', 'cancel'],
+      executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'], evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'],
+      nextAllowedActions: ['understand', 'clarify', 'start', 'review', 'update', 'cancel', 'resume'], failureStates: ['blocked', 'failed', 'stale_context', 'foreign_context', 'confirmation_required'],
+      retryPolicy: ['continue the exact canonical skill/request', 'do not create duplicate economic objects'], recoveryActions: ['clarify', 'review', 'resume', 'cancel'],
       continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope', 'lifecycle'],
       externalDependencyState: requiresExternalActivation ? ['One or more composed capabilities require external activation/evidence before Kurukoo may claim a completed real-world outcome.'] : [],
       activationState: requiresExternalActivation ? 'repository_ready_external_activation' as const : 'locally_available' as const,
     } as UniversalCapabilityDescriptor,
-    namespace: 'kurukoo.skills', version: '1',
-    aliases: [skill, `skill.${skill}`],
-    requiresCapabilities: requiredCapabilities.map(normalizeSkillCapabilityReference),
-    source: 'skill-composition',
+    namespace: 'kurukoo.skills', version: '1', aliases: [skill, `skill.${skill}`], requiresCapabilities: requiredCapabilities.map(normalizeSkillCapabilityReference), source: 'skill-composition',
   };
 }
 
 export function ensureCapabilityFoundation(): void {
-  const registrations = [...ECONOMIC_ATOMS, ...NATIVE_ATOMS].map(([name, description, mode]) => ({
-    descriptor: atomDescriptor(name, description, mode),
-    namespace: 'kurukoo.atomic',
-    version: '1',
-    aliases: [name],
-    providesCapabilities: [normalizeSkillCapabilityReference(name)],
-    source: 'capability-foundation',
-  }));
+  const registrations = [...ECONOMIC_ATOMS, ...NATIVE_ATOMS].map(([name, description, mode]) => ({ descriptor: atomDescriptor(name, description, mode), namespace: 'kurukoo.atomic', version: '1', aliases: [name], providesCapabilities: [normalizeSkillCapabilityReference(name)], source: 'capability-foundation' }));
   registerCapabilities(registrations);
-  const skillRegistrations = getKnownCapabilitySkills().map(skill => {
-    const category = getEconomicCategory(skill);
-    const capabilities = category ? getSkillCapabilities(skill) : inferNativeComposition(skill);
-    return capabilityRegistrationForSkill(skill, capabilities);
-  });
+  registerCapabilities([{ descriptor: connectedResourceDescriptor(), namespace: 'kurukoo.connected', version: '1', aliases: ['device', 'connected_device', 'cctv', 'camera', 'iot'], requiresCapabilities: ['atomic.observe', 'atomic.view', 'atomic.control'], providesCapabilities: ['connected_resource'], source: 'connectedResourceService' }]);
+  const skillRegistrations = getKnownCapabilitySkills().map(skill => { const category = getEconomicCategory(skill); const capabilities = category ? getSkillCapabilities(skill) : inferNativeComposition(skill); return capabilityRegistrationForSkill(skill, capabilities); });
   registerCapabilities(skillRegistrations);
 }
 
-export function getRegisteredSkillCapabilityPlan(skill: string) {
-  ensureCapabilityFoundation();
-  return getCapabilityRegistration(`skill.${String(skill || '').trim().toLowerCase()}`);
-}
-
-export function isCapabilityAvailable(name: string): boolean {
-  ensureCapabilityFoundation();
-  return Boolean(getCapabilityRegistration(name));
-}
+export function getRegisteredSkillCapabilityPlan(skill: string) { ensureCapabilityFoundation(); return getCapabilityRegistration(`skill.${String(skill || '').trim().toLowerCase()}`); }
+export function isCapabilityAvailable(name: string): boolean { ensureCapabilityFoundation(); return Boolean(getCapabilityRegistration(name)); }
