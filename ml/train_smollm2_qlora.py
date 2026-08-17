@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DATASET = pathlib.Path(os.environ.get(
     "KURUKOO_TRAIN_DATASET",
-    str(ROOT / "ml" / "datasets" / "kurukoo-core-v1.train.jsonl"),
+    str(ROOT / "ml" / "datasets" / "kurukoo-accepted-v1.jsonl"),
 ))
 OUTPUT = pathlib.Path(os.environ.get(
     "KURUKOO_TRAIN_OUTPUT",
@@ -60,9 +60,22 @@ def read_rows(path: pathlib.Path):
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
             rows.append(json.loads(line))
-    if not rows:
-        raise RuntimeError(f"Training dataset is empty: {path}")
     return rows
+
+
+def assert_explicitly_accepted(rows):
+    rejected = []
+    for row in rows:
+        provenance = row.get("provenance") or {}
+        quality = row.get("quality") or {}
+        reviewed = row.get("reviewed") is True or provenance.get("reviewed") is True or quality.get("reviewed") is True
+        accepted = row.get("accepted") is True or quality.get("accepted") is True
+        if not reviewed or not accepted:
+            rejected.append(str(row.get("exampleId") or row.get("id") or "unknown"))
+    if rejected:
+        raise RuntimeError(f"Training corpus contains non-approved candidates; curate first. Rejected examples: {len(rejected)}")
+    if not rows:
+        raise RuntimeError("Training dataset is empty; no explicitly accepted examples are available")
 
 
 def row_to_text(row, tokenizer):
@@ -89,9 +102,19 @@ def main():
     print(f"dataset: {DATASET}")
 
     if not DATASET.exists():
-        raise SystemExit(f"Training dataset not found: {DATASET}. Run npm run ml:generate-universe first.")
+        if not ENABLE:
+            print(f"Accepted training dataset not present: {DATASET}")
+            print("Training is disabled. Run ml/curate_candidate_corpus.py after explicit review and acceptance.")
+            print("No model weights were created or promoted.")
+            return 0
+        raise SystemExit(f"Training dataset not found: {DATASET}. Run ml/curate_candidate_corpus.py first.")
 
     rows = read_rows(DATASET)
+    if ENABLE:
+        try:
+            assert_explicitly_accepted(rows)
+        except RuntimeError as exc:
+            raise SystemExit(str(exc)) from exc
     dataset_hash = sha256(DATASET)
     manifest = TrainingManifest(
         base_model=BASE_MODEL,

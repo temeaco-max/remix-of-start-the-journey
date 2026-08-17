@@ -19,7 +19,7 @@ ARTIFACT = pathlib.Path(os.environ.get(
 ))
 DATASET = pathlib.Path(os.environ.get(
     "KURUKOO_TRAIN_DATASET",
-    str(ROOT / "ml" / "datasets" / "kurukoo-core-v1.train.jsonl"),
+    str(ROOT / "ml" / "datasets" / "kurukoo-accepted-v1.jsonl"),
 ))
 EVAL = os.environ.get("KURUKOO_SMOLLM2_EVAL_SUMMARY")
 MIN_NATURALNESS = float(os.environ.get("KURUKOO_SMOLLM2_MIN_NATURALNESS", "0.80"))
@@ -44,7 +44,9 @@ def main():
     if not ARTIFACT.exists():
         return fail(f"artifact directory does not exist: {ARTIFACT}")
     if not DATASET.exists():
-        return fail(f"training dataset does not exist: {DATASET}")
+        return fail(f"accepted training dataset does not exist: {DATASET}")
+    if DATASET.stat().st_size == 0:
+        return fail("accepted training dataset is empty; no explicitly approved examples exist")
 
     manifest_path = ARTIFACT / "artifact-manifest.json"
     if not manifest_path.exists():

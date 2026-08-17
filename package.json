@@ -36,6 +36,7 @@
     "audit:main-truth": "node scripts/reconcile-main-truth.mjs",
     "test:outcome-completeness": "tsx scripts/test-outcome-completeness.ts",
     "ml:generate-universe": "tsx scripts/generate-smollm2-training-universe.ts",
+    "ml:curate": "python3 ml/curate_candidate_corpus.py",
     "ml:test-universe": "tsx scripts/test-smollm2-training-universe.ts",
     "test:smollm2-training-universe": "npm run ml:test-universe",
     "benchmark:conversation": "npm run scenario-lab:generate && tsx scripts/benchmark-conversational-trajectories.ts",

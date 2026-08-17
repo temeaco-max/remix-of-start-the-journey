@@ -129,3 +129,41 @@ shadow → canary → production
 ```
 
 The teacher and student are not allowed to mutate canonical Kurukoo state, invent provider/payment/evidence facts, or silently change runtime policy.
+
+## Actual student-model proving status
+
+The current proving workflow is explicit and fail-closed:
+
+```text
+canonical generators
+    ↓
+synthetic candidate corpora
+    ↓
+teacher generation/critique (untrusted)
+    ↓
+explicit review=true AND accepted=true
+    ↓
+ml/curate_candidate_corpus.py
+    ↓
+QLoRA training
+    ↓
+artifact verification
+    ↓
+head-to-head evaluation
+    ↓
+candidate → shadow → canary → active
+```
+
+Run curation with:
+
+```bash
+npm run ml:curate
+```
+
+The curator never assigns approval. On the current regenerated corpus, all 25,506 rows were synthetic but unreviewed, so the accepted corpus contains zero rows and training is correctly blocked. This is intentional: generated data is not automatically trusted training data.
+
+The 17 August 2026 structural scenario run generated 24,000 provider-outcome trajectories across 205 skills and 46 families, with 943,188 turns and horizons 5, 10, 20, 40, 80 and 81. Structural coverage passed, but this is not a model-quality or promotion result. The actual cached SmolLM2-1.7B baseline was also probed on the critical conversational benchmark; its measured outputs remain advisory and are not promoted as Kurukoo-trained behavior.
+
+A real training run requires an explicitly curated non-empty accepted corpus and `KURUKOO_ENABLE_TRAINING=true`. The trainer now rejects uncurated rows, records the accepted dataset hash and training parameters, and never changes production runtime selection.
+
+No Kurukoo-trained adapter has been produced or promoted in the current run.
