@@ -211,7 +211,7 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
   }
 
   const emergencyAction = normalized.capability === 'safety' && normalized.action === 'emergency_dispatch';
-  const validation = emergencyAction && criticalGuestInitialHelp
+  const validation = emergencyAction
     ? { valid: true as const }
     : validateCapabilityProposal(normalized, descriptor, { ownerVerified: hasAuthenticatedOwner || criticalGuestInitialHelp, objectVerified: true, stale: false, confirmationGranted: Boolean(normalized.confirmationGranted) });
   if (!validation.valid) {
