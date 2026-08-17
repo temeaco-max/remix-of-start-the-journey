@@ -4,6 +4,9 @@ import type { AISemanticCapabilityProposal } from './aiSemanticProposalService.j
 import { reconcileAICapabilityProposal } from './aiCapabilityReconciliationService.js';
 import { deriveActionInteractionPolicy, deriveActionInteractionPolicyForName, type CapabilityInteractionPolicy } from './actionInteractionPolicyService.js';
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
+import { registerCapability, resolveCapabilityComposition } from './capabilityRegistry.js';
+import { capabilityRegistrationForSkill, ensureCapabilityFoundation, normalizeSkillCapabilityReference } from './capabilityFoundation.js';
+import { getSkillCapabilities } from './skillFlows.js';
 
 export type CapabilityProposalPosture = 'none' | 'clarify' | 'propose' | 'control';
 
@@ -19,6 +22,7 @@ export interface AICapabilityProposal {
   preserveContext: boolean;
   requiresCanonicalValidation: true;
   source: 'canonical-routing' | 'semantic-model';
+  capabilityPlan?: string[];
 }
 
 export interface AICapabilityOrchestrationDecision {
@@ -58,8 +62,19 @@ function extractCanonicalObjectId(entities: Record<string, unknown> | undefined)
 
 function descriptorFromDecision(capability: string, routing: IntentRoutingResult): UniversalCapabilityDescriptor | undefined {
   const candidate = (routing as IntentRoutingResult & { capabilityDescriptor?: UniversalCapabilityDescriptor }).capabilityDescriptor;
-  if (candidate?.capability === capability) return candidate;
-  return undefined;
+  return candidate?.capability === capability ? candidate : undefined;
+}
+
+function ensureSkillComposition(skill: string): { capabilityPlan: string[]; skillDescriptor: UniversalCapabilityDescriptor } {
+  ensureCapabilityFoundation();
+  const required = getSkillCapabilities(skill).map(normalizeSkillCapabilityReference);
+  const registration = capabilityRegistrationForSkill(skill, required);
+  registerCapability(registration);
+  const composition = resolveCapabilityComposition([registration.descriptor.capability]);
+  return {
+    capabilityPlan: composition.ordered.map(item => item.descriptor.capability),
+    skillDescriptor: registration.descriptor,
+  };
 }
 
 export function buildAICapabilityOrchestration(
@@ -79,10 +94,11 @@ export function buildAICapabilityOrchestration(
     return { mode: contract.mode, shouldTalk: true, shouldPresentCanonicalResult, shouldProposeCapability: false, reason: 'ordinary-conversation-or-non-capability-turn' };
   }
 
-  const descriptor = descriptorFromDecision(finalCapability, routing);
-  const interactionPolicy = descriptor
+  const composition = ensureSkillComposition(finalCapability);
+  const descriptor = descriptorFromDecision(finalCapability, routing) || composition.skillDescriptor;
+  const interactionPolicy = descriptorFromDecision(finalCapability, routing)
     ? deriveActionInteractionPolicy(descriptor, finalAction)
-    : deriveActionInteractionPolicyForName(finalCapability, finalAction);
+    : deriveActionInteractionPolicyForName(finalCapability, finalAction, descriptor);
   const forcedInterrupt = interactionPolicy.interruption === 'immediate';
   const shouldProposeCapability = Boolean(finalCapability && (finalAction || semanticProposal) && (finalPosture !== 'none' || forcedInterrupt) && (contract.requiresStructuredProposal || forcedInterrupt));
 
@@ -98,6 +114,7 @@ export function buildAICapabilityOrchestration(
     preserveContext: interactionPolicy.preservesPriorGoals,
     requiresCanonicalValidation: true,
     source: reconciled.source === 'semantic' || reconciled.source === 'reconciled' ? 'semantic-model' : 'canonical-routing',
+    capabilityPlan: composition.capabilityPlan,
   };
 
   return {
@@ -107,7 +124,7 @@ export function buildAICapabilityOrchestration(
     shouldProposeCapability,
     interactionPolicy,
     proposal: shouldProposeCapability ? proposal : undefined,
-    reason: shouldProposeCapability ? reconciled.reason : 'canonical-routing-result-remains-authoritative',
+    reason: shouldProposeCapability ? `${reconciled.reason}; capability composition resolved through canonical atomic capabilities` : 'canonical-routing-result-remains-authoritative',
   };
 }
 
