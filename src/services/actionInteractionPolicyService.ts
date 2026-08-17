@@ -1,5 +1,5 @@
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
-import { deriveCapabilityInteractionPolicy, deriveInteractionPolicyForCapabilityName, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
+import { deriveCapabilityInteractionPolicy, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 
 const READ_ONLY = /^(answer|clarify|continue|inspect|view|list|open|preview|show|check|status|read|availability|quote|search|find|discover|explain)$/i;
 const COMMIT = /^(create|update|change|save|send|publish|post|reply|invite|claim|redeem|select|book|hire|order|purchase|pay|authorize|confirm|cancel|delete|forget|revoke|pause|resume|stop|dispatch|connect|dial|execute|complete)$/i;
@@ -36,8 +36,4 @@ export function deriveActionInteractionPolicy(descriptor: UniversalCapabilityDes
   if (base.draftVsCommitRequired && READ_ONLY.test(normalized)) return { ...base, action: normalized, confirmation: 'none', exactIdentityRequired: false };
   if (COMMIT.test(normalized)) return { ...base, action: normalized, exactIdentityRequired: true };
   return { ...base, action: normalized };
-}
-
-export function deriveActionInteractionPolicyForName(capability: string, action?: string, fallback: Partial<UniversalCapabilityDescriptor> = {}): CapabilityInteractionPolicy {
-  return deriveInteractionPolicyForCapabilityName(capability, fallback, action);
 }
