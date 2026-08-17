@@ -19,6 +19,7 @@
     "test:conversation-models": "npm run test:conversational-provider-selection",
     "test:ai-semantic-proposal": "tsx scripts/test-ai-semantic-proposal.ts",
     "test:conversation-generation": "tsx scripts/test-conversational-generation.ts",
+    "test:capability-conversation-guidance": "tsx scripts/test-capability-conversation-guidance.ts",
     "test:conversation-reconciliation": "tsx scripts/test-conversation-reconciliation.ts",
     "test:conversation-cache-isolation": "tsx scripts/test-conversation-cache-isolation.ts",
     "test:universal-conversation-card-boundary": "tsx scripts/test-universal-conversation-card-boundary.ts",

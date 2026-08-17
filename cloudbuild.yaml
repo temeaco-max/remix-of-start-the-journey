@@ -42,7 +42,7 @@ substitutions:
   _SERVICE: kurukoo
   _REGION: europe-west2
   _IMAGE: europe-west2-docker.pkg.dev/$PROJECT_ID/kurukoo/kurukoo:$SHORT_SHA
-  _MEMORY: 8Gi
+  _MEMORY: 4Gi
   _CPU: '4'
   _CONCURRENCY: '1'
   _TIMEOUT: '300s'
