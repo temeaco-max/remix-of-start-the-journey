@@ -37,6 +37,8 @@ Emergency and urgent safety capabilities can interrupt ordinary onboarding, remi
 
 Initial emergency help must not require registration where registration is not technically or legally necessary. Actual dispatch or connection must remain evidence-gated.
 
+The current emergency foundation uses the canonical `safety` capability and the verified Nigeria emergency directory. Nigeria's national emergency route is represented as `112`; local emergency contact entries must remain source-attributed and separately verified before activation.
+
 ### Scheduled interruption
 
 Reminders are background capabilities that can interrupt at their trigger time according to the user's configured reminder behaviour. The conversation that was interrupted remains resumable.
@@ -53,12 +55,24 @@ Payments, subscriptions, remote/device controls, orders, communications, and oth
 
 Conversation does not automatically become durable memory. Store/forget actions remain explicit and target exact owner-scoped memory context.
 
+## Priority detection
+
+`src/services/conversationPriorityService.ts` provides a pre-routing priority decision for critical emergencies, explicit agent-control commands, security interruptions and reminder requests. This decision is intended to be applied before ordinary onboarding and generic semantic routing so high-priority turns cannot be swallowed by lower-priority feature flows.
+
+## Emergency execution boundary
+
+`src/services/emergencyDirectoryService.ts` contains source-attributed emergency contact records. `src/services/canonicalCapabilityExecutor.ts` recognizes `safety.emergency_dispatch` and can return a truthful externally-pending result with the emergency number and dial/voice continuation actions. It does not claim that a call, responder connection or dispatch occurred until an external voice/telephony adapter provides evidence.
+
 ## Enforcement
 
 `src/services/capabilityInteractionPolicyService.ts` derives policy from the existing `UniversalCapabilityDescriptor`. AI capability proposals include the derived policy where available. The canonical capability/action protocol remains authoritative for ownership, authorization, mutation, execution and evidence.
 
 `deriveInteractionPolicyForCapabilityName()` allows the policy contract to be applied to virtual or future capabilities before they have a dedicated catalog descriptor, without creating a second registry.
 
+The canonical executor also applies the interaction policy at execution time. This is important because an AI proposal alone must never decide whether authentication, confirmation, exact identity or guest initial handling can be bypassed.
+
 ## Regression
 
-`scripts/test-capability-interaction-policy.ts` validates the complete current capability catalog and representative virtual profiles for emergency dispatch, remote/device control, reminders and subscription changes.
+`scripts/test-capability-interaction-policy.ts` validates the current capability catalog and representative virtual profiles for emergency dispatch, remote/device control, reminders and subscription changes.
+
+`scripts/test-interaction-priority-emergency.ts` validates emergency pre-emption, guest initial handling, canonical 112 routing and the distinction between emergency guest handling and ordinary guest account-owned actions.
