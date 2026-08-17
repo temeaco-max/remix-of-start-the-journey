@@ -9,7 +9,7 @@ spec:
     metadata:
       annotations:
         autoscaling.knative.dev/minScale: "0"
-        autoscaling.knative.dev/maxScale: "1"
+        autoscaling.knative.dev/maxScale: "3"
         run.googleapis.com/startup-cpu-boost: "true"
     spec:
       containerConcurrency: 1
@@ -20,8 +20,8 @@ spec:
             - containerPort: 8080
           resources:
             limits:
-              cpu: "2"
-              memory: 4Gi
+              cpu: "4"
+              memory: 8Gi
           startupProbe:
             httpGet:
               path: /health
@@ -42,16 +42,22 @@ spec:
             - name: HOST
               value: "0.0.0.0"
             - name: KURUKOO_SMOLLM2_LOCAL
-              value: "false"
+              value: "true"
+            - name: KURUKOO_CLOUD_RUN_REQUIRE_MODEL
+              value: "true"
             - name: SMOLLM2_MODEL
               value: HuggingFaceTB/SmolLM2-1.7B-Instruct
             - name: SMOLLM2_FALLBACK_MODEL
               value: HuggingFaceTB/SmolLM2-1.7B-Instruct
             - name: SMOLLM2_DTYPE
               value: q4
+            - name: SMOLLM2_MAX_NEW_TOKENS
+              value: "192"
             - name: HF_HOME
               value: /tmp/huggingface
             - name: HF_HUB_CACHE
+              value: /tmp/huggingface
+            - name: KURUKOO_SMOLLM2_CACHE_DIR
               value: /tmp/huggingface
             - name: KURUKOO_WORKERS
               value: "0"
