@@ -54,6 +54,23 @@ function atomDescriptor(name: string, description: string, mode: string): Univer
   };
 }
 
+function inferNativeComposition(skill: string): string[] {
+  const normalized = String(skill || '').trim().toLowerCase();
+  const capabilities = new Set<string>(['observe']);
+  if (/^(remind|reminder|schedule|calendar|grocery_reminder|mot_reminder)/.test(normalized)) capabilities.add('schedule');
+  if (/^(memory|remember|forget|preference)/.test(normalized)) capabilities.add('remember');
+  if (/^(agent|delegate|monitor|watch|keep_checking)/.test(normalized)) capabilities.add('delegate');
+  if (/^(notify|notification|alert)/.test(normalized)) capabilities.add('notify');
+  if (/^(voice|call|message|send|contact|communicat|topic|reply|share)/.test(normalized)) capabilities.add('communicate');
+  if (/^(device|tv|cctv|camera|iot|remote|smart_)/.test(normalized)) capabilities.add('view');
+  if (/^(device|tv|cctv|camera|iot|remote|smart_).*(_control|_command|control|command)/.test(normalized)) capabilities.add('control');
+  if (/^(locate|location|nearby|map|place)/.test(normalized)) capabilities.add('locate');
+  if (/^(auth|verify|identity|account)/.test(normalized)) capabilities.add('authenticate');
+  if (/^(coordinate|coordination|escalat|support|safety|emergency)/.test(normalized)) capabilities.add('coordinate');
+  if (capabilities.size === 1) capabilities.add('communicate');
+  return [...capabilities];
+}
+
 export function normalizeSkillCapabilityReference(name: string): string {
   const normalized = String(name || '').trim().toLowerCase();
   if (normalized.startsWith('atomic.') || normalized.startsWith('capability.')) return normalized;
@@ -66,16 +83,17 @@ export function capabilityRegistrationForSkill(skill: string, requiredCapabiliti
   const requiredInputs = requirements.filter(requirement => requirement.required).map(requirement => ({ key: requirement.key, label: requirement.label, required: true }));
   const optionalInputs = requirements.filter(requirement => !requirement.required).map(requirement => ({ key: requirement.key, label: requirement.label, required: false }));
   const requiresExternalActivation = requiredCapabilities.some(name => ['payment', 'escrow', 'fulfillment', 'tracking', 'evidence', 'discovery'].includes(String(name).toLowerCase()));
-  const confirmationRequired = requiredCapabilities.some(name => ['payment', 'escrow', 'fulfillment', 'completion', 'dispute'].includes(String(name).toLowerCase()));
+  const confirmationRequired = requiredCapabilities.some(name => ['payment', 'escrow', 'fulfillment', 'completion', 'dispute', 'control'].includes(String(name).toLowerCase()));
+  const mode = category === 'uncategorized' ? 'conversation' as const : 'structured_action' as const;
   return {
     descriptor: {
       kind: 'skill' as const,
       capability: `skill.${skill}`,
       family: category,
-      mode: requiredCapabilities.length ? 'structured_action' as const : 'conversation' as const,
+      mode,
       actions: ['understand', 'clarify', 'start', 'review', 'update', 'cancel', 'resume'],
       context: { requiredInputs, optionalInputs },
-      permissions: ['authenticated_owner'],
+      permissions: requiredCapabilities.some(capability => ['payment', 'control', 'remember', 'delegate'].includes(String(capability).toLowerCase())) ? ['authenticated_owner'] : ['guest_initial_help', 'authenticated_owner'],
       owner: ['canonicalChatTurnService', 'skillFlows', 'capabilityRegistry'],
       risk: confirmationRequired ? 'confirmation_required' as const : 'low_risk' as const,
       consentRequired: confirmationRequired,
@@ -108,7 +126,11 @@ export function ensureCapabilityFoundation(): void {
     source: 'capability-foundation',
   }));
   registerCapabilities(registrations);
-  const skillRegistrations = getKnownSkills().map(skill => capabilityRegistrationForSkill(skill, getSkillCapabilities(skill)));
+  const skillRegistrations = getKnownSkills().map(skill => {
+    const category = getEconomicCategory(skill);
+    const capabilities = category ? getSkillCapabilities(skill) : inferNativeComposition(skill);
+    return capabilityRegistrationForSkill(skill, capabilities);
+  });
   registerCapabilities(skillRegistrations);
 }
 
