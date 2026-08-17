@@ -20,10 +20,10 @@ export function resolveConversationPriority(message: string): ConversationPriori
   if (!text) return { kind: 'none', policy: deriveInteractionPolicyForCapabilityName('conversation'), shouldPreemptCurrentContext: false, guestAllowedForInitialHandling: true, requiresAuthenticationBeforeAction: false, capability: 'conversation', reason: 'empty-turn' };
 
   if (EMERGENCY_PATTERN.test(text)) {
-    const policy = deriveInteractionPolicyForCapabilityName('emergency.dispatch', {
-      family: 'safety', mode: 'external_execution', actions: ['assess', 'dial', 'connect'], risk: 'high_risk', activationState: 'repository_ready_external_activation',
+    const policy = deriveInteractionPolicyForCapabilityName('safety', {
+      family: 'safety', mode: 'external_execution', actions: ['assess', 'emergency_dispatch', 'dial', 'connect'], risk: 'high_risk', activationState: 'repository_ready_external_activation',
     });
-    return { kind: 'emergency', policy, shouldPreemptCurrentContext: true, guestAllowedForInitialHandling: true, requiresAuthenticationBeforeAction: false, capability: 'emergency.dispatch', reason: 'critical-emergency-language-detected-before-normal-routing' };
+    return { kind: 'emergency', policy, shouldPreemptCurrentContext: true, guestAllowedForInitialHandling: true, requiresAuthenticationBeforeAction: false, capability: 'safety', reason: 'critical-emergency-language-detected-before-normal-routing' };
   }
 
   if (AGENT_CONTROL_PATTERN.test(text)) {
