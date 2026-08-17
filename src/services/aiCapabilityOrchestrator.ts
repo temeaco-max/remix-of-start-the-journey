@@ -4,9 +4,8 @@ import type { AISemanticCapabilityProposal } from './aiSemanticProposalService.j
 import { reconcileAICapabilityProposal } from './aiCapabilityReconciliationService.js';
 import { deriveActionInteractionPolicy, deriveActionInteractionPolicyForName, type CapabilityInteractionPolicy } from './actionInteractionPolicyService.js';
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
-import { registerCapability, resolveCapabilityComposition } from './capabilityRegistry.js';
-import { capabilityRegistrationForSkill, ensureCapabilityFoundation, normalizeSkillCapabilityReference } from './capabilityFoundation.js';
-import { getSkillCapabilities } from './skillFlows.js';
+import { ensureCapabilityFoundation, getRegisteredSkillCapabilityPlan } from './capabilityFoundation.js';
+import { resolveSkillCapabilityComposition } from './capabilityFoundationIntegration.js';
 
 export type CapabilityProposalPosture = 'none' | 'clarify' | 'propose' | 'control';
 
@@ -67,14 +66,12 @@ function descriptorFromDecision(capability: string, routing: IntentRoutingResult
 
 function ensureSkillComposition(skill: string): { capabilityPlan: string[]; skillDescriptor: UniversalCapabilityDescriptor } {
   ensureCapabilityFoundation();
-  const required = getSkillCapabilities(skill).map(normalizeSkillCapabilityReference);
-  const registration = capabilityRegistrationForSkill(skill, required);
-  registerCapability(registration);
-  const composition = resolveCapabilityComposition([registration.descriptor.capability]);
-  return {
-    capabilityPlan: composition.ordered.map(item => item.descriptor.capability),
-    skillDescriptor: registration.descriptor,
-  };
+  const registration = getRegisteredSkillCapabilityPlan(skill);
+  const composition = resolveSkillCapabilityComposition(skill);
+  const skillDescriptor = registration?.descriptor || composition.ordered.find(item => item.descriptor.capability === `skill.${skill}`)?.descriptor;
+  if (!skillDescriptor) throw new Error(`No canonical capability composition registered for skill ${skill}.`);
+  if (composition.unresolved.length || composition.cycle?.length) throw new Error(`Invalid capability composition for skill ${skill}.`);
+  return { capabilityPlan: composition.ordered.map(item => item.descriptor.capability), skillDescriptor };
 }
 
 export function buildAICapabilityOrchestration(
@@ -90,9 +87,7 @@ export function buildAICapabilityOrchestration(
   const finalAction = reconciled.action || routing.canonicalAction;
   const finalPosture = reconciled.posture === 'none' ? posture : reconciled.posture;
 
-  if (!finalCapability || NON_CAPABILITY_SKILLS.has(routing.skill)) {
-    return { mode: contract.mode, shouldTalk: true, shouldPresentCanonicalResult, shouldProposeCapability: false, reason: 'ordinary-conversation-or-non-capability-turn' };
-  }
+  if (!finalCapability || NON_CAPABILITY_SKILLS.has(routing.skill)) return { mode: contract.mode, shouldTalk: true, shouldPresentCanonicalResult, shouldProposeCapability: false, reason: 'ordinary-conversation-or-non-capability-turn' };
 
   const composition = ensureSkillComposition(finalCapability);
   const descriptor = descriptorFromDecision(finalCapability, routing) || composition.skillDescriptor;
@@ -117,15 +112,7 @@ export function buildAICapabilityOrchestration(
     capabilityPlan: composition.capabilityPlan,
   };
 
-  return {
-    mode: contract.mode,
-    shouldTalk: contract.shouldGenerateNaturalResponse,
-    shouldPresentCanonicalResult,
-    shouldProposeCapability,
-    interactionPolicy,
-    proposal: shouldProposeCapability ? proposal : undefined,
-    reason: shouldProposeCapability ? `${reconciled.reason}; capability composition resolved through canonical atomic capabilities` : 'canonical-routing-result-remains-authoritative',
-  };
+  return { mode: contract.mode, shouldTalk: contract.shouldGenerateNaturalResponse, shouldPresentCanonicalResult, shouldProposeCapability, interactionPolicy, proposal: shouldProposeCapability ? proposal : undefined, reason: shouldProposeCapability ? `${reconciled.reason}; capability composition resolved through canonical registry` : 'canonical-routing-result-remains-authoritative' };
 }
 
 export default buildAICapabilityOrchestration;
