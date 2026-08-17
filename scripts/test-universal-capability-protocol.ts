@@ -5,6 +5,24 @@ import {
   validateCapabilityProposal,
   type CapabilityActionProposal,
 } from '../src/services/universalCapabilityProtocol.js';
+import { ensureCapabilityFoundation, normalizeSkillCapabilityReference } from '../src/services/capabilityFoundation.js';
+import { getCapabilityRegistration, listCapabilityRegistrations, resolveCapabilityComposition, validateCapabilityRegistry } from '../src/services/capabilityRegistry.js';
+import { getSkillCapabilities } from '../src/services/skillFlows.js';
+
+ensureCapabilityFoundation();
+const fabricValidation = validateCapabilityRegistry();
+assert.equal(fabricValidation.valid, true, `capability fabric must be internally valid: ${JSON.stringify(fabricValidation)}`);
+assert.ok(getCapabilityRegistration('discovery'), 'atomic discovery must be registered');
+assert.ok(getCapabilityRegistration('control'), 'atomic connected-resource control must be registered');
+assert.ok(getCapabilityRegistration('execute'), 'atomic execution must be registered');
+assert.ok(getCapabilityRegistration('view'), 'atomic read-only view must be registered');
+const skillRequirements = getSkillCapabilities('find_worker').map(normalizeSkillCapabilityReference);
+const skillComposition = resolveCapabilityComposition(skillRequirements);
+assert.equal(skillComposition.unresolved.length, 0, `find_worker capability composition must resolve: ${skillComposition.unresolved.join(', ')}`);
+assert.ok(skillComposition.ordered.some(item => item.descriptor.capability === 'atomic.discovery'), 'skill plans must include discovery as a reusable atomic capability');
+assert.ok(skillComposition.ordered.some(item => item.descriptor.capability === 'atomic.verification'), 'skill plans must include verification as a reusable atomic capability');
+assert.ok(skillComposition.ordered.some(item => item.descriptor.capability === 'atomic.fulfillment'), 'skill plans must include fulfillment as a reusable atomic capability');
+assert.ok(listCapabilityRegistrations().length >= 29, 'capability foundation must expose a reusable atomic vocabulary rather than only vertical feature names');
 
 const catalog = await listUniversalCapabilities();
 assert.ok(catalog.length >= 205, `expected the canonical catalog to cover the known skills, got ${catalog.length}`);
@@ -54,4 +72,4 @@ assert.equal(unavailable.status, 'unavailable_external_dependency');
 assert.ok(unavailable.retryRecovery.some(action => action.action === 'retry'));
 assert.ok(unavailable.retryRecovery.some(action => action.action === 'resume'));
 
-console.log(`Universal capability protocol regression passed: ${catalog.length} canonical capabilities, exact-context validation, result states, and recovery paths verified.`);
+console.log(`Universal capability protocol regression passed: ${catalog.length} canonical capabilities plus ${listCapabilityRegistrations().length} composable registry capabilities, exact-context validation, result states, and recovery paths verified.`);
