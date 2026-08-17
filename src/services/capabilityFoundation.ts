@@ -1,5 +1,6 @@
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 import { registerCapabilities, getCapabilityRegistration } from './capabilityRegistry.js';
+import { getKnownSkills, getSkillCapabilities } from './skillFlows.js';
 
 const ECONOMIC_ATOMS = [
   ['discovery', 'Discover relevant entities, opportunities or sources.', 'read_only'],
@@ -59,18 +60,6 @@ export function normalizeSkillCapabilityReference(name: string): string {
   return `atomic.${normalized}`;
 }
 
-export function ensureCapabilityFoundation(): void {
-  const registrations = [...ECONOMIC_ATOMS, ...NATIVE_ATOMS].map(([name, description, mode]) => ({
-    descriptor: atomDescriptor(name, description, mode),
-    namespace: 'kurukoo.atomic',
-    version: '1',
-    aliases: [name],
-    providesCapabilities: [normalizeSkillCapabilityReference(name)],
-    source: 'capability-foundation',
-  }));
-  registerCapabilities(registrations);
-}
-
 export function capabilityRegistrationForSkill(skill: string, requiredCapabilities: string[]) {
   return {
     descriptor: {
@@ -102,6 +91,24 @@ export function capabilityRegistrationForSkill(skill: string, requiredCapabiliti
     requiresCapabilities: requiredCapabilities.map(normalizeSkillCapabilityReference),
     source: 'skill-composition',
   };
+}
+
+export function ensureCapabilityFoundation(): void {
+  const registrations = [...ECONOMIC_ATOMS, ...NATIVE_ATOMS].map(([name, description, mode]) => ({
+    descriptor: atomDescriptor(name, description, mode),
+    namespace: 'kurukoo.atomic',
+    version: '1',
+    aliases: [name],
+    providesCapabilities: [normalizeSkillCapabilityReference(name)],
+    source: 'capability-foundation',
+  }));
+  registerCapabilities(registrations);
+
+  // Every known skill is a composition over the same atomic capability fabric.
+  // This removes the need for a hand-maintained skill allow-list in downstream
+  // systems such as agent eligibility, orchestration and capability discovery.
+  const skillRegistrations = getKnownSkills().map(skill => capabilityRegistrationForSkill(skill, getSkillCapabilities(skill)));
+  registerCapabilities(skillRegistrations);
 }
 
 export function isCapabilityAvailable(name: string): boolean {
