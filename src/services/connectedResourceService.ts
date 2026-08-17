@@ -130,6 +130,18 @@ export async function resolveConnectedResource(input: { phone: string; id?: stri
   return null;
 }
 
+export async function buildConnectedResourceContext(phone?: string): Promise<string> {
+  if (!phone || phone.startsWith('anon_')) return '';
+  const resources = await listConnectedResources(phone);
+  if (!resources.length) return '';
+  const lines = resources.slice(0, 24).map(resource => {
+    const caps = resource.capabilities.length ? resource.capabilities.join(', ') : 'no controls declared';
+    const views = resource.viewUrl || resource.streamUrl ? 'live/view media available' : 'no view media exposed';
+    return `- ${resource.label} (${resource.kind}${resource.vendor ? `, ${resource.vendor}` : ''}): ${caps}; ${views}`;
+  });
+  return lines.join('\n');
+}
+
 export async function markConnectedResourceSeen(phone: string, id: string): Promise<void> {
   await ensureSchema();
   const db = await getDb();
