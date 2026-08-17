@@ -41,6 +41,7 @@ import { getSmolLM2RuntimeStatus } from '../services/smolLm2Service.js';
 import { getTelegramLinkedDeviceStatus, startTelegramLinkedDevice, stopTelegramLinkedDevice } from '../services/telegramLinkedDeviceService.js';
 import { getWhatsAppLinkedDeviceStatus } from '../services/whatsappLinkedDeviceService.js';
 import { listTrustedDevices, revokeTrustedDevice } from '../services/progressiveTrustService.js';
+import { listCurationCandidates, getCurationCandidate, reviewCurationCandidate, rewriteCurationCandidate, getCurationStats, getAcceptedCorpusGate, getCurationAudit } from '../services/curationService.js';
 
 const router = Router();
 
@@ -1250,5 +1251,40 @@ router.put('/commissions/:id', authenticateAdmin, async (req: AuthRequest, res) 
 });
 
 
+
+// ── Conversational training curation Control Room ─────────────────────────
+router.get('/curation/queue', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const result = await listCurationCandidates({ status: req.query.status ? String(req.query.status) : undefined, limit: Number(req.query.limit || 50), offset: Number(req.query.offset || 0) });
+    res.json({ success: true, ...result, acceptanceRule: 'reviewed=true AND accepted=true; scores and teacher confidence never imply acceptance' });
+  } catch { res.status(500).json({ success: false, error: 'Unable to load the curation queue' }); }
+});
+router.get('/curation/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try { res.json({ success: true, ...(await getCurationStats()) }); } catch { res.status(500).json({ success: false, error: 'Unable to load curation statistics' }); }
+});
+router.get('/curation/coverage', authenticateAdmin, async (req: AuthRequest, res) => {
+  try {
+    const requirements = req.query.requirements ? JSON.parse(String(req.query.requirements)) : { skill: 1, actor: 1, market: 1, locale: 1, lifecycle: 1 };
+    res.json({ success: true, ...(await getAcceptedCorpusGate(requirements)) });
+  } catch { res.status(400).json({ success: false, error: 'Invalid coverage requirements' }); }
+});
+router.get('/curation/candidates/:exampleId', authenticateAdmin, async (req: AuthRequest, res) => {
+  const candidate = await getCurationCandidate(String(req.params.exampleId || ''));
+  if (!candidate) return res.status(404).json({ success: false, error: 'Candidate not found' });
+  return res.json({ success: true, candidate, audit: await getCurationAudit(candidate.exampleId) });
+});
+router.post('/curation/candidates/:exampleId/decision', authenticateAdmin, async (req: AuthRequest, res) => {
+  const reviewerId = String(req.user?.phone || process.env.ADMIN_USERNAME || 'admin');
+  const result = await reviewCurationCandidate({ exampleId: String(req.params.exampleId || ''), decision: String(req.body?.decision || '') as any, reviewerId, notes: req.body?.notes ? String(req.body.notes) : undefined, reason: req.body?.reason ? String(req.body.reason) : undefined, datasetVersion: req.body?.datasetVersion ? String(req.body.datasetVersion) : undefined });
+  if (!result.ok) return res.status(result.status === 'missing' ? 404 : 400).json({ success: false, ...result });
+  return res.json({ success: true, ...result });
+});
+router.post('/curation/candidates/:exampleId/rewrite', authenticateAdmin, async (req: AuthRequest, res) => {
+  const reviewerId = String(req.user?.phone || process.env.ADMIN_USERNAME || 'admin');
+  const result = await rewriteCurationCandidate({ exampleId: String(req.params.exampleId || ''), trajectory: req.body?.trajectory, reviewerId, notes: req.body?.notes ? String(req.body.notes) : undefined, reason: req.body?.reason ? String(req.body.reason) : undefined });
+  if (!result.ok) return res.status(result.status === 'missing' ? 404 : 400).json({ success: false, ...result });
+  return res.status(201).json({ success: true, ...result });
+});
+router.get('/curation/candidates/:exampleId/audit', authenticateAdmin, async (req: AuthRequest, res) => res.json({ success: true, audit: await getCurationAudit(String(req.params.exampleId || '')) }));
 
 export default router;

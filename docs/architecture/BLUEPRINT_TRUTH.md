@@ -168,3 +168,14 @@ The SmolLM2 programme now distinguishes corpus generation, explicit candidate cu
 On 17 August 2026 the current generators produced a 24,000-trajectory provider-outcome laboratory with 943,188 synthetic turns, 205 skills and 46 families. Structural corpus thresholds passed, but no model improvement is inferred from that result. The current accepted corpus contained zero explicitly approved examples, so QLoRA training was blocked before model loading. The cached q4 SmolLM2-1.7B base was measured separately on the critical conversational benchmark; no Kurukoo-trained adapter was produced, registered, promoted or activated.
 
 The model registry remains unchanged. Any future candidate must provide an immutable adapter artifact, base-model and accepted-dataset hashes, training metadata, golden/adversarial/long-horizon/capability/safety/resource evaluations and a human-reviewed candidate-to-shadow-to-canary decision. No model may bypass canonical identity, confirmation, truthfulness, authorization or execution boundaries.
+
+
+## Student-model curation truth — 17 August 2026
+
+| Capability | Current truth | Status |
+|---|---|---|
+| Teacher candidate queue | Existing teacher candidates can be imported into the protected Admin Control Room queue with trajectory, provenance, metadata, scores, failure dimensions and pending review status. | IMPLEMENTED_AND_VERIFIED |
+| Human review surface | `/admin/curation.html` reuses the existing admin authentication boundary and lets an authorized reviewer inspect, accept, reject, request rewrite, or request second review with notes and reasons. | IMPLEMENTED_AND_VERIFIED |
+| Rewrite lineage | A rewrite creates a new pending candidate linked to the original through `rewrite_of`, `original_id`, version, provenance and audit records. | IMPLEMENTED_AND_VERIFIED |
+| Accepted-corpus gate | `reviewed=true AND accepted=true` is mandatory; scores, teacher confidence and provider identity never imply acceptance. Configurable coverage minimums fail closed before training. | IMPLEMENTED_AND_VERIFIED |
+| Offline training | The Control Room prepares and audits corpus readiness but never launches training. QLoRA remains an explicit offline operation and no trained adapter is claimed until accepted data, coverage, training and verification exist. | IMPLEMENTED_FEATURE_FLAGGED |

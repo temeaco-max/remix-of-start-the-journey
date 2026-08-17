@@ -43,3 +43,7 @@ reviewed == true AND accepted == true
 ```
 
 `ml/curate_candidate_corpus.py` enforces this predicate, rejects production or personal data, deduplicates example identifiers, records rejection reasons and hashes, and produces an accepted corpus only when explicit approvals already exist. A missing teacher key, quota, privacy decision or provider connection therefore leaves the teacher tier unavailable; it does not fabricate candidates or block the deterministic synthetic generator.
+
+## Human curation and rewrite lineage
+
+Teacher output is imported into the existing Admin Control Room queue at `/admin/curation.html`; it is not automatically accepted. Reviewers see the complete trajectory, provenance, teacher score, and flagged failure dimensions, then record an explicit accept, reject, rewrite, or second-review decision with notes. A rewrite is a new candidate linked to the original through `rewrite_of` and `original_id`; it must return to `pending` and receive a separate review. Provider identity, model identity, confidence, and teacher agreement are evidence for prioritisation only, never acceptance authority.

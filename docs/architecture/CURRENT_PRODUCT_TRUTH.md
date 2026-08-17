@@ -148,3 +148,12 @@ Cloud Run proving preparation now exists within the existing application archite
 ## Cross-topic continuation correction — 17 August 2026
 
 Live acceptance exposed and corrected a universal arbitration defect: when an open cleaner request had a pending location field, the later statement “My phone is acting weird” was previously treated as a name/location clarification. The arbiter now treats standalone problem descriptions as conversation-only topic switches when they protect an active request, while leaving them as ordinary general conversation when no request is active. A subsequent explicit “I need someone to fix it” is a new Economic Request, not a recency-based continuation of the cleaner request. “Actually leave that for now,” a reminder switch, “go back to the phone,” relative price language and final confirmation were then verified through the real Chat SSE path. Missing job/location and verified quote/evidence gates continued to block external execution truthfully.
+
+
+## Human-curated student-model workflow — 17 August 2026
+
+The repository now includes the canonical human-in-the-loop curation workflow within the existing Admin Control Room. `/admin/curation.html` is a protected administrative review surface; its `/api/admin/curation/*` routes require the existing admin authentication boundary. Teacher candidates are imported as pending, untrusted records with trajectory, provenance, metadata, score and failure dimensions. Reviewers can inspect the complete candidate, record accept/reject/second-review decisions, or submit a rewrite that creates a new linked pending version without replacing the original.
+
+The acceptance predicate remains explicit: `reviewed=true AND accepted=true`. Scores, teacher confidence, provider identity, fluency, or generation source never imply acceptance. Reviewer identity, timestamp, decision, reason, notes, candidate version and optional dataset version are recorded for audit. The offline curator additionally fails closed when accepted rows do not meet the configured minimum composition across skill, actor, market, locale, scenario type, natural conversation, adversarial cases and long-horizon cases. The admin surface prepares data only; it never launches training or promotes a model.
+
+The current truthful state is that the review workflow is repository-side ready, while the accepted corpus remains empty until a human reviewer explicitly accepts suitable candidates and the resulting corpus meets coverage requirements. No Kurukoo-trained adapter or production model activation is claimed.

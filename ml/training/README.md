@@ -34,3 +34,9 @@ On the current regenerated synthetic inputs, the curation result was:
 | Production runtime changed | No |
 
 This is a measured gate result, not a training failure caused by hardware. Once a human-approved accepted corpus exists, the opt-in trainer records base model, dataset SHA-256, sequence length, epochs, batch size, gradient accumulation, learning rate, quantization request, seed, output path and candidate-only status. It does not promote or activate an adapter.
+
+## Curation admission and composition gate
+
+The Admin Control Room prepares the corpus but never starts a training job. The curation store records candidates, explicit reviewer decisions, rewrite lineage, and audit events. `ml/curate_candidate_corpus.py` admits a row only when `reviewed is True` and `accepted is True`, then applies the quality thresholds and configurable composition minimums. The default minimums require at least one non-unknown value for skill, actor, market, locale, scenario type, natural conversation, adversarial cases, and long-horizon cases. Missing coverage produces `blocked_coverage_requirements`; zero accepted rows produces `blocked_no_explicitly_accepted_examples`.
+
+The generated manifest includes the accepted dataset SHA-256, composition counts, minimum requirements, and exact coverage failures. This manifest is a preparation and audit artifact. It does not authorize model loading, artifact promotion, shadow deployment, canary rollout, or production activation.

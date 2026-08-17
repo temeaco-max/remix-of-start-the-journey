@@ -167,3 +167,13 @@ The 17 August 2026 structural scenario run generated 24,000 provider-outcome tra
 A real training run requires an explicitly curated non-empty accepted corpus and `KURUKOO_ENABLE_TRAINING=true`. The trainer now rejects uncurated rows, records the accepted dataset hash and training parameters, and never changes production runtime selection.
 
 No Kurukoo-trained adapter has been produced or promoted in the current run.
+
+## Control Room curation workflow
+
+The canonical human-in-the-loop surface is `/admin/curation.html`, backed by the protected `/api/admin/curation/*` routes. The queue imports teacher candidates into the existing SQL.js database as `pending` records and exposes trajectory content, skill/family, actor, market, locale, channel, lifecycle, scenario variant, teacher/provider metadata, candidate score, failure dimensions, provenance, and review status. Queue ordering prioritises difficult or incomplete candidates; it does not convert a score into approval.
+
+A candidate can enter the accepted corpus only when a reviewer has explicitly recorded both `reviewed=true` and `accepted=true`. The available decisions are `accept`, `reject`, `rewrite`, and `second_review`. Rewrites create a new pending candidate with `rewrite_of`, `original_id`, an incremented version, the original provenance, rejection reason, and audit lineage; the original candidate is never silently replaced. Reviewer identity, timestamp, decision, reason, notes, candidate version, and optional dataset version are persisted in the curation audit table.
+
+The accepted-corpus gate now fails closed for empty accepted data and for missing configurable composition coverage. The default coverage dimensions are skill, actor, market, locale, scenario type, natural conversation, adversarial cases, and long-horizon cases. Override minimums for an offline run with `--coverage '{"skill":2,"actor":1}'` or `KURUKOO_MIN_COVERAGE_JSON`. This gate prepares a corpus; it never launches training from the admin UI. Training remains an explicit offline operation and model promotion remains a separate registry decision.
+
+The current state remains truthful: the repository-side queue and review lifecycle are ready, but no candidate is accepted merely because it was generated or scored. Until a human-curated corpus satisfies the configured coverage minimums, the accepted corpus and student-model training remain blocked.
