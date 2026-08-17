@@ -1,6 +1,6 @@
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 import { registerCapabilities, getCapabilityRegistration } from './capabilityRegistry.js';
-import { getKnownSkills, getSkillCapabilities } from './skillFlows.js';
+import { getEconomicCategory, getKnownSkills, getSkillCapabilities, getSkillRequirements } from './skillFlows.js';
 
 const ECONOMIC_ATOMS = [
   ['discovery', 'Discover relevant entities, opportunities or sources.', 'read_only'],
@@ -61,32 +61,37 @@ export function normalizeSkillCapabilityReference(name: string): string {
 }
 
 export function capabilityRegistrationForSkill(skill: string, requiredCapabilities: string[]) {
+  const category = getEconomicCategory(skill) || 'uncategorized';
+  const requirements = getSkillRequirements(skill);
+  const requiredInputs = requirements.filter(requirement => requirement.required).map(requirement => ({ key: requirement.key, label: requirement.label, required: true }));
+  const optionalInputs = requirements.filter(requirement => !requirement.required).map(requirement => ({ key: requirement.key, label: requirement.label, required: false }));
+  const requiresExternalActivation = requiredCapabilities.some(name => ['payment', 'escrow', 'fulfillment', 'tracking', 'evidence', 'discovery'].includes(String(name).toLowerCase()));
+  const confirmationRequired = requiredCapabilities.some(name => ['payment', 'escrow', 'fulfillment', 'completion', 'dispute'].includes(String(name).toLowerCase()));
   return {
     descriptor: {
       kind: 'skill' as const,
       capability: `skill.${skill}`,
-      family: 'skill-composition',
-      mode: 'structured_action' as const,
+      family: category,
+      mode: requiredCapabilities.length ? 'structured_action' as const : 'conversation' as const,
       actions: ['understand', 'clarify', 'start', 'review', 'update', 'cancel', 'resume'],
-      context: { requiredInputs: [], optionalInputs: [] },
+      context: { requiredInputs, optionalInputs },
       permissions: ['authenticated_owner'],
       owner: ['canonicalChatTurnService', 'skillFlows', 'capabilityRegistry'],
-      risk: 'low_risk' as const,
-      consentRequired: false,
-      confirmationRequired: false,
+      risk: confirmationRequired ? 'confirmation_required' as const : 'low_risk' as const,
+      consentRequired: confirmationRequired,
+      confirmationRequired,
       lifecycle: ['requested', 'clarifying', 'ready', 'accepted', 'executing', 'completed', 'cancelled', 'failed'],
       canonicalFactsAvailable: ['intent', 'requirements', 'canonical_object_identity', 'lifecycle', 'evidence', 'external_activation'],
       executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
       evidenceStatus: ['none', 'internal_record', 'canonical_service', 'provider_evidence', 'verified_external_evidence'],
       nextAllowedActions: ['understand', 'clarify', 'start', 'review', 'update', 'cancel', 'resume'],
-      failureStates: ['blocked', 'failed', 'stale_context', 'foreign_context'],
+      failureStates: ['blocked', 'failed', 'stale_context', 'foreign_context', 'confirmation_required'],
       retryPolicy: ['continue the exact canonical skill/request', 'do not create duplicate economic objects'],
       recoveryActions: ['clarify', 'review', 'resume', 'cancel'],
-      continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope'],
-      externalDependencyState: [],
-      activationState: 'locally_available' as const,
-      description: `Composable skill ${skill} over registered capabilities.`,
-    } as UniversalCapabilityDescriptor & { description?: string },
+      continuationContext: ['conversationId', 'contextId', 'canonicalObjectId', 'ownerScope', 'lifecycle'],
+      externalDependencyState: requiresExternalActivation ? ['One or more composed capabilities require external activation/evidence before Kurukoo may claim a completed real-world outcome.'] : [],
+      activationState: requiresExternalActivation ? 'repository_ready_external_activation' as const : 'locally_available' as const,
+    } as UniversalCapabilityDescriptor,
     namespace: 'kurukoo.skills', version: '1',
     requiresCapabilities: requiredCapabilities.map(normalizeSkillCapabilityReference),
     source: 'skill-composition',
@@ -103,10 +108,6 @@ export function ensureCapabilityFoundation(): void {
     source: 'capability-foundation',
   }));
   registerCapabilities(registrations);
-
-  // Every known skill is a composition over the same atomic capability fabric.
-  // This removes the need for a hand-maintained skill allow-list in downstream
-  // systems such as agent eligibility, orchestration and capability discovery.
   const skillRegistrations = getKnownSkills().map(skill => capabilityRegistrationForSkill(skill, getSkillCapabilities(skill)));
   registerCapabilities(skillRegistrations);
 }
