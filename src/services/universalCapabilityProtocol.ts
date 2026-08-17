@@ -168,7 +168,7 @@ function descriptorForSkill(skill: string, flow: SkillFlow | null): UniversalCap
     ? ['External provider/payment/dispatch/evidence activation is not proven in this environment.']
     : [];
   return {
-    kind: 'skill', capability: `skill.${skill}`, family: category, mode, actions, context: { requiredInputs, optionalInputs },
+    kind: 'skill', capability: skill, family: category, mode, actions, context: { requiredInputs, optionalInputs },
     permissions: ['authenticated_owner', ...(risk === 'read_only' ? [] : ['canonical_service_authorization'])], owner: ownersFor(flow, capabilities), risk,
     consentRequired: risk === 'confirmation_required', confirmationRequired: risk === 'confirmation_required', lifecycle: flow ? LIFECYCLE_FOR_MODE[mode] : ['requested', 'clarifying', 'failed'],
     canonicalFactsAvailable: ['intent', 'requirements', 'canonical_object_identity', 'lifecycle', 'evidence', 'external_activation'], executionStatus: ['not_started', 'accepted', 'waiting', 'needs_user', 'executing', 'completed', 'failed'],
@@ -228,7 +228,7 @@ export async function listUniversalCapabilities(): Promise<UniversalCapabilityDe
   const seen = new Set<string>();
   for (const registration of listCapabilityRegistrations()) {
     const descriptor = registration.descriptor as UniversalCapabilityDescriptor;
-    if (!seen.has(descriptor.capability)) { rows.push(descriptor); seen.add(descriptor.capability); }
+    if (descriptor.kind !== 'skill' && !seen.has(descriptor.capability)) { rows.push(descriptor); seen.add(descriptor.capability); }
   }
   for (const definition of CANONICAL_OPERATION_DEFINITIONS) {
     const descriptor = operationDescriptor(definition);

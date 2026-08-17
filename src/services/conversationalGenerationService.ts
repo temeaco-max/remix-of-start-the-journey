@@ -98,5 +98,5 @@ export async function generateConversationalResponse(input: ConversationalGenera
       try { const strictRepair = await queryUnifiedAI(buildStrictRepairPrompt(input.prompt, contract), { provider, systemPrompt: contextualSystemPrompt || input.systemPrompt, phone: input.phone, threadId: input.threadId, conversational: true, contextHint: input.contextHint }); const strictAssessment = assess(input, contract, strictRepair.text); attempts += 1; if (!responseViolatesActionPosture(strictRepair.text, contract) && strictAssessment.conversational) { response = strictRepair; assessment = strictAssessment; escalated = true; } } catch {}
     }
   }
-  return { ...response, contract, quality: assessment, escalated, attemptCount: attempts, contextTurns: contextPack.turnCount, generationMode };
+  return { ...response, contract, quality: assessment, escalated, attemptCount: attempts, contextTurns: contextPack.turns, generationMode };
 }

@@ -111,6 +111,7 @@ export function capabilityRegistrationForSkill(skill: string, requiredCapabiliti
       activationState: requiresExternalActivation ? 'repository_ready_external_activation' as const : 'locally_available' as const,
     } as UniversalCapabilityDescriptor,
     namespace: 'kurukoo.skills', version: '1',
+    aliases: [skill, `skill.${skill}`],
     requiresCapabilities: requiredCapabilities.map(normalizeSkillCapabilityReference),
     source: 'skill-composition',
   };

@@ -44,7 +44,9 @@ try {
   const activated = await activateConnectedResource('+2348000000000', registration.resource.id, registration.challenge.code);
   assert.equal(activated?.status, 'active', 'a valid pairing challenge must activate the exact owner-scoped resource');
   assert.ok(await viewConnectedResource('+2348000000000', registration.resource.id), 'activated connected resource should be viewable through the owner boundary');
-  assert.equal(await activateConnectedResource('+2348000000000', registration.resource.id, registration.challenge.code), activated, 'a pairing challenge must not be reusable to create a second activation effect');
+  const replayedActivation = await activateConnectedResource('+2348000000000', registration.resource.id, registration.challenge.code);
+  assert.equal(replayedActivation?.id, activated?.id, 'replaying a consumed pairing challenge must resolve only to the same canonical resource identity');
+  assert.equal(replayedActivation?.status, 'active', 'replaying a consumed pairing challenge must not revoke or duplicate the active resource');
 
   console.log('Fresh database regression passed: schema bootstrap, core routes, internal notification queue, readiness state, Topics, trust, request tables, and owner-scoped connected-resource pairing/activation are deployment-independent.');
 } finally {
