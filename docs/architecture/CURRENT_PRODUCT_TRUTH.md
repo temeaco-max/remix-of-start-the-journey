@@ -182,3 +182,10 @@ Critical emergency handling remains guest-accessible for initial help while ordi
 The registered `emergency` universal capability is also the canonical descriptor for the existing `safety/emergency_dispatch` executor alias. Payment, remote/device, memory and public-attribution policy profiles continue to fail closed on missing identity, confirmation or external evidence. Public actions require a separate draft/review/commit boundary.
 
 The interaction-policy matrix passed against 227 canonical capability policies, guest and authenticated emergency flows, security interruption, payment and remote external boundaries, memory provenance, reminder interruption semantics and public commit semantics. The full all-domains, routes, security, PWA, public, build, lint and strict CSS validation suites passed. Browser verification showed the emergency card without onboarding and a clean guest security-interruption card without a name, phone or OTP gate. External telephony, payment, device, channel and provider activation remain unclaimed until independently evidenced.
+
+
+## Readiness telemetry and Cloud Run contract — 17 August 2026
+
+The health boundary now exposes canonical pilot-readiness items for Web, WhatsApp, Telegram, SMS, USSD, FCM, Voice, Voice TTS, Voice transcription, SmolLM2, payment and the bounded agent runtime. Existing credential-presence compatibility fields remain available, but readiness state and explanatory notes are the authoritative interpretation; a configured secret alone does not mean a provider is live, available, connected or externally verified.
+
+The direct Cloud Run proving profile is 4 vCPU, 4 GiB memory, one-request concurrency, a 300-second timeout, three-instance maximum and an ephemeral `/tmp/huggingface` model cache. User/application state is not treated as durable container state. The current SQL.js deployment is intentionally constrained to one application worker; increasing `KURUKOO_WORKERS` requires an approved multi-process persistence and distributed-limiting boundary rather than an environment-only change.

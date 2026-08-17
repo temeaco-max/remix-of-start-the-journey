@@ -33,7 +33,7 @@ gcloud builds submit . --config cloudbuild.yaml \
 The default proving profile is intentionally conservative for the 1.7B local model:
 
 - Cloud Run: 4 vCPU
-- memory: 8 GiB
+- memory: 4 GiB
 - concurrency: 1
 - request timeout: 300 seconds
 - minimum instances: 0
@@ -44,7 +44,7 @@ The default proving profile is intentionally conservative for the 1.7B local mod
 - model cache: `/tmp/huggingface`
 - background workers disabled in the web process
 
-These values are deployment defaults, not claims about the cheapest production configuration. Measure actual Cloud Run startup, memory and latency before lowering them.
+These values are repository proving defaults, not claims about the cheapest production configuration. The 4 GiB profile is the explicit contract exercised by `test:cloud-run-smollm2`; measure actual Cloud Run startup, memory and latency before changing it.
 
 ## Secrets
 
@@ -58,7 +58,7 @@ Configure production secrets through Google Cloud Secret Manager / Cloud Run env
 
 `/readyz` verifies that the application and database are available and that a model boundary is configured when `KURUKOO_CLOUD_RUN_REQUIRE_MODEL=true`.
 
-The model is cached on the container's ephemeral filesystem. User/application state must remain in canonical persistent storage; a restarted Cloud Run instance must not be treated as durable user storage.
+The model is cached on the container's ephemeral filesystem. User/application state must remain in canonical persistent storage; a restarted Cloud Run instance must not be treated as durable user storage. The current SQL.js deployment is deliberately constrained to one application worker (`KURUKOO_WORKERS=1`) for safe process-local coordination. Increasing workers requires an approved multi-process persistence and distributed-limiting boundary; it is not enabled by merely changing the environment variable.
 
 ## SmolLM2 behaviour
 

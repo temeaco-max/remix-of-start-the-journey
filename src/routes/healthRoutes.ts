@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import { getDb } from '../database.js';
 import { getSmolLM2RuntimeStatus } from '../services/smolLm2Service.js';
+import { getPilotReadiness } from '../services/pilotReadiness.js';
 
 const router = Router();
 const startedAt = Date.now();
 
 function runtimeSnapshot() {
   const model = getSmolLM2RuntimeStatus();
+  const readiness = getPilotReadiness();
+  const channel = (key: string) => readiness.categories.CHANNELS[key] || { state: 'PENDING', note: 'Readiness is not declared for this channel.' };
   return {
     model,
     payment_provider: process.env.KURUKOO_PAY_PROVIDER || 'unconfigured',
@@ -18,6 +21,22 @@ function runtimeSnapshot() {
       telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN),
       fcm: Boolean(process.env.FCM_SERVER_KEY || process.env.FCM_PROJECT_ID),
       voice: Boolean(process.env.VOICE_PROVIDER || process.env.GEMINI_API_KEY || process.env.API_KEY),
+    },
+    channel_readiness: {
+      web: channel('Web'),
+      whatsapp: channel('WhatsApp'),
+      telegram: channel('Telegram'),
+      sms: channel('SMS'),
+      ussd: channel('USSD'),
+      fcm: channel('FCM'),
+      voice: channel('Voice'),
+      voice_tts: channel('VoiceTTS'),
+      voice_transcription: channel('VoiceTranscription'),
+    },
+    activation: {
+      model: readiness.categories.AI_PROVIDERS?.SmolLM2Local,
+      payment: readiness.categories.PAYMENTS?.configuredProvider,
+      agent: readiness.categories.AGENT?.runtime,
     },
   };
 }
