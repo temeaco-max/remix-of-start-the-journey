@@ -1,0 +1,13 @@
+import { getCurationCandidate, reviewCurationCandidate, rewriteCurationCandidate, getCurationAudit, getCurationStats, getAcceptedCorpusGate } from '../src/services/curationService.js';
+
+const reviewer = 'admin:control-room-reviewer';
+const firstId = '54de51d3a5604315d46defc3';
+const secondId = 'da46a66a54eac1c3cb6395c9';
+const first = await getCurationCandidate(firstId);
+const second = await getCurationCandidate(secondId);
+if (!first || !second) throw new Error('Expected real teacher candidates are not present in the queue');
+const rewrite = await rewriteCurationCandidate({ exampleId: firstId, reviewerId: reviewer, reason: 'clarification_should_follow_the_user_problem_more_directly', notes: 'The candidate is plausible but should be rewritten to sound less like a category menu and more like a natural response to the user.', trajectory: [{ role: 'user', content: 'I need help with ac remote bridge in Toronto, Ontario.' }, { role: 'assistant', content: 'Sure — what is happening with the AC remote bridge? If it is a delivery, setup, or device problem, tell me what you are seeing and we can take it from there.' }] });
+const secondReview = await reviewCurationCandidate({ exampleId: secondId, decision: 'second_review', reviewerId: reviewer, reason: 'ambiguous_accessibility_request', notes: 'First review: natural clarification and no unsupported provider or completion claim.' });
+const accepted = await reviewCurationCandidate({ exampleId: secondId, decision: 'accept', reviewerId: 'admin:second-reviewer', datasetVersion: 'teacher-batch-2026-08-17', reviewScores: { naturalness: 0.9, contextRetention: 0.92, goalRetention: 0.92, actionDiscipline: 0.99, truthfulness: 0.99, safety: 0.99, failureRecovery: 0.82, prematureActionRate: 0, hallucinationRate: 0 }, notes: 'Second review: accepts as a conversational clarification example; no action is authorized and no external fact is invented.' });
+const rewritten = rewrite.rewriteId ? await getCurationCandidate(rewrite.rewriteId) : null;
+console.log(JSON.stringify({ first: { original: firstId, rewrite, rewritten: rewritten ? { exampleId: rewritten.exampleId, rewriteOf: rewritten.rewriteOf, scenarioId: rewritten.scenarioId, reviewStatus: rewritten.reviewStatus, reviewed: rewritten.reviewed, accepted: rewritten.accepted } : null }, second: { secondReview, accepted }, stats: await getCurationStats(), gate: await getAcceptedCorpusGate({ skill: 2, actor: 1, market: 1, locale: 1, scenarioType: 1, naturalConversation: 1, adversarial: 1, longHorizon: 1 }), audit: { original: await getCurationAudit(firstId), second: await getCurationAudit(secondId) } }, null, 2));

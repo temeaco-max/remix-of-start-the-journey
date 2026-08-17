@@ -29,6 +29,7 @@ export async function ensureCurationSchema(): Promise<void> {
     teacher_provider TEXT,
     teacher_model TEXT,
     candidate_score REAL,
+    review_scores_json TEXT,
     failure_dimensions_json TEXT,
     provenance_json TEXT,
     review_status TEXT NOT NULL DEFAULT 'pending',
@@ -38,6 +39,7 @@ export async function ensureCurationSchema(): Promise<void> {
     reviewer_notes TEXT,
     rejection_reason TEXT,
     version INTEGER NOT NULL DEFAULT 1,
+    scenario_id TEXT,
     original_id TEXT,
     rewrite_of TEXT,
     content_hash TEXT NOT NULL,
@@ -55,6 +57,9 @@ export async function ensureCurationSchema(): Promise<void> {
     dataset_version TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+  const columns = db.exec('PRAGMA table_info(training_curation_candidates)')[0]?.values?.map((row: any[]) => String(row[1])) || [];
+  if (!columns.includes('scenario_id')) { try { db.run('ALTER TABLE training_curation_candidates ADD COLUMN scenario_id TEXT'); } catch {} }
+  if (!columns.includes('review_scores_json')) { try { db.run('ALTER TABLE training_curation_candidates ADD COLUMN review_scores_json TEXT'); } catch {} }
   db.run('CREATE INDEX IF NOT EXISTS idx_curation_status_priority ON training_curation_candidates(review_status, candidate_score DESC)');
   db.run('CREATE INDEX IF NOT EXISTS idx_curation_rewrite_of ON training_curation_candidates(rewrite_of)');
   saveDb();
@@ -64,8 +69,8 @@ function rowToCandidate(row: any): any {
   return {
     exampleId: String(row.example_id), trajectory: parse(row.trajectory_json), skill: row.skill, family: row.family,
     actor: row.actor, market: row.market, locale: row.locale, channel: row.channel, lifecycle: row.lifecycle,
-    scenarioVariant: row.scenario_variant, teacher: { provider: row.teacher_provider, model: row.teacher_model },
-    candidateScore: row.candidate_score === null ? null : Number(row.candidate_score),
+    scenarioId: row.scenario_id, scenarioVariant: row.scenario_variant, teacher: { provider: row.teacher_provider, model: row.teacher_model },
+    candidateScore: row.candidate_score === null ? null : Number(row.candidate_score), reviewScores: parse(row.review_scores_json) || null,
     failureDimensions: parse(row.failure_dimensions_json) || [], provenance: parse(row.provenance_json) || {},
     reviewStatus: row.review_status, reviewed: Boolean(row.reviewed), accepted: Boolean(row.accepted),
     reviewerId: row.reviewer_id, reviewerNotes: row.reviewer_notes, rejectionReason: row.rejection_reason,
@@ -81,12 +86,17 @@ function candidateFromSource(source: any): any {
   const trajectory = source.trajectory || source;
   const exampleId = String(source.exampleId || source.example_id || hash(trajectory).slice(0, 24));
   return {
-    exampleId, trajectory, skill: source.skill || metadata.skill || null, family: source.family || metadata.family || null,
-    actor: source.actor || metadata.actor || null, market: source.market || metadata.market || null,
-    locale: source.locale || metadata.locale || null, channel: source.channel || metadata.channel || null,
-    lifecycle: source.lifecycle || metadata.lifecycle || null, scenarioVariant: source.scenarioVariant || metadata.scenarioVariant || null,
-    teacherProvider: source.teacherProvider || provenance.provider || source.teacher?.provider || null,
-    teacherModel: source.teacherModel || provenance.model || source.teacher?.model || null,
+    exampleId, trajectory, scenarioId: source.scenarioId || source.scenario_id || metadata.scenarioId || null,
+    skill: source.skill || source.labels?.skill || metadata.skill || trajectory?.labels?.skill || null,
+    family: source.family || source.labels?.family || metadata.family || trajectory?.labels?.family || null,
+    actor: source.actor || source.labels?.actor || metadata.actor || trajectory?.labels?.actor || null,
+    market: source.market || source.labels?.market || metadata.market || trajectory?.labels?.market || null,
+    locale: source.locale || source.labels?.locale || metadata.locale || trajectory?.labels?.locale || null,
+    channel: source.channel || source.labels?.channel || metadata.channel || trajectory?.labels?.channel || null,
+    lifecycle: source.lifecycle || source.labels?.lifecycle || metadata.lifecycle || trajectory?.labels?.lifecycle || null,
+    scenarioVariant: source.scenarioVariant || source.lifecycleVariant || source.labels?.variant || metadata.scenarioVariant || null,
+    teacherProvider: source.teacherProvider || provenance.teacherProvider || provenance.provider || source.teacher?.provider || null,
+    teacherModel: source.teacherModel || provenance.teacherModel || provenance.model || source.teacher?.model || null,
     candidateScore: Number.isFinite(Number(source.candidateScore ?? source.score ?? quality.score)) ? Number(source.candidateScore ?? source.score ?? quality.score) : null,
     failureDimensions: source.failureDimensions || quality.failureDimensions || quality.failures || [], provenance,
   };
@@ -102,8 +112,9 @@ export async function importTeacherCandidates(): Promise<{ imported: number; sou
     try {
       const c = candidateFromSource(JSON.parse(line));
       db.run(`INSERT OR IGNORE INTO training_curation_candidates
-        (example_id,trajectory_json,skill,family,actor,market,locale,channel,lifecycle,scenario_variant,teacher_provider,teacher_model,candidate_score,failure_dimensions_json,provenance_json,content_hash)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [c.exampleId, json(c.trajectory), c.skill, c.family, c.actor, c.market, c.locale, c.channel, c.lifecycle, c.scenarioVariant, c.teacherProvider, c.teacherModel, c.candidateScore, json(c.failureDimensions), json(c.provenance), hash(c.trajectory)]);
+        (example_id,trajectory_json,skill,family,actor,market,locale,channel,lifecycle,scenario_variant,teacher_provider,teacher_model,candidate_score,failure_dimensions_json,provenance_json,content_hash,scenario_id)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [c.exampleId, json(c.trajectory), c.skill, c.family, c.actor, c.market, c.locale, c.channel, c.lifecycle, c.scenarioVariant, c.teacherProvider, c.teacherModel, c.candidateScore, json(c.failureDimensions), json(c.provenance), hash(c.trajectory), c.scenarioId || null]);
+      db.run(`UPDATE training_curation_candidates SET skill=COALESCE(skill,?), family=COALESCE(family,?), actor=COALESCE(actor,?), market=COALESCE(market,?), locale=COALESCE(locale,?), channel=COALESCE(channel,?), lifecycle=COALESCE(lifecycle,?), scenario_variant=COALESCE(scenario_variant,?), teacher_provider=COALESCE(teacher_provider,?), teacher_model=COALESCE(teacher_model,?), scenario_id=COALESCE(scenario_id,?) WHERE example_id=? AND review_status='pending'`, [c.skill, c.family, c.actor, c.market, c.locale, c.channel, c.lifecycle, c.scenarioVariant, c.teacherProvider, c.teacherModel, c.scenarioId || null, c.exampleId]);
       imported += 1;
     } catch { /* malformed candidate remains outside the trusted queue */ }
   }
@@ -139,7 +150,7 @@ export async function getCurationCandidate(exampleId: string): Promise<any | nul
   const row = stmt.step() ? stmt.getAsObject() : null; stmt.free(); return row ? rowToCandidate(row) : null;
 }
 
-export async function reviewCurationCandidate(input: { exampleId: string; decision: ReviewDecision; reviewerId: string; notes?: string; reason?: string; datasetVersion?: string }): Promise<any> {
+export async function reviewCurationCandidate(input: { exampleId: string; decision: ReviewDecision; reviewerId: string; notes?: string; reason?: string; datasetVersion?: string; reviewScores?: Record<string, number> }): Promise<any> {
   await ensureCurationSchema();
   const current = await getCurationCandidate(input.exampleId);
   if (!current) return { ok: false, status: 'missing' };
@@ -148,7 +159,7 @@ export async function reviewCurationCandidate(input: { exampleId: string; decisi
   if (!next) return { ok: false, status: 'invalid_decision' };
   const db = await getDb();
   const accepted = next === 'accepted' ? 1 : 0;
-  db.run(`UPDATE training_curation_candidates SET review_status=?, reviewed=1, accepted=?, reviewer_id=?, reviewer_notes=?, rejection_reason=?, updated_at=CURRENT_TIMESTAMP WHERE example_id=?`, [next, accepted, input.reviewerId, input.notes || null, input.reason || null, input.exampleId]);
+  db.run(`UPDATE training_curation_candidates SET review_status=?, reviewed=1, accepted=?, reviewer_id=?, reviewer_notes=?, rejection_reason=?, review_scores_json=?, updated_at=CURRENT_TIMESTAMP WHERE example_id=?`, [next, accepted, input.reviewerId, input.notes || null, input.reason || null, input.reviewScores ? json(input.reviewScores) : null, input.exampleId]);
   db.run(`INSERT INTO training_curation_audit(example_id,reviewer_id,decision,reason,notes,candidate_version,dataset_version) VALUES(?,?,?,?,?,?,?)`, [input.exampleId, input.reviewerId, input.decision, input.reason || null, input.notes || null, current.version, input.datasetVersion || null]);
   saveDb();
   return { ok: true, candidate: await getCurationCandidate(input.exampleId) };
@@ -160,7 +171,7 @@ export async function rewriteCurationCandidate(input: { exampleId: string; traje
   if (!original) return { ok: false, status: 'missing' };
   const rewriteId = `${original.exampleId}:rewrite:${original.version + 1}:${hash(input.trajectory).slice(0, 12)}`;
   const db = await getDb();
-  db.run(`INSERT OR IGNORE INTO training_curation_candidates(example_id,trajectory_json,skill,family,actor,market,locale,channel,lifecycle,scenario_variant,teacher_provider,teacher_model,candidate_score,failure_dimensions_json,provenance_json,review_status,reviewed,accepted,reviewer_id,reviewer_notes,rejection_reason,version,original_id,rewrite_of,content_hash) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [rewriteId, json(input.trajectory), original.skill, original.family, original.actor, original.market, original.locale, original.channel, original.lifecycle, original.scenarioVariant, original.teacher.provider, original.teacher.model, null, json([]), json({ ...original.provenance, rewrittenFrom: original.exampleId }), 'pending', 0, 0, null, null, input.reason || null, original.version + 1, original.originalId || original.exampleId, original.exampleId, hash(input.trajectory)]);
+  db.run(`INSERT OR IGNORE INTO training_curation_candidates(example_id,trajectory_json,skill,family,actor,market,locale,channel,lifecycle,scenario_variant,teacher_provider,teacher_model,candidate_score,review_scores_json,failure_dimensions_json,provenance_json,review_status,reviewed,accepted,reviewer_id,reviewer_notes,rejection_reason,version,scenario_id,original_id,rewrite_of,content_hash) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [rewriteId, json(input.trajectory), original.skill, original.family, original.actor, original.market, original.locale, original.channel, original.lifecycle, original.scenarioVariant, original.teacher.provider, original.teacher.model, null, null, json([]), json({ ...original.provenance, rewrittenFrom: original.exampleId }), 'pending', 0, 0, null, null, input.reason || null, original.version + 1, original.scenarioId || null, original.originalId || original.exampleId, original.exampleId, hash(input.trajectory)]);
   db.run(`UPDATE training_curation_candidates SET review_status='needs_rewrite', reviewed=1, reviewer_id=?, reviewer_notes=?, rejection_reason=?, updated_at=CURRENT_TIMESTAMP WHERE example_id=?`, [input.reviewerId, input.notes || null, input.reason || null, input.exampleId]);
   db.run(`INSERT INTO training_curation_audit(example_id,reviewer_id,decision,reason,notes,candidate_version) VALUES(?,?,?,?,?,?)`, [input.exampleId, input.reviewerId, 'rewrite', input.reason || null, input.notes || null, original.version]);
   saveDb();

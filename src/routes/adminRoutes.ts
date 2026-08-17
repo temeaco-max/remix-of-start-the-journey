@@ -1275,7 +1275,7 @@ router.get('/curation/candidates/:exampleId', authenticateAdmin, async (req: Aut
 });
 router.post('/curation/candidates/:exampleId/decision', authenticateAdmin, async (req: AuthRequest, res) => {
   const reviewerId = String(req.user?.phone || process.env.ADMIN_USERNAME || 'admin');
-  const result = await reviewCurationCandidate({ exampleId: String(req.params.exampleId || ''), decision: String(req.body?.decision || '') as any, reviewerId, notes: req.body?.notes ? String(req.body.notes) : undefined, reason: req.body?.reason ? String(req.body.reason) : undefined, datasetVersion: req.body?.datasetVersion ? String(req.body.datasetVersion) : undefined });
+  const result = await reviewCurationCandidate({ exampleId: String(req.params.exampleId || ''), decision: String(req.body?.decision || '') as any, reviewerId, notes: req.body?.notes ? String(req.body.notes) : undefined, reason: req.body?.reason ? String(req.body.reason) : undefined, datasetVersion: req.body?.datasetVersion ? String(req.body.datasetVersion) : undefined, reviewScores: req.body?.reviewScores && typeof req.body.reviewScores === 'object' ? req.body.reviewScores : undefined });
   if (!result.ok) return res.status(result.status === 'missing' ? 404 : 400).json({ success: false, ...result });
   return res.json({ success: true, ...result });
 });

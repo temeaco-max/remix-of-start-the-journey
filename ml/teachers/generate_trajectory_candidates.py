@@ -26,6 +26,7 @@ MODEL = os.environ.get("KURUKOO_TEACHER_MODEL", "mistral-small-latest")
 LIMIT = max(1, min(int(os.environ.get("KURUKOO_TEACHER_LIMIT", "25")), 500))
 SEED = int(os.environ.get("KURUKOO_TEACHER_SEED", "42"))
 TIMEOUT = max(10, min(int(os.environ.get("KURUKOO_TEACHER_TIMEOUT", "120")), 600))
+MAX_TOKENS = max(300, min(int(os.environ.get("KURUKOO_TEACHER_MAX_TOKENS", "1200")), 4000))
 
 SYSTEM = """You are an offline teacher creating candidate conversational training data for Kurukoo.
 Kurukoo is a conversation-first coordination system. Natural language is the primary user interface.
@@ -39,7 +40,8 @@ Rules:
 - A model may propose an action, but canonical Kurukoo services own execution and state.
 - Never output internal IDs, router names, model names, governance labels, or implementation details to the user unless specifically asked.
 - Candidate examples are training material only and must never mutate production state.
-Return JSON only."""
+Return exactly one JSON object with these exact keys: assistantTurns (array of 1-4 strings), nextPosture (one of conversation, clarify, propose, control, present), actionProposal (object or null), qualityNotes (array of strings). Do not use alternate key names and do not wrap the object in markdown.
+Example: {"assistantTurns":["Sure — what is happening?"],"nextPosture":"conversation","actionProposal":null,"qualityNotes":["natural"]}"""
 
 SCHEMA = {
     "type": "object",
@@ -53,6 +55,26 @@ SCHEMA = {
 }
 
 
+def parse_teacher_json(content):
+    if isinstance(content, dict):
+        return content
+    if isinstance(content, list):
+        text = "".join(str(item.get("text", "")) if isinstance(item, dict) else str(item) for item in content)
+    else:
+        text = str(content or "")
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text
+        text = text.rsplit("```", 1)[0].strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start, end = text.find("{"), text.rfind("}")
+        if start >= 0 and end > start:
+            return json.loads(text[start:end + 1])
+        raise
+
+
 def post_json(url, payload, headers):
     request = Request(
         url,
@@ -62,6 +84,11 @@ def post_json(url, payload, headers):
     )
     with urlopen(request, timeout=TIMEOUT) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def openai_chat_url() -> str:
+    base = os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1").rstrip("/")
+    return f"{base}/chat/completions"
 
 
 def call_teacher(prompt):
@@ -76,11 +103,11 @@ def call_teacher(prompt):
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.2,
-            "max_tokens": 700,
+            "max_tokens": MAX_TOKENS,
             "response_format": {"type": "json_object"},
         }
         data = post_json("https://api.mistral.ai/v1/chat/completions", payload, {"Authorization": f"Bearer {key}"})
-        return json.loads(data["choices"][0]["message"].get("content") or "{}")
+        return parse_teacher_json(data["choices"][0]["message"].get("content"))
 
     if PROVIDER == "openai":
         key = os.environ.get("OPENAI_API_KEY")
@@ -93,10 +120,11 @@ def call_teacher(prompt):
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.2,
+            "max_tokens": MAX_TOKENS,
             "response_format": {"type": "json_object"},
         }
-        data = post_json("https://api.openai.com/v1/chat/completions", payload, {"Authorization": f"Bearer {key}"})
-        return json.loads(data["choices"][0]["message"].get("content") or "{}")
+        data = post_json(openai_chat_url(), payload, {"Authorization": f"Bearer {key}"})
+        return parse_teacher_json(data["choices"][0]["message"].get("content"))
 
     if PROVIDER == "gemini":
         key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
@@ -115,7 +143,7 @@ def call_teacher(prompt):
         data = post_json(url, payload, {"Accept": "application/json"})
         parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
         text = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict))
-        return json.loads(text or "{}")
+        return parse_teacher_json(text)
 
     raise RuntimeError(f"Unsupported teacher provider: {PROVIDER}")
 
@@ -180,7 +208,7 @@ def main():
             "Do not invent availability, prices or completion. "
             f"\nScenario: skill={row.get('skill')} family={row.get('family')} variant={row.get('lifecycleVariant')} market={row.get('market')} locale={row.get('locale')} actor={row.get('actor')} channel={row.get('channel')} providerType={row.get('providerType')}\n"
             f"Recent trajectory:\n{compact}\n"
-            "Return candidate assistant turns and a concise quality note."
+            "Return exactly the required JSON object. Use the exact key assistantTurns and one of the allowed nextPosture values; do not return markdown or prose outside JSON."
         )
         try:
             result = call_teacher(prompt)

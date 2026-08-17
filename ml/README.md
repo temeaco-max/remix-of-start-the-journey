@@ -177,3 +177,10 @@ A candidate can enter the accepted corpus only when a reviewer has explicitly re
 The accepted-corpus gate now fails closed for empty accepted data and for missing configurable composition coverage. The default coverage dimensions are skill, actor, market, locale, scenario type, natural conversation, adversarial cases, and long-horizon cases. Override minimums for an offline run with `--coverage '{"skill":2,"actor":1}'` or `KURUKOO_MIN_COVERAGE_JSON`. This gate prepares a corpus; it never launches training from the admin UI. Training remains an explicit offline operation and model promotion remains a separate registry decision.
 
 The current state remains truthful: the repository-side queue and review lifecycle are ready, but no candidate is accepted merely because it was generated or scored. Until a human-curated corpus satisfies the configured coverage minimums, the accepted corpus and student-model training remain blocked.
+
+
+## Real teacher batch proving — 17 August 2026
+
+A bounded real-provider batch was generated through the existing teacher adapter using the configured OpenAI-compatible endpoint and catalog model `claude-haiku-4-5` (selected only because Mistral and Gemini credential variables were absent). The adapter now honors `OPENAI_API_BASE`; it does not assume the public OpenAI endpoint when a configured compatible endpoint is present. Two candidates were generated from a deterministic stratified sample and imported into the existing Control Room queue as `pending`, `reviewed=false`, and `accepted=false`.
+
+One candidate was explicitly marked `needs_rewrite`, producing a new linked pending version with preserved scenario identity and provenance. The other passed a first review, a second review, and an explicit acceptance with reviewer scores. The accepted record is still not training-ready: the current one-example batch does not satisfy the required composition dimensions, and the curator rejects incomplete or below-threshold quality evidence. The measured result is therefore a valid curation proof, not a model-training result.

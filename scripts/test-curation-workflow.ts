@@ -34,9 +34,10 @@ async function main() {
   assert.equal((await getCurationCandidate(rewritten.rewriteId))?.accepted, true);
   assert.ok((await getCurationAudit(id)).length >= 2);
 
-  const gate = await getAcceptedCorpusGate({ skill: 2, actor: 1, market: 1, locale: 1 });
+  const gate = await getAcceptedCorpusGate({ skill: 99, actor: 1, market: 1, locale: 1 });
   assert.equal(gate.permitted, false);
   assert.ok(gate.failures.skill);
+  assert.equal(gate.failures.skill.required, 99);
   assert.equal(acceptedCorpusHash([await getCurationCandidate(rewritten.rewriteId)]), acceptedCorpusHash([await getCurationCandidate(rewritten.rewriteId)]));
 
   db.run('DELETE FROM training_curation_audit WHERE example_id LIKE ?', ['curation-test-%']);
