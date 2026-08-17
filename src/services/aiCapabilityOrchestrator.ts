@@ -2,6 +2,8 @@ import type { IntentRoutingResult } from '../types.js';
 import type { ConversationTurnContract } from './conversationTurnContractService.js';
 import type { AISemanticCapabilityProposal } from './aiSemanticProposalService.js';
 import { reconcileAICapabilityProposal } from './aiCapabilityReconciliationService.js';
+import { deriveCapabilityInteractionPolicy, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
+import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 
 export type CapabilityProposalPosture = 'none' | 'clarify' | 'propose' | 'control';
 
@@ -24,6 +26,7 @@ export interface AICapabilityOrchestrationDecision {
   shouldTalk: boolean;
   shouldPresentCanonicalResult: boolean;
   shouldProposeCapability: boolean;
+  interactionPolicy?: CapabilityInteractionPolicy;
   proposal?: AICapabilityProposal;
   reason: string;
 }
@@ -53,9 +56,16 @@ function extractCanonicalObjectId(entities: Record<string, unknown> | undefined)
   return undefined;
 }
 
+function descriptorFromDecision(capability: string, routing: IntentRoutingResult): UniversalCapabilityDescriptor | null {
+  const candidate = (routing as IntentRoutingResult & { capabilityDescriptor?: UniversalCapabilityDescriptor }).capabilityDescriptor;
+  return candidate && candidate.capability === capability ? candidate : null;
+}
+
 /**
  * Translates canonical routing, optionally reconciled with a model semantic
  * proposal, into a bounded AI proposal. The output remains proposal-only.
+ * Interaction priority/auth/confirmation/interruption policy is derived from
+ * the same universal capability descriptor rather than feature-specific rules.
  */
 export function buildAICapabilityOrchestration(
   routing: IntentRoutingResult,
@@ -69,12 +79,6 @@ export function buildAICapabilityOrchestration(
   const finalCapability = reconciled.capability || capability;
   const finalAction = reconciled.action || routing.canonicalAction;
   const finalPosture = reconciled.posture === 'none' ? posture : reconciled.posture;
-  const shouldProposeCapability = Boolean(
-    finalCapability &&
-    (finalAction || semanticProposal) &&
-    finalPosture !== 'none' &&
-    contract.requiresStructuredProposal,
-  );
 
   if (!finalCapability || NON_CAPABILITY_SKILLS.has(routing.skill)) {
     return {
@@ -86,6 +90,16 @@ export function buildAICapabilityOrchestration(
     };
   }
 
+  const descriptor = descriptorFromDecision(finalCapability, routing);
+  const interactionPolicy = descriptor ? deriveCapabilityInteractionPolicy(descriptor) : undefined;
+  const forcedInterrupt = interactionPolicy?.interruption === 'immediate';
+  const shouldProposeCapability = Boolean(
+    finalCapability &&
+    (finalAction || semanticProposal) &&
+    (finalPosture !== 'none' || forcedInterrupt) &&
+    (contract.requiresStructuredProposal || forcedInterrupt),
+  );
+
   const proposal: AICapabilityProposal = {
     capability: finalCapability,
     action: finalAction,
@@ -93,9 +107,9 @@ export function buildAICapabilityOrchestration(
     canonicalObjectId: extractCanonicalObjectId(routing.extractedEntities),
     arguments: { ...(reconciled.arguments || {}), ...(routing.extractedEntities || {}) },
     confidence: reconciled.confidence || routing.intentConfidence,
-    posture: finalPosture,
-    confirmationRequired: finalPosture === 'control' || contract.actionPosture === 'control',
-    preserveContext: contract.shouldPreserveExistingContext || reconciled.preserveContext,
+    posture: forcedInterrupt ? 'propose' : finalPosture,
+    confirmationRequired: interactionPolicy?.confirmation === 'explicit' || finalPosture === 'control' || contract.actionPosture === 'control',
+    preserveContext: interactionPolicy?.preservesPriorGoals ?? (contract.shouldPreserveExistingContext || reconciled.preserveContext),
     requiresCanonicalValidation: true,
     source: reconciled.source === 'semantic' || reconciled.source === 'reconciled' ? 'semantic-model' : 'canonical-routing',
   };
@@ -105,6 +119,7 @@ export function buildAICapabilityOrchestration(
     shouldTalk: contract.shouldGenerateNaturalResponse,
     shouldPresentCanonicalResult,
     shouldProposeCapability,
+    interactionPolicy,
     proposal: shouldProposeCapability ? proposal : undefined,
     reason: shouldProposeCapability ? reconciled.reason : 'canonical-routing-result-remains-authoritative',
   };
