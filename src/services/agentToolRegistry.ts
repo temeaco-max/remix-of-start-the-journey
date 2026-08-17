@@ -3,10 +3,12 @@ import { buildWorkingContext } from './livingMemoryEngine.js';
 import { listReminders } from './reminderService.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { listConnectedResources, viewConnectedResource } from './connectedResourceService.js';
+import { ensureCapabilityFoundation } from './capabilityFoundation.js';
+import { getCapabilityRegistration, resolveCapabilityComposition } from './capabilityRegistry.js';
 
 export type AgentToolPermission = 'read' | 'low_risk_write' | 'coordination' | 'high_risk';
 export type AgentToolRisk = 'read_only' | 'reversible' | 'user_confirmation_required' | 'high_risk';
-export type AgentToolName = 'get_request_state' | 'get_memory_context' | 'get_reminders' | 'get_connected_resources' | 'view_connected_resource' | 'recheck_economic_request';
+export type AgentToolName = 'get_request_state' | 'get_memory_context' | 'get_reminders' | 'get_connected_resources' | 'view_connected_resource' | 'inspect_capability_plan' | 'execute_capability' | 'recheck_economic_request';
 
 export interface AgentToolContext { phone: string; conversationId?: string; goalId: string; }
 export interface AgentToolResult { ok: boolean; tool: AgentToolName; permission: AgentToolPermission; data?: Record<string, unknown>; evidence?: string; message?: string; }
@@ -18,6 +20,8 @@ const definitions: Record<AgentToolName, AgentToolDefinition> = {
   get_reminders: { description: 'Read scheduled reminders owned by the current user.', inputSchema: {}, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'event'], authorization: 'owned_reminder_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
   get_connected_resources: { description: 'Read the currently active connected phones, cameras, TVs, computers and IoT resources owned by the user, including their exposed capabilities.', inputSchema: {}, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'owned_connected_resource_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
   view_connected_resource: { description: 'View authorised media exposed by one exact active connected resource, such as a CCTV/camera stream, without changing device state.', inputSchema: { resourceId: 'string' }, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'owned_connected_resource_view', idempotency: 'none', audit: 'goal_event', autonomous: true },
+  inspect_capability_plan: { description: 'Inspect the canonical capability composition for a skill/capability without executing it.', inputSchema: { skill: 'string' }, permission: 'read', risk: 'read_only', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'canonical_capability_read', idempotency: 'none', audit: 'goal_event', autonomous: true },
+  execute_capability: { description: 'Invoke one exact capability action through the canonical executor. The executor remains authoritative for policy, identity, confirmation, idempotency and external activation.', inputSchema: { capability: 'string', action: 'string', contextId: 'string', canonicalObjectId: 'string', argumentsJson: 'json', confirmationGranted: 'boolean' }, permission: 'coordination', risk: 'user_confirmation_required', supportedContexts: ['text', 'voice', 'qr', 'event'], authorization: 'canonical_executor_policy', idempotency: 'service_owned', audit: 'goal_event', autonomous: true },
   recheck_economic_request: { description: 'Safely re-evaluate an unresolved request through the canonical storefront only when explicitly enabled.', inputSchema: { requestId: 'string' }, permission: 'coordination', risk: 'reversible', supportedContexts: ['text', 'voice', 'event'], authorization: 'owned_unresolved_request_and_deployment_flag', idempotency: 'service_owned', audit: 'goal_event', autonomous: true },
 };
 
@@ -61,6 +65,30 @@ export async function executeAgentTool(name: AgentToolName, args: Record<string,
     const view = await viewConnectedResource(context.phone, resourceId);
     if (!view) return { ok: false, tool: name, permission: 'read', message: 'That connected resource is unavailable or not active.' };
     return { ok: true, tool: name, permission: 'read', data: { resource: { id: view.resource.id, kind: view.resource.kind, label: view.resource.label, vendor: view.resource.vendor || null }, media: view.media }, evidence: `connected_resource_view:${view.resource.id}:${view.media.length}` };
+  }
+
+  if (name === 'inspect_capability_plan') {
+    const skill = typeof args.skill === 'string' ? args.skill.trim().toLowerCase() : '';
+    if (!skill) return { ok: false, tool: name, permission: 'read', message: 'A skill or capability name is required.' };
+    ensureCapabilityFoundation();
+    const registration = getCapabilityRegistration(skill.startsWith('skill.') ? skill : `skill.${skill}`) || getCapabilityRegistration(skill);
+    if (!registration) return { ok: false, tool: name, permission: 'read', message: 'That capability is not registered.' };
+    const composition = resolveCapabilityComposition([registration.descriptor.capability]);
+    return { ok: composition.unresolved.length === 0 && !composition.cycle?.length, tool: name, permission: 'read', data: { requested: composition.requested, capabilities: composition.ordered.map(item => item.descriptor.capability), unresolved: composition.unresolved, cycle: composition.cycle || null }, evidence: `capability_plan:${registration.descriptor.capability}:${composition.ordered.length}` };
+  }
+
+  if (name === 'execute_capability') {
+    const capability = typeof args.capability === 'string' ? args.capability.trim() : '';
+    const action = typeof args.action === 'string' ? args.action.trim() : '';
+    if (!capability || !action) return { ok: false, tool: name, permission: 'coordination', message: 'A capability and action are required.' };
+    let parsedArguments: Record<string, unknown> = {};
+    if (typeof args.argumentsJson === 'string' && args.argumentsJson.trim()) {
+      try { const candidate = JSON.parse(args.argumentsJson); if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) parsedArguments = candidate as Record<string, unknown>; else throw new Error('arguments must be an object'); } catch { return { ok: false, tool: name, permission: 'coordination', message: 'argumentsJson must be valid JSON for an object.' }; }
+    }
+    if (!autonomousLowRiskEnabled() && args.confirmationGranted !== true) return { ok: false, tool: name, permission: 'coordination', message: 'Autonomous capability execution is disabled; an explicit confirmation is required.' };
+    const { executeCanonicalCapabilityProposal } = await import('./canonicalCapabilityExecutor.js');
+    const result = await executeCanonicalCapabilityProposal({ capability, action, contextId: typeof args.contextId === 'string' ? args.contextId : context.goalId, canonicalObjectId: typeof args.canonicalObjectId === 'string' ? args.canonicalObjectId : undefined, arguments: parsedArguments, confirmationGranted: args.confirmationGranted === true, phone: context.phone, conversationId: context.conversationId, channel: 'agent' });
+    return { ok: result.status !== 'failed' && result.status !== 'blocked' && result.status !== 'unauthorized' && result.status !== 'invalid', tool: name, permission: 'coordination', data: { status: result.status, capability: result.capability, action: result.action, canonicalObjectId: result.canonicalObjectId, nextActions: result.nextActions, canonicalFacts: result.canonicalFacts, continuationContext: result.continuationContext }, evidence: `canonical_capability:${capability}:${action}:${result.status}`, message: result.message };
   }
 
   if (name === 'recheck_economic_request') {
