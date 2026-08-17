@@ -134,6 +134,11 @@ export function ensureCapabilityFoundation(): void {
   registerCapabilities(skillRegistrations);
 }
 
+export function getRegisteredSkillCapabilityPlan(skill: string) {
+  ensureCapabilityFoundation();
+  return getCapabilityRegistration(`skill.${String(skill || '').trim().toLowerCase()}`);
+}
+
 export function isCapabilityAvailable(name: string): boolean {
   ensureCapabilityFoundation();
   return Boolean(getCapabilityRegistration(name));
