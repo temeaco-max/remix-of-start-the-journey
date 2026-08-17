@@ -188,3 +188,17 @@ Emergency is now an interruptive canonical capability at `canonicalChatTurnServi
 The repository directory contains the Nigeria nationwide 112 route for ambulance, police and fire, sourced from the Nigerian Communications Commission public release. The record is source-attributed and verification-labelled; Kurukoo does not invent local alternatives. Chat supports explicit service selection, approximate or unknown location, visible dial state and end/continuation. A browser `tel:112` option is repository-ready where supported, but actual dialing, ringing, connection, responder acceptance and dispatch remain **PROVIDER_DEPENDENT** and are not claimed.
 
 Guest emergency assistance is **IMPLEMENTED_AND_VERIFIED** by regression: it does not enter name, phone or OTP onboarding, while ordinary guest economic action continues to require the existing authentication path. The emergency Chat card is now rendered through the shared Chat surface with service, location, dial state, verified number, call control and truthful limitation copy.
+
+
+## Interaction policy and protective interruption — 17 August 2026
+
+| Capability | Current truth | Status |
+|---|---|---|
+| Pre-routing interaction policy | `canonicalChatTurnService` resolves the existing `conversationPriorityService` before onboarding, authentication, context arbitration, generic routing and model generation; policy telemetry is persisted with the canonical turn. | IMPLEMENTED_AND_VERIFIED |
+| Guest critical handling | Emergency initial help and security protective guidance can be delivered before ordinary name, phone or OTP collection; ordinary account-owned mutations remain authenticated. | IMPLEMENTED_AND_VERIFIED |
+| Emergency descriptor compatibility | The registered `emergency` universal capability owns assess/location/dial/connect/end/follow-up. The existing `safety/emergency_dispatch` executor input is an exact compatibility alias, not a second engine. | IMPLEMENTED_AND_VERIFIED |
+| Security interruption | Stolen/lost phone, account-access and unrecognized-payment reports produce a protective `security_interruption` response without claiming account recovery, refund, cancellation or ownership mutation. | IMPLEMENTED_AND_VERIFIED |
+| Cross-capability interaction policy | Reminder, agent, remote/device, payment/subscription/order, memory, public attribution, channel and voice boundaries retain exact identity, authentication, confirmation, evidence and external-readiness rules. | IMPLEMENTED_AND_VERIFIED |
+| External activation | Telephony, payment, channel, provider, device, voice and relay activation remain provider-dependent and are not represented as live without evidence. | PROVIDER_DEPENDENT |
+
+The interaction-policy matrix covers 227 policy descriptors and passed with the full all-domains, route, security, PWA, public, build, lint and strict CSS suites. Live browser verification confirmed guest emergency presentation without onboarding and a fresh guest security card without a name, phone or OTP gate.

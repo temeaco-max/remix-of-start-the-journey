@@ -10,10 +10,10 @@ export interface ConversationPriorityDecision {
   reason: string;
 }
 
-const EMERGENCY_PATTERN = /\b(emergency|ambulance|call\s+(?:the\s+)?police|call\s+(?:an\s+)?ambulance|fire\s*(?:truck|service)?|someone\s+is\s+attacking|i(?:'|\s*)m\s+being\s+attacked|danger|distress|unconscious|not\s+breathing)\b/i;
+const EMERGENCY_PATTERN = /\b(?:emergency(?!\s+contact)|(?:need|call)\s+(?:the\s+)?police|(?:need|call)\s+(?:an?\s+)?ambulance|fire\s*(?:truck|service)?|police|attacking me|someone\s+is\s+attacking|i(?:'|\s*)m\s+being\s+attacked|immediate danger|life[- ]threatening|danger|distress|unconscious|not\s+breathing|need help now|don['’]?t know exactly where i am|do not know exactly where i am|not an emergency|no longer an emergency|cancel the emergency|false alarm|emergency is over)\b/i;
 const AGENT_CONTROL_PATTERN = /\b(pause|resume|stop|cancel)\s+(?:the\s+)?(?:agent|task|goal)\b|\b(?:pause|resume|cancel)\s+it\b/i;
 const REMINDER_PATTERN = /\b(?:remind me|set (?:a )?reminder|reminder for)\b/i;
-const SECURITY_PATTERN = /\b(?:account locked|someone accessed my account|stolen phone|lost phone|unauthorized (?:charge|payment)|fraud)\b/i;
+const SECURITY_PATTERN = /\b(?:account locked|someone accessed my account|(?:stolen|lost) phone|phone was (?:stolen|lost)|unauthorized (?:charge|payment)|unrecognized payment|unrecognized charge|(?:don['’]?t|do not) recognize (?:this|that) (?:payment|charge)|fraud)\b/i;
 
 export function resolveConversationPriority(message: string): ConversationPriorityDecision {
   const text = String(message || '').trim();

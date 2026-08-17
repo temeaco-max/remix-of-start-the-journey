@@ -135,7 +135,7 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
     const service = String(args.service || 'emergency').toLowerCase() as 'national' | 'police' | 'ambulance' | 'fire' | 'disaster';
     const country = String(args.country || 'NG').toUpperCase();
     const contact = getPreferredEmergencyNumber(country, ['police', 'ambulance', 'fire'].includes(service) ? service : 'national');
-    if (!contact) return baseResult(input, 'unavailable_external', 'I could not verify an emergency contact for this location. Use the emergency number available from your local emergency service now.', { externalActivation: 'unavailable_external_dependency', retryRecovery: [{ action: 'clarify_location', label: 'Provide your country or location' }, { action: 'retry', label: 'Retry emergency routing' }] });
+    if (!contact) return baseResult(input, 'external_unavailable', 'I could not verify an emergency contact for this location. Use the emergency number available from your local emergency service now.', { externalActivation: 'unavailable_external_dependency', retryRecovery: [{ action: 'clarify_location', label: 'Provide your country or location' }, { action: 'retry', label: 'Retry emergency routing' }] });
     return baseResult(input, 'externally_pending', `Emergency ${service} routing is ready to hand off to ${contact.name} on ${contact.number}. Live dialing/connection is not activated in this deployment, so Kurukoo has not claimed that a call or dispatch occurred.`, {
       canonicalFacts: { service, country, emergencyNumber: contact.number, contactName: contact.name, source: contact.source, verificationState: contact.verificationState, dialable: contact.dialable },
       evidenceLevel: 'canonical_service',
@@ -182,7 +182,7 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
   const duplicate = await readIdempotentResult(normalized.phone, idempotencyKey);
   if (duplicate) return duplicate;
 
-  const descriptor = getCanonicalOperationDescriptor(normalized.capability) || (await listUniversalCapabilities()).find(item => item.capability === normalized.capability);
+  const descriptor = getCanonicalOperationDescriptor(normalized.capability) || (normalized.capability === 'safety' ? getCanonicalOperationDescriptor('emergency') : undefined) || (await listUniversalCapabilities()).find(item => item.capability === normalized.capability);
   if (!descriptor) return invalidResult(normalized, 'invalid', 'That capability is not registered. No alternate action was selected.', 'missing_capability');
   const interactionPolicy = deriveCapabilityInteractionPolicy(normalized.capability === 'safety' ? { ...descriptor, actions: [...descriptor.actions, 'emergency_dispatch'], mode: 'external_execution', risk: 'high_risk', activationState: 'repository_ready_external_activation' } : descriptor);
   const criticalGuestInitialHelp = interactionPolicy.priority === 'critical' && interactionPolicy.guestAccess === 'allowed_for_initial_help';

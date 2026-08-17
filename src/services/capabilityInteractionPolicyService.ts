@@ -36,7 +36,7 @@ const REMOTE_TERMS = /(^|[._:-])(remote|device|linked_device|voice|webrtc|call|d
 const MEMORY_TERMS = /(^|[._:-])memory([._:-]|$)/i;
 const CHANNEL_SEND_TERMS = /(^|[._:-])(channel|message|sms|whatsapp|telegram|email)([._:-]|$)/i;
 const SECURITY_TERMS = /(^|[._:-])(security|fraud|scam|account|identity|stolen|lost|unauthorized|privacy|breach)([._:-]|$)/i;
-const PUBLIC_COMMIT_TERMS = /(^|[._:-])(publish|post|topic|reply|advertising|campaign|referral|points|claim|invite)([._:-]|$)/i;
+const PUBLIC_COMMIT_TERMS = /(^|[._:-])(publish|post|topic|reply|advertising|campaign|referral|points|claim|invite|advert)([._:-]|$)/i;
 
 function riskToConfirmation(risk: CapabilityRisk): ConfirmationMode {
   if (risk === 'confirmation_required' || risk === 'high_risk') return 'explicit';
@@ -54,7 +54,7 @@ function policyFromParts(capability: string, family: string, mode: UniversalCapa
   const memory = MEMORY_TERMS.test(key) || MEMORY_TERMS.test(actionKey);
   const channelSend = CHANNEL_SEND_TERMS.test(key) || CHANNEL_SEND_TERMS.test(actionKey);
   const security = SECURITY_TERMS.test(key) || SECURITY_TERMS.test(actionKey) || /security|privacy|trust/i.test(family);
-  const publicCommit = PUBLIC_COMMIT_TERMS.test(key) || PUBLIC_COMMIT_TERMS.test(actionKey) || /community|advertising|growth|public/i.test(family);
+  const publicCommit = PUBLIC_COMMIT_TERMS.test(key) || PUBLIC_COMMIT_TERMS.test(actionKey) || /community|advertising|growth|public|attribution|referral|advert/i.test(family);
 
   if (emergency) return {
     capability, priority: 'critical', interruption: 'immediate', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'contextual', autonomy: 'bounded', backgroundAllowed: false, resumable: true, preemptsOtherGoals: true, preservesPriorGoals: true, exactIdentityRequired: false, locationMode: 'recommended', voiceMode: 'preferred', externalEvidenceRequired: true, draftVsCommitRequired: false, failureMustPreserveContext: true,
@@ -79,6 +79,10 @@ function policyFromParts(capability: string, family: string, mode: UniversalCapa
   if (payment) return {
     capability, priority: 'high', interruption: 'conditional', guestAccess: 'blocked', authentication: 'required_before_action', confirmation: 'explicit', autonomy: 'bounded', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'optional', voiceMode: 'optional', externalEvidenceRequired: activationState !== 'locally_available', draftVsCommitRequired: true, failureMustPreserveContext: true,
     notes: ['Discussion of price or payment is not authorization.', 'Payment state is authoritative only from the canonical payment owner.'],
+  };
+  if (publicCommit) return {
+    capability, priority: mode === 'external_execution' ? 'high' : 'normal', interruption: 'conditional', guestAccess: mode === 'conversation' ? 'allowed' : 'blocked', authentication: mode === 'conversation' ? 'after_initial_help' : 'required_before_action', confirmation: 'explicit', autonomy: 'none', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'none', voiceMode: 'none', externalEvidenceRequired: activationState !== 'locally_available', draftVsCommitRequired: true, failureMustPreserveContext: true,
+    notes: ['Public, attribution and financial effects require a separate draft/review/commit boundary.', 'Canonical owners remain responsible for ownership, confirmation, evidence and publication.'],
   };
   if (memory) return {
     capability, priority: 'normal', interruption: 'never', guestAccess: 'allowed_for_initial_help', authentication: 'after_initial_help', confirmation: 'explicit', autonomy: 'none', backgroundAllowed: false, resumable: true, preemptsOtherGoals: false, preservesPriorGoals: true, exactIdentityRequired: true, locationMode: 'none', voiceMode: 'none', externalEvidenceRequired: false, draftVsCommitRequired: false, failureMustPreserveContext: true,
