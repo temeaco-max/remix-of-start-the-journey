@@ -1,6 +1,7 @@
 import { getEconomicCategory, getKnownSkills, getSkillCapabilities, getSkillFlow, getSkillRequirements, type EconomicCapability, type SkillFlow } from './skillFlows.js';
 import { getFeatureRegistryReadiness } from './featureFlags.js';
-import { ensureCapabilityFoundation, resolveSkillCapabilityComposition } from './capabilityFoundationIntegration.js';
+import { ensureCapabilityFoundation } from './capabilityFoundation.js';
+import { resolveSkillCapabilityComposition } from './capabilityFoundationIntegration.js';
 
 export type OutcomeCompletenessStatus = 'IMPLEMENTED_AND_VERIFIED' | 'REPOSITORY_READY_EXTERNAL_ACTIVATION' | 'FOUNDATION_ONLY' | 'MISSING_REPOSITORY_IMPLEMENTATION';
 

@@ -3,11 +3,12 @@
  *
  * Phone remains the canonical communications identity. Email OTP is an
  * additional bootstrap/recovery path and does not silently mark a phone as
- * verified. Delivery is provider-neutral through emailService.ts.
+ * verified. Phone delivery uses the canonical SMS adapter; email delivery uses emailService.ts.
  */
 import crypto from 'crypto';
 import { getDb, saveDb } from '../database.js';
 import { sendEmail } from './emailService.js';
+import { sendSmsText } from '../channels/sms.js';
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -83,13 +84,12 @@ export async function requestPhoneOtp(phoneInput: string): Promise<{ success: bo
     [phone, hashCode(code, phone), expiresAt]);
   saveDb();
 
-  // Phone OTP storage is implemented, but no OTP-specific phone delivery adapter
-  // is currently wired. WhatsApp/SMS channel credentials must never be treated as
-  // proof that this OTP was delivered.
+  const delivery = await sendSmsText(phone, `Your Kurukoo verification code is ${code}. It expires in 10 minutes. If you did not request this, ignore this message.`);
   const exposeDebug = process.env.NODE_ENV !== 'production' && process.env.OTP_DEBUG === 'true';
+  if (!delivery.ok && !exposeDebug) return { success: false, message: 'Phone delivery is not configured or was not accepted. No verification claim was made.' };
   return {
     success: true,
-    message: 'Verification code generated (configure an approved phone-OTP delivery adapter for external activation)',
+    message: delivery.ok ? 'Verification code sent to your phone' : 'Development verification code generated; no external SMS was sent',
     ...(exposeDebug ? { debugCode: code } : {}),
   };
 }
