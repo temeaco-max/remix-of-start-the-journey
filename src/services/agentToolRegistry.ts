@@ -115,7 +115,16 @@ export async function executeAgentTool(name: AgentToolName, args: Record<string,
     if (typeof args.argumentsJson === 'string' && args.argumentsJson.trim()) {
       try { const candidate = JSON.parse(args.argumentsJson); if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) parsedArguments = candidate as Record<string, unknown>; else throw new Error('arguments must be an object'); } catch { return { ok: false, tool: name, permission: 'coordination', message: 'argumentsJson must be valid JSON for an object.' }; }
     }
-    if (!autonomousLowRiskEnabled() && args.confirmationGranted !== true) return { ok: false, tool: name, permission: 'coordination', message: 'Autonomous capability execution is disabled; an explicit confirmation is required.' };
+    ensureCapabilityFoundation();
+    const registration = getCapabilityRegistration(capability);
+    if (!registration) return { ok: false, tool: name, permission: 'coordination', message: 'That capability is not registered in the canonical fabric.' };
+    const descriptor = registration.descriptor;
+    if (!descriptor.actions.includes(action)) return { ok: false, tool: name, permission: 'coordination', message: `The canonical capability does not expose the ${action} action.` };
+    const canonicalRisk = descriptor.risk;
+    const readOnly = canonicalRisk === 'read_only' || descriptor.mode === 'read_only';
+    const lowRisk = canonicalRisk === 'low_risk';
+    const confirmationRequired = canonicalRisk === 'confirmation_required' || canonicalRisk === 'high_risk' || descriptor.confirmationRequired;
+    if (!readOnly && (!autonomousLowRiskEnabled() || confirmationRequired) && args.confirmationGranted !== true) return { ok: false, tool: name, permission: 'coordination', message: confirmationRequired ? 'This capability action requires explicit user confirmation.' : 'Autonomous low-risk capability execution is disabled for this deployment.' };
     const { executeCanonicalCapabilityProposal } = await import('./canonicalCapabilityExecutor.js');
     const result = await executeCanonicalCapabilityProposal({ capability, action, contextId: typeof args.contextId === 'string' ? args.contextId : context.goalId, canonicalObjectId: typeof args.canonicalObjectId === 'string' ? args.canonicalObjectId : undefined, arguments: parsedArguments, confirmationGranted: args.confirmationGranted === true, phone: context.phone, conversationId: context.conversationId, channel: 'agent' });
     return { ok: result.status !== 'failed' && result.status !== 'blocked' && result.status !== 'unauthorized' && result.status !== 'invalid', tool: name, permission: 'coordination', data: { status: result.status, capability: result.capability, action: result.action, canonicalObjectId: result.canonicalObjectId, nextActions: result.nextActions, canonicalFacts: result.canonicalFacts, continuationContext: result.continuationContext }, evidence: `canonical_capability:${capability}:${action}:${result.status}`, message: result.message };
