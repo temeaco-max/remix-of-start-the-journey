@@ -35,6 +35,11 @@ assert.match(pwaClient, /addEventListener\('online'/);
 assert.match(pwaClient, /addEventListener\('offline'/);
 assert.match(pwaClient, /Back online/);
 assert.match(pwaClient, /You’re offline/);
+assert.match(pwaClient, /PENDING_KEY/);
+assert.match(pwaClient, /queuePendingMessage/);
+assert.match(pwaClient, /Nothing has been sent automatically/);
+assert.match(pwaClient, /send\.click\(\)/);
+assert.match(pwaClient, /stopImmediatePropagation\(\)/);
 assert.match(offline, /id="retry-button"/);
 
-console.log('PWA contract passed: standalone Chat launch, service-worker update lifecycle, offline fallback, dynamic route exclusions, and canonical Chat asset freshness are present.');
+console.log('PWA contract passed: standalone Chat launch, service-worker lifecycle, offline fallback, safe manual retry of saved chat intents, dynamic route exclusions, and canonical Chat asset freshness are present.');
