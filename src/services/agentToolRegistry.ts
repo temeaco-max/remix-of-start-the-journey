@@ -4,7 +4,7 @@ import { listReminders } from './reminderService.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { listConnectedResources, viewConnectedResource } from './connectedResourceService.js';
 import { ensureCapabilityFoundation } from './capabilityFoundation.js';
-import { getCapabilityRegistration, listCapabilityRegistrations, resolveCapabilityComposition } from './capabilityRegistry.js';
+import { getCapabilityActionContract, getCapabilityRegistration, listCapabilityRegistrations, resolveCapabilityComposition } from './capabilityRegistry.js';
 import { getCanonicalIdentityContext } from './memoryProfile.js';
 
 export type AgentToolPermission = 'read' | 'low_risk_write' | 'coordination' | 'high_risk';
@@ -55,9 +55,10 @@ export async function executeAgentTool(name: AgentToolName, args: Record<string,
     if (!registration) return { ok: false, tool: name, permission: 'coordination', message: 'That capability is not registered in the canonical fabric.' };
     const descriptor = registration.descriptor;
     if (!descriptor.actions.includes(action)) return { ok: false, tool: name, permission: 'coordination', message: `The canonical capability does not expose the ${action} action.` };
-    const canonicalRisk = descriptor.risk;
-    const readOnly = canonicalRisk === 'read_only' || descriptor.mode === 'read_only';
-    const confirmationRequired = canonicalRisk === 'confirmation_required' || canonicalRisk === 'high_risk' || descriptor.confirmationRequired;
+    const actionContract = getCapabilityActionContract(capability, action);
+    if (!actionContract) return { ok: false, tool: name, permission: 'coordination', message: 'That action has no canonical action contract.' };
+    const readOnly = actionContract.risk === 'read_only';
+    const confirmationRequired = actionContract.confirmationRequired || actionContract.risk === 'high_risk';
     if (!readOnly && (!autonomousLowRiskEnabled() || confirmationRequired) && args.confirmationGranted !== true) return { ok: false, tool: name, permission: 'coordination', message: confirmationRequired ? 'This capability action requires explicit user confirmation.' : 'Autonomous low-risk capability execution is disabled for this deployment.' };
     const { executeCanonicalCapabilityProposal } = await import('./canonicalCapabilityExecutor.js');
     const result = await executeCanonicalCapabilityProposal({ capability, action, contextId: typeof args.contextId === 'string' ? args.contextId : context.goalId, canonicalObjectId: typeof args.canonicalObjectId === 'string' ? args.canonicalObjectId : undefined, arguments: parsedArguments, confirmationGranted: args.confirmationGranted === true, phone: context.phone, conversationId: context.conversationId, channel: 'agent' });
