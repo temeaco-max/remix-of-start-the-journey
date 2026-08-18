@@ -1,6 +1,7 @@
 import { getDb } from '../database.js';
 import { normalizeProviderEntityType, type ProviderEntityType } from './providerEntity.js';
 import { getActivePulseProviders } from './nearbyPulse.js';
+import { getActiveLocationConsent } from './progressiveTrustService.js';
 
 export interface ProviderMatch {
     phone: string;
@@ -36,9 +37,10 @@ function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): num
  * Canonical provider discovery for Economic Requests.
  *
  * Static availability remains the baseline provider source. When an explicit
- * user location is supplied as coordinates, the same lookup is enriched with
- * verified providers already live on Nearby Pulse. Pulse is presence evidence,
- * not a quote, booking, payment or fulfilment claim.
+ * user location is supplied as coordinates, or an authenticated owner has an
+ * active consented network location, the same lookup is enriched with verified
+ * providers already live on Nearby Pulse. Pulse is presence evidence, not a
+ * quote, booking, payment or fulfilment claim.
  */
 export async function find_worker(options: {
     skill: string;
@@ -48,16 +50,29 @@ export async function find_worker(options: {
     latitude?: number;
     longitude?: number;
     radiusKm?: number;
+    ownerPhone?: string;
 }): Promise<FindWorkerResult> {
     const db = await getDb();
     const max = Math.min(25, Math.max(1, options.max ?? 5));
     const location = String(options.location || '').trim();
     const requestedSkill = String(options.skill || '').trim().toLowerCase();
     const service = String(options.service || '').trim().toLowerCase();
-    const latitude = Number(options.latitude);
-    const longitude = Number(options.longitude);
-    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
+    let latitude = Number(options.latitude);
+    let longitude = Number(options.longitude);
+    let hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
         && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+    let consentedLocation: string | undefined;
+
+    if (!hasCoordinates && options.ownerPhone) {
+        const consent = await getActiveLocationConsent(String(options.ownerPhone), ['nearby', 'network_discovery', 'fulfilment']);
+        if (consent) {
+            latitude = consent.latitude;
+            longitude = consent.longitude;
+            hasCoordinates = true;
+            consentedLocation = consent.precision === 'precise' ? 'consented precise location' : 'consented coarse location';
+        }
+    }
+
     const radiusKm = Math.min(50, Math.max(0.1, Number(options.radiusKm || 10)));
 
     const searchSkills = new Set<string>([requestedSkill]);
@@ -178,5 +193,8 @@ export async function find_worker(options: {
         return b.rating - a.rating || b.jobs_completed - a.jobs_completed;
     });
 
+    // Keep the canonical response intentionally compact; consent provenance is
+    // an internal matching input, not a new public location surface.
+    void consentedLocation;
     return { providers: providers.slice(0, max), count: Math.min(providers.length, max) };
 }
