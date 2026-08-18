@@ -16,6 +16,7 @@ export type ConversationQualityIssue =
   | 'internal_metadata_leak'
   | 'repetition'
   | 'asks_known_fact'
+  | 'identity_misuse'
   | 'premature_action'
   | 'context_drop'
   | 'overloaded_questions'
@@ -44,6 +45,8 @@ const GENERIC_TEMPLATE_PATTERNS = [
 
 const ACTION_LANGUAGE = /\b(?:book|order|hire|find someone|find a|arrange|schedule|cancel|subscribe|dispatch|send|confirm|create|set a reminder|set the reminder|contact|message|call them)\b|\bpay\s+(?:now|for|the|this|it|them|someone|online|by|with)\b/i;
 const EXPLORATORY_LANGUAGE = /\b(?:thinking about|maybe|might|could|wondering|what do you think|what would you do|should i|tell me about|how does|what(?:'s| is) a good|considering|looking at|exploring)\b/i;
+const IDENTITY_INTRO = /^(?:my name is|i(?:'m| am) called|call me|you can call me)\s+([A-Za-z][A-Za-z0-9 .'-]{1,58})[.!?]?$/i;
+const CONTEXT_PIVOT = /^(?:actually|by the way|btw|on another (?:thing|topic)|different question|separately|unrelated|forget that|never mind|hold on|wait|also|one more thing)\b/i;
 
 function normalize(value: string): string {
   return String(value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -81,8 +84,8 @@ function asksForKnownFact(reply: string, facts: string[]): boolean {
 
 /**
  * Cheap, deterministic post-generation guard. It does not own routing, memory,
- * Economic Requests, or actions. It only evaluates whether a natural-language
- * response appears consistent with the canonical conversational context.
+ * Economic Requests, or actions. It evaluates whether a natural-language
+ * response appears consistent with canonical conversational context.
  */
 export function assessConversationQuality(context: ConversationQualityContext): ConversationQualityAssessment {
   const reply = String(context.assistantReply || '').trim();
@@ -114,6 +117,16 @@ export function assessConversationQuality(context: ConversationQualityContext): 
     score -= 0.35;
   }
 
+  const identityMatch = user.match(IDENTITY_INTRO);
+  if (identityMatch) {
+    const introducedName = normalize(identityMatch[1]);
+    const acknowledged = normalize(reply).includes(introducedName);
+    if (!acknowledged && !/\b(?:nice to meet you|pleased to meet you|got it|thanks|thank you)\b/i.test(reply)) {
+      issues.push('identity_misuse');
+      score -= 0.25;
+    }
+  }
+
   const exploratory = EXPLORATORY_LANGUAGE.test(user) && !ACTION_LANGUAGE.test(user);
   const responseAttemptsAction = ACTION_LANGUAGE.test(reply);
   if (exploratory && (responseAttemptsAction || (context.cardType && /(?:economic_request|agentic_storefront|checkout|payment|subscription)/i.test(context.cardType)))) {
@@ -125,6 +138,16 @@ export function assessConversationQuality(context: ConversationQualityContext): 
   if (active.length > 0 && context.selectedContextId && !active.includes(context.selectedContextId)) {
     issues.push('context_drop');
     score -= 0.65;
+  }
+
+  if (CONTEXT_PIVOT.test(user) && (context.priorAssistantReplies || []).length) {
+    const previous = context.priorAssistantReplies![context.priorAssistantReplies!.length - 1] || '';
+    const oldOverlap = overlap(reply, previous);
+    const newTopicOverlap = overlap(reply, user.replace(CONTEXT_PIVOT, ''));
+    if (oldOverlap >= 0.85 && newTopicOverlap < 0.3) {
+      issues.push('context_drop');
+      score -= 0.45;
+    }
   }
 
   const questionCount = (reply.match(/\?/g) || []).length;
@@ -140,7 +163,7 @@ export function assessConversationQuality(context: ConversationQualityContext): 
 
   const preservedContext = !issues.includes('context_drop') && (!context.selectedContextId || active.includes(context.selectedContextId));
   score = Math.max(0, Math.min(1, score));
-  const repairable = issues.some(issue => ['empty_response', 'internal_metadata_leak', 'repetition', 'asks_known_fact', 'premature_action', 'overloaded_questions', 'template_language'].includes(issue));
+  const repairable = issues.some(issue => ['empty_response', 'internal_metadata_leak', 'repetition', 'asks_known_fact', 'identity_misuse', 'premature_action', 'overloaded_questions', 'template_language'].includes(issue));
 
   return {
     score,
