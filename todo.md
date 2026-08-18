@@ -32,3 +32,8 @@
 - [x] Implement the frontend website-set Discover composition, filters and source cards
 - [x] Show the relevant code changes and verify Homepage and Discover live at the reference viewport
 - [x] Continue Channels, About and Help after Homepage and Discover verification
+
+- [x] Recompare Homepage, Discover, Channels, About and Help against the authoritative frontend website set at reference sizes
+- [x] Correct measurable visual drift in layout, typography, spacing, icon scale, card density and responsive behavior
+- [x] Rebuild, run accessibility/runtime/CSS regressions and reverify all corrected public pages
+- [ ] Commit the verified public visual-convergence pass before continuing remaining work
