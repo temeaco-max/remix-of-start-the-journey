@@ -12,18 +12,7 @@ process.env.JWT_SECRET = 'mcp-test-secret-012345678901234567890123456789';
 process.env.KURUKOO_MCP_OAUTH_SECRET = process.env.JWT_SECRET;
 process.env.DB_PATH = path.join(process.cwd(), 'tmp', `mcp-test-${process.pid}.sqlite`);
 
-const {
-  beginAuthorization,
-  getAuthorizationTransaction,
-  approveAuthorization,
-  exchangeAuthorizationCode,
-  verifyAccessToken,
-  mcpEnabled,
-  getMcpMetadata,
-  getProtectedResourceMetadata,
-  mcpToolList,
-  callMcpTool,
-} = await import('../src/services/mcpAppService.js');
+const { beginAuthorization, getAuthorizationTransaction, approveAuthorization, exchangeAuthorizationCode, verifyAccessToken, mcpEnabled, getMcpMetadata, getProtectedResourceMetadata, mcpToolList, callMcpTool } = await import('../src/services/mcpAppService.js');
 
 assert.equal(mcpEnabled(), true);
 assert.equal(getMcpMetadata().authorization_endpoint, 'https://kurukoo.test/oauth/authorize');
@@ -33,42 +22,29 @@ assert.deepEqual(toolNames, ['kurukoo.get_context', 'kurukoo.list_capabilities',
 
 const codeVerifier = 'mcp-pkce-verifier-012345678901234567890123456789';
 const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
-const auth = beginAuthorization({
-  clientId: 'chatgpt-test-client',
-  redirectUri: 'https://chatgpt.test/oauth/callback',
-  responseType: 'code',
-  scope: 'kurukoo.read kurukoo.act',
-  state: 'state-123',
-  codeChallenge,
-  codeChallengeMethod: 'S256',
-});
-
+const auth = beginAuthorization({ clientId:'chatgpt-test-client', redirectUri:'https://chatgpt.test/oauth/callback', responseType:'code', scope:'kurukoo.read kurukoo.act', state:'state-123', codeChallenge, codeChallengeMethod:'S256' });
 await new Promise(resolve => setTimeout(resolve, 150));
 const tx = await getAuthorizationTransaction(auth.transactionId);
 assert.equal(tx?.clientId, 'chatgpt-test-client');
 const approval = await approveAuthorization(auth.transactionId, '+447700900123');
 assert.equal(approval.state, 'state-123');
-const tokenSet = await exchangeAuthorizationCode({
-  clientId: 'chatgpt-test-client',
-  code: approval.code,
-  redirectUri: 'https://chatgpt.test/oauth/callback',
-  codeVerifier,
-});
+const tokenSet = await exchangeAuthorizationCode({ clientId:'chatgpt-test-client', code:approval.code, redirectUri:'https://chatgpt.test/oauth/callback', codeVerifier });
 assert.ok(tokenSet.access_token);
 assert.ok(tokenSet.refresh_token);
 const token = await verifyAccessToken(String(tokenSet.access_token));
 assert.equal(token.phone, '+447700900123');
 assert.deepEqual(token.scopes, ['kurukoo.read', 'kurukoo.act']);
-const context = await callMcpTool(token, 'kurukoo.get_context', {});
+
+const readOnlyToken = { phone:token.phone, clientId:token.clientId, scopes:['kurukoo.read'] as any[] };
+const context = await callMcpTool(readOnlyToken as any, 'kurukoo.get_context', {});
 assert.equal((context.connection as any).status, 'connected');
-const reminder = await callMcpTool(token, 'kurukoo.execute', {
-  capability: 'reminder',
-  action: 'create',
-  arguments: { title: 'MCP integration test', dueAt: new Date(Date.now() + 3_600_000).toISOString() },
-  idempotencyKey: `mcp-test-${process.pid}`,
-});
+const discovery = await callMcpTool(readOnlyToken as any, 'kurukoo.find', { request:'I need a plumber to fix a leaking tap' });
+assert.equal(discovery.request, 'I need a plumber to fix a leaking tap');
+assert.ok(Array.isArray(discovery.matchedCapabilities));
+assert.ok((discovery.matchedCapabilities as any[]).some(item => String(item.capability).includes('find_worker') || String(item.family).includes('repairs')));
+
+const reminder = await callMcpTool(token, 'kurukoo.execute', { capability:'reminder', action:'create', arguments:{ title:'MCP integration test', dueAt:new Date(Date.now()+3_600_000).toISOString() }, idempotencyKey:`mcp-test-${process.pid}` });
 assert.equal((reminder as any).status, 'completed');
 
-console.log('MCP app contract passed:', JSON.stringify({ tools:toolNames.length, phone:token.phone, reminderStatus:(reminder as any).status }));
-
+console.log('MCP app contract passed:', JSON.stringify({ tools:toolNames.length, phone:token.phone, discoveryCandidates:(discovery.matchedCapabilities as any[]).length, reminderStatus:(reminder as any).status }));
 try { fs.rmSync(String(process.env.DB_PATH), { force:true }); } catch { /* best effort */ }
