@@ -45,12 +45,13 @@ import whatsappLinkedDeviceRoutes from './routes/whatsappLinkedDeviceRoutes.js';
 import telegramLinkedDeviceRoutes from './routes/telegramLinkedDeviceRoutes.js';
 import topicRoutes from './routes/topicRoutes.js';
 import connectionRoutes from './routes/connectionRoutes.js';
+import mcpAppRoutes from './routes/mcpAppRoutes.js';
 import { startBackgroundServices, stopBackgroundServices } from './startup/backgroundServices.js';
 
 if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 if (!process.env.CREDIT_ECONOMY_ENABLED) process.env.CREDIT_ECONOMY_ENABLED = 'true';
 if (process.env.NODE_ENV === 'production' && process.env.KURUKOO_PAY_PROVIDER === 'sandbox') delete process.env.KURUKOO_PAY_PROVIDER;
-console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT || 3000}, Pay Provider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}`);
+console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT || 3000}, Pay Provider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}, MCP=${process.env.KURUKOO_MCP_ENABLED === 'true' ? 'enabled' : 'disabled'}`);
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -74,6 +75,8 @@ app.use(express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb', 
 
 // Public system documentation must remain reachable before authenticated /api route boundaries.
 app.use('/', systemRoutes);
+// Remote AI app surface. OAuth metadata and /mcp remain outside the normal /api auth boundary.
+app.use('/', mcpAppRoutes);
 
 app.use('/api', channelRoutes);
 app.use('/api', circleRoutes);
