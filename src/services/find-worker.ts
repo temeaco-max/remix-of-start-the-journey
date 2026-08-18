@@ -1,5 +1,6 @@
 import { getDb } from '../database.js';
 import { normalizeProviderEntityType, type ProviderEntityType } from './providerEntity.js';
+import { getActivePulseProviders } from './nearbyPulse.js';
 
 export interface ProviderMatch {
     phone: string;
@@ -14,6 +15,8 @@ export interface ProviderMatch {
     verified: boolean;
     provider_type: ProviderEntityType;
     distance_km?: number;
+    live_now?: boolean;
+    live_source?: 'mobile' | 'stationary';
 }
 
 export interface FindWorkerResult {
@@ -21,20 +24,42 @@ export interface FindWorkerResult {
     count: number;
 }
 
+function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const toRad = (value: number) => value * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 /**
  * Canonical provider discovery for Economic Requests.
- * A provider is only presented as verified when the provider's Memory Profile
- * explicitly carries verified_provider=1. Existing human artist providers may
- * also use the category-specific verified_artist=1 compatibility path. A supplied
- * location is a hard service-area constraint; this module deliberately does not
- * invent geocoded distance data, telemetry, availability, or quotes.
+ *
+ * Static availability remains the baseline provider source. When an explicit
+ * user location is supplied as coordinates, the same lookup is enriched with
+ * verified providers already live on Nearby Pulse. Pulse is presence evidence,
+ * not a quote, booking, payment or fulfilment claim.
  */
-export async function find_worker(options: { skill: string; location?: string; max?: number; service?: string }): Promise<FindWorkerResult> {
+export async function find_worker(options: {
+    skill: string;
+    location?: string;
+    max?: number;
+    service?: string;
+    latitude?: number;
+    longitude?: number;
+    radiusKm?: number;
+}): Promise<FindWorkerResult> {
     const db = await getDb();
     const max = Math.min(25, Math.max(1, options.max ?? 5));
     const location = String(options.location || '').trim();
     const requestedSkill = String(options.skill || '').trim().toLowerCase();
     const service = String(options.service || '').trim().toLowerCase();
+    const latitude = Number(options.latitude);
+    const longitude = Number(options.longitude);
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
+        && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+    const radiusKm = Math.min(50, Math.max(0.1, Number(options.radiusKm || 10)));
+
     const searchSkills = new Set<string>([requestedSkill]);
     if (requestedSkill === 'find_worker' && service) searchSkills.add(service.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''));
     if (requestedSkill === 'repair') {
@@ -94,8 +119,64 @@ export async function find_worker(options: { skill: string; location?: string; m
             service_radius_km: Number(r.service_radius_km ?? 0),
             verified: Boolean(Number(r.verified_provider ?? 0) || Number(r.verified_artist ?? 0)),
             provider_type: normalizeProviderEntityType(r.provider_type),
+            live_now: false,
         });
     }
     stmt.free();
-    return { providers, count: providers.length };
+
+    if (hasCoordinates) {
+        const liveProviders = await getActivePulseProviders();
+        const byPhone = new Map(providers.map(provider => [provider.phone, provider]));
+        for (const live of liveProviders) {
+            const liveSkill = String(live.skill || '').trim().toLowerCase();
+            if (!skillValues.includes(liveSkill)) continue;
+            const liveLat = Number(live.lat);
+            const liveLng = Number(live.lng);
+            if (!Number.isFinite(liveLat) || !Number.isFinite(liveLng)) continue;
+            const distance = distanceKm(latitude, longitude, liveLat, liveLng);
+            if (distance > radiusKm) continue;
+            const existing = byPhone.get(String(live.phone));
+            if (existing) {
+                existing.distance_km = distance;
+                existing.live_now = true;
+                existing.live_source = String(live.source) === 'mobile' ? 'mobile' : 'stationary';
+                continue;
+            }
+
+            const profileStmt = db.prepare('SELECT name, provider_type, verified_provider FROM memory_profiles WHERE phone=? LIMIT 1');
+            profileStmt.bind([String(live.phone)]);
+            const profile = profileStmt.step() ? profileStmt.getAsObject() as Record<string, unknown> : {};
+            profileStmt.free();
+            if (Number(profile.verified_provider || 0) !== 1) continue;
+
+            const provider: ProviderMatch = {
+                phone: String(live.phone),
+                name: String(live.name || profile.name || 'Verified provider'),
+                business_name: undefined,
+                skill: liveSkill,
+                rating: 0,
+                jobs_completed: 0,
+                hourly_rate: 0,
+                operation_mode: String(live.source || 'mobile') === 'mobile' ? 'mobile' : 'stationary',
+                service_radius_km: radiusKm,
+                verified: true,
+                provider_type: normalizeProviderEntityType(profile.provider_type),
+                distance_km: distance,
+                live_now: true,
+                live_source: String(live.source) === 'mobile' ? 'mobile' : 'stationary',
+            };
+            providers.push(provider);
+            byPhone.set(provider.phone, provider);
+        }
+    }
+
+    providers.sort((a, b) => {
+        const liveDelta = Number(Boolean(b.live_now)) - Number(Boolean(a.live_now));
+        if (liveDelta) return liveDelta;
+        const distanceDelta = Number(a.distance_km ?? Number.POSITIVE_INFINITY) - Number(b.distance_km ?? Number.POSITIVE_INFINITY);
+        if (Number.isFinite(distanceDelta) && Math.abs(distanceDelta) > 1e-9) return distanceDelta;
+        return b.rating - a.rating || b.jobs_completed - a.jobs_completed;
+    });
+
+    return { providers: providers.slice(0, max), count: Math.min(providers.length, max) };
 }
