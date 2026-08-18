@@ -4,11 +4,20 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const production = process.env.NODE_ENV === 'production';
+const databaseMode = String(process.env.KURUKOO_DATABASE_MODE || 'sqljs').trim().toLowerCase();
+const jobMode = String(process.env.KURUKOO_JOB_MODE || 'in_process').trim().toLowerCase();
+const applicationWorkers = Number(process.env.KURUKOO_WORKERS || 1);
+const persistentStateRequired = process.env.KURUKOO_PERSISTENT_STATE_REQUIRED !== 'false';
+
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   if (production) throw new Error('[Kurukoo Startup] JWT_SECRET must be configured with at least 32 characters in production.');
   process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
   console.warn('[Kurukoo Startup] JWT_SECRET is absent; using an ephemeral development-only secret. Configure JWT_SECRET before deployment.');
 }
+if (production && databaseMode === 'sqljs' && applicationWorkers > 1) throw new Error('[Kurukoo Startup] SQL.js is single-process. KURUKOO_WORKERS must remain 1 until an approved multi-process database adapter is active.');
+if (production && databaseMode === 'postgres' && !process.env.DATABASE_URL) throw new Error('[Kurukoo Startup] KURUKOO_DATABASE_MODE=postgres requires DATABASE_URL.');
+if (production && jobMode === 'distributed' && !process.env.KURUKOO_REDIS_URL) throw new Error('[Kurukoo Startup] KURUKOO_JOB_MODE=distributed requires KURUKOO_REDIS_URL.');
+if (production && persistentStateRequired && String(process.env.DB_PATH || '').startsWith('/tmp/')) throw new Error('[Kurukoo Startup] Persistent state is required; DB_PATH may not be under /tmp in production.');
 
 const mcpEnabled = process.env.KURUKOO_MCP_ENABLED === 'true';
 if (production && mcpEnabled) {
@@ -64,7 +73,7 @@ import { startBackgroundServices, stopBackgroundServices } from './startup/backg
 if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 if (!process.env.CREDIT_ECONOMY_ENABLED) process.env.CREDIT_ECONOMY_ENABLED = 'true';
 if (process.env.NODE_ENV === 'production' && process.env.KURUKOO_PAY_PROVIDER === 'sandbox') delete process.env.KURUKOO_PAY_PROVIDER;
-console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT || 3000}, Pay Provider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}, MCP=${mcpEnabled ? 'enabled' : 'disabled'}`);
+console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT || 3000}, Pay Provider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}, DB=${databaseMode}, Jobs=${jobMode}, Workers=${applicationWorkers}, MCP=${mcpEnabled ? 'enabled' : 'disabled'}`);
 
 const app = express();
 app.set('view engine', 'ejs');
