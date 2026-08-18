@@ -41,6 +41,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import authChallengePublicRoutes from './routes/authChallengePublicRoutes.js';
 import chatRouter from './routes/chatRouter.js';
 import orderRoutes from './routes/orderRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
@@ -104,6 +105,7 @@ app.use(express.static(path.join(process.cwd(), 'public'), {
 app.use(express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb', verify: (req, _res, buf) => { (req as any).rawBody = Buffer.from(buf); } }));
 
 app.use('/', systemRoutes);
+app.use('/', authChallengePublicRoutes);
 app.use('/', mcpAppRoutes);
 app.use('/api', channelRoutes);
 app.use('/api', circleRoutes);
