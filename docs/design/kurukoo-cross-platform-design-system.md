@@ -107,3 +107,15 @@ The live Chat shell is structurally present across sidebar, central conversation
 The live admin entry renders with the intended warm cream background, centered operational sign-in card, charcoal text hierarchy and terracotta primary action. Its remaining visual drift was the legacy diamond brand glyph, which has been replaced with the canonical icon sprite.
 
 The live Discover surface now shows icon-led pathway cards and retains the required source-attributed discovery disclaimer. The map/list hierarchy is present and privacy language remains visible. The map is still a presentation layer over canonical discovery state; no UI change implies that a discovered place is a verified or available Kurukoo provider.
+
+
+## 10. Comprehensive web/PWA audit baseline
+
+The current web and PWA regression baseline passes TypeScript build, lint, accessibility, CSS duplication and inline-style audits, responsive runtime checks at 360–1440px, public route/runtime contracts, PWA lifecycle contracts, Chat DOM safety, conversation workspace contracts, admin routes and discovery-network behavior. Accessibility reports zero findings and confirms focus-visible, reduced-motion, forced-colors and minimum touch-target coverage.
+
+The next visual work is therefore refinement rather than structural repair. Checkout and confirmation states should use the same high-fidelity rhythm as Chat: a clear title block, compact status/evidence band, one dominant action group and a restrained secondary explanation. Workspace panels should keep the three-region shell, reduce internal card padding on narrow screens, align inspector section spacing, and keep the Ask composer visually anchored without introducing horizontal overflow. No surface may imply that payment, provider availability, delivery or external notification is confirmed unless the canonical service has independently recorded that state.
+
+
+## 11. Workspace live verification
+
+The protected cart workspace correctly redirects unauthenticated users to the existing conversation-continuation identity surface with the requested return path preserved. This confirms that checkout-like workspace surfaces remain behind the canonical identity boundary rather than introducing a second auth flow. The refined workspace spacing is therefore validated structurally; physical authenticated visual comparison still requires a signed-in browser/device session.

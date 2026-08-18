@@ -162,3 +162,37 @@ body.dark .chat-template-shell{background:#171b18;color:#edf1ec}.dark .chat-temp
   .workspace-icon-button:active,
   .workspace-tabs button:active { transform: none; }
 }
+
+
+/* High-fidelity spacing pass: keep workspace, checkout-like cart states and confirmations aligned with the Chat board. */
+.chat-template-shell .workspace-header { padding-top: 24px; padding-bottom: 16px; }
+.chat-template-shell .workspace-header-copy { min-width: 0; }
+.chat-template-shell .workspace-header h1 { font-size: clamp(26px, 3vw, 32px); line-height: 1.08; margin-top: 5px; }
+.chat-template-shell .workspace-header p { max-width: 640px; font-size: 13px; line-height: 1.5; }
+.chat-template-shell .workspace-content { padding-top: 20px; }
+.chat-template-shell .workspace-hero-card { gap: 18px; padding: 22px 24px; }
+.chat-template-shell .workspace-hero-card h2 { font-size: clamp(21px, 2.2vw, 25px); line-height: 1.14; }
+.chat-template-shell .workspace-grid { gap: 12px; margin-top: 12px; }
+.chat-template-shell .metric-card, .chat-template-shell .balance-card { padding: 17px 18px; }
+.chat-template-shell .metric-card strong, .chat-template-shell .balance-card strong { font-size: clamp(25px, 2.4vw, 31px); }
+.chat-template-shell .workspace-panel { padding: 19px 20px; margin-top: 12px; }
+.chat-template-shell .panel-heading { min-height: 30px; }
+.chat-template-shell .panel-heading h2, .chat-template-shell .workspace-panel h2 { font-size: 18px; }
+.chat-template-shell .empty-workspace { padding: 34px 18px; }
+.chat-template-shell .cart-panel { gap: 18px; }
+.chat-template-shell .cart-summary { padding-left: 18px; }
+.chat-template-shell .workspace-data-card { padding: 14px 15px; }
+.chat-template-shell .workspace-data-card-footer { margin-top: 11px; }
+@media (max-width: 900px) {
+  .chat-template-shell .workspace-header { padding: 20px 20px 14px; }
+  .chat-template-shell .workspace-content { padding: 16px 20px 36px; }
+  .chat-template-shell .workspace-hero-card { padding: 19px 20px; }
+}
+@media (max-width: 560px) {
+  .chat-template-shell .workspace-header { padding: 18px 16px 12px; }
+  .chat-template-shell .workspace-content { padding: 14px 16px 30px; }
+  .chat-template-shell .workspace-hero-card { padding: 17px 18px; border-radius: 14px; }
+  .chat-template-shell .workspace-panel { padding: 16px; border-radius: 14px; }
+  .chat-template-shell .workspace-header-actions { gap: 6px; }
+  .chat-template-shell .workspace-header-actions .workspace-icon-button { width: 40px; height: 40px; }
+}
