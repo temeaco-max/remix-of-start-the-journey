@@ -146,8 +146,20 @@
 - [x] Review and harden Discover preview fixture labels, source provenance and non-availability language
 - [x] Document and validate the authenticated visual comparison and Discover controller audit
 
-- [ ] Run automated accessibility audits on authenticated Checkout, Confirmation, Tasks and Connect surfaces
-- [ ] Run authenticated surface performance audits and capture load/runtime metrics
-- [ ] Inspect detailed Checkout diff artifact and classify actionable versus composite-reference failure regions
-- [ ] Apply confirmed audit fixes only where evidence identifies real drift
-- [ ] Revalidate and document the accessibility, performance and Checkout diff audit
+- [x] Run automated accessibility audits on authenticated Checkout, Confirmation, Tasks and Connect surfaces
+- [x] Run authenticated surface performance audits and capture load/runtime metrics
+- [x] Inspect detailed Checkout diff artifact and classify actionable versus composite-reference failure regions
+- [x] Apply confirmed audit fixes only where evidence identifies real drift
+- [x] Revalidate and document the accessibility, performance and Checkout diff audit
+
+- [x] Extract the matching Checkout reference crop and normalize the live Cart capture
+- [x] Run crop-level Checkout visual diff and classify actionable layout regressions
+- [x] Execute the full Checkout, Confirmation, Tasks and Connect integration test suite
+- [x] Document and validate the crop comparison and integration-suite results
+- [x] Update the public-route integration contract to include the canonical `/confirmation` route, then rerun the full surface suite
+
+- [x] Extract individual Checkout and Confirmation reference frames from the existing board using image-processing coordinates
+- [x] Capture authenticated `/cart` and `/confirmation` at real mobile web viewports
+- [x] Run mobile crop-level pixel diffs against the individual reference frames
+- [x] Audit bottom action bar visibility, one-handed spacing, sidebar collapse and horizontal overflow on mobile web/PWA layouts
+- [x] Apply confirmed responsive fixes, revalidate and document the mobile comparison
