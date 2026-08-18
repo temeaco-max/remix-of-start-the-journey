@@ -51,7 +51,7 @@
     <main class="workspace-main">
       <header class="workspace-header">
         <div class="workspace-header-copy"><a class="workspace-back" href="/chat"><%- icon('chevron-left') %><span>Back to conversation</span></a><span class="workspace-kicker">Your Kurukoo</span><h1><%= workspaceTitle %></h1><p><%= workspaceDescription %></p></div>
-        <div class="workspace-header-actions"><a class="workspace-button secondary ask-cta" href="/chat"><span class="ask-mark"><img src="/assets/brand/logo-icon.svg" alt="" aria-hidden="true"></span><span>Ask</span></a><button class="workspace-icon-button workspace-mobile-only" id="workspace-open" type="button" aria-label="Open workspace navigation">☰</button></div>
+        <div class="workspace-header-actions"><a class="workspace-button secondary ask-cta" href="/chat"><span class="ask-mark"><img src="/assets/brand/logo-icon.svg" alt="" aria-hidden="true"></span><span>Ask</span></a><button class="workspace-icon-button workspace-mobile-only" id="workspace-open" type="button" aria-label="Open workspace navigation"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#menu"></use></svg></button></div>
       </header>
       <div class="workspace-content">
         <% if (workspaceSection === 'requests') { %>
