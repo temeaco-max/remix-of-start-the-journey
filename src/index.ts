@@ -10,6 +10,18 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   console.warn('[Kurukoo Startup] JWT_SECRET is absent; using an ephemeral development-only secret. Configure JWT_SECRET before deployment.');
 }
 
+const mcpEnabled = process.env.KURUKOO_MCP_ENABLED === 'true';
+if (production && mcpEnabled) {
+  const issuer = String(process.env.KURUKOO_MCP_ISSUER || '').trim();
+  const clientId = String(process.env.KURUKOO_MCP_CLIENT_ID || '').trim();
+  const redirects = String(process.env.KURUKOO_MCP_REDIRECT_URIS || '').split(',').map(v => v.trim()).filter(Boolean);
+  if (!issuer.startsWith('https://')) throw new Error('[Kurukoo Startup] KURUKOO_MCP_ISSUER must be an HTTPS public origin when MCP is enabled in production.');
+  if (!clientId) throw new Error('[Kurukoo Startup] KURUKOO_MCP_CLIENT_ID must be configured when MCP is enabled in production.');
+  if (!redirects.length || redirects.some(uri => !uri.startsWith('https://'))) throw new Error('[Kurukoo Startup] KURUKOO_MCP_REDIRECT_URIS must contain exact HTTPS redirect URIs when MCP is enabled in production.');
+  const oauthSecret = String(process.env.KURUKOO_MCP_OAUTH_SECRET || process.env.JWT_SECRET || '').trim();
+  if (oauthSecret.length < 32) throw new Error('[Kurukoo Startup] KURUKOO_MCP_OAUTH_SECRET or JWT_SECRET must be at least 32 characters when MCP is enabled in production.');
+}
+
 import express from 'express';
 import compression from 'compression';
 import path from 'node:path';
@@ -51,7 +63,7 @@ import { startBackgroundServices, stopBackgroundServices } from './startup/backg
 if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 if (!process.env.CREDIT_ECONOMY_ENABLED) process.env.CREDIT_ECONOMY_ENABLED = 'true';
 if (process.env.NODE_ENV === 'production' && process.env.KURUKOO_PAY_PROVIDER === 'sandbox') delete process.env.KURUKOO_PAY_PROVIDER;
-console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT || 3000}, Pay Provider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}, MCP=${process.env.KURUKOO_MCP_ENABLED === 'true' ? 'enabled' : 'disabled'}`);
+console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT || 3000}, Pay Provider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}, MCP=${mcpEnabled ? 'enabled' : 'disabled'}`);
 
 const app = express();
 app.set('view engine', 'ejs');
