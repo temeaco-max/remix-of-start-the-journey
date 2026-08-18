@@ -21,6 +21,12 @@ function requestId(context: CoordinatorContext): string | null {
   return context.event.economicRequestId || (typeof context.event.payload?.requestId === 'string' ? context.event.payload.requestId : null);
 }
 
+function explicitCapability(context: CoordinatorContext): { capability: string; action: string } | null {
+  const capability = typeof context.event.payload?.capability === 'string' ? context.event.payload.capability.trim() : '';
+  const action = typeof context.event.payload?.action === 'string' ? context.event.payload.action.trim() : '';
+  return capability && action ? { capability, action } : null;
+}
+
 function inspectRequest(): CoordinatorCapability {
   return {
     name: 'inspect_request',
@@ -37,7 +43,7 @@ function inspectRequest(): CoordinatorCapability {
         goalId: context.event.agentGoalId || context.event.correlationId,
       });
       if (!result.ok) return { ok: false, state: 'failed', message: result.message || 'The request could not be inspected.', tool: result.tool };
-      return { ok: true, state: 'observed', message: 'The current Economic Request state was inspected.', tool: result.tool, data: result.data, evidence: { source: result.evidence || `economic_request:${id}`, level: 'persisted_state' } };
+      return { ok: true, state: 'observed', message: 'The current Economic Request state was inspected.', tool: result.tool, data: result.data, evidence: { source: result.evidence || `economic_request:${id}:${result.data?.status || 'observed'}`, level: 'persisted_state' } };
     },
   };
 }
@@ -59,6 +65,48 @@ function recheckRequest(): CoordinatorCapability {
       });
       if (!result.ok) return { ok: false, state: 'failed', message: result.message || 'The request was not rechecked.', tool: result.tool };
       return { ok: true, state: 'completed', message: 'The canonical storefront rechecked the unresolved request.', tool: result.tool, data: result.data, evidence: { source: result.evidence || `storefront:${id}`, level: 'persisted_state' } };
+    },
+  };
+}
+
+function executeExplicitCapability(): CoordinatorCapability {
+  return {
+    name: 'execute_capability',
+    risk: 'user_confirmation_required',
+    requires: 'user',
+    autonomous: true,
+    canRun: context => Boolean(context.event.ownerPhone && explicitCapability(context)),
+    async run(context): Promise<CoordinatorCapabilityResult> {
+      const target = explicitCapability(context);
+      if (!target || !context.event.ownerPhone) return { ok: false, state: 'failed', message: 'An explicit capability and action are required.' };
+      const args = context.event.payload?.arguments && typeof context.event.payload.arguments === 'object' && !Array.isArray(context.event.payload.arguments)
+        ? context.event.payload.arguments as Record<string, unknown>
+        : {};
+      const result = await executeAgentTool('execute_capability', {
+        capability: target.capability,
+        action: target.action,
+        contextId: typeof context.event.payload?.contextId === 'string' ? context.event.payload.contextId : context.event.agentGoalId || context.event.correlationId,
+        canonicalObjectId: typeof context.event.payload?.canonicalObjectId === 'string' ? context.event.payload.canonicalObjectId : undefined,
+        argumentsJson: JSON.stringify(args),
+        confirmationGranted: context.event.policy.confirmationRequired === 'none' || context.event.payload?.confirmationGranted === true,
+      }, {
+        phone: context.event.ownerPhone,
+        conversationId: typeof context.event.payload?.conversationId === 'string' ? context.event.payload.conversationId : undefined,
+        goalId: context.event.agentGoalId || context.event.correlationId,
+      });
+      const resultStatus = typeof result.data?.status === 'string' ? result.data.status : (result.ok ? 'observed' : 'failed');
+      const state: CoordinatorCapabilityResult['state'] = resultStatus === 'completed' ? 'completed'
+        : resultStatus === 'waiting' || resultStatus === 'externally_pending' ? 'awaiting_confirmation'
+          : resultStatus === 'needs_user' || resultStatus === 'confirmation_required' ? 'awaiting_confirmation'
+            : result.ok ? 'observed' : 'failed';
+      return {
+        ok: result.ok,
+        state,
+        message: result.message || `Capability ${target.capability}:${target.action} returned ${resultStatus}.`,
+        tool: result.tool,
+        data: result.data,
+        evidence: { source: result.evidence || `canonical_capability:${target.capability}:${target.action}:${resultStatus}`, level: 'canonical_service' },
+      };
     },
   };
 }
@@ -97,13 +145,15 @@ function waitForUser(): CoordinatorCapability {
   };
 }
 
-const CAPABILITIES: CoordinatorCapability[] = [recheckRequest(), inspectRequest(), firstClassAgentPersona(), waitForUser()];
+const CAPABILITIES: CoordinatorCapability[] = [executeExplicitCapability(), recheckRequest(), inspectRequest(), firstClassAgentPersona(), waitForUser()];
 
 function chooseCapability(context: CoordinatorContext): CoordinatorDecision {
   const candidates = CAPABILITIES.filter(capability => capability.canRun(context));
-    const persona = candidates.find(capability => capability.name === 'first_class_agent_persona');
-    if (persona) return { capability: persona.name, provider: 'deterministic', model: 'rules-v1', reason: 'First-class persona execution must be policy-audited by the internal Brain before local generation.' };
-    const inspect = candidates.find(capability => capability.name === 'inspect_request');
+  const explicit = candidates.find(capability => capability.name === 'execute_capability');
+  if (explicit) return { capability: explicit.name, provider: 'deterministic', model: 'canonical-capability-executor', reason: 'Explicit capability actions are delegated to the canonical capability executor.' };
+  const persona = candidates.find(capability => capability.name === 'first_class_agent_persona');
+  if (persona) return { capability: persona.name, provider: 'deterministic', model: 'rules-v1', reason: 'First-class persona execution must be policy-audited by the internal Brain before local generation.' };
+  const inspect = candidates.find(capability => capability.name === 'inspect_request');
   if (inspect) return { capability: inspect.name, provider: 'deterministic', model: 'rules-v1', reason: 'Read-only request inspection is the cheapest correct capability.' };
   const recheck = candidates.find(capability => capability.name === 'recheck_request');
   if (recheck) return { capability: recheck.name, provider: 'deterministic', model: 'rules-v1', reason: 'Bounded low-risk request recheck is explicitly enabled.' };
@@ -123,7 +173,7 @@ export class InternalCoordinator {
     const decision = chooseCapability(context);
     const capability = CAPABILITIES.find(candidate => candidate.name === decision.capability) || waitForUser();
 
-    if (capability.risk !== 'read_only' && !event.policy.autonomousAllowed && capability.name !== 'wait_for_user') {
+    if (capability.risk !== 'read_only' && !event.policy.autonomousAllowed && capability.name !== 'wait_for_user' && capability.name !== 'execute_capability') {
       const result = { ok: true, state: 'awaiting_confirmation', message: 'Autonomous execution is disabled for this event.' } satisfies CoordinatorCapabilityResult;
       await persistCoordinatorRun({ eventId: event.id, capability: capability.name, state: result.state, provider: decision.provider, model: decision.model, latencyMs: Date.now() - startedAt });
       return result;
