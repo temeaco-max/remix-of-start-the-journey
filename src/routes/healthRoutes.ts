@@ -4,6 +4,7 @@ import { getSmolLM2RuntimeStatus } from '../services/smolLm2Service.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { ensureCapabilityFoundation } from '../services/capabilityFoundation.js';
 import { listCapabilityRegistrations, validateCapabilityRegistry } from '../services/capabilityRegistry.js';
+import { getCapabilityRuntimeSnapshot } from '../services/capabilityFoundationIntegration.js';
 
 const router = Router();
 const startedAt = Date.now();
@@ -44,7 +45,6 @@ function runtimeSnapshot() {
       ? false
       : Boolean(process.env.KURUKOO_PAY_PROVIDER && process.env.ECONOMIC_PAYMENT_ADAPTER === 'verified'),
     external_channels: {
-      // Compatibility booleans indicate a declared/configured boundary only; they never claim delivery.
       whatsapp: !['NOT_CONFIGURED', 'DISABLED'].includes(channel('WhatsApp').state),
       telegram: !['NOT_CONFIGURED', 'DISABLED'].includes(channel('Telegram').state),
       sms: !['NOT_CONFIGURED', 'DISABLED'].includes(channel('SMS').state),
@@ -77,6 +77,7 @@ function runtimeSnapshot() {
       payment: readiness.categories.PAYMENTS?.configuredProvider,
       agent: readiness.categories.AGENT?.runtime,
     },
+    capability_runtime: getCapabilityRuntimeSnapshot(),
   };
 }
 
@@ -95,18 +96,7 @@ router.get('/health', async (_req, res) => {
       const safeRes = db.exec("SELECT COUNT(*) FROM safety_checkins WHERE status = 'active'");
       safetyCount = Number(safeRes[0]?.values[0]?.[0] || 0);
     } catch {}
-    res.json({
-      status: 'ok',
-      service: 'kurukoo',
-      uptime_seconds: Math.floor((Date.now() - startedAt) / 1000),
-      database: 'ok',
-      active_requests: requestCount,
-      scheduled_reminders: reminderCount,
-      active_check_ins: safetyCount,
-      ...runtimeSnapshot(),
-      ...capabilitySnapshot(),
-      timestamp: new Date().toISOString(),
-    });
+    res.json({ status: 'ok', service: 'kurukoo', uptime_seconds: Math.floor((Date.now() - startedAt) / 1000), database: 'ok', active_requests: requestCount, scheduled_reminders: reminderCount, active_check_ins: safetyCount, ...runtimeSnapshot(), ...capabilitySnapshot(), timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('[Health] check failed:', error);
     res.status(503).json({ status: 'degraded', service: 'kurukoo', database: 'unavailable', timestamp: new Date().toISOString() });
@@ -121,17 +111,9 @@ router.get('/readyz', async (_req, res) => {
     const capability = capabilitySnapshot();
     const requireModel = process.env.KURUKOO_CLOUD_RUN_REQUIRE_MODEL === 'true';
     const modelReady = !requireModel || runtime.model.localEnabled || runtime.model.hostedConfigured;
-    const capabilityReady = capability.registry.state === 'healthy';
+    const capabilityReady = capability.registry.state === 'healthy' && runtime.capability_runtime.invalid.valid;
     const status = modelReady && capabilityReady ? 'ready' : 'not_ready';
-    res.status(modelReady && capabilityReady ? 200 : 503).json({
-      status,
-      service: 'kurukoo',
-      database: 'ok',
-      model: runtime.model,
-      model_required: requireModel,
-      capabilities: capability,
-      timestamp: new Date().toISOString(),
-    });
+    res.status(modelReady && capabilityReady ? 200 : 503).json({ status, service: 'kurukoo', database: 'ok', model: runtime.model, model_required: requireModel, capabilities: capability, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('[Readiness] check failed:', error);
     res.status(503).json({ status: 'not_ready', service: 'kurukoo', database: 'unavailable', timestamp: new Date().toISOString() });
