@@ -1,8 +1,8 @@
 # Teacher Models
 
-Teachers are offline evaluators and data generators. They do not execute Kurukoo capabilities.
+Teachers are offline evaluators and data generators. They do not execute Kurukoo capabilities and are never production dependencies.
 
-The interface supports provider adapters for stronger development models, including Mistral, Gemini and OpenAI-compatible teachers where permitted by their APIs/quotas. No teacher is a production dependency.
+The existing teacher entrypoints support a provider pool of Gemini, Mistral, Groq, OpenRouter, Hugging Face and OpenAI where the relevant API is configured. `auto` mode uses the configured ordered pool and, by default, prefers the earlier/free-or-low-cost entries before paid fallbacks. **Free-first is a routing preference, not a claim that a provider or model is free**: each provider's account quota, rate limits, model availability, billing terms and regional availability remain authoritative.
 
 Teacher tasks:
 
@@ -17,18 +17,24 @@ Teacher tasks:
 - assess truthfulness and policy adherence;
 - explain why a candidate arbitration decision is wrong.
 
-## Candidate trajectory generation
+## Cost-aware provider selection
 
-`generate_trajectory_candidates.py` uses a configured teacher model to generate natural assistant turns for synthetic Kurukoo scenarios. It preserves the original user/assistant/system roles, records the teacher provider/model, and marks every result as candidate-only and unreviewed.
-
-Example with Mistral:
+The existing `ml/teachers/generate_trajectory_candidates.py` and `scripts/run-trajectory-teacher.py` support:
 
 ```bash
-KURUKOO_TEACHER_PROVIDER=mistral \
-KURUKOO_TEACHER_MODEL=mistral-small-latest \
-KURUKOO_TEACHER_LIMIT=100 \
+KURUKOO_TEACHER_PROVIDER=auto \
+KURUKOO_TEACHER_PROVIDERS=gemini,mistral,groq,openrouter,huggingface,openai \
+KURUKOO_TEACHER_FREE_FIRST=true \
 python3 ml/teachers/generate_trajectory_candidates.py
 ```
+
+Provider-specific model environment variables are available in `.env.example`. OpenRouter can use a model explicitly marked free by OpenRouter when such a model is available; Hugging Face uses its OpenAI-compatible router when configured. These are availability choices, not guarantees, and a failed/limited provider falls through to the next configured provider.
+
+The selection belongs inside the existing teacher scripts. No new production AI router, teacher service or parallel runtime has been introduced.
+
+## Candidate trajectory generation
+
+`generate_trajectory_candidates.py` generates natural assistant turns for synthetic Kurukoo scenarios. It preserves the original user/assistant/system roles, records the actual teacher provider/model selected, records provider fallback attempts, and marks every result as candidate-only and unreviewed.
 
 The generator does not mutate canonical state and cannot authorize or execute a capability. Generated examples must be evaluated/curated before entering a student-model training set.
 
