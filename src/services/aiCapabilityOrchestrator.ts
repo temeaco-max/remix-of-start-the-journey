@@ -6,6 +6,7 @@ import { deriveActionInteractionPolicy, deriveActionInteractionPolicyForName, ty
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 import { ensureCapabilityFoundation, getRegisteredSkillCapabilityPlan } from './capabilityFoundation.js';
 import { resolveSkillCapabilityComposition } from './capabilityFoundationIntegration.js';
+import { resolveCapabilityExecutionPlan } from './capabilityExecutionPlanService.js';
 
 export type CapabilityProposalPosture = 'none' | 'clarify' | 'propose' | 'control';
 
@@ -22,6 +23,7 @@ export interface AICapabilityProposal {
   requiresCanonicalValidation: true;
   source: 'canonical-routing' | 'semantic-model';
   capabilityPlan?: string[];
+  executionPlan?: Array<{ capability: string; actions: string[]; owner: string[]; risk: string; activationState: string }>;
 }
 
 export interface AICapabilityOrchestrationDecision {
@@ -64,14 +66,15 @@ function descriptorFromDecision(capability: string, routing: IntentRoutingResult
   return candidate?.capability === capability ? candidate : undefined;
 }
 
-function ensureSkillComposition(skill: string): { capabilityPlan: string[]; skillDescriptor: UniversalCapabilityDescriptor } {
+function ensureSkillComposition(skill: string): { capabilityPlan: string[]; skillDescriptor: UniversalCapabilityDescriptor; executionPlan: ReturnType<typeof resolveCapabilityExecutionPlan> } {
   ensureCapabilityFoundation();
   const registration = getRegisteredSkillCapabilityPlan(skill);
   const composition = resolveSkillCapabilityComposition(skill);
+  const executionPlan = resolveCapabilityExecutionPlan(skill);
   const skillDescriptor = registration?.descriptor || composition.ordered.find(item => item.descriptor.capability === `skill.${skill}`)?.descriptor;
   if (!skillDescriptor) throw new Error(`No canonical capability composition registered for skill ${skill}.`);
-  if (composition.unresolved.length || composition.cycle?.length) throw new Error(`Invalid capability composition for skill ${skill}.`);
-  return { capabilityPlan: composition.ordered.map(item => item.descriptor.capability), skillDescriptor };
+  if (composition.unresolved.length || composition.cycle?.length || executionPlan.unresolved.length || executionPlan.cycle?.length) throw new Error(`Invalid capability composition for skill ${skill}.`);
+  return { capabilityPlan: composition.ordered.map(item => item.descriptor.capability), skillDescriptor, executionPlan };
 }
 
 export function buildAICapabilityOrchestration(
@@ -110,9 +113,10 @@ export function buildAICapabilityOrchestration(
     requiresCanonicalValidation: true,
     source: reconciled.source === 'semantic' || reconciled.source === 'reconciled' ? 'semantic-model' : 'canonical-routing',
     capabilityPlan: composition.capabilityPlan,
+    executionPlan: composition.executionPlan.executableCandidates,
   };
 
-  return { mode: contract.mode, shouldTalk: contract.shouldGenerateNaturalResponse, shouldPresentCanonicalResult, shouldProposeCapability, interactionPolicy, proposal: shouldProposeCapability ? proposal : undefined, reason: shouldProposeCapability ? `${reconciled.reason}; capability composition resolved through canonical registry` : 'canonical-routing-result-remains-authoritative' };
+  return { mode: contract.mode, shouldTalk: contract.shouldGenerateNaturalResponse, shouldPresentCanonicalResult, shouldProposeCapability, interactionPolicy, proposal: shouldProposeCapability ? proposal : undefined, reason: shouldProposeCapability ? `${reconciled.reason}; canonical composition and executable owner plan resolved` : 'canonical-routing-result-remains-authoritative' };
 }
 
 export default buildAICapabilityOrchestration;
