@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +25,16 @@ jobs:
       - run: npm run test:routes
       - name: Test remote MCP app contract
         run: npx tsx scripts/test-mcp-app.ts
+      - name: Test Pulse privacy contract
+        run: npx tsx scripts/test-pulse-privacy.ts
+      - name: Audit database schema drift
+        run: node scripts/audit-database-schema.mjs
+      - name: Validate production preflight parser
+        run: NODE_ENV=development node scripts/production-preflight.mjs
+      - name: Validate infrastructure manifests
+        run: docker compose -f docker-compose.production.yml config --quiet
+      - name: Build production container
+        run: docker build --file Dockerfile --tag kurukoo:ci .
       # The active transformer chain has a documented upstream high advisory with no safe npm fix.
       # Keep all advisories visible while blocking any critical production dependency finding.
       - run: npm audit --omit=dev --audit-level=critical
@@ -59,7 +69,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Gitleaks scans the PR's commit range; the parent must be present.
           fetch-depth: 0
       - name: Scan working tree for secrets
         uses: gitleaks/gitleaks-action@v2
