@@ -58,6 +58,7 @@ import telegramLinkedDeviceRoutes from './routes/telegramLinkedDeviceRoutes.js';
 import topicRoutes from './routes/topicRoutes.js';
 import connectionRoutes from './routes/connectionRoutes.js';
 import mcpAppRoutes from './routes/mcpAppRoutes.js';
+import { observabilityMiddleware } from './middleware/observability.js';
 import { startBackgroundServices, stopBackgroundServices } from './startup/backgroundServices.js';
 
 if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
@@ -68,6 +69,16 @@ console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT 
 const app = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
+app.disable('x-powered-by');
+app.use(observabilityMiddleware);
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(self), payment=()');
+  if (process.env.NODE_ENV === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+});
 app.use(compression({ threshold: 1024 }));
 app.use(express.static(path.join(process.cwd(), 'public'), {
   index: false,
@@ -78,18 +89,13 @@ app.use(express.static(path.join(process.cwd(), 'public'), {
       res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       return;
     }
-    if (/\.(?:css|js|svg|png|jpe?g|webp|woff2?)$/.test(lower)) {
-      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
-    }
+    if (/\.(?:css|js|svg|png|jpe?g|webp|woff2?)$/.test(lower)) res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
   },
 }));
 app.use(express.json({ limit: process.env.CHAT_ATTACHMENT_BODY_LIMIT || '35mb', verify: (req, _res, buf) => { (req as any).rawBody = Buffer.from(buf); } }));
 
-// Public system documentation must remain reachable before authenticated /api route boundaries.
 app.use('/', systemRoutes);
-// Remote AI app surface. OAuth metadata and /mcp remain outside the normal /api auth boundary.
 app.use('/', mcpAppRoutes);
-
 app.use('/api', channelRoutes);
 app.use('/api', circleRoutes);
 app.use('/api/economic-requests', economicRequestRouter);
@@ -124,7 +130,6 @@ app.use('/api', subscriptionRoutes);
 
 const port = Number(process.env.PORT || 3000);
 const host = (process.env.HOST && process.env.HOST !== 'localhost' && process.env.HOST !== '127.0.0.1') ? process.env.HOST : '0.0.0.0';
-
 export { app };
 
 if (process.env.KURUKOO_DISABLE_LISTEN !== 'true') {
@@ -139,16 +144,8 @@ if (process.env.KURUKOO_DISABLE_LISTEN !== 'true') {
         shuttingDown = true;
         console.log(`[Kurukoo] Graceful shutdown requested (${signal})`);
         stopBackgroundServices();
-        server.close((error) => {
-            if (error) {
-                console.error('[Kurukoo] HTTP server shutdown error:', error);
-                process.exitCode = 1;
-            }
-        });
-        setTimeout(() => {
-            console.error('[Kurukoo] Graceful shutdown timeout; forcing exit');
-            process.exitCode = 1;
-        }, 10_000).unref();
+        server.close((error) => { if (error) { console.error('[Kurukoo] HTTP server shutdown error:', error); process.exitCode = 1; } });
+        setTimeout(() => { console.error('[Kurukoo] Graceful shutdown timeout; forcing exit'); process.exitCode = 1; }, 10_000).unref();
     };
     process.once('SIGTERM', () => shutdown('SIGTERM'));
     process.once('SIGINT', () => shutdown('SIGINT'));
