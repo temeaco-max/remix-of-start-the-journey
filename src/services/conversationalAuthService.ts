@@ -7,6 +7,7 @@ import { sendFcmPush } from './pushNotifications.js';
 import { generateConversationalResponse } from './conversationalGenerationService.js';
 import { resolveConversationPriority } from './conversationPriorityService.js';
 import { executeCanonicalCapabilityProposal } from './canonicalCapabilityExecutor.js';
+import { requestMagicLink, isMagicLinkAuthEnabled, sanitizeReturnPath } from './authChallengeService.js';
 
 export type AuthState = 'none' | 'awaiting_name' | 'awaiting_phone' | 'awaiting_otp' | 'awaiting_email_phone' | 'awaiting_email_otp';
 
@@ -39,29 +40,15 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
   if (priority.kind === 'emergency') {
     await setAuthState(guestPhone, 'none', {});
     const service = /ambulance/i.test(text) ? 'ambulance' : /police/i.test(text) ? 'police' : /fire/i.test(text) ? 'fire' : 'national';
-    const result = await executeCanonicalCapabilityProposal({
-      capability: 'safety',
-      action: 'emergency_dispatch',
-      arguments: { service, country: 'NG' },
-      phone: guestPhone,
-      channel: 'chat',
-      idempotencyKey: `auth-emergency:${guestPhone}:${service}:${text.trim().toLowerCase()}`,
-    });
-    return {
-      reply: result.message,
-      cardData: { type: 'emergency_dispatch', canonicalAction: 'safety.emergency_dispatch', service, status: result.status, ...(result.canonicalFacts || {}), actions: result.nextActions, recovery: result.retryRecovery, guestAllowed: true, authenticationRequired: false, preservePriorContext: true },
-    };
+    const result = await executeCanonicalCapabilityProposal({ capability: 'safety', action: 'emergency_dispatch', arguments: { service, country: 'NG' }, phone: guestPhone, channel: 'chat', idempotencyKey: `auth-emergency:${guestPhone}:${service}:${text.trim().toLowerCase()}` });
+    return { reply: result.message, cardData: { type: 'emergency_dispatch', canonicalAction: 'safety.emergency_dispatch', service, status: result.status, ...(result.canonicalFacts || {}), actions: result.nextActions, recovery: result.retryRecovery, guestAllowed: true, authenticationRequired: false, preservePriorContext: true } };
   }
 
   const { state, data } = await getAuthState(guestPhone);
 
   if (state === 'awaiting_name') {
     const name = text.trim();
-    if (GUEST_CONVERSATION_RE.test(name)) {
-      await setAuthState(guestPhone, 'none', {});
-      const generated = await generateConversationalResponse({ prompt: text, phone: guestPhone, systemPrompt: 'You are Kurukoo, a helpful everyday conversational assistant. This is a casual greeting from a guest who has not signed in. Respond naturally and briefly. Do not ask for a name, phone number, OTP, or create a request unless the user explicitly asks for one.' });
-      return { reply: generated.text };
-    }
+    if (GUEST_CONVERSATION_RE.test(name)) { await setAuthState(guestPhone, 'none', {}); const generated = await generateConversationalResponse({ prompt: text, phone: guestPhone, systemPrompt: 'You are Kurukoo, a helpful everyday conversational assistant. This is a casual greeting from a guest who has not signed in. Respond naturally and briefly. Do not ask for a name, phone number, OTP, or create a request unless the user explicitly asks for one.' }); return { reply: generated.text }; }
     if (!name) return { reply: "I didn't catch your name. What should I call you?" };
     await setAuthState(guestPhone, 'awaiting_phone', { ...data, name });
     return { reply: `Nice to meet you, ${name}. Enter your phone number below and I’ll create a verification request and tell you whether an approved delivery method is available.`, cardData: { type: 'auth_conversation', step: 'phone', name } };
@@ -76,7 +63,18 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
       return { reply: 'Email can be used for the verification code, while your phone remains your primary Kurukoo channel identity. What phone number should stay connected to your account?', cardData: { type: 'auth_conversation', step: 'phone', email } };
     }
     const digits = supplied.replace(/\D/g, ''); if (digits.length < 10) return { reply: "That doesn't look like a valid phone number. Please enter your full phone number (e.g. 080...)" };
-    const fullPhone = normalizeOtpPhone(supplied); const result = await requestPhoneOtp(fullPhone); if (!result.success) return { reply: `I couldn't request a code for that number: ${result.message || 'unknown error'}. Please try again.` };
+    const fullPhone = normalizeOtpPhone(supplied);
+    const result = await requestPhoneOtp(fullPhone);
+    if (!result.success) {
+      if (isMagicLinkAuthEnabled() && data.name) {
+        const emailHint = String(data.email || '').trim().toLowerCase();
+        if (emailHint && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailHint)) {
+          const magic = await requestMagicLink({ email: emailHint, name: data.name, guestPhone, returnPath: '/chat' }).catch(() => ({ success: false, message: 'Unable to issue a magic link', delivery: 'none' as const }));
+          if (magic.success) return { reply: 'Phone verification is not available in this environment, but I can continue through your email instead.', cardData: { type: 'auth_magic_link', canonicalAction: 'identity.upgrade.email_magic_link', email: emailHint, debugUrl: 'debugUrl' in magic ? magic.debugUrl : undefined, status: 'ready' } };
+        }
+      }
+      return { reply: `I couldn't request a code for that number: ${result.message || 'unknown error'}. Please try again.` };
+    }
     await setAuthState(guestPhone, 'awaiting_otp', { ...data, phone: fullPhone });
     const controlledTest = isDevelopmentTestIdentity(fullPhone); const delivered = /sent|delivery/i.test(String(result.message || '')) && !/generated|configure/i.test(String(result.message || ''));
     const reply = controlledTest ? `For this controlled development test, use verification code ${developmentTestOtpLabel()}. No external SMS was sent.` : delivered ? "I've sent a 6-digit verification code to your phone. Enter it here to continue." : "I've created the verification request, but external SMS/WhatsApp delivery is not configured in this environment. Do not assume a code was delivered; connect an approved delivery provider before using this flow with real users.";

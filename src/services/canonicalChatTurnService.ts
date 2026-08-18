@@ -45,7 +45,9 @@ function extractRequirementPatch(message: string, card: any, current: any): Reco
     const key = names.find(name => keys.has(name));
     if (key && value !== undefined && value !== '') patch[key] = value;
   };
-  if (/\b(cancel|stop|don't want|do not want|no longer need)\b/i.test(text)) return { __cancel: true };
+  const explicitCancellation = /\b(?:cancel|stop)\s+(?:this|that|it|the current request|my request)\b/i.test(text)
+    || /\b(?:i\s+)?(?:no longer need|(?:do not|don't) want)\s+(?:this|that|it|the current request|my request)\b/i.test(text);
+  if (explicitCancellation) return { __cancel: true };
   const budget = text.match(/(?:₦|ngn|naira)\s*([\d,]+)|\b([\d,]+)\s*(?:ngn|naira)\b/i);
   if (budget) setFirst(['budget', 'amount', 'rate', 'price'], (budget[1] || budget[2] || '').replace(/,/g, ''));
   const time = text.match(/\b(today|tonight|tomorrow(?:\s+(?:morning|afternoon|evening|night))?|this\s+weekend|next\s+week|next\s+month|saturday|sunday|monday|tuesday|wednesday|thursday|friday)\b/i);

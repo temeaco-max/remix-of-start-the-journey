@@ -122,9 +122,12 @@ def call_openai_compatible(provider, model, prompt):
         "model": model,
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}],
         "temperature": 0.2,
-        "max_tokens": MAX_TOKENS,
         "response_format": {"type": "json_object"},
     }
+    if provider == "openai" and model.startswith("gpt-5"):
+        payload["max_completion_tokens"] = MAX_TOKENS
+    else:
+        payload["max_tokens"] = MAX_TOKENS
     data = post_json(url, payload, {"Authorization": f"Bearer {key}"})
     return parse_teacher_json(data["choices"][0]["message"].get("content"))
 
@@ -248,7 +251,7 @@ def main():
                 "exampleId": candidate_id(row, index, provider, model),
                 "scenarioId": row.get("scenarioId"),
                 "messages": normalized_trajectory + [{"role": "assistant", "content": turn} for turn in turns],
-                "labels": {"skill": row.get("skill"), "family": row.get("family"), "variant": row.get("lifecycleVariant"), "market": row.get("market"), "actor": row.get("actor"), "channel": row.get("channel"), "nextPosture": result.get("nextPosture", "conversation"), "actionProposal": result.get("actionProposal")},
+                "labels": {"skill": row.get("skill"), "family": row.get("family"), "variant": row.get("lifecycleVariant"), "lifecycle": row.get("lifecycle"), "market": row.get("market"), "locale": row.get("locale"), "actor": row.get("actor"), "channel": row.get("channel"), "horizon": row.get("horizon"), "activeGoalCount": row.get("activeGoalCount"), "nextPosture": result.get("nextPosture", "conversation"), "actionProposal": result.get("actionProposal")},
                 "provenance": {"source": "teacher-model-candidate", "teacherProvider": provider, "teacherModel": model, "providerSelection": provider_order(), "freeFirstPreference": FREE_FIRST, "fallbackErrors": provider_errors, "candidateOnly": True, "reviewed": False, "productionUserData": False, "mutatesCanonicalState": False},
                 "quality": {"status": "candidate_requires_review", "notes": [str(note)[:500] for note in (result.get("qualityNotes") or [])[:8]]},
             })

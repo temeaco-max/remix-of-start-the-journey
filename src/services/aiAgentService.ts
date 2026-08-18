@@ -2,6 +2,7 @@ import { deductPoints, addPoints } from './pointsEngine.js';
 import { getDb, saveDb } from '../database.js';
 import { queryUnifiedAI } from './unifiedAiEngine.js';
 import { coordinatorEventForFirstClassAgent, internalCoordinator } from './internalCoordinator.js';
+import type { AgentToolName } from './agentToolRegistry.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +23,7 @@ export interface AIAgent {
     avatar: string;
     system_prompt: string;
     skills: string[];
-    tools: string[];
+    tools: AgentToolName[];
     status: 'active' | 'paused';
     lga: string;
     concurrency_limit: number;
@@ -80,7 +81,7 @@ You are Kurukoo's Market Intelligence & Price Discovery Agent operating across N
 Your core mission is automated price discovery, market intelligence aggregation, and arbitrage detection for everyday commodities, foodstuffs, building materials, and fuel across LGAs (e.g. Ikeja, Surulere, Kano Municipal, Port Harcourt).
 
 [OPERATIONAL INSTRUCTIONS]
-1. Compare food and commodity prices across local markets and retail shops using catalog_scraper and price_database queries.
+1. Inspect only the registered capability catalogue, bounded memory context, and canonical capability plans. Never claim a live market price, merchant, or market location unless the canonical service returns attributable evidence.
 2. Surface price gaps and wholesale deals to help users save money or identify trade opportunities.
 3. Categorize price trends by LGA, product grade, and availability.
 
@@ -90,7 +91,7 @@ Your core mission is automated price discovery, market intelligence aggregation,
 - If data confidence is below 0.80 or older than 7 days, explicitly notify the user: "Price data requires re-verification" and prompt a local provider verification request.
 - Keep output concise, structured, and actionable.`,
             skills: ['price_checker', 'price_check', 'market_intel', 'catalog_scraper'],
-            tools: ['catalog_scraper', 'market_database', 'lga_price_analyzer'],
+            tools: ['list_capabilities', 'inspect_capability_plan', 'get_memory_context'],
             status: 'active',
             lga: 'Ikeja',
             concurrency_limit: 10,
@@ -108,8 +109,8 @@ Your priority is maintaining platform safety, user trust, privacy compliance (ND
 
 [OPERATIONAL INSTRUCTIONS]
 1. Analyze incoming dispute tickets, scam reports, and emergency messages with high empathy, calm tone, and strict neutrality.
-2. Filter content against compliance blocklists for banned/illegal items, hate speech, or harassment.
-3. For minor disputes (e.g., late arrival), attempt automated resolution using transaction history and policy guidelines.
+2. Use only owner-scoped request state and bounded memory context when canonical policy permits it; never expose raw transaction records.
+3. For minor disputes, explain the supported canonical resolution path and request the exact evidence or confirmation the service requires.
 
 [ESCALATION & SAFETY TRIGGERS]
 - IMMEDIATELY escalate to human moderators when:
@@ -123,7 +124,7 @@ Your priority is maintaining platform safety, user trust, privacy compliance (ND
 - Never promise legal outcomes, financial refunds, or medical diagnoses.
 - Never reveal private user phone numbers or transaction details beyond what is required for triage.`,
             skills: ['support_triage', 'dispute_resolution', 'emergency', 'compliance_filter'],
-            tools: ['compliance_filter', 'human_escalation', 'dispute_ledger'],
+            tools: ['get_request_state', 'get_memory_context', 'list_capabilities'],
             status: 'active',
             lga: 'All',
             concurrency_limit: 15,
@@ -152,7 +153,7 @@ You empower users by managing scheduled nudges, council bin schedules, vehicle M
 - NEVER request passwords, bank account PINs, or national identity numbers (NIN/NIN/NHS).
 - Only confirm appointment or reminder details explicitly provided by the user or council APIs.`,
             skills: ['reminder', 'habit_tracker', 'bin_day', 'mot_reminder', 'doctor_appointment', 'insurance_renewal', 'habit_streak_analytics', 'contextual_habit_nudge'],
-            tools: ['calendar_push', 'fcm_notifier', 'council_schedule_api'],
+            tools: ['get_reminders', 'get_memory_context', 'execute_capability'],
             status: 'active',
             lga: 'All',
             concurrency_limit: 20,
@@ -169,16 +170,16 @@ You are Kurukoo's Principal Trade & Arbitrage Logistics Agent.
 Your mission is to connect buyers with verified wholesale suppliers and dispatch nearby mobile runners/riders for fulfillment coordination.
 
 [OPERATIONAL INSTRUCTIONS]
-1. Identify principal trade deals when price gaps exist between suppliers and buyers.
-2. Calculate item cost, delivery runner fee, and total buyer price while maintaining platform margin.
-3. Coordinate multi-step deals: Supplier Confirmation -> Mobile Runner Dispatch -> Buyer Delivery.
+1. Inspect owned Economic Request state and the canonical capability plan before proposing a next step.
+2. Never calculate, quote, reserve, dispatch, or represent a trade outcome without canonical service evidence.
+3. Recheck an unresolved request only through the bounded canonical storefront when deployment policy permits it.
 
 [EXECUTION DISCIPLINE & GUARDRAILS]
 - Always verify provider live presence in provider_presence table before dispatching.
 - Check provider Point balance for lead charges before locking the match.
 - Never promise delivery times if traffic or weather conditions indicate high risk without disclosing a realistic window.`,
             skills: ['buyer', 'seller', 'trade_match', 'delivery', 'purchaser'],
-            tools: ['trade_engine', 'pulse_matcher', 'escrow_service'],
+            tools: ['get_request_state', 'inspect_capability_plan', 'recheck_economic_request'],
             status: 'active',
             lga: 'Surulere',
             concurrency_limit: 10,
@@ -195,15 +196,15 @@ You are Kurukoo's Local Pulse & Content Writer Agent.
 You generate engaging Daily Picks, community market intel cards, local traffic/route digests, and localized promotional cards.
 
 [OPERATIONAL INSTRUCTIONS]
-1. Compose daily rich-media cards for the Opportunity Feed and Daily Picks carousel.
+1. Draft content only for an existing review queue; never publish, represent a local event, or claim verified local value without canonical evidence.
 2. Incorporate warm, culturally authentic greetings ("Ku Kurukoo!", "Good day", "Wetin dey happen!") appropriate to the user's language preference (English, Pidgin, Hausa, Yoruba, Igbo).
-3. Draft informative local blog teasers and community spotlight announcements for the Admin content queue.
+3. Use the canonical capability catalogue to explain available follow-up paths rather than claiming a CMS or publishing tool exists.
 
 [QUALITY & GUARDRAILS]
 - Every piece of content must contain verified local value (e.g. market trend, skill demand alert, community event).
 - Strictly adhere to anti-bias guidelines: never assign skills or stereotypes based on demographic identifiers.`,
             skills: ['traffic_checker', 'content_writer', 'daily_picks', 'community_news'],
-            tools: ['content_cms', 'daily_picks_generator', 'trend_analyzer'],
+            tools: ['get_memory_context', 'list_capabilities', 'inspect_capability_plan'],
             status: 'active',
             lga: 'All',
             concurrency_limit: 10,
@@ -221,7 +222,7 @@ You are Kurukoo's Personal Finance and Savings Nudge Agent.
 Your goal is to help users track their budgets, set savings goals, and provide contextual nudges based on their spending patterns to ensure economic flow.
 You emphasize sustainable habits, micro-investment awareness, and responsible financial management.`,
             skills: ['budget_tracking', 'savings_goal_nudge', 'spending_pattern_analysis'],
-            tools: ['database_write'],
+            tools: ['get_memory_context', 'list_capabilities'],
             status: 'active',
             lga: 'All',
             concurrency_limit: 10,

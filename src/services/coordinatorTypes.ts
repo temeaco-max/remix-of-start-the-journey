@@ -49,7 +49,7 @@ export interface CoordinatorEventEnvelope<TPayload = Record<string, unknown>> {
   schemaVersion: 1;
 }
 
-export type CoordinatorCapabilityName = 'inspect_request' | 'recheck_request' | 'execute_capability' | 'first_class_agent_persona' | 'wait_for_user';
+export type CoordinatorCapabilityName = 'execute_capability' | 'inspect_request' | 'recheck_request' | 'first_class_agent_persona' | 'wait_for_user';
 export type CoordinatorCapabilityRisk = 'read_only' | 'reversible' | 'user_confirmation_required';
 
 export interface CoordinatorContext {

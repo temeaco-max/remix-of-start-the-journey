@@ -23,6 +23,8 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run test:routes
+      - name: Test progressive identity contract
+        run: npx tsx scripts/test-progressive-identity.ts
       - name: Test remote MCP app contract
         run: npx tsx scripts/test-mcp-app.ts
       - name: Test Pulse privacy contract
@@ -32,7 +34,7 @@ jobs:
       - name: Validate production preflight parser
         run: NODE_ENV=development node scripts/production-preflight.mjs
       - name: Validate infrastructure manifests
-        run: POSTGRES_PASSWORD=ci-only-dont-use docker compose -f docker-compose.production.yml config --quiet
+        run: cp .env.example .env && POSTGRES_PASSWORD=ci-only-dont-use docker compose -f docker-compose.production.yml config --quiet
       - name: Build production container
         run: docker build --file Dockerfile --tag kurukoo:ci .
       - run: npm audit --omit=dev --audit-level=critical
@@ -46,7 +48,7 @@ jobs:
 
   fasttext:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

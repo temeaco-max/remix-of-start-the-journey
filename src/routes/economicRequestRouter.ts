@@ -47,6 +47,7 @@ import {
   dispatchExecutionRequest,
   getExecutionRequestsForRequest,
 } from '../services/executionConnector.js';
+import { assertIdentityAllows } from '../services/progressiveIdentityService.js';
 
 const router = Router();
 
@@ -58,6 +59,10 @@ const ALLOWED_STATUSES = new Set<EconomicRequestStatus>([
 
 function phoneFrom(req: AuthRequest): string | null {
   return req.user?.phone ? String(req.user.phone) : null;
+}
+
+async function requireEconomicIdentity(phone: string, capability: 'economic_request' | 'payment' | 'provider_action' = 'economic_request') {
+  return assertIdentityAllows(phone, capability);
 }
 
 function cleanRequirements(value: unknown): Record<string, unknown> {
@@ -109,6 +114,8 @@ router.get('/skills/:skill/flow', async (req: AuthRequest, res) => {
 router.post('/storefront/start', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  const gate = await requireEconomicIdentity(phone);
+  if (!gate.allowed) return res.status(403).json({ success: false, error: gate.reason, identity: gate.snapshot.cardData });
   const skill = typeof req.body?.skill === 'string' ? req.body.skill.trim().toLowerCase() : 'find_worker';
   const requirements = cleanRequirements(req.body?.requirements);
   try {
@@ -123,6 +130,8 @@ router.post('/storefront/start', authenticateUser, async (req: AuthRequest, res)
 router.post('/storefront/:id/advance', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  const gate = await requireEconomicIdentity(phone);
+  if (!gate.allowed) return res.status(403).json({ success: false, error: gate.reason, identity: gate.snapshot.cardData });
   const requestId = String(req.params.id || '');
   const action = typeof req.body?.action === 'string' ? req.body.action : undefined;
   const patch = cleanRequirements(req.body?.requirements || req.body?.fields);
@@ -163,6 +172,8 @@ router.post('/', authenticateUser, async (req: AuthRequest, res) => {
   const category = getEconomicCategory(skill);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
   if (!skill || !category) return res.status(400).json({ success: false, error: 'A supported economic skill is required' });
+  const gate = await requireEconomicIdentity(phone);
+  if (!gate.allowed) return res.status(403).json({ success: false, error: gate.reason, identity: gate.snapshot.cardData });
   const requirements = cleanRequirements(req.body?.requirements);
   const missing = validateRequirements(skill, requirements, req.body?.allowPartial === true);
   if (missing.length) return res.status(422).json({ success: false, error: 'More information is required', missing });
@@ -199,6 +210,8 @@ router.get('/offers/search', authenticateUser, async (req: AuthRequest, res) => 
 router.post('/offers/:offerId/start', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  const gate = await requireEconomicIdentity(phone);
+  if (!gate.allowed) return res.status(403).json({ success: false, error: gate.reason, identity: gate.snapshot.cardData });
   try {
     const result = await startKnownOfferEconomicRequest({
       buyerPhone: phone,
@@ -361,21 +374,11 @@ router.post('/:id/transition', authenticateUser, async (req: AuthRequest, res) =
   const status = String(req.body?.status || '').trim() as EconomicRequestStatus;
   if (!ALLOWED_STATUSES.has(status)) return res.status(400).json({ success: false, error: 'Unsupported request status' });
 
-  // Customers may only request customer-owned lifecycle transitions. Provider/system
-  // transitions are performed by the orchestration/payment/provider services.
-  const customerAllowed = new Set<EconomicRequestStatus>([
-    'awaiting_confirmation', 'reserved', 'cancelled', 'completed',
-  ]);
-  if (!customerAllowed.has(status)) {
-    return res.status(403).json({ success: false, error: 'This lifecycle transition is performed by the economic service layer.' });
-  }
-  if (status === 'completed' && !['fulfilled', 'in_fulfillment'].includes(request.status)) {
-    return res.status(409).json({ success: false, error: 'A request must be fulfilled before the customer can complete it.' });
-  }
+  const customerAllowed = new Set<EconomicRequestStatus>(['awaiting_confirmation', 'reserved', 'cancelled', 'completed']);
+  if (!customerAllowed.has(status)) return res.status(403).json({ success: false, error: 'This lifecycle transition is performed by the economic service layer.' });
+  if (status === 'completed' && !['fulfilled', 'in_fulfillment'].includes(request.status)) return res.status(409).json({ success: false, error: 'A request must be fulfilled before the customer can complete it.' });
   try {
-    const updated = await transitionEconomicRequest(request.id, status, {
-      fulfillment: req.body?.fulfillment && typeof req.body.fulfillment === 'object' ? req.body.fulfillment : undefined,
-    });
+    const updated = await transitionEconomicRequest(request.id, status, { fulfillment: req.body?.fulfillment && typeof req.body.fulfillment === 'object' ? req.body.fulfillment : undefined });
     res.json({ success: true, request: updated });
   } catch (error) {
     res.status(409).json({ success: false, error: error instanceof Error ? error.message : 'Invalid request transition' });
@@ -385,6 +388,8 @@ router.post('/:id/transition', authenticateUser, async (req: AuthRequest, res) =
 router.post('/:id/escrow', authenticateUser, async (req: AuthRequest, res) => {
   const phone = phoneFrom(req);
   if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
+  const gate = await requireEconomicIdentity(phone, 'payment');
+  if (!gate.allowed) return res.status(403).json({ success: false, error: gate.reason, identity: gate.snapshot.cardData });
   const request = await getEconomicRequest(String(req.params.id || ''));
   if (!request || request.phone !== phone) return res.status(404).json({ success: false, error: 'Economic request not found' });
   const amount = typeof req.body?.amount_minor === 'number' && Number.isInteger(req.body.amount_minor) ? req.body.amount_minor : undefined;
@@ -404,121 +409,38 @@ router.post('/:id/complete', authenticateUser, async (req: AuthRequest, res) => 
 
 router.get('/:id/execution', authenticateUser, async (req: AuthRequest, res) => {
   const request = await getEconomicRequest(req.params.id);
-  if (!request) {
-    return res.status(404).json({ ok: false, error: 'Economic request not found' });
-  }
+  if (!request) return res.status(404).json({ ok: false, error: 'Economic request not found' });
   const userPhone = phoneFrom(req);
-  if (request.phone !== userPhone) {
-    return res.status(403).json({ ok: false, error: 'Unauthorized: only request owner can inspect execution requests' });
-  }
+  if (request.phone !== userPhone) return res.status(403).json({ ok: false, error: 'Unauthorized: only request owner can inspect execution requests' });
   const executions = await getExecutionRequestsForRequest(req.params.id);
   return res.json({ ok: true, executionRequests: executions });
 });
 
 router.post('/:id/execution', authenticateUser, async (req: AuthRequest, res) => {
   const request = await getEconomicRequest(req.params.id);
-  if (!request) {
-    return res.status(404).json({ ok: false, error: 'Economic request not found' });
-  }
+  if (!request) return res.status(404).json({ ok: false, error: 'Economic request not found' });
   const userPhone = phoneFrom(req);
-  if (request.phone !== userPhone) {
-    return res.status(403).json({ ok: false, error: 'Unauthorized: only request owner can dispatch execution' });
-  }
-
+  if (request.phone !== userPhone) return res.status(403).json({ ok: false, error: 'Unauthorized: only request owner can dispatch execution' });
+  const gate = await requireEconomicIdentity(userPhone, 'provider_action');
+  if (!gate.allowed) return res.status(403).json({ ok: false, error: gate.reason, identity: gate.snapshot.cardData });
   const { providerPhone, capability, actionRequested, role, idempotencyKey } = req.body || {};
-  if (!providerPhone || !capability || !actionRequested || !role || !idempotencyKey) {
-    return res.status(400).json({
-      ok: false,
-      error: 'providerPhone, capability, actionRequested, role, and idempotencyKey are required'
-    });
-  }
-
+  if (!providerPhone || !capability || !actionRequested || !role || !idempotencyKey) return res.status(400).json({ ok: false, error: 'providerPhone, capability, actionRequested, role, and idempotencyKey are required' });
   const participants = await getEconomicParticipants(req.params.id);
   const participant = participants.find((p) => p.providerPhone === providerPhone && p.role === role);
-  if (!participant) {
-    return res.status(400).json({ ok: false, error: 'Specified provider is not a registered participant on this request' });
-  }
-
+  if (!participant) return res.status(400).json({ ok: false, error: 'Specified provider is not a registered participant on this request' });
   try {
     const actionId = `act_${Math.random().toString(36).substring(2, 10)}`;
     const correlationId = `corr_${request.id}`;
-    const created = await createExecutionRequest({
-      requestId: request.id,
-      actionId,
-      providerPhone,
-      role,
-      capability,
-      actionRequested,
-      idempotencyKey: String(idempotencyKey),
-      correlationId,
-      authorizationContext: {
-        invoked_by: userPhone,
-        participant_status: participant.status,
-      }
-    });
+    const created = await createExecutionRequest({ requestId: request.id, actionId, providerPhone, role, capability, actionRequested, idempotencyKey: String(idempotencyKey), correlationId, authorizationContext: { invoked_by: userPhone, participant_status: participant.status } });
     const execution = await dispatchExecutionRequest(created.id);
-
     return res.json({ ok: true, executionRequest: execution });
-  } catch (err: any) {
-    return res.status(400).json({ ok: false, error: err?.message || 'Failed to create execution request' });
-  }
+  } catch (err: any) { return res.status(400).json({ ok: false, error: err?.message || 'Failed to create execution request' }); }
 });
 
-router.post('/orchestration/run', authenticateAdmin, async (_req: AuthRequest, res) => {
-  try {
-    const result = await runOrchestrationPass();
-    res.json({ success: true, result });
-  } catch (error) {
-    console.error('[Orchestration] pass failed:', error);
-    res.status(500).json({ success: false, error: 'Orchestration pass failed' });
-  }
-});
-
-router.post('/memory/lifecycle', authenticateAdmin, async (req: AuthRequest, res) => {
-  try {
-    await ensureLivingMemorySchema();
-    const job = String(req.body?.job || 'all');
-    const out: Record<string, unknown> = {};
-    if (job === 'decay' || job === 'all') out.decay = await runDailyMemoryDecay();
-    if (job === 'prune' || job === 'all') out.prune = await runWeeklyMemoryPrune();
-    if (job === 'crystallize' || job === 'all') out.crystallize = await runMemoryCrystallize();
-    res.json({ success: true, ...out });
-  } catch (error) {
-    console.error('[LivingMemory] lifecycle failed:', error);
-    res.status(500).json({ success: false, error: 'Memory lifecycle failed' });
-  }
-});
-
-  router.get('/memory/facts', authenticateUser, async (req: AuthRequest, res) => {
-    const phone = phoneFrom(req);
-    if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
-    try {
-      const facts = await getMemoryFacts(phone);
-      res.json({ success: true, facts: facts.map(({ id, field, value, provenance, confidence, observedAt, expiresAt }) => ({ id, field, value, provenance, confidence, observedAt, expiresAt })) });
-    } catch (error) {
-      res.status(500).json({ success: false, error: 'Unable to load memory facts' });
-    }
-  });
-
-  router.delete('/memory/facts/:id', authenticateUser, async (req: AuthRequest, res) => {
-    const phone = phoneFrom(req);
-    if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
-    const factId = Number(req.params.id);
-    const result = await revokeMemoryFact(phone, factId);
-    if (result.revoked) return res.json({ success: true, revoked: true, id: factId });
-    if (result.reason === 'already_revoked') return res.status(409).json({ success: false, error: 'Memory fact has already been removed.' });
-    return res.status(404).json({ success: false, error: 'Memory fact was not found for this account.' });
-  });
-
-  router.get('/memory/inspector', authenticateUser, async (req: AuthRequest, res) => {
-  const phone = phoneFrom(req);
-  if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' });
-  try {
-    const rows = await getWorkingContextInspector(phone);
-    res.json({ success: true, audits: rows });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Unable to load memory inspector' });
-  }
-});
+router.post('/orchestration/run', authenticateAdmin, async (_req: AuthRequest, res) => { try { const result = await runOrchestrationPass(); res.json({ success: true, result }); } catch (error) { console.error('[Orchestration] pass failed:', error); res.status(500).json({ success: false, error: 'Orchestration pass failed' }); } });
+router.post('/memory/lifecycle', authenticateAdmin, async (req: AuthRequest, res) => { try { await ensureLivingMemorySchema(); const job = String(req.body?.job || 'all'); const out: Record<string, unknown> = {}; if (job === 'decay' || job === 'all') out.decay = await runDailyMemoryDecay(); if (job === 'prune' || job === 'all') out.prune = await runWeeklyMemoryPrune(); if (job === 'crystallize' || job === 'all') out.crystallize = await runMemoryCrystallize(); res.json({ success: true, ...out }); } catch (error) { console.error('[LivingMemory] lifecycle failed:', error); res.status(500).json({ success: false, error: 'Memory lifecycle failed' }); } });
+router.get('/memory/facts', authenticateUser, async (req: AuthRequest, res) => { const phone = phoneFrom(req); if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' }); try { const facts = await getMemoryFacts(phone); res.json({ success: true, facts: facts.map(({ id, field, value, provenance, confidence, observedAt, expiresAt }) => ({ id, field, value, provenance, confidence, observedAt, expiresAt })) }); } catch { res.status(500).json({ success: false, error: 'Unable to load memory facts' }); } });
+router.delete('/memory/facts/:id', authenticateUser, async (req: AuthRequest, res) => { const phone = phoneFrom(req); if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' }); const factId = Number(req.params.id); const result = await revokeMemoryFact(phone, factId); if (result.revoked) return res.json({ success: true, revoked: true, id: factId }); if (result.reason === 'already_revoked') return res.status(409).json({ success: false, error: 'Memory fact has already been removed.' }); return res.status(404).json({ success: false, error: 'Memory fact was not found for this account.' }); });
+router.get('/memory/inspector', authenticateUser, async (req: AuthRequest, res) => { const phone = phoneFrom(req); if (!phone) return res.status(401).json({ success: false, error: 'Authenticated phone is required' }); try { const rows = await getWorkingContextInspector(phone); res.json({ success: true, audits: rows }); } catch { res.status(500).json({ success: false, error: 'Unable to load memory inspector' }); } });
 
 export default router;

@@ -22,8 +22,7 @@ assert.deepEqual(toolNames, ['kurukoo.get_context', 'kurukoo.list_capabilities',
 
 const codeVerifier = 'mcp-pkce-verifier-012345678901234567890123456789';
 const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
-const auth = beginAuthorization({ clientId:'chatgpt-test-client', redirectUri:'https://chatgpt.test/oauth/callback', responseType:'code', scope:'kurukoo.read kurukoo.act', state:'state-123', codeChallenge, codeChallengeMethod:'S256' });
-await new Promise(resolve => setTimeout(resolve, 150));
+const auth = await beginAuthorization({ clientId:'chatgpt-test-client', redirectUri:'https://chatgpt.test/oauth/callback', responseType:'code', scope:'kurukoo.read kurukoo.act', state:'state-123', codeChallenge, codeChallengeMethod:'S256' });
 const tx = await getAuthorizationTransaction(auth.transactionId);
 assert.equal(tx?.clientId, 'chatgpt-test-client');
 const approval = await approveAuthorization(auth.transactionId, '+447700900123');

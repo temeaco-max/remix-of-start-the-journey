@@ -16,6 +16,7 @@ import {
   verifyAccessToken,
   verifyAuthorizationOtp,
 } from '../services/mcpAppService.js';
+import { assertIdentityAllows } from '../services/progressiveIdentityService.js';
 
 const router = Router();
 
@@ -54,10 +55,10 @@ router.get('/oauth/authorize', async (req, res) => {
     const state = req.query.state ? String(req.query.state) : undefined;
     const codeChallenge = req.query.code_challenge ? String(req.query.code_challenge) : undefined;
     const codeChallengeMethod = req.query.code_challenge_method ? String(req.query.code_challenge_method) : undefined;
-    const { transactionId, scopes } = beginAuthorization({ clientId, redirectUri, responseType, scope, state, codeChallenge, codeChallengeMethod });
+    const { transactionId, scopes } = await beginAuthorization({ clientId, redirectUri, responseType, scope, state, codeChallenge, codeChallengeMethod });
     return res.status(200).send(renderAuthorizationPage({ transactionId, clientName: clientId, scopes }));
   } catch (error) {
-    return res.status(400).send(renderAuthorizationPage({ transactionId:'', clientName:'ChatGPT', scopes:[], error:String((error as Error)?.message || error) }));
+    return res.status(400).send(renderAuthorizationPage({ transactionId:'', clientName:'AI assistant', scopes:[], error:String((error as Error)?.message || error) }));
   }
 });
 
@@ -81,7 +82,7 @@ router.post('/oauth/authorize/otp/:transactionId/verify', async (req, res) => {
     return res.redirect(302, location.toString());
   } catch (error) {
     const tx = await getAuthorizationTransaction(String(req.params.transactionId));
-    return res.status(400).send(renderAuthorizationPage({ transactionId:String(req.params.transactionId), clientName:tx?.clientId || 'ChatGPT', scopes:tx?.scope?.split(' ') || [], phone:String(req.body?.phone || ''), codeSent:true, error:String((error as Error)?.message || error) }));
+    return res.status(400).send(renderAuthorizationPage({ transactionId:String(req.params.transactionId), clientName:tx?.clientId || 'AI assistant', scopes:tx?.scope?.split(' ') || [], phone:String(req.body?.phone || ''), codeSent:true, error:String((error as Error)?.message || error) }));
   }
 });
 
@@ -124,9 +125,7 @@ router.post('/oauth/token', async (req, res) => {
         ? await refreshAccessToken({ clientId, clientSecret, refreshToken:String(req.body?.refresh_token || '') })
         : (() => { throw new Error('Unsupported grant_type'); })();
     return res.json(result);
-  } catch (error) {
-    return res.status(400).json({ error:'invalid_grant', error_description:String((error as Error)?.message || error) });
-  }
+  } catch (error) { return res.status(400).json({ error:'invalid_grant', error_description:String((error as Error)?.message || error) }); }
 });
 
 router.post('/oauth/revoke', async (req, res) => {
@@ -149,23 +148,24 @@ router.post('/mcp', async (req, res) => {
   const id = rpc.id;
   const method = String(rpc.method || '');
   try {
-    if (method === 'initialize') {
-      res.setHeader('Mcp-Protocol-Version', protocolVersion);
-      return res.json({ jsonrpc:'2.0', id, result:{ protocolVersion:'2025-06-18', capabilities:{tools:{}}, serverInfo:{name:'kurukoo',version:'5.67.0'} } });
-    }
+    if (method === 'initialize') { res.setHeader('Mcp-Protocol-Version', protocolVersion); return res.json({ jsonrpc:'2.0', id, result:{ protocolVersion:'2025-06-18', capabilities:{tools:{}}, serverInfo:{name:'kurukoo',version:'5.67.0'} } }); }
     if (method === 'notifications/initialized' || method.startsWith('notifications/')) return res.status(202).end();
     if (method === 'ping') return res.json({ jsonrpc:'2.0', id, result:{} });
     if (method === 'tools/list') return res.json({ jsonrpc:'2.0', id, result:{ tools:mcpToolList() } });
     if (method === 'tools/call') {
       const name = String(rpc.params?.name || '');
       const args = rpc.params?.arguments || {};
+      if (name === 'kurukoo.execute') {
+        const capability = String(args.capability || '').trim().toLowerCase();
+        const required = capability === 'payment' ? 'payment' : capability === 'execution' ? 'provider_action' : capability === 'agent' ? 'agent_goal' : capability === 'memory' ? 'sensitive_memory' : capability === 'presence' ? 'pulse_broadcast' : capability === 'economic_request' ? 'economic_request' : 'chat';
+        const gate = await assertIdentityAllows(auth.phone, required as any);
+        if (!gate.allowed) return res.json({ jsonrpc:'2.0', id, result:{ content:[{ type:'text', text:gate.reason || 'This action is not permitted at the current identity tier.' }], structuredContent:{ allowed:false, identity:gate.snapshot.cardData }, isError:true } });
+      }
       const result = await callMcpTool(auth, name, args);
       return res.json({ jsonrpc:'2.0', id, result:{ content:[{ type:'text', text:JSON.stringify(result) }], structuredContent:result, isError:false } });
     }
     return res.status(400).json({ jsonrpc:'2.0', id, error:{ code:-32601, message:`Unsupported MCP method: ${method}` } });
-  } catch (error) {
-    return res.json({ jsonrpc:'2.0', id, result:{ content:[{ type:'text', text:String((error as Error)?.message || error) }], isError:true } });
-  }
+  } catch (error) { return res.json({ jsonrpc:'2.0', id, result:{ content:[{ type:'text', text:String((error as Error)?.message || error) }], isError:true } }); }
 });
 
 router.get('/mcp', (_req, res) => res.status(405).json({ error:'MCP uses POST Streamable HTTP JSON-RPC requests in this deployment.' }));

@@ -1,10 +1,11 @@
 import { pipeline } from '@huggingface/transformers';
 import { HfInference } from '@huggingface/inference';
 import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
+import { getStudentModelRuntimeSelection } from './studentModelRegistryService.js';
 
 const DEFAULT_MODEL_NAME = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
 const DEFAULT_FALLBACK_MODEL_NAME = DEFAULT_MODEL_NAME;
-function getModelName(): string { return String(process.env.SMOLLM2_MODEL || DEFAULT_MODEL_NAME).trim() || DEFAULT_MODEL_NAME; }
+function getModelName(): string { return getStudentModelRuntimeSelection().model || DEFAULT_MODEL_NAME; }
 function getFallbackModelName(): string { return String(process.env.SMOLLM2_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL_NAME).trim() || DEFAULT_FALLBACK_MODEL_NAME; }
 let activeModelName: string | null = null;
 let localPipeline: any = null;
@@ -14,10 +15,11 @@ let localBusy = false;
 let lastInferenceSource: 'local' | 'huggingface' | 'fallback' = 'fallback';
 let lastInferenceFailure: 'local_inference_failed' | 'local_model_fallback' | 'huggingface_request_failed' | 'no_model_boundary_configured' | null = null;
 
-export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'huggingface' | 'fallback'; available: boolean; dtype: string; localEnabled: boolean; hostedConfigured: boolean; readiness: 'available' | 'fallback'; lastFailure: string | null } {
+export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'huggingface' | 'fallback'; available: boolean; dtype: string; localEnabled: boolean; hostedConfigured: boolean; readiness: 'available' | 'fallback'; lastFailure: string | null; requestedStage: string; selectedStage: string; registrySource: 'environment_base' | 'registry'; registryFallbackReason?: string } {
   const localEnabled = process.env.KURUKOO_SMOLLM2_LOCAL === 'true';
   const hostedConfigured = Boolean(process.env.HUGGINGFACE_API_KEY || process.env.HF_API_KEY);
-  return { model: activeModelName || getModelName(), source: lastInferenceSource, available: lastInferenceSource !== 'fallback', dtype: String(process.env.SMOLLM2_DTYPE || 'q4'), localEnabled, hostedConfigured, readiness: lastInferenceSource !== 'fallback' ? 'available' : 'fallback', lastFailure: lastInferenceFailure };
+  const selection = getStudentModelRuntimeSelection();
+  return { model: activeModelName || selection.model, source: lastInferenceSource, available: lastInferenceSource !== 'fallback', dtype: String(process.env.SMOLLM2_DTYPE || 'q4'), localEnabled, hostedConfigured, readiness: lastInferenceSource !== 'fallback' ? 'available' : 'fallback', lastFailure: lastInferenceFailure, requestedStage: selection.requestedStage, selectedStage: selection.selectedStage, registrySource: selection.source, ...(selection.fallbackReason ? { registryFallbackReason: selection.fallbackReason } : {}) };
 }
 
 async function getLocalPipeline(modelName = getModelName()): Promise<any> {

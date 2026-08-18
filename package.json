@@ -39,6 +39,9 @@
     "audit:main-truth": "node scripts/reconcile-main-truth.mjs",
     "test:outcome-completeness": "tsx scripts/test-outcome-completeness.ts",
     "ml:generate-universe": "tsx scripts/generate-smollm2-training-universe.ts",
+    "ml:seed-golden": "python3 ml/generate_deterministic_golden_corpus.py",
+    "ml:teacher-candidates": "python3 ml/teachers/generate_trajectory_candidates.py",
+    "ml:import-teacher-candidates": "tsx scripts/import-teacher-candidates.ts",
     "ml:curate": "python3 ml/curate_candidate_corpus.py",
     "ml:test-universe": "tsx scripts/test-smollm2-training-universe.ts",
     "test:smollm2-training-universe": "npm run ml:test-universe",
@@ -80,6 +83,7 @@
     "test:ai": "tsx scripts/test-ai-pipeline.ts",
     "test:smollm2-local": "tsx scripts/test-smollm2-local.ts",
     "test:smollm2-fallback": "tsx scripts/test-smollm2-fallback.ts",
+    "test:student-model-registry": "tsx scripts/test-student-model-registry.ts && python3 ml/test_model_registry.py",
     "test:cloud-run-smollm2": "tsx scripts/test-cloud-run-smollm2-boundary.ts",
     "test:reminder-safety-coordinator": "tsx scripts/test-reminder-safety-coordinator.ts",
     "test:fcm-boundary": "tsx scripts/test-fcm-boundary.ts",
@@ -111,7 +115,7 @@
     "test:provider-capabilities": "tsx scripts/test-provider-capabilities.ts",
     "test:feature-flags": "tsx scripts/test-feature-flags.ts",
     "test:qr": "tsx scripts/test-qr-context.ts",
-    "test:agent-runtime": "tsx scripts/test-agent-runtime.ts",
+    "test:agent-runtime": "tsx scripts/test-agent-runtime.ts && tsx scripts/test-agent-persona-tool-parity.ts",
     "test:coordinator": "tsx scripts/test-coordinator.ts",
     "test:context-arbitration": "tsx scripts/test-context-arbitration.ts",
     "test:natural-interleaving": "tsx scripts/test-natural-interleaving-chat.ts",
@@ -155,7 +159,7 @@
     "test:contact-sync-boundary": "tsx scripts/test-contact-sync-boundary.ts",
     "test:trusted-contact-consent": "tsx scripts/test-trusted-contact-consent.ts",
     "test:security": "npm run test:trust && npm run test:circle && npm run test:order && npm run test:admin && npm run test:task && npm run test:contact-sync-boundary && npm run test:trusted-contact-consent",
-    "test:all-domains": "npm run test:interaction-policy && npm run test:emergency-mode && npm run test:country-experience && npm run test:capability-foundation && npm run test:capability-composability && npm run test:universal-capability-protocol && npm run test:ai-capability-execution && npm run test:connected-resource-command-ledger && npm run test:conversation-reconciliation && npm run test:conversation-quality && npm run test:conversation-trajectories && npm run test:conversation-turn-contract && npm run test:conversation-first-routing && npm run test:conversation-models && npm run test:conversation-generation && npm run test:outcome-completeness && npm run test:behavioral-chat && npm run test:behavioral-chat-matrix && npm run test:notification-queue && npm run test:autonomy-load && npm run test:skill-flows && npm run test:ai && npm run test:smollm2-local && npm run test:smollm2-fallback && npm run test:cloud-run-smollm2 && npm run test:memory-provenance && npm run test:privacy-bridge && npm run test:private-chat-ad-boundary && npm run test:advertising && npm run test:referral && npm run test:subscription && npm run test:points && npm run test:topup && npm run test:fasttext && npm run test:fasttext-router && npm run test:pwa && npm run test:public-runtime-contracts && npm run test:chat-dom-safety && npm run test:conversation-first-auth && npm run test:provider-capabilities && npm run test:feature-flags && npm run test:context-arbitration && npm run test:natural-interleaving && npm run test:conversational-intelligence && npm run test:conversational-route-discrimination && npm run test:assistance-outcome && npm run test:agent-control-commands && npm run test:discovery-network && npm run test:memory-self-service && npm run test:mobile-money-boundary && npm run test:progressive-trust && npm run test:email-otp && npm run test:phone-otp",
+    "test:all-domains": "node scripts/run-test-suite.mjs test:all-domains-sequence",
     "test:repository-convergence": "npm run test:all-domains && npm run test:routes && npm run test:scenario-lab && npm run test:trajectory-harness",
     "postinstall": "fasttext --help >/dev/null 2>&1 && echo 'FastText is available' || echo 'FastText CLI not found. Install with: brew install fasttext (macOS) or apt-get install: fasttext (Linux). Using template fallback until model is available.'",
     "test:whatsapp-parity": "tsx scripts/test-whatsapp-channel-parity.ts",
@@ -174,7 +178,8 @@
     "test:email-otp": "tsx scripts/test-email-otp.ts",
     "test:phone-otp": "tsx scripts/test-phone-otp.ts",
     "test:telegram-linked-session-chat": "tsx scripts/test-telegram-linked-session-chat.ts",
-    "whatsapp:linked-device": "tsx scripts/whatsapp-linked-device.ts"
+    "whatsapp:linked-device": "tsx scripts/whatsapp-linked-device.ts",
+    "test:all-domains-sequence": "npm run test:interaction-policy && npm run test:emergency-mode && npm run test:country-experience && npm run test:capability-foundation && npm run test:capability-composability && npm run test:universal-capability-protocol && npm run test:ai-capability-execution && npm run test:connected-resource-command-ledger && npm run test:conversation-reconciliation && npm run test:conversation-quality && npm run test:conversation-trajectories && npm run test:conversation-turn-contract && npm run test:conversation-first-routing && npm run test:conversation-models && npm run test:conversation-generation && npm run test:outcome-completeness && npm run test:behavioral-chat && npm run test:behavioral-chat-matrix && npm run test:notification-queue && npm run test:autonomy-load && npm run test:skill-flows && npm run test:ai && npm run test:smollm2-local && npm run test:smollm2-fallback && npm run test:student-model-registry && npm run test:cloud-run-smollm2 && npm run test:memory-provenance && npm run test:privacy-bridge && npm run test:private-chat-ad-boundary && npm run test:advertising && npm run test:referral && npm run test:subscription && npm run test:points && npm run test:topup && npm run test:fasttext && npm run test:fasttext-router && npm run test:pwa && npm run test:public-runtime-contracts && npm run test:chat-dom-safety && npm run test:conversation-first-auth && npm run test:provider-capabilities && npm run test:feature-flags && npm run test:context-arbitration && npm run test:natural-interleaving && npm run test:conversational-intelligence && npm run test:conversational-route-discrimination && npm run test:assistance-outcome && npm run test:agent-control-commands && npm run test:discovery-network && npm run test:memory-self-service && npm run test:mobile-money-boundary && npm run test:progressive-trust && npm run test:email-otp && npm run test:phone-otp"
   },
   "dependencies": {
     "@google/genai": "^2.16.0",
@@ -195,7 +200,9 @@
     "sql.js": "^1.12.0",
     "teleproto": "^1.228.5"
   },
-  "overrides": { "sharp": "0.35.3" },
+  "overrides": {
+    "sharp": "0.35.3"
+  },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.8.1",

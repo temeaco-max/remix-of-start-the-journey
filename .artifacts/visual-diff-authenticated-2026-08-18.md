@@ -33,4 +33,3 @@ These are normalized board-level diagnostics. The authoritative boards are compo
 - Mean absolute pixel error: 20.42/255
 - Root mean square error: 49.62/255
 - Pixels with mean channel delta > 16: 14.83%
-

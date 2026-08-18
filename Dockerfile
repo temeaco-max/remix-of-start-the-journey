@@ -37,4 +37,4 @@ RUN mkdir -p /app/data /tmp/huggingface /tmp/uploads && chown -R node:node /app
 USER node
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=5 CMD node -e "fetch('http://127.0.0.1:8080/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "dist/server.js"]
+CMD ["npm", "start"]
