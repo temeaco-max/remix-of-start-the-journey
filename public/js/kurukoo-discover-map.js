@@ -1,116 +1,64 @@
 (() => {
-  const mapEl = document.getElementById('radar-map') || document.getElementById('discover-map');
-  const list = document.getElementById('radar-list') || document.getElementById('discover-list');
-  const refresh = document.querySelector('[data-radar-refresh]');
-  const layerButtons = document.querySelectorAll('[data-layer]');
-  if (!mapEl || !window.L) return;
+  const mapEl = document.getElementById('discover-map');
+  const list = document.getElementById('discover-list');
+  if (!mapEl || !window.L || !list) return;
 
-  const map = L.map(mapEl, { zoomControl: true }).setView([6.5244, 3.3792], 12);
+  const map = L.map(mapEl, { zoomControl: true, attributionControl: true }).setView([6.5244, 3.3792], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(map);
   const markers = L.layerGroup().addTo(map);
-  const activeLayers = new Set(['mobile', 'stationary', 'provider', 'service', 'place', 'business', 'event', 'agent', 'community_context', 'events']);
-  const colors = { provider: '#25D366', service: '#E67E22', place: '#2E86DE', business: '#8E44AD', event: '#D35400', agent: '#6C5CE7', community_context: '#C0392B', mobile: '#25D366', stationary: '#E67E22' };
-  let lastFeatures = [];
+  const state = { radius: 10000, intent: 'all', sort: 'distance', features: [], loading: false, source: 'preview' };
+  const colors = { service: '#cf795f', place: '#527e91', event: '#b88b3e', business: '#806b8b', provider: '#527e91', agent: '#806b8b', community_context: '#b88b3e' };
+  const fixtureFeatures = [
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [3.3823, 6.5261] }, properties: { entityId: 'preview:lekki:repair', entityType: 'service', name: 'Neighbourhood repair help', detail: 'A source-attributed service possibility near your area', category: 'repairs', source: 'Kurukoo preview fixture', lifecycle: 'discovered', evidenceLevel: 'source_attributed', freshnessAt: new Date().toISOString(), distanceMetres: 850, preview: true } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [3.3732, 6.5196] }, properties: { entityId: 'preview:ikeja:market', entityType: 'place', name: 'Everyday market context', detail: 'Useful local place information to explore', category: 'places', source: 'Kurukoo preview fixture', lifecycle: 'discovered', evidenceLevel: 'source_attributed', freshnessAt: new Date().toISOString(), distanceMetres: 1700, preview: true } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [3.3976, 6.5328] }, properties: { entityId: 'preview:lagos:community', entityType: 'event', name: 'Community opportunity', detail: 'An opportunity signal awaiting further evidence', category: 'community', source: 'Kurukoo preview fixture', lifecycle: 'opportunity', evidenceLevel: 'source_attributed', freshnessAt: new Date().toISOString(), distanceMetres: 2600, preview: true } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [3.3634, 6.5314] }, properties: { entityId: 'preview:vi:business', entityType: 'business', name: 'Local business discovery', detail: 'A discovered business—not yet a Kurukoo provider', category: 'business', source: 'Kurukoo preview fixture', lifecycle: 'candidate', evidenceLevel: 'source_attributed', freshnessAt: new Date().toISOString(), distanceMetres: 3900, preview: true } },
+  ];
 
-  function makeElement(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) node.className = className;
-    if (text !== undefined) node.textContent = text;
-    return node;
+  const iconFor = (type) => ({ service: 'work', place: 'discover', event: 'calendar', business: 'package', provider: 'person', agent: 'sparkles' }[type] || 'discover');
+  const labelFor = (type) => ({ service: 'Service', place: 'Place', event: 'Event', business: 'Business', provider: 'Provider', agent: 'Agent' }[type] || 'Discovery');
+  const lifecycleLabel = (value) => String(value || 'discovered').replaceAll('_', ' ');
+  const safeText = (value, fallback) => String(value || fallback || '').trim();
+  const makeElement = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
+  const statusEl = document.querySelector('[data-map-status]');
+  const resultCount = document.querySelector('[data-result-count]');
+  const updatedEl = document.querySelector('[data-last-updated]');
+  const workspace = document.querySelector('.discover-workspace');
+  const areaLabel = document.querySelector('[data-area-label]');
+
+  function setStatus(text, stateName) { if (statusEl) statusEl.textContent = text; if (workspace) workspace.dataset.discoverState = stateName || 'ready'; }
+  function actionUrl(properties) { const params = new URLSearchParams({ prompt: `Help me explore ${safeText(properties?.name, 'this discovery context')} nearby` }); if (properties?.entityId) params.set('discoveryEntityId', properties.entityId); const conversationId = new URLSearchParams(window.location.search).get('conversationId'); if (conversationId) params.set('conversationId', conversationId); return `/chat?${params.toString()}`; }
+  function iconMarkup(name) { const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('k-icon'); svg.setAttribute('aria-hidden', 'true'); const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', `/icons/kurukoo-icons.svg#${name}`); svg.appendChild(use); return svg; }
+  function distanceLabel(value) { const metres = Number(value); if (!Number.isFinite(metres)) return 'Approximate distance'; return metres < 1000 ? `${Math.round(metres)} m away` : `${(metres / 1000).toFixed(1)} km away`; }
+
+  function currentFeatures() {
+    return state.features.filter((feature) => { const properties = feature?.properties || {}; const typeMatch = state.intent === 'all' || properties.entityType === state.intent || (state.intent === 'opportunity' && ['candidate', 'opportunity', 'invited'].includes(properties.lifecycle)); const activeInput = document.querySelector(`[data-layer="${properties.entityType}"]`); return typeMatch && (!activeInput || activeInput.checked); });
   }
+  function sortedFeatures(features) { return [...features].sort((a, b) => { const pa = a.properties || {}; const pb = b.properties || {}; if (state.sort === 'freshness') return String(pb.freshnessAt || '').localeCompare(String(pa.freshnessAt || '')); if (state.sort === 'lifecycle') return String(pb.lifecycle || '').localeCompare(String(pa.lifecycle || '')); return Number(pa.distanceMetres || Infinity) - Number(pb.distanceMetres || Infinity); }); }
+  function updateCounts(features) { ['service', 'place', 'event', 'business'].forEach((type) => { const count = document.querySelector(`[data-count="${type}"]`); if (count) count.textContent = String(features.filter((feature) => feature?.properties?.entityType === type).length); }); }
 
-  function actionUrl(properties) {
-    const action = properties?.chatAction;
-    const params = new URLSearchParams();
-    params.set('prompt', properties?.entityId ? 'Review this exact discovery context with me' : 'Review these nearby discovery results with me');
-    if (action?.entityId) params.set('discoveryEntityId', String(action.entityId));
-    const conversationId = action?.context ? String(action.context).replace(/^conversation:/, '') : '';
-    if (conversationId) params.set('conversationId', conversationId);
-    return `/chat?${params.toString()}`;
-  }
-
-  function renderList(features) {
-    if (!list) return;
+  function renderList() {
+    const features = sortedFeatures(currentFeatures());
     list.replaceChildren();
-    if (!features.length) {
-      list.appendChild(makeElement('div', 'k-row empty-state', 'No attributed discovery activity is available in this area yet.'));
-      return;
-    }
-    features.slice(0, 20).forEach((feature) => {
-      const properties = feature?.properties || {};
-      const row = makeElement('article', 'k-row discover-network-item');
-      const title = makeElement('strong', 'discover-network-title', properties.name || 'Nearby discovery');
-      const detail = makeElement('span', 'k-muted discover-network-detail', `${properties.detail || 'Discovery item'} · ${properties.lifecycle || 'discovered'}`);
-      const action = makeElement('a', 'k-btn k-btn-secondary discover-network-action', 'Open in Chat');
-      action.href = actionUrl(properties);
-      row.append(title, detail, action);
-      list.appendChild(row);
-    });
+    list.setAttribute('aria-busy', 'false');
+    if (resultCount) resultCount.textContent = String(features.length);
+    updateCounts(state.features);
+    if (!features.length) { const empty = makeElement('div', 'discover-empty'); empty.append(makeElement('strong', '', 'Nothing attributed here yet'), makeElement('p', '', 'Try a wider radius or another intent. Kurukoo will not turn an empty map into an invented result.')); list.appendChild(empty); return; }
+    features.forEach((feature) => { const properties = feature.properties || {}; const card = makeElement('article', 'discover-result-card'); card.dataset.entityId = safeText(properties.entityId, ''); const mark = makeElement('div', 'discover-result-card__mark'); mark.appendChild(iconMarkup(iconFor(properties.entityType))); const body = makeElement('div', 'discover-result-card__body'); const top = makeElement('div', 'discover-result-card__top'); top.append(makeElement('h3', 'discover-result-card__title', safeText(properties.name, 'Nearby discovery')), makeElement('span', 'discover-result-card__distance', distanceLabel(properties.distanceMetres))); const detail = makeElement('p', 'discover-result-card__detail', safeText(properties.detail, 'Source-attributed discovery entity')); const meta = makeElement('div', 'discover-result-card__meta'); meta.append(makeElement('span', 'discover-result-badge', labelFor(properties.entityType)), makeElement('span', 'discover-result-badge discover-result-badge--lifecycle', lifecycleLabel(properties.lifecycle)), makeElement('span', 'discover-result-badge discover-result-badge--source', safeText(properties.preview ? 'Preview example' : properties.source, 'Attributed source'))); const action = makeElement('a', 'discover-result-card__action', 'Open exact context in Chat'); action.href = actionUrl(properties); body.append(top, detail, meta, action); card.append(mark, body); list.appendChild(card); });
   }
+  function renderMap() { markers.clearLayers(); const features = sortedFeatures(currentFeatures()); features.forEach((feature) => { const properties = feature.properties || {}; const coordinates = feature.geometry?.coordinates; if (!Array.isArray(coordinates) || coordinates.length < 2) return; const [lng, lat] = coordinates; const color = colors[properties.entityType] || '#777068'; const marker = L.circleMarker([lat, lng], { radius: properties.lifecycle === 'opportunity' ? 10 : 7, color, fillColor: color, fillOpacity: .78, weight: 2 }); const popup = document.createElement('div'); popup.className = 'discover-map-popup'; popup.append(makeElement('strong', '', safeText(properties.name, 'Nearby discovery')), makeElement('div', '', safeText(properties.detail, 'Source-attributed discovery entity')), makeElement('small', '', `${labelFor(properties.entityType)} · ${lifecycleLabel(properties.lifecycle)} · ${properties.preview ? 'Preview example' : safeText(properties.source, 'Attributed source')}`)); const action = makeElement('a', 'discover-network-action', 'Open exact context in Chat'); action.href = actionUrl(properties); popup.appendChild(action); marker.bindPopup(popup).addTo(markers); }); }
+  function render() { renderMap(); renderList(); }
+  function fixtureData() { state.source = 'preview'; return { features: fixtureFeatures, meta: { provider: 'preview-fixture', approximateLocation: true, mapIsPresentationLayer: true } }; }
+  async function getPosition() { if (!navigator.geolocation) throw new Error('Location is unavailable'); return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, maximumAge: 120000, timeout: 7000 })); }
+  async function load() { state.loading = true; state.features = fixtureData().features; render(); list.setAttribute('aria-busy', 'true'); setStatus('Finding useful context…', 'loading'); try { let latitude = 6.5244; let longitude = 3.3792; try { const position = await getPosition(); latitude = position.coords.latitude; longitude = position.coords.longitude; map.setView([latitude, longitude], Math.max(map.getZoom(), 13)); if (areaLabel) areaLabel.textContent = 'Approximate area near you'; } catch { if (areaLabel) areaLabel.textContent = 'Preview area · location not shared'; }
+      const params = new URLSearchParams({ lat: String(Math.round(latitude * 100) / 100), lng: String(Math.round(longitude * 100) / 100), radius: String(state.radius), layers: 'place,business,service,event,provider,agent,community_context', cluster: 'true' }); const conversationId = new URLSearchParams(window.location.search).get('conversationId'); if (conversationId) params.set('conversationId', conversationId); const controller = new AbortController(); const timeoutId = window.setTimeout(() => controller.abort(), 5000); const response = await fetch(`/api/discover/map?${params.toString()}`, { credentials: 'include', signal: controller.signal }); window.clearTimeout(timeoutId); if (!response.ok) throw new Error('Discovery network unavailable'); const data = await response.json(); state.features = Array.isArray(data?.features) && data.features.length ? data.features : fixtureData().features; state.source = data?.features?.length ? 'network' : 'preview'; setStatus(state.source === 'preview' ? 'Preview examples · no live results yet' : 'Freshness-aware results', state.source === 'preview' ? 'preview' : 'ready'); } catch { state.features = fixtureData().features; setStatus('Preview examples · network unavailable', 'preview'); } finally { state.loading = false; render(); if (updatedEl) updatedEl.textContent = state.source === 'preview' ? 'Examples only · not live availability' : `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`; } }
 
-  function renderMap(features) {
-    markers.clearLayers();
-    features.forEach((feature) => {
-      const properties = feature?.properties || {};
-      const coordinates = feature?.geometry?.coordinates;
-      if (!Array.isArray(coordinates) || coordinates.length < 2) return;
-      const [lng, lat] = coordinates;
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-      const layer = properties.entityType || properties.layer || 'place';
-      const marker = L.circleMarker([lat, lng], { radius: properties.count > 1 ? 11 : 7, color: colors[layer] || '#777068', fillColor: colors[layer] || '#777068', fillOpacity: 0.78 });
-      const popup = document.createElement('div');
-      popup.append(
-        makeElement('strong', '', properties.name || 'Nearby discovery'),
-        makeElement('div', '', properties.detail || 'Discovery item'),
-        makeElement('small', '', `Status: ${properties.lifecycle || 'discovered'} · Source: ${properties.source || 'attributed source'}`),
-      );
-      const action = makeElement('a', 'discover-network-action', 'Open exact context in Chat');
-      action.href = actionUrl(properties);
-      popup.appendChild(action);
-      marker.bindPopup(popup).addTo(markers);
-    });
-  }
-
-  function render(data) {
-    lastFeatures = Array.isArray(data?.features) ? data.features : [];
-    renderMap(lastFeatures);
-    renderList(lastFeatures);
-  }
-
-  function getPosition() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) return reject(new Error('Location is unavailable'));
-      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, maximumAge: 120000, timeout: 7000 });
-    });
-  }
-
-  async function load() {
-    try {
-      const position = await getPosition();
-      const { latitude, longitude } = position.coords;
-      map.setView([latitude, longitude], Math.max(map.getZoom(), 13));
-      const params = new URLSearchParams({ lat: String(Math.round(latitude * 100) / 100), lng: String(Math.round(longitude * 100) / 100), radius: '10000', layers: Array.from(activeLayers).join(','), cluster: 'true' });
-      const conversationId = new URLSearchParams(window.location.search).get('conversationId');
-      if (conversationId) params.set('conversationId', conversationId);
-      const response = await fetch(`/api/discover/map?${params.toString()}`, { credentials: 'include' });
-      if (!response.ok) throw new Error('Discovery network unavailable');
-      render(await response.json());
-    } catch {
-      render({ features: [] });
-    }
-  }
-
-  refresh?.addEventListener('click', load);
-  layerButtons.forEach((button) => {
-    const layer = button.dataset.layer;
-    if (!layer) return;
-    button.setAttribute('aria-pressed', activeLayers.has(layer) ? 'true' : 'false');
-    button.addEventListener('click', () => {
-      if (activeLayers.has(layer)) activeLayers.delete(layer); else activeLayers.add(layer);
-      button.setAttribute('aria-pressed', activeLayers.has(layer) ? 'true' : 'false');
-      render({ features: lastFeatures.filter((feature) => activeLayers.has(feature?.properties?.entityType || feature?.properties?.layer)) });
-      load();
-    });
-  });
+  document.querySelectorAll('[data-intent]').forEach((button) => button.addEventListener('click', () => { state.intent = button.dataset.intent || 'all'; document.querySelectorAll('[data-intent]').forEach((item) => { const active = item === button; item.classList.toggle('is-active', active); item.setAttribute('aria-pressed', active ? 'true' : 'false'); }); render(); }));
+  document.querySelectorAll('[data-layer]').forEach((input) => input.addEventListener('change', render));
+  document.querySelectorAll('[data-radius]').forEach((button) => button.addEventListener('click', () => { state.radius = Number(button.dataset.radius) || 10000; document.querySelectorAll('[data-radius]').forEach((item) => item.classList.toggle('is-active', item === button)); load(); }));
+  document.querySelector('[data-discover-sort]')?.addEventListener('change', (event) => { state.sort = event.target.value; render(); });
+  document.querySelector('[data-discover-refresh]')?.addEventListener('click', load);
+  document.querySelector('[data-discover-clear]')?.addEventListener('click', () => { state.intent = 'all'; state.radius = 10000; document.querySelectorAll('[data-intent]').forEach((item, index) => { item.classList.toggle('is-active', index === 0); item.setAttribute('aria-pressed', index === 0 ? 'true' : 'false'); }); document.querySelectorAll('[data-layer]').forEach((input) => { input.checked = true; }); document.querySelectorAll('[data-radius]').forEach((item) => item.classList.toggle('is-active', item.dataset.radius === '10000')); load(); });
+  document.getElementById('discover-search-form')?.addEventListener('submit', (event) => { event.preventDefault(); const query = document.getElementById('discover-search')?.value.trim().toLowerCase(); if (!query) return; const match = state.features.filter((feature) => JSON.stringify(feature.properties || {}).toLowerCase().includes(query)); state.features = match; state.source = 'preview'; setStatus(match.length ? `Showing matches for “${query}”` : `No attributed results for “${query}”`, match.length ? 'ready' : 'empty'); render(); });
   load();
 })();

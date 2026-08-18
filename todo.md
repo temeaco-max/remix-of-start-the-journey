@@ -131,3 +131,11 @@
 - [x] Fix confirmed content, navigation, state, spacing, responsive and accessibility drift through existing CSS and canonical service owners (removed stale Chat dead branches and bumped asset version)
 - [x] Run full web build, route, security, public, Chat, PWA, accessibility and CSS regressions; the obsolete `test:ui-state` alias is undefined, while `audit:skill-ui-states` passes all 205 skills
 - [ ] Push the validated whole-web-app audit and repair milestone to main
+
+- [x] Audit Discover map/list markup, canonical discovery-network data contracts and visual screen-set authority
+- [x] Add truthful fixture states for loading, empty, source-attributed discovered entities, candidate/opportunity lifecycle, stale data and unavailable map tiles
+- [x] Align Discover controls, map/list hierarchy, entity cards, filters, provenance and actions with the Kurukoo visual system
+- [x] Improve responsive, low-bandwidth, keyboard and screen-reader behavior without creating a parallel discovery subsystem
+- [x] Add or update deterministic Discover interaction and rendering regressions
+- [x] Run build, route, accessibility, CSS and discovery-network validation
+- [ ] Push the validated Discover enhancement to main

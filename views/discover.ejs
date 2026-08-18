@@ -1,28 +1,64 @@
-<%- include('_partials/head', { pageStyles: ['/css/kurukoo-public-pages.css?v=4','/css/kurukoo-discover.css?v=1'] }) %>
+<%- include('_partials/head', { pageStyles: ['/css/kurukoo-public-pages.css?v=4','/css/kurukoo-discover.css?v=2'] }) %>
 <%- include('_partials/nav') %>
 
 <main class="frontend-discover-page">
   <section class="frontend-discover container" aria-labelledby="discover-title">
     <header class="frontend-discover__header">
-      <div><span class="eyebrow">Explore</span><h1 id="discover-title">Discover</h1><p>Find insights across the sources you connect.</p></div>
-      <form class="frontend-discover__search" role="search" action="/discover" method="get"><label class="sr-only" for="discover-search">Search topics, documents and decisions</label><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#discover"></use></svg><input id="discover-search" name="q" type="search" placeholder="Search topics, documents, decisions…" autocomplete="off"></form>
-    </header>
-    <div class="frontend-discover__workspace">
-      <aside class="frontend-discover__rail" aria-label="Discover filters">
-        <div class="frontend-discover__rail-title"><strong>Refine</strong><button type="reset" form="discover-filter-form">Clear all</button></div>
-        <form id="discover-filter-form" class="frontend-discover__filters" action="/discover" method="get">
-          <fieldset><legend>Source</legend><label><input id="source-google-drive" type="checkbox" name="source" value="google-drive"><span>Google Drive</span><small>124</small></label><label><input id="source-google-sheets" type="checkbox" name="source" value="google-sheets"><span>Google Sheets</span><small>48</small></label><label><input id="source-notion" type="checkbox" name="source" value="notion"><span>Notion</span><small>32</small></label><label><input id="source-outlook" type="checkbox" name="source" value="outlook"><span>Outlook</span><small>16</small></label><button class="frontend-discover__more" type="button" aria-expanded="false">⌄&nbsp; Show more</button></fieldset>
-          <fieldset><legend>Date</legend><div class="frontend-discover__select"><label class="sr-only" for="discover-date">Date range</label><select id="discover-date" name="date"><option>Any time</option><option>Past week</option><option>Past month</option></select></div></fieldset>
-          <fieldset><legend>People</legend><div class="frontend-discover__people"><label class="sr-only" for="discover-people">Search people</label><input id="discover-people" type="search" name="people" placeholder="Search people…"></div></fieldset>
+      <div class="frontend-discover__intro">
+        <span class="eyebrow">Nearby pulse</span>
+        <h1 id="discover-title">Find what could help next.</h1>
+        <p>Explore places, services, events and opportunities around you. Discovery is a starting point—not proof that an entity is a Kurukoo provider or available.</p>
+      </div>
+      <div class="frontend-discover__header-actions">
+        <form class="frontend-discover__search" id="discover-search-form" role="search" action="/discover" method="get">
+          <label class="sr-only" for="discover-search">Search nearby places, services and opportunities</label>
+          <svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#discover"></use></svg>
+          <input id="discover-search" name="q" type="search" placeholder="What are you looking for nearby?" autocomplete="off">
+          <button class="discover-search-submit" type="submit">Search</button>
         </form>
+        <div class="discover-intent-chips" role="list" aria-label="Discovery intents">
+          <button class="discover-intent-chip is-active" type="button" data-intent="all" aria-pressed="true">All nearby</button>
+          <button class="discover-intent-chip" type="button" data-intent="service" aria-pressed="false">Services</button>
+          <button class="discover-intent-chip" type="button" data-intent="place" aria-pressed="false">Places</button>
+          <button class="discover-intent-chip" type="button" data-intent="event" aria-pressed="false">Events</button>
+          <button class="discover-intent-chip" type="button" data-intent="opportunity" aria-pressed="false">Opportunities</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="discover-trust-strip" role="note">
+      <span class="discover-trust-strip__icon" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#discover"></use></svg></span>
+      <span><strong>Map is a presentation layer.</strong> Results are source-attributed, approximate and freshness-aware. Open a result in Chat to decide what happens next.</span>
+      <a href="/help#discover">How discovery works</a>
+    </div>
+
+    <div class="discover-workspace" data-discover-state="loading">
+      <aside class="discover-control-panel" aria-label="Discover controls">
+        <div class="discover-control-panel__heading"><div><span class="eyebrow">Your view</span><h2>Refine nearby</h2></div><button class="discover-clear" type="button" data-discover-clear>Clear</button></div>
+        <fieldset class="discover-filter-group"><legend>Show</legend>
+          <label class="discover-filter-option"><input type="checkbox" data-layer="service" checked><span class="discover-filter-option__dot discover-filter-option__dot--service"></span><span>Services</span><small data-count="service">—</small></label>
+          <label class="discover-filter-option"><input type="checkbox" data-layer="place" checked><span class="discover-filter-option__dot discover-filter-option__dot--place"></span><span>Places</span><small data-count="place">—</small></label>
+          <label class="discover-filter-option"><input type="checkbox" data-layer="event" checked><span class="discover-filter-option__dot discover-filter-option__dot--event"></span><span>Events</span><small data-count="event">—</small></label>
+          <label class="discover-filter-option"><input type="checkbox" data-layer="business" checked><span class="discover-filter-option__dot discover-filter-option__dot--business"></span><span>Businesses</span><small data-count="business">—</small></label>
+        </fieldset>
+        <fieldset class="discover-filter-group"><legend>Distance</legend><div class="discover-segmented" role="group" aria-label="Search radius"><button type="button" data-radius="3000">3 km</button><button class="is-active" type="button" data-radius="10000">10 km</button><button type="button" data-radius="25000">25 km</button></div></fieldset>
+        <div class="discover-control-panel__footer"><button class="discover-refresh" type="button" data-discover-refresh><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#refresh"></use></svg><span>Refresh results</span></button><span class="discover-last-updated" data-last-updated>Waiting for location</span></div>
       </aside>
-      <section class="frontend-discover__results" aria-label="Connected source results">
-        <div class="frontend-discover__toolbar"><div class="frontend-discover__chips" role="list" aria-label="Content types"><button class="is-active" type="button" role="listitem" aria-pressed="true">All</button><button type="button" role="listitem" aria-pressed="false">Documents</button><button type="button" role="listitem" aria-pressed="false">Spreadsheets</button><button type="button" role="listitem" aria-pressed="false">Notes</button><button type="button" role="listitem" aria-pressed="false">Presentations</button></div><label class="frontend-discover__sort" for="discover-sort"><span>Sort:</span><select id="discover-sort" name="sort"><option>Relevance</option><option>Recently updated</option><option>Recently added</option></select></label></div>
-        <div class="frontend-discover__cards"><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--doc" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#document"></use></svg></span><span>May 14 · Google Docs</span></div><h2>Q2 Project Brief</h2><p>Project goals, scope, stakeholders, and success metrics.</p><footer><span>Document</span><strong>••• +2</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--sheet" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#list"></use></svg></span><span>May 14 · Google Sheets</span></div><h2>Risk Register (Current)</h2><p>Live risks, owners, status, and mitigation plans.</p><footer><span>Spreadsheet</span><strong>••• +3</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--note" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#note"></use></svg></span><span>May 13 · Notion</span></div><h2>Decisions Log — May 13</h2><p>Key decisions, rationale, and follow-up owners.</p><footer><span>Note</span><strong>••• +1</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--doc" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#document"></use></svg></span><span>May 14 · Google Docs</span></div><h2>Client Update — May 12</h2><p>Latest client update and upcoming milestones.</p><footer><span>Document</span><strong>••• +2</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--doc" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#document"></use></svg></span><span>May 14 · Google Docs</span></div><h2>Draft Agenda</h2><p>Proposed agenda and discussion topics for the meeting.</p><footer><span>Document</span><strong>••• +1</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--sheet" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#presentation"></use></svg></span><span>May 10 · Google Slides</span></div><h2>Q2 Roadmap</h2><p>Roadmap overview and delivery phases for Q2.</p><footer><span>Presentation</span><strong>••• +3</strong></footer></article></div>
-        <section class="frontend-discover__network" aria-labelledby="network-discover-title"><div class="frontend-discover__network-heading"><div><span class="eyebrow">Nearby pulse</span><h2 id="network-discover-title">Explore the wider network</h2><p>Source-attributed discovery entities remain distinct from Kurukoo providers until they are claimed, verified and available.</p></div><a class="btn btn-outline" href="/chat?prompt=Help%20me%20explore%20nearby">Open in Chat</a></div><div id="discover-map" class="discover-map-box" aria-label="Discovery network map"></div><div id="discover-list" class="k-list"><div class="k-row"><span>Locating useful discovery context…</span><span class="k-muted">Permission required</span></div></div><p class="discover-disclaimer">Privacy: location is coarse for discovery and map coordinates are fuzzed. Exact provider coordinates are never returned to the browser.</p></section>
+
+      <section class="discover-map-column" aria-label="Discovery map and results">
+        <div class="discover-map-card">
+          <div class="discover-map-card__header"><div><span class="discover-map-card__eyebrow">Approximate area</span><strong data-area-label>Near you</strong></div><span class="discover-map-card__status" data-map-status>Preparing discovery…</span></div>
+          <div id="discover-map" class="discover-map-box" role="application" aria-label="Approximate discovery network map"></div>
+          <div class="discover-map-card__legend" aria-label="Map legend"><span><i class="discover-legend-dot discover-legend-dot--service"></i>Service</span><span><i class="discover-legend-dot discover-legend-dot--place"></i>Place</span><span><i class="discover-legend-dot discover-legend-dot--event"></i>Event</span><span><i class="discover-legend-dot discover-legend-dot--business"></i>Business</span></div>
+        </div>
+        <div class="discover-results-header"><div><span class="eyebrow">Nearby results</span><h2><span data-result-count>0</span> possibilities to explore</h2></div><label class="discover-sort" for="discover-sort"><span>Sort</span><select id="discover-sort" data-discover-sort><option value="distance">Closest first</option><option value="freshness">Recently refreshed</option><option value="lifecycle">Most ready</option></select></label></div>
+        <div id="discover-list" class="discover-result-list" aria-live="polite" aria-busy="true"></div>
       </section>
     </div>
+
+    <section class="discover-next-step" aria-labelledby="discover-next-step-title"><div><span class="eyebrow">Keep the context</span><h2 id="discover-next-step-title">Found something worth exploring?</h2><p>Open the exact discovery context in Chat. Kurukoo will help you clarify the need before any provider, invitation or fulfilment step is proposed.</p></div><a class="btn btn-primary" href="/chat?prompt=Help%20me%20explore%20what%20I%20found%20nearby">Continue in Chat</a></section>
+    <p class="discover-disclaimer">Privacy: location is coarse for discovery and map coordinates are fuzzed. Discovered entities are not Kurukoo users or providers until they claim, onboard and pass the appropriate verification lifecycle.</p>
   </section>
 </main>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script><script src="/js/kurukoo-discover-map.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script><script src="/js/kurukoo-discover-map.js?v=2" defer></script>
 <%- include('_partials/footer') %>
