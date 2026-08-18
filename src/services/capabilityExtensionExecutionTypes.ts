@@ -23,9 +23,19 @@ export type CapabilityExtensionExecutionResult = {
   retryRecovery?: UniversalCapabilityResult['retryRecovery'];
 };
 
+export type CapabilityExtensionActionMetadata = {
+  label?: string;
+  description?: string;
+  risk?: UniversalCapabilityDescriptor['risk'];
+  confirmationRequired?: boolean;
+  permissions?: string[];
+  activationState?: UniversalCapabilityDescriptor['activationState'];
+};
+
 export type CapabilityExtensionExecutionAdapter = {
   owner: string;
   actions: string[];
+  actionMetadata?: Record<string, CapabilityExtensionActionMetadata>;
   activationState?: UniversalCapabilityDescriptor['activationState'];
   mode?: UniversalCapabilityDescriptor['mode'];
   execute?: (context: CapabilityExtensionExecutionContext) => Promise<CapabilityExtensionExecutionResult | null>;
