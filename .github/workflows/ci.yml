@@ -34,7 +34,7 @@ jobs:
       - name: Validate production preflight parser
         run: NODE_ENV=development node scripts/production-preflight.mjs
       - name: Validate infrastructure manifests
-        run: POSTGRES_PASSWORD=ci-only-dont-use docker compose -f docker-compose.production.yml config --quiet
+        run: cp .env.example .env && POSTGRES_PASSWORD=ci-only-dont-use docker compose -f docker-compose.production.yml config --quiet
       - name: Build production container
         run: docker build --file Dockerfile --tag kurukoo:ci .
       - run: npm audit --omit=dev --audit-level=critical
