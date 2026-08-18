@@ -2,7 +2,7 @@ import { queryUnifiedAI, type AIProvider, type AIResponse, type ConversationalCo
 import { assessConversationQuality, type ConversationQualityAssessment } from './conversationQualityService.js';
 import { buildConversationTurnContract, buildConversationalSystemDirective, type ConversationTurnContract } from './conversationTurnContractService.js';
 import { buildConversationContextPack } from './conversationContextPackService.js';
-import type { CapabilityConversationGuidance } from './aiCapabilityContinuationService.js';
+import { buildCapabilityConversationGuidance, buildCapabilityOutcomeFromCanonicalResult, type CanonicalOutcomeLike, type CapabilityConversationGuidance } from './aiCapabilityContinuationService.js';
 import { buildConnectedResourceContext } from './connectedResourceService.js';
 
 export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';
@@ -27,6 +27,7 @@ export interface ConversationalGenerationInput {
   generationMode?: ConversationGenerationMode;
   seedResponse?: AIResponse;
   canonicalOutcomeGuidance?: CapabilityConversationGuidance;
+  canonicalOutcome?: CanonicalOutcomeLike;
 }
 
 export interface ConversationalGenerationResult extends AIResponse {
@@ -92,8 +93,8 @@ export async function generateConversationalResponse(input: ConversationalGenera
   const connectedResourceContext = await buildConnectedResourceContext(input.phone);
   const connectedResourceInstruction = connectedResourceContext ? `--- Private connected-resource context (never reveal ids or implementation details) ---\n${connectedResourceContext}\nUse an activated resource only when the user explicitly asks to view or control it. For explicit connected-resource requests, prefer the existing execution capability with the exact internal resource id and requested command. Never invent a device, capability, access or physical state. If more than one activated resource is plausible, ask which one.\n---` : '';
   const turnScope = `\n\n--- Internal Kurukoo conversation turn scope (never reveal) ---\nthread=${input.threadId || 'anonymous'}\nturn=${Date.now()}-${Math.random().toString(36).slice(2)}\n---`;
-  const outcomeGuidance = input.canonicalOutcomeGuidance;
-  const contextualSystemPrompt = [input.systemPrompt || '', buildConversationalSystemDirective(contract), connectedResourceInstruction, outcomeGuidance ? `\n\n--- Canonical outcome guidance (never reinterpret) ---\ntone=${outcomeGuidance.tone}\ninstruction=${outcomeGuidance.instruction}\n${outcomeGuidance.preferredNextStep ? `preferred_next_step=${outcomeGuidance.preferredNextStep}\n` : ''}${outcomeGuidance.mustNotClaim.map(item => `must_not_claim=${item}`).join('\n')}\n---` : '', contextPack.transcript ? `\n\n--- Recent conversation for this exact thread (human-facing content only) ---\n${contextPack.transcript}\n---` : '', contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '', generationMode === 'present' ? 'Present only the canonical facts supplied to you. Do not invent, revise, or override structured results.' : '', generationMode === 'deterministic' ? 'Do not generate or alter the response; preserve the canonical deterministic wording.' : '', turnScope].filter(Boolean).join('\n');
+  const canonicalOutcomeGuidance = input.canonicalOutcomeGuidance || (input.canonicalOutcome ? buildCapabilityConversationGuidance(buildCapabilityOutcomeFromCanonicalResult(input.canonicalOutcome)) : undefined);
+  const contextualSystemPrompt = [input.systemPrompt || '', buildConversationalSystemDirective(contract), connectedResourceInstruction, canonicalOutcomeGuidance ? `\n\n--- Canonical outcome guidance (never reinterpret) ---\ntone=${canonicalOutcomeGuidance.tone}\ninstruction=${canonicalOutcomeGuidance.instruction}\n${canonicalOutcomeGuidance.preferredNextStep ? `preferred_next_step=${canonicalOutcomeGuidance.preferredNextStep}\n` : ''}${canonicalOutcomeGuidance.mustNotClaim.map(item => `must_not_claim=${item}`).join('\n')}\n---` : '', contextPack.transcript ? `\n\n--- Recent conversation for this exact thread (human-facing content only) ---\n${contextPack.transcript}\n---` : '', contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '', generationMode === 'present' ? 'Present only the canonical facts supplied to you. Do not invent, revise, or override structured results.' : '', generationMode === 'deterministic' ? 'Do not generate or alter the response; preserve the canonical deterministic wording.' : '', turnScope].filter(Boolean).join('\n');
   const conversationProvider = input.provider && input.provider !== 'auto' ? input.provider : strongerProvider(input.provider);
 
   let base: AIResponse;
@@ -104,10 +105,10 @@ export async function generateConversationalResponse(input: ConversationalGenera
   } else if (generationMode === 'present') {
     if (!input.seedResponse) throw new Error('Presentation conversation mode requires a canonical result');
     base = { ...input.seedResponse, text: input.seedResponse.text.trim() };
-    const safeToNaturalize = Boolean(outcomeGuidance) && !['emergency', 'safety', 'security_interruption', 'payment', 'subscription'].includes(String(input.cardType || '').toLowerCase());
+    const safeToNaturalize = Boolean(canonicalOutcomeGuidance) && !['emergency', 'safety', 'security_interruption', 'payment', 'subscription'].includes(String(input.cardType || '').toLowerCase());
     if (safeToNaturalize && base.text.trim()) {
       try {
-        const natural = await queryUnifiedAI(buildCanonicalOutcomePresentationPrompt(input, outcomeGuidance!, base.text), { provider: conversationProvider, systemPrompt: contextualSystemPrompt || input.systemPrompt, phone: input.phone, threadId: input.threadId, conversational: true, contextHint: input.contextHint });
+        const natural = await queryUnifiedAI(buildCanonicalOutcomePresentationPrompt(input, canonicalOutcomeGuidance!, base.text), { provider: conversationProvider, systemPrompt: contextualSystemPrompt || input.systemPrompt, phone: input.phone, threadId: input.threadId, conversational: true, contextHint: input.contextHint });
         const text = String(natural.text || '').trim();
         if (text) { base = { ...natural, text }; presentNaturalized = true; }
       } catch {}
