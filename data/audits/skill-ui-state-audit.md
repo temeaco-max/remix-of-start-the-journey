@@ -1,6 +1,6 @@
 # 205-Skill UI-State Audit
 
-Generated: 2026-08-16T18:52:55.229Z
+Generated: 2026-08-18T17:10:55.636Z
 
 The audit covers 205 canonical skills across the public site, PWA/workspace, admin surfaces, universal Chat entry, channel parity, canonical state matrices, and truthful fallback declarations. This is a structural coverage audit; it does not claim that an external provider, payment, channel, or fulfilment path is live.
 
@@ -10,7 +10,7 @@ The audit covers 205 canonical skills across the public site, PWA/workspace, adm
 | Needs review | 0 |
 | canonicalSource evidence | 205 |
 | chatEntry evidence | 205 |
-| publicSurface evidence | 57 |
+| publicSurface evidence | 56 |
 | pwaWorkspace evidence | 205 |
 | adminSurface evidence | 31 |
 | channelParity evidence | 205 |
