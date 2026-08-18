@@ -84,3 +84,19 @@ Every interactive control maintains a visible focus or pressed state, a minimum 
 ## 6. Design acceptance criteria
 
 A screen is accepted when the user can identify where they are, what Kurukoo knows, what Kurukoo is asking, what will happen next, how to go back to the conversation, and whether an external action is merely prepared, accepted, pending or independently verified. No platform may introduce a second visual identity, second Chat surface or second action authority.
+
+
+## 7. Implementation convergence scope
+
+The confirmed high-fidelity screen sets in `docs/design/assets/` are the visual source of truth for the public website, PWA, web Chat/workspaces, admin console, agents, partners, checkout, confirmations and Nearby Radar surfaces. Existing canonical routes, services and state owners remain authoritative; this convergence pass changes presentation and reusable UI primitives rather than creating a second Chat, navigation, discovery or admin authority.
+
+The implementation order is shared visual primitives first, followed by surface shells and responsive states. The public website follows the asymmetric warm landing-page compositions; Chat and workspaces follow the three-region conversation shell with Agent header, compact inspector/context treatment and Ask composer; admin, agents and partners use the persistent operational sidebar, compact evidence tables, status chips and explicit activation language; checkout and confirmations retain source, ownership, payment and provider-evidence boundaries in the visual hierarchy; Nearby Radar remains a presentation layer over canonical discovery state.
+
+Every surface must preserve the same mark, Inter/Space Grotesk typography, warm cream/white/charcoal/terracotta tokens, icon-led controls, 44px minimum interactive targets, reduced-motion behavior and truthful status language. Any external channel, payment, verification, provider, delivery or notification state remains visibly pending or activation-required until independently proven.
+
+
+## 8. Live verification findings
+
+The live homepage now follows the confirmed warm asymmetric composition and shared header hierarchy, with the simplified Explore, Channels, About and Help navigation. The homepage still contains legacy Unicode glyphs in the capability grid and timeline that require replacement with the canonical icon sprite during the remaining convergence pass.
+
+The live Chat shell is structurally present across sidebar, central conversation and context inspector, but the current rendering still requires visual refinement against the Chat board: the header/action density is too compressed, several controls remain glyph-based, and the central composer/message scale needs the board’s clearer hierarchy and spacing. These are presentation findings only; the canonical Chat and context owners remain unchanged.
