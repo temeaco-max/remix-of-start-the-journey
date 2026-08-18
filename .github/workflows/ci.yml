@@ -23,6 +23,8 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run test:routes
+      - name: Test remote MCP app contract
+        run: npx tsx scripts/test-mcp-app.ts
       # The active transformer chain has a documented upstream high advisory with no safe npm fix.
       # Keep all advisories visible while blocking any critical production dependency finding.
       - run: npm audit --omit=dev --audit-level=critical
