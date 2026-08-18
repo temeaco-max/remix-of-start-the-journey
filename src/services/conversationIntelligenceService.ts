@@ -42,13 +42,16 @@ const ACTION_WITH_OBJECT_RE = /\b(?:find|book|buy|order|hire|arrange|schedule|pa
 const CLARIFICATION_RE = /\?$|\b(?:what do you need|what information|which one|which option|where|when|how much|what kind|what sort|can you explain|why)\b/i;
 const CONTROL_RE = /^(?:pause|resume|cancel|stop|forget|continue|go back)(?:\s|$)/i;
 const CASUAL_RE = /^(?:hi|hello|hey|good morning|good afternoon|good evening|how are you|what's up|thanks|thank you|good night|lol|haha)\b/i;
+const IDENTITY_INTRO_RE = /^(?:my name is|i(?:'m| am) called|call me|you can call me)\s+[A-Za-z][A-Za-z0-9 .'-]{1,58}[.!?]?$/i;
+const CONTEXT_PIVOT_RE = /^(?:actually|by the way|btw|on another (?:thing|topic)|different question|separately|unrelated|forget that|never mind|hold on|wait|also|one more thing)\b/i;
+const RESUMPTION_RE = /^(?:back to|back on|returning to|go back to|continue with|let(?:'s|s) continue|where were we with|about the .* again)\b/i;
 
 function countWords(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
 }
 
 function hasExplicitAction(text: string): boolean {
-  if (EXPLORATION_RE.test(text) || PROBLEM_STATEMENT_RE.test(text)) return false;
+  if (EXPLORATION_RE.test(text) || PROBLEM_STATEMENT_RE.test(text) || IDENTITY_INTRO_RE.test(text) || CONTEXT_PIVOT_RE.test(text)) return false;
   return EXPLICIT_ACTION_RE.test(text) || ACTION_WITH_OBJECT_RE.test(text);
 }
 
@@ -56,8 +59,10 @@ function determineMode(input: ConversationIntelligenceInput): ConversationMode {
   const text = input.userMessage.trim();
   const relative = detectRelativeReference(text);
   if (CONTROL_RE.test(text)) return 'control';
-  if (relative) return 'reference';
+  if (relative || RESUMPTION_RE.test(text)) return 'reference';
+  if (IDENTITY_INTRO_RE.test(text)) return 'conversation';
   if (CASUAL_RE.test(text)) return 'conversation';
+  if (CONTEXT_PIVOT_RE.test(text) && !hasExplicitAction(text)) return 'conversation';
   if (CLARIFICATION_RE.test(text) && !hasExplicitAction(text)) return 'clarification';
   if (EXPLORATION_RE.test(text) || PROBLEM_STATEMENT_RE.test(text)) return 'exploration';
   if (hasExplicitAction(text)) return 'action';
@@ -68,7 +73,8 @@ function determineMode(input: ConversationIntelligenceInput): ConversationMode {
  * Shared, read-only conversational decision boundary.
  * It does not route, mutate state, call tools, or create actions. It gives the
  * canonical model layer a bounded view of conversational difficulty, intent
- * posture, and the protections that must survive before any action is proposed.
+ * posture, identity introductions, context pivots and the protections that
+ * must survive before any action is proposed.
  */
 export function decideConversationIntelligence(input: ConversationIntelligenceInput): ConversationIntelligenceDecision {
   const quality = assessConversationQuality(input);
@@ -83,16 +89,19 @@ export function decideConversationIntelligence(input: ConversationIntelligenceIn
   const pausedCount = input.pausedGoals?.length || 0;
   const words = countWords(input.userMessage);
   const explicitAction = hasExplicitAction(input.userMessage);
+  const identityIntro = IDENTITY_INTRO_RE.test(input.userMessage.trim());
+  const contextPivot = CONTEXT_PIVOT_RE.test(input.userMessage.trim());
+  const resumption = RESUMPTION_RE.test(input.userMessage.trim());
 
   const reasons: string[] = [];
   const shouldPreserveExistingContext = Boolean(
-    input.currentGoal || activeCount > 0 || pausedCount > 0 || relativeReference || difficulty === 'deep',
+    input.currentGoal || activeCount > 0 || pausedCount > 0 || relativeReference || difficulty === 'deep' || contextPivot || resumption,
   );
 
   const shouldAvoidAction = mode === 'conversation' || mode === 'exploration' || mode === 'clarification';
   const shouldRequireCanonicalAction = mode === 'action' || mode === 'control';
   const shouldAskClarification = mode === 'clarification' || (mode === 'action' && (input.pendingFields?.length || 0) > 0);
-  const requiresContextReconciliation = Boolean(relativeReference || activeCount > 1 || pausedCount > 0 || difficulty === 'deep');
+  const requiresContextReconciliation = Boolean(relativeReference || resumption || activeCount > 1 || pausedCount > 0 || difficulty === 'deep' || contextPivot);
   const requiresStructuredProposal = shouldRequireCanonicalAction && !shouldAvoidAction;
   const shouldGenerateNaturalResponse = !shouldRequireCanonicalAction || !input.userHasExplicitlyAuthorizedAction;
 
@@ -102,9 +111,11 @@ export function decideConversationIntelligence(input: ConversationIntelligenceIn
   if (difficulty === 'complex' || difficulty === 'deep' || activeCount > 1 || pausedCount > 0) modelTier = 'strong';
   if (mode === 'action' && shouldAskClarification) modelTier = 'compact';
   if (mode === 'reference' && activeCount > 1) modelTier = 'strong';
-  if (CASUAL_RE.test(input.userMessage)) modelTier = 'local';
+  if (CASUAL_RE.test(input.userMessage) || identityIntro) modelTier = 'local';
+  if (resumption && activeCount > 0) modelTier = 'compact';
+  if (contextPivot && activeCount > 0) modelTier = 'compact';
 
-  const shouldEscalateModel = modelTier === 'strong' || !quality.conversational || difficulty === 'deep';
+  const shouldEscalateModel = modelTier === 'strong' || !quality.conversational || difficulty === 'deep' || (contextPivot && activeCount > 1);
 
   if (relativeReference) reasons.push(`relative_reference:${relativeReference.target}`);
   if (activeCount > 1) reasons.push('multiple_active_contexts');
@@ -113,6 +124,9 @@ export function decideConversationIntelligence(input: ConversationIntelligenceIn
   if (EXPLORATION_RE.test(input.userMessage)) reasons.push('exploratory_language');
   if (PROBLEM_STATEMENT_RE.test(input.userMessage)) reasons.push('problem_statement_without_action');
   if (explicitAction) reasons.push('explicit_action_language');
+  if (identityIntro) reasons.push('identity_introduction');
+  if (contextPivot) reasons.push('context_pivot');
+  if (resumption) reasons.push('explicit_resumption');
   if (!shouldAvoidAction) reasons.push('action_capable_turn');
   if (requiresContextReconciliation) reasons.push('context_reconciliation_required');
   if (requiresStructuredProposal) reasons.push('structured_proposal_required');
