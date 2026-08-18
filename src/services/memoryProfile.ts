@@ -207,3 +207,46 @@ export async function updateProfile(phone: string, serviceName: string = 'system
     if (updates.country !== undefined) await recordMemoryFact(phone, 'country', updates.country, provenance, { sourceRef: updates.source_ref || serviceName });
     return await getProfile(phone, serviceName);
 }
+
+export interface CanonicalIdentityContext {
+    hasProfile: boolean;
+    hasName: boolean;
+    name?: string;
+    nameProvenance?: MemoryProvenance | 'profile';
+    location?: string;
+    country?: string;
+    stableFacts: Array<{ field: string; value: string; provenance: MemoryProvenance; confidence: number | null }>;
+    preferences: Record<string, unknown>;
+}
+
+function projectSafePreferences(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const source = value as Record<string, unknown>;
+    const allowed = ['language', 'locale', 'timezone', 'communication_style', 'preferred_channel', 'accessibility', 'travel_preferences', 'service_preferences'];
+    const projected: Record<string, unknown> = {};
+    for (const key of allowed) {
+        const current = source[key];
+        if (typeof current === 'string' || typeof current === 'number' || typeof current === 'boolean') projected[key] = current;
+    }
+    return projected;
+}
+
+export async function getCanonicalIdentityContext(phone: string, serviceName = 'system'): Promise<CanonicalIdentityContext> {
+    const [profile, facts] = await Promise.all([
+        getProfile(phone, serviceName),
+        getMemoryFacts(phone, ['name', 'location', 'country', 'language', 'locale', 'timezone', 'communication_style', 'preferred_channel']),
+    ]);
+    const nameFact = facts.find(fact => fact.field === 'name');
+    const locationFact = facts.find(fact => fact.field === 'location');
+    const countryFact = facts.find(fact => fact.field === 'country');
+    return {
+        hasProfile: Boolean(profile),
+        hasName: Boolean(profile?.name || nameFact?.value),
+        name: profile?.name ? String(profile.name) : nameFact?.value,
+        nameProvenance: nameFact?.provenance || (profile?.name ? 'profile' : undefined),
+        location: profile?.location ? String(profile.location) : locationFact?.value,
+        country: profile?.country ? String(profile.country) : countryFact?.value,
+        stableFacts: facts.slice(0, 8).map(fact => ({ field: fact.field, value: fact.value, provenance: fact.provenance, confidence: fact.confidence })),
+        preferences: projectSafePreferences(profile?.preferences),
+    };
+}
