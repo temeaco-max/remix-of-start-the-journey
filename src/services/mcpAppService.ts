@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { getDb, saveDb } from '../database.js';
-import { issueUserToken } from '../routes/authRoutes.js';
 import { requestPhoneOtp, verifyPhoneOtp, normalizeOtpPhone } from './otpAuthService.js';
 import { listUniversalCapabilities } from './universalCapabilityProtocol.js';
 import { executeCanonicalCapabilityProposal } from './canonicalCapabilityExecutor.js';
@@ -31,7 +30,6 @@ function oauthSecret(): string {
 
 function hash(value: string): string { return crypto.createHash('sha256').update(value).digest('hex'); }
 function randomToken(prefix: string): string { return `${prefix}_${crypto.randomBytes(36).toString('base64url')}`; }
-
 function ensureString(value: unknown, fallback = ''): string { return String(value ?? fallback).trim(); }
 
 async function ensureMcpSchema(): Promise<void> {
@@ -95,7 +93,10 @@ function configuredClientOk(clientId: string, clientSecret?: string): boolean {
   if (!expectedId) return true;
   if (clientId !== expectedId) return false;
   const expectedSecret = String(process.env.KURUKOO_MCP_CLIENT_SECRET || '');
-  return !expectedSecret || crypto.timingSafeEqual(Buffer.from(expectedSecret), Buffer.from(String(clientSecret || '').padEnd(expectedSecret.length, '\0').slice(0, expectedSecret.length)));
+  if (!expectedSecret) return true;
+  const presented = String(clientSecret || '');
+  if (presented.length !== expectedSecret.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expectedSecret), Buffer.from(presented));
 }
 
 function validateRedirectUri(clientId: string, redirectUri: string): boolean {
@@ -291,41 +292,14 @@ async function audit(phone: string, clientId: string, toolName: string, action: 
 }
 
 export const MCP_TOOLS = [
-  {
-    name:'kurukoo.get_context',
-    description:'Read the authenticated user\'s current Kurukoo relationship context. Use this before acting when the request depends on active or paused work.',
-    inputSchema:{ type:'object', properties:{}, additionalProperties:false },
-    requiredScope:'kurukoo.read' as McpScope,
-  },
-  {
-    name:'kurukoo.list_capabilities',
-    description:'List Kurukoo\'s canonical capability catalog with actions, risk, activation and evidence semantics.',
-    inputSchema:{ type:'object', properties:{ family:{ type:'string' } }, additionalProperties:false },
-    requiredScope:'kurukoo.read' as McpScope,
-  },
-  {
-    name:'kurukoo.inspect',
-    description:'Inspect an exact user-owned Kurukoo object without guessing or substituting a different object.',
-    inputSchema:{ type:'object', required:['capability','canonicalObjectId'], properties:{ capability:{type:'string'}, canonicalObjectId:{type:'string'}, action:{type:'string',default:'open'} }, additionalProperties:false },
-    requiredScope:'kurukoo.read' as McpScope,
-  },
-  {
-    name:'kurukoo.find',
-    description:'Ask Kurukoo to resolve a discovery/fulfilment intent through its existing canonical conversation and capability layer.',
-    inputSchema:{ type:'object', required:['request'], properties:{ request:{type:'string'}, contextId:{type:'string'}, location:{type:'string'} }, additionalProperties:false },
-    requiredScope:'kurukoo.act' as McpScope,
-  },
-  {
-    name:'kurukoo.execute',
-    description:'Execute a canonical Kurukoo capability action. Kurukoo remains authoritative for ownership, authorization, confirmation, idempotency, evidence and external activation.',
-    inputSchema:{ type:'object', required:['capability','action'], properties:{ capability:{type:'string'}, action:{type:'string'}, contextId:{type:'string'}, canonicalObjectId:{type:'string'}, arguments:{type:'object'}, confirmationGranted:{type:'boolean'}, idempotencyKey:{type:'string'}, confidence:{type:'number'} }, additionalProperties:false },
-    requiredScope:'kurukoo.act' as McpScope,
-  },
+  { name:'kurukoo.get_context', description:'Read the authenticated user\'s current Kurukoo relationship context. Use this before acting when the request depends on active or paused work.', inputSchema:{ type:'object', properties:{}, additionalProperties:false }, requiredScope:'kurukoo.read' as McpScope },
+  { name:'kurukoo.list_capabilities', description:'List Kurukoo\'s canonical capability catalog with actions, risk, activation and evidence semantics.', inputSchema:{ type:'object', properties:{ family:{ type:'string' } }, additionalProperties:false }, requiredScope:'kurukoo.read' as McpScope },
+  { name:'kurukoo.inspect', description:'Inspect an exact user-owned Kurukoo object without guessing or substituting a different object.', inputSchema:{ type:'object', required:['capability','canonicalObjectId'], properties:{ capability:{type:'string'}, canonicalObjectId:{type:'string'}, action:{type:'string',default:'open'} }, additionalProperties:false }, requiredScope:'kurukoo.read' as McpScope },
+  { name:'kurukoo.find', description:'Ask Kurukoo to resolve a discovery/fulfilment intent through its existing canonical conversation and capability layer.', inputSchema:{ type:'object', required:['request'], properties:{ request:{type:'string'}, contextId:{type:'string'}, location:{type:'string'} }, additionalProperties:false }, requiredScope:'kurukoo.act' as McpScope },
+  { name:'kurukoo.execute', description:'Execute a canonical Kurukoo capability action. Kurukoo remains authoritative for ownership, authorization, confirmation, idempotency, evidence and external activation.', inputSchema:{ type:'object', required:['capability','action'], properties:{ capability:{type:'string'}, action:{type:'string'}, contextId:{type:'string'}, canonicalObjectId:{type:'string'}, arguments:{type:'object'}, confirmationGranted:{type:'boolean'}, idempotencyKey:{type:'string'}, confidence:{type:'number'} }, additionalProperties:false }, requiredScope:'kurukoo.act' as McpScope },
 ] as const;
 
-export function mcpToolList(filterFamily?: string) {
-  return MCP_TOOLS.map(({ requiredScope:_requiredScope, ...tool }) => ({...tool, annotations:{ readOnlyHint:tool.name.endsWith('get_context') || tool.name.endsWith('list_capabilities') || tool.name.endsWith('inspect') || tool.name.endsWith('find') ? true : false }}));
-}
+export function mcpToolList(_filterFamily?: string) { return MCP_TOOLS.map(({ requiredScope:_requiredScope, ...tool }) => ({...tool, annotations:{ readOnlyHint:tool.name.endsWith('get_context') || tool.name.endsWith('list_capabilities') || tool.name.endsWith('inspect') || tool.name.endsWith('find') ? true : false }})); }
 
 async function inspectObject(phone: string, capability: string, objectId: string): Promise<Record<string, unknown>> {
   if (capability === 'agent') { const goal = await getAgentGoal(phone, objectId); return goal ? { capability, canonicalObjectId:objectId, object:goal } : { capability, canonicalObjectId:objectId, found:false }; }
@@ -338,14 +312,12 @@ export async function callMcpTool(auth: { phone:string; clientId:string; scopes:
   const definition = MCP_TOOLS.find(tool => tool.name === name);
   if (!definition) throw new Error(`Unknown MCP tool: ${name}`);
   if (!scopeAllows(auth.scopes, definition.requiredScope)) throw new Error(`OAuth scope ${definition.requiredScope} is required for ${name}`);
-
   if (name === 'kurukoo.get_context') {
     const capabilities = await listUniversalCapabilities();
-    const response = { user:{ phone:auth.phone }, externalController:{ clientId:auth.clientId, channel:'chatgpt-mcp' }, continuity:{ ownerScope:auth.phone, instruction:'Use exact canonical object/context IDs returned by Kurukoo. Do not infer a replacement object if one becomes stale.' }, availableCapabilityFamilies:[...new Set(capabilities.map(cap => cap.family))].slice(0,80), connection:{ status:'connected', scopes:auth.scopes, provider:'ChatGPT / remote MCP' } };
+    const response = { user:{ phone:auth.phone }, externalController:{ clientId:auth.clientId, channel:'external-ai-mcp' }, continuity:{ ownerScope:auth.phone, instruction:'Use exact canonical object/context IDs returned by Kurukoo. Do not infer a replacement object if one becomes stale.' }, availableCapabilityFamilies:[...new Set(capabilities.map(cap => cap.family))].slice(0,80), connection:{ status:'connected', scopes:auth.scopes, provider:'External AI / remote MCP' } };
     await audit(auth.phone, auth.clientId, name, 'read', auth.scopes, 'completed');
     return response;
   }
-
   if (name === 'kurukoo.list_capabilities') {
     const capabilities = await listUniversalCapabilities();
     const family = ensureString(args?.family).toLowerCase();
@@ -354,13 +326,11 @@ export async function callMcpTool(auth: { phone:string; clientId:string; scopes:
     await audit(auth.phone, auth.clientId, name, 'read', auth.scopes, 'completed', { count:filtered.length });
     return response;
   }
-
   if (name === 'kurukoo.inspect') {
     const response = await inspectObject(auth.phone, ensureString(args?.capability), ensureString(args?.canonicalObjectId));
     await audit(auth.phone, auth.clientId, name, 'read', auth.scopes, 'completed', { capability:args?.capability, canonicalObjectId:args?.canonicalObjectId, found:response.found !== false });
     return response;
   }
-
   if (name === 'kurukoo.find') {
     const request = ensureString(args?.request);
     if (!request) throw new Error('request is required');
@@ -371,7 +341,6 @@ export async function callMcpTool(auth: { phone:string; clientId:string; scopes:
     await audit(auth.phone, auth.clientId, name, 'find', auth.scopes, 'completed', { candidateCount:candidates.length });
     return response;
   }
-
   if (!scopeAllows(auth.scopes, 'kurukoo.act')) throw new Error('kurukoo.act scope is required for execution');
   const capability = ensureString(args?.capability).toLowerCase();
   const action = ensureString(args?.action).toLowerCase();
@@ -382,18 +351,7 @@ export async function callMcpTool(auth: { phone:string; clientId:string; scopes:
     return blocked;
   }
   const idempotencyKey = ensureString(args?.idempotencyKey) || `mcp:${auth.clientId}:${auth.phone}:${crypto.randomUUID()}`;
-  const result = await executeCanonicalCapabilityProposal({
-    phone:auth.phone,
-    capability,
-    action,
-    contextId:args?.contextId ? ensureString(args.contextId) : undefined,
-    canonicalObjectId:args?.canonicalObjectId ? ensureString(args.canonicalObjectId) : undefined,
-    arguments:args?.arguments && typeof args.arguments === 'object' ? args.arguments : {},
-    confirmationGranted:args?.confirmationGranted === true,
-    idempotencyKey,
-    channel:'chatgpt-mcp',
-    confidence:typeof args?.confidence === 'number' ? args.confidence : undefined,
-  });
+  const result = await executeCanonicalCapabilityProposal({ phone:auth.phone, capability, action, contextId:args?.contextId ? ensureString(args.contextId) : undefined, canonicalObjectId:args?.canonicalObjectId ? ensureString(args.canonicalObjectId) : undefined, arguments:args?.arguments && typeof args.arguments === 'object' ? args.arguments : {}, confirmationGranted:args?.confirmationGranted === true, idempotencyKey, channel:'external-ai-mcp', confidence:typeof args?.confidence === 'number' ? args.confidence : undefined });
   await audit(auth.phone, auth.clientId, name, action, auth.scopes, String(result.status), { capability, canonicalObjectId:result.canonicalObjectId, evidenceLevel:result.evidenceLevel, externalActivation:result.externalActivation });
   return result as unknown as Record<string, unknown>;
 }
@@ -403,7 +361,9 @@ export function renderAuthorizationPage(input: { transactionId:string; clientNam
   const action = `/oauth/authorize/consent/${encodeURIComponent(input.transactionId)}`;
   const otpAction = `/oauth/authorize/otp/${encodeURIComponent(input.transactionId)}`;
   const safe = (value:string) => value.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]!));
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect ChatGPT to Kurukoo</title><link rel="stylesheet" href="/css/site.css"><link rel="stylesheet" href="/css/kurukoo-home.css"></head><body class="page-shell"><main class="container" style="max-width:720px;margin:64px auto;padding:24px"><section class="card" style="padding:32px"><p class="eyebrow">Kurukoo connection</p><h1>Connect ChatGPT to your Kurukoo</h1><p>${safe(input.clientName || 'ChatGPT')} is asking to access your Kurukoo account.</p><ul>${scopeLabels}</ul>${input.error ? `<p role="alert">${safe(input.error)}</p>` : ''}${input.message ? `<p>${safe(input.message)}</p>` : ''}<form method="post" action="${otpAction}" style="display:grid;gap:12px;margin-top:20px"><label>Phone number<input name="phone" autocomplete="tel" required value="${safe(input.phone || '')}"></label><button class="btn" type="submit">Send Kurukoo code</button></form>${input.codeSent ? `<form method="post" action="${otpAction}/verify" style="display:grid;gap:12px;margin-top:20px"><input type="hidden" name="phone" value="${safe(input.phone || '')}"><label>Verification code<input name="code" inputmode="numeric" autocomplete="one-time-code" required></label><button class="btn" type="submit">Verify and connect</button></form>` : ''}<form method="post" action="${action}" style="margin-top:20px"><button class="btn" type="submit">Approve using current Kurukoo session</button></form><p class="muted" style="margin-top:20px">Kurukoo does not receive or store your ChatGPT password or session. You are authorizing ChatGPT to call Kurukoo's canonical tools for this account.</p></section></main></body></html>`;
+  const clientName = safe(input.clientName || 'AI assistant');
+  const heading = `Connect ${clientName} to your Kurukoo`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${heading}</title><link rel="stylesheet" href="/css/site.css"><link rel="stylesheet" href="/css/kurukoo-home.css"></head><body class="page-shell"><main class="container"><section class="card"><p class="eyebrow">Kurukoo connection</p><h1>${heading}</h1><p>${clientName} is asking to access your Kurukoo account.</p><ul>${scopeLabels}</ul>${input.error ? `<p role="alert">${safe(input.error)}</p>` : ''}${input.message ? `<p>${safe(input.message)}</p>` : ''}<form method="post" action="${otpAction}"><label>Phone number<input name="phone" autocomplete="tel" required value="${safe(input.phone || '')}"></label><button class="btn" type="submit">Send Kurukoo code</button></form>${input.codeSent ? `<form method="post" action="${otpAction}/verify"><input type="hidden" name="phone" value="${safe(input.phone || '')}"><label>Verification code<input name="code" inputmode="numeric" autocomplete="one-time-code" required></label><button class="btn" type="submit">Verify and connect</button></form>` : ''}<form method="post" action="${action}"><button class="btn" type="submit">Approve using current Kurukoo session</button></form><p class="muted">Kurukoo does not receive or store credentials belonging to your external AI provider. You are authorizing this AI client to call Kurukoo's canonical tools for this account.</p></section></main></body></html>`;
 }
 
 export async function currentSessionPhoneFromBearer(authHeader?: string): Promise<string | null> {
