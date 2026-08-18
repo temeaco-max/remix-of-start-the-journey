@@ -52,3 +52,10 @@ The Chat implementation must remain a conversation-first surface. Workspace view
 ## Forbidden implementation drift
 
 Agents must not create a second Chat component, router, memory system, request lifecycle, discovery authority, checkout engine or notification authority. They must not replace truthful states such as `Setup required`, `Not connected`, `Pending`, `Sandbox` or `Ready for activation` with `Live`, `Connected`, `Verified`, `Delivered` or `Complete` unless independently proven. They must not introduce inline styles, one-off page CSS, random gradients, generic dashboard shells or oversized title treatments.
+
+
+## Remaining high-fidelity surface pass
+
+The next implementation slice targets the existing `.cart-panel`, `.cart-summary`, `.storefront-execution-evidence` and `.storefront-quote` commerce/confirmation owners in the Chat and workspace styles, the `.workspace-header`, `.workspace-hero-card`, `.workspace-panel`, `.panel-heading` and `.status-pill` workspace owners, and the existing `.card`, `.admin-card`, `.runtime-readiness-card`, `.badge`, `.header-bar`, `.k-card` and `.k-icon` operational owners. Partner and agent surfaces must reuse these established card, status and icon authorities rather than creating new dashboards or commerce engines.
+
+The visual goal is a quieter high-fidelity hierarchy: one clear title and state, one evidence or context band, one primary action group, and restrained supporting copy. Checkout and confirmation visuals remain state mirrors; loading a panel must never imply a payment, quote, inventory, provider, delivery or fulfillment success.
