@@ -81,6 +81,10 @@ const adminToken = jwt.sign({ role: 'admin', username: 'economic-test-admin' }, 
 
 async function main() {
   const { app } = await import('../src/index.ts');
+  const { getDb } = await import('../src/database.js');
+  const db = await getDb();
+  db.run("INSERT OR REPLACE INTO memory_profiles (phone, name, location, country, phone_verified_at) VALUES (?, ?, 'Lagos', 'ng', CURRENT_TIMESTAMP)", ['+2347000000001', 'Economic Owner']);
+  db.run("INSERT OR REPLACE INTO memory_profiles (phone, name, location, country, phone_verified_at) VALUES (?, ?, 'Lagos', 'ng', CURRENT_TIMESTAMP)", ['+2347000000002', 'Economic Other']);
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', resolve));
   const { port } = server.address() as AddressInfo;
