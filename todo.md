@@ -163,3 +163,9 @@
 - [x] Run mobile crop-level pixel diffs against the individual reference frames
 - [x] Audit bottom action bar visibility, one-handed spacing, sidebar collapse and horizontal overflow on mobile web/PWA layouts
 - [x] Apply confirmed responsive fixes, revalidate and document the mobile comparison
+
+- [x] Add an isolated visual-QA fixture state for a populated Cart and Confirmation without changing production defaults
+- [x] Capture populated fixture states at iPhone SE and Pixel 7 viewport sizes
+- [x] Run populated-state pixel comparisons against individual Checkout and Confirmation reference frames
+- [x] Check action visibility, sidebar collapse, text wrapping and horizontal overflow across both mobile viewports
+- [x] Revalidate and document the populated mobile fixture audit
