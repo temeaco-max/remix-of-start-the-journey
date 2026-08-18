@@ -11,6 +11,7 @@ const expected = [
     '/reminders',
     '/saved',
     '/cart',
+    '/confirmation',
     '/points',
     '/tasks',
     '/daily-picks',

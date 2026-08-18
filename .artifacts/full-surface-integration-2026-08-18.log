@@ -1,0 +1,464 @@
+
+> kurukoo-platform@5.66.0 test:routes
+> npm run test:composition && npm run test:public-routes && npm run test:public-runtime && npm run test:country-experience && npm run test:conversation-workspace && npm run test:skill-mode-routing && npm run test:voice && npm run test:phone-otp && npm run test:webrtc-boundary && npm run test:connected-resource-command-ledger && npm run test:fcm-boundary && npm run test:reminder-safety-coordinator && npm run test:qr && npm run test:agent-runtime && npm run test:coordinator && npm run test:canonical-multicontext && npm run test:agent-control && npm run test:stripe-payment && npm run test:channel-usage && npm run test:whatsapp-parity && npm run test:whatsapp-webhook-boundary && npm run test:whatsapp-linked-device && npm run test:whatsapp-linked-session-chat && npm run test:telegram-linked-session-chat && npm run test:network-chat && npm run test:opportunity-truth && npm run test:topics && npm run test:attachment-boundary && npm run test:fresh-database && npm run test:pilot-readiness && npm run test:discovery-routes && npm run test:presence-routes && npm run test:content-routes && npm run test:trust && npm run test:trust-score && npm run test:dispute-lifecycle && npm run test:circle && npm run test:order && npm run test:admin && npm run test:seo-admin && npm run test:task && npm run test:provider-entities && npm run test:local-repair-outcome && npm run test:multi-party && npm run test:execution-boundary && npm run test:native-assistance && npm run test:auth-entry && npm run test:dev-auth && npm run test:economic-lifecycle
+
+
+> kurukoo-platform@5.66.0 test:composition
+> tsx scripts/test-composition-routes.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+test-composition-routes: PASS
+
+> kurukoo-platform@5.66.0 test:public-routes
+> tsx scripts/test-public-routes.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Public route module contract passed: 56 routes.
+
+> kurukoo-platform@5.66.0 test:public-runtime
+> tsx scripts/test-public-runtime-contracts.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+Kurukoo database initialized with development seed data.
+Public runtime contract checks passed
+Verified: homepage stylesheet and onboarding events, canonical public assets and chat shell, truthful Explore index/category data, public redirects, pricing, conversation-first identity and country routes.
+
+> kurukoo-platform@5.66.0 test:country-experience
+> tsx scripts/test-country-experience.ts
+
+Country experience contract passed: 3 supported markets share the canonical UI/management metadata.
+
+> kurukoo-platform@5.66.0 test:conversation-workspace
+> tsx scripts/test-conversation-workspace.ts
+
+Conversation workspace contract passed.
+
+> kurukoo-platform@5.66.0 test:skill-mode-routing
+> tsx scripts/test-skill-mode-routing.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized with development seed data.
+Skill mode routing tests passed
+
+> kurukoo-platform@5.66.0 test:voice
+> tsx scripts/test-voice-integration.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Voice integration contract passed: ephemeral session boundary, shared conversation identity, restricted tools, transcript persistence path, bounded Voxtral transcription route, and no permanent credential response.
+
+> kurukoo-platform@5.66.0 test:phone-otp
+> tsx scripts/test-phone-otp.ts
+
+Phone OTP regression passed: canonical SMS seam, truthful unavailable delivery, debug-only development code, verification and replay rejection.
+
+> kurukoo-platform@5.66.0 test:webrtc-boundary
+> tsx scripts/test-webrtc-boundary.ts
+
+WebRTC boundary passed: signalling remains repository-ready but unavailable until the explicit feature flag and relay prerequisites are present.
+
+> kurukoo-platform@5.66.0 test:connected-resource-command-ledger
+> tsx scripts/test-connected-resource-command-ledger.ts
+
+Connected-resource command ledger regression passed: owner scope, capability gating, truthful MQTT readiness, persisted command identity, and idempotent replay.
+
+> kurukoo-platform@5.66.0 test:fcm-boundary
+> tsx scripts/test-fcm-boundary.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+Kurukoo database initialized with development seed data.
+{"ok":true,"unauthenticatedStatus":401,"authenticatedStatus":200,"tokenEchoed":false,"unauthenticatedProfileCreated":false}
+
+> kurukoo-platform@5.66.0 test:reminder-safety-coordinator
+> tsx scripts/test-reminder-safety-coordinator.ts
+
+Kurukoo database initialized with development seed data.
+{
+  "ok": true,
+  "eventTypes": [
+    "reminder.state_changed",
+    "reminder.state_changed",
+    "safety.checkin.state_changed",
+    "safety.checkin.state_changed"
+  ],
+  "reminderEvents": 2,
+  "safetyEvents": 2,
+  "sensitivePayloadsLeaked": false
+}
+
+> kurukoo-platform@5.66.0 test:qr
+> tsx scripts/test-qr-context.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[Kurukoo Startup] JWT_SECRET is absent; using an ephemeral development-only secret. Configure JWT_SECRET before deployment.
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+QR context integration passed: signed bounded entry, safe start redirect, idempotent canonical activation, no scan request or Points creation, channel truthfulness, guest-to-OTP continuity, post-auth referral registration, and voice conversation handoff.
+
+> kurukoo-platform@5.66.0 test:agent-runtime
+> tsx scripts/test-agent-runtime.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized with development seed data.
+Agent runtime regression passed: persistent owned goals, idempotency, bounded tools, waiting and worker re-entry, cancellation, disabled mode, and high-risk denial.
+
+> kurukoo-platform@5.66.0 test:coordinator
+> tsx scripts/test-coordinator.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized with development seed data.
+[FastText] query="What is the current status?" intent=general_question confidence=0.700 source=fallback
+Coordinator regression passed: typed event persistence, deterministic local-first capability selection, truthful evidence, fail-safe disabled behavior, and teacher opt-in boundary.
+
+> kurukoo-platform@5.66.0 test:canonical-multicontext
+> tsx scripts/test-canonical-multicontext-trajectory.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized with development seed data.
+[FastText] query="Use option 2" intent=general_question confidence=0.700 source=fallback
+[FastText] query="Use option 2
+Before answering, correct the conversational quality issues detected by Kurukoo.
+Detected issues: context_drop.
+Conversation mode: reference.
+Action posture: none.
+Preserve unrelated active goals and contexts exactly.
+Handle the relative reference carefully: second. Do not guess when more than one target remains plausible.
+Answer naturally. Do not mention this repair instruction, scoring, models, routing, memory metadata, or internal policy." intent=find_worker confidence=0.990 source=rules
+{
+  "harness": "canonical-multicontext-trajectory-v1",
+  "turns": 3,
+  "preservedRequest": true,
+  "safetyInterruption": "safety",
+  "ambiguousReference": "clarify",
+  "ordinalResolution": "economic_request",
+  "mutationAuthority": "canonical services only"
+}
+
+> kurukoo-platform@5.66.0 test:agent-control
+> tsx scripts/test-agent-control-commands.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+[Push] FCM device token is not registered; notification remains in internal queue.
+Agent control command regression passed: natural-language pause, resume, and cancel remain owner-scoped and persisted.
+
+> kurukoo-platform@5.66.0 test:stripe-payment
+> tsx scripts/test-stripe-payment.ts
+
+Stripe adapter contract passed: configured-only execution, raw-body signature verification, replay-window rejection, and request metadata integrity.
+
+> kurukoo-platform@5.66.0 test:channel-usage
+> tsx scripts/test-channel-usage.ts
+
+Kurukoo database initialized.
+Channel usage metering checks passed
+Verified: unified channel events are metered, provider costs remain optional, and usage is not converted into Points.
+
+> kurukoo-platform@5.66.0 test:whatsapp-parity
+> tsx scripts/test-whatsapp-channel-parity.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized with development seed data.
+[FastText] query="Continue where we left off." intent=unknown source=fallback
+Defaulting to 'auto' which will select the first provider available for the model, sorted by the user's order in https://hf.co/settings/inference-providers.
+[SmolLM2] HF serverless inference failed: Body is unusable: Body has already been read
+[SMS] Outbound delivery not configured; inbound conversation was persisted.
+WhatsApp parity contract passed: Web, WhatsApp, and SMS share identity, conversation, memory-backed routing, persistence, provider-boundary delivery, and production signature fail-closed behavior.
+
+> kurukoo-platform@5.66.0 test:whatsapp-webhook-boundary
+> tsx scripts/test-whatsapp-webhook-boundary.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+[telegram Webhook] Error: Error: Invalid Telegram webhook secret
+    at TelegramHandler.parseMessage (/home/ubuntu/kurukoo-git/src/channels/telegram.ts:24:73)
+    at TelegramHandler.handleWebhook (/home/ubuntu/kurukoo-git/src/channels/baseChannelService.ts:36:33)
+    at handleTelegramWebhook (/home/ubuntu/kurukoo-git/src/channels/telegram.ts:57:42)
+    at telegram (/home/ubuntu/kurukoo-git/src/channels/channelRegistry.ts:28:22)
+    at dispatchWebhook (/home/ubuntu/kurukoo-git/src/channels/channelRegistry.ts:72:18)
+    at <anonymous> (/home/ubuntu/kurukoo-git/src/routes/channelRoutes.ts:32:24)
+    at Layer.handle [as handle_request] (/home/ubuntu/kurukoo-git/node_modules/express/lib/router/layer.js:95:5)
+    at next (/home/ubuntu/kurukoo-git/node_modules/express/lib/router/route.js:149:13)
+    at rateLimitMiddleware (/home/ubuntu/kurukoo-git/src/middleware/rateLimit.ts:47:5)
+    at Layer.handle [as handle_request] (/home/ubuntu/kurukoo-git/node_modules/express/lib/router/layer.js:95:5)
+[telegram Webhook] Error: Error: Telegram webhook secret is not configured
+    at TelegramHandler.parseMessage (/home/ubuntu/kurukoo-git/src/channels/telegram.ts:23:79)
+    at TelegramHandler.handleWebhook (/home/ubuntu/kurukoo-git/src/channels/baseChannelService.ts:36:33)
+    at handleTelegramWebhook (/home/ubuntu/kurukoo-git/src/channels/telegram.ts:57:42)
+    at telegram (/home/ubuntu/kurukoo-git/src/channels/channelRegistry.ts:28:22)
+    at dispatchWebhook (/home/ubuntu/kurukoo-git/src/channels/channelRegistry.ts:72:18)
+    at <anonymous> (/home/ubuntu/kurukoo-git/src/routes/channelRoutes.ts:32:24)
+    at Layer.handle [as handle_request] (/home/ubuntu/kurukoo-git/node_modules/express/lib/router/layer.js:95:5)
+    at next (/home/ubuntu/kurukoo-git/node_modules/express/lib/router/route.js:149:13)
+    at rateLimitMiddleware (/home/ubuntu/kurukoo-git/src/middleware/rateLimit.ts:47:5)
+    at Layer.handle [as handle_request] (/home/ubuntu/kurukoo-git/node_modules/express/lib/router/layer.js:95:5)
+Webhook boundary regression passed: exact WhatsApp challenge verification succeeds, complete channel readiness is enforced, and invalid or missing WhatsApp/Telegram authentication fails closed.
+
+> kurukoo-platform@5.66.0 test:whatsapp-linked-device
+> tsx scripts/test-whatsapp-linked-device.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+{"ts":"2026-08-18T18:43:06.504Z","level":"error","service":"kurukoo","event":"http.request.failed","request_id":"0b4cd190-efc5-48d7-b0c8-1329099c9d06","method":"GET","path":"/status","status":503,"duration_ms":8}
+Kurukoo database initialized with development seed data.
+{"ok":true,"pairingPageStatus":200,"disabledStatus":503,"strangerStatus":403,"ownerStatus":200,"connected":false,"qrExposedBeforeStart":false}
+
+> kurukoo-platform@5.66.0 test:whatsapp-linked-session-chat
+> tsx scripts/test-whatsapp-linked-session-chat.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized with development seed data.
+[FastText] query="What should I know before using Kurukoo?" intent=general_question confidence=0.950 source=fallback
+{
+  "ok": true,
+  "accepted": true,
+  "modelSource": "local",
+  "model": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "outboundReplyPreview": "I’m with you. Tell me a little more about what you mean, and I’ll help you work it out.",
+  "coordinatorEvent": {
+    "type": "chat.turn.completed",
+    "producer": "canonicalChatTurnService",
+    "ownerLinked": true,
+    "channel": "whatsapp",
+    "modelProvider": "Kurukoo Template"
+  }
+}
+Simulated linked-session inbound WhatsApp message routed through local SmolLM2, canonical Chat, outbound reply, and coordinator telemetry.
+
+> kurukoo-platform@5.66.0 test:telegram-linked-session-chat
+> tsx scripts/test-telegram-linked-session-chat.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized with development seed data.
+[FastText] query="What can Kurukoo help me get done?" intent=general_question confidence=0.700 source=fallback
+Telegram linked-session Chat regression passed: evidence, canonical Chat handoff, reply capture, coordinator routing, and telemetry redaction are enforced.
+
+> kurukoo-platform@5.66.0 test:network-chat
+> tsx scripts/test-network-chat-convergence.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized with development seed data.
+[Push] FCM device token is not registered; notification remains in internal queue.
+[Push] FCM device token is not registered; notification remains in internal queue.
+Network-to-Chat convergence contract passed: consented location, live Pulse discovery, verified provider matching, provider request card, deferred re-entry, notification persistence, opportunity return-to-Chat, and canonical deep links.
+
+> kurukoo-platform@5.66.0 test:opportunity-truth
+> tsx scripts/test-opportunity-truth.ts
+
+Kurukoo database initialized with development seed data.
+[Push] FCM device token is not registered; notification remains in internal queue.
+[Push] FCM device token is not registered; notification remains in internal queue.
+Opportunity truth contract passed: no fabricated demand or location claims, evidence-backed demand alert, and Chat continuation link.
+
+> kurukoo-platform@5.66.0 test:topics
+> tsx scripts/test-topics-convergence.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=0, MCP=disabled
+Kurukoo database initialized with development seed data.
+Topics convergence regression passed: minimal canonical public-content lifecycle, ownership, moderation, privacy, explicit chat handoff, and no parallel Points/economic side effects.
+
+> kurukoo-platform@5.66.0 test:attachment-boundary
+> tsx scripts/test-attachment-boundary.ts
+
+Attachment boundary regression passed: private storage, owner binding, cleanup, deletion, validation, and non-public access are enforced.
+
+> kurukoo-platform@5.66.0 test:fresh-database
+> tsx scripts/test-fresh-database.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+Kurukoo database initialized with development seed data.
+[Push] FCM device token is not registered; notification remains in internal queue.
+Fresh database regression passed: schema bootstrap, core routes, internal notification queue, readiness state, Topics, trust, request tables, and owner-scoped connected-resource pairing/activation are deployment-independent.
+
+> kurukoo-platform@5.66.0 test:pilot-readiness
+> tsx scripts/test-pilot-readiness.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Pilot readiness regression passed: missing external credentials, disabled agent state, controlled development auth, and production rejection are truthful.
+
+> kurukoo-platform@5.66.0 test:discovery-routes
+> tsx scripts/test-discovery-routes.ts
+
+Discovery route contract passed: GET /api/discover/map.
+
+> kurukoo-platform@5.66.0 test:presence-routes
+> tsx scripts/test-presence-routes.ts
+
+Presence route contract passed: 7 routes and live shared-presence statistics.
+
+> kurukoo-platform@5.66.0 test:content-routes
+> tsx scripts/test-content-routes.ts
+
+Content route contract passed: blog endpoints present.
+
+> kurukoo-platform@5.66.0 test:trust
+> tsx scripts/test-trust-routes.ts
+
+test-trust-routes: PASS
+
+> kurukoo-platform@5.66.0 test:trust-score
+> tsx scripts/test-trust-score.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Trust Score formula and ledger regression passed.
+
+> kurukoo-platform@5.66.0 test:dispute-lifecycle
+> tsx scripts/test-dispute-lifecycle.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+Kurukoo database initialized with development seed data.
+Dispute lifecycle integration checks passed
+Verified: completed cooling-off dispute, buyer ownership, escrow freeze/release block, transition enforcement, and idempotent dispute persistence.
+
+> kurukoo-platform@5.66.0 test:circle
+> tsx scripts/test-circle-routes.ts
+
+test-circle-routes: PASS
+
+> kurukoo-platform@5.66.0 test:order
+> tsx scripts/test-order-routes.ts
+
+test-order-routes: PASS
+
+> kurukoo-platform@5.66.0 test:admin
+> tsx scripts/test-admin-routes.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+test-admin-routes: PASS: protected API registry, canonical /admin entry, and core static admin revamp pages are present
+
+> kurukoo-platform@5.66.0 test:seo-admin
+> tsx scripts/test-seo-admin-routes.ts
+
+SEO admin route module contract passed: 45 registered paths (checked 32 required).
+
+> kurukoo-platform@5.66.0 test:task
+> node scripts/test-task-routes.mjs
+
+test-task-routes
+  ok: POST /appointments/book registered
+  ok: GET /tasks registered
+  ok: POST /tasks/accept registered
+  ok: POST /tasks/complete registered
+  ok: uses authenticateUser
+  ok: uses sessionPhone helper
+  ok: rejects mismatched client phone
+  ok: no demo phone literal
+  ok: auth middleware inline: router.post('/appointments/book'
+  ok: auth middleware inline: router.get('/tasks'
+  ok: auth middleware inline: router.post('/tasks/accept'
+  ok: auth middleware inline: router.post('/tasks/complete'
+  ok: imports appointment service
+  ok: imports microTasks service
+  ok: composition root does not depend on legacyApp
+  ok: composition root mounts the canonical task route boundary
+  ok: index is explicitly a composition root
+PASS test-task-routes
+
+> kurukoo-platform@5.66.0 test:provider-entities
+> tsx scripts/test-provider-entities.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized.
+Provider entity integration checks passed
+Verified: canonical human/business discovery, generic repair alias matching, constrained provider types, authorized autonomous concept matching, no verification bypass, no fabricated telemetry, and unchanged Economic Request/escrow gates.
+
+> kurukoo-platform@5.66.0 test:local-repair-outcome
+> tsx scripts/test-local-repair-outcome.ts
+
+Kurukoo database initialized with development seed data.
+Local iPhone repair outcome regression passed
+Verified: canonical discovery, explicit provider selection, development payment authorization, escrow, service-provider execution evidence, completion confirmation, idempotency, and truthful simulation boundaries.
+
+> kurukoo-platform@5.66.0 test:multi-party
+> tsx scripts/test-multi-party-economic-request.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+Kurukoo database initialized.
+Multi-party Economic Request regression checks passed
+Verified: legacy compatibility, seller offer linkage, verified seller/delivery participants, role-specific evidence, unchanged quote/payment/escrow/dispute controls, registered-agent coordination, external-platform representation without integration, deferred continuity, and storefront projections.
+
+> kurukoo-platform@5.66.0 test:execution-boundary
+> tsx scripts/test-execution-boundary.ts
+
+Kurukoo database initialized.
+Execution boundary regression checks passed
+Verified: explicit connector authorization, dummy dispatch, bounded local development progression, constrained execution lifecycle, idempotency, typed evidence sources, no external-provider fabrication, and unchanged Economic Request/escrow boundaries.
+
+> kurukoo-platform@5.66.0 test:native-assistance
+> tsx scripts/test-native-assistance.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=1, MCP=disabled
+Kurukoo database initialized with development seed data.
+[Push] FCM device token is not registered; notification remains in internal queue.
+Native assistance tests passed
+
+> kurukoo-platform@5.66.0 test:auth-entry
+> tsx scripts/test-auth-entry.ts
+
+Auth entry contract passed.
+
+> kurukoo-platform@5.66.0 test:dev-auth
+> tsx scripts/test-dev-auth.ts
+
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+[Kurukoo Startup] Environment initialized. PORT=3001, Pay Provider=sandbox, DB=sqljs, Jobs=in_process, Workers=0, MCP=disabled
+Kurukoo database initialized with development seed data.
+[FastText] query="Hello" intent=unknown source=fallback
+Defaulting to 'auto' which will select the first provider available for the model, sorted by the user's order in https://hf.co/settings/inference-providers.
+Auto selected provider: undefined
+[SmolLM2] HF serverless inference failed: No Inference Provider available for model HuggingFaceTB/SmolLM2-1.7B-Instruct.
+Development auth regression passed: controlled OTP, production rejection, normal session, admin launch/reset, owner identity, and canonical Chat wiring.
+
+> kurukoo-platform@5.66.0 test:economic-lifecycle
+> tsx scripts/test-economic-lifecycle.ts
+
+Kurukoo database initialized.
+[Push] FCM device token is not registered; notification remains in internal queue.
+[Push] FCM was not accepted; internal queue retained (error:1E08010C:DECODER routines::unsupported).
+[FastText] loaded 206 training examples
+[FastText] modelState=real, ready=false, trainingExamples=206
+[SMS] Outbound delivery not configured; inbound conversation was persisted.
+Economic lifecycle integration checks passed
+Verified: deferred re-match does not fabricate a quote, known cart offers enter the canonical product request flow without payment, escrow release awards bounded idempotent points, and SMS uses the normalized Economic Request identity.
