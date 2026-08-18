@@ -38,7 +38,10 @@
   const text = (selector, value) => { const target = demo.querySelector(selector); if (target) target.textContent = value; };
   const applyScenario = (name) => {
     const scenario = scenarios[name] || scenarios.food;
-    text('[data-demo-user]', scenario.user);
+    const offer = demo.querySelector('.storefront-demo__offer');
+    if (offer) offer.classList.add('is-changing');
+    window.setTimeout(() => {
+      text('[data-demo-user]', scenario.user);
     text('[data-demo-assistant]', scenario.assistant);
     text('[data-demo-category]', scenario.category);
     text('[data-demo-title]', scenario.title);
@@ -47,7 +50,9 @@
     text('[data-demo-state]', scenario.state);
     const action = demo.querySelector('[data-demo-action]');
     if (action) action.dataset.prompt = scenario.prompt;
-    demo.querySelectorAll('[data-storefront-scenario]').forEach((button) => button.classList.toggle('is-active', button.dataset.storefrontScenario === name));
+      demo.querySelectorAll('[data-storefront-scenario]').forEach((button) => button.classList.toggle('is-active', button.dataset.storefrontScenario === name));
+      if (offer) offer.classList.remove('is-changing');
+    }, 160);
   };
 
   demo.querySelectorAll('[data-storefront-scenario]').forEach((button) => button.addEventListener('click', () => applyScenario(button.dataset.storefrontScenario)));

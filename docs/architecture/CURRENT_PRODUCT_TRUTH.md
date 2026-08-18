@@ -2,9 +2,9 @@
 
 ## Canonical definition
 
-**Kurukoo is a conversational fulfilment network and personal assistance platform for everyday life and work.**
+**Kurukoo is a conversational operating system for coordinating everyday intentions with people, services, products, places and bounded agents.**
 
-This is the canonical product definition for current documentation and product copy.
+Kurukoo can help directly, preserve context, discover options, coordinate participants, prepare an Economic Request or continue work over time. External fulfilment remains conditional on availability, authorization, evidence, configured providers and real-world confirmation. This is the canonical product definition for current documentation and product copy.
 
 ### Supporting model
 
@@ -21,10 +21,12 @@ This is the canonical product definition for current documentation and product c
 
 | Term | Current use |
 |---|---|
-| Conversational fulfilment network | Canonical public/product description. |
+| Conversational operating system | Canonical current product description when explaining the whole system. |
+| Conversational fulfilment network | Supporting description for the network and real-world coordination layer. |
 | Personal assistance platform | Canonical supporting product description. |
 | Everyday utility platform | Descriptive category only; not the canonical identity. |
 | Economic OS | Internal architecture term only. |
+| Multi-agent network | Product/architecture term for bounded cooperating agents using shared canonical services; never implies autonomous external execution without evidence. |
 | Orchestration network | Internal/product architecture term; may be used when describing coordination mechanics. |
 | Marketplace | Do not use as the primary product definition; Kurukoo includes network coordination beyond marketplace listings. |
 | Chatbot | Do not use as the product definition; Chat is the interface to a broader system. |

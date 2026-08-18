@@ -135,7 +135,7 @@
     state.surfaceView = view; updateSurfaceHeader(view); updateSurfaceContext(view); loadNearbyInspector(view);
     const surface = makeElement('section', 'workspace-surface'); surface.dataset.surfaceView = view;
     const heading = makeElement('div', 'surface-heading'); heading.append(makeElement('h1', '', surfaceTitles[view] || 'Workspace'));
-    { const ask = makeElement('button', 'workspace-button secondary ask-cta'); ask.type = 'button'; const mark = makeElement('span', 'ask-mark'); const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.svg'; image.alt = ''; image.setAttribute('aria-hidden', 'true'); mark.append(image); ask.append(mark, makeElement('span', '', 'Ask')); ask.addEventListener('click', () => input?.focus()); heading.append(ask); }
+    { const ask = makeElement('button', 'workspace-button secondary ask-cta'); ask.type = 'button'; const mark = makeElement('span', 'ask-mark'); const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.png'; image.alt = ''; image.setAttribute('aria-hidden', 'true'); mark.append(image); ask.append(mark, makeElement('span', '', 'Ask')); ask.addEventListener('click', () => input?.focus()); heading.append(ask); }
     surface.append(heading); const body = makeElement('div', 'surface-body'); body.append(makeElement('div', 'surface-loading', 'Loading…')); surface.append(body); chatContent.replaceChildren(surface); scroll.scrollTop = 0;
     try {
       if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
@@ -284,7 +284,7 @@
       indicator.setAttribute('aria-live', 'polite');
       indicator.setAttribute('aria-atomic', 'true');
       const avatar = makeElement('div', 'avatar'); avatar.setAttribute('aria-hidden', 'true');
-      const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.svg'; image.alt = ''; image.width = 20;
+      const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.png'; image.alt = ''; image.width = 20;
       avatar.appendChild(image);
       const bubble = makeElement('div', 'bubble typing-indicator-bubble');
       const text = makeElement('span', 'typing-indicator-label');
@@ -453,7 +453,7 @@
 
     const avatarDiv = makeElement('div', 'avatar'); avatarDiv.setAttribute('aria-hidden', 'true');
     if (role === 'assistant') {
-      const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.svg'; img.alt = 'K'; img.width = 20;
+      const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.png'; img.alt = 'K'; img.width = 20;
       avatarDiv.appendChild(img);
     }
 
@@ -506,7 +506,7 @@
     const wrap = document.createElement('article'); wrap.className = 'message assistant message-enter message-streaming'; wrap.dataset.messageState = 'incoming'; wrap.hidden = true;
 
     const avatar = makeElement('div', 'avatar'); avatar.setAttribute('aria-hidden', 'true');
-    const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.svg'; img.alt = 'K'; img.width = 20;
+    const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.png'; img.alt = 'K'; img.width = 20;
     avatar.appendChild(img);
 
     const body = makeElement('div', 'message-body');

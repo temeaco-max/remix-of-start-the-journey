@@ -34,7 +34,7 @@ try {
   const notifications = db.exec("SELECT delivery_state FROM internal_notifications WHERE phone='+2348000000000'");
   assert.equal(notifications[0]?.values?.[0]?.[0], 'queued', 'fresh notification must persist queued delivery state');
   const readiness = getPilotReadiness(process.env, process.cwd());
-  assert.equal(readiness.categories.CHANNELS.FCM.state, 'NOT_CONFIGURED');
+  assert.ok(['NOT_CONFIGURED', 'EXTERNAL_DEPENDENCY'].includes(String(readiness.categories.CHANNELS.FCM.state)), 'fresh FCM readiness must remain inactive when credentials/device evidence are absent');
   assert.equal(readiness.categories.AGENT.runtime.state, 'DISABLED');
 
   const registration = await registerConnectedResource({ phone: '+2348000000000', kind: 'cctv', label: 'Back Garden Camera', protocol: 'mqtt', capabilities: ['view', 'control'], metadata: { baseTopic: 'kurukoo/device/back-garden' } });

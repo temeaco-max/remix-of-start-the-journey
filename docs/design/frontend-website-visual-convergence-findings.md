@@ -60,3 +60,16 @@ Adopt the separate desktop project as the visual benchmark and selectively port 
 The second agent’s portable public authority stylesheet is now loaded only on the canonical public Homepage, Discover, Channels, About and Help routes. The live Homepage preserves Kurukoo’s canonical lower sections and truthful ads while receiving the stronger compact shell, warm palette, source-card scale and conversation-card rhythm. Discover retains the canonical source filters, cards and Nearby Pulse map handoff while receiving the compact Explore-style geometry. Channels renders the five connector cards and provider-readiness boundary at the reference density. About retains the reference split About-plus-Help first viewport and the restored relationship/orchestration detail below it.
 
 The exact three-petal Kurukoo mark from the separate desktop implementation has replaced the legacy star icon in the public navigation, footer and Homepage illustrative previews. The wordmark and public route contracts remain unchanged. The separate develop branch was not wholesale merged because it includes unrelated static/admin/radar/chat changes and content contracts that require independent review.
+
+
+## Exact extracted logo verification — 18 August 2026
+
+The supplied Web Chat design set was used as the source for the interlocking loop mark. The previous hand-drawn three-petal path was removed from the shared public brand partial and replaced with the uploaded alpha-cleaned extracted asset. Public Homepage and Web Chat now render the same loop mark in the header and illustrative agent identity positions. Direct legacy star references were removed from public templates/static pages, and the PWA/mobile icon, splash, favicon and Android foreground assets were replaced with the extracted transparent PNG. The mobile visual-contract test passes; unrelated existing mobile TypeScript errors remain in the date-picker dependency path.
+
+### Live public verification checkpoint
+
+Homepage and Discover were opened from the running canonical server after the exact compact logo replacement. Both show the shared local authoritative asset in the public header, preserve the approved Explore/Channels/About/Help navigation, and retain the canonical content and state boundaries. Discover continues to distinguish source-attributed discovery entities from Kurukoo providers and exposes Open in Chat from the discovery context.
+
+Channels and About were also opened live. Channels renders the exact logo in the shared header/footer, five source cards, provider-readiness boundary and compact footer. About renders the exact logo, reference-aligned About/Help split, restored relationship content and truthful trust boundaries; no navigation dead-end was observed.
+
+Help renders the same exact logo and shared public navigation, with support categories, truthful channel/reminder boundaries, contact guidance and footer links. Login preserves the exact mark and a clear guest-to-identity handoff without submitting credentials or claiming verification.

@@ -40,6 +40,9 @@ assert.match(pwaClient, /queuePendingMessage/);
 assert.match(pwaClient, /Nothing has been sent automatically/);
 assert.match(pwaClient, /send\.click\(\)/);
 assert.match(pwaClient, /stopImmediatePropagation\(\)/);
+assert.match(pwaClient, /Checking Kurukoo connection/);
+assert.match(pwaClient, /Kurukoo is ready to continue your conversation/);
+assert.match(pwaClient, /tone: 'loading'/);
 assert.match(offline, /id="retry-button"/);
 
 console.log('PWA contract passed: standalone Chat launch, service-worker lifecycle, offline fallback, safe manual retry of saved chat intents, dynamic route exclusions, and canonical Chat asset freshness are present.');

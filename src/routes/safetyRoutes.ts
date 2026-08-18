@@ -9,6 +9,12 @@ import {
   revokeSafetyContact,
   startCheckIn,
 } from '../services/safetyService.js';
+import {
+  createTrustedContactConsentRequest,
+  getTrustedContactReadiness,
+  listTrustedContactConsentRequests,
+  revokeTrustedContactConsentRequest,
+} from '../services/trustedContactService.js';
 
 const router = Router();
 router.use(authenticateUser);
@@ -38,6 +44,26 @@ router.post('/safety/contacts/:id/activate', async (req: AuthRequest, res) => {
     if (!contact) return res.status(404).json({ success: false, error: 'Pending safety contact not found' });
     res.json({ success: true, contact, message: 'Contact activated by owner consent. No notification has been sent to the contact.' });
   } catch (e: any) { res.status(400).json({ success: false, error: e.message || 'Unable to activate safety contact' }); }
+});
+
+router.get('/safety/contacts/:id/consent-requests', async (req: AuthRequest, res) => {
+  try { res.json({ success: true, readiness: getTrustedContactReadiness(), requests: await listTrustedContactConsentRequests(owner(req), String(req.params.id)) }); }
+  catch (e: any) { res.status(500).json({ success: false, error: e.message || 'Unable to load consent requests' }); }
+});
+
+router.post('/safety/contacts/:id/consent-request', async (req: AuthRequest, res) => {
+  try {
+    const request = await createTrustedContactConsentRequest(owner(req), String(req.params.id), req.body?.channel === 'email' ? 'email' : 'sms', req.body?.email ? String(req.body.email) : undefined);
+    res.status(201).json({ success: true, readiness: getTrustedContactReadiness(), request, message: request.delivery_state === 'accepted' ? 'Consent request accepted by the configured channel provider; delivery still requires provider evidence.' : 'Consent request recorded locally; no external delivery is claimed.' });
+  } catch (e: any) { res.status(400).json({ success: false, error: e.message || 'Unable to create consent request' }); }
+});
+
+router.post('/safety/contacts/consent-requests/:id/revoke', async (req: AuthRequest, res) => {
+  try {
+    const revoked = await revokeTrustedContactConsentRequest(owner(req), String(req.params.id));
+    if (!revoked) return res.status(404).json({ success: false, error: 'Pending consent request not found' });
+    res.json({ success: true, message: 'Consent request revoked. No further delivery is authorized.' });
+  } catch (e: any) { res.status(500).json({ success: false, error: e.message || 'Unable to revoke consent request' }); }
 });
 
 router.post('/safety/contacts/:id/revoke', async (req: AuthRequest, res) => {

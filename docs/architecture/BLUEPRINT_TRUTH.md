@@ -2,6 +2,10 @@
 
 This document is the current convergence index between the Blueprint and the repository. It does not replace `BLUEPRINT.md`; it records what the repository can truthfully claim today and what remains gated, partial or externally dependent.
 
+## Current product definition
+
+Kurukoo is a **conversational operating system for coordinating everyday intentions with people, services, products, places and bounded agents**. It can help directly, preserve context, discover options, coordinate participants, prepare an Economic Request or continue work over time. External fulfilment remains conditional on availability, authorization, evidence, configured providers and real-world confirmation. The implementation and activation bridge is documented in [`MULTI_AGENT_NETWORK_ARCHITECTURE_AND_ACTIVATION_ROADMAP.md`](./MULTI_AGENT_NETWORK_ARCHITECTURE_AND_ACTIVATION_ROADMAP.md).
+
 ## Canonical status vocabulary
 
 - **IMPLEMENTED_AND_VERIFIED** — repository implementation and relevant behavioural coverage exist.

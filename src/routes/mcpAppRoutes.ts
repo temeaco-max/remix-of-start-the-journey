@@ -55,7 +55,7 @@ router.get('/oauth/authorize', async (req, res) => {
     const codeChallenge = req.query.code_challenge ? String(req.query.code_challenge) : undefined;
     const codeChallengeMethod = req.query.code_challenge_method ? String(req.query.code_challenge_method) : undefined;
     const { transactionId, scopes } = beginAuthorization({ clientId, redirectUri, responseType, scope, state, codeChallenge, codeChallengeMethod });
-    return res.status(200).send(renderAuthorizationPage({ transactionId, clientName: clientId }));
+    return res.status(200).send(renderAuthorizationPage({ transactionId, clientName: clientId, scopes }));
   } catch (error) {
     return res.status(400).send(renderAuthorizationPage({ transactionId:'', clientName:'ChatGPT', scopes:[], error:String((error as Error)?.message || error) }));
   }

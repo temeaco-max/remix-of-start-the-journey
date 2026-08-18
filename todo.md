@@ -117,3 +117,9 @@
 - [ ] Fix confirmed Chat presentation or functional drift and add regression coverage
 - [ ] Run full Chat, AI, visual, accessibility, security and route regressions
 - [ ] Push validated canonical changes to main and verify local/remote synchronization
+
+- [x] Merge Kurukoo communication/access channels and external productivity-source connections into distinct labelled Channels sections
+- [x] Preserve truthful readiness states and separate connection semantics for both channel families
+- [x] Integrate the merged Channels surface with origin/main without force-pushing or discarding concurrent work
+- [x] Re-run Channels route, visual, accessibility, CSS and relevant regression checks
+- [ ] Push the synchronized merged result to main
