@@ -139,7 +139,7 @@
     surface.append(heading); const body = makeElement('div', 'surface-body'); body.append(makeElement('div', 'surface-loading', 'Loading…')); surface.append(body); chatContent.replaceChildren(surface); scroll.scrollTop = 0;
     try {
       if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
-      if (view === 'cart') { const res = await fetch('/api/cart', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'Cart is unavailable'); const items = Array.isArray(data.items) ? data.items : []; const panel = makeElement('section', 'workspace-panel'); panel.appendChild(makeChildren('div', 'panel-heading', [makeChildren('div', '', [makeElement('span', 'workspace-eyebrow', 'Review cart'), makeElement('h2', '', items.length ? 'Offers you chose to review' : 'Your review cart is empty')])])); if (!items.length) panel.appendChild(makeElement('p', 'empty-state', 'Choose a sourced seller offer in Chat before starting checkout.')); else { const list = makeElement('div', 'storefront-review-list'); items.forEach(item => { const row = makeElement('article', 'storefront-review-item'); const copy = makeElement('div'); copy.append(makeElement('strong', '', String(item.title || 'Seller offer')), makeElement('small', '', `${String(item.quantity || 1)} × ${item.price_minor === null ? 'Price pending confirmation' : `${item.price_minor} ${item.currency || 'NGN'}`}`)); const remove = makeElement('button', 'sf-btn sf-secondary', 'Remove'); remove.type = 'button'; remove.addEventListener('click', async () => { await fetch(`/api/cart/items/${encodeURIComponent(item.id)}`, { method: 'DELETE', credentials: 'same-origin' }); await renderWorkspaceSurface('cart'); }); row.append(copy, remove); list.appendChild(row); }); panel.appendChild(list); const checkout = makeElement('button', 'sf-btn sf-primary', 'Continue to checkout review'); checkout.type = 'button'; const status = makeElement('p', 'empty-state'); checkout.addEventListener('click', async () => { checkout.disabled = true; const result = await fetch('/api/cart/checkout', { method: 'POST', credentials: 'same-origin' }); const resultData = await result.json().catch(() => ({})); status.textContent = resultData.message || resultData.error || 'Checkout needs review.'; checkout.disabled = false; }); panel.appendChild(checkout); panel.appendChild(status); } body.replaceChildren(panel); return; }
+      if (view === 'cart') { const res = await fetch('/api/cart', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'Cart is unavailable'); const items = Array.isArray(data.items) ? data.items : []; const panel = makeElement('section', 'workspace-panel'); panel.appendChild(makeChildren('div', 'panel-heading', [makeChildren('div', '', [makeElement('span', 'workspace-eyebrow', 'Review cart'), makeElement('h2', '', items.length ? 'Offers you chose to review' : 'Your review cart is empty')])])); if (!items.length) panel.appendChild(makeElement('p', 'empty-state', 'Choose a sourced seller offer in Chat before starting checkout.')); else { const list = makeElement('div', 'storefront-review-list'); items.forEach(item => { const row = makeElement('article', 'storefront-review-item'); const copy = makeElement('div'); copy.append(makeElement('strong', '', String(item.title || 'Seller offer')), makeElement('small', '', `${String(item.quantity || 1)} × ${item.price_minor === null ? 'Price pending confirmation' : `${item.price_minor} ${item.currency || 'local currency'}`}`)); const remove = makeElement('button', 'sf-btn sf-secondary', 'Remove'); remove.type = 'button'; remove.addEventListener('click', async () => { await fetch(`/api/cart/items/${encodeURIComponent(item.id)}`, { method: 'DELETE', credentials: 'same-origin' }); await renderWorkspaceSurface('cart'); }); row.append(copy, remove); list.appendChild(row); }); panel.appendChild(list); const checkout = makeElement('button', 'sf-btn sf-primary', 'Continue to checkout review'); checkout.type = 'button'; const status = makeElement('p', 'empty-state'); checkout.addEventListener('click', async () => { checkout.disabled = true; const result = await fetch('/api/cart/checkout', { method: 'POST', credentials: 'same-origin' }); const resultData = await result.json().catch(() => ({})); status.textContent = resultData.message || resultData.error || 'Checkout needs review.'; checkout.disabled = false; }); panel.appendChild(checkout); panel.appendChild(status); } body.replaceChildren(panel); return; }
       if (view === 'memory') {
         const res = await fetch('/api/memory/facts', { credentials: 'same-origin' });
         const data = await res.json().catch(() => ({}));
@@ -724,7 +724,7 @@
         const item = makeElement('li');
         const details = makeElement('div');
         const price = Number(offer.priceMinor);
-        const amount = Number.isInteger(price) ? `${price} ${String(offer.currency || 'NGN')}` : 'Price pending confirmation';
+        const amount = Number.isInteger(price) ? `${price} ${String(offer.currency || 'local currency')}` : 'Price pending confirmation';
         details.append(
           makeElement('strong', '', offer.description || 'Seller offer'),
           makeElement('span', '', `${String(offer.sellerName || 'Seller')} · ${amount}`)
@@ -757,7 +757,7 @@
         const details = makeElement('div');
         details.append(
           makeElement('strong', '', provider.name || 'Delivery provider'),
-          makeElement('span', '', `Profile details · listed rate ${String(provider.hourly_rate || 0)} NGN`)
+          makeElement('span', '', `Profile details · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
         );
         const button = makeElement('button', 'sf-btn sf-primary', 'Choose delivery');
         button.type = 'button';
@@ -775,7 +775,7 @@
         const item = makeElement('li', index === 0 ? 'top' : '');
         item.append(
           makeElement('strong', '', provider.name || 'Provider'),
-          makeElement('span', '', `Profile details · listed rate ${String(provider.hourly_rate || 0)} NGN`)
+          makeElement('span', '', `Profile details · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
         );
         providers.appendChild(item);
       });
@@ -784,7 +784,7 @@
 
     if (card.quote) {
       const quote = makeElement('div', 'storefront-quote', 'Quote: ');
-      quote.appendChild(makeElement('strong', '', `${String(card.quote.amount_minor)} ${String(card.quote.currency || 'NGN')}`));
+      quote.appendChild(makeElement('strong', '', `${String(card.quote.amount_minor)} ${String(card.quote.currency || 'local currency')}`));
       holder.appendChild(quote);
     }
 

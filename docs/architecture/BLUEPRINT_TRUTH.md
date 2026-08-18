@@ -202,3 +202,14 @@ Guest emergency assistance is **IMPLEMENTED_AND_VERIFIED** by regression: it doe
 | External activation | Telephony, payment, channel, provider, device, voice and relay activation remain provider-dependent and are not represented as live without evidence. | PROVIDER_DEPENDENT |
 
 The interaction-policy matrix covers 227 policy descriptors and passed with the full all-domains, route, security, PWA, public, build, lint and strict CSS suites. Live browser verification confirmed guest emergency presentation without onboarding and a fresh guest security card without a name, phone or OTP gate.
+
+
+## Country experience and market-management truth
+
+The supported country experience is now represented by one canonical `countryExperience` service for Nigeria (`ng`), Ghana (`gh`) and the United Kingdom (`gb`). Each market supplies shared public-path, locale, currency, minor-unit, emergency-number, pricing-management and channel metadata. Public country routes, provider profiles and rendered page context reuse this authority rather than hard-coding Nigeria or a generic English market.
+
+The authenticated admin boundary exposes the same catalogue at `/api/admin/countries`, and the pricing management surface loads it before creating or editing plans. This keeps country selection and currency defaults consistent with the pricing service. Country metadata is management/readiness metadata, not proof that any market's external channel, payment, emergency dialing or fulfilment is live.
+
+All supported markets use the same UI/UX shell and conversation-first journey. Differences are limited to truthful market metadata, currency, emergency directory and available channel declarations. Unsupported country codes normalize to the safe Nigeria default for compatibility; they are not silently treated as a new market.
+
+The red-team pass also removed hard-coded NGN fallbacks from shared Chat commerce cards. When an offer does not provide a canonical currency, the UI now says `local currency` or `Price pending confirmation` rather than implying a Nigerian amount.

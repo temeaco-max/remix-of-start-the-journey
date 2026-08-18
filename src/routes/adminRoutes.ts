@@ -38,6 +38,7 @@ import { getNotificationQueueStats } from '../services/pushNotifications.js';
 import { approveLearningArtifact, getContextArbitrationTelemetry, getCoordinatorTelemetry, listCoordinatorRuns, listLearningArtifacts } from '../services/coordinatorStore.js';
 import { getPrivacyBridgeStatus } from '../services/privacyBridge.js';
 import { getSmolLM2RuntimeStatus } from '../services/smolLm2Service.js';
+import { listCountryExperiences } from '../services/countryExperience.js';
 import { getTelegramLinkedDeviceStatus, startTelegramLinkedDevice, stopTelegramLinkedDevice } from '../services/telegramLinkedDeviceService.js';
 import { getWhatsAppLinkedDeviceStatus } from '../services/whatsappLinkedDeviceService.js';
 import { listTrustedDevices, revokeTrustedDevice } from '../services/progressiveTrustService.js';
@@ -540,6 +541,10 @@ router.post('/ads', authenticateAdmin, async (req: AuthRequest, res) => {
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message || 'Unable to create advertising campaign' });
   }
+});
+
+router.get('/countries', authenticateAdmin, (_req: AuthRequest, res) => {
+  res.json({ success: true, countries: listCountryExperiences() });
 });
 
 router.get('/pilot-readiness', authenticateAdmin, async (_req: AuthRequest, res) => {
