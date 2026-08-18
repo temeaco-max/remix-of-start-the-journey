@@ -4,7 +4,9 @@ import { getDb, saveDb } from '../database.js';
 export async function migrateGuestSessionToAccount(guestPhone: string, userPhone: string): Promise<void> {
   const guest = String(guestPhone || '').trim();
   const user = String(userPhone || '').trim();
-  if (!guest.startsWith('anon_') || !user) return;
+  // Guest anon_* and provisional email em_* subjects may merge into a proven phone only.
+  if ((!guest.startsWith('anon_') && !guest.startsWith('em_')) || !user || guest === user) return;
+  if (user.startsWith('em_') || user.startsWith('anon_')) return; // never migrate onto a provisional/guest target
 
   const db = await getDb();
   const tableRows = db.exec(`SELECT name FROM sqlite_master WHERE type='table'`);
