@@ -211,7 +211,6 @@ const counts = (values: string[]) => Object.fromEntries([...new Set(values)].map
 const manifest = {
   schemaVersion: 1,
   seed,
-  generatedAt: new Date().toISOString(),
   generatedCount: selected.length,
   fullUniverseCount: rows.length,
   target,

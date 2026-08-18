@@ -63,6 +63,30 @@ assert.ok((await getMemoryFacts(memoryAlternativePhone, ['conversation_context']
 const db = await getDb();
 const requests = db.exec('SELECT id, status FROM economic_requests WHERE phone = ?', [phone])[0]?.values || [];
 assert.ok(requests.length >= 2, 'interleaving must preserve at least two request records');
+const requestCountBeforeLongHorizon = requests.length;
+const requestIdsBeforeLongHorizon = new Set(requests.map(row => String(row[0])));
 
-console.log('Natural interleaving Chat regression passed: memory did not corrupt the first request, a second request received a distinct canonical record, and explicit resumption returned a request card.');
+const longHorizonTurns = Array.from({ length: 80 }, (_, index) => [
+  'I am still thinking it through.',
+  'Please keep the earlier request safe while I ask something else.',
+  'What information is still missing?',
+  'I do not want to start anything new right now.',
+  'I will come back to the ride later.',
+  'The first request still matters too.',
+][index % 6]);
+let longConversationId = first.conversationId;
+for (const [index, message] of longHorizonTurns.entries()) {
+  const channel = index < 20 ? 'web' : index < 40 ? 'whatsapp' : index < 60 ? 'telegram' : 'web';
+  const turn = await processCanonicalChatTurn({ phone, channel, conversationId: longConversationId, message });
+  assert.notEqual(turn.contextDecision?.relation, 'create', `ordinary long-horizon turn ${index + 1} must not create an Economic Request`);
+  if (turn.cardData?.requestId) assert.ok(requestIdsBeforeLongHorizon.has(String(turn.cardData.requestId)), `ordinary long-horizon turn ${index + 1} may reference only an existing request`);
+  const countAfterTurn = db.exec('SELECT COUNT(*) FROM economic_requests WHERE phone = ?', [phone])[0]?.values?.[0]?.[0] || 0;
+  assert.equal(Number(countAfterTurn), requestCountBeforeLongHorizon, `ordinary long-horizon turn ${index + 1} must not create an Economic Request`);
+  longConversationId = turn.conversationId || longConversationId;
+  if ([4, 9, 19, 39, 79].includes(index)) assert.ok(longConversationId, `long-horizon checkpoint ${index + 1} must preserve conversation continuity`);
+}
+const requestsAfterLongHorizon = db.exec('SELECT id FROM economic_requests WHERE phone = ?', [phone])[0]?.values || [];
+assert.equal(requestsAfterLongHorizon.length, requestCountBeforeLongHorizon, '80-turn cross-channel conversation must not contaminate request state with premature actions');
+
+console.log('Natural interleaving Chat regression passed: 5/10/20/40/80-turn checkpoints preserved bounded conversation continuity across web, WhatsApp and Telegram without premature Economic Request creation.');
 try { fs.unlinkSync(dbPath); } catch { /* best effort cleanup */ }

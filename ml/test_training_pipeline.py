@@ -11,7 +11,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CURATE = ROOT / "ml" / "curate_candidate_corpus.py"
 TRAIN = ROOT / "ml" / "train_smollm2_qlora.py"
 VERIFY = ROOT / "ml" / "verify_smollm2_artifact.py"
+SEED_GOLDEN = ROOT / "ml" / "generate_deterministic_golden_corpus.py"
 DATASET = ROOT / "ml" / "datasets" / "kurukoo-core-v1.train.jsonl"
+GOLDEN_DATASET = ROOT / "ml" / "datasets" / "kurukoo-deterministic-golden-v1.jsonl"
 
 
 def test_training_disabled():
@@ -68,6 +70,23 @@ def test_curation_requires_explicit_approval():
             raise AssertionError("curation did not report the blocked state")
 
 
+def test_deterministic_golden_corpus_is_explicit_and_trainable():
+    with tempfile.TemporaryDirectory() as tmp:
+        generated = subprocess.run([sys.executable, str(SEED_GOLDEN)], cwd=ROOT, text=True, capture_output=True)
+        if generated.returncode != 0:
+            raise AssertionError(generated.stderr or generated.stdout)
+        output = pathlib.Path(tmp) / "accepted.jsonl"
+        manifest = pathlib.Path(tmp) / "manifest.json"
+        result = subprocess.run([sys.executable, str(CURATE), "--input", str(GOLDEN_DATASET), "--output", str(output), "--manifest", str(manifest)], cwd=ROOT, text=True, capture_output=True)
+        if result.returncode != 0:
+            raise AssertionError(result.stderr or result.stdout)
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        if payload.get("acceptedRows", 0) < 1 or payload.get("status") != "ready_for_training":
+            raise AssertionError("explicit deterministic golden policy did not produce a ready training corpus")
+        if payload.get("teacherOutputTrustedAutomatically") is not False:
+            raise AssertionError("golden corpus must not trust teacher output automatically")
+
+
 def test_enabled_training_rejects_uncurated_rows():
     with tempfile.TemporaryDirectory() as tmp:
         result = subprocess.run(
@@ -88,5 +107,6 @@ if __name__ == "__main__":
     test_training_disabled()
     test_missing_artifact_fails_closed()
     test_curation_requires_explicit_approval()
+    test_deterministic_golden_corpus_is_explicit_and_trainable()
     test_enabled_training_rejects_uncurated_rows()
     print("Kurukoo student-model training boundary tests passed.")

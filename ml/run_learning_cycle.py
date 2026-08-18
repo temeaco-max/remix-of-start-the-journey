@@ -43,7 +43,10 @@ def main() -> int:
 
     commands = [
         ("scenario_generation", ["npm", "run", "scenario-lab:generate"]),
+        ("teacher_candidate_generation", ["npm", "run", "ml:teacher-candidates"]),
+        ("teacher_candidate_import", ["npm", "run", "ml:import-teacher-candidates"]),
         ("teacher_evaluation", ["npm", "run", "benchmark:teacher"]),
+        ("deterministic_golden_seed", ["npm", "run", "ml:seed-golden"]),
         ("corpus_curation", ["npm", "run", "ml:curate"]),
     ]
     for name, cmd in commands:
@@ -71,6 +74,18 @@ def main() -> int:
         registry_status = {"registered": code == 0, "exitCode": code, "outputTail": output[-2000:]}
     stages.append({"stage": "registry", **registry_status})
 
+    failed_stages = [stage["stage"] for stage in stages if isinstance(stage.get("exitCode"), int) and stage["exitCode"] != 0]
+    if failed_stages:
+        final_status = "failed_stage"
+    elif registry_status.get("registered"):
+        final_status = "trained_candidate_registered"
+    elif accepted == 0:
+        final_status = "blocked_no_accepted_examples"
+    elif not training_requested:
+        final_status = "ready_for_training"
+    else:
+        final_status = "incomplete"
+
     final = {
         "schemaVersion": 1,
         "startedAt": started,
@@ -80,13 +95,14 @@ def main() -> int:
         "acceptedRows": accepted,
         "trainingRequested": training_requested,
         "stages": stages,
-        "status": "trained_candidate_registered" if registry_status.get("registered") else ("blocked_no_accepted_examples" if accepted == 0 else "incomplete"),
+        "status": final_status,
+        "failedStages": failed_stages,
         "productionActivation": "never automatic; use guarded model registry promotion after independent evaluation",
     }
     STATUS.parent.mkdir(parents=True, exist_ok=True)
     STATUS.write_text(json.dumps(final, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(final, indent=2))
-    return 0 if final["status"] in {"trained_candidate_registered", "blocked_no_accepted_examples"} else 1
+    return 0 if final["status"] in {"trained_candidate_registered", "ready_for_training"} else 1
 
 
 if __name__ == "__main__":

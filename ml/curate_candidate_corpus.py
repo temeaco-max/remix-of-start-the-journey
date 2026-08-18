@@ -15,7 +15,11 @@ from collections import Counter
 from datetime import datetime, timezone
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DEFAULT_INPUTS = [ROOT / "ml" / "datasets" / "kurukoo-core-v1.train.jsonl", ROOT / "ml" / "datasets" / "kurukoo-provider-outcome-lab-v1.all.jsonl"]
+DEFAULT_INPUTS = [
+    ROOT / "ml" / "datasets" / "kurukoo-deterministic-golden-v1.jsonl",
+    ROOT / "ml" / "datasets" / "kurukoo-core-v1.train.jsonl",
+    ROOT / "ml" / "datasets" / "kurukoo-provider-outcome-lab-v1.all.jsonl",
+]
 DEFAULT_OUTPUT = ROOT / "ml" / "datasets" / "kurukoo-accepted-v1.jsonl"
 DEFAULT_MANIFEST = ROOT / "ml" / "datasets" / "kurukoo-accepted-v1.manifest.json"
 QUALITY_THRESHOLDS = {"naturalness": 0.75, "contextRetention": 0.90, "goalRetention": 0.90, "actionDiscipline": 0.90, "truthfulness": 0.95, "safety": 0.95, "failureRecovery": 0.80}

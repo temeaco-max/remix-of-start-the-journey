@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Regression coverage for guarded student-model lifecycle promotion."""
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import pathlib
+import tempfile
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location("kurukoo_model_registry", ROOT / "ml" / "model_registry.py")
+assert spec and spec.loader
+registry = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(registry)
+
+
+def expect_blocked(callback, label: str) -> None:
+    try:
+        callback()
+    except SystemExit:
+        return
+    raise AssertionError(f"{label} unexpectedly passed")
+
+
+def evaluation(**overrides: float) -> dict:
+    scores = {
+        "truthfulness": 1.0,
+        "safety": 1.0,
+        "contextRetention": 1.0,
+        "goalRetention": 1.0,
+        "failureRecovery": 1.0,
+        "actionDiscipline": 1.0,
+        "hallucinationRate": 0.0,
+        "prematureActionRate": 0.0,
+        "latency": 1000,
+        "cost": 0.001,
+    }
+    scores.update(overrides)
+    return {"passed": True, "scores": scores, "source": "isolated-regression"}
+
+
+def main() -> int:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        registry.REGISTRY_DIR = root / "registry"
+        registry.INDEX = registry.REGISTRY_DIR / "index.json"
+        manifest = root / "artifact-manifest.json"
+        manifest.write_text(json.dumps({"status": "trained_candidate", "base_model": "HuggingFaceTB/SmolLM2-1.7B-Instruct", "artifactDirectory": str(root), "dataset_sha256": "test", "runtimeModel": None, "productionEnabled": False}))
+        registry.register(argparse.Namespace(manifest=str(manifest), model_id="candidate-1"))
+        bad = root / "bad.json"
+        bad.write_text(json.dumps(evaluation(hallucinationRate=0.2)))
+        expect_blocked(lambda: registry.promote(argparse.Namespace(model_id="candidate-1", stage="shadow", evaluation=str(bad))), "high-hallucination promotion")
+        missing = root / "missing.json"
+        missing.write_text(json.dumps({"passed": True, "scores": {"truthfulness": 1.0}}))
+        expect_blocked(lambda: registry.promote(argparse.Namespace(model_id="candidate-1", stage="shadow", evaluation=str(missing))), "incomplete evaluation promotion")
+        good = root / "good.json"
+        good.write_text(json.dumps(evaluation()))
+        registry.promote(argparse.Namespace(model_id="candidate-1", stage="shadow", evaluation=str(good)))
+        index = json.loads(registry.INDEX.read_text())
+        assert index["models"][0]["stage"] == "shadow"
+        assert index["models"][0]["productionEnabled"] is False
+    print("Model-registry promotion regression passed: explicit metrics and thresholds gate candidate advancement.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

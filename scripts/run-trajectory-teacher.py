@@ -42,7 +42,8 @@ SCHEMA = {
         'failureRecovery': {'type': 'number'}, 'failureOwnership': {'type': 'string'}, 'explanation': {'type': 'string'},
     }, 'required': ['naturalness','contextRetention','goalRetention','interruptionHandling','correctionHandling','clarificationQuality','ambiguityHandling','relativeReferenceResolution','multiGoalTracking','hallucinationRate','prematureActionRate','safetyCompliance','failureRecovery','failureOwnership','explanation'], 'additionalProperties': False,
 }
-SYSTEM = 'You are a strict offline conversational-quality teacher. You never act for users and never mutate Kurukoo state.'
+GRADE_FIELDS = ['naturalness','contextRetention','goalRetention','interruptionHandling','correctionHandling','clarificationQuality','ambiguityHandling','relativeReferenceResolution','multiGoalTracking','hallucinationRate','prematureActionRate','safetyCompliance','failureRecovery']
+SYSTEM = 'You are a strict offline conversational-quality teacher. You never act for users and never mutate Kurukoo state. Return one JSON object only with exactly these numeric score keys, each set to 0, 0.5, or 1: ' + ', '.join(GRADE_FIELDS) + '. Also include failureOwnership and explanation.'
 
 
 def normalize_ownership(value):
@@ -54,6 +55,21 @@ def normalize_ownership(value):
     if any(token in text for token in ['memory','leak','private']): return 'memory_assembly'
     if any(token in text for token in ['action','premature','schema']): return 'canonical_action_proposal'
     return 'model_capability'
+
+
+def validate_grade(payload):
+    if not isinstance(payload, dict):
+        raise RuntimeError('teacher response is not a JSON object')
+    missing = [field for field in GRADE_FIELDS if field not in payload]
+    if missing:
+        raise RuntimeError('teacher response missing required scores: ' + ', '.join(missing))
+    for field in GRADE_FIELDS:
+        value = payload.get(field)
+        if not isinstance(value, (int, float)) or float(value) not in {0.0, 0.5, 1.0}:
+            raise RuntimeError(f'teacher response has invalid {field} score')
+    if not isinstance(payload.get('explanation'), str) or not payload['explanation'].strip():
+        raise RuntimeError('teacher response is missing explanation')
+    return payload
 
 
 def parse_json(content):
@@ -97,9 +113,13 @@ def call_compatible(provider, model, prompt):
     key = os.environ.get(key_name) or (os.environ.get('HUGGINGFACE_API_KEY') if provider == 'huggingface' else '')
     if not key: raise RuntimeError(f'{provider} credentials are not configured')
     base = os.environ.get(base_name, default_base).rstrip('/')
-    payload = {'model': model, 'messages':[{'role':'system','content':SYSTEM},{'role':'user','content':prompt}], 'temperature':0, 'max_tokens':MAX_TOKENS, 'response_format':{'type':'json_object'}}
+    payload = {'model': model, 'messages':[{'role':'system','content':SYSTEM},{'role':'user','content':prompt}], 'temperature':0, 'response_format':{'type':'json_object'}}
+    if provider == 'openai' and model.startswith('gpt-5'):
+        payload['max_completion_tokens'] = MAX_TOKENS
+    else:
+        payload['max_tokens'] = MAX_TOKENS
     data = post_json(f'{base}/chat/completions', payload, {'Authorization':f'Bearer {key}'})
-    return parse_json(data['choices'][0]['message'].get('content'))
+    return validate_grade(parse_json(data['choices'][0]['message'].get('content')))
 
 
 def call_gemini(model, prompt):
@@ -108,7 +128,7 @@ def call_gemini(model, prompt):
     payload = {'systemInstruction':{'parts':[{'text':SYSTEM}]},'contents':[{'role':'user','parts':[{'text':prompt}]}], 'generationConfig':{'temperature':0,'responseMimeType':'application/json','responseSchema':SCHEMA}}
     data = post_json(f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}', payload, {'Accept':'application/json'})
     parts = data.get('candidates',[{}])[0].get('content',{}).get('parts',[])
-    return parse_json(''.join(str(part.get('text','')) for part in parts if isinstance(part,dict)))
+    return validate_grade(parse_json(''.join(str(part.get('text','')) for part in parts if isinstance(part,dict))))
 
 
 def call_teacher(prompt):
@@ -146,7 +166,7 @@ for row in selected:
 
 OUTPUT_PATH.write_text('\n'.join(json.dumps(record) for record in records)+'\n',encoding='utf-8')
 cluster=Counter(record['grade']['failureOwnership'] for record in records)
-fields=['naturalness','contextRetention','goalRetention','interruptionHandling','correctionHandling','clarificationQuality','ambiguityHandling','relativeReferenceResolution','multiGoalTracking','hallucinationRate','prematureActionRate','safetyCompliance','failureRecovery']
+fields=GRADE_FIELDS
 means={field:sum(float(record['grade'][field]) for record in records)/len(records) for field in fields} if records else {}
 summary={'benchmark':'kurukoo-trajectory-teacher-v1','providerMode':PROVIDER_MODE,'providerOrder':provider_order(),'freeFirstPreference':FREE_FIRST,'sampleCount':len(records),'means':means,'failureClusters':cluster,'teacher':{'offlineOnly':True,'mutatesCanonicalState':False,'productionDependency':False}}
 SUMMARY_PATH.write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8')

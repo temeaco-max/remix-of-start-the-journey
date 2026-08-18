@@ -221,6 +221,7 @@ def main():
         **asdict(manifest),
         "status": "trained_candidate",
         "artifactDirectory": str(OUTPUT),
+        "runtimeModel": (os.environ.get("KURUKOO_SMOLLM2_RUNTIME_MODEL") or "").strip() or None,
         "candidateOnly": True,
         "promoted": False,
         "productionEnabled": False,
