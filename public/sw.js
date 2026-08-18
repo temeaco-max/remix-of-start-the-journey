@@ -1,6 +1,6 @@
-const STATIC_CACHE = 'kurukoo-static-v9';
-const PAGES_CACHE = 'kurukoo-pages-v9';
-const PWA_SHELL_CACHE = 'kurukoo-pwa-shell-v9';
+const STATIC_CACHE = 'kurukoo-static-v10';
+const PAGES_CACHE = 'kurukoo-pages-v10';
+const PWA_SHELL_CACHE = 'kurukoo-pwa-shell-v10';
 const ALLOWED_CACHES = [STATIC_CACHE, PAGES_CACHE, PWA_SHELL_CACHE];
 const LIVE_STATIC_PATHS = new Set(['/css/site.css', '/css/kurukoo-chat.css', '/css/kurukoo-workspace.css', '/js/kurukoo-primary-chat.js', '/js/kurukoo-workspace.js', '/sw.js']);
 
