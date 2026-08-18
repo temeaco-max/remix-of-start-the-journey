@@ -1,23 +1,35 @@
+import crypto from 'node:crypto';
 import { getDb, saveDb } from '../database.js';
-import { deductCredits, deductPoints } from './pointsEngine.js';
+import { deductCredits } from './pointsEngine.js';
 
-/*
- * LOCATION DATA POLICY:
- * Public Pulse display uses fuzzed location (~100m radius) to protect provider privacy.
- * Exact lat/lng is stored in the pulse_sessions table for internal analytics and future data products.
- * Raw location is never exposed to consumers.
- */
+/* Internal matching may use exact coordinates explicitly supplied by an authenticated provider.
+ * Public Pulse surfaces must use fuzzed coordinates and must never expose phone identifiers. */
+export interface ActivePulseProvider {
+    phone: string;
+    skill: string;
+    lat: number;
+    lng: number;
+    name: string;
+    location?: string;
+    subscription_tier?: string;
+    source: 'mobile' | 'stationary';
+}
+
+export interface PublicPulseProvider extends Omit<ActivePulseProvider, 'lat' | 'lng' | 'phone'> {
+    id: string;
+    lat: number;
+    lng: number;
+    location_radius_m: number;
+    verified: true;
+    live_now: true;
+}
 
 export async function canActivatePulse(phone: string): Promise<boolean> {
     const db = await getDb();
     const stmt = db.prepare(`SELECT operation_mode FROM skills WHERE phone = ?`);
     let isMobile = false;
     while (stmt.step()) {
-        const mode = stmt.getAsObject().operation_mode;
-        if (mode === 'mobile') {
-            isMobile = true;
-            break;
-        }
+        if (stmt.getAsObject().operation_mode === 'mobile') { isMobile = true; break; }
     }
     stmt.free();
     return isMobile;
@@ -43,17 +55,15 @@ export async function getPulseReadiness(phone: string): Promise<PulseReadiness> 
         available = Number(profile.is_available || 0) === 1;
     }
     profileStmt.free();
-    const mobileMode = await canActivatePulse(phone);
-    const eligibleToBroadcast = verifiedProvider && available && mobileMode;
-    const providers = await getActivePulseProviders();
-    const active = providers.some((provider: any) => String(provider.phone) === phone);
+    const eligibleToBroadcast = verifiedProvider && available && await canActivatePulse(phone);
+    const active = (await getActivePulseProviders()).some(provider => provider.phone === phone);
     return {
         radarDefaultOn: true,
         active,
         eligibleToBroadcast,
         role: verifiedProvider ? 'provider' : 'user',
         nudge: active
-            ? 'You are live on Nearby Pulse. Kurukoo will keep your location fuzzed and show only confirmed availability.'
+            ? 'You are live on Nearby Pulse. Kurukoo keeps your public location fuzzed and shows only confirmed availability.'
             : eligibleToBroadcast
                 ? 'Nearby Radar is ready. Go Live only when you want nearby people to discover your available service.'
                 : 'Nearby Radar is ready for local discovery. Tell Kurukoo what you need nearby, or complete provider verification before broadcasting yourself.',
@@ -61,56 +71,37 @@ export async function getPulseReadiness(phone: string): Promise<PulseReadiness> 
 }
 
 export async function activatePulse(phone: string, skill: string, lat: number, lng: number): Promise<{ success: boolean; message: string }> {
-    const isMobile = await canActivatePulse(phone);
-    if (!isMobile) {
-        return { success: false, message: 'Cannot Go Live. Your skills are not registered as mobile operation mode.' };
-    }
-
-    const latitude = Number(lat);
-    const longitude = Number(lng);
+    if (!await canActivatePulse(phone)) return { success: false, message: 'Cannot Go Live. Your skills are not registered as mobile operation mode.' };
+    const latitude = Number(lat); const longitude = Number(lng);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
         return { success: false, message: 'Nearby Pulse needs an explicit valid location before it can be activated. No location was inferred.' };
     }
-
+    const normalizedSkill = String(skill || '').trim().slice(0, 120);
+    if (!normalizedSkill) return { success: false, message: 'A service skill is required before going live.' };
     const db = await getDb();
-    
-    // Check subscription tier gating
-    const profileStmt = db.prepare(`SELECT subscription_tier FROM memory_profiles WHERE phone = ?`);
+    const profileStmt = db.prepare(`SELECT subscription_tier, verified_provider, is_available FROM memory_profiles WHERE phone = ?`);
     profileStmt.bind([phone]);
-    let tier = 'Base';
+    let tier = 'Base'; let verifiedProvider = false; let available = false;
     if (profileStmt.step()) {
-        tier = profileStmt.getAsObject().subscription_tier;
+        const profile = profileStmt.getAsObject() as Record<string, unknown>;
+        tier = String(profile.subscription_tier || 'Base');
+        verifiedProvider = Number(profile.verified_provider || 0) === 1;
+        available = Number(profile.is_available || 0) === 1;
     }
     profileStmt.free();
-
+    if (!verifiedProvider || !available) return { success: false, message: 'Nearby Pulse requires an approved provider profile that is currently available.' };
     if (tier === 'Base') {
-        const countStmt = db.prepare(`SELECT COUNT(*) as cnt FROM pulse_sessions WHERE phone = ? AND expires_at > datetime('now', '-30 days')`);
+        const countStmt = db.prepare(`SELECT COUNT(*) as cnt FROM pulse_sessions WHERE phone = ? AND created_at >= datetime('now', '-30 days')`);
         countStmt.bind([phone]);
-        let sessionCount = 0;
-        if (countStmt.step()) {
-            sessionCount = countStmt.getAsObject().cnt as number;
-        }
+        const sessionCount = countStmt.step() ? Number(countStmt.getAsObject().cnt || 0) : 0;
         countStmt.free();
-        if (sessionCount >= 10) {
-            return { success: false, message: 'Nearby Pulse monthly limit reached. Base tier is limited to 5 hours (10 sessions) per month. Upgrade to Plus or Business for unlimited access.' };
-        }
+        if (sessionCount >= 10) return { success: false, message: 'Nearby Pulse monthly limit reached. Base tier is limited to 5 hours (10 sessions) per month. Upgrade to Plus or Business for unlimited access.' };
     }
-
-    const success = await deductCredits(phone, 5, 'Nearby Pulse "Go Live" (30 min)');
-    if (!success) {
-        return { success: false, message: 'Insufficient credits for Nearby Pulse (requires 5 credits).' };
-    }
-
-    // Deactivate previous active ones first
+    if (!await deductCredits(phone, 5, 'Nearby Pulse "Go Live" (30 min)')) return { success: false, message: 'Insufficient credits for Nearby Pulse (requires 5 credits).' };
     db.run(`UPDATE pulse_sessions SET active = 0 WHERE phone = ?`, [phone]);
-    
-    db.run(
-        `INSERT INTO pulse_sessions (phone, skill, lat, lng, expires_at, active) VALUES (?, ?, ?, ?, datetime('now', '+30 minutes'), 1)`,
-        [phone, skill || 'general_service', latitude, longitude]
-    );
+    db.run(`INSERT INTO pulse_sessions (phone, skill, lat, lng, expires_at, active) VALUES (?, ?, ?, ?, datetime('now', '+30 minutes'), 1)`, [phone, normalizedSkill, latitude, longitude]);
     saveDb();
-
-    return { success: true, message: 'Nearby Pulse presence is active in Kurukoo for 30 minutes using the location and skill you explicitly supplied. Matching and any external contact remain separate, evidence-backed steps.' };
+    return { success: true, message: 'Nearby Pulse presence is active for 30 minutes using the location and skill you explicitly supplied. Public discovery is fuzzed; matching and any external contact remain separate, evidence-backed steps.' };
 }
 
 export async function endPulseSession(phone: string): Promise<void> {
@@ -119,29 +110,50 @@ export async function endPulseSession(phone: string): Promise<void> {
     saveDb();
 }
 
-export async function getActivePulseProviders(): Promise<any[]> {
+export async function getActivePulseProviders(): Promise<ActivePulseProvider[]> {
     const db = await getDb();
-    
-    // Combine active mobile sessions and live stationary providers
     const stmt = db.prepare(`
         SELECT p.phone, p.skill, p.lat, p.lng, m.name, m.location, m.subscription_tier, 'mobile' as source
-        FROM pulse_sessions p
-        JOIN memory_profiles m ON p.phone = m.phone
+        FROM pulse_sessions p JOIN memory_profiles m ON p.phone = m.phone
         WHERE p.active = 1 AND p.expires_at > datetime('now') AND m.verified_provider = 1 AND m.is_available = 1
-        
         UNION ALL
-        
         SELECT pr.phone, s.skill, pr.last_lat as lat, pr.last_lng as lng, m.name, m.location, m.subscription_tier, 'stationary' as source
-        FROM provider_presence pr
-        JOIN memory_profiles m ON pr.phone = m.phone
-        JOIN skills s ON pr.phone = s.phone
+        FROM provider_presence pr JOIN memory_profiles m ON pr.phone = m.phone JOIN skills s ON pr.phone = s.phone
         WHERE pr.is_live = 1 AND pr.operation_mode = 'stationary' AND m.verified_provider = 1 AND m.is_available = 1
     `);
-    
-    const results: any[] = [];
+    const results: ActivePulseProvider[] = [];
     while (stmt.step()) {
-        results.push(stmt.getAsObject());
+        const row = stmt.getAsObject() as Record<string, unknown>;
+        const lat = Number(row.lat); const lng = Number(row.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        results.push({ phone: String(row.phone), skill: String(row.skill), lat, lng, name: String(row.name || 'Verified provider'), location: row.location ? String(row.location) : undefined, subscription_tier: row.subscription_tier ? String(row.subscription_tier) : undefined, source: row.source === 'stationary' ? 'stationary' : 'mobile' });
     }
     stmt.free();
     return results;
+}
+
+function fuzzCoordinate(value: number, salt: string, metres: number): number {
+    const hash = crypto.createHash('sha256').update(salt).digest();
+    const signed = (hash.readInt32BE(0) / 0x7fffffff) * metres;
+    return Math.round((value + signed / 111_320) * 1000) / 1000;
+}
+
+export function toPublicPulseProviders(providers: ActivePulseProvider[]): PublicPulseProvider[] {
+    return providers.map((provider) => {
+        const radius = 100;
+        const salt = `${provider.phone}:${provider.skill}:${provider.source}`;
+        return {
+            id: crypto.createHash('sha256').update(`${provider.phone}:${provider.skill}`).digest('hex').slice(0, 16),
+            skill: provider.skill,
+            name: provider.name,
+            location: provider.location,
+            subscription_tier: provider.subscription_tier,
+            source: provider.source,
+            lat: fuzzCoordinate(provider.lat, `${salt}:lat`, radius),
+            lng: fuzzCoordinate(provider.lng, `${salt}:lng`, radius),
+            location_radius_m: radius,
+            verified: true,
+            live_now: true,
+        };
+    });
 }
