@@ -10,6 +10,7 @@ export type CanonicalCapabilityOutcome = {
   canonicalFacts?: Record<string, unknown>;
   message?: string;
   evidence?: string;
+  executablePlan?: unknown;
 };
 
 type GoalPlanStep = {
@@ -72,7 +73,7 @@ export async function syncAgentGoalFromCapabilityResult(input: {
   const columns = db.exec('PRAGMA table_info(agent_goals)')[0]?.values?.map((row: any[]) => String(row[1])) || [];
   const indexOf = (name: string) => columns.indexOf(name);
   const currentPlanRaw = indexOf('plan_json') >= 0 ? goalRow[indexOf('plan_json')] : null;
-  let plan: { objective?: string; currentStep?: number; status?: string; steps?: GoalPlanStep[] } = {};
+  let plan: { objective?: string; currentStep?: number; status?: string; executablePlan?: unknown; lastCanonicalCapabilityOutcome?: unknown; steps?: GoalPlanStep[] } = {};
   try { plan = currentPlanRaw ? JSON.parse(String(currentPlanRaw)) : {}; } catch { plan = {}; }
   const steps = Array.isArray(plan.steps) ? plan.steps.map(step => ({ ...step })) : [];
   const capabilityKey = `${input.capability}:${input.action}`.toLowerCase();
@@ -99,6 +100,16 @@ export async function syncAgentGoalFromCapabilityResult(input: {
   plan.steps = steps;
   plan.currentStep = nextStep;
   plan.status = status;
+  plan.executablePlan = input.outcome.executablePlan ?? plan.executablePlan;
+  plan.lastCanonicalCapabilityOutcome = {
+    status: input.outcome.status,
+    capability: input.outcome.capability,
+    action: input.outcome.action,
+    canonicalObjectId: input.outcome.canonicalObjectId,
+    continuationContext: input.outcome.continuationContext,
+    nextActions: input.outcome.nextActions,
+    canonicalFacts: input.outcome.canonicalFacts,
+  };
 
   const updateFields: string[] = ['status = ?', 'next_action_at = ?', 'completed_at = ?', 'failure_reason = ?', 'summary = ?', 'plan_json = ?', 'updated_at = CURRENT_TIMESTAMP'];
   const params: unknown[] = [status, nextActionAt, completedAt, failureReason, summary, JSON.stringify(plan)];
