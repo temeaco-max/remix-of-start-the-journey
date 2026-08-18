@@ -145,3 +145,9 @@
 - [x] Review exact-context Discover Chat links for canonical owner-scoped identity preservation
 - [x] Review and harden Discover preview fixture labels, source provenance and non-availability language
 - [x] Document and validate the authenticated visual comparison and Discover controller audit
+
+- [ ] Run automated accessibility audits on authenticated Checkout, Confirmation, Tasks and Connect surfaces
+- [ ] Run authenticated surface performance audits and capture load/runtime metrics
+- [ ] Inspect detailed Checkout diff artifact and classify actionable versus composite-reference failure regions
+- [ ] Apply confirmed audit fixes only where evidence identifies real drift
+- [ ] Revalidate and document the accessibility, performance and Checkout diff audit
