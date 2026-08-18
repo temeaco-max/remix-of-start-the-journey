@@ -157,3 +157,9 @@
 - [x] Execute the full Checkout, Confirmation, Tasks and Connect integration test suite
 - [x] Document and validate the crop comparison and integration-suite results
 - [x] Update the public-route integration contract to include the canonical `/confirmation` route, then rerun the full surface suite
+
+- [x] Extract individual Checkout and Confirmation reference frames from the existing board using image-processing coordinates
+- [x] Capture authenticated `/cart` and `/confirmation` at real mobile web viewports
+- [x] Run mobile crop-level pixel diffs against the individual reference frames
+- [x] Audit bottom action bar visibility, one-handed spacing, sidebar collapse and horizontal overflow on mobile web/PWA layouts
+- [x] Apply confirmed responsive fixes, revalidate and document the mobile comparison
