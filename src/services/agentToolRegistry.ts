@@ -35,85 +35,19 @@ function autonomousLowRiskEnabled(): boolean { return process.env.KURUKOO_AGENT_
 export async function executeAgentTool(name: AgentToolName, args: Record<string, unknown>, context: AgentToolContext): Promise<AgentToolResult> {
   const definition = definitions[name];
   if (!definition || !context.phone || context.phone.startsWith('anon_')) return { ok: false, tool: name, permission: definition?.permission || 'high_risk', message: 'This action is not available for the current identity.' };
-
-  if (name === 'get_request_state') {
-    const requestId = typeof args.requestId === 'string' ? args.requestId : '';
-    const request = requestId ? await getEconomicRequest(requestId) : null;
-    if (!request || request.phone !== context.phone) return { ok: false, tool: name, permission: 'read', message: 'That request is unavailable.' };
-    return { ok: true, tool: name, permission: 'read', data: { id: request.id, skill: request.skill, status: request.status, requirements: request.requirements || {}, providerPhone: request.providerPhone || null, quote: request.quote || null }, evidence: `economic_request:${request.id}:${request.status}` };
-  }
-
-  if (name === 'get_memory_context') {
-    const query = typeof args.query === 'string' ? args.query.slice(0, 500) : '';
-    const memory = await buildWorkingContext(context.phone, query || 'active goal', { threadId: context.conversationId, route: 'fasttext' });
-    return { ok: true, tool: name, permission: 'read', data: { context: memory.context.slice(0, 2000), items: memory.selected.map(item => ({ tier: item.tier, source: item.source, text: item.text.slice(0, 220) })) }, evidence: `memory:${memory.selected.length}` };
-  }
-
-  if (name === 'get_reminders') {
-    const reminders = await listReminders(context.phone);
-    return { ok: true, tool: name, permission: 'read', data: { reminders: reminders.slice(0, 10).map(reminder => ({ id: reminder.id, title: reminder.title, dueAt: reminder.due_at, status: reminder.status })) }, evidence: `reminders:${reminders.length}` };
-  }
-
-  if (name === 'get_connected_resources') {
-    const resources = await listConnectedResources(context.phone);
-    const active = resources.filter(resource => resource.status === 'active');
-    return { ok: true, tool: name, permission: 'read', data: { resources: active.slice(0, 24).map(resource => ({ id: resource.id, kind: resource.kind, label: resource.label, vendor: resource.vendor || null, protocol: resource.protocol, capabilities: resource.capabilities, hasView: Boolean(resource.viewUrl || resource.streamUrl), lastSeenAt: resource.lastSeenAt })) }, evidence: `connected_resources:${active.length}` };
-  }
-
-  if (name === 'view_connected_resource') {
-    const resourceId = typeof args.resourceId === 'string' ? args.resourceId.trim() : '';
-    if (!resourceId) return { ok: false, tool: name, permission: 'read', message: 'A connected resource id is required.' };
-    const view = await viewConnectedResource(context.phone, resourceId);
-    if (!view) return { ok: false, tool: name, permission: 'read', message: 'That connected resource is unavailable or not active.' };
-    return { ok: true, tool: name, permission: 'read', data: { resource: { id: view.resource.id, kind: view.resource.kind, label: view.resource.label, vendor: view.resource.vendor || null }, media: view.media }, evidence: `connected_resource_view:${view.resource.id}:${view.media.length}` };
-  }
-
-  if (name === 'inspect_capability_plan') {
-    const skill = typeof args.skill === 'string' ? args.skill.trim().toLowerCase() : '';
-    if (!skill) return { ok: false, tool: name, permission: 'read', message: 'A skill or capability name is required.' };
-    ensureCapabilityFoundation();
-    const registration = getCapabilityRegistration(skill.startsWith('skill.') ? skill : `skill.${skill}`) || getCapabilityRegistration(skill);
-    if (!registration) return { ok: false, tool: name, permission: 'read', message: 'That capability is not registered.' };
-    const composition = resolveCapabilityComposition([registration.descriptor.capability]);
-    return { ok: composition.unresolved.length === 0 && !composition.cycle?.length, tool: name, permission: 'read', data: { requested: composition.requested, capabilities: composition.ordered.map(item => item.descriptor.capability), unresolved: composition.unresolved, cycle: composition.cycle || null }, evidence: `capability_plan:${registration.descriptor.capability}:${composition.ordered.length}` };
-  }
-
-  if (name === 'list_capabilities') {
-    const query = typeof args.query === 'string' ? args.query.trim().toLowerCase().slice(0, 120) : '';
-    ensureCapabilityFoundation();
-    const matches = listCapabilityRegistrations()
-      .filter(registration => {
-        if (!query) return true;
-        const descriptor = registration.descriptor;
-        const haystack = [descriptor.capability, descriptor.family, descriptor.mode, descriptor.actions.join(' '), descriptor.owner.join(' ')].join(' ').toLowerCase();
-        return haystack.includes(query);
-      })
-      .slice(0, 64)
-      .map(registration => {
-        const descriptor = registration.descriptor;
-        return {
-          capability: descriptor.capability,
-          family: descriptor.family,
-          kind: descriptor.kind,
-          mode: descriptor.mode,
-          actions: descriptor.actions,
-          risk: descriptor.risk,
-          activationState: descriptor.activationState,
-          owner: descriptor.owner,
-          aliases: registration.aliases || [],
-          source: registration.source || 'core',
-        };
-      });
-    return { ok: true, tool: name, permission: 'read', data: { query, count: matches.length, capabilities: matches }, evidence: `capability_catalog:${matches.length}` };
-  }
-
+  if (name === 'get_request_state') { const requestId = typeof args.requestId === 'string' ? args.requestId : ''; const request = requestId ? await getEconomicRequest(requestId) : null; if (!request || request.phone !== context.phone) return { ok: false, tool: name, permission: 'read', message: 'That request is unavailable.' }; return { ok: true, tool: name, permission: 'read', data: { id: request.id, skill: request.skill, status: request.status, requirements: request.requirements || {}, providerPhone: request.providerPhone || null, quote: request.quote || null }, evidence: `economic_request:${request.id}:${request.status}` }; }
+  if (name === 'get_memory_context') { const query = typeof args.query === 'string' ? args.query.slice(0, 500) : ''; const memory = await buildWorkingContext(context.phone, query || 'active goal', { threadId: context.conversationId, route: 'fasttext' }); return { ok: true, tool: name, permission: 'read', data: { context: memory.context.slice(0, 2000), items: memory.selected.map(item => ({ tier: item.tier, source: item.source, text: item.text.slice(0, 220) })) }, evidence: `memory:${memory.selected.length}` }; }
+  if (name === 'get_reminders') { const reminders = await listReminders(context.phone); return { ok: true, tool: name, permission: 'read', data: { reminders: reminders.slice(0, 10).map(reminder => ({ id: reminder.id, title: reminder.title, dueAt: reminder.due_at, status: reminder.status })) }, evidence: `reminders:${reminders.length}` }; }
+  if (name === 'get_connected_resources') { const resources = await listConnectedResources(context.phone); const active = resources.filter(resource => resource.status === 'active'); return { ok: true, tool: name, permission: 'read', data: { resources: active.slice(0, 24).map(resource => ({ id: resource.id, kind: resource.kind, label: resource.label, vendor: resource.vendor || null, protocol: resource.protocol, capabilities: resource.capabilities, hasView: Boolean(resource.viewUrl || resource.streamUrl), lastSeenAt: resource.lastSeenAt })) }, evidence: `connected_resources:${active.length}` }; }
+  if (name === 'view_connected_resource') { const resourceId = typeof args.resourceId === 'string' ? args.resourceId.trim() : ''; if (!resourceId) return { ok: false, tool: name, permission: 'read', message: 'A connected resource id is required.' }; const view = await viewConnectedResource(context.phone, resourceId); if (!view) return { ok: false, tool: name, permission: 'read', message: 'That connected resource is unavailable or not active.' }; return { ok: true, tool: name, permission: 'read', data: { resource: { id: view.resource.id, kind: view.resource.kind, label: view.resource.label, vendor: view.resource.vendor || null }, media: view.media }, evidence: `connected_resource_view:${view.resource.id}:${view.media.length}` }; }
+  if (name === 'inspect_capability_plan') { const skill = typeof args.skill === 'string' ? args.skill.trim().toLowerCase() : ''; if (!skill) return { ok: false, tool: name, permission: 'read', message: 'A skill or capability name is required.' }; ensureCapabilityFoundation(); const registration = getCapabilityRegistration(skill.startsWith('skill.') ? skill : `skill.${skill}`) || getCapabilityRegistration(skill); if (!registration) return { ok: false, tool: name, permission: 'read', message: 'That capability is not registered.' }; const composition = resolveCapabilityComposition([registration.descriptor.capability]); return { ok: composition.unresolved.length === 0 && !composition.cycle?.length, tool: name, permission: 'read', data: { requested: composition.requested, capabilities: composition.ordered.map(item => item.descriptor.capability), unresolved: composition.unresolved, cycle: composition.cycle || null }, evidence: `capability_plan:${registration.descriptor.capability}:${composition.ordered.length}` }; }
+  if (name === 'list_capabilities') { const query = typeof args.query === 'string' ? args.query.trim().toLowerCase().slice(0, 120) : ''; ensureCapabilityFoundation(); const matches = listCapabilityRegistrations().filter(registration => { if (!query) return true; const descriptor = registration.descriptor; const haystack = [descriptor.capability, descriptor.family, descriptor.mode, descriptor.actions.join(' '), descriptor.owner.join(' ')].join(' ').toLowerCase(); return haystack.includes(query); }).slice(0, 64).map(registration => { const descriptor = registration.descriptor; return { capability: descriptor.capability, family: descriptor.family, kind: descriptor.kind, mode: descriptor.mode, actions: descriptor.actions, risk: descriptor.risk, activationState: descriptor.activationState, owner: descriptor.owner, aliases: registration.aliases || [], source: registration.source || 'core' }; }); return { ok: true, tool: name, permission: 'read', data: { query, count: matches.length, capabilities: matches }, evidence: `capability_catalog:${matches.length}` }; }
   if (name === 'execute_capability') {
     const capability = typeof args.capability === 'string' ? args.capability.trim() : '';
     const action = typeof args.action === 'string' ? args.action.trim() : '';
     if (!capability || !action) return { ok: false, tool: name, permission: 'coordination', message: 'A capability and action are required.' };
     let parsedArguments: Record<string, unknown> = {};
-    if (typeof args.argumentsJson === 'string' && args.argumentsJson.trim()) {
-      try { const candidate = JSON.parse(args.argumentsJson); if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) parsedArguments = candidate as Record<string, unknown>; else throw new Error('arguments must be an object'); } catch { return { ok: false, tool: name, permission: 'coordination', message: 'argumentsJson must be valid JSON for an object.' }; }
+    if (typeof args.argumentsJson === 'string' && args.argumentsJson.trim()) { try { const candidate = JSON.parse(args.argumentsJson); if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) parsedArguments = candidate as Record<string, unknown>; else throw new Error('arguments must be an object'); } catch { return { ok: false, tool: name, permission: 'coordination', message: 'argumentsJson must be valid JSON for an object.' }; }
     }
     ensureCapabilityFoundation();
     const registration = getCapabilityRegistration(capability);
@@ -122,23 +56,12 @@ export async function executeAgentTool(name: AgentToolName, args: Record<string,
     if (!descriptor.actions.includes(action)) return { ok: false, tool: name, permission: 'coordination', message: `The canonical capability does not expose the ${action} action.` };
     const canonicalRisk = descriptor.risk;
     const readOnly = canonicalRisk === 'read_only' || descriptor.mode === 'read_only';
-    const lowRisk = canonicalRisk === 'low_risk';
     const confirmationRequired = canonicalRisk === 'confirmation_required' || canonicalRisk === 'high_risk' || descriptor.confirmationRequired;
     if (!readOnly && (!autonomousLowRiskEnabled() || confirmationRequired) && args.confirmationGranted !== true) return { ok: false, tool: name, permission: 'coordination', message: confirmationRequired ? 'This capability action requires explicit user confirmation.' : 'Autonomous low-risk capability execution is disabled for this deployment.' };
     const { executeCanonicalCapabilityProposal } = await import('./canonicalCapabilityExecutor.js');
     const result = await executeCanonicalCapabilityProposal({ capability, action, contextId: typeof args.contextId === 'string' ? args.contextId : context.goalId, canonicalObjectId: typeof args.canonicalObjectId === 'string' ? args.canonicalObjectId : undefined, arguments: parsedArguments, confirmationGranted: args.confirmationGranted === true, phone: context.phone, conversationId: context.conversationId, channel: 'agent' });
     return { ok: result.status !== 'failed' && result.status !== 'blocked' && result.status !== 'unauthorized' && result.status !== 'invalid', tool: name, permission: 'coordination', data: { status: result.status, capability: result.capability, action: result.action, canonicalObjectId: result.canonicalObjectId, nextActions: result.nextActions, canonicalFacts: result.canonicalFacts, continuationContext: result.continuationContext }, evidence: `canonical_capability:${capability}:${action}:${result.status}`, message: result.message };
   }
-
-  if (name === 'recheck_economic_request') {
-    const requestId = typeof args.requestId === 'string' ? args.requestId : '';
-    if (!autonomousLowRiskEnabled()) return { ok: false, tool: name, permission: 'coordination', message: 'Autonomous re-checking is disabled for this deployment.' };
-    const request = requestId ? await getEconomicRequest(requestId) : null;
-    if (!request || request.phone !== context.phone) return { ok: false, tool: name, permission: 'coordination', message: 'That request is unavailable.' };
-    if (!['requested', 'awaiting_match', 'partially_matched'].includes(request.status)) return { ok: false, tool: name, permission: 'coordination', message: 'This request is not eligible for a safe re-check.' };
-    const card = await advanceStorefront(context.phone, request.id, {});
-    return { ok: true, tool: name, permission: 'coordination', data: { requestId: request.id, stage: card.stage, title: card.title, message: card.message, progress: card.progress }, evidence: `storefront:${request.id}:${card.stage}` };
-  }
-
+  if (name === 'recheck_economic_request') { const requestId = typeof args.requestId === 'string' ? args.requestId : ''; if (!autonomousLowRiskEnabled()) return { ok: false, tool: name, permission: 'coordination', message: 'Autonomous re-checking is disabled for this deployment.' }; const request = requestId ? await getEconomicRequest(requestId) : null; if (!request || request.phone !== context.phone) return { ok: false, tool: name, permission: 'coordination', message: 'That request is unavailable.' }; if (!['requested', 'awaiting_match', 'partially_matched'].includes(request.status)) return { ok: false, tool: name, permission: 'coordination', message: 'This request is not eligible for a safe re-check.' }; const card = await advanceStorefront(context.phone, request.id, {}); return { ok: true, tool: name, permission: 'coordination', data: { requestId: request.id, stage: card.stage, title: card.title, message: card.message, progress: card.progress }, evidence: `storefront:${request.id}:${card.stage}` }; }
   return { ok: false, tool: name, permission: 'high_risk', message: 'This tool is not permitted.' };
 }
