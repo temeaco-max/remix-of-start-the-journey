@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -31,7 +32,7 @@ const toolNames = mcpToolList().map(tool => tool.name);
 assert.deepEqual(toolNames, ['kurukoo.get_context', 'kurukoo.list_capabilities', 'kurukoo.inspect', 'kurukoo.find', 'kurukoo.execute']);
 
 const codeVerifier = 'mcp-pkce-verifier-012345678901234567890123456789';
-const codeChallenge = cryptoHash(codeVerifier);
+const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
 const auth = beginAuthorization({
   clientId: 'chatgpt-test-client',
   redirectUri: 'https://chatgpt.test/oauth/callback',
@@ -70,10 +71,4 @@ assert.equal((reminder as any).status, 'completed');
 
 console.log('MCP app contract passed:', JSON.stringify({ tools:toolNames.length, phone:token.phone, reminderStatus:(reminder as any).status }));
 
-function cryptoHash(value: string): string {
-  const crypto = require('node:crypto') as typeof import('node:crypto');
-  return crypto.createHash('sha256').update(value).digest('base64url');
-}
-
-const testDb = String(process.env.DB_PATH);
-try { fs.rmSync(testDb, { force:true }); } catch { /* best effort */ }
+try { fs.rmSync(String(process.env.DB_PATH), { force:true }); } catch { /* best effort */ }
