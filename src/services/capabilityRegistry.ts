@@ -1,5 +1,14 @@
 import type { UniversalCapabilityDescriptor, CapabilityRisk } from './universalCapabilityProtocol.js';
 
+export interface CapabilityActionMetadata {
+  label?: string;
+  description?: string;
+  risk?: CapabilityRisk;
+  confirmationRequired?: boolean;
+  permissions?: string[];
+  activationState?: UniversalCapabilityDescriptor['activationState'];
+}
+
 export interface CapabilityActionContract {
   action: string;
   risk: CapabilityRisk;
@@ -17,6 +26,7 @@ export interface CapabilityRegistration {
   requiresCapabilities?: string[];
   providesCapabilities?: string[];
   source?: string;
+  actionMetadata?: Record<string, CapabilityActionMetadata>;
   actionContracts?: CapabilityActionContract[];
 }
 
@@ -34,6 +44,15 @@ function normalizeName(value: string): string {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeActionMetadata(metadata: Record<string, CapabilityActionMetadata> | undefined): Record<string, CapabilityActionMetadata> {
+  return Object.fromEntries(Object.entries(metadata || {}).map(([action, value]) => [
+    String(action || '').trim().toLowerCase(), {
+      ...(value || {}),
+      permissions: [...new Set((value?.permissions || []).map(String).filter(Boolean))],
+    },
+  ]).filter(([action]) => Boolean(action)));
+}
+
 function cloneRegistration(registration: CapabilityRegistration): CapabilityRegistration {
   return {
     ...registration,
@@ -41,6 +60,7 @@ function cloneRegistration(registration: CapabilityRegistration): CapabilityRegi
     aliases: [...(registration.aliases || [])],
     requiresCapabilities: [...(registration.requiresCapabilities || [])],
     providesCapabilities: [...(registration.providesCapabilities || [])],
+    actionMetadata: Object.fromEntries(Object.entries(registration.actionMetadata || {}).map(([action, metadata]) => [action, { ...metadata, permissions: [...(metadata.permissions || [])] }])),
     actionContracts: (registration.actionContracts || []).map(contract => ({ ...contract, permissions: [...contract.permissions], owner: [...contract.owner] })),
   };
 }
@@ -58,6 +78,12 @@ function defaultActionContract(descriptor: UniversalCapabilityDescriptor, action
   };
 }
 
+function contractsToMetadata(contracts: CapabilityActionContract[], existing: Record<string, CapabilityActionMetadata> = {}): Record<string, CapabilityActionMetadata> {
+  const metadata = { ...existing };
+  for (const contract of contracts) metadata[normalizeName(contract.action)] = { ...(metadata[normalizeName(contract.action)] || {}), risk: contract.risk, confirmationRequired: contract.confirmationRequired, permissions: [...contract.permissions], activationState: contract.activationState };
+  return metadata;
+}
+
 export function registerCapability(registration: CapabilityRegistration): CapabilityRegistration {
   const name = normalizeName(registration.descriptor.capability);
   if (!name) throw new Error('Capability registration requires a non-empty capability name.');
@@ -67,12 +93,14 @@ export function registerCapability(registration: CapabilityRegistration): Capabi
     const existing = aliasIndex.get(alias);
     if (existing && existing !== name) throw new Error(`Capability alias ${alias} is already owned by ${existing}.`);
   }
+  const normalizedMetadata = normalizeActionMetadata(registration.actionMetadata);
   const existingContracts = registration.actionContracts || [];
   const contractMap = new Map(existingContracts.map(contract => [normalizeName(contract.action), contract]));
   for (const action of registration.descriptor.actions) {
     const key = normalizeName(action);
     if (!contractMap.has(key)) contractMap.set(key, defaultActionContract(registration.descriptor, action));
   }
+  const contracts = [...contractMap.values()];
   const value: CapabilityRegistration = {
     ...registration,
     namespace: registration.namespace || 'kurukoo',
@@ -81,7 +109,8 @@ export function registerCapability(registration: CapabilityRegistration): Capabi
     requiresCapabilities: [...new Set((registration.requiresCapabilities || []).map(normalizeName).filter(Boolean))],
     providesCapabilities: [...new Set((registration.providesCapabilities || []).map(normalizeName).filter(Boolean))],
     source: registration.source || 'core',
-    actionContracts: [...contractMap.values()],
+    actionMetadata: contractsToMetadata(contracts, normalizedMetadata),
+    actionContracts: contracts,
   };
   registry.set(name, value);
   for (const alias of normalizedAliases) aliasIndex.set(alias, name);
@@ -92,7 +121,7 @@ export function registerCapabilities(registrations: CapabilityRegistration[]): v
   for (const registration of registrations) registerCapability(registration);
 }
 
-export function extendCapabilityActions(name: string, actions: string[], contracts: CapabilityActionContract[] = []): CapabilityRegistration {
+export function extendCapabilityActions(name: string, actions: string[], contracts: CapabilityActionContract[] = [], actionMetadata?: Record<string, CapabilityActionMetadata>): CapabilityRegistration {
   const normalized = normalizeName(name);
   const canonicalName = registry.has(normalized) ? normalized : aliasIndex.get(normalized);
   if (!canonicalName) throw new Error(`Cannot extend unknown capability ${normalized}.`);
@@ -104,11 +133,11 @@ export function extendCapabilityActions(name: string, actions: string[], contrac
     const key = normalizeName(action);
     if (!contractMap.has(key)) contractMap.set(key, defaultActionContract(registration.descriptor, action));
   }
-  for (const contract of contracts) {
-    contractMap.set(normalizeName(contract.action), { ...contract, permissions: [...contract.permissions], owner: [...contract.owner] });
-  }
-  registration.descriptor = { ...registration.descriptor, actions: nextActions, nextAllowedActions: [...new Set([...registration.descriptor.nextAllowedActions, ...nextActions])] };
-  registration.actionContracts = [...contractMap.values()];
+  for (const contract of contracts) contractMap.set(normalizeName(contract.action), { ...contract, permissions: [...contract.permissions], owner: [...contract.owner] });
+  const nextContracts = [...contractMap.values()];
+  registration.descriptor = { ...registration.descriptor, actions: nextActions, nextAllowedActions: [...new Set([...registration.descriptor.nextAllowedActions, ...nextActions])], permissions: [...new Set([...registration.descriptor.permissions, ...nextContracts.flatMap(contract => contract.permissions)])], confirmationRequired: registration.descriptor.confirmationRequired || nextContracts.some(contract => contract.confirmationRequired), consentRequired: registration.descriptor.consentRequired || nextContracts.some(contract => contract.confirmationRequired), risk: nextContracts.some(contract => contract.risk === 'high_risk') ? 'high_risk' : nextContracts.some(contract => contract.risk === 'confirmation_required') ? 'confirmation_required' : registration.descriptor.risk };
+  registration.actionContracts = nextContracts;
+  registration.actionMetadata = contractsToMetadata(nextContracts, { ...(registration.actionMetadata || {}), ...normalizeActionMetadata(actionMetadata) });
   registry.set(canonicalName, registration);
   return cloneRegistration(registration);
 }
@@ -122,6 +151,12 @@ export function getCapabilityActionContract(name: string, action: string): Capab
 
 export function listCapabilityActionContracts(name: string): CapabilityActionContract[] {
   return getCapabilityRegistration(name)?.actionContracts || [];
+}
+
+export function getCapabilityActionMetadata(name: string, action: string): CapabilityActionMetadata | undefined {
+  const registration = getCapabilityRegistration(name);
+  if (!registration) return undefined;
+  return registration.actionMetadata?.[normalizeName(action)];
 }
 
 export function getCapabilityRegistration(name: string): CapabilityRegistration | undefined {
@@ -146,7 +181,6 @@ export function resolveCapabilityComposition(names: string[]): CapabilityComposi
   const visiting = new Set<string>();
   const visited = new Set<string>();
   const cycle: string[] = [];
-
   const visit = (rawName: string) => {
     const registration = getCapabilityRegistration(rawName);
     if (!registration) { unresolved.push(rawName); return; }
@@ -159,7 +193,6 @@ export function resolveCapabilityComposition(names: string[]): CapabilityComposi
     visited.add(canonical);
     ordered.push(registration);
   };
-
   requested.forEach(visit);
   return { requested, ordered, unresolved: [...new Set(unresolved)], cycle: cycle.length ? [...new Set(cycle)] : undefined };
 }
@@ -169,13 +202,8 @@ export function validateCapabilityRegistry(): { valid: boolean; duplicateAliases
   const unresolvedDependencies: Array<{ capability: string; dependency: string }> = [];
   const invalidActionContracts: Array<{ capability: string; action: string; reason: string }> = [];
   for (const registration of registry.values()) {
-    for (const alias of registration.aliases || []) {
-      const owner = aliasIndex.get(alias);
-      if (owner !== registration.descriptor.capability) duplicateAliases.push(alias);
-    }
-    for (const dependency of registration.requiresCapabilities || []) {
-      if (!getCapabilityRegistration(dependency)) unresolvedDependencies.push({ capability: registration.descriptor.capability, dependency });
-    }
+    for (const alias of registration.aliases || []) { const owner = aliasIndex.get(alias); if (owner !== registration.descriptor.capability) duplicateAliases.push(alias); }
+    for (const dependency of registration.requiresCapabilities || []) if (!getCapabilityRegistration(dependency)) unresolvedDependencies.push({ capability: registration.descriptor.capability, dependency });
     const declared = new Set(registration.descriptor.actions.map(normalizeName));
     for (const contract of registration.actionContracts || []) {
       const action = normalizeName(contract.action);
@@ -185,9 +213,6 @@ export function validateCapabilityRegistry(): { valid: boolean; duplicateAliases
     }
   }
   const cycles: string[][] = [];
-  for (const registration of registry.values()) {
-    const composition = resolveCapabilityComposition([registration.descriptor.capability]);
-    if (composition.cycle?.length) cycles.push(composition.cycle);
-  }
+  for (const registration of registry.values()) { const composition = resolveCapabilityComposition([registration.descriptor.capability]); if (composition.cycle?.length) cycles.push(composition.cycle); }
   return { valid: duplicateAliases.length === 0 && unresolvedDependencies.length === 0 && cycles.length === 0 && invalidActionContracts.length === 0, duplicateAliases, unresolvedDependencies, cycles, invalidActionContracts };
 }
