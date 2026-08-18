@@ -119,3 +119,10 @@ The next visual work is therefore refinement rather than structural repair. Chec
 ## 11. Workspace live verification
 
 The protected cart workspace correctly redirects unauthenticated users to the existing conversation-continuation identity surface with the requested return path preserved. This confirms that checkout-like workspace surfaces remain behind the canonical identity boundary rather than introducing a second auth flow. The refined workspace spacing is therefore validated structurally; physical authenticated visual comparison still requires a signed-in browser/device session.
+
+
+## 12. Parallel-agent selector contract and Chat compliance
+
+Parallel visual agents must reuse the canonical selectors documented in `docs/design/kurukoo-chat-selector-vocabulary.md`. The primary Chat implementation remains owned by `public/chat/index.html` and `public/css/kurukoo-chat.css`, with the required three-region structure represented by `.chat-sidebar`, `.chat-main`, `.chat-inspector`, `.chat-header`, `.chat-scroll`, `.message`, `.message-body`, `.composer`, `.composer-wrap`, `.inspector-card` and `.inspector-menu-link`.
+
+The focused compliance probe passed with 13 required structural selectors, 49 canonical SVG icon references, zero forbidden legacy glyph matches, and no inline-style or inline-event drift. Existing Chat DOM-safety, conversation-workspace, accessibility and strict CSS audits also passed. The initial probe used generic names such as `.chat-messages` and `.composer-input`; those names were corrected in the agent handoff to the actual canonical selectors rather than adding compatibility aliases or duplicate CSS.
