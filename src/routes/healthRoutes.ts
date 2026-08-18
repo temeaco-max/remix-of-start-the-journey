@@ -44,10 +44,22 @@ function runtimeSnapshot() {
       ? false
       : Boolean(process.env.KURUKOO_PAY_PROVIDER && process.env.ECONOMIC_PAYMENT_ADAPTER === 'verified'),
     external_channels: {
-      whatsapp: Boolean(process.env.WHATSAPP_TOKEN),
-      telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN),
-      fcm: Boolean(process.env.FCM_SERVER_KEY || process.env.FCM_PROJECT_ID),
-      voice: Boolean(process.env.VOICE_PROVIDER || process.env.GEMINI_API_KEY || process.env.API_KEY),
+      // Compatibility booleans indicate a declared/configured boundary only; they never claim delivery.
+      whatsapp: !['NOT_CONFIGURED', 'DISABLED'].includes(channel('WhatsApp').state),
+      telegram: !['NOT_CONFIGURED', 'DISABLED'].includes(channel('Telegram').state),
+      sms: !['NOT_CONFIGURED', 'DISABLED'].includes(channel('SMS').state),
+      fcm: !['NOT_CONFIGURED', 'DISABLED'].includes(channel('FCM').state),
+      voice: !['NOT_CONFIGURED', 'DISABLED'].includes(channel('Voice').state),
+    },
+    external_channel_states: {
+      whatsapp: channel('WhatsApp'),
+      telegram: channel('Telegram'),
+      sms: channel('SMS'),
+      ussd: channel('USSD'),
+      fcm: channel('FCM'),
+      voice: channel('Voice'),
+      voice_tts: channel('VoiceTTS'),
+      voice_transcription: channel('VoiceTranscription'),
     },
     channel_readiness: {
       web: channel('Web'),
