@@ -71,6 +71,9 @@ function buildModelInstructions(
   goalState: ConversationGoalState,
 ): string[] {
   const instructions: string[] = [];
+  if (decision.shouldAskClarification) instructions.push('ASK: one short question for the single most important missing detail blocking the next useful step.');
+  else if (decision.shouldRequireCanonicalAction) instructions.push('ACT: the user is asking for an action; propose/execute only through the canonical capability and exact object context.');
+  else instructions.push('ANSWER: respond naturally to what the user just said; do not manufacture a task merely to keep the workflow moving.');
   if (decision.mode === 'conversation') instructions.push('Stay conversational unless the user explicitly asks to act.');
   if (decision.mode === 'exploration') instructions.push('Help the user explore options without treating exploration as authorization.');
   if (decision.mode === 'reference') instructions.push('Resolve the reference against canonical context; never substitute a merely recent object.');
