@@ -90,6 +90,8 @@ export function extendCapabilityActions(name: string, actions: string[], actionM
   if (!registration) throw new Error(`Capability ${canonicalName} is unavailable.`);
   const nextActions = [...new Set([...registration.descriptor.actions, ...actions.map(action => String(action || '').trim()).filter(Boolean)])];
   const mergedMetadata = { ...(registration.actionMetadata || {}), ...normalizeActionMetadata(actionMetadata) };
+  const invalidMetadataActions = Object.keys(mergedMetadata).filter(action => !nextActions.includes(action));
+  if (invalidMetadataActions.length) throw new Error(`Cannot attach metadata for undeclared capability actions: ${invalidMetadataActions.join(', ')}.`);
   registration.descriptor = {
     ...registration.descriptor,
     actions: nextActions,
@@ -98,7 +100,6 @@ export function extendCapabilityActions(name: string, actions: string[], actionM
     confirmationRequired: registration.descriptor.confirmationRequired || Object.values(mergedMetadata).some(metadata => metadata.confirmationRequired === true),
     consentRequired: registration.descriptor.consentRequired || Object.values(mergedMetadata).some(metadata => metadata.confirmationRequired === true || (metadata.permissions || []).includes('explicit_user_consent')),
     risk: Object.values(mergedMetadata).some(metadata => metadata.risk === 'high_risk') ? 'high_risk' : Object.values(mergedMetadata).some(metadata => metadata.risk === 'confirmation_required') ? 'confirmation_required' : registration.descriptor.risk,
-    owner: [...new Set([...registration.descriptor.owner, ...Object.keys(mergedMetadata).flatMap(() => [])])],
   };
   registration.actionMetadata = mergedMetadata;
   registry.set(canonicalName, registration);
@@ -145,14 +146,17 @@ export function resolveCapabilityComposition(names: string[]): CapabilityComposi
   return { requested, ordered, unresolved: [...new Set(unresolved)], cycle: cycle.length ? [...new Set(cycle)] : undefined };
 }
 
-export function validateCapabilityRegistry(): { valid: boolean; duplicateAliases: string[]; unresolvedDependencies: Array<{ capability: string; dependency: string }>; cycles: string[][] } {
+export function validateCapabilityRegistry(): { valid: boolean; duplicateAliases: string[]; unresolvedDependencies: Array<{ capability: string; dependency: string }>; cycles: string[][]; invalidActionMetadata: Array<{ capability: string; action: string }> } {
   const duplicateAliases: string[] = [];
   const unresolvedDependencies: Array<{ capability: string; dependency: string }> = [];
+  const invalidActionMetadata: Array<{ capability: string; action: string }> = [];
   for (const registration of registry.values()) {
     for (const alias of registration.aliases || []) {
       const owner = aliasIndex.get(alias);
       if (owner !== registration.descriptor.capability) duplicateAliases.push(alias);
     }
+    const declaredActions = new Set(registration.descriptor.actions.map(action => normalizeName(action)));
+    for (const action of Object.keys(registration.actionMetadata || {})) if (!declaredActions.has(normalizeName(action))) invalidActionMetadata.push({ capability: registration.descriptor.capability, action });
     for (const dependency of registration.requiresCapabilities || []) {
       if (!getCapabilityRegistration(dependency)) unresolvedDependencies.push({ capability: registration.descriptor.capability, dependency });
     }
@@ -162,5 +166,5 @@ export function validateCapabilityRegistry(): { valid: boolean; duplicateAliases
     const composition = resolveCapabilityComposition([registration.descriptor.capability]);
     if (composition.cycle?.length) cycles.push(composition.cycle);
   }
-  return { valid: duplicateAliases.length === 0 && unresolvedDependencies.length === 0 && cycles.length === 0, duplicateAliases, unresolvedDependencies, cycles };
+  return { valid: duplicateAliases.length === 0 && unresolvedDependencies.length === 0 && cycles.length === 0 && invalidActionMetadata.length === 0, duplicateAliases, unresolvedDependencies, cycles, invalidActionMetadata };
 }
