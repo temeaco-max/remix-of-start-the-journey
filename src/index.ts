@@ -8,6 +8,7 @@ const databaseMode = String(process.env.KURUKOO_DATABASE_MODE || 'sqljs').trim()
 const jobMode = String(process.env.KURUKOO_JOB_MODE || 'in_process').trim().toLowerCase();
 const applicationWorkers = Number(process.env.KURUKOO_WORKERS || 1);
 const persistentStateRequired = process.env.KURUKOO_PERSISTENT_STATE_REQUIRED !== 'false';
+const magicLinkEnabled = String(process.env.KURUKOO_MAGIC_LINK_AUTH || 'true').toLowerCase() !== 'false';
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   if (production) throw new Error('[Kurukoo Startup] JWT_SECRET must be configured with at least 32 characters in production.');
@@ -18,6 +19,11 @@ if (production && databaseMode === 'sqljs' && applicationWorkers > 1) throw new 
 if (production && databaseMode === 'postgres' && !process.env.DATABASE_URL) throw new Error('[Kurukoo Startup] KURUKOO_DATABASE_MODE=postgres requires DATABASE_URL.');
 if (production && jobMode === 'distributed' && !process.env.KURUKOO_REDIS_URL) throw new Error('[Kurukoo Startup] KURUKOO_JOB_MODE=distributed requires KURUKOO_REDIS_URL.');
 if (production && persistentStateRequired && String(process.env.DB_PATH || '').startsWith('/tmp/')) throw new Error('[Kurukoo Startup] Persistent state is required; DB_PATH may not be under /tmp in production.');
+if (production && magicLinkEnabled) {
+  const publicBaseUrl = String(process.env.KURUKOO_PUBLIC_BASE_URL || '').trim();
+  if (!publicBaseUrl.startsWith('https://')) throw new Error('[Kurukoo Startup] KURUKOO_PUBLIC_BASE_URL must be configured as an HTTPS origin when magic-link authentication is enabled in production.');
+  if (String(process.env.KURUKOO_AUTH_CHALLENGE_DEBUG || '').toLowerCase() === 'true') throw new Error('[Kurukoo Startup] KURUKOO_AUTH_CHALLENGE_DEBUG must be false in production.');
+}
 
 const mcpEnabled = process.env.KURUKOO_MCP_ENABLED === 'true';
 if (production && mcpEnabled) {
@@ -95,10 +101,7 @@ app.use(express.static(path.join(process.cwd(), 'public'), {
   fallthrough: true,
   setHeaders: (res, filePath) => {
     const lower = filePath.toLowerCase();
-    if (lower.endsWith('.html') || lower.endsWith('/sw.js') || lower.endsWith('/manifest.json')) {
-      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
-      return;
-    }
+    if (lower.endsWith('.html') || lower.endsWith('/sw.js') || lower.endsWith('/manifest.json')) { res.setHeader('Cache-Control', 'no-cache, must-revalidate'); return; }
     if (/\.(?:css|js|svg|png|jpe?g|webp|woff2?)$/.test(lower)) res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
   },
 }));
@@ -144,20 +147,20 @@ const host = (process.env.HOST && process.env.HOST !== 'localhost' && process.en
 export { app };
 
 if (process.env.KURUKOO_DISABLE_LISTEN !== 'true') {
-    const server = app.listen(port, host, () => {
-        console.log(`[Kurukoo] HTTP server listening on ${host}:${port}`);
-        if (process.env.KURUKOO_WORKERS !== '0') void startBackgroundServices();
-    });
-    server.on('error', (error) => { console.error('[Kurukoo] HTTP server error:', error); process.exitCode = 1; });
-    let shuttingDown = false;
-    const shutdown = (signal: string) => {
-        if (shuttingDown) return;
-        shuttingDown = true;
-        console.log(`[Kurukoo] Graceful shutdown requested (${signal})`);
-        stopBackgroundServices();
-        server.close((error) => { if (error) { console.error('[Kurukoo] HTTP server shutdown error:', error); process.exitCode = 1; } });
-        setTimeout(() => { console.error('[Kurukoo] Graceful shutdown timeout; forcing exit'); process.exitCode = 1; }, 10_000).unref();
-    };
-    process.once('SIGTERM', () => shutdown('SIGTERM'));
-    process.once('SIGINT', () => shutdown('SIGINT'));
+  const server = app.listen(port, host, () => {
+    console.log(`[Kurukoo] HTTP server listening on ${host}:${port}`);
+    if (process.env.KURUKOO_WORKERS !== '0') void startBackgroundServices();
+  });
+  server.on('error', (error) => { console.error('[Kurukoo] HTTP server error:', error); process.exitCode = 1; });
+  let shuttingDown = false;
+  const shutdown = (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[Kurukoo] Graceful shutdown requested (${signal})`);
+    stopBackgroundServices();
+    server.close((error) => { if (error) { console.error('[Kurukoo] HTTP server shutdown error:', error); process.exitCode = 1; } });
+    setTimeout(() => { console.error('[Kurukoo] Graceful shutdown timeout; forcing exit'); process.exitCode = 1; }, 10_000).unref();
+  };
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
 }
