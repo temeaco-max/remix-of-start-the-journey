@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-08-16T18:52:55.229Z",
+    "generatedAt": "2026-08-18T17:10:55.636Z",
     "scope": "205 canonical skills across public, PWA/workspace, admin, Chat, and channel surfaces",
     "skillCount": 205,
     "structurallyCovered": 205,
@@ -8,7 +8,7 @@
     "dimensions": {
       "canonicalSource": 205,
       "chatEntry": 205,
-      "publicSurface": 57,
+      "publicSurface": 56,
       "pwaWorkspace": 205,
       "adminSurface": 31,
       "channelParity": 205,
@@ -147,7 +147,7 @@
       "evidence": {
         "canonicalSource": true,
         "chatEntry": true,
-        "publicSurface": true,
+        "publicSurface": false,
         "pwaWorkspace": true,
         "adminSurface": false,
         "channelParity": true,

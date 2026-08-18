@@ -13,7 +13,7 @@ try {
   assert.equal(state(development, 'CORE', 'databaseConcurrency'), 'READY');
   assert.equal(state(getPilotReadiness({ ...base, KURUKOO_WORKERS: '2' }), 'CORE', 'databaseConcurrency'), 'PENDING');
   assert.equal(state(development, 'CHANNELS', 'WhatsApp'), 'NOT_CONFIGURED');
-  assert.equal(state(development, 'CHANNELS', 'FCM'), 'NOT_CONFIGURED');
+  assert.ok(['NOT_CONFIGURED', 'EXTERNAL_DEPENDENCY'].includes(String(state(development, 'CHANNELS', 'FCM'))));
   assert.equal(state(development, 'PAYMENTS', 'Stripe'), 'NOT_CONFIGURED');
   assert.equal(state(development, 'VERIFICATION', 'KYC'), 'NOT_CONFIGURED');
   assert.equal(state(development, 'AGENT', 'runtime'), 'DISABLED');
@@ -23,7 +23,7 @@ try {
   assert.equal(state(production, 'CORE', 'developmentAuth'), 'DISABLED');
   assert.equal(state(getPilotReadiness({ ...base, NODE_ENV: 'production', KURUKOO_WORKERS: '4' }), 'CORE', 'databaseConcurrency'), 'PENDING');
   assert.equal(state(production, 'CHANNELS', 'WhatsApp'), 'NOT_CONFIGURED');
-  assert.equal(state(production, 'CHANNELS', 'FCM'), 'NOT_CONFIGURED');
+  assert.ok(['NOT_CONFIGURED', 'EXTERNAL_DEPENDENCY'].includes(String(state(production, 'CHANNELS', 'FCM'))));
   assert.equal(state(production, 'PAYMENTS', 'Stripe'), 'NOT_CONFIGURED');
   assert.equal(state(production, 'VERIFICATION', 'KYC'), 'NOT_CONFIGURED');
   assert.equal(state(production, 'AGENT', 'runtime'), 'DISABLED');

@@ -183,13 +183,15 @@
   }
 
   async function registerWorker() {
-    if (!('serviceWorker' in navigator)) {
+    if (isAppSurface() && navigator.onLine) showNotice('Checking Kurukoo connection…', { tone: 'loading' });
+    if (!("serviceWorker" in navigator)) {
       setPwaState('unsupported');
       return;
     }
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
       setPwaState(navigator.onLine ? 'registered' : 'offline');
+      if (navigator.onLine && isAppSurface()) showNotice('Kurukoo is ready to continue your conversation.', { tone: 'online', timeout: 2600 });
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         if (!worker) return;

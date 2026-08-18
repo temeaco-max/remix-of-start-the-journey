@@ -4,6 +4,8 @@ import crypto from 'node:crypto';
 process.env.KURUKOO_PAY_PROVIDER = 'stripe';
 process.env.STRIPE_SECRET_KEY = 'sk_test_adapter_contract';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_adapter_contract';
+process.env.KURUKOO_TEST_STRIPE_SECRET_KEY = '';
+process.env.KURUKOO_TEST_STRIPE_WEBHOOK_SECRET = '';
 
 const { stripeStatus, verifyStripeWebhook } = await import('../src/services/stripePayment.js');
 assert.equal(stripeStatus().configured, true, 'Stripe must report configured only when both server secrets and provider selection are present');
@@ -18,6 +20,8 @@ const oldTimestamp = String(Math.floor(Date.now() / 1000) - 301);
 const oldSignature = crypto.createHmac('sha256', process.env.STRIPE_WEBHOOK_SECRET!).update(`${oldTimestamp}.${payload.toString('utf8')}`).digest('hex');
 assert.equal(verifyStripeWebhook(payload, `t=${oldTimestamp},v1=${oldSignature}`), null, 'Expired webhook signatures must fail closed');
 process.env.STRIPE_WEBHOOK_SECRET = '';
+process.env.KURUKOO_TEST_STRIPE_SECRET_KEY = '';
+process.env.KURUKOO_TEST_STRIPE_WEBHOOK_SECRET = '';
 assert.equal(stripeStatus().configured, false, 'Missing verification secret must disable the production adapter');
 process.env.STRIPE_SECRET_KEY = 'CHANGE_ME_TO_A_REAL_SECRET';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_adapter_contract';

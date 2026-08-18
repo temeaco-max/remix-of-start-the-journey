@@ -12,7 +12,7 @@
 
 This document records the current homepage copy reference for `kurukoo.ai.studio`. Future material brand changes require review; implementation must not present invented providers, distances, availability, activity, transactions, or social proof as live data.
 
-**Positioning:** Kurukoo is a multi-sided utility product that uses conversational AI to deliver on-demand SaaS tools straight to the informal economy. It is built around the warm, highly personal positioning of a trusted neighbor who knows everyone in the area and is always ready to assist.
+**Positioning:** Kurukoo is a conversational operating system for coordinating everyday intentions with people, services, products, places and bounded agents. It can help directly, preserve context, discover options, coordinate participants and continue work over time. External fulfilment remains conditional on availability, authorization, evidence, configured providers and real-world confirmation. Keep the tone warm, practical and human without implying that every network participant or external channel is already active.
 
 **Tone:** Bold, warm, human, neighborly. No engineering jargon. No "loyalty tokens." Avoid overly corporate SaaS speak, while clearly communicating that under the hood, Kurukoo is a powerful multi-sided utility.
 
@@ -45,10 +45,10 @@ This document records the current homepage copy reference for `kurukoo.ai.studio
 Your everyday, sorted.
 
 **Headline:**
-Tell Kurukoo what you need. It works out who or what can fulfil it.
+Tell Kurukoo what you need. It helps work out the useful next step.
 
 **Subhead:**
-Start with a conversation. Kurukoo can help directly, capture a request, organise a reminder, surface relevant options, or coordinate people and services when a fulfilment path is available.
+Start with a conversation. Kurukoo can help directly, preserve context, organise a reminder, surface relevant options, or coordinate people and services when a supported fulfilment path is available.
 
 **Primary CTA:**
 [Start chatting] (links to `/chat`)
@@ -57,7 +57,7 @@ Start with a conversation. Kurukoo can help directly, capture a request, organis
 [How it works] (links to `/how-it-works`)
 
 **Trust line (small, under CTAs):**
-⭐ Built for everyday coordination • Web Chat is available in this deployment • Privacy first
+Built for everyday coordination • Web Chat is available in this deployment • External channels remain setup-dependent • Privacy first
 
 ---
 

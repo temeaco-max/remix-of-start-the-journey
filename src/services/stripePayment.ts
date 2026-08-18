@@ -17,8 +17,16 @@ export interface StripeWebhookEvent {
   data: { object?: { id?: string; status?: string; metadata?: Record<string, string>; amount?: number; currency?: string } };
 }
 
+function stripeSecret(): string {
+  return process.env.STRIPE_SECRET_KEY || (process.env.NODE_ENV !== 'production' ? process.env.KURUKOO_TEST_STRIPE_SECRET_KEY || '' : '');
+}
+
+function stripeWebhookSecret(): string {
+  return process.env.STRIPE_WEBHOOK_SECRET || (process.env.NODE_ENV !== 'production' ? process.env.KURUKOO_TEST_STRIPE_WEBHOOK_SECRET || '' : '');
+}
+
 function configured(): boolean {
-  return process.env.KURUKOO_PAY_PROVIDER === 'stripe' && hasConfiguredSecret(process.env.STRIPE_SECRET_KEY) && hasConfiguredSecret(process.env.STRIPE_WEBHOOK_SECRET);
+  return process.env.KURUKOO_PAY_PROVIDER === 'stripe' && hasConfiguredSecret(stripeSecret()) && hasConfiguredSecret(stripeWebhookSecret());
 }
 
 export function stripeStatus(): { configured: boolean; provider: 'stripe'; required: string[] } {
@@ -71,7 +79,7 @@ export async function createStripePaymentIntent(input: { amountMinor: number; cu
   });
   const response = await fetch('https://api.stripe.com/v1/payment_intents', {
     method: 'POST', headers: {
-      Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+      Authorization: `Bearer ${stripeSecret()}`,
       'Content-Type': 'application/x-www-form-urlencoded',
       'Idempotency-Key': input.idempotencyKey.slice(0, 255),
     }, body,
@@ -88,7 +96,7 @@ function safeEqual(left: string, right: string): boolean {
 
 /** Verifies Stripe's timestamped v1 signature over the raw request bytes before JSON parsing. */
 export function verifyStripeWebhook(rawBody: Buffer, signatureHeader: string | undefined): StripeWebhookEvent | null {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  const secret = stripeWebhookSecret();
   if (!configured() || !secret || !signatureHeader || !rawBody?.length) return null;
   const parts = signatureHeader.split(',').map(part => part.trim().split('=', 2));
   const timestamp = parts.find(([key]) => key === 't')?.[1];

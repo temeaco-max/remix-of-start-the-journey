@@ -10,7 +10,7 @@
         const seoCanonical = seoRecord.canonical_url || seoRecord.canonical || ('https://kurukoo.com' + (typeof reqPath !== 'undefined' ? reqPath : ''));
         const seoOgTitle = seoRecord.og_title || seoTitle;
         const seoOgDescription = seoRecord.og_description || seoDesc;
-        const seoOgImage = seoRecord.og_image || 'https://kurukoo.com/assets/icon-512.png';
+        const seoOgImage = seoRecord.og_image || '/assets/icons/icon-512.png';
         const schemaItems = Array.isArray(typeof schemas !== 'undefined' ? schemas : undefined) ? schemas : [];
         const faqItems = Array.isArray(typeof faqs !== 'undefined' ? faqs : undefined) ? faqs : [];
         const safeJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');

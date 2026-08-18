@@ -13,8 +13,8 @@
 <body class="admin-shell">
 
     <header class="header-bar">
-        <div class="logo">
-            🤖 Kurukoo <span>AI Agents</span> Center
+        <div class="logo"><svg class="k-icon k-icon--sm" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#chat"></use></svg>
+            Kurukoo <span>AI Agents</span> Center
         </div>
         <nav>
             <a href="/admin/dashboard.html">Dashboard</a>
@@ -37,7 +37,7 @@
         <!-- Intent Classification System Override Settings -->
         <div class="card admin-inline-55ca5b3c3d">
             <div>
-                <h3 class="admin-inline-55e0623ea4">🧠 Intent Classification Override Settings</h3>
+                <h3 class="admin-inline-55e0623ea4"><svg class="k-icon k-icon--sm" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#settings"></use></svg> Intent Classification Override Settings</h3>
                 <p class="admin-inline-f765fc95ca">Toggle the routing engine between FastText (Default local keywords-matching) and Groq (LLM semantic classification).</p>
             </div>
             <div class="admin-inline-e2ff0fd1a7">
@@ -106,8 +106,8 @@
             <form id="agentForm" onsubmit="saveAgent(event)">
                 <input type="hidden" id="edit-agent-id">
                 <div class="form-group">
-                    <label>Agent Avatar (Emoji):</label>
-                    <input type="text" id="agent-avatar" value="🤖">
+                    <label>Agent mark (optional):</label>
+                    <input type="text" id="agent-avatar" value="" placeholder="Optional text mark">
                 </div>
                 <div class="form-group">
                     <label>Agent ID (e.g. agent_custom_bot):</label>
@@ -195,7 +195,8 @@
                 const identity = document.createElement('td');
                 const avatar = document.createElement('span');
                 avatar.className = 'agent-avatar';
-                avatar.textContent = agent.avatar || '🤖';
+                avatar.innerHTML = agent.avatar ? '' : '<svg class="k-icon k-icon--sm" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#chat"></use></svg>';
+                if (agent.avatar) avatar.textContent = String(agent.avatar);
                 const name = document.createElement('strong');
                 name.textContent = String(agent.name || agent.id || 'Unnamed agent');
                 const id = document.createElement('small');
@@ -282,7 +283,7 @@
             document.getElementById('agent-id').value = agent.id;
             document.getElementById('agent-id').disabled = true;
             document.getElementById('agent-name').value = agent.name;
-            document.getElementById('agent-avatar').value = agent.avatar || '🤖';
+            document.getElementById('agent-avatar').value = agent.avatar || '';
             document.getElementById('agent-prompt').value = agent.system_prompt;
             document.getElementById('agent-skills').value = (agent.skills || []).join(', ');
             document.getElementById('agent-tools').value = (agent.tools || []).join(', ');
@@ -359,11 +360,11 @@
             const label = document.getElementById('routing-mode-label');
             const btn = document.getElementById('toggle-routing-btn');
             if (currentRoutingMode) {
-                label.innerHTML = '⚡ <span class="admin-inline-ed4ce96955">Groq Routing Mode</span> (FastText Bypassed)';
+                label.innerHTML = '<svg class="k-icon k-icon--sm" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#discover"></use></svg> <span class="admin-inline-ed4ce96955">Groq Routing Mode</span> (FastText Bypassed)';
                 btn.innerText = 'Switch to FastText';
                 btn.style.backgroundColor = '#888';
             } else {
-                label.innerHTML = '⚡ <span class="admin-inline-de7951340c">FastText Routing Mode</span> (Default)';
+                label.innerHTML = '<svg class="k-icon k-icon--sm" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#request"></use></svg> <span class="admin-inline-de7951340c">FastText Routing Mode</span> (Default)';
                 btn.innerText = 'Switch to Groq';
                 btn.style.backgroundColor = '#D97A5C';
             }

@@ -135,7 +135,7 @@
     state.surfaceView = view; updateSurfaceHeader(view); updateSurfaceContext(view); loadNearbyInspector(view);
     const surface = makeElement('section', 'workspace-surface'); surface.dataset.surfaceView = view;
     const heading = makeElement('div', 'surface-heading'); heading.append(makeElement('h1', '', surfaceTitles[view] || 'Workspace'));
-    { const ask = makeElement('button', 'workspace-button secondary ask-cta'); ask.type = 'button'; const mark = makeElement('span', 'ask-mark'); const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.svg'; image.alt = ''; image.setAttribute('aria-hidden', 'true'); mark.append(image); ask.append(mark, makeElement('span', '', 'Ask')); ask.addEventListener('click', () => input?.focus()); heading.append(ask); }
+    { const ask = makeElement('button', 'workspace-button secondary ask-cta'); ask.type = 'button'; const mark = makeElement('span', 'ask-mark'); const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.png'; image.alt = ''; image.setAttribute('aria-hidden', 'true'); mark.append(image); ask.append(mark, makeElement('span', '', 'Ask')); ask.addEventListener('click', () => input?.focus()); heading.append(ask); }
     surface.append(heading); const body = makeElement('div', 'surface-body'); body.append(makeElement('div', 'surface-loading', 'Loading…')); surface.append(body); chatContent.replaceChildren(surface); scroll.scrollTop = 0;
     try {
       if (view === 'points') { const res = await fetch('/api/points/balance', { credentials: 'same-origin' }); const data = await res.json().catch(() => ({})); body.replaceChildren(makeElement('div', 'surface-stat-card', `${Number(data.points || 0)} Points`), makeElement('p', '', 'Points balance is shown here without leaving the conversation workspace.')); return; }
@@ -284,7 +284,7 @@
       indicator.setAttribute('aria-live', 'polite');
       indicator.setAttribute('aria-atomic', 'true');
       const avatar = makeElement('div', 'avatar'); avatar.setAttribute('aria-hidden', 'true');
-      const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.svg'; image.alt = ''; image.width = 20;
+      const image = document.createElement('img'); image.src = '/assets/brand/logo-icon.png'; image.alt = ''; image.width = 20;
       avatar.appendChild(image);
       const bubble = makeElement('div', 'bubble typing-indicator-bubble');
       const text = makeElement('span', 'typing-indicator-label');
@@ -453,7 +453,7 @@
 
     const avatarDiv = makeElement('div', 'avatar'); avatarDiv.setAttribute('aria-hidden', 'true');
     if (role === 'assistant') {
-      const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.svg'; img.alt = 'K'; img.width = 20;
+      const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.png'; img.alt = 'K'; img.width = 20;
       avatarDiv.appendChild(img);
     }
 
@@ -506,7 +506,7 @@
     const wrap = document.createElement('article'); wrap.className = 'message assistant message-enter message-streaming'; wrap.dataset.messageState = 'incoming'; wrap.hidden = true;
 
     const avatar = makeElement('div', 'avatar'); avatar.setAttribute('aria-hidden', 'true');
-    const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.svg'; img.alt = 'K'; img.width = 20;
+    const img = document.createElement('img'); img.src = '/assets/brand/logo-icon.png'; img.alt = 'K'; img.width = 20;
     avatar.appendChild(img);
 
     const body = makeElement('div', 'message-body');
@@ -1003,21 +1003,6 @@
       const step = card.type === 'auth_otp_input' ? 'otp' : String(card.step || 'name');
       if (state.isGuest) setAuthComposerStep(step);
       return;
-      const holder = makeElement('div', 'auth-conversation-card');
-      holder.dataset.authStep = step;
-      const header = makeElement('div', 'auth-conversation-heading');
-      header.append(makeIcon(step === 'otp' ? 'safety' : step === 'phone' ? 'channels' : 'chat', 'Authentication step'), makeElement('strong', '', step === 'name' ? 'Start with your name' : step === 'phone' ? 'Add your phone number' : 'Verify your number'));
-      const copy = makeElement('p', 'auth-conversation-copy', step === 'name' ? 'I’ll use this to keep your conversation connected.' : step === 'phone' ? `Thanks${card.name ? `, ${card.name}` : ''}. Your number stays attached to this verification step.` : 'Enter the six-digit code from the approved verification channel, if one has been delivered.');
-      const form = document.createElement('form'); form.className = 'auth-conversation-form';
-      const input = document.createElement('input'); input.type = step === 'otp' ? 'text' : step === 'phone' ? 'tel' : 'text'; input.inputMode = step === 'otp' || step === 'phone' ? 'numeric' : 'text'; input.autocomplete = step === 'name' ? 'name' : step === 'phone' ? 'tel' : 'one-time-code'; input.maxLength = step === 'otp' ? 6 : 120; input.placeholder = step === 'name' ? 'Your name' : step === 'phone' ? '080… or +234…' : '6-digit code'; input.required = true;
-      const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'auth-conversation-submit'; submit.setAttribute('aria-label', step === 'otp' ? 'Verify code' : 'Continue'); submit.title = step === 'otp' ? 'Verify code' : 'Continue'; submit.appendChild(makeIcon('send', submit.title));
-      form.append(input, submit);
-      form.addEventListener('submit', event => { event.preventDefault(); const value = input.value.trim(); if (!value) return; sendMessage(value); });
-      holder.append(header, copy, form);
-      if (step === 'otp' && card.devCode) holder.appendChild(makeElement('small', 'auth-conversation-dev-code', `Development code: ${card.devCode}`));
-      messageEl.querySelector('.bubble')?.appendChild(holder);
-      input.focus();
-      return;
     }
 
 
@@ -1039,48 +1024,6 @@
 
     if (card.type === 'auth_gate' || card.type === 'auth_in_chat_start') {
       renderCard({ ...card, type: 'auth_conversation', step: card.step || 'name' }, messageEl);
-      return;
-      const gate = document.createElement('div');
-      gate.className = 'auth-gate-card';
-      const signedIn = state.isGuest === false;
-      const guestId = document.cookie.split('; ').find(row => row.startsWith('kurukoo_guest_id='))?.split('=')[1];
-      const returnUrl = card.returnUrl || window.location.pathname + window.location.search;
-
-      if (signedIn) {
-        gate.classList.add('auth-gate-card--resolved');
-        const continuationCard = card.continuationCard;
-        const header = makeElement('div', 'auth-gate-header'); header.appendChild(makeElement('h4', '', "You're signed in"));
-        const body = makeElement('div', 'auth-gate-body');
-        const p = document.createElement('p'); p.textContent = continuationCard ? 'Your request is ready to continue.' : 'Your request is preserved. Share the remaining details above so Kurukoo can continue matching it.';
-        body.appendChild(p);
-        if (!continuationCard) {
-          const btn = makeElement('button', 'primary-btn', 'Continue this request');
-          btn.type = 'button';
-          body.appendChild(btn);
-        }
-        gate.append(header, body);
-        gate.querySelector('button')?.addEventListener('click', () => input?.focus());
-        messageEl.querySelector('.bubble').appendChild(gate);
-        if (continuationCard) renderCard(continuationCard, messageEl);
-        return;
-      } else {
-        const header = makeElement('div', 'auth-gate-header'); header.appendChild(makeElement('h4', '', card.title || 'Sign in to Continue'));
-        const body = makeElement('div', 'auth-gate-body');
-        const p = document.createElement('p'); p.textContent = card.message || 'Please sign in to proceed with your request.';
-        body.appendChild(p);
-        const btn = makeElement('button', 'primary-btn', 'Tell Kurukoo your name');
-        btn.type = 'button';
-        btn.dataset.action = 'start-profile';
-        body.appendChild(btn);
-        gate.append(header, body);
-        gate.querySelector('[data-action="start-profile"]')?.addEventListener('click', () => {
-          const returnTo = `${window.location.pathname}${window.location.search}`;
-          const params = new URLSearchParams({ return: returnTo });
-          if (state.conversationId) params.set('conversationId', state.conversationId);
-          window.location.assign(`/login?${params.toString()}`);
-        });
-      }
-      messageEl.querySelector('.bubble').appendChild(gate);
       return;
     }
 

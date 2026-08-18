@@ -108,7 +108,7 @@ export async function querySmolLM2(prompt: string, systemPrompt?: string): Promi
         const cleaned = sanitizeGeneratedText(response.generated_text);
         if (cleaned && !containsInternalGeneration(cleaned)) { lastInferenceSource = 'huggingface'; lastInferenceFailure = null; return cleaned; }
       }
-    } catch (err: any) { lastInferenceFailure = 'huggingface_request_failed'; console.warn('[SmolLM2] HF serverless inference failed:', err?.message || err); }
+    } catch (err: any) { if (!lastInferenceFailure) lastInferenceFailure = 'huggingface_request_failed'; console.warn('[SmolLM2] HF serverless inference failed:', err?.message || err); }
   } else if (!process.env.KURUKOO_SMOLLM2_LOCAL || process.env.KURUKOO_SMOLLM2_LOCAL !== 'true') {
     lastInferenceFailure = 'no_model_boundary_configured';
   }
