@@ -1,5 +1,14 @@
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 
+export interface CapabilityActionMetadata {
+  label?: string;
+  description?: string;
+  risk?: UniversalCapabilityDescriptor['risk'];
+  confirmationRequired?: boolean;
+  permissions?: string[];
+  activationState?: UniversalCapabilityDescriptor['activationState'];
+}
+
 export interface CapabilityRegistration {
   descriptor: UniversalCapabilityDescriptor;
   namespace?: string;
@@ -8,6 +17,7 @@ export interface CapabilityRegistration {
   requiresCapabilities?: string[];
   providesCapabilities?: string[];
   source?: string;
+  actionMetadata?: Record<string, CapabilityActionMetadata>;
 }
 
 export interface CapabilityComposition {
@@ -24,6 +34,15 @@ function normalizeName(value: string): string {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeActionMetadata(metadata: Record<string, CapabilityActionMetadata> | undefined): Record<string, CapabilityActionMetadata> {
+  return Object.fromEntries(Object.entries(metadata || {}).map(([action, value]) => [
+    String(action || '').trim().toLowerCase(), {
+      ...(value || {}),
+      permissions: [...new Set((value?.permissions || []).map(String).filter(Boolean))],
+    },
+  ]).filter(([action]) => Boolean(action)));
+}
+
 function cloneRegistration(registration: CapabilityRegistration): CapabilityRegistration {
   return {
     ...registration,
@@ -31,6 +50,7 @@ function cloneRegistration(registration: CapabilityRegistration): CapabilityRegi
     aliases: [...(registration.aliases || [])],
     requiresCapabilities: [...(registration.requiresCapabilities || [])],
     providesCapabilities: [...(registration.providesCapabilities || [])],
+    actionMetadata: Object.fromEntries(Object.entries(registration.actionMetadata || {}).map(([action, metadata]) => [action, { ...metadata, permissions: [...(metadata.permissions || [])] }])),
   };
 }
 
@@ -51,6 +71,7 @@ export function registerCapability(registration: CapabilityRegistration): Capabi
     requiresCapabilities: [...new Set((registration.requiresCapabilities || []).map(normalizeName).filter(Boolean))],
     providesCapabilities: [...new Set((registration.providesCapabilities || []).map(normalizeName).filter(Boolean))],
     source: registration.source || 'core',
+    actionMetadata: normalizeActionMetadata(registration.actionMetadata),
   };
   registry.set(name, value);
   for (const alias of normalizedAliases) aliasIndex.set(alias, name);
@@ -61,14 +82,25 @@ export function registerCapabilities(registrations: CapabilityRegistration[]): v
   for (const registration of registrations) registerCapability(registration);
 }
 
-export function extendCapabilityActions(name: string, actions: string[]): CapabilityRegistration {
+export function extendCapabilityActions(name: string, actions: string[], actionMetadata?: Record<string, CapabilityActionMetadata>): CapabilityRegistration {
   const normalized = normalizeName(name);
   const canonicalName = registry.has(normalized) ? normalized : aliasIndex.get(normalized);
   if (!canonicalName) throw new Error(`Cannot extend unknown capability ${normalized}.`);
   const registration = registry.get(canonicalName);
   if (!registration) throw new Error(`Capability ${canonicalName} is unavailable.`);
   const nextActions = [...new Set([...registration.descriptor.actions, ...actions.map(action => String(action || '').trim()).filter(Boolean)])];
-  registration.descriptor = { ...registration.descriptor, actions: nextActions, nextAllowedActions: [...new Set([...registration.descriptor.nextAllowedActions, ...nextActions])] };
+  const mergedMetadata = { ...(registration.actionMetadata || {}), ...normalizeActionMetadata(actionMetadata) };
+  registration.descriptor = {
+    ...registration.descriptor,
+    actions: nextActions,
+    nextAllowedActions: [...new Set([...registration.descriptor.nextAllowedActions, ...nextActions])],
+    permissions: [...new Set([...registration.descriptor.permissions, ...Object.values(mergedMetadata).flatMap(metadata => metadata.permissions || [])])],
+    confirmationRequired: registration.descriptor.confirmationRequired || Object.values(mergedMetadata).some(metadata => metadata.confirmationRequired === true),
+    consentRequired: registration.descriptor.consentRequired || Object.values(mergedMetadata).some(metadata => metadata.confirmationRequired === true || (metadata.permissions || []).includes('explicit_user_consent')),
+    risk: Object.values(mergedMetadata).some(metadata => metadata.risk === 'high_risk') ? 'high_risk' : Object.values(mergedMetadata).some(metadata => metadata.risk === 'confirmation_required') ? 'confirmation_required' : registration.descriptor.risk,
+    owner: [...new Set([...registration.descriptor.owner, ...Object.keys(mergedMetadata).flatMap(() => [])])],
+  };
+  registration.actionMetadata = mergedMetadata;
   registry.set(canonicalName, registration);
   return cloneRegistration(registration);
 }
