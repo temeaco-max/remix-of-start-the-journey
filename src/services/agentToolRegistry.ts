@@ -4,7 +4,7 @@ import { listReminders } from './reminderService.js';
 import { advanceStorefront } from './agenticStorefront.js';
 import { listConnectedResources, viewConnectedResource } from './connectedResourceService.js';
 import { ensureCapabilityFoundation } from './capabilityFoundation.js';
-import { getCapabilityActionContract, getCapabilityRegistration, listCapabilityRegistrations, resolveCapabilityComposition } from './capabilityRegistry.js';
+import { getCapabilityActionContract, getCapabilityRegistration, listCapabilityRegistrations, resolveCapabilityAction, resolveCapabilityComposition } from './capabilityRegistry.js';
 import { getCanonicalIdentityContext } from './memoryProfile.js';
 
 export type AgentToolPermission = 'read' | 'low_risk_write' | 'coordination' | 'high_risk';
@@ -45,16 +45,16 @@ export async function executeAgentTool(name: AgentToolName, args: Record<string,
   if (name === 'list_capabilities') { const query = typeof args.query === 'string' ? args.query.trim().toLowerCase().slice(0, 120) : ''; ensureCapabilityFoundation(); const matches = listCapabilityRegistrations().filter(registration => { if (!query) return true; const descriptor = registration.descriptor; const haystack = [descriptor.capability, descriptor.family, descriptor.mode, descriptor.actions.join(' '), descriptor.owner.join(' ')].join(' ').toLowerCase(); return haystack.includes(query); }).slice(0, 64).map(registration => { const descriptor = registration.descriptor; return { capability: descriptor.capability, family: descriptor.family, kind: descriptor.kind, mode: descriptor.mode, actions: descriptor.actions, risk: descriptor.risk, activationState: descriptor.activationState, owner: descriptor.owner, aliases: registration.aliases || [], source: registration.source || 'core' }; }); return { ok: true, tool: name, permission: 'read', data: { query, count: matches.length, capabilities: matches }, evidence: `capability_catalog:${matches.length}` }; }
   if (name === 'execute_capability') {
     const capability = typeof args.capability === 'string' ? args.capability.trim() : '';
-    const action = typeof args.action === 'string' ? args.action.trim() : '';
-    if (!capability || !action) return { ok: false, tool: name, permission: 'coordination', message: 'A capability and action are required.' };
+    const requestedAction = typeof args.action === 'string' ? args.action.trim() : '';
+    if (!capability || !requestedAction) return { ok: false, tool: name, permission: 'coordination', message: 'A capability and action are required.' };
     let parsedArguments: Record<string, unknown> = {};
     if (typeof args.argumentsJson === 'string' && args.argumentsJson.trim()) { try { const candidate = JSON.parse(args.argumentsJson); if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) parsedArguments = candidate as Record<string, unknown>; else throw new Error('arguments must be an object'); } catch { return { ok: false, tool: name, permission: 'coordination', message: 'argumentsJson must be valid JSON for an object.' }; }
     }
     ensureCapabilityFoundation();
     const registration = getCapabilityRegistration(capability);
     if (!registration) return { ok: false, tool: name, permission: 'coordination', message: 'That capability is not registered in the canonical fabric.' };
-    const descriptor = registration.descriptor;
-    if (!descriptor.actions.includes(action)) return { ok: false, tool: name, permission: 'coordination', message: `The canonical capability does not expose the ${action} action.` };
+    const action = resolveCapabilityAction(capability, requestedAction);
+    if (!action) return { ok: false, tool: name, permission: 'coordination', message: `The canonical capability does not expose a compatible ${requestedAction} action.` };
     const actionContract = getCapabilityActionContract(capability, action);
     if (!actionContract) return { ok: false, tool: name, permission: 'coordination', message: 'That action has no canonical action contract.' };
     const readOnly = actionContract.risk === 'read_only';
