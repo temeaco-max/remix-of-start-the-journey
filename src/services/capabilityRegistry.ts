@@ -7,6 +7,7 @@ export interface CapabilityActionMetadata {
   confirmationRequired?: boolean;
   permissions?: string[];
   activationState?: UniversalCapabilityDescriptor['activationState'];
+  aliases?: string[];
 }
 
 export interface CapabilityActionContract {
@@ -39,6 +40,23 @@ export interface CapabilityComposition {
 
 const registry = new Map<string, CapabilityRegistration>();
 const aliasIndex = new Map<string, string>();
+const COMMON_ACTION_ALIASES: Record<string, string[]> = {
+  view: ['show', 'see', 'display', 'watch', 'look', 'open_view'],
+  inspect: ['check', 'status', 'what_is_happening', 'what_is_going_on', 'details'],
+  discover: ['find', 'search', 'look_for', 'locate'],
+  create: ['make', 'set', 'start'],
+  update: ['change', 'edit', 'modify'],
+  cancel: ['stop', 'end', 'remove', 'quit'],
+  resume: ['continue', 'carry_on', 'restart'],
+  pause: ['hold', 'temporarily_stop'],
+  select: ['choose', 'pick'],
+  confirm: ['approve', 'accept', 'go_ahead'],
+  history: ['activity', 'transactions', 'past'],
+  balance: ['amount', 'points_balance', 'how_many'],
+  status: ['state', 'progress', 'where_is_it'],
+  track: ['follow', 'tracking'],
+  quote: ['price', 'cost', 'how_much'],
+};
 
 function normalizeName(value: string): string {
   return String(value || '').trim().toLowerCase();
@@ -46,9 +64,10 @@ function normalizeName(value: string): string {
 
 function normalizeActionMetadata(metadata: Record<string, CapabilityActionMetadata> | undefined): Record<string, CapabilityActionMetadata> {
   return Object.fromEntries(Object.entries(metadata || {}).map(([action, value]) => [
-    String(action || '').trim().toLowerCase(), {
+    normalizeName(action), {
       ...(value || {}),
       permissions: [...new Set((value?.permissions || []).map(String).filter(Boolean))],
+      aliases: [...new Set((value?.aliases || []).map(normalizeName).filter(Boolean))],
     },
   ]).filter(([action]) => Boolean(action)));
 }
@@ -60,14 +79,14 @@ function cloneRegistration(registration: CapabilityRegistration): CapabilityRegi
     aliases: [...(registration.aliases || [])],
     requiresCapabilities: [...(registration.requiresCapabilities || [])],
     providesCapabilities: [...(registration.providesCapabilities || [])],
-    actionMetadata: Object.fromEntries(Object.entries(registration.actionMetadata || {}).map(([action, metadata]) => [action, { ...metadata, permissions: [...(metadata.permissions || [])] }])),
+    actionMetadata: Object.fromEntries(Object.entries(registration.actionMetadata || {}).map(([action, metadata]) => [action, { ...metadata, permissions: [...(metadata.permissions || [])], aliases: [...(metadata.aliases || [])] }])),
     actionContracts: (registration.actionContracts || []).map(contract => ({ ...contract, permissions: [...contract.permissions], owner: [...contract.owner] })),
   };
 }
 
 function defaultActionContract(descriptor: UniversalCapabilityDescriptor, action: string): CapabilityActionContract {
-  const normalized = String(action || '').trim();
-  const readOnly = new Set(['inspect', 'status', 'read', 'open', 'view', 'context', 'discover', 'check_availability', 'quote', 'verify', 'track', 'history', 'balance']).has(normalized.toLowerCase());
+  const normalized = normalizeName(action);
+  const readOnly = new Set(['inspect', 'status', 'read', 'open', 'view', 'context', 'discover', 'check_availability', 'quote', 'verify', 'track', 'history', 'balance']).has(normalized);
   return {
     action: normalized,
     risk: readOnly ? 'read_only' : descriptor.risk,
@@ -127,7 +146,7 @@ export function extendCapabilityActions(name: string, actions: string[], contrac
   if (!canonicalName) throw new Error(`Cannot extend unknown capability ${normalized}.`);
   const registration = registry.get(canonicalName);
   if (!registration) throw new Error(`Capability ${canonicalName} is unavailable.`);
-  const nextActions = [...new Set([...registration.descriptor.actions, ...actions.map(action => String(action || '').trim()).filter(Boolean)])];
+  const nextActions = [...new Set([...registration.descriptor.actions, ...actions.map(action => normalizeName(action)).filter(Boolean)])];
   const contractMap = new Map((registration.actionContracts || []).map(contract => [normalizeName(contract.action), contract]));
   for (const action of actions) {
     const key = normalizeName(action);
@@ -142,11 +161,27 @@ export function extendCapabilityActions(name: string, actions: string[], contrac
   return cloneRegistration(registration);
 }
 
+export function resolveCapabilityAction(name: string, requestedAction: string): string | undefined {
+  const registration = getCapabilityRegistration(name);
+  if (!registration) return undefined;
+  const normalized = normalizeName(requestedAction);
+  if (registration.descriptor.actions.some(action => normalizeName(action) === normalized)) return registration.descriptor.actions.find(action => normalizeName(action) === normalized);
+  for (const action of registration.descriptor.actions) {
+    const canonical = normalizeName(action);
+    const metadataAliases = registration.actionMetadata?.[canonical]?.aliases || [];
+    if (metadataAliases.includes(normalized)) return action;
+    if ((COMMON_ACTION_ALIASES[canonical] || []).includes(normalized)) return action;
+  }
+  return undefined;
+}
+
 export function getCapabilityActionContract(name: string, action: string): CapabilityActionContract | undefined {
   const registration = getCapabilityRegistration(name);
   if (!registration) return undefined;
-  const normalizedAction = normalizeName(action);
-  return registration.actionContracts?.find(contract => normalizeName(contract.action) === normalizedAction) || (registration.descriptor.actions.some(item => normalizeName(item) === normalizedAction) ? defaultActionContract(registration.descriptor, action) : undefined);
+  const canonicalAction = resolveCapabilityAction(name, action);
+  if (!canonicalAction) return undefined;
+  const normalizedAction = normalizeName(canonicalAction);
+  return registration.actionContracts?.find(contract => normalizeName(contract.action) === normalizedAction) || (registration.descriptor.actions.some(item => normalizeName(item) === normalizedAction) ? defaultActionContract(registration.descriptor, canonicalAction) : undefined);
 }
 
 export function listCapabilityActionContracts(name: string): CapabilityActionContract[] {
@@ -156,7 +191,8 @@ export function listCapabilityActionContracts(name: string): CapabilityActionCon
 export function getCapabilityActionMetadata(name: string, action: string): CapabilityActionMetadata | undefined {
   const registration = getCapabilityRegistration(name);
   if (!registration) return undefined;
-  return registration.actionMetadata?.[normalizeName(action)];
+  const canonicalAction = resolveCapabilityAction(name, action);
+  return canonicalAction ? registration.actionMetadata?.[normalizeName(canonicalAction)] : undefined;
 }
 
 export function getCapabilityRegistration(name: string): CapabilityRegistration | undefined {
