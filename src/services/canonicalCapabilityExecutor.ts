@@ -38,7 +38,6 @@ export interface CanonicalCapabilityExecutionResult extends Omit<UniversalCapabi
   status: ExecutorStatus;
   idempotencyKey: string;
   duplicate?: boolean;
-  executablePlan?: ReturnType<typeof resolveExecutableCapabilityPlan>;
 }
 
 async function ensureExecutionTable(): Promise<void> {
@@ -79,7 +78,7 @@ async function persistResult(input: CanonicalCapabilityExecutionInput, idempoten
 function baseResult(input: CanonicalCapabilityExecutionInput, status: ExecutorStatus, message: string, extra: Partial<CanonicalCapabilityExecutionResult> = {}): CanonicalCapabilityExecutionResult {
   const normalized = input.capability.trim().toLowerCase();
   const registration = getCapabilityRegistration(normalized);
-  let executablePlan: ReturnType<typeof resolveExecutableCapabilityPlan> | undefined;
+  let executablePlan: UniversalCapabilityResult['executablePlan'];
   try {
     if (registration?.descriptor.kind === 'operation') {
       executablePlan = {
@@ -94,11 +93,24 @@ function baseResult(input: CanonicalCapabilityExecutionInput, status: ExecutorSt
           activationState: registration.descriptor.activationState,
         }],
         unresolved: [],
-        cycle: undefined,
       };
     } else {
       const skillName = normalized.startsWith('skill.') ? normalized.slice(6) : normalized;
-      executablePlan = resolveExecutableCapabilityPlan(skillName);
+      const plan = resolveExecutableCapabilityPlan(skillName);
+      executablePlan = {
+        skill: plan.skill,
+        registeredSkill: `skill.${plan.skill}`,
+        composition: plan.composition,
+        executableCandidates: plan.executable.map(candidate => ({
+          capability: candidate.capability,
+          actions: candidate.actions,
+          owner: candidate.owner,
+          risk: candidate.risk,
+          activationState: candidate.activationState,
+        })),
+        unresolved: plan.unresolved,
+        cycle: plan.cycle,
+      };
     }
   } catch {
     executablePlan = undefined;
@@ -257,9 +269,10 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
     if (!entity) return invalidResult(input, 'stale_context', 'That exact discovery result is no longer available, so I did not substitute another result.', 'discovery_entity_not_found');
     return baseResult(input, 'completed', `${entity.name} is currently recorded as ${entity.lifecycle}.`, { canonicalFacts: { entity }, evidenceLevel: entity.evidenceLevel === 'verified_state' ? 'verified_external_evidence' : 'canonical_service', nextActions: entity.available ? [{ action: 'select', label: 'Use this discovery result' }] : [{ action: 'refresh', label: 'Refresh discovery' }] });
   }
-  if (getExecutionAdapter(input.capability)?.execute) {
-    const adapter = getExecutionAdapter(input.capability)!;
-    const result = await adapter.execute({ phone: input.phone, conversationId: input.conversationId, contextId: input.contextId, capability: input.capability, action: input.action, canonicalObjectId: input.canonicalObjectId, arguments: args, confirmationGranted: input.confirmationGranted, idempotencyKey: input.idempotencyKey || crypto.randomUUID(), ownerObject: object });
+  const adapter = getExecutionAdapter(input.capability);
+  const execute = adapter?.execute;
+  if (execute) {
+    const result = await execute({ phone: input.phone, conversationId: input.conversationId, contextId: input.contextId, capability: input.capability, action: input.action, canonicalObjectId: input.canonicalObjectId, arguments: args, confirmationGranted: input.confirmationGranted, idempotencyKey: input.idempotencyKey || crypto.randomUUID(), ownerObject: object });
     if (result) return baseResult(input, result.status as ExecutorStatus, result.message, result);
   }
   if (input.capability === 'agent' && input.action === 'create') {
@@ -275,8 +288,9 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
   if (existing) return existing;
   const descriptor = getCanonicalOperationDescriptor(input.capability);
   const owner = await verifyExactOwner(input);
-  const policy = deriveCapabilityInteractionPolicy(input.capability, input.action, descriptor);
-  const validation = validateCapabilityProposal({ ...input, confirmationRequired: input.confirmationRequired ?? policy.confirmationRequired }, descriptor, { ownerVerified: true, objectVerified: owner.ok, stale: false, confirmationGranted: Boolean(input.confirmationGranted) });
+  const policy = descriptor ? deriveCapabilityInteractionPolicy(descriptor) : undefined;
+  const confirmationRequired = input.confirmationRequired ?? policy?.confirmation === 'explicit';
+  const validation = validateCapabilityProposal({ ...input, confirmationRequired }, descriptor, { ownerVerified: true, objectVerified: owner.ok, stale: false, confirmationGranted: Boolean(input.confirmationGranted) });
   if (!validation.valid) {
     const result = invalidResult(input, validation.code === 'missing_confirmation' ? 'confirmation_required' : validation.code === 'foreign_context' ? 'unauthorized' : validation.code === 'stale_context' ? 'stale_context' : 'invalid', validation.message || 'This capability action could not be accepted.', validation.code || 'invalid');
     await persistResult(input, idempotencyKey, result);

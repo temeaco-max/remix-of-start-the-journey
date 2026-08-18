@@ -82,6 +82,8 @@ function initTables(database: any) {
       phone TEXT PRIMARY KEY, 
       name TEXT, 
       email TEXT, 
+      email_verified_at TEXT,
+      phone_verified_at TEXT,
       location TEXT, 
       primary_lga TEXT, 
       primary_state TEXT, 
@@ -255,6 +257,8 @@ function initTables(database: any) {
     'ALTER TABLE micro_tasks ADD COLUMN moderation_note TEXT',
     'ALTER TABLE micro_tasks ADD COLUMN approved_by TEXT',
     'ALTER TABLE micro_tasks ADD COLUMN approved_at TEXT',
+    'ALTER TABLE memory_profiles ADD COLUMN email_verified_at TEXT',
+    'ALTER TABLE memory_profiles ADD COLUMN phone_verified_at TEXT',
   ]) { try { database.run(migration); } catch { /* column already exists */ } }
   const skillFlowColumns = database.exec('PRAGMA table_info(skill_flows)')[0]?.values || [];
   if (!skillFlowColumns.some((column: unknown[]) => String(column[1]) === 'flow_mode')) database.run("ALTER TABLE skill_flows ADD COLUMN flow_mode TEXT NOT NULL DEFAULT 'economic'");

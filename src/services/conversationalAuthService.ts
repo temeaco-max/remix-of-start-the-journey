@@ -70,7 +70,7 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
         const emailHint = String(data.email || '').trim().toLowerCase();
         if (emailHint && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailHint)) {
           const magic = await requestMagicLink({ email: emailHint, name: data.name, guestPhone, returnPath: '/chat' }).catch(() => ({ success: false, message: 'Unable to issue a magic link', delivery: 'none' as const }));
-          if (magic.success) return { reply: 'Phone verification is not available in this environment, but I can continue through your email instead.', cardData: { type: 'auth_magic_link', canonicalAction: 'identity.upgrade.email_magic_link', email: emailHint, debugUrl: magic.debugUrl, status: 'ready' } };
+          if (magic.success) return { reply: 'Phone verification is not available in this environment, but I can continue through your email instead.', cardData: { type: 'auth_magic_link', canonicalAction: 'identity.upgrade.email_magic_link', email: emailHint, debugUrl: 'debugUrl' in magic ? magic.debugUrl : undefined, status: 'ready' } };
         }
       }
       return { reply: `I couldn't request a code for that number: ${result.message || 'unknown error'}. Please try again.` };
