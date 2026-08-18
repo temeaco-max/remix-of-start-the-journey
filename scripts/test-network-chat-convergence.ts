@@ -11,6 +11,7 @@ process.env.KURUKOO_FCM_PROJECT_ID = '';
 
 const { getDb } = await import('../src/database.js');
 const { updateProfile } = await import('../src/services/memoryProfile.js');
+const { recordLocationConsent } = await import('../src/services/progressiveTrustService.js');
 const { find_worker } = await import('../src/services/find-worker.js');
 const { processCanonicalChatTurn } = await import('../src/services/canonicalChatTurnService.js');
 const { routeIntent } = await import('../src/services/intentRouter.js');
@@ -35,14 +36,24 @@ await updateProfile(providerPhone, 'network-convergence-test', {
   country: 'ng',
   preferences: { onboarding_complete: true },
 });
-db.run(`UPDATE memory_profiles SET verified_provider = 1 WHERE phone = ?`, [providerPhone]);
+db.run(`UPDATE memory_profiles SET verified_provider = 1, is_available = 1 WHERE phone = ?`, [providerPhone]);
 
 db.run(`INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode, service_radius_km) VALUES (?, 'plumber', 1, 25000, 4.8, 22, 'mobile', 15)`, [providerPhone]);
+
+const testLat = 6.6018;
+const testLng = 3.3515;
+await recordLocationConsent({ phone: userPhone, purpose: 'network_discovery', precision: 'precise', latitude: testLat, longitude: testLng });
+db.run(`INSERT INTO pulse_sessions (phone, skill, lat, lng, expires_at, active) VALUES (?, 'plumber', ?, ?, datetime('now', '+30 minutes'), 1)`, [providerPhone, testLat + 0.003, testLng + 0.003]);
 
 const discovery = await find_worker({ skill: 'plumber', location: 'Ikeja', max: 3 });
 assert.equal(discovery.count, 1, 'canonical provider discovery should return the verified available provider');
 assert.equal(discovery.providers[0].phone, providerPhone, 'discovery must preserve canonical provider identity');
 assert.equal(discovery.providers[0].verified, true, 'discovery must expose verification truthfully');
+
+const liveDiscovery = await find_worker({ skill: 'plumber', ownerPhone: userPhone, max: 3 });
+assert.equal(liveDiscovery.count, 1, 'consented owner location should enrich provider discovery');
+assert.equal(liveDiscovery.providers[0].live_now, true, 'live Pulse presence should be visible to canonical matching');
+assert.ok(Number.isFinite(liveDiscovery.providers[0].distance_km), 'live match should include distance when consented coordinates are available');
 
 const productJourney = await routeIntent('I need a phone charger', userPhone);
 assert.equal(productJourney.skill, 'product_sourcing', 'natural charger request should enter canonical product sourcing');
@@ -73,6 +84,11 @@ assert.ok(foundLink, 'deferred provider match should persist a notification');
 assert.match(String(foundLink.link), /\/chat\?requestId=/, 'deferred notification must deep-link back to canonical Chat request context');
 assert.match(String(foundLink.link), /prompt=/, 'deferred notification must include a truthful continuation prompt');
 
+const consentedDeferred = await createOpenIntention(userPhone, 'plumber', JSON.stringify({}), { skill: 'plumber', economicRequestId: requestId!, maxAttempts: 3 });
+db.run(`UPDATE open_intentions SET next_check_at = datetime('now', '-1 minute') WHERE id = ?`, [consentedDeferred.id]);
+const consentedPass = await processDueDeferred();
+assert.ok(consentedPass.matched >= 1, 'deferred matching should use owner consent when no intention location is supplied');
+
 const openFollowUp = await createOpenIntention(userPhone, 'specialist', JSON.stringify({ location: 'Ikeja' }), { skill: 'specialist', location: 'Ikeja' });
 await markAwaitingMatch(userPhone, openFollowUp.id);
 const opportunities = await generateProactiveOpportunities(userPhone);
@@ -84,5 +100,5 @@ const nonRewardAction = await actOnOpportunity(Number(followUp.id || 0), userPho
 if (followUp.id) assert.match(nonRewardAction.message, /ready in Chat|no external action/i, 'non-reward opportunity must not claim unsupported execution');
 assert.ok(openFollowUp.id, 'follow-up fixture should remain owner-scoped');
 
-console.log('Network-to-Chat convergence contract passed: verified discovery, provider request card, deferred re-entry, notification persistence, opportunity return-to-Chat, and canonical deep links.');
+console.log('Network-to-Chat convergence contract passed: consented location, live Pulse discovery, verified provider matching, provider request card, deferred re-entry, notification persistence, opportunity return-to-Chat, and canonical deep links.');
 try { fs.unlinkSync(dbPath); } catch {}
