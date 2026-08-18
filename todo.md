@@ -116,10 +116,18 @@
 - [ ] Refine reminder conversation prompts, field collection and confirmation language for natural minimal turns
 - [ ] Fix confirmed Chat presentation or functional drift and add regression coverage
 - [ ] Run full Chat, AI, visual, accessibility, security and route regressions
-- [ ] Push validated canonical changes to main and verify local/remote synchronization
+- [x] Push validated canonical changes to main and verify local/remote synchronization
 
 - [x] Merge Kurukoo communication/access channels and external productivity-source connections into distinct labelled Channels sections
 - [x] Preserve truthful readiness states and separate connection semantics for both channel families
 - [x] Integrate the merged Channels surface with origin/main without force-pushing or discarding concurrent work
 - [x] Re-run Channels route, visual, accessibility, CSS and relevant regression checks
-- [ ] Push the synchronized merged result to main
+- [x] Push the synchronized merged result to main
+
+- [x] Inventory all public, frontend, Chat, workspace, Discover, Channels, About, Help, auth, checkout, confirmation, admin, partner and agent web surfaces against their visual screen-set authorities
+- [x] Validate configured Firebase, Stripe, Mistral, Groq, Gemini and Hugging Face readiness without exposing secret values or claiming external success
+- [x] Exercise representative guest, authenticated, provider, contributor, reminder, discovery, checkout and confirmation journeys locally (canonical route/regression coverage passed; external delivery remains gated)
+- [ ] Capture and compare rendered layouts and working states at authoritative reference sizes (local captures completed; exact reference diff remains pending)
+- [x] Fix confirmed content, navigation, state, spacing, responsive and accessibility drift through existing CSS and canonical service owners (removed stale Chat dead branches and bumped asset version)
+- [x] Run full web build, route, security, public, Chat, PWA, accessibility and CSS regressions; the obsolete `test:ui-state` alias is undefined, while `audit:skill-ui-states` passes all 205 skills
+- [ ] Push the validated whole-web-app audit and repair milestone to main
