@@ -74,7 +74,12 @@ export async function processDueDeferred(): Promise<{ checked: number; matched: 
         await incrementAttempt(phone || 'unknown', intention.id);
         continue;
       }
-      const match = await find_worker({ skill, location: intention.location ? String(intention.location) : undefined, max: 3 });
+      const match = await find_worker({
+        skill,
+        location: intention.location ? String(intention.location) : undefined,
+        max: 3,
+        ownerPhone: phone,
+      });
       if (match.count > 0) {
         matched += 1;
         const top = match.providers[0];
