@@ -22,6 +22,7 @@ import { getDiscoveryEntity } from './discoveryNetwork.js';
 import { controlConnectedResource, getConnectedResource, viewConnectedResource } from './connectedResourceService.js';
 import { getExecutionAdapter } from './capabilityExecutionAdapterBridgeV2.js';
 import { resolveExecutableCapabilityPlan } from './capabilityFoundationIntegration.js';
+import { getCapabilityRegistration } from './capabilityRegistry.js';
 
 type ExecutorStatus = UniversalCapabilityResult['status'] | 'in_progress' | 'external_unavailable' | 'stale_context' | 'unauthorized' | 'invalid';
 
@@ -76,10 +77,29 @@ async function persistResult(input: CanonicalCapabilityExecutionInput, idempoten
 }
 
 function baseResult(input: CanonicalCapabilityExecutionInput, status: ExecutorStatus, message: string, extra: Partial<CanonicalCapabilityExecutionResult> = {}): CanonicalCapabilityExecutionResult {
-  const skillName = input.capability.startsWith('skill.') ? input.capability.slice(6) : input.capability;
+  const normalized = input.capability.trim().toLowerCase();
+  const registration = getCapabilityRegistration(normalized);
   let executablePlan: ReturnType<typeof resolveExecutableCapabilityPlan> | undefined;
   try {
-    executablePlan = resolveExecutableCapabilityPlan(skillName);
+    if (registration?.descriptor.kind === 'operation') {
+      executablePlan = {
+        skill: normalized,
+        registeredSkill: registration.descriptor.capability,
+        composition: [registration.descriptor.capability],
+        executableCandidates: [{
+          capability: registration.descriptor.capability,
+          actions: [...registration.descriptor.actions],
+          owner: [...registration.descriptor.owner],
+          risk: registration.descriptor.risk,
+          activationState: registration.descriptor.activationState,
+        }],
+        unresolved: [],
+        cycle: undefined,
+      };
+    } else {
+      const skillName = normalized.startsWith('skill.') ? normalized.slice(6) : normalized;
+      executablePlan = resolveExecutableCapabilityPlan(skillName);
+    }
   } catch {
     executablePlan = undefined;
   }
