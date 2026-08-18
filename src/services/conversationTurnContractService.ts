@@ -36,6 +36,10 @@ function unique(values: Array<string | undefined | null>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value && value.trim())).map(value => value.trim()))];
 }
 
+function hasReason(decision: ConversationIntelligenceDecision, reason: string): boolean {
+  return decision.reasons.some(item => item === reason || item.startsWith(`${reason}:`));
+}
+
 function buildResponseRequirements(
   decision: ConversationIntelligenceDecision,
   goalState: ConversationGoalState,
@@ -54,6 +58,9 @@ function buildResponseRequirements(
   if (decision.relativeReference) requirements.push(`Resolve the relative reference cautiously: ${decision.relativeReference.target}. Ask before acting when the target is not uniquely identified.`);
   if (decision.requiresStructuredProposal) requirements.push('Any action proposal must map to an existing canonical capability and retain exact object/context identity.');
   if (decision.requiresContextReconciliation) requirements.push('Reconcile the selected context against active and paused contexts before proposing an action.');
+  if (hasReason(decision, 'identity_introduction')) requirements.push('The user is introducing their name. Acknowledge it naturally and do not turn the introduction into an unnecessary authentication flow.');
+  if (hasReason(decision, 'context_pivot')) requirements.push('The user is changing topic. Answer the new topic first while preserving the previous context for later resumption.');
+  if (hasReason(decision, 'explicit_resumption')) requirements.push('The user is explicitly returning to an earlier context. Resume only the exact referenced context; do not substitute a merely recent goal.');
   if (decision.modelTier === 'strong') requirements.push('Prefer deeper context handling over shortcut classification for this turn.');
 
   return unique(requirements);
@@ -69,6 +76,9 @@ function buildModelInstructions(
   if (decision.mode === 'reference') instructions.push('Resolve the reference against canonical context; never substitute a merely recent object.');
   if (decision.mode === 'clarification') instructions.push('Clarify only the unresolved point that blocks a useful next step.');
   if (decision.mode === 'control') instructions.push('Treat control language as an explicit request to affect an existing goal/request only after canonical identity validation.');
+  if (hasReason(decision, 'identity_introduction')) instructions.push('Treat a self-introduced name as conversational identity information; use it naturally in later replies when appropriate, but do not overuse it.');
+  if (hasReason(decision, 'context_pivot')) instructions.push('Do not drag the previous topic into the new answer unless it is necessary; retain it silently for later resumption.');
+  if (hasReason(decision, 'explicit_resumption')) instructions.push('Resume the exact prior context identified by the user and state what you are resuming in natural language when helpful.');
   if (goalState.currentGoal) instructions.push(`Current goal: ${goalState.currentGoal}`);
   if (goalState.activeGoals.length > 1) instructions.push(`Multiple active goals exist (${goalState.activeGoals.length}); keep them distinct and preserve identity.`);
   if (goalState.pausedGoals.length) instructions.push(`There are ${goalState.pausedGoals.length} paused goals; do not resume one merely because it is older or more recent.`);
