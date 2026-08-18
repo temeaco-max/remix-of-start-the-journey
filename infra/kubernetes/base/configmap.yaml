@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kurukoo-runtime
+  namespace: kurukoo
+data:
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  PORT: "8080"
+  KURUKOO_WORKERS: "1"
+  KURUKOO_DATABASE_MODE: sqljs
+  KURUKOO_JOB_MODE: in_process
+  KURUKOO_PERSISTENT_STATE_REQUIRED: "true"
+  KURUKOO_METRICS_ENABLED: "true"
