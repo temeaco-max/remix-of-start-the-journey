@@ -1,12 +1,12 @@
-import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
+import type { UniversalCapabilityDescriptor, CapabilityRisk } from './universalCapabilityProtocol.js';
 
-export interface CapabilityActionMetadata {
-  label?: string;
-  description?: string;
-  risk?: UniversalCapabilityDescriptor['risk'];
-  confirmationRequired?: boolean;
-  permissions?: string[];
-  activationState?: UniversalCapabilityDescriptor['activationState'];
+export interface CapabilityActionContract {
+  action: string;
+  risk: CapabilityRisk;
+  confirmationRequired: boolean;
+  permissions: string[];
+  activationState: UniversalCapabilityDescriptor['activationState'];
+  owner: string[];
 }
 
 export interface CapabilityRegistration {
@@ -17,7 +17,7 @@ export interface CapabilityRegistration {
   requiresCapabilities?: string[];
   providesCapabilities?: string[];
   source?: string;
-  actionMetadata?: Record<string, CapabilityActionMetadata>;
+  actionContracts?: CapabilityActionContract[];
 }
 
 export interface CapabilityComposition {
@@ -34,23 +34,27 @@ function normalizeName(value: string): string {
   return String(value || '').trim().toLowerCase();
 }
 
-function normalizeActionMetadata(metadata: Record<string, CapabilityActionMetadata> | undefined): Record<string, CapabilityActionMetadata> {
-  return Object.fromEntries(Object.entries(metadata || {}).map(([action, value]) => [
-    String(action || '').trim().toLowerCase(), {
-      ...(value || {}),
-      permissions: [...new Set((value?.permissions || []).map(String).filter(Boolean))],
-    },
-  ]).filter(([action]) => Boolean(action)));
-}
-
 function cloneRegistration(registration: CapabilityRegistration): CapabilityRegistration {
   return {
     ...registration,
-    descriptor: { ...registration.descriptor, actions: [...registration.descriptor.actions], owner: [...registration.descriptor.owner], permissions: [...registration.descriptor.permissions] },
+    descriptor: { ...registration.descriptor, actions: [...registration.descriptor.actions], owner: [...registration.descriptor.owner], permissions: [...registration.descriptor.permissions], nextAllowedActions: [...registration.descriptor.nextAllowedActions] },
     aliases: [...(registration.aliases || [])],
     requiresCapabilities: [...(registration.requiresCapabilities || [])],
     providesCapabilities: [...(registration.providesCapabilities || [])],
-    actionMetadata: Object.fromEntries(Object.entries(registration.actionMetadata || {}).map(([action, metadata]) => [action, { ...metadata, permissions: [...(metadata.permissions || [])] }])),
+    actionContracts: (registration.actionContracts || []).map(contract => ({ ...contract, permissions: [...contract.permissions], owner: [...contract.owner] })),
+  };
+}
+
+function defaultActionContract(descriptor: UniversalCapabilityDescriptor, action: string): CapabilityActionContract {
+  const normalized = String(action || '').trim();
+  const readOnly = new Set(['inspect', 'status', 'read', 'open', 'view', 'context', 'discover', 'check_availability', 'quote', 'verify', 'track', 'history', 'balance']).has(normalized.toLowerCase());
+  return {
+    action: normalized,
+    risk: readOnly ? 'read_only' : descriptor.risk,
+    confirmationRequired: readOnly ? false : descriptor.confirmationRequired,
+    permissions: [...descriptor.permissions],
+    activationState: descriptor.activationState,
+    owner: [...descriptor.owner],
   };
 }
 
@@ -63,6 +67,12 @@ export function registerCapability(registration: CapabilityRegistration): Capabi
     const existing = aliasIndex.get(alias);
     if (existing && existing !== name) throw new Error(`Capability alias ${alias} is already owned by ${existing}.`);
   }
+  const existingContracts = registration.actionContracts || [];
+  const contractMap = new Map(existingContracts.map(contract => [normalizeName(contract.action), contract]));
+  for (const action of registration.descriptor.actions) {
+    const key = normalizeName(action);
+    if (!contractMap.has(key)) contractMap.set(key, defaultActionContract(registration.descriptor, action));
+  }
   const value: CapabilityRegistration = {
     ...registration,
     namespace: registration.namespace || 'kurukoo',
@@ -71,7 +81,7 @@ export function registerCapability(registration: CapabilityRegistration): Capabi
     requiresCapabilities: [...new Set((registration.requiresCapabilities || []).map(normalizeName).filter(Boolean))],
     providesCapabilities: [...new Set((registration.providesCapabilities || []).map(normalizeName).filter(Boolean))],
     source: registration.source || 'core',
-    actionMetadata: normalizeActionMetadata(registration.actionMetadata),
+    actionContracts: [...contractMap.values()],
   };
   registry.set(name, value);
   for (const alias of normalizedAliases) aliasIndex.set(alias, name);
@@ -82,28 +92,36 @@ export function registerCapabilities(registrations: CapabilityRegistration[]): v
   for (const registration of registrations) registerCapability(registration);
 }
 
-export function extendCapabilityActions(name: string, actions: string[], actionMetadata?: Record<string, CapabilityActionMetadata>): CapabilityRegistration {
+export function extendCapabilityActions(name: string, actions: string[], contracts: CapabilityActionContract[] = []): CapabilityRegistration {
   const normalized = normalizeName(name);
   const canonicalName = registry.has(normalized) ? normalized : aliasIndex.get(normalized);
   if (!canonicalName) throw new Error(`Cannot extend unknown capability ${normalized}.`);
   const registration = registry.get(canonicalName);
   if (!registration) throw new Error(`Capability ${canonicalName} is unavailable.`);
   const nextActions = [...new Set([...registration.descriptor.actions, ...actions.map(action => String(action || '').trim()).filter(Boolean)])];
-  const mergedMetadata = { ...(registration.actionMetadata || {}), ...normalizeActionMetadata(actionMetadata) };
-  const invalidMetadataActions = Object.keys(mergedMetadata).filter(action => !nextActions.includes(action));
-  if (invalidMetadataActions.length) throw new Error(`Cannot attach metadata for undeclared capability actions: ${invalidMetadataActions.join(', ')}.`);
-  registration.descriptor = {
-    ...registration.descriptor,
-    actions: nextActions,
-    nextAllowedActions: [...new Set([...registration.descriptor.nextAllowedActions, ...nextActions])],
-    permissions: [...new Set([...registration.descriptor.permissions, ...Object.values(mergedMetadata).flatMap(metadata => metadata.permissions || [])])],
-    confirmationRequired: registration.descriptor.confirmationRequired || Object.values(mergedMetadata).some(metadata => metadata.confirmationRequired === true),
-    consentRequired: registration.descriptor.consentRequired || Object.values(mergedMetadata).some(metadata => metadata.confirmationRequired === true || (metadata.permissions || []).includes('explicit_user_consent')),
-    risk: Object.values(mergedMetadata).some(metadata => metadata.risk === 'high_risk') ? 'high_risk' : Object.values(mergedMetadata).some(metadata => metadata.risk === 'confirmation_required') ? 'confirmation_required' : registration.descriptor.risk,
-  };
-  registration.actionMetadata = mergedMetadata;
+  const contractMap = new Map((registration.actionContracts || []).map(contract => [normalizeName(contract.action), contract]));
+  for (const action of actions) {
+    const key = normalizeName(action);
+    if (!contractMap.has(key)) contractMap.set(key, defaultActionContract(registration.descriptor, action));
+  }
+  for (const contract of contracts) {
+    contractMap.set(normalizeName(contract.action), { ...contract, permissions: [...contract.permissions], owner: [...contract.owner] });
+  }
+  registration.descriptor = { ...registration.descriptor, actions: nextActions, nextAllowedActions: [...new Set([...registration.descriptor.nextAllowedActions, ...nextActions])] };
+  registration.actionContracts = [...contractMap.values()];
   registry.set(canonicalName, registration);
   return cloneRegistration(registration);
+}
+
+export function getCapabilityActionContract(name: string, action: string): CapabilityActionContract | undefined {
+  const registration = getCapabilityRegistration(name);
+  if (!registration) return undefined;
+  const normalizedAction = normalizeName(action);
+  return registration.actionContracts?.find(contract => normalizeName(contract.action) === normalizedAction) || (registration.descriptor.actions.some(item => normalizeName(item) === normalizedAction) ? defaultActionContract(registration.descriptor, action) : undefined);
+}
+
+export function listCapabilityActionContracts(name: string): CapabilityActionContract[] {
+  return getCapabilityRegistration(name)?.actionContracts || [];
 }
 
 export function getCapabilityRegistration(name: string): CapabilityRegistration | undefined {
@@ -146,19 +164,24 @@ export function resolveCapabilityComposition(names: string[]): CapabilityComposi
   return { requested, ordered, unresolved: [...new Set(unresolved)], cycle: cycle.length ? [...new Set(cycle)] : undefined };
 }
 
-export function validateCapabilityRegistry(): { valid: boolean; duplicateAliases: string[]; unresolvedDependencies: Array<{ capability: string; dependency: string }>; cycles: string[][]; invalidActionMetadata: Array<{ capability: string; action: string }> } {
+export function validateCapabilityRegistry(): { valid: boolean; duplicateAliases: string[]; unresolvedDependencies: Array<{ capability: string; dependency: string }>; cycles: string[][]; invalidActionContracts: Array<{ capability: string; action: string; reason: string }> } {
   const duplicateAliases: string[] = [];
   const unresolvedDependencies: Array<{ capability: string; dependency: string }> = [];
-  const invalidActionMetadata: Array<{ capability: string; action: string }> = [];
+  const invalidActionContracts: Array<{ capability: string; action: string; reason: string }> = [];
   for (const registration of registry.values()) {
     for (const alias of registration.aliases || []) {
       const owner = aliasIndex.get(alias);
       if (owner !== registration.descriptor.capability) duplicateAliases.push(alias);
     }
-    const declaredActions = new Set(registration.descriptor.actions.map(action => normalizeName(action)));
-    for (const action of Object.keys(registration.actionMetadata || {})) if (!declaredActions.has(normalizeName(action))) invalidActionMetadata.push({ capability: registration.descriptor.capability, action });
     for (const dependency of registration.requiresCapabilities || []) {
       if (!getCapabilityRegistration(dependency)) unresolvedDependencies.push({ capability: registration.descriptor.capability, dependency });
+    }
+    const declared = new Set(registration.descriptor.actions.map(normalizeName));
+    for (const contract of registration.actionContracts || []) {
+      const action = normalizeName(contract.action);
+      if (!declared.has(action)) invalidActionContracts.push({ capability: registration.descriptor.capability, action, reason: 'action_not_declared' });
+      if (contract.confirmationRequired && contract.risk === 'read_only') invalidActionContracts.push({ capability: registration.descriptor.capability, action, reason: 'read_only_confirmation_conflict' });
+      if (contract.permissions.length === 0) invalidActionContracts.push({ capability: registration.descriptor.capability, action, reason: 'missing_permissions' });
     }
   }
   const cycles: string[][] = [];
@@ -166,5 +189,5 @@ export function validateCapabilityRegistry(): { valid: boolean; duplicateAliases
     const composition = resolveCapabilityComposition([registration.descriptor.capability]);
     if (composition.cycle?.length) cycles.push(composition.cycle);
   }
-  return { valid: duplicateAliases.length === 0 && unresolvedDependencies.length === 0 && cycles.length === 0 && invalidActionMetadata.length === 0, duplicateAliases, unresolvedDependencies, cycles, invalidActionMetadata };
+  return { valid: duplicateAliases.length === 0 && unresolvedDependencies.length === 0 && cycles.length === 0 && invalidActionContracts.length === 0, duplicateAliases, unresolvedDependencies, cycles, invalidActionContracts };
 }
