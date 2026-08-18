@@ -126,3 +126,8 @@ The protected cart workspace correctly redirects unauthenticated users to the ex
 Parallel visual agents must reuse the canonical selectors documented in `docs/design/kurukoo-chat-selector-vocabulary.md`. The primary Chat implementation remains owned by `public/chat/index.html` and `public/css/kurukoo-chat.css`, with the required three-region structure represented by `.chat-sidebar`, `.chat-main`, `.chat-inspector`, `.chat-header`, `.chat-scroll`, `.message`, `.message-body`, `.composer`, `.composer-wrap`, `.inspector-card` and `.inspector-menu-link`.
 
 The focused compliance probe passed with 13 required structural selectors, 49 canonical SVG icon references, zero forbidden legacy glyph matches, and no inline-style or inline-event drift. Existing Chat DOM-safety, conversation-workspace, accessibility and strict CSS audits also passed. The initial probe used generic names such as `.chat-messages` and `.composer-input`; those names were corrected in the agent handoff to the actual canonical selectors rather than adding compatibility aliases or duplicate CSS.
+
+
+## 13. Frontend/web visual implementation verification
+
+The live canonical web Chat shell was verified at the reference logical composition size. It presents the intended three-region structure: left conversation/workspace navigation, central Agent conversation with the Ask composer, and a right Context inspector containing request, channel, nearby, tasks and memory cards. The current guest state correctly shows Web Chat ready while WhatsApp and Telegram remain setup-required; this is truthful readiness language rather than a visual defect. Authenticated Checkout and Confirmation states still require an authenticated browser session for final pixel-level comparison.

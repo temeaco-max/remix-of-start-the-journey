@@ -15,3 +15,15 @@
 - [x] Polish remaining partner, agent and operational visual states
 - [x] Run the next full high-fidelity regression and accessibility pass
 - [x] Commit the next authenticated-surface convergence milestone
+
+- [ ] Compare authenticated Checkout/cart and Confirmation/evidence states at the reference composition size
+- [ ] Tune Checkout and Confirmation spacing, evidence hierarchy and truthful status treatments
+- [ ] Compare and tune Tasks notification popover and continuation state at the reference size
+- [ ] Compare and tune Connect channel cards and readiness states at the reference size
+- [ ] Run exact-size visual, accessibility and functional regressions and commit the milestone
+
+- [x] Apply the confirmed Web Chat visual grammar to the public frontend website and navigation
+- [x] Apply the confirmed visual grammar to web Chat, workspaces, Tasks notifications and Connect
+- [x] Apply the confirmed visual grammar to Checkout/Confirmation, Discover, admin, partners and agents
+- [x] Run the complete frontend/web visual, accessibility, responsive and functional regression suite
+- [x] Commit the validated frontend/web visual implementation milestone
