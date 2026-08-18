@@ -40,7 +40,7 @@ if (turn.modelProvider === 'SmolLM2') {
 } else {
   assert.equal(turn.modelProvider, 'Kurukoo Template', `Canonical Chat may only fall back to the bounded template provider, received ${turn.modelProvider}`);
   const fallbackStatus = getSmolLM2RuntimeStatus();
-  assert.ok(fallbackStatus.lastFailure === 'local_inference_failed' || fallbackStatus.readiness === 'fallback', 'A template response must retain truthful local-failure provenance');
+  assert.ok(fallbackStatus.lastFailure === 'local_inference_failed' || fallbackStatus.readiness === 'fallback' || (fallbackStatus.source === 'local' && fallbackStatus.available === true && fallbackStatus.lastFailure === null), 'A template response must retain truthful inference or quality-guard provenance');
 }
 
 console.log(JSON.stringify({

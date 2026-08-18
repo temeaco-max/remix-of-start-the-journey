@@ -65,3 +65,55 @@
 - [x] Reconcile content and service contracts without adopting unsupported claims or duplicate architectures
 - [x] Run full visual, build, accessibility, CSS and route regression verification
 - [x] Commit the reconciled selective port and document develop branch disposition
+
+- [x] Inventory all approximate logo references and authoritative interlocking-loop mark sources
+- [x] Create the canonical interlocking-loop logo asset and shared rendering partial
+- [x] Replace approximate marks across public, Chat, workspace and admin surfaces
+- [x] Update mobile-facing brand assets without changing platform identifiers
+- [x] Run visual, accessibility, build and reference regression verification
+- [x] Commit the authoritative logo convergence and document asset ownership
+
+- [x] Extract the exact interlocking Kurukoo logo from the supplied Web Chat design set without reopening it in the file viewer
+- [x] Replace inaccurate logo assets and shared public rendering partials with the extracted mark
+- [x] Replace Chat, workspace, admin and mobile-facing logo references
+- [x] Verify the extracted mark at application sizes and run visual, build and accessibility regressions
+- [x] Commit the exact logo correction and document reference-image provenance
+- [x] Extract the exact authoritative compact loop-and-person logo from pasted_file_Hpq4At_image.png without reopening the attachment with the file viewer
+- [x] Replace all incorrect logo references and generated assets across canonical web, PWA, admin, workspace and mobile surfaces
+- [x] Verify all frontend pages, navigation states and responsive layouts against the authoritative Kurukoo design set
+- [x] Run final build, accessibility, CSS and route regression checks for the logo convergence
+
+- [ ] Audit the full repository architecture, product truth, provider boundaries, agent runtime and current homepage alignment
+- [ ] Define the target multi-agent network architecture and activation roadmap with truthful external gates
+- [ ] Update the Blueprint/product documentation and homepage positioning/wireframe to match current Kurukoo truth
+- [ ] Refactor only the files with confirmed positioning, visual or truth drift while preserving canonical services
+- [ ] Run build, route, accessibility, CSS, PWA, security and production-readiness validation
+
+- [x] Add deterministic trusted-contact consent lifecycle regression coverage
+- [x] Verify provider-unavailable consent readiness, single-use token response, activation and replay rejection
+- [x] Validate FCM, notification queue, QR, WhatsApp and Telegram linked-session boundaries
+- [x] Validate Stripe sandbox signature, replay and metadata boundaries
+- [x] Clean stale Metro watcher artifacts and restart an isolated mobile preview on ports 8082/3005
+- [x] Verify the mobile ContinuityBand and Chat surfaces render in the fresh Expo web preview
+- [x] Run behavioral chat, natural interleaving and context-arbitration regressions
+- [ ] Execute real-device push notification delivery with Firebase credentials and a physical build
+- [ ] Execute real WhatsApp/Telegram linked-device pairing and inbound/outbound delivery with user-controlled accounts
+- [ ] Execute Stripe test-mode webhook, settlement, refund and dispute rehearsal with external credentials
+- [ ] Re-run exact-size visual comparison for Checkout, Confirmation, Tasks and Connect surfaces
+- [ ] Re-run the live browser chat journey after controlled local authentication is explicitly enabled
+
+- [x] Repair the managed mobile ContinuityBand export and clear the TypeScript health error
+- [x] Re-run the managed mobile TypeScript, lint and preview health checks
+- [x] Configure Firebase test credentials through the secure project secrets flow
+- [x] Configure Stripe test credentials through the secure project secrets flow
+- [ ] Execute Firebase/physical-device and Stripe test-mode activation rehearsals where supported (credentials are present; provider flag remains sandbox and no device token or live payment intent was used)
+- [ ] Run exact-size Checkout and Confirmation visual comparison and tune confirmed drift (authenticated Cart/Checkout captured; no direct /confirmation route exists)
+- [x] Execute the authenticated live browser conversation sequence and record truthful outcomes; pause mutation failed closed, reminder/resumption/relative-reference/confirmation boundaries behaved safely
+
+- [ ] Validate configured Mistral, Groq, Gemini, Hugging Face, Firebase and Stripe test credential readiness without exposing values
+- [ ] Run local AI inference samples and assess Chat response appropriateness, brevity, truthfulness and context preservation
+- [ ] Audit all Chat-area views, panels, controls and working states against their authoritative visual screen-set contracts
+- [ ] Refine reminder conversation prompts, field collection and confirmation language for natural minimal turns
+- [ ] Fix confirmed Chat presentation or functional drift and add regression coverage
+- [ ] Run full Chat, AI, visual, accessibility, security and route regressions
+- [ ] Push validated canonical changes to main and verify local/remote synchronization
