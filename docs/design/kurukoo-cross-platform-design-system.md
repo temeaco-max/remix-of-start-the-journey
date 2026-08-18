@@ -100,3 +100,10 @@ Every surface must preserve the same mark, Inter/Space Grotesk typography, warm 
 The live homepage now follows the confirmed warm asymmetric composition and shared header hierarchy, with the simplified Explore, Channels, About and Help navigation. The homepage still contains legacy Unicode glyphs in the capability grid and timeline that require replacement with the canonical icon sprite during the remaining convergence pass.
 
 The live Chat shell is structurally present across sidebar, central conversation and context inspector, but the current rendering still requires visual refinement against the Chat board: the header/action density is too compressed, several controls remain glyph-based, and the central composer/message scale needs the board’s clearer hierarchy and spacing. These are presentation findings only; the canonical Chat and context owners remain unchanged.
+
+
+## 9. Operational and discovery verification
+
+The live admin entry renders with the intended warm cream background, centered operational sign-in card, charcoal text hierarchy and terracotta primary action. Its remaining visual drift was the legacy diamond brand glyph, which has been replaced with the canonical icon sprite.
+
+The live Discover surface now shows icon-led pathway cards and retains the required source-attributed discovery disclaimer. The map/list hierarchy is present and privacy language remains visible. The map is still a presentation layer over canonical discovery state; no UI change implies that a discovered place is a verified or available Kurukoo provider.
