@@ -1,38 +1,28 @@
 <%- include('_partials/head') %>
 <%- include('_partials/nav') %>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-<main class="container discover-main">
-    <section class="advertise-hero">
-        <div class="category-badge-pill">Discover</div>
-        <h1 class="advertise-title">Find useful things around you.</h1>
-        <p class="advertise-desc">Explore services, opportunities, events and other useful activity when reliable location context and recorded evidence are available. Locations are fuzzed for privacy.</p>
-    </section>
-
-    <section class="discover-intro-cards" aria-label="Discover pathways"><article class="network-card discover-intro-card"><span aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#discover"></use></svg></span><h2>Nearby services</h2><p>Explore eligible local capabilities when reliable location and availability data exists.</p></article><article class="network-card discover-intro-card"><span aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#channels"></use></svg></span><h2>Events &amp; opportunities</h2><p>Discover useful activity without turning the network into a conventional directory.</p></article><article class="network-card discover-intro-card"><span aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#safety"></use></svg></span><h2>Safety &amp; urgent help</h2><p>Get guidance and coordination support while keeping emergency-service boundaries clear.</p></article></section>
-
-    <div id="layer-chips" class="layer-chips-bar" aria-label="Discovery layers">
-        <button type="button" class="layer-chip active" data-layer="provider" aria-pressed="true">Providers</button>
-        <button type="button" class="layer-chip" data-layer="service" aria-pressed="true">Services</button>
-        <button type="button" class="layer-chip" data-layer="place" aria-pressed="true">Places</button>
-        <button type="button" class="layer-chip" data-layer="event" aria-pressed="true">Events</button>
-        <button type="button" class="layer-chip" data-layer="agent" aria-pressed="true">Agents</button>
-        <button type="button" class="layer-chip" data-layer="community_context" aria-pressed="true">Community context</button>
+<main class="frontend-discover-page">
+  <section class="frontend-discover container" aria-labelledby="discover-title">
+    <header class="frontend-discover__header">
+      <div><span class="eyebrow">Explore</span><h1 id="discover-title">Discover</h1><p>Find insights across the sources you connect.</p></div>
+      <form class="frontend-discover__search" role="search" action="/discover" method="get"><label class="sr-only" for="discover-search">Search topics, documents and decisions</label><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#discover"></use></svg><input id="discover-search" name="q" type="search" placeholder="Search topics, documents, decisions…" autocomplete="off"></form>
+    </header>
+    <div class="frontend-discover__workspace">
+      <aside class="frontend-discover__rail" aria-label="Discover filters">
+        <div class="frontend-discover__rail-title"><strong>Refine</strong><button type="reset" form="discover-filter-form">Clear all</button></div>
+        <form id="discover-filter-form" class="frontend-discover__filters" action="/discover" method="get">
+          <fieldset><legend>Source</legend><label><input id="source-google-drive" type="checkbox" name="source" value="google-drive"><span>Google Drive</span><small>124</small></label><label><input id="source-google-sheets" type="checkbox" name="source" value="google-sheets"><span>Google Sheets</span><small>48</small></label><label><input id="source-notion" type="checkbox" name="source" value="notion"><span>Notion</span><small>32</small></label><label><input id="source-outlook" type="checkbox" name="source" value="outlook"><span>Outlook</span><small>16</small></label><button class="frontend-discover__more" type="button" aria-expanded="false">⌄&nbsp; Show more</button></fieldset>
+          <fieldset><legend>Date</legend><div class="frontend-discover__select"><label class="sr-only" for="discover-date">Date range</label><select id="discover-date" name="date"><option>Any time</option><option>Past week</option><option>Past month</option></select></div></fieldset>
+          <fieldset><legend>People</legend><div class="frontend-discover__people"><label class="sr-only" for="discover-people">Search people</label><input id="discover-people" type="search" name="people" placeholder="Search people…"></div></fieldset>
+        </form>
+      </aside>
+      <section class="frontend-discover__results" aria-label="Connected source results">
+        <div class="frontend-discover__toolbar"><div class="frontend-discover__chips" role="list" aria-label="Content types"><button class="is-active" type="button" role="listitem" aria-pressed="true">All</button><button type="button" role="listitem" aria-pressed="false">Documents</button><button type="button" role="listitem" aria-pressed="false">Spreadsheets</button><button type="button" role="listitem" aria-pressed="false">Notes</button><button type="button" role="listitem" aria-pressed="false">Presentations</button></div><label class="frontend-discover__sort" for="discover-sort"><span>Sort:</span><select id="discover-sort" name="sort"><option>Relevance</option><option>Recently updated</option><option>Recently added</option></select></label></div>
+        <div class="frontend-discover__cards"><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--doc" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#document"></use></svg></span><span>May 14 · Google Docs</span></div><h2>Q2 Project Brief</h2><p>Project goals, scope, stakeholders, and success metrics.</p><footer><span>Document</span><strong>••• +2</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--sheet" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#list"></use></svg></span><span>May 14 · Google Sheets</span></div><h2>Risk Register (Current)</h2><p>Live risks, owners, status, and mitigation plans.</p><footer><span>Spreadsheet</span><strong>••• +3</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--note" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#note"></use></svg></span><span>May 13 · Notion</span></div><h2>Decisions Log — May 13</h2><p>Key decisions, rationale, and follow-up owners.</p><footer><span>Note</span><strong>••• +1</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--doc" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#document"></use></svg></span><span>May 14 · Google Docs</span></div><h2>Client Update — May 12</h2><p>Latest client update and upcoming milestones.</p><footer><span>Document</span><strong>••• +2</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--doc" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#document"></use></svg></span><span>May 14 · Google Docs</span></div><h2>Draft Agenda</h2><p>Proposed agenda and discussion topics for the meeting.</p><footer><span>Document</span><strong>••• +1</strong></footer></article><article class="frontend-source-card"><div class="frontend-source-card__top"><span class="frontend-source-card__file frontend-source-card__file--sheet" aria-hidden="true"><svg class="k-icon"><use href="/icons/kurukoo-icons.svg#presentation"></use></svg></span><span>May 10 · Google Slides</span></div><h2>Q2 Roadmap</h2><p>Roadmap overview and delivery phases for Q2.</p><footer><span>Presentation</span><strong>••• +3</strong></footer></article></div>
+        <section class="frontend-discover__network" aria-labelledby="network-discover-title"><div class="frontend-discover__network-heading"><div><span class="eyebrow">Nearby pulse</span><h2 id="network-discover-title">Explore the wider network</h2><p>Source-attributed discovery entities remain distinct from Kurukoo providers until they are claimed, verified and available.</p></div><a class="btn btn-outline" href="/chat?prompt=Help%20me%20explore%20nearby">Open in Chat</a></div><div id="discover-map" class="discover-map-box" aria-label="Discovery network map"></div><div id="discover-list" class="k-list"><div class="k-row"><span>Locating useful discovery context…</span><span class="k-muted">Permission required</span></div></div><p class="discover-disclaimer">Privacy: location is coarse for discovery and map coordinates are fuzzed. Exact provider coordinates are never returned to the browser.</p></section>
+      </section>
     </div>
-
-    <div class="discover-layout">
-        <div id="discover-map" class="discover-map-box" aria-label="Discovery network map"></div>
-        <aside class="discover-network-list" aria-label="Nearby discovery results">
-            <h2>Discovery network</h2>
-            <p class="discover-disclaimer">These are source-attributed discovery items. A business or place is not a Kurukoo provider unless it is claimed, verified and currently available.</p>
-            <div id="discover-list" class="k-list"><div class="k-row"><span>Locating useful discovery context…</span><span class="k-muted">Permission required</span></div></div>
-        </aside>
-    </div>
-
-    <p class="discover-disclaimer">Privacy: your location is coarse for discovery and map coordinates are fuzzed. Exact provider coordinates are never returned to the browser.</p>
+  </section>
 </main>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
-<script src="/js/kurukoo-discover-map.js" defer></script>
-
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script><script src="/js/kurukoo-discover-map.js" defer></script>
 <%- include('_partials/footer') %>

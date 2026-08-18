@@ -27,3 +27,8 @@
 - [x] Apply the confirmed visual grammar to Checkout/Confirmation, Discover, admin, partners and agents
 - [x] Run the complete frontend/web visual, accessibility, responsive and functional regression suite
 - [x] Commit the validated frontend/web visual implementation milestone
+
+- [x] Implement the frontend website-set Homepage composition and content hierarchy
+- [x] Implement the frontend website-set Discover composition, filters and source cards
+- [x] Show the relevant code changes and verify Homepage and Discover live at the reference viewport
+- [x] Continue Channels, About and Help after Homepage and Discover verification
