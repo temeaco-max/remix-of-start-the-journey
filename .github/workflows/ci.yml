@@ -32,11 +32,9 @@ jobs:
       - name: Validate production preflight parser
         run: NODE_ENV=development node scripts/production-preflight.mjs
       - name: Validate infrastructure manifests
-        run: docker compose -f docker-compose.production.yml config --quiet
+        run: POSTGRES_PASSWORD=ci-only-dont-use docker compose -f docker-compose.production.yml config --quiet
       - name: Build production container
         run: docker build --file Dockerfile --tag kurukoo:ci .
-      # The active transformer chain has a documented upstream high advisory with no safe npm fix.
-      # Keep all advisories visible while blocking any critical production dependency finding.
       - run: npm audit --omit=dev --audit-level=critical
       - run: npm run audit:css:all
       - run: npm run audit:messaging
