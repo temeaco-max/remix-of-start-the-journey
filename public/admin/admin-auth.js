@@ -75,6 +75,7 @@
         ${links.map(([href, label]) => `<a href="${href}"${current(href) ? ' aria-current="page"' : ''}>${label}</a>`).join('')}
       </nav>
       <div class="kurukoo-admin-convergence-actions">
+        <span class="kurukoo-admin-convergence-state" data-admin-operational-label>Loading operational state</span>
         <a href="/" target="_blank" rel="noopener">Open site</a>
         <button type="button" data-admin-convergence-logout>Sign out</button>
       </div>`;
@@ -96,6 +97,22 @@
       .catch(() => {
         const label = document.querySelector('[data-admin-health-label]');
         if (label) label.textContent = 'Health unavailable';
+      });
+
+    void fetch('/api/admin/platform/overview', { headers: { Accept: 'application/json' } })
+      .then(response => response.json().catch(() => ({})))
+      .then(data => {
+        const label = document.querySelector('[data-admin-operational-label]');
+        if (!label) return;
+        const operational = Array.isArray(data.integrations?.operational) ? data.integrations.operational : [];
+        const ready = operational.filter(item => item?.runtimeReady === true).length;
+        const configured = operational.filter(item => item?.configured === true).length;
+        const devices = Number(data.fcm?.registeredDevices || 0);
+        label.textContent = `Operational ${ready}/${operational.length} · Configured ${configured} · FCM devices ${devices}`;
+      })
+      .catch(() => {
+        const label = document.querySelector('[data-admin-operational-label]');
+        if (label) label.textContent = 'Operational state unavailable';
       });
   };
 
