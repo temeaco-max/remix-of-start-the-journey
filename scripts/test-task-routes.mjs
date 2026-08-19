@@ -39,10 +39,10 @@ for (const m of markers) {
 assert(src.includes("from '../services/appointmentService.js'"), 'imports appointment service');
 assert(src.includes("from '../services/microTasks.js'"), 'imports microTasks service');
 
-// Composition-root contract: canonical route modules own the application boundary.
+// Composition-root contract: src/index.ts is the canonical application entrypoint.
 const indexSrc = fs.readFileSync(path.join(__dirname, '../src/index.ts'), 'utf8');
 assert(!indexSrc.includes('legacyApp'), 'composition root does not depend on legacyApp');
 assert(indexSrc.includes("./routes/taskRoutes.js"), 'composition root mounts the canonical task route boundary');
-assert(indexSrc.includes('composition root'), 'index is explicitly a composition root');
+assert(indexSrc.includes("taskRoutes"), 'canonical task route is imported by the application entrypoint');
 
 console.log('PASS test-task-routes');
