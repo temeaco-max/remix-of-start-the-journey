@@ -19,6 +19,7 @@
   const setStat = (id, value) => { const node = document.getElementById(id); if (node) node.textContent = String(value ?? '—'); };
   const readinessLabel = (state) => ({ ready: 'Ready', activation_required: 'Needs activation', device_required: 'Needs device verification' }[state] || 'Unavailable');
   const moduleLabel = (state) => ({ connected: 'Connected', readiness: 'Readiness', 'legacy-surface': 'Existing admin surface' }[state] || 'Review');
+  const pilotLabel = (state) => ({ READY: 'Ready', EXTERNAL_DEPENDENCY: 'External dependency', PENDING: 'Pending', DISABLED: 'Disabled', NOT_CONFIGURED: 'Not configured' }[state] || state || 'Unknown');
 
   const renderSurfaces = (groups) => {
     if (!surfaces) return;
@@ -41,6 +42,18 @@
   };
 
   const renderList = (items) => `<div class="k-list">${items.map(([label, value]) => `<div class="k-row"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>`;
+
+  const renderPilotReadiness = (readiness) => {
+    if (!readiness || typeof readiness !== 'object') return '<p class="admin-muted">Canonical dependency readiness is unavailable.</p>';
+    const categories = Object.entries(readiness);
+    return `<div class="admin-readiness-grid">${categories.map(([category, entries]) => {
+      const rows = Object.entries(entries || {});
+      return `<section class="admin-module"><div class="admin-module-head"><div><span class="k-muted">${esc(category)}</span><h3>${esc(category.replaceAll('_', ' '))}</h3></div><span class="k-status">${rows.length} checks</span></div><div class="admin-module-list">${rows.map(([name, value]) => {
+        const state = value?.state || 'UNKNOWN';
+        return `<div class="admin-surface-row"><div><strong>${esc(name)}</strong><span class="admin-module-owner">${esc(value?.note || '')}</span></div><span class="admin-module-state admin-module-state-${esc(state.toLowerCase())}">${esc(pilotLabel(state))}</span></div>`;
+      }).join('')}</div></section>`;
+    }).join('')}</div>`;
+  };
 
   const loadPlatform = async () => {
     try {
@@ -83,6 +96,15 @@
 
   const renderSection = async () => {
     if (!panel) return;
+    if (section === 'overview') {
+      try {
+        const data = await loadJson('/api/admin/platform/overview');
+        panel.innerHTML = `<div class="card"><div class="k-section-heading"><div><p class="k-muted">Deployment truth</p><h2>Platform dependency readiness</h2></div><span class="k-status">Canonical pilotReadiness</span></div><p class="muted">Implementation, configuration and external activation are deliberately separated. This view never treats credentials or feature flags as proof of live delivery.</p>${renderPilotReadiness(data.readiness)}</div>`;
+      } catch (error) {
+        panel.innerHTML = `<div class="card"><h2>Platform dependency readiness</h2><p class="admin-error">${esc(error.message)}</p></div>`;
+      }
+      return;
+    }
     if (section === 'providers') {
       await renderReadiness('Provider readiness', 'Canonical provider entities, trust evidence and channel state. External fulfilment is never inferred from implementation alone.', data => {
         const evidence = Object.entries(data.channelEvidence || {}).reduce((sum, [, statuses]) => sum + Object.values(statuses || {}).reduce((n, value) => n + Number(value || 0), 0), 0);
@@ -127,7 +149,7 @@
     panel.innerHTML = '';
   };
 
-  refresh?.addEventListener('click', () => { void loadPlatform(); });
+  refresh?.addEventListener('click', () => { void loadPlatform(); void renderSection(); });
   void loadPlatform();
   void renderSection();
 })();
