@@ -9,6 +9,7 @@ import { claimReferral } from './referralService.js';
 import { providerSubscriptionTiers } from '../config/providerSubscriptionTiers.js';
 import { recordCommercialEvent } from './commercialLedger.js';
 import { upsertSubscriptionBilling } from './commercialBillingService.js';
+import { getCommercialProduct } from './commercialCatalogService.js';
 
 export type SubscriptionResult = { success:boolean; message:string; tier?:string; plan?:unknown; error?:string; payment_required?:boolean; };
 function normalizeTierName(plan:string):string{const p=String(plan||'').trim();if(!p)return'Base';return p.charAt(0).toUpperCase()+p.slice(1).toLowerCase();}
@@ -30,9 +31,10 @@ export async function subscribeProviderTier(phone:string,tier:string,options?:{p
   if(!phone||!tier)return{success:false,message:'Phone and tier are required',error:'missing_params'};
   const key=Object.keys(providerSubscriptionTiers).find(k=>k.toLowerCase().includes(tier.toLowerCase())||tier.toLowerCase()===k.replace('Kurukoo ','').toLowerCase());const normalized=tier==='Base'||tier==='Plus'||tier==='Business'?tier:key?key.replace('Kurukoo ',''):null;
   if(!normalized||!['Base','Plus','Business'].includes(normalized))return{success:false,message:'Invalid tier',error:'invalid_tier'};
-  const feeMap:Record<string,number>=Object.fromEntries(Object.entries(providerSubscriptionTiers).map(([name,value])=>[name.replace('Kurukoo ',''),Number(value.price)]));const fee=Number(feeMap[normalized]||0);let paid=await chargeProviderSubscription(phone,normalized,fee);if(!paid)paid=await processDirectPayment(phone,'SYSTEM',fee);if(!paid)return{success:false,message:'Insufficient balance or payment provider did not confirm subscription charge.',error:'payment_required',payment_required:true};
+  const catalogCode=`provider_${normalized.toLowerCase()}`;const catalog=await getCommercialProduct(catalogCode);const catalogPrice=catalog&&Number(catalog.active)?Number(catalog.price_minor):0;const legacyPrice=Number((providerSubscriptionTiers as any)[`Kurukoo ${normalized}`]?.price||0);const fee=catalogPrice>0?catalogPrice:legacyPrice;const currency=String(catalog?.currency||'NGN').toUpperCase();
+  let paid=await chargeProviderSubscription(phone,normalized,fee);if(!paid)paid=await processDirectPayment(phone,'SYSTEM',fee);if(!paid)return{success:false,message:'Insufficient balance or payment provider did not confirm subscription charge.',error:'payment_required',payment_required:true};
   const nextBillingDate=new Date();nextBillingDate.setMonth(nextBillingDate.getMonth()+1);const db=await getDb();db.run(`INSERT INTO provider_subscriptions(phone,tier,status,next_billing_date,leads_this_month) VALUES(?,?,'active',?,0) ON CONFLICT(phone) DO UPDATE SET tier=excluded.tier,status='active',next_billing_date=excluded.next_billing_date,leads_this_month=0`,[phone,normalized,nextBillingDate.toISOString()]);db.run(`UPDATE memory_profiles SET subscription_tier=?,updated_at=CURRENT_TIMESTAMP WHERE phone=?`,[normalized,phone]);saveDb();
-  await recordCommercialEvent({eventType:'subscription_charge',direction:'inbound',status:'settled',currency:'NGN',grossMinor:fee,platformFeeMinor:fee,providerAmountMinor:0,payer:phone,payee:'KURUKOO',representedParty:phone,externalReference:options?.payment_ref,idempotencyKey:`provider_subscription:${phone}:${normalized}:${options?.payment_ref||new Date().toISOString().slice(0,7)}`,metadata:{tier:normalized,billingPeriod:'monthly'}});
-  await upsertSubscriptionBilling({ownerPhone:phone,productCode:`provider:${normalized}`,tier:normalized,priceMinor:fee,currency:'NGN',nextBillingDate});
+  await recordCommercialEvent({eventType:'subscription_charge',direction:'inbound',status:'settled',currency,grossMinor:fee,platformFeeMinor:fee,providerAmountMinor:0,payer:phone,payee:'KURUKOO',representedParty:phone,externalReference:options?.payment_ref,idempotencyKey:`provider_subscription:${phone}:${normalized}:${options?.payment_ref||new Date().toISOString().slice(0,7)}`,metadata:{tier:normalized,billingPeriod:'monthly',productCode:catalogCode}});
+  await upsertSubscriptionBilling({ownerPhone:phone,productCode:catalogCode,tier:normalized,priceMinor:fee,currency,nextBillingDate});
   return{success:true,message:`Subscribed to ${normalized} tier successfully.`,tier:normalized};
 }
