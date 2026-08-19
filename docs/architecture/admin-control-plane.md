@@ -34,10 +34,11 @@ Protected endpoints:
 - `GET /api/admin/platform/surfaces`
 - `GET /api/admin/platform/modules`
 - `GET /api/admin/platform/health`
+- `GET /api/admin/platform/scale-readiness`
 
 All are behind `authenticateAdmin`.
 
-The projection exposes operational counts, integration implementation/activation readiness, notification queue state, Web/PWA/native/Admin surface coverage, module ownership, pilot/readiness state and the shared status-language contract. The full canonical `pilotReadiness.categories` tree is exposed through the Admin overview so operators see the same deployment truth used by the platform itself.
+The projection exposes operational counts, integration implementation/activation readiness, notification queue state, Web/PWA/native/Admin surface coverage, module ownership, pilot/readiness state and the shared status-language contract. The full canonical `pilotReadiness.categories` tree and scale-transition report are exposed through the Admin overview so operators see the same deployment truth used by the platform itself.
 
 The health endpoint only describes internal platform/admin health. It never upgrades a provider credential, device QR, payment configuration or integration implementation into external-live evidence.
 
@@ -51,9 +52,11 @@ The same boundary applies to payment, provider, notification, channel, conversat
 
 Admin must distinguish implementation from activation. A code path, credential or feature flag is not proof that an external provider/device is live.
 
-The UI uses explicit states such as Ready, Pending, Needs activation, Needs device verification, External dependency, Verified, Connected, Not connected, Unavailable and Failed.
+The UI uses explicit states such as Ready, Pending, Needs activation, Needs device verification, External dependency, Verified, Connected, Not connected, Unavailable, Failed and Scale required.
 
 External activation remains evidence-gated.
+
+The scale-transition projection also distinguishes the current single-process `sql.js` launch mode from the prerequisites for multi-worker operation. Multiple workers are not considered safe merely because `KURUKOO_WORKERS` is increased; approved durable persistence and shared rate-limit/coordination state are required before distributed activation.
 
 ## Client convergence
 
@@ -63,7 +66,7 @@ Native surfaces are represented as device-verification work until actual device 
 
 ## Shared Admin browser boundary
 
-All existing `public/admin/*.html` pages load `public/admin/admin-auth.js`. That shared boundary:
+All existing `public/admin/*.html` pages load `public/admin/admin-auth.js`, except the legacy dashboard which is now only a redirect to `/admin/` so there is one canonical Admin home. The shared boundary:
 
 1. forwards the Admin token to protected Admin API requests;
 2. clears an expired/invalid token and returns the operator to Admin login;
