@@ -42,6 +42,25 @@ function fallbackDeviceId(token: string): string {
   return `token-${crypto.createHash('sha256').update(token).digest('hex').slice(0, 32)}`;
 }
 
+function parseStoredTokens(value: unknown): string[] {
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(item => String(item || '').trim()).filter(Boolean);
+  } catch {
+    // Legacy single-token format.
+  }
+  return [raw];
+}
+
+async function syncLegacyProfileToken(db: any, phone: string): Promise<void> {
+  const rows = db.exec(`SELECT token FROM fcm_devices WHERE phone=? AND active=1 ORDER BY updated_at DESC`, [phone])[0]?.values || [];
+  const tokens = rows.map((row: any[]) => String(row[0] || '').trim()).filter(Boolean).slice(0, 20);
+  const serialized = tokens.length === 0 ? null : tokens.length === 1 ? tokens[0] : JSON.stringify(tokens);
+  db.run(`UPDATE memory_profiles SET fcm_token=?, updated_at=CURRENT_TIMESTAMP WHERE phone=?`, [serialized, phone]);
+}
+
 export async function registerFcmDevice(input: {
   phone: string;
   token: string;
@@ -58,15 +77,9 @@ export async function registerFcmDevice(input: {
   db.run(`INSERT INTO fcm_devices (phone, device_id, token, platform, credential_type, label, active, updated_at, last_error)
     VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, NULL)
     ON CONFLICT(phone, device_id) DO UPDATE SET token=excluded.token, platform=excluded.platform, credential_type=excluded.credential_type, label=excluded.label, active=1, updated_at=CURRENT_TIMESTAMP, last_error=NULL`, [
-    phone,
-    deviceId,
-    token,
-    String(input.platform || 'unknown').slice(0, 40),
-    String(input.credentialType || 'fcm').slice(0, 60),
-    input.label ? String(input.label).slice(0, 160) : null,
+    phone, deviceId, token, String(input.platform || 'unknown').slice(0, 40), String(input.credentialType || 'fcm').slice(0, 60), input.label ? String(input.label).slice(0, 160) : null,
   ]);
-  // Preserve the legacy profile token for older internal consumers while the registry becomes authoritative for delivery.
-  db.run(`UPDATE memory_profiles SET fcm_token = ?, updated_at = CURRENT_TIMESTAMP WHERE phone = ?`, [token, phone]);
+  await syncLegacyProfileToken(db, phone);
   saveDb();
   const count = db.exec(`SELECT COUNT(*) FROM fcm_devices WHERE phone = ? AND active = 1`, [phone])[0]?.values?.[0]?.[0];
   return { deviceId, activeDevices: Number(count || 0) };
@@ -94,11 +107,21 @@ export async function markFcmDeviceAccepted(phone: string, deviceId: string): Pr
 export async function markFcmDeviceFailure(phone: string, deviceId: string, error: string, deactivate = false): Promise<void> {
   const db = await ensureTable();
   db.run(`UPDATE fcm_devices SET last_error=?, active=CASE WHEN ?=1 THEN 0 ELSE active END, updated_at=CURRENT_TIMESTAMP WHERE phone=? AND device_id=?`, [String(error || 'fcm_failure').slice(0, 240), deactivate ? 1 : 0, phone, deviceId]);
-  if (deactivate) {
-    const active = db.exec(`SELECT token FROM fcm_devices WHERE phone=? AND active=1 ORDER BY updated_at DESC LIMIT 1`, [phone])[0]?.values?.[0]?.[0];
-    db.run(`UPDATE memory_profiles SET fcm_token=?, updated_at=CURRENT_TIMESTAMP WHERE phone=?`, [active ? String(active) : null, phone]);
-  }
+  await syncLegacyProfileToken(db, phone);
   if (db.getRowsModified() > 0) saveDb();
+}
+
+export async function deactivateFcmToken(token: string, error = 'device_token_unregistered'): Promise<number> {
+  const db = await ensureTable();
+  const phones = db.exec(`SELECT DISTINCT phone FROM fcm_devices WHERE token=? AND active=1`, [token])[0]?.values?.map((row: any[]) => String(row[0] || '').trim()).filter(Boolean) || [];
+  db.run(`UPDATE fcm_devices SET active=0, last_error=?, updated_at=CURRENT_TIMESTAMP WHERE token=? AND active=1`, [String(error).slice(0, 240), token]);
+  for (const phone of phones) await syncLegacyProfileToken(db, phone);
+  if (phones.length || db.getRowsModified() > 0) saveDb();
+  return phones.length;
+}
+
+export function parseFcmTokenCollection(value: unknown): string[] {
+  return parseStoredTokens(value).slice(0, 20);
 }
 
 export async function countFcmDevices(): Promise<number> {
