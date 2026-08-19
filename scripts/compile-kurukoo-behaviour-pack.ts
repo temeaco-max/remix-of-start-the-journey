@@ -22,6 +22,30 @@ const constitution = {
   storage: 'Training artifacts contain synthetic/provenance-marked data only; production user data is never silently admitted.'
 };
 
+const agentRuntime = {
+  goalStatuses: ['active','waiting','needs_user','blocked','completed','cancelled','failed','expired'],
+  sources: ['conversation','request','reminder','proactive','network','contributor','qr','event'],
+  autonomyLevels: ['observe','suggest','assist','act_with_confirmation','act_within_permission'],
+  riskLevels: ['read_only','reversible','user_confirmation_required','high_risk'],
+  planStepStatuses: ['pending','running','waiting','completed','blocked','failed'],
+  workerBoundaries: {
+    maxActionsPerCycle: Number(process.env.KURUKOO_AGENT_MAX_ACTIONS_PER_CYCLE || 8),
+    maxConcurrentGoals: Number(process.env.KURUKOO_AGENT_MAX_CONCURRENT_GOALS || 5),
+    maxRetries: Number(process.env.KURUKOO_AGENT_MAX_RETRIES || 2),
+    cooldownSeconds: Number(process.env.KURUKOO_AGENT_COOLDOWN_SECONDS || 30),
+  },
+  principles: [
+    'observe before acting',
+    'preserve exact goal and owner',
+    'use canonical agent tools',
+    'replan from verified outcomes',
+    'wait when external evidence is missing',
+    'request confirmation when policy requires it',
+    'never claim completion without evidence',
+    'pause/cancel/resume exact goals only'
+  ]
+};
+
 const behaviourFamilies = [
   { id:'ordinary_conversation', description:'Answer naturally without forcing a skill or action.', expected:['preserve context','avoid premature action','ask only useful clarification'] },
   { id:'clarification', description:'Gather only information necessary to progress the current goal.', expected:['minimal clarification','do not restart unrelated context'] },
@@ -68,90 +92,33 @@ for (const skill of getKnownSkills().sort()) {
     mode: flow?.mode || 'economic',
     capabilities: getSkillCapabilities(skill),
     requirements: getSkillRequirements(skill),
-    flow: flow ? {
-      questionSet: flow.question_set,
-      postMatchAction: flow.post_match_action,
-      paymentModel: flow.payment_model,
-      fulfillmentInstructions: flow.fulfillment_instructions,
-    } : null,
-    trainingInvariants: {
-      mustPreserve: ['owner identity','exact context','truth boundary','canonical execution boundary'],
-      mayNotInvent: ['availability','quote','payment','evidence','completion']
-    }
+    flow: flow ? { questionSet: flow.question_set, postMatchAction: flow.post_match_action, paymentModel: flow.payment_model, fulfillmentInstructions: flow.fulfillment_instructions } : null,
+    trainingInvariants: { mustPreserve: ['owner identity','exact context','truth boundary','canonical execution boundary'], mayNotInvent: ['availability','quote','payment','evidence','completion'] }
   });
 }
 
 const capabilities = (await listUniversalCapabilities()).map(descriptor => ({
-  kind: descriptor.kind,
-  capability: descriptor.capability,
-  family: descriptor.family,
-  mode: descriptor.mode,
-  actions: descriptor.actions,
-  requiredInputs: descriptor.context.requiredInputs,
-  optionalInputs: descriptor.context.optionalInputs,
-  permissions: descriptor.permissions,
-  owner: descriptor.owner,
-  risk: descriptor.risk,
-  confirmationRequired: descriptor.confirmationRequired,
-  lifecycle: descriptor.lifecycle,
-  canonicalFactsAvailable: descriptor.canonicalFactsAvailable,
-  evidenceStatus: descriptor.evidenceStatus,
-  activationState: descriptor.activationState,
-  failureStates: descriptor.failureStates,
-  recoveryActions: descriptor.recoveryActions,
-  externalDependencyState: descriptor.externalDependencyState,
+  kind: descriptor.kind, capability: descriptor.capability, family: descriptor.family, mode: descriptor.mode, actions: descriptor.actions,
+  requiredInputs: descriptor.context.requiredInputs, optionalInputs: descriptor.context.optionalInputs, permissions: descriptor.permissions,
+  owner: descriptor.owner, risk: descriptor.risk, confirmationRequired: descriptor.confirmationRequired, lifecycle: descriptor.lifecycle,
+  canonicalFactsAvailable: descriptor.canonicalFactsAvailable, evidenceStatus: descriptor.evidenceStatus, activationState: descriptor.activationState,
+  failureStates: descriptor.failureStates, recoveryActions: descriptor.recoveryActions, externalDependencyState: descriptor.externalDependencyState,
 })).sort((a,b) => a.capability.localeCompare(b.capability));
 
 const agentTools = listAgentTools().map(tool => ({
-  name: tool.name,
-  description: tool.description,
-  inputSchema: tool.inputSchema,
-  permission: tool.permission,
-  risk: tool.risk,
-  supportedContexts: tool.supportedContexts,
-  authorization: tool.authorization,
-  idempotency: tool.idempotency,
-  audit: tool.audit,
-  autonomous: tool.autonomous,
+  name: tool.name, description: tool.description, inputSchema: tool.inputSchema, permission: tool.permission, risk: tool.risk,
+  supportedContexts: tool.supportedContexts, authorization: tool.authorization, idempotency: tool.idempotency, audit: tool.audit, autonomous: tool.autonomous,
 })).sort((a,b) => a.name.localeCompare(b.name));
 
 const pack = {
-  schemaVersion: '1',
-  packVersion,
-  generatedAt: new Date().toISOString(),
-  sourceCommit,
-  sourceOfTruth: [
-    'BLUEPRINT.md',
-    'src/services/skillFlows.ts',
-    'src/services/universalCapabilityProtocol.ts',
-    'src/services/agentToolRegistry.ts',
-    'src/services/contextArbitration.ts',
-    'src/services/canonicalChatTurnService.ts',
-    'src/services/agentRuntime.ts',
-    'src/services/memoryProfile.ts',
-    'src/services/nearbyPulse.ts',
-    'src/services/capabilityPortfolioService.ts'
-  ],
-  constitution,
-  behaviourFamilies,
-  skills,
-  capabilities,
-  agentTools,
-  truthBoundary,
-  safetyBoundary,
-  activationStates,
-  coverage: {
-    skillCount: skills.length,
-    capabilityCount: capabilities.length,
-    agentToolCount: agentTools.length,
-    behaviourFamilyCount: behaviourFamilies.length,
-    families: [...new Set(skills.map(item => item.family))].sort(),
-    modes: [...new Set(skills.map(item => item.mode))].sort()
-  }
+  schemaVersion: '1', packVersion, generatedAt: new Date().toISOString(), sourceCommit,
+  sourceOfTruth: ['BLUEPRINT.md','src/services/skillFlows.ts','src/services/universalCapabilityProtocol.ts','src/services/agentToolRegistry.ts','src/services/contextArbitration.ts','src/services/canonicalChatTurnService.ts','src/services/agentRuntime.ts','src/services/memoryProfile.ts','src/services/nearbyPulse.ts','src/services/capabilityPortfolioService.ts'],
+  constitution, agentRuntime, behaviourFamilies, skills, capabilities, agentTools, truthBoundary, safetyBoundary, activationStates,
+  coverage: { skillCount: skills.length, capabilityCount: capabilities.length, agentToolCount: agentTools.length, behaviourFamilyCount: behaviourFamilies.length, families: [...new Set(skills.map(item => item.family))].sort(), modes: [...new Set(skills.map(item => item.mode))].sort() }
 };
 
-const serialized = JSON.stringify(pack, null, 2);
-const hash = crypto.createHash('sha256').update(serialized).digest('hex');
+const stablePayload = { ...pack, generatedAt: undefined };
+const hash = crypto.createHash('sha256').update(JSON.stringify(stablePayload)).digest('hex');
 const result = { ...pack, packHash: hash };
 fs.mkdirSync(outputDir, { recursive: true });
 const filePath = path.join(outputDir, `${packVersion}.json`);
