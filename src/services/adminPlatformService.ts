@@ -1,5 +1,6 @@
 import { getDb } from '../database.js';
 import { getExternalIntegrationReadiness } from './externalIntegrationReadiness.js';
+import { getExternalIntegrationOperationalStatus } from './externalIntegrationOperationalStatus.js';
 import { getPilotReadiness } from './pilotReadiness.js';
 import { getClientSurfaces, type ClientFamily, type ClientSurface } from './clientSurfaceRegistry.js';
 import { getNotificationQueueStats } from './pushNotifications.js';
@@ -25,22 +26,11 @@ export type AdminModule = {
 type ReadinessSummary = { total: number; ready: number; activation_required: number; device_required: number };
 
 function count(db: any, sql: string, params: unknown[] = []): number {
-  try {
-    const row = db.exec(sql, params)[0]?.values?.[0]?.[0];
-    return Number(row || 0);
-  } catch {
-    return 0;
-  }
+  try { return Number(db.exec(sql, params)[0]?.values?.[0]?.[0] || 0); } catch { return 0; }
 }
-
 function tableExists(db: any, table: string): boolean {
-  try {
-    return Boolean(db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [table])[0]?.values?.length);
-  } catch {
-    return false;
-  }
+  try { return Boolean(db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [table])[0]?.values?.length); } catch { return false; }
 }
-
 function surfaceReadiness(surface: ClientSurface): 'ready' | 'activation_required' | 'device_required' {
   if (surface.states.includes('device_verification')) return 'device_required';
   if (surface.states.includes('external_activation')) return 'activation_required';
@@ -70,6 +60,7 @@ const ADMIN_MODULES: readonly AdminModule[] = [
 export async function getAdminPlatformOverview() {
   const db = await getDb();
   const integrations = getExternalIntegrationReadiness();
+  const operationalIntegrations = getExternalIntegrationOperationalStatus();
   const pilot = getPilotReadiness();
   const scaleTransition = getScaleTransitionReport();
   const notificationQueue = await getNotificationQueueStats();
@@ -95,8 +86,8 @@ export async function getAdminPlatformOverview() {
     fcmRegisteredDevices: fcmDevices,
   };
 
-  const implementedIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
-  const externallyActive = integrations.filter((item: any) => item.activation?.active === true || item.activation?.state === 'ACTIVE').length;
+  const implementedIntegrations = integrations.filter((item: any) => item.readiness?.IMPLEMENTED === true || item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
+  const externallyActive = integrations.filter((item: any) => item.readiness?.PRODUCTION_ACTIVE === true || item.activation?.active === true || item.activation?.state === 'ACTIVE').length;
   const readinessSummary = surfaces.flatMap(group => group.surfaces).reduce<ReadinessSummary>((summary, surface) => {
     summary.total += 1;
     if (surface.readiness === 'ready') summary.ready += 1;
@@ -108,9 +99,9 @@ export async function getAdminPlatformOverview() {
   return {
     success: true,
     generatedAt: new Date().toISOString(),
-    contractVersion: 'admin-platform-v5',
+    contractVersion: 'admin-platform-v6',
     counts,
-    integrations: { total: integrations.length, implemented: implementedIntegrations, externallyActive, readiness: integrations },
+    integrations: { total: integrations.length, implemented: implementedIntegrations, externallyActive, readiness: integrations, operational: operationalIntegrations },
     pilot,
     readiness: pilot.categories,
     scaleTransition,
@@ -125,7 +116,7 @@ export async function getAdminPlatformOverview() {
     readinessSummary,
     surfaces,
     clientContract: {
-      sourceOfTruth: 'canonical API + clientSurfaceRegistry + pilotReadiness + scaleTransition + notification queue',
+      sourceOfTruth: 'canonical API + clientSurfaceRegistry + pilotReadiness + scaleTransition + notification queue + operational provider state',
       identity: 'one canonical identity/session boundary',
       conversation: 'one canonical conversation/agent surface',
       actions: 'canonical services own mutation; admin is an operator control surface',
