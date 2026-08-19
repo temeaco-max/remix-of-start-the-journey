@@ -79,10 +79,13 @@ router.post('/webhooks/stripe', async (req, res) => {
     const points = Number(match[1]); const key = match[2];
     try {
       const settled = await settleCommercialEventByKey(key, String(payment.id), { stripeEventId:event.id, points });
-      if (!settled) return res.status(200).json({ received:true, ignored:true });
-      await addPoints(String((await getProfile(String((await (async()=>({phone:''}))())) , 'noop').catch(()=>null))?.phone || ''), points, '');
-      // The ledger event payer is the authoritative owner; read it rather than trusting webhook payload fields.
-      const ledgerStmt=db.prepare(`SELECT payer,metadata FROM commercial_ledger WHERE idempotency_key=?`); ledgerStmt.bind([key]); if(ledgerStmt.step()){const row=ledgerStmt.getAsObject() as any; let meta:any={};try{meta=JSON.parse(String(row.metadata||'{}'));}catch{} if(!meta.pointsCredited){await addPoints(String(row.payer),points,'Verified Points purchase'); meta.pointsCredited=true; meta.stripeEventId=event.id; db.run(`UPDATE commercial_ledger SET metadata=? WHERE idempotency_key=?`,[JSON.stringify(meta),key]); saveDb();}} ledgerStmt.free();
+      if (!settled) return res.status(200).json({received:true, ignored:true});
+      const ledgerStmt=db.prepare(`SELECT payer,metadata FROM commercial_ledger WHERE idempotency_key=?`); ledgerStmt.bind([key]);
+      if(ledgerStmt.step()){
+        const row=ledgerStmt.getAsObject() as any; let meta:any={}; try{meta=JSON.parse(String(row.metadata||'{}'));}catch{}
+        if(!meta.pointsCredited){ await addPoints(String(row.payer),points,'Verified Points purchase'); meta.pointsCredited=true; meta.stripeEventId=event.id; db.run(`UPDATE commercial_ledger SET metadata=? WHERE idempotency_key=?`,[JSON.stringify(meta),key]); saveDb(); }
+      }
+      ledgerStmt.free();
       return res.status(200).json({received:true,pointsCredited:true});
     } catch(error){return res.status(500).json({error:error instanceof Error?error.message:'Points payment reconciliation failed; retry is safe.'});}
   }
