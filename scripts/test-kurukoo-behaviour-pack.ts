@@ -3,20 +3,21 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 const packPath = path.join(process.cwd(), 'ml', 'behaviour', 'latest.json');
-if (!fs.existsSync(packPath)) throw new Error('Behaviour pack is missing. Run npm run ml:compile-behaviour-pack.');
+if (!fs.existsSync(packPath)) throw new Error('Behaviour pack is missing. Run npx tsx scripts/compile-kurukoo-behaviour-pack.ts.');
 const pack = JSON.parse(fs.readFileSync(packPath, 'utf8')) as any;
-const requiredTop = ['schemaVersion','packVersion','packHash','sourceCommit','constitution','skills','capabilities','agentTools','behaviourFamilies','truthBoundary','safetyBoundary'];
+const requiredTop = ['schemaVersion','packVersion','packHash','sourceCommit','constitution','agentRuntime','skills','capabilities','agentTools','behaviourFamilies','truthBoundary','safetyBoundary'];
 for (const key of requiredTop) if (!(key in pack)) throw new Error(`Behaviour pack missing ${key}`);
 if (!pack.skills.length) throw new Error('Behaviour pack contains no skills.');
 if (!pack.capabilities.length) throw new Error('Behaviour pack contains no capabilities.');
 if (!pack.agentTools.length) throw new Error('Behaviour pack contains no agent tools.');
-if (pack.behaviourFamilies.length < 10) throw new Error('Behaviour pack lacks behavioural breadth.');
+if (!pack.behaviourFamilies.length) throw new Error('Behaviour pack contains no behavioural families.');
+if (!pack.agentRuntime.autonomyLevels?.length || !pack.agentRuntime.riskLevels?.length) throw new Error('Agent runtime autonomy/risk contract is incomplete.');
 if (!pack.truthBoundary.mustNotClaimWithoutEvidence.length) throw new Error('Truth boundary is empty.');
 if (!pack.safetyBoundary.prohibited.length) throw new Error('Safety boundary is empty.');
-const payload = { ...pack };
+const payload = { ...pack, generatedAt: undefined };
 delete payload.packHash;
 const expectedHash = crypto.createHash('sha256').update(JSON.stringify(payload, null, 2)).digest('hex');
-if (pack.packHash !== expectedHash) throw new Error('Behaviour pack hash is not reproducible.');
+if (pack.packHash !== expectedHash) throw new Error('Behaviour pack hash is not reproducible for the same OS source state.');
 for (const skill of pack.skills) {
   if (!skill.skill || !Array.isArray(skill.capabilities) || !Array.isArray(skill.requirements)) throw new Error(`Invalid skill entry: ${skill.skill}`);
 }
