@@ -1,6 +1,7 @@
 /* Kurukoo Firebase Messaging service worker. */
 const FIREBASE_VERSION = '12.17.0';
 const CONFIG_URL = '/api/fcm/config';
+const ICON_URL = '/assets/brand/favicon.svg';
 
 importScripts(`https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app-compat.js`);
 importScripts(`https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-messaging-compat.js`);
@@ -24,8 +25,8 @@ async function initialiseMessaging() {
       const target = link || '/app/notifications';
       self.registration.showNotification(title, {
         body,
-        icon: '/assets/icons/icon-192.svg',
-        badge: '/assets/icons/icon-192.svg',
+        icon: ICON_URL,
+        badge: ICON_URL,
         data: { link: target, ...data },
       });
     });
