@@ -1,3 +1,5 @@
+import type { AddressInfo } from 'node:net';
+
 type SignalKind = 'offer' | 'answer' | 'ice' | 'hangup';
 type Peer = { id: string; joinedAt: number; lastSeenAt: number };
 type Signal = { id: string; from: string; to?: string; kind: SignalKind; payload: unknown; createdAt: number };
@@ -85,6 +87,29 @@ export function getWebRTCSignals(roomId: string, peerId: string, after?: number)
 
 export function destroyWebRTCRoom(roomId: string): boolean {
     return rooms.delete(roomId);
+}
+
+function parseList(value: string | undefined): string[] {
+    return String(value || '').split(',').map(item => item.trim()).filter(Boolean).slice(0, 8);
+}
+
+export function getWebRTCClientConfig() {
+    const configuredStun = parseList(process.env.STUN_SERVERS);
+    const turnUrl = String(process.env.TURN_URL || process.env.TURN_SERVER_URL || '').trim();
+    const username = String(process.env.TURN_USERNAME || '').trim();
+    const credential = String(process.env.TURN_CREDENTIAL || process.env.TURN_PASSWORD || '').trim();
+    const iceServers: Array<Record<string, unknown>> = configuredStun.map(url => ({ urls: url }));
+    if (turnUrl) {
+        const turn: Record<string, unknown> = { urls: turnUrl };
+        if (username) turn.username = username;
+        if (credential) turn.credential = credential;
+        iceServers.push(turn);
+    }
+    return {
+        iceServers,
+        transport: turnUrl ? 'stun-turn' : configuredStun.length ? 'stun' : 'host-candidate-only',
+        credentialedTurn: Boolean(turnUrl && username && credential),
+    };
 }
 
 setInterval(() => {
