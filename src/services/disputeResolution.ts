@@ -1,11 +1,19 @@
 import { getDb, saveDb } from '../database.js';
-import { freezeEscrowForOrder } from './escrow.js';
+import { freezeEscrowForOrder, refundEscrow, releaseEscrow } from './escrow.js';
 import { getAllowedEconomicTransitions, getEconomicRequest, transitionEconomicRequest } from './skillFlows.js';
 
 export interface DisputeOpenResult {
     disputeId: number;
     escrowFrozen: boolean;
     economicRequestId: string | null;
+}
+
+export interface DisputeResolutionResult {
+    disputeId: number;
+    resolution: 'release' | 'refund';
+    escrowUpdated: boolean;
+    economicRequestId: string | null;
+    orderStatus: string | null;
 }
 
 async function findLinkedEconomicRequestId(orderId: string): Promise<string | null> {
@@ -16,6 +24,23 @@ async function findLinkedEconomicRequestId(orderId: string): Promise<string | nu
     if (stmt.step()) requestId = String(stmt.getAsObject().id);
     stmt.free();
     return requestId;
+}
+
+async function getDispute(disputeId: number): Promise<{ id: number; phone: string; orderId: string | null; status: string; resolution: string | null } | null> {
+    const db = await getDb();
+    const stmt = db.prepare(`SELECT id, phone, order_id, status, resolution FROM disputes WHERE id = ? LIMIT 1`);
+    stmt.bind([disputeId]);
+    let row: any = null;
+    if (stmt.step()) row = stmt.getAsObject();
+    stmt.free();
+    if (!row) return null;
+    return {
+        id: Number(row.id),
+        phone: String(row.phone || ''),
+        orderId: row.order_id == null ? null : String(row.order_id),
+        status: String(row.status || ''),
+        resolution: row.resolution == null ? null : String(row.resolution),
+    };
 }
 
 export async function createDispute(phone: string, orderId: string, reason: string): Promise<DisputeOpenResult> {
@@ -78,6 +103,60 @@ export async function resolveDispute(disputeId: number, resolution: string): Pro
     const db = await getDb();
     db.run(`UPDATE disputes SET status = 'resolved', resolution = ? WHERE id = ?`, [resolution, disputeId]);
     saveDb();
+}
+
+export async function resolveDisputeWithEconomicLifecycle(disputeId: number, resolution: 'release' | 'refund'): Promise<DisputeResolutionResult> {
+    const dispute = await getDispute(disputeId);
+    if (!dispute) throw new Error('Dispute not found');
+    if (!['open', 'escalated'].includes(dispute.status) && dispute.status !== 'resolved') throw new Error(`Dispute cannot be resolved from status ${dispute.status}`);
+
+    const orderId = dispute.orderId;
+    const linkedEconomicRequestId = orderId ? await findLinkedEconomicRequestId(orderId) : null;
+    const db = await getDb();
+
+    let escrowUpdated = false;
+    let orderStatus: string | null = null;
+    if (orderId) {
+        const escrowStmt = db.prepare(`SELECT id, status FROM escrow WHERE order_id = ? AND status IN ('held', 'disputed') ORDER BY id DESC LIMIT 1`);
+        escrowStmt.bind([orderId]);
+        let escrowId: number | null = null;
+        if (escrowStmt.step()) escrowId = Number(escrowStmt.getAsObject().id);
+        escrowStmt.free();
+
+        if (escrowId) {
+            escrowUpdated = resolution === 'release'
+                ? await releaseEscrow(escrowId, { force: true })
+                : await refundEscrow(escrowId);
+            if (!escrowUpdated) throw new Error('Escrow could not be updated for this dispute');
+        }
+
+        orderStatus = resolution === 'release' ? 'completed' : 'refunded';
+        db.run(`UPDATE orders SET status = ? WHERE id = ?`, [orderStatus, orderId]);
+    }
+
+    if (linkedEconomicRequestId) {
+        const linkedRequest = await getEconomicRequest(linkedEconomicRequestId);
+        if (linkedRequest && linkedRequest.status === 'disputed') {
+            const target = resolution === 'release' ? 'completed' : 'cancelled';
+            if (getAllowedEconomicTransitions(linkedRequest.status).includes(target)) {
+                await transitionEconomicRequest(linkedEconomicRequestId, target, {
+                    fulfillment: {
+                        ...(linkedRequest.fulfillment || {}),
+                        dispute_resolved_at: new Date().toISOString(),
+                        dispute_resolution: resolution,
+                    },
+                });
+            }
+        }
+    }
+
+    db.run(`UPDATE disputes SET status = 'resolved', resolution = ? WHERE id = ?`, [
+        resolution === 'release' ? 'Admin resolution: escrow released.' : 'Admin resolution: escrow refunded.',
+        disputeId,
+    ]);
+    saveDb();
+
+    return { disputeId, resolution, escrowUpdated, economicRequestId: linkedEconomicRequestId, orderStatus };
 }
 
 export async function escalateDispute(disputeId: number): Promise<void> {

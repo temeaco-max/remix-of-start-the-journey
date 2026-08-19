@@ -37,15 +37,21 @@ Protected endpoints:
 
 All are behind `authenticateAdmin`.
 
-The projection exposes operational counts, integration implementation/activation readiness, notification queue state, Web/PWA/native/Admin surface coverage, module ownership, pilot/readiness state and the shared status-language contract.
+The projection exposes operational counts, integration implementation/activation readiness, notification queue state, Web/PWA/native/Admin surface coverage, module ownership, pilot/readiness state and the shared status-language contract. The full canonical `pilotReadiness.categories` tree is exposed through the Admin overview so operators see the same deployment truth used by the platform itself.
 
 The health endpoint only describes internal platform/admin health. It never upgrades a provider credential, device QR, payment configuration or integration implementation into external-live evidence.
+
+## Mutation boundary
+
+Admin mutation handlers must call canonical domain services rather than directly changing lifecycle-owned tables. The dispute console now follows this rule through `adminDisputeRoutes.ts` → `disputeResolution.ts` → `escrow.ts` and the Economic Request lifecycle. The canonical dispute router is mounted ahead of the legacy Admin router, so existing Admin URLs continue to work while mutations use the domain owners.
+
+The same boundary applies to payment, provider, notification, channel, conversation and fulfilment operations: Admin is an operator interface over their canonical service, never a replacement owner.
 
 ## Truth and activation
 
 Admin must distinguish implementation from activation. A code path, credential or feature flag is not proof that an external provider/device is live.
 
-The UI uses explicit states such as Ready, Pending, Needs activation, Needs device verification, Verified, Connected, Not connected, Unavailable and Failed.
+The UI uses explicit states such as Ready, Pending, Needs activation, Needs device verification, External dependency, Verified, Connected, Not connected, Unavailable and Failed.
 
 External activation remains evidence-gated.
 
@@ -79,10 +85,10 @@ Admin follows the Kurukoo cross-platform design system:
 - responsive layout rather than a desktop-only dashboard
 - truthful status language instead of decorative success claims
 
-`public/css/admin-pages/admin-base.css` remains the shared legacy Admin stylesheet. The Control Room adds `admin-platform-convergence.css`, while `admin-convergence-shell.css` provides the cross-page control-plane shell.
+`public/css/admin-pages/admin-base.css` remains the shared legacy Admin stylesheet. The Control Room adds `admin-platform-convergence.css`, while `admin-convergence-shell.css` provides the cross-page control-plane shell and dependency-readiness states.
 
 ## Existing admin surfaces
 
 The module registry points to existing admin pages for growth/content/platform functions while progressively converging their ownership and visual language. Those pages remain behind the shared admin authentication boundary and now inherit the same operator navigation, health indicator and session-expiry handling.
 
-The long-term direction is convergence, not wholesale duplication: existing admin capabilities should be moved onto the canonical platform projection and owning services as they are touched.
+The long-term direction is convergence, not wholesale duplication: existing Admin capabilities should be moved onto the canonical platform projection and owning services as they are touched.
