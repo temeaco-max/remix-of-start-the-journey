@@ -1,5 +1,5 @@
 /**
- * Payment-related mutations — points and credits.
+ * Payment-related mutations — points, wallet and verified external payment boundaries.
  * Identity comes from the authenticated session. Client-supplied payment
  * references are never treated as proof of payment.
  */
@@ -11,6 +11,8 @@ import { getProfile } from '../services/memoryProfile.js';
 import { getEconomicRequest, transitionEconomicRequest } from '../services/skillFlows.js';
 import { lockEscrowForEconomicRequest } from '../services/tradeEngine.js';
 import { createStripePaymentIntent, stripeStatus, verifyStripeWebhook } from '../services/stripePayment.js';
+import { settleCommercialEventByKey } from '../services/commercialSettlement.js';
+import { recordCommercialEvent } from '../services/commercialLedger.js';
 import { getDb, saveDb } from '../database.js';
 import { persistCoordinatorEvent } from '../services/coordinatorStore.js';
 
@@ -48,6 +50,16 @@ router.post('/payments/stripe/intents', authenticateUser, paymentRateLimit, asyn
   } catch (error) { res.status(503).json({ error: error instanceof Error ? error.message : 'Payment provider is unavailable.', payment_required: true }); }
 });
 
+router.post('/payments/points/intents', authenticateUser, paymentRateLimit, async (req: AuthRequest, res) => {
+  const phone = String(req.user?.phone || ''); const points = Math.floor(Number(req.body?.amountPoints || 0));
+  const pricePerPoint = Math.floor(Number(process.env.KURUKOO_POINTS_PRICE_MINOR || 0)); const currency = String(process.env.KURUKOO_POINTS_CURRENCY || 'NGN').toUpperCase();
+  if (!phone || !Number.isSafeInteger(points) || points <= 0) return res.status(400).json({ error: 'A positive amountPoints is required.' });
+  if (pricePerPoint <= 0) return res.status(503).json({ error: 'Points purchase pricing is not configured for this deployment.', payment_required: true });
+  const amountMinor = points * pricePerPoint; if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) return res.status(400).json({ error: 'Points purchase amount is invalid.' });
+  try { const idempotencyKey = `points:${phone}:${points}:${Date.now()}`; await recordCommercialEvent({ eventType:'points_purchase',direction:'inbound',status:'authorized',currency,grossMinor:amountMinor,platformFeeMinor:amountMinor,providerAmountMinor:0,payer:phone,payee:'KURUKOO',representedParty:phone,idempotencyKey,metadata:{points,pricePerPoint,currency}}); const intent=await createStripePaymentIntent({amountMinor,currency,economicRequestId:`commercial:points:${points}:${idempotencyKey}`,idempotencyKey:`kurukoo:${idempotencyKey}`}); res.json({success:true,provider:'stripe',paymentIntentId:intent.id,clientSecret:intent.clientSecret,amountMinor,currency,points}); }
+  catch(error){res.status(503).json({error:error instanceof Error?error.message:'Points payment provider unavailable.',payment_required:true});}
+});
+
 /** Public only to Stripe; raw request bytes are signature-verified before any state change. */
 router.post('/webhooks/stripe', async (req, res) => {
   const event = verifyStripeWebhook((req as any).rawBody as Buffer, req.header('stripe-signature'));
@@ -58,8 +70,30 @@ router.post('/webhooks/stripe', async (req, res) => {
   if (duplicate) return res.status(200).json({ received: true, duplicate: true });
   db.run(`INSERT INTO payment_webhook_events(provider,event_id) VALUES ('stripe',?)`, [event.id]); saveDb();
   const payment = event.data?.object;
-  const requestId = payment?.metadata?.economic_request_id;
-  if (!requestId || !payment?.id) return res.status(200).json({ received: true, ignored: true });
+  if (!payment?.id) return res.status(200).json({ received: true, ignored: true });
+  const requestId = String(payment?.metadata?.economic_request_id || '');
+
+  if (event.type === 'payment_intent.succeeded' && payment.status === 'succeeded' && requestId.startsWith('commercial:points:')) {
+    const match = requestId.match(/^commercial:points:(\d+):(.+)$/);
+    if (!match) return res.status(400).json({ error:'Malformed commercial Points payment reference.' });
+    const points = Number(match[1]); const key = match[2];
+    try {
+      const settled = await settleCommercialEventByKey(key, String(payment.id), { stripeEventId:event.id, points });
+      if (!settled) return res.status(200).json({ received:true, ignored:true });
+      await addPoints(String((await getProfile(String((await (async()=>({phone:''}))())) , 'noop').catch(()=>null))?.phone || ''), points, '');
+      // The ledger event payer is the authoritative owner; read it rather than trusting webhook payload fields.
+      const ledgerStmt=db.prepare(`SELECT payer,metadata FROM commercial_ledger WHERE idempotency_key=?`); ledgerStmt.bind([key]); if(ledgerStmt.step()){const row=ledgerStmt.getAsObject() as any; let meta:any={};try{meta=JSON.parse(String(row.metadata||'{}'));}catch{} if(!meta.pointsCredited){await addPoints(String(row.payer),points,'Verified Points purchase'); meta.pointsCredited=true; meta.stripeEventId=event.id; db.run(`UPDATE commercial_ledger SET metadata=? WHERE idempotency_key=?`,[JSON.stringify(meta),key]); saveDb();}} ledgerStmt.free();
+      return res.status(200).json({received:true,pointsCredited:true});
+    } catch(error){return res.status(500).json({error:error instanceof Error?error.message:'Points payment reconciliation failed; retry is safe.'});}
+  }
+
+  if (event.type === 'payment_intent.succeeded' && payment.status === 'succeeded' && requestId.startsWith('commercial:')) {
+    const key = requestId.slice('commercial:'.length);
+    try { const settled=await settleCommercialEventByKey(key,String(payment.id),{stripeEventId:event.id}); return res.status(200).json({received:true,commercialSettled:settled}); }
+    catch(error){return res.status(500).json({error:error instanceof Error?error.message:'Commercial payment reconciliation failed; retry is safe.'});}
+  }
+
+  if (!requestId) return res.status(200).json({ received: true, ignored: true });
   const request = await getEconomicRequest(requestId);
   if (!request) return res.status(200).json({ received: true, ignored: true });
   const quote = request.quote as Record<string, unknown> | undefined;
@@ -68,20 +102,7 @@ router.post('/webhooks/stripe', async (req, res) => {
       await transitionEconomicRequest(request.id, 'paid', { fulfillment: { ...(request.fulfillment || {}), payment_verified: true, payment_provider: 'stripe', payment_reference: payment.id, payment_event_id: event.id, payment_verified_at: new Date().toISOString() } });
       const escrow = await lockEscrowForEconomicRequest(request.id, Number(payment.amount));
       if (!escrow.success) throw new Error('Verified payment was received but escrow could not be locked safely.');
-      await persistCoordinatorEvent({
-        id: `payment:${event.id}:verified`,
-        type: 'payment.webhook.verified',
-        occurredAt: new Date().toISOString(),
-        producer: 'paymentRoutes',
-        correlationId: `economic_request:${request.id}`,
-        ownerPhone: request.phone.startsWith('anon_') ? undefined : request.phone,
-        economicRequestId: request.id,
-        payload: { provider: 'stripe', eventId: event.id, paymentReference: String(payment.id), amountMinor: Number(payment.amount), currency: String(payment.currency || '').toLowerCase(), escrowLocked: true },
-        sensitivity: request.phone.startsWith('anon_') ? 'public' : 'personal',
-        provenance: { source: 'provider', sourceId: String(event.id), evidenceLevel: 'verified_external' },
-        policy: { autonomousAllowed: false, confirmationRequired: 'external_evidence' },
-        schemaVersion: 1,
-      });
+      await persistCoordinatorEvent({ id:`payment:${event.id}:verified`, type:'payment.webhook.verified', occurredAt:new Date().toISOString(), producer:'paymentRoutes', correlationId:`economic_request:${request.id}`, ownerPhone:request.phone.startsWith('anon_')?undefined:request.phone, economicRequestId:request.id, payload:{provider:'stripe',eventId:event.id,paymentReference:String(payment.id),amountMinor:Number(payment.amount),currency:String(payment.currency||'').toLowerCase(),escrowLocked:true}, sensitivity:request.phone.startsWith('anon_')?'public':'personal', provenance:{source:'provider',sourceId:String(event.id),evidenceLevel:'verified_external'}, policy:{autonomousAllowed:false,confirmationRequired:'external_evidence'}, schemaVersion:1 });
     } catch (error) { db.run(`DELETE FROM payment_webhook_events WHERE provider='stripe' AND event_id=?`, [event.id]); saveDb(); console.error('[Stripe] verified payment transition failed', { eventId: event.id, requestId, message: error instanceof Error ? error.message : 'unknown' }); return res.status(500).json({ error: 'Payment reconciliation failed; retry is safe.' }); }
   }
   res.status(200).json({ received: true });
