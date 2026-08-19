@@ -47,7 +47,8 @@ async function main() {
   for (const file of await fs.promises.readdir(path.join(process.cwd(), 'public', 'admin'))) {
     if (!file.endsWith('.html')) continue;
     const page = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', file), 'utf8');
-    assert.match(page, /admin-auth\.js/, `${file} must include the shared admin auth boundary`);
+    if (file === 'dashboard.html') continue;
+    if (file !== 'login.html') assert.match(page, /admin-auth\.js/, `${file} must include the shared admin auth boundary`);
   }
 
   const index = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'index.html'), 'utf8');
@@ -86,10 +87,10 @@ async function main() {
   assert.match(disputeServiceSrc, /transitionEconomicRequest/, 'dispute lifecycle must update the canonical economic request state');
 
   const dashboard = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'dashboard.html'), 'utf8');
-  assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/ads'/, 'admin dashboard campaigns must use protected admin ads owner');
-  assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/content'/, 'admin dashboard CMS must use protected admin content owner');
-  assert.doesNotMatch(dashboard, /fetch\('\/api\/ads'/, 'admin dashboard must not use public ads path');
-  assert.doesNotMatch(dashboard, /fetch\('\/api\/content'/, 'admin dashboard must not use public content path');
+  assert.match(dashboard, /location\.replace\('\/admin\/'\)/, 'legacy dashboard must converge to the canonical Control Room');
+  assert.match(dashboard, /<link rel="canonical" href="\/admin\/">/, 'legacy dashboard must advertise Control Room as canonical');
+  assert.doesNotMatch(dashboard, /fetch\('\/api\/ads'/, 'legacy dashboard must not use public ads path');
+  assert.doesNotMatch(dashboard, /fetch\('\/api\/content'/, 'legacy dashboard must not use public content path');
 
   assert.match(src, /router\.get\('\/celebrity',\s*authenticateAdmin/, 'celebrity demand must have a protected endpoint');
   const celebrity = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'celebrity.html'), 'utf8');
@@ -104,7 +105,7 @@ async function main() {
   assert.match(src, /isolated_actor_context/, 'Test As must disclose isolated actor boundary');
   assert.doesNotMatch(src, /\\+2348030000000/, 'no demo phone in admin routes');
   for (const p of paths) assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
-  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, scale transition, canonical dispute/ticket lifecycle, client-surface contract and module registry are present');
+  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, canonical Control Room, platform health, scale transition, canonical dispute/ticket lifecycle, client-surface contract and module registry are present');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
