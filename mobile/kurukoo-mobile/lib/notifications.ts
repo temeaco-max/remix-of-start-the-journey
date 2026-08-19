@@ -52,11 +52,7 @@ export async function probeExpoPushToken(): Promise<NotificationReadiness> {
   }
 }
 
-/**
- * Registers a native FCM registration token with Kurukoo when the native
- * platform exposes an actual FCM token. iOS/APNs tokens are deliberately not
- * sent to the FCM-only backend until Firebase native messaging is configured.
- */
+/** Register a native FCM token when Expo exposes an FCM provider token. */
 export async function registerNativeFcmTokenIfPermitted(): Promise<FcmNativeReadiness> {
   if (Platform.OS === "web") return { status: "web-unavailable", detail: "Use the Web/PWA Firebase Messaging client on web." };
   const Notifications = await getNotificationsModule();
@@ -71,9 +67,7 @@ export async function registerNativeFcmTokenIfPermitted(): Promise<FcmNativeRead
     if (Platform.OS === "ios" && tokenType !== "fcm") {
       return { status: "ios-native-provider-required", detail: "iOS exposed an APNs token. Firebase-native iOS messaging must be configured before it can be registered with the FCM backend." };
     }
-    if (tokenType && tokenType !== "fcm") {
-      return { status: "ios-native-provider-required", detail: `Native token provider '${tokenType}' is not an FCM registration token.` };
-    }
+    if (tokenType && tokenType !== "fcm") return { status: "ios-native-provider-required", detail: `Native token provider '${tokenType}' is not an FCM registration token.` };
 
     const sessionToken = await Auth.getSessionToken();
     if (!sessionToken) return { status: "registration-failed", detail: "No authenticated session token is available for device registration." };
@@ -81,13 +75,7 @@ export async function registerNativeFcmTokenIfPermitted(): Promise<FcmNativeRead
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
       credentials: "include",
-      body: JSON.stringify({
-        token,
-        deviceId: await getNativeDeviceId(),
-        credentialType: Platform.OS,
-        label: `Kurukoo ${Platform.OS} Firebase notifications`,
-        platform: Platform.OS,
-      }),
+      body: JSON.stringify({ token, deviceId: await getNativeDeviceId(), credentialType: Platform.OS, label: `Kurukoo ${Platform.OS} Firebase notifications`, platform: Platform.OS }),
     });
     if (!response.ok) return { status: "registration-failed", detail: `Kurukoo device registration failed (${response.status}).` };
     return { status: "registered", detail: `Firebase ${Platform.OS} device token registered with Kurukoo.` };
@@ -122,8 +110,12 @@ export async function requestLocalNotificationPermission(): Promise<boolean> {
     });
   }
   const current = await Notifications.getPermissionsAsync();
-  if (current.status === "granted") return true;
+  if (current.status === "granted") {
+    void registerNativeFcmTokenIfPermitted().catch(() => undefined);
+    return true;
+  }
   const requested = await Notifications.requestPermissionsAsync();
+  if (requested.status === "granted") void registerNativeFcmTokenIfPermitted().catch(() => undefined);
   return requested.status === "granted";
 }
 
@@ -135,11 +127,7 @@ export async function scheduleReminderOnDevice(reminder: { title: string; detail
   if (!permitted) return null;
   const Notifications = await getNotificationsModule();
   return Notifications.scheduleNotificationAsync({
-    content: {
-      title: reminder.title,
-      body: reminder.detail,
-      data: { kind: "reminder", reminderTitle: reminder.title },
-    },
+    content: { title: reminder.title, body: reminder.detail, data: { kind: "reminder", reminderTitle: reminder.title } },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: scheduledAt },
   });
 }
@@ -149,14 +137,7 @@ export async function scheduleTaskContinuation(task: { id: string; title: string
   if (!permitted) return null;
   const Notifications = await getNotificationsModule();
   return Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Continue with Kurukoo",
-      body: task.title,
-      data: buildTaskNotificationData(task),
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: Math.max(1, Math.round(seconds)),
-    },
+    content: { title: "Continue with Kurukoo", body: task.title, data: buildTaskNotificationData(task) },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: Math.max(1, Math.round(seconds)) },
   });
 }
