@@ -19,6 +19,8 @@ export type AdminModule = {
   state: 'connected' | 'readiness' | 'legacy-surface';
 };
 
+type ReadinessSummary = { total: number; ready: number; activation_required: number; device_required: number };
+
 function count(db: any, sql: string, params: unknown[] = []): number {
   try {
     const row = db.exec(sql, params)[0]?.values?.[0]?.[0];
@@ -87,9 +89,11 @@ export async function getAdminPlatformOverview() {
 
   const implementedIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
   const externallyActive = integrations.filter((item: any) => item.activation?.active === true || item.activation?.state === 'ACTIVE').length;
-  const readinessSummary = surfaces.flatMap(group => group.surfaces).reduce((summary, surface) => {
+  const readinessSummary = surfaces.flatMap(group => group.surfaces).reduce<ReadinessSummary>((summary, surface) => {
     summary.total += 1;
-    summary[surface.readiness] += 1;
+    if (surface.readiness === 'ready') summary.ready += 1;
+    else if (surface.readiness === 'activation_required') summary.activation_required += 1;
+    else summary.device_required += 1;
     return summary;
   }, { total: 0, ready: 0, activation_required: 0, device_required: 0 });
 
