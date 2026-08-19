@@ -1,5 +1,5 @@
 /**
- * Contract test: admin routes require authenticateAdmin and the control room
+ * Contract test: Admin routes require authenticateAdmin and the control room
  * exposes one canonical platform projection for every client family.
  */
 import assert from 'node:assert/strict';
@@ -17,16 +17,23 @@ const paths = [
 async function main() {
   const mod = await import('../src/routes/adminRoutes.ts');
   const platform = await import('../src/routes/adminPlatformRoutes.ts');
+  const disputeRoutes = await import('../src/routes/adminDisputeRoutes.ts');
   assert.ok(mod.default || mod.adminRoutes, 'adminRoutes export missing');
   assert.ok(platform.default, 'adminPlatformRoutes export missing');
+  assert.ok(disputeRoutes.default, 'adminDisputeRoutes export missing');
+
   const src = await fs.promises.readFile(new URL('../src/routes/adminRoutes.ts', import.meta.url), 'utf8');
   const platformSrc = await fs.promises.readFile(new URL('../src/routes/adminPlatformRoutes.ts', import.meta.url), 'utf8');
+  const disputeSrc = await fs.promises.readFile(new URL('../src/routes/adminDisputeRoutes.ts', import.meta.url), 'utf8');
+  const disputeServiceSrc = await fs.promises.readFile(new URL('../src/services/disputeResolution.ts', import.meta.url), 'utf8');
   const serviceSrc = await fs.promises.readFile(new URL('../src/services/adminPlatformService.ts', import.meta.url), 'utf8');
   const authSrc = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'admin-auth.js'), 'utf8');
   const indexSrc = await fs.promises.readFile(new URL('../src/index.ts', import.meta.url), 'utf8');
   const publicRoutes = await fs.promises.readFile(path.join(process.cwd(), 'src', 'routes', 'publicRoutes.ts'), 'utf8');
+
   assert.match(publicRoutes, /router\.get\('\/admin'/, 'canonical /admin entry route must exist');
   assert.match(indexSrc, /app\.use\('\/api\/admin\/platform',\s*adminPlatformRoutes\)/, 'platform admin router must be mounted before the general admin router');
+  assert.match(indexSrc, /app\.use\('\/api\/admin',\s*adminDisputeRoutes\)\s*;\s*app\.use\('\/api\/admin',\s*adminRoutes\)/, 'canonical dispute routes must be mounted before legacy admin handlers');
 
   for (const file of ['login.html', 'dashboard.html', 'ads.html', 'analytics.html', 'ai-agents.html', 'content.html', 'seo.html', 'users.html', 'pricing.html', 'revenue.html']) {
     assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', file)), `admin page ${file} must exist`);
@@ -60,6 +67,13 @@ async function main() {
   assert.match(serviceSrc, /ADMIN_MODULES/, 'admin module registry must have a canonical owner');
   assert.match(serviceSrc, /evidence-gated/, 'external claims must remain evidence-gated');
 
+  assert.match(disputeSrc, /router\.use\(authenticateAdmin\)/, 'canonical dispute admin router must require admin authentication');
+  assert.match(disputeSrc, /resolveDisputeWithEconomicLifecycle/, 'admin dispute route must use canonical resolution lifecycle');
+  assert.match(disputeSrc, /escalateDispute/, 'admin escalation route must use canonical dispute service');
+  assert.match(disputeServiceSrc, /releaseEscrow/, 'dispute lifecycle must use canonical escrow release');
+  assert.match(disputeServiceSrc, /refundEscrow/, 'dispute lifecycle must use canonical escrow refund');
+  assert.match(disputeServiceSrc, /transitionEconomicRequest/, 'dispute lifecycle must update the canonical economic request state');
+
   const dashboard = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'dashboard.html'), 'utf8');
   assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/ads'/, 'admin dashboard campaigns must use protected admin ads owner');
   assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/content'/, 'admin dashboard CMS must use protected admin content owner');
@@ -79,7 +93,7 @@ async function main() {
   assert.match(src, /isolated_actor_context/, 'Test As must disclose isolated actor boundary');
   assert.doesNotMatch(src, /\\+2348030000000/, 'no demo phone in admin routes');
   for (const p of paths) assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
-  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, client-surface contract and module registry are present');
+  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, canonical dispute lifecycle, client-surface contract and module registry are present');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
