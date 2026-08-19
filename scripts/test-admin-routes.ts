@@ -27,6 +27,7 @@ async function main() {
   const disputeSrc = await fs.promises.readFile(new URL('../src/routes/adminDisputeRoutes.ts', import.meta.url), 'utf8');
   const disputeServiceSrc = await fs.promises.readFile(new URL('../src/services/disputeResolution.ts', import.meta.url), 'utf8');
   const serviceSrc = await fs.promises.readFile(new URL('../src/services/adminPlatformService.ts', import.meta.url), 'utf8');
+  const scaleSrc = await fs.promises.readFile(new URL('../src/services/scaleTransition.ts', import.meta.url), 'utf8');
   const authSrc = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'admin-auth.js'), 'utf8');
   const indexSrc = await fs.promises.readFile(new URL('../src/index.ts', import.meta.url), 'utf8');
   const publicRoutes = await fs.promises.readFile(path.join(process.cwd(), 'src', 'routes', 'publicRoutes.ts'), 'utf8');
@@ -57,17 +58,24 @@ async function main() {
   assert.match(adminJs, /\/api\/admin\/trust\/readiness/, 'operational sections must consume canonical trust readiness');
   assert.match(adminJs, /renderModules/, 'control room must render canonical admin module registry');
   assert.match(adminJs, /renderPilotReadiness/, 'control room must render canonical dependency readiness');
+  assert.match(adminJs, /renderScaleTransition/, 'control room must render scale transition readiness');
 
   assert.match(platformSrc, /router\.use\(authenticateAdmin\)/, 'platform projection must require admin authentication');
   assert.match(platformSrc, /router\.get\('\/overview'/, 'platform overview endpoint must exist');
   assert.match(platformSrc, /router\.get\('\/surfaces'/, 'surface contract endpoint must exist');
   assert.match(platformSrc, /router\.get\('\/modules'/, 'module registry endpoint must exist');
   assert.match(platformSrc, /router\.get\('\/health'/, 'platform health endpoint must exist');
+  assert.match(platformSrc, /router\.get\('\/scale-readiness'/, 'scale readiness endpoint must exist');
   assert.match(serviceSrc, /clientSurfaceRegistry/, 'admin platform service must reuse client surface registry');
   assert.match(serviceSrc, /externalIntegrationReadiness/, 'admin platform service must reuse integration readiness');
   assert.match(serviceSrc, /pilotReadiness/, 'admin platform service must expose canonical dependency readiness');
+  assert.match(serviceSrc, /getScaleTransitionReport/, 'admin platform service must expose canonical scale readiness');
+  assert.match(serviceSrc, /scaleTransition/, 'admin platform response must include scale transition state');
   assert.match(serviceSrc, /ADMIN_MODULES/, 'admin module registry must have a canonical owner');
   assert.match(serviceSrc, /evidence-gated/, 'external claims must remain evidence-gated');
+  assert.match(scaleSrc, /KURUKOO_WORKERS/, 'scale readiness must reason from worker concurrency');
+  assert.match(scaleSrc, /DATABASE_URL|POSTGRES_URL/, 'scale readiness must identify approved multi-process persistence signals');
+  assert.match(scaleSrc, /REDIS_URL|REDIS_HOST/, 'scale readiness must identify shared queue/limit state');
 
   assert.match(disputeSrc, /router\.use\(authenticateAdmin\)/, 'canonical dispute admin router must require admin authentication');
   assert.match(disputeSrc, /resolveDisputeWithEconomicLifecycle/, 'admin dispute route must use canonical resolution lifecycle');
@@ -96,7 +104,7 @@ async function main() {
   assert.match(src, /isolated_actor_context/, 'Test As must disclose isolated actor boundary');
   assert.doesNotMatch(src, /\\+2348030000000/, 'no demo phone in admin routes');
   for (const p of paths) assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
-  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, canonical dispute/ticket lifecycle, client-surface contract and module registry are present');
+  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, scale transition, canonical dispute/ticket lifecycle, client-surface contract and module registry are present');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

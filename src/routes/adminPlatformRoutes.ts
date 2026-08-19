@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateAdmin, type AuthRequest } from '../middleware/auth.js';
 import { getAdminModules, getAdminPlatformOverview } from '../services/adminPlatformService.js';
+import { getScaleTransitionReport } from '../services/scaleTransition.js';
 import { getDb } from '../database.js';
 
 const router = Router();
@@ -33,6 +34,10 @@ router.get('/surfaces', async (_req: AuthRequest, res) => {
 
 router.get('/modules', (_req: AuthRequest, res) => {
   res.json({ success: true, contractVersion: 'admin-platform-v2', modules: getAdminModules() });
+});
+
+router.get('/scale-readiness', (_req: AuthRequest, res) => {
+  res.json({ success: true, contractVersion: 'scale-readiness-v1', report: getScaleTransitionReport() });
 });
 
 router.get('/health', async (_req: AuthRequest, res) => {
@@ -68,6 +73,7 @@ router.get('/health', async (_req: AuthRequest, res) => {
       workers: Number(process.env.KURUKOO_WORKERS || 1),
       externalPaymentConfigured: Boolean(process.env.KURUKOO_PAY_PROVIDER),
     },
+    scaleTransition: getScaleTransitionReport(),
     claims: 'Internal platform health only; this endpoint does not assert external provider delivery, payment settlement or device activation.',
   });
 });
