@@ -1,0 +1,25 @@
+# Server-side Firebase Admin / FCM HTTP v1 credentials (managed secret)
+FCM_SERVICE_ACCOUNT_JSON=
+# Or use a secret-file path supplied by the runtime:
+FCM_SERVICE_ACCOUNT_PATH=
+# Or split the service account fields:
+KURUKOO_FCM_PROJECT_ID=
+KURUKOO_FCM_CLIENT_EMAIL=
+KURUKOO_FCM_PRIVATE_KEY=
+
+# Firebase Web/PWA public configuration
+FIREBASE_API_KEY=
+FIREBASE_AUTH_DOMAIN=
+FIREBASE_PROJECT_ID=
+FIREBASE_STORAGE_BUCKET=
+FIREBASE_MESSAGING_SENDER_ID=
+FIREBASE_APP_ID=
+KURUKOO_FCM_VAPID_KEY=
+
+# Native Expo/EAS service files. EAS can expose secret files as paths through
+# environment variables; do not put the JSON/plist contents into this file.
+GOOGLE_SERVICES_JSON=
+GOOGLE_SERVICES_PLIST=
+
+# Native API endpoint used by the mobile client when registering its FCM token.
+EXPO_PUBLIC_API_BASE_URL=
