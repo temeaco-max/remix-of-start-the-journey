@@ -185,9 +185,22 @@ export async function getInternalNotifications(phone: string, limit = 20): Promi
     return results;
 }
 
-export async function markNotificationRead(phone: string, notificationId: number): Promise<boolean> {
+export async function getInternalNotificationById(phoneOrId: string | number, idOrPhone: number | string): Promise<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; context_id?: string; conversation_id?: string; available_action?: string; canonical_action?: string; object_type?: string; object_id?: string; owner_scope?: string; surface?: string; created_at: string } | null> {
+    const phone = typeof phoneOrId === 'string' ? phoneOrId : String(idOrPhone);
+    const id = Number(typeof phoneOrId === 'number' ? phoneOrId : idOrPhone);
     const db = await ensureNotificationTable();
-    db.run(`UPDATE internal_notifications SET status='read' WHERE id = ? AND phone = ?`, [notificationId, phone]);
+    if (!Number.isSafeInteger(id) || id <= 0) return null;
+    const row = db.exec(`SELECT id, title, body, link, status, delivery_state, provider_reference, failure_reason, context_id, conversation_id, available_action, canonical_action, object_type, object_id, owner_scope, surface, created_at FROM internal_notifications WHERE id = ? AND phone = ? LIMIT 1`, [id, phone])[0]?.values?.[0] as any[] | undefined;
+    if (!row) return null;
+    return { id: Number(row[0]), title: String(row[1]), body: String(row[2]), link: String(row[3] || '/chat'), status: String(row[4] || 'unread'), delivery_state: String(row[5] || 'queued'), provider_reference: row[6] ? String(row[6]) : undefined, failure_reason: row[7] ? String(row[7]) : undefined, context_id: row[8] ? String(row[8]) : undefined, conversation_id: row[9] ? String(row[9]) : undefined, available_action: row[10] ? String(row[10]) : undefined, canonical_action: row[11] ? String(row[11]) : undefined, object_type: row[12] ? String(row[12]) : undefined, object_id: row[13] ? String(row[13]) : undefined, owner_scope: row[14] ? String(row[14]) : undefined, surface: row[15] ? String(row[15]) : undefined, created_at: String(row[16] || '') };
+}
+
+export async function markNotificationRead(phoneOrId: string | number, idOrPhone: number | string): Promise<boolean> {
+    const phone = typeof phoneOrId === 'string' ? phoneOrId : String(idOrPhone);
+    const id = Number(typeof phoneOrId === 'number' ? phoneOrId : idOrPhone);
+    const db = await ensureNotificationTable();
+    if (!Number.isSafeInteger(id) || id <= 0 || !phone) return false;
+    db.run(`UPDATE internal_notifications SET status='read' WHERE id = ? AND phone = ?`, [id, phone]);
     const updated = db.getRowsModified() > 0;
     if (updated) saveDb();
     return updated;

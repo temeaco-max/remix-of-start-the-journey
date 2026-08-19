@@ -12,6 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      KURUKOO_TEST_COMMAND_TIMEOUT_MS: 600000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,10 +21,25 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
+      - name: Cache local Hugging Face model artifacts
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ runner.os }}-kurukoo-smollm2-360m-${{ hashFiles('package-lock.json', 'scripts/test-smollm2-local.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-kurukoo-smollm2-360m-
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run lint
       - run: npm run build
-      - run: npm run test:routes
+      - name: Run broad route contracts
+        run: npm run test:routes
+      - name: Upload route-suite diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: route-suite-log
+          path: .artifacts/test-route-sequence.log
+          if-no-files-found: ignore
       - name: Test Hugging Face Jobs training backend contract
         run: npm run test:huggingface-jobs-backend
       - name: Test hosted provider routing and retired Hugging Face serverless boundary
