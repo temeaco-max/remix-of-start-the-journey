@@ -14,7 +14,7 @@ if (production && jobMode === 'distributed' && !process.env.KURUKOO_REDIS_URL) t
 if (production && persistentStateRequired && String(process.env.DB_PATH || '').startsWith('/tmp/')) throw new Error('[Kurukoo Startup] Persistent state is required; DB_PATH may not be under /tmp in production.');
 if (production && magicLinkEnabled) { const publicBaseUrl = String(process.env.KURUKOO_PUBLIC_BASE_URL || '').trim(); if (!publicBaseUrl.startsWith('https://')) throw new Error('[Kurukoo Startup] KURUKOO_PUBLIC_BASE_URL must be configured as an HTTPS origin when magic-link authentication is enabled in production.'); if (String(process.env.KURUKOO_AUTH_CHALLENGE_DEBUG || '').toLowerCase() === 'true') throw new Error('[Kurukoo Startup] KURUKOO_AUTH_CHALLENGE_DEBUG must be false in production.'); }
 const mcpEnabled = process.env.KURUKOO_MCP_ENABLED === 'true';
-if (production && mcpEnabled) { const issuer = String(process.env.KURUKOO_MCP_ISSUER || '').trim(); const clientId = String(process.env.KURUKOO_MCP_CLIENT_ID || '').trim(); const redirects = String(process.env.KURUKOO_MCP_REDIRECT_URIS || '').split(',').map(v => v.trim()).filter(Boolean); if (!issuer.startsWith('https://')) throw new Error('[Kurukoo Startup] KURUKOO_MCP_ISSUER must be an HTTPS public origin when MCP is enabled in production.'); if (!clientId) throw new Error('[Kurukoo Startup] KURUKOO_MCP_CLIENT_ID must be configured when MCP is enabled.'); if (!redirects.length || redirects.some(uri => !uri.startsWith('https://'))) throw new Error('[Kurukoo Startup] KURUKOO_MCP_REDIRECT_URIS must contain exact HTTPS redirect URIs when MCP is enabled.'); const oauthSecret = String(process.env.KURUKOO_MCP_OAUTH_SECRET || process.env.JWT_SECRET || '').trim(); if (oauthSecret.length < 32) throw new Error('[Kurukoo Startup] KURUKOO_MCP_OAUTH_SECRET or JWT_SECRET must be at least 32 characters when MCP is enabled.'); }
+if (production && mcpEnabled) { const issuer = String(process.env.KURUKOO_MCP_ISSUER || '').trim(); const clientId = String(process.env.KURUKOO_MCP_CLIENT_ID || '').trim(); const redirects = String(process.env.KURUKOO_MCP_REDIRECT_URIS || '').split(',').map(v => v.trim()).filter(Boolean); if (!issuer.startsWith('https://')) throw new Error('[Kurukoo Startup] KURUKOO_MCP_ISSUER must be an HTTPS public origin when MCP is enabled.'); if (!clientId) throw new Error('[Kurukoo Startup] KURUKOO_MCP_CLIENT_ID must be configured when MCP is enabled.'); if (!redirects.length || redirects.some(uri => !uri.startsWith('https://'))) throw new Error('[Kurukoo Startup] KURUKOO_MCP_REDIRECT_URIS must contain exact HTTPS redirect URIs when MCP is enabled.'); const oauthSecret = String(process.env.KURUKOO_MCP_OAUTH_SECRET || process.env.JWT_SECRET || '').trim(); if (oauthSecret.length < 32) throw new Error('[Kurukoo Startup] KURUKOO_MCP_OAUTH_SECRET or JWT_SECRET must be at least 32 characters when MCP is enabled.'); }
 import express from 'express';
 import compression from 'compression';
 import path from 'node:path';
@@ -23,6 +23,7 @@ import circleRoutes from './routes/circleRoutes.js';
 import economicRequestRouter from './routes/economicRequestRouter.js';
 import adminRoutes from './routes/adminRoutes.js';
 import adminPlatformRoutes from './routes/adminPlatformRoutes.js';
+import adminDisputeRoutes from './routes/adminDisputeRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -74,7 +75,7 @@ app.use(compression({threshold:1024}));
 app.use(express.static(path.join(process.cwd(),'public'),{index:false,fallthrough:true,setHeaders:(res,filePath)=>{const lower=filePath.toLowerCase();if(lower.endsWith('.html')||lower.endsWith('/sw.js')||lower.endsWith('/manifest.json')){res.setHeader('Cache-Control','no-cache, must-revalidate');return;}if(/\.(?:css|js|svg|png|jpe?g|webp|woff2?)$/.test(lower))res.setHeader('Cache-Control','public, max-age=604800, stale-while-revalidate=86400');}}));
 app.use(express.json({limit:process.env.CHAT_ATTACHMENT_BODY_LIMIT||'35mb',verify:(req,_res,buf)=>{(req as any).rawBody=Buffer.from(buf);}}));
 app.use('/',systemRoutes); app.use('/',authChallengePublicRoutes); app.use('/',mcpAppRoutes);
-app.use('/api',channelRoutes); app.use('/api',circleRoutes); app.use('/api/economic-requests',economicRequestRouter); app.use('/api/admin/platform',adminPlatformRoutes); app.use('/api/admin',adminRoutes); app.use('/api',paymentRoutes); app.use('/api',userRoutes); app.use('/api/auth',authRoutes);
+app.use('/api',channelRoutes); app.use('/api',circleRoutes); app.use('/api/economic-requests',economicRequestRouter); app.use('/api/admin/platform',adminPlatformRoutes); app.use('/api/admin',adminDisputeRoutes); app.use('/api/admin',adminRoutes); app.use('/api',paymentRoutes); app.use('/api',userRoutes); app.use('/api/auth',authRoutes);
 app.use('/api/chat',...prayerChatMiddleware);
 app.use('/api/chat',chatRouter);
 app.use('/api/prayer',prayerRoutes);
