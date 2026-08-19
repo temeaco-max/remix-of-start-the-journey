@@ -22,8 +22,10 @@ async function main() {
   const src = await fs.promises.readFile(new URL('../src/routes/adminRoutes.ts', import.meta.url), 'utf8');
   const platformSrc = await fs.promises.readFile(new URL('../src/routes/adminPlatformRoutes.ts', import.meta.url), 'utf8');
   const serviceSrc = await fs.promises.readFile(new URL('../src/services/adminPlatformService.ts', import.meta.url), 'utf8');
+  const indexSrc = await fs.promises.readFile(new URL('../src/index.ts', import.meta.url), 'utf8');
   const publicRoutes = await fs.promises.readFile(path.join(process.cwd(), 'src', 'routes', 'publicRoutes.ts'), 'utf8');
   assert.match(publicRoutes, /router\.get\('\/admin'/, 'canonical /admin entry route must exist');
+  assert.match(indexSrc, /app\.use\('\/api\/admin\/platform',\s*adminPlatformRoutes\)/, 'platform admin router must be mounted before the general admin router');
 
   for (const file of ['login.html', 'dashboard.html', 'ads.html', 'analytics.html', 'ai-agents.html', 'content.html', 'seo.html', 'users.html', 'pricing.html', 'revenue.html']) {
     assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', file)), `admin page ${file} must exist`);
@@ -39,9 +41,9 @@ async function main() {
   const adminJs = await fs.promises.readFile(path.join(process.cwd(), 'public', 'js', 'kurukoo-admin.js'), 'utf8');
   assert.match(index, /One canonical backend for Web, PWA, iOS, Android/, 'control room must state cross-platform ownership');
   assert.match(index, /admin-platform-convergence\.css/, 'control room must load the canonical convergence stylesheet');
-  assert.match(adminJs, /\/api\/admin\/platform\/overview/, 'control room must consume the canonical platform projection');
+  assert.match(adminJs, /\/api\/admin\/platform\/overview/, 'control room must consume canonical platform projection');
   assert.match(adminJs, /\/api\/admin\/trust\/readiness/, 'operational sections must consume canonical trust readiness');
-  assert.match(adminJs, /renderModules/, 'control room must render the canonical admin module registry');
+  assert.match(adminJs, /renderModules/, 'control room must render canonical admin module registry');
 
   assert.match(platformSrc, /router\.use\(authenticateAdmin\)/, 'platform projection must require admin authentication');
   assert.match(platformSrc, /router\.get\('\/overview'/, 'platform overview endpoint must exist');
@@ -71,7 +73,7 @@ async function main() {
   assert.match(src, /isolated_actor_context/, 'Test As must disclose isolated actor boundary');
   assert.doesNotMatch(src, /\\+2348030000000/, 'no demo phone in admin routes');
   for (const p of paths) assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
-  console.log('test-admin-routes: PASS: protected admin API, unified control room, client-surface contract and module registry are present');
+  console.log('test-admin-routes: PASS: protected admin API, registered platform control plane, client-surface contract and module registry are present');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
