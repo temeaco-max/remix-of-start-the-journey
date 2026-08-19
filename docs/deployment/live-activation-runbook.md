@@ -4,19 +4,19 @@ This runbook activates already-implemented external boundaries without changing 
 
 ## Mistral-first conversational runtime
 
-Use the deployment/local `.env` values:
+Use the canonical provider controls already implemented in the repository:
 
 ```env
 MISTRAL_API_KEY=...
 MISTRAL_MODEL=mistral-small-latest
 FF_HOSTED_MISTRAL=true
 KURUKOO_AI_HOSTED_PROVIDER=mistral
-KURUKOO_AI_PRIMARY_PROVIDER=mistral
-KURUKOO_AI_BYPASS_SMOLLM2=true
 KURUKOO_SMOLLM2_LOCAL=false
 ```
 
-`FF_HOSTED_MISTRAL` is the activation gate. `KURUKOO_AI_HOSTED_PROVIDER=mistral` makes Mistral the first hosted conversational candidate. SmolLM2 remains an optional local model boundary, not a competing provider. When local SmolLM2 is disabled, provider failure is allowed to fall back to Kurukoo's deterministic response boundary rather than pretending local generation succeeded.
+`FF_HOSTED_MISTRAL` is the activation gate. `KURUKOO_AI_HOSTED_PROVIDER=mistral` makes Mistral the first hosted conversational candidate. The canonical chat path already attempts an enabled hosted provider before the local SmolLM2 boundary. With `KURUKOO_SMOLLM2_LOCAL=false`, a failed Mistral request cannot silently become a local-model success; Kurukoo falls to its deterministic response boundary instead.
+
+This is the intended **Mistral bypass of local SmolLM2 for conversational traffic**. The Student/local model remains available separately for development/training/runtime experiments and is not deleted or disabled globally by this setting.
 
 Run:
 
