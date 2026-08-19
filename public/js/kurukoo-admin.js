@@ -20,6 +20,7 @@
   const readinessLabel = (state) => ({ ready: 'Ready', activation_required: 'Needs activation', device_required: 'Needs device verification' }[state] || 'Unavailable');
   const moduleLabel = (state) => ({ connected: 'Connected', readiness: 'Readiness', 'legacy-surface': 'Existing admin surface' }[state] || 'Review');
   const pilotLabel = (state) => ({ READY: 'Ready', EXTERNAL_DEPENDENCY: 'External dependency', PENDING: 'Pending', DISABLED: 'Disabled', NOT_CONFIGURED: 'Not configured' }[state] || state || 'Unknown');
+  const scaleLabel = (state) => ({ READY: 'Ready', PENDING: 'Pending validation', REQUIRED: 'Required before scale', NOT_CONFIGURED: 'Not configured' }[state] || state || 'Unknown');
 
   const renderSurfaces = (groups) => {
     if (!surfaces) return;
@@ -53,6 +54,18 @@
         return `<div class="admin-surface-row"><div><strong>${esc(name)}</strong><span class="admin-module-owner">${esc(value?.note || '')}</span></div><span class="admin-module-state admin-module-state-${esc(state.toLowerCase())}">${esc(pilotLabel(state))}</span></div>`;
       }).join('')}</div></section>`;
     }).join('')}</div>`;
+  };
+
+  const renderScaleTransition = (report) => {
+    if (!report) return '<p class="admin-muted">Scale transition readiness is unavailable.</p>';
+    const items = [
+      ['Persistence', report.persistence],
+      ['Rate limiting', report.rateLimiting],
+      ['Presence', report.presence],
+      ['Agent workers', report.agentWorkers],
+      ['Object storage', report.objectStorage],
+    ];
+    return `<div class="admin-readiness-grid">${items.map(([label, value]) => `<div class="admin-surface-row"><div><strong>${esc(label)}</strong><span class="admin-module-owner">${esc(value?.note || '')}</span></div><span class="admin-module-state admin-module-state-${esc(String(value?.state || 'UNKNOWN').toLowerCase())}">${esc(scaleLabel(value?.state))}</span></div>`).join('')}</div><div class="k-card k-scale-recommendation"><span class="k-muted">Recommendation</span><p>${esc(report.recommendation || 'No scale recommendation available.')}</p></div>`;
   };
 
   const loadPlatform = async () => {
@@ -99,10 +112,17 @@
     if (section === 'overview') {
       try {
         const data = await loadJson('/api/admin/platform/overview');
-        panel.innerHTML = `<div class="card"><div class="k-section-heading"><div><p class="k-muted">Deployment truth</p><h2>Platform dependency readiness</h2></div><span class="k-status">Canonical pilotReadiness</span></div><p class="muted">Implementation, configuration and external activation are deliberately separated. This view never treats credentials or feature flags as proof of live delivery.</p>${renderPilotReadiness(data.readiness)}</div>`;
+        panel.innerHTML = `<div class="card"><div class="k-section-heading"><div><p class="k-muted">Deployment truth</p><h2>Platform dependency readiness</h2></div><span class="k-status">Canonical pilotReadiness</span></div><p class="muted">Implementation, configuration and external activation are deliberately separated. This view never treats credentials or feature flags as proof of live delivery.</p>${renderPilotReadiness(data.readiness)}<div class="k-section-heading k-scale-heading"><div><p class="k-muted">Scale transition</p><h2>When the launch boundary changes</h2></div><span class="k-status">Canonical scaleTransition</span></div>${renderScaleTransition(data.scaleTransition)}</div>`;
       } catch (error) {
         panel.innerHTML = `<div class="card"><h2>Platform dependency readiness</h2><p class="admin-error">${esc(error.message)}</p></div>`;
       }
+      return;
+    }
+    if (section === 'connectors') {
+      try {
+        const data = await loadJson('/api/admin/platform/overview');
+        panel.innerHTML = `<div class="card"><h2>Channels & integrations</h2><p class="muted">Implementation, activation and device readiness are displayed separately.</p>${renderList([['Integrations represented', data.integrations?.total ?? 0], ['Implemented', data.integrations?.implemented ?? 0], ['Externally active', data.integrations?.externallyActive ?? 0], ['PWA', data.surfaces?.find(x => x.family === 'pwa')?.surfaces?.length ?? 0], ['Native surfaces', data.surfaces?.find(x => x.family === 'native')?.surfaces?.length ?? 0]])}</div>`;
+      } catch (error) { panel.innerHTML = `<div class="card"><h2>Channels & integrations</h2><p class="admin-error">${esc(error.message)}</p></div>`; }
       return;
     }
     if (section === 'providers') {
@@ -118,13 +138,6 @@
       ] : [
         ['Configured feature flags', Object.keys(data.featureFlags || {}).length], ['Trusted devices', `${data.trustedDevices?.active ?? 0} active / ${data.trustedDevices?.revoked ?? 0} revoked`], ['Trust challenges pending', data.trustChallenges?.pending ?? 0], ['Local model state', data.brain?.localModel?.mode ?? data.brain?.localModel?.executionMode ?? 'Unknown'], ['Context arbitration telemetry', data.brain?.contextArbitration ? 'Available' : 'Unavailable'], ['External delivery truth', 'Fail-closed'], ['Credentials', 'Never exposed in UI']
       ]);
-      return;
-    }
-    if (section === 'connectors') {
-      try {
-        const data = await loadJson('/api/admin/platform/overview');
-        panel.innerHTML = `<div class="card"><h2>Channels & integrations</h2><p class="muted">Implementation, activation and device readiness are displayed separately.</p>${renderList([['Integrations represented', data.integrations?.total ?? 0], ['Implemented', data.integrations?.implemented ?? 0], ['Externally active', data.integrations?.externallyActive ?? 0], ['PWA', data.surfaces?.find(x => x.family === 'pwa')?.surfaces?.length ?? 0], ['Native surfaces', data.surfaces?.find(x => x.family === 'native')?.surfaces?.length ?? 0]])}</div>`;
-      } catch (error) { panel.innerHTML = `<div class="card"><h2>Channels & integrations</h2><p class="admin-error">${esc(error.message)}</p></div>`; }
       return;
     }
     if (section === 'notifications') {
