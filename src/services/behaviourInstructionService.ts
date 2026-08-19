@@ -76,15 +76,44 @@ const AGENT_INSTRUCTIONS: BehaviourInstructionSet = {
   failureRecovery: ['retry_idempotent_action', 'wait_for_event', 'ask_user', 'escalate'],
 };
 
+const SKILL_BEHAVIOUR_OVERRIDES: Record<string, { required: string[]; optional: string[]; interaction: string[] }> = {
+  painter: {
+    required: ['property_type', 'scope', 'location'],
+    optional: ['interior_or_exterior', 'rooms_or_area', 'wall_condition', 'preparation', 'paint_supply', 'colour_or_finish', 'furniture_protection', 'access_constraints', 'deadline', 'budget', 'inspection_or_quote'],
+    interaction: ['Clarify whether this is interior/exterior and the scope before matching.', 'Offer inspection/quote when the scope cannot be priced reliably from chat.', 'Do not assume the provider supplies paint or preparation work.'],
+  },
+  okada_rider: {
+    required: ['origin', 'destination', 'departure_time'],
+    optional: ['passengers', 'pickup_landmark', 'special_instructions', 'vehicle_preference'],
+    interaction: ['For immediate rides, prefer nearby eligible rider opportunity/acceptance rather than a generic marketplace list.', 'Confirm pickup point and timing before sending a live request.', 'After acceptance, establish the supported communication/pickup flow and do not claim arrival until canonical state confirms it.'],
+  },
+  pepper_seller: {
+    required: ['pepper_type', 'quantity', 'location'],
+    optional: ['freshness', 'colour', 'variety', 'whole_or_ground', 'delivery_or_pickup', 'needed_by', 'budget'],
+    interaction: ['Identify the actual pepper/product and quantity before searching sellers.', 'Match on availability, quantity, price, proximity and delivery/pickup capability.', 'Do not treat a seller presence signal as inventory confirmation.'],
+  },
+  fresh_veg_hawker: {
+    required: ['produce', 'quantity', 'location'],
+    optional: ['quality', 'ripeness', 'delivery_or_pickup', 'needed_by', 'budget'],
+    interaction: ['Ask what produce and how much before matching.', 'Use seller availability and attributable offer evidence rather than generic nearby presence.'],
+  },
+  shoe_cobbler: {
+    required: ['job_type', 'shoe_or_item', 'location'],
+    optional: ['damage_or_specification', 'size', 'material', 'colour', 'reference_image', 'deadline', 'budget', 'pickup_or_delivery'],
+    interaction: ['First distinguish repair, alteration and new/custom making.', 'For custom work, collect measurements/style/material only when they affect the next provider decision.', 'For repair, identify the damage before requesting a quote.'],
+  },
+};
+
 function skillInstructionSet(skill: string): BehaviourInstructionSet {
   const normalized = String(skill || '').trim().toLowerCase();
   const category = getEconomicCategory(normalized) || 'general';
   const requirements = getSkillRequirements(normalized);
   const capabilities = getSkillCapabilities(normalized);
-  const required = requirements.filter(r => r.required).map(r => r.key);
-  const optional = requirements.filter(r => !r.required).map(r => r.key);
+  const override = SKILL_BEHAVIOUR_OVERRIDES[normalized];
+  const required = override?.required || requirements.filter(r => r.required).map(r => r.key);
+  const optional = override?.optional || requirements.filter(r => !r.required).map(r => r.key);
   const role = normalized.replace(/[_-]+/g, ' ').trim() || 'service provider';
-  const economic = category !== 'general';
+  const economic = category !== 'general' || Boolean(override);
   return {
     id: `kurukoo.skill.${normalized || 'unknown'}`,
     family: economic ? 'economic_skill' : 'provider',
@@ -101,6 +130,7 @@ function skillInstructionSet(skill: string): BehaviourInstructionSet {
       'For immediate/local opportunities, prefer bounded opportunity notification/acceptance flows where the capability supports them; do not fabricate realtime availability.',
       'Confirm material price, timing, provider identity and scope before a commitment when the canonical lifecycle requires confirmation.',
       'Mark the outcome complete only when the canonical lifecycle and evidence requirements say it is complete.',
+      ...(override?.interaction || []),
     ],
     requiredContext: required,
     optionalContext: optional,
@@ -164,6 +194,7 @@ const SKILL_ALIASES: Record<string, string[]> = {
   plumber: ['plumber', 'plumbing'],
   electrician: ['electrician', 'electrical work'],
   shoe_cobbler: ['shoe maker', 'shoemaker', 'shoe repair', 'cobbler'],
+  pepper_seller: ['pepper seller', 'pepper vendor', 'pepper seller near me'],
   fresh_veg_hawker: ['vegetable seller', 'veg seller', 'fruit seller', 'fruit vendor'],
   fish_seller: ['fish seller', 'fish vendor'],
   prayer_partner: ['pray for me', 'prayer', 'prayer companion'],
