@@ -16,6 +16,24 @@ export interface FcmDevice {
   lastError?: string;
 }
 
+let legacyMigrationComplete = false;
+
+function parseStoredTokens(value: unknown): string[] {
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(item => String(item || '').trim()).filter(Boolean);
+  } catch {
+    // Legacy single-token format.
+  }
+  return [raw];
+}
+
+function fallbackDeviceId(token: string): string {
+  return `token-${crypto.createHash('sha256').update(token).digest('hex').slice(0, 32)}`;
+}
+
 async function ensureTable() {
   const db = await getDb();
   db.run(`CREATE TABLE IF NOT EXISTS fcm_devices (
@@ -35,23 +53,21 @@ async function ensureTable() {
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_fcm_devices_phone_active ON fcm_devices(phone, active, updated_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_fcm_devices_token ON fcm_devices(token)`);
-  return db;
-}
-
-function fallbackDeviceId(token: string): string {
-  return `token-${crypto.createHash('sha256').update(token).digest('hex').slice(0, 32)}`;
-}
-
-function parseStoredTokens(value: unknown): string[] {
-  const raw = String(value || '').trim();
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map(item => String(item || '').trim()).filter(Boolean);
-  } catch {
-    // Legacy single-token format.
+  if (!legacyMigrationComplete) {
+    const profiles = db.exec(`SELECT phone, fcm_token FROM memory_profiles WHERE fcm_token IS NOT NULL AND TRIM(fcm_token) != ''`)[0]?.values || [];
+    for (const row of profiles) {
+      const phone = String(row[0] || '').trim();
+      for (const token of parseStoredTokens(row[1])) {
+        const deviceId = fallbackDeviceId(token);
+        db.run(`INSERT INTO fcm_devices (phone, device_id, token, platform, credential_type, label, active, updated_at)
+          VALUES (?, ?, ?, 'legacy', 'fcm', 'Migrated existing FCM token', 1, CURRENT_TIMESTAMP)
+          ON CONFLICT(phone, device_id) DO UPDATE SET token=excluded.token, active=1, updated_at=CURRENT_TIMESTAMP`, [phone, deviceId, token]);
+      }
+    }
+    legacyMigrationComplete = true;
+    if (profiles.length) saveDb();
   }
-  return [raw];
+  return db;
 }
 
 async function syncLegacyProfileToken(db: any, phone: string): Promise<void> {
@@ -61,14 +77,7 @@ async function syncLegacyProfileToken(db: any, phone: string): Promise<void> {
   db.run(`UPDATE memory_profiles SET fcm_token=?, updated_at=CURRENT_TIMESTAMP WHERE phone=?`, [serialized, phone]);
 }
 
-export async function registerFcmDevice(input: {
-  phone: string;
-  token: string;
-  deviceId?: string;
-  platform?: string;
-  credentialType?: string;
-  label?: string;
-}): Promise<{ deviceId: string; activeDevices: number }> {
+export async function registerFcmDevice(input: { phone: string; token: string; deviceId?: string; platform?: string; credentialType?: string; label?: string }): Promise<{ deviceId: string; activeDevices: number }> {
   const db = await ensureTable();
   const phone = String(input.phone || '').trim();
   const token = String(input.token || '').trim();
@@ -76,9 +85,7 @@ export async function registerFcmDevice(input: {
   if (!phone || !token) throw new Error('phone and token are required');
   db.run(`INSERT INTO fcm_devices (phone, device_id, token, platform, credential_type, label, active, updated_at, last_error)
     VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, NULL)
-    ON CONFLICT(phone, device_id) DO UPDATE SET token=excluded.token, platform=excluded.platform, credential_type=excluded.credential_type, label=excluded.label, active=1, updated_at=CURRENT_TIMESTAMP, last_error=NULL`, [
-    phone, deviceId, token, String(input.platform || 'unknown').slice(0, 40), String(input.credentialType || 'fcm').slice(0, 60), input.label ? String(input.label).slice(0, 160) : null,
-  ]);
+    ON CONFLICT(phone, device_id) DO UPDATE SET token=excluded.token, platform=excluded.platform, credential_type=excluded.credential_type, label=excluded.label, active=1, updated_at=CURRENT_TIMESTAMP, last_error=NULL`, [phone, deviceId, token, String(input.platform || 'unknown').slice(0, 40), String(input.credentialType || 'fcm').slice(0, 60), input.label ? String(input.label).slice(0, 160) : null]);
   await syncLegacyProfileToken(db, phone);
   saveDb();
   const count = db.exec(`SELECT COUNT(*) FROM fcm_devices WHERE phone = ? AND active = 1`, [phone])[0]?.values?.[0]?.[0];
@@ -90,10 +97,7 @@ export async function listFcmDevices(phone: string): Promise<FcmDevice[]> {
   const stmt = db.prepare(`SELECT id, phone, device_id, token, platform, credential_type, label, active, created_at, updated_at, last_accepted_at, last_error FROM fcm_devices WHERE phone = ? AND active = 1 ORDER BY updated_at DESC`);
   stmt.bind([phone]);
   const rows: FcmDevice[] = [];
-  while (stmt.step()) {
-    const row = stmt.getAsObject() as any;
-    rows.push({ id: Number(row.id), phone: String(row.phone), deviceId: String(row.device_id), token: String(row.token), platform: String(row.platform), credentialType: String(row.credential_type), label: row.label ? String(row.label) : undefined, active: Number(row.active) === 1, createdAt: String(row.created_at), updatedAt: String(row.updated_at), lastAcceptedAt: row.last_accepted_at ? String(row.last_accepted_at) : undefined, lastError: row.last_error ? String(row.last_error) : undefined });
-  }
+  while (stmt.step()) { const row = stmt.getAsObject() as any; rows.push({ id: Number(row.id), phone: String(row.phone), deviceId: String(row.device_id), token: String(row.token), platform: String(row.platform), credentialType: String(row.credential_type), label: row.label ? String(row.label) : undefined, active: Number(row.active) === 1, createdAt: String(row.created_at), updatedAt: String(row.updated_at), lastAcceptedAt: row.last_accepted_at ? String(row.last_accepted_at) : undefined, lastError: row.last_error ? String(row.last_error) : undefined }); }
   stmt.free();
   return rows;
 }
@@ -120,9 +124,7 @@ export async function deactivateFcmToken(token: string, error = 'device_token_un
   return phones.length;
 }
 
-export function parseFcmTokenCollection(value: unknown): string[] {
-  return parseStoredTokens(value).slice(0, 20);
-}
+export function parseFcmTokenCollection(value: unknown): string[] { return parseStoredTokens(value).slice(0, 20); }
 
 export async function countFcmDevices(): Promise<number> {
   const db = await ensureTable();
