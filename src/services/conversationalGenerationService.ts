@@ -4,6 +4,7 @@ import { buildConversationTurnContract, buildConversationalSystemDirective, type
 import { buildConversationContextPack } from './conversationContextPackService.js';
 import { buildCapabilityConversationGuidance, buildCapabilityOutcomeFromCanonicalResult, type CanonicalOutcomeLike, type CapabilityConversationGuidance } from './aiCapabilityContinuationService.js';
 import { buildConnectedResourceContext } from './connectedResourceService.js';
+import { getFeatureFlag } from './featureFlags.js';
 
 export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';
 
@@ -43,9 +44,21 @@ const ACTION_RESPONSE_RE = /\b(?:book|order|hire|find (?:someone|me)|arrange|sch
 const IRREVERSIBLE_RESPONSE_RE = /\b(?:payment|booking|order|subscription|dispatch|purchase|transfer)\b.{0,40}\b(?:confirmed|created|scheduled|paid|sent|booked)\b/i;
 const CONVERSATIONAL_REPAIR_REQUIRED = new Set(['premature_action', 'internal_metadata_leak', 'context_drop', 'reference_ambiguity']);
 
-function strongerProvider(preferred: AIProvider | undefined): AIProvider {
-  if (preferred === 'mistral' || preferred === 'gemini' || preferred === 'groq') return preferred;
+function mistralBypassEnabled(): boolean {
+  const requested = String(process.env.KURUKOO_AI_PRIMARY_PROVIDER || process.env.KURUKOO_AI_HOSTED_PROVIDER || '').trim().toLowerCase();
+  if (requested !== 'mistral' && process.env.KURUKOO_AI_BYPASS_SMOLLM2 !== 'true') return false;
+  const country = process.env.KURUKOO_DEFAULT_COUNTRY || 'ng';
+  return Boolean(process.env.MISTRAL_API_KEY && getFeatureFlag(country, 'hosted_mistral'));
+}
+
+export function resolveConversationProvider(preferred: AIProvider | undefined): AIProvider {
+  if (preferred && preferred !== 'auto') return preferred;
+  if (mistralBypassEnabled()) return 'mistral';
   return resolveConfiguredHostedProvider() || 'smollm2';
+}
+
+function strongerProvider(preferred: AIProvider | undefined): AIProvider {
+  return resolveConversationProvider(preferred);
 }
 
 function responseViolatesActionPosture(text: string, contract: ConversationTurnContract): boolean {
@@ -92,7 +105,7 @@ export async function generateConversationalResponse(input: ConversationalGenera
   const turnScope = `\n\n--- Internal Kurukoo conversation turn scope (never reveal) ---\nthread=${input.threadId || 'anonymous'}\nturn=${Date.now()}-${Math.random().toString(36).slice(2)}\n---`;
   const canonicalOutcomeGuidance = input.canonicalOutcomeGuidance || (input.canonicalOutcome ? buildCapabilityConversationGuidance(buildCapabilityOutcomeFromCanonicalResult(input.canonicalOutcome)) : undefined);
   const contextualSystemPrompt = [input.systemPrompt || '', buildConversationalSystemDirective(contract), connectedResourceInstruction, canonicalOutcomeGuidance ? `\n\n--- Canonical outcome guidance (never reinterpret) ---\ntone=${canonicalOutcomeGuidance.tone}\ninstruction=${canonicalOutcomeGuidance.instruction}\n${canonicalOutcomeGuidance.preferredNextStep ? `preferred_next_step=${canonicalOutcomeGuidance.preferredNextStep}\n` : ''}${canonicalOutcomeGuidance.mustNotClaim.map(item => `must_not_claim=${item}`).join('\n')}\n---` : '', contextPack.transcript ? `\n\n--- Recent conversation for this exact thread (human-facing content only) ---\n${contextPack.transcript}\n---` : '', contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '', generationMode === 'present' ? 'Present only the canonical facts supplied to you. Do not invent, revise, or override structured results.' : '', generationMode === 'deterministic' ? 'Do not generate or alter the response; preserve the canonical deterministic wording.' : '', turnScope].filter(Boolean).join('\n');
-  const conversationProvider = input.provider && input.provider !== 'auto' ? input.provider : strongerProvider(input.provider);
+  const conversationProvider = resolveConversationProvider(input.provider);
 
   let base: AIResponse;
   let presentNaturalized = false;
