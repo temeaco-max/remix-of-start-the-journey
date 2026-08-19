@@ -1,0 +1,38 @@
+__label__greeting hello
+__label__greeting hi
+__label__greeting hey
+__label__greeting hi there
+__label__greeting hello kurukoo
+__label__greeting good morning
+__label__greeting good afternoon
+__label__greeting good evening
+__label__thanks thanks
+__label__thanks thank you
+__label__thanks cheers
+__label__farewell bye
+__label__farewell goodbye
+__label__confirmation yes
+__label__confirmation okay
+__label__confirmation sure
+__label__rejection no
+__label__rejection nope
+__label__clarification can you explain that
+__label__clarification what do you mean
+__label__how_to how do i unlink my phone
+__label__how_to how do i top up
+__label__how_to show me how to use kurukoo
+__label__status where is my request
+__label__status is it booked
+__label__cancel cancel my request
+__label__cancel stop that request
+__label__top_up top up my wallet
+__label__top_up add money to my wallet
+__label__unlink_device unlink my device
+__label__unlink_device unpair my phone
+__label__find_worker i need a painter
+__label__find_worker find a painter near me
+__label__find_worker i need a shoe maker
+__label__find_worker find a pepper seller
+__label__find_worker find a fruit seller
+__label__ride_request i need a bike ride
+__label__ride_request get an okada to pick me up
