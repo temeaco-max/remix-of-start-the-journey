@@ -47,7 +47,7 @@ def main() -> int:
         ("os_driven_scenario_compilation", ["npx", "tsx", "scripts/compile-kurukoo-scenarios.ts"]),
         ("os_driven_scenario_validation", ["npx", "tsx", "scripts/test-kurukoo-scenario-compiler.ts"]),
         ("scenario_generation", ["npm", "run", "scenario-lab:generate"]),
-        ("teacher_candidate_generation", ["npm", "run", "ml:teacher-candidates"]),
+        ("behaviour_teacher_candidate_generation", ["python3", "ml/teachers/run_behaviour_teacher.py"]),
         ("teacher_candidate_import", ["npm", "run", "ml:import-teacher-candidates"]),
         ("teacher_evaluation", ["npm", "run", "benchmark:teacher"]),
         ("deterministic_golden_seed", ["npm", "run", "ml:seed-golden"]),
