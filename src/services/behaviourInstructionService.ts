@@ -1,4 +1,4 @@
-import { getSkillCapabilities, getSkillRequirements, getEconomicCategory } from './skillFlows.js';
+import { getSkillCapabilities, getSkillRequirements, getEconomicCategory, getKnownSkills } from './skillFlows.js';
 
 export type BehaviourFamily = 'conversation' | 'economic_skill' | 'support' | 'agent' | 'provider' | 'safety';
 
@@ -112,7 +112,7 @@ function skillInstructionSet(skill: string): BehaviourInstructionSet {
 }
 
 function agentInstructionSet(agent: { id?: string; name?: string; system_prompt?: string; skills?: string[]; tools?: string[] }): BehaviourInstructionSet {
-  const base = { ...AGENT_INSTRUCTIONS };
+  const base: BehaviourInstructionSet = { ...AGENT_INSTRUCTIONS, instructions: [...AGENT_INSTRUCTIONS.instructions], capabilities: [...(AGENT_INSTRUCTIONS.capabilities || [])] };
   const agentPrompt = String(agent.system_prompt || '').trim();
   if (agentPrompt) base.instructions = [...base.instructions, `Follow the agent-specific operating instructions below while remaining subordinate to canonical Kurukoo authority:\n${agentPrompt}`];
   if (agent.skills?.length) base.instructions = [...base.instructions, `Agent skills: ${agent.skills.slice(0, 32).join(', ')}`];
@@ -144,7 +144,7 @@ export function composeBehaviourInstructions(input: { skill?: string; support?: 
       set.completion?.length ? `COMPLETION: ${set.completion.join(', ')}` : '',
       set.failureRecovery?.length ? `RECOVERY: ${set.failureRecovery.join(', ')}` : '',
     ].filter(Boolean);
-    return blocks.join('\n');
+    return lines.join('\n');
   });
   return `--- Kurukoo Behaviour Instructions ---\n${blocks.join('\n\n')}\n--- End Behaviour Instructions ---`;
 }
@@ -155,4 +155,28 @@ export function classifyBehaviourFamily(input: string): { support: boolean; safe
     support: /\b(?:how do i|how to|show me how|unlink|unpair|top up|top-up|change settings|reset|help me use|where can i find|what does this button)\b/.test(text),
     safety: /\b(?:emergency|sos|unsafe|danger|threat|accident|police|ambulance|fire|help me stay safe|i feel unsafe)\b/.test(text),
   };
+}
+
+const SKILL_ALIASES: Record<string, string[]> = {
+  painter: ['painter', 'painting', 'paint my house', 'paint my room'],
+  okada_rider: ['okada', 'bike ride', 'motorbike ride', 'motorcycle ride'],
+  keke_driver: ['keke', 'tricycle ride'],
+  plumber: ['plumber', 'plumbing'],
+  electrician: ['electrician', 'electrical work'],
+  shoe_cobbler: ['shoe maker', 'shoemaker', 'shoe repair', 'cobbler'],
+  fresh_veg_hawker: ['vegetable seller', 'veg seller', 'fruit seller', 'fruit vendor'],
+  fish_seller: ['fish seller', 'fish vendor'],
+  prayer_partner: ['pray for me', 'prayer', 'prayer companion'],
+  support_triage: ['support', 'help with kurukoo', 'kurukoo help'],
+};
+
+export function inferSkillFromText(input: string): string | undefined {
+  const text = String(input || '').toLowerCase().replace(/[_-]+/g, ' ');
+  for (const [skill, aliases] of Object.entries(SKILL_ALIASES)) if (aliases.some(alias => text.includes(alias))) return skill;
+  const known = getKnownSkills().sort((a, b) => b.length - a.length);
+  for (const skill of known) {
+    const label = skill.replace(/[_-]+/g, ' ');
+    if (label.length >= 4 && text.includes(label)) return skill;
+  }
+  return undefined;
 }
