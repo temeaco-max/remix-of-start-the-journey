@@ -1,0 +1,126 @@
+name: Kurukoo Student v1 remote training
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_kind:
+        description: Training run kind
+        required: true
+        default: student_candidate
+        type: choice
+        options:
+          - student_candidate
+      explicit_approval:
+        description: Explicitly approve billable remote GPU launch
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    if: inputs.explicit_approval == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 720
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      KURUKOO_TRAINING_BACKEND: huggingface
+      FF_HUGGINGFACE_JOBS: ${{ secrets.FF_HUGGINGFACE_JOBS }}
+      KURUKOO_REMOTE_TRAINING_LAUNCH_APPROVED: ${{ secrets.KURUKOO_REMOTE_TRAINING_LAUNCH_APPROVED }}
+      KURUKOO_HF_MAX_ESTIMATED_COST_USD: ${{ secrets.KURUKOO_HF_MAX_ESTIMATED_COST_USD }}
+      KURUKOO_HF_ARTIFACT_REPO: ${{ secrets.KURUKOO_HF_ARTIFACT_REPO }}
+      KURUKOO_TRAIN_RUN_KIND: ${{ inputs.run_kind }}
+      KURUKOO_ENABLE_TRAINING: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Compile canonical Behaviour Pack
+        run: npm run ml:behaviour-pack
+
+      - name: Compile OS-driven scenarios
+        run: npm run ml:os-scenarios
+
+      - name: Reconcile Training Corpus v2
+        run: npm run ml:reconcile-v2
+
+      - name: Curate accepted training split
+        run: npm run ml:curate-v2
+
+      - name: Verify remote training preflight
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN}" || { echo 'HF_TOKEN secret is required'; exit 1; }
+          test "${FF_HUGGINGFACE_JOBS}" = 'true' || { echo 'FF_HUGGINGFACE_JOBS secret must be true'; exit 1; }
+          test "${KURUKOO_REMOTE_TRAINING_LAUNCH_APPROVED}" = 'true' || { echo 'KURUKOO_REMOTE_TRAINING_LAUNCH_APPROVED secret must be true'; exit 1; }
+          test -n "${KURUKOO_HF_MAX_ESTIMATED_COST_USD}" || { echo 'KURUKOO_HF_MAX_ESTIMATED_COST_USD secret is required'; exit 1; }
+          python3 ml/huggingface_jobs_backend.py preflight
+
+      - name: Submit bounded Student v1 GPU job
+        run: python3 ml/huggingface_jobs_backend.py launch
+
+      - name: Monitor remote job to terminal state
+        run: |
+          set -euo pipefail
+          JOB_ID=$(python3 - <<'PY'
+          import json
+          with open('ml/artifacts/kurukoo-smollm2-v1/remote/latest.json', 'r', encoding='utf-8') as f:
+              print(json.load(f)['job']['jobId'])
+          PY
+          )
+          test -n "${JOB_ID}" || { echo 'Remote job ID missing'; exit 1; }
+          deadline=$((SECONDS + 43200))
+          while true; do
+            python3 ml/huggingface_jobs_backend.py status --job-id "$JOB_ID" > /tmp/kurukoo-job-status.json
+            cat /tmp/kurukoo-job-status.json
+            STAGE=$(python3 - <<'PY'
+          import json
+          with open('/tmp/kurukoo-job-status.json', 'r', encoding='utf-8') as f:
+              print((json.load(f).get('job') or {}).get('stage') or '')
+          PY
+            )
+            case "$STAGE" in
+              COMPLETED) break ;;
+              CANCELED|ERROR|DELETED) echo "Remote Student v1 job reached terminal failure state: $STAGE"; exit 1 ;;
+            esac
+            if [ "$SECONDS" -ge "$deadline" ]; then echo 'Remote training monitoring timed out'; exit 1; fi
+            sleep 60
+          done
+          echo "$JOB_ID" > ml/artifacts/kurukoo-smollm2-v1/remote/completed-job-id.txt
+
+      - name: Retrieve immutable Student v1 artifact
+        run: |
+          set -euo pipefail
+          JOB_ID=$(cat ml/artifacts/kurukoo-smollm2-v1/remote/completed-job-id.txt)
+          python3 ml/huggingface_jobs_backend.py retrieve --job-id "$JOB_ID"
+
+      - name: Verify retrieved Student v1 artifact
+        run: |
+          set -euo pipefail
+          JOB_ID=$(cat ml/artifacts/kurukoo-smollm2-v1/remote/completed-job-id.txt)
+          export KURUKOO_SMOLLM2_ARTIFACT="ml/artifacts/kurukoo-smollm2-v1/remote/retrieved/${JOB_ID}"
+          export KURUKOO_TRAIN_DATASET="ml/datasets/kurukoo-training-v2.accepted.train.jsonl"
+          python3 ml/verify_smollm2_artifact.py
+
+      - name: Publish training and artifact evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kurukoo-student-v1-remote-training-evidence
+          path: ml/artifacts/kurukoo-smollm2-v1/remote/
+          if-no-files-found: ignore
