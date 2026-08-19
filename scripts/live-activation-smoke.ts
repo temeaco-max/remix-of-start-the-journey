@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { queryUnifiedAI } from '../src/services/unifiedAiEngine.js';
 import { getFeatureFlagStatus } from '../src/services/featureFlags.js';
 import { getDriveConnectionStatus, startGoogleDriveConnection } from '../src/services/artifactService.js';
@@ -6,21 +8,16 @@ import { getWhatsAppLinkedDeviceStatus, isWhatsAppLinkedDeviceConfigured, startW
 
 function loadLocalEnv(): void {
   if (process.env.CI === 'true' || process.env.NODE_ENV === 'production') return;
-  // Node 20+ can load .env through --env-file; this intentionally does not replace
-  // existing variables so deployment secrets always win.
   try {
-    const fs = require('node:fs');
-    const path = require('node:path');
     const file = path.resolve('.env');
     if (!fs.existsSync(file)) return;
     for (const line of String(fs.readFileSync(file, 'utf8')).split(/\r?\n/)) {
       const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
       if (!match || process.env[match[1]]) continue;
-      const value = match[2].replace(/^['\"]|['\"]$/g, '');
-      process.env[match[1]] = value;
+      process.env[match[1]] = match[2].replace(/^['\"]|['\"]$/g, '');
     }
   } catch {
-    // Status-only checks remain useful even when local .env loading is unavailable.
+    // Status-only checks remain useful when local .env loading is unavailable.
   }
 }
 
@@ -101,8 +98,6 @@ async function main(): Promise<void> {
       result('WhatsApp linked device', 'ERROR', error instanceof Error ? error.message : 'WhatsApp startup failed');
     }
   }
-
-  process.exitCode = 0;
 }
 
 void main().catch(error => {
