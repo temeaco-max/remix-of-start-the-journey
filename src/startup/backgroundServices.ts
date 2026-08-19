@@ -5,6 +5,7 @@ import { startDeliveryStatusService } from '../services/deliveryService.js';
 import { runEscrowPass } from '../services/tradeEngine.js';
 import { drainFcmQueue, isFcmConfigured } from '../services/pushNotifications.js';
 import { requeueDueFcmFailures } from '../services/fcmRetryService.js';
+import { drainPendingExecutionRequests } from '../services/executionConnector.js';
 import { isWhatsAppLinkedDeviceConfigured, startWhatsAppLinkedDevice, stopWhatsAppLinkedDevice } from '../services/whatsappLinkedDeviceService.js';
 import { markAgentWorkerCycleCompleted, markAgentWorkerCycleFailed, markAgentWorkerCycleStarted, markAgentWorkerStarted, markAgentWorkerStopped, notifyGoalIfNeeded, recordAgentWorkerRun, reenterDueDeferredGoals, runDueAgentGoals } from '../services/agentRuntime.js';
 
@@ -34,6 +35,21 @@ export async function startBackgroundServices(): Promise<void> {
     } else {
         console.warn('[Push] FCM external delivery is not configured; internal inbox notifications only.');
     }
+
+    // Generic canonical execution drain. Disabled by default; only provider-authorized
+    // connectors are eligible, and each execution remains idempotent/evidence-gated.
+    if (process.env.KURUKOO_EXTERNAL_EXECUTION_ENABLED === 'true') {
+        const executionIntervalMs = Math.max(5_000, Math.min(60_000, Number(process.env.KURUKOO_EXECUTION_WORKER_INTERVAL_MS || 15_000)));
+        const runExecutionCycle = async () => {
+            const result = await drainPendingExecutionRequests(Number(process.env.KURUKOO_EXECUTION_WORKER_BATCH || 20));
+            if (result.attempted) console.log(`[ExecutionWorker] attempted=${result.attempted} advanced=${result.advanced} failed=${result.failed}`);
+        };
+        backgroundTimers.push(setTimeout(() => runExecutionCycle().catch((error) => console.error('Error draining execution requests:', error)), 5_000));
+        backgroundTimers.push(setInterval(() => runExecutionCycle().catch((error) => console.error('Error draining execution requests:', error)), executionIntervalMs));
+    } else {
+        console.warn('[ExecutionWorker] External execution is disabled; pending executions remain durable and inspectable.');
+    }
+
     if (process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_AUTOSTART === 'true' && isWhatsAppLinkedDeviceConfigured()) {
         void startWhatsAppLinkedDevice().catch((error) => console.error('[WhatsApp Linked Device] Startup failed:', error instanceof Error ? error.message : error));
     } else {
