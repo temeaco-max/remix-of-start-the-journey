@@ -4,6 +4,7 @@ import { getPilotReadiness } from './pilotReadiness.js';
 import { getClientSurfaces, type ClientFamily, type ClientSurface } from './clientSurfaceRegistry.js';
 import { getNotificationQueueStats } from './pushNotifications.js';
 import { getScaleTransitionReport } from './scaleTransition.js';
+import { getFirebaseFcmReadiness, getFirebaseWebConfig } from './firebaseCloudMessaging.js';
 
 export type AdminSurfaceGroup = {
   family: ClientFamily;
@@ -71,6 +72,9 @@ export async function getAdminPlatformOverview() {
   const pilot = getPilotReadiness();
   const scaleTransition = getScaleTransitionReport();
   const notificationQueue = await getNotificationQueueStats();
+  const fcmServer = getFirebaseFcmReadiness();
+  const fcmWeb = getFirebaseWebConfig();
+  const fcmDevices = tableExists(db, 'memory_profiles') ? count(db, "SELECT COUNT(*) FROM memory_profiles WHERE fcm_token IS NOT NULL AND TRIM(fcm_token) != ''") : 0;
   const surfaces = (['web', 'pwa', 'native', 'admin'] as const).map((family) => ({
     family,
     label: family === 'native' ? 'iOS & Android' : family === 'pwa' ? 'PWA' : family === 'admin' ? 'Admin' : 'Web',
@@ -87,6 +91,7 @@ export async function getAdminPlatformOverview() {
     orders: tableExists(db, 'orders') ? count(db, 'SELECT COUNT(*) FROM orders') : 0,
     disputes: tableExists(db, 'disputes') ? count(db, "SELECT COUNT(*) FROM disputes WHERE status NOT IN ('resolved','closed')") : 0,
     topics: tableExists(db, 'topics') ? count(db, "SELECT COUNT(*) FROM topics WHERE status IS NULL OR status NOT IN ('deleted')") : 0,
+    fcmRegisteredDevices: fcmDevices,
   };
 
   const implementedIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
@@ -102,18 +107,24 @@ export async function getAdminPlatformOverview() {
   return {
     success: true,
     generatedAt: new Date().toISOString(),
-    contractVersion: 'admin-platform-v4',
+    contractVersion: 'admin-platform-v5',
     counts,
     integrations: { total: integrations.length, implemented: implementedIntegrations, externallyActive, readiness: integrations },
     pilot,
     readiness: pilot.categories,
     scaleTransition,
     notifications: notificationQueue,
+    fcm: {
+      server: fcmServer,
+      web: { configured: fcmWeb.configured, reason: fcmWeb.reason },
+      registeredDevices: fcmDevices,
+      delivery: fcmServer.configured && fcmWeb.configured ? 'ready_for_runtime_device_validation' : 'configuration_required',
+    },
     modules: ADMIN_MODULES,
     readinessSummary,
     surfaces,
     clientContract: {
-      sourceOfTruth: 'canonical API + clientSurfaceRegistry + pilotReadiness + scaleTransition',
+      sourceOfTruth: 'canonical API + clientSurfaceRegistry + pilotReadiness + scaleTransition + notification queue',
       identity: 'one canonical identity/session boundary',
       conversation: 'one canonical conversation/agent surface',
       actions: 'canonical services own mutation; admin is an operator control surface',
