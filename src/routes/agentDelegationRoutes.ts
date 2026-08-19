@@ -17,9 +17,13 @@ router.post('/delegations', authenticateUser, async (req: AuthRequest, res) => {
   const phone = String(req.user?.phone || '');
   const skill = String(req.body?.skill || '').trim().slice(0, 120);
   if (!phone || !skill) return res.status(400).json({ error: 'skill is required.' });
-  const priceMinor = Math.max(0, Number(req.body?.monthlyPriceMinor || 0));
-  const currency = String(req.body?.currency || 'NGN').trim().toUpperCase();
   try {
+    await ensureCommercialSchema(); const db = await getDb();
+    const code = `agent_service:${skill}`;
+    const stmt = db.prepare(`SELECT price_minor,currency,active FROM commercial_products WHERE code IN (?, 'agent_service') AND active=1 ORDER BY CASE WHEN code=? THEN 0 ELSE 1 END LIMIT 1`); stmt.bind([code,code]);
+    const row = stmt.step() ? stmt.getAsObject() as any : { price_minor: 0, currency: 'NGN', active: 1 }; stmt.free();
+    const priceMinor = Math.max(0, Number(row.price_minor || 0));
+    const currency = String(row.currency || 'NGN').trim().toUpperCase();
     const created = await createUserAgentDelegation({ ownerPhone: phone, skill, baseAgentId: req.body?.baseAgentId ? String(req.body.baseAgentId) : undefined, instructions: req.body?.instructions ? String(req.body.instructions) : '', authority: typeof req.body?.authority === 'object' ? req.body.authority : {}, monthlyPriceMinor: priceMinor, currency, allowDonations: Boolean(req.body?.allowDonations), donationRecipient: req.body?.donationRecipient ? String(req.body.donationRecipient).trim() : undefined });
     res.status(201).json({ success: true, ...created, paymentRequired: priceMinor > 0 });
   } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to create delegated agent.' }); }
