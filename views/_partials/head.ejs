@@ -1,1 +1,60 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <%
+        const seoRecord = (typeof seo !== 'undefined' && seo) ? seo : {};
+        const seoTitle = seoRecord.title || 'Kurukoo — Tell us what you need.';
+        const seoDesc = seoRecord.meta_description || 'Kurukoo is a conversational fulfillment network. Tell us what you need, and we figure out who or what can fulfil it.';
+        const seoCanonical = seoRecord.canonical_url || seoRecord.canonical || ('https://kurukoo.com' + (typeof reqPath !== 'undefined' ? reqPath : ''));
+        const seoOgTitle = seoRecord.og_title || seoTitle;
+        const seoOgDescription = seoRecord.og_description || seoDesc;
+        const seoOgImage = seoRecord.og_image || '/assets/icons/icon-512.png';
+        const schemaItems = Array.isArray(typeof schemas !== 'undefined' ? schemas : undefined) ? schemas : [];
+        const faqItems = Array.isArray(typeof faqs !== 'undefined' ? faqs : undefined) ? faqs : [];
+        const safeJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+        const currentPath = typeof reqPath !== 'undefined' ? String(reqPath) : '';
+        const workspacePaths = ['/requests','/reminders','/saved','/cart','/points','/tasks','/daily-picks','/memory','/safety','/call','/settings','/top-up','/subscription','/connect','/confirmation','/whatsapp-linked-device'];
+        const isWorkspacePage = workspacePaths.some((path) => currentPath === path || currentPath.startsWith(`${path}/`));
+        const isAuthPage = currentPath === '/login' || currentPath.startsWith('/auth');
+        const bodyClass = isWorkspacePage ? 'k-workspace-page' : isAuthPage ? 'k-auth-page' : 'k-public-page';
+    %>
+    <title><%= seoTitle %></title>
+    <meta name="description" content="<%= seoDesc %>">
+    <% if (seoRecord.keywords) { %><meta name="keywords" content="<%= seoRecord.keywords %>"><% } %>
+    <meta name="robots" content="<%= seoRecord.robots_directive || 'index,follow' %>">
+    <link rel="canonical" href="<%= seoCanonical %>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Kurukoo">
+    <meta property="og:title" content="<%= seoOgTitle %>">
+    <meta property="og:description" content="<%= seoOgDescription %>">
+    <meta property="og:url" content="<%= seoCanonical %>">
+    <meta property="og:image" content="<%= seoOgImage %>">
+    <meta name="twitter:card" content="<%= seoRecord.twitter_card || 'summary_large_image' %>">
+    <meta name="twitter:title" content="<%= seoOgTitle %>">
+    <meta name="twitter:description" content="<%= seoOgDescription %>">
+    <meta name="twitter:image" content="<%= seoOgImage %>">
+    <% if (seoRecord.hreflang_overrides) { %>
+        <% try { Object.entries(typeof seoRecord.hreflang_overrides === 'string' ? JSON.parse(seoRecord.hreflang_overrides) : seoRecord.hreflang_overrides).forEach(([locale, href]) => { %>
+            <link rel="alternate" hreflang="<%= locale %>" href="<%= href %>">
+        <% }); } catch (_) {} %>
+    <% } %>
+    <% schemaItems.forEach((schema) => { %><script type="application/ld+json"><%- safeJson(schema) %></script><% }); %>
+    <% if (faqItems.length) { %><script type="application/ld+json"><%- safeJson({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqItems.map((faq) => ({ '@type': 'Question', name: faq.question, acceptedAnswer: { '@type': 'Answer', text: faq.answer } })) }) %></script><% } %>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css?v=1.4.0">
+    <link rel="stylesheet" href="/css/kurukoo-public-surface.css?v=1">
+    <% if (typeof pageStyles !== 'undefined' && Array.isArray(pageStyles)) { pageStyles.forEach((pageStyle) => { %>
+    <link rel="stylesheet" href="<%= pageStyle %>">
+    <% }); } %>
+    <link rel="stylesheet" href="/css/kurukoo-web-refinement.css?v=2">
+    <link rel="stylesheet" href="/css/kurukoo-web-nav-refinement.css?v=1">
+    <link rel="stylesheet" href="/css/kurukoo-explore-refinement.css?v=1">
+    <link rel="icon" type="image/svg+xml" href="/assets/brand/favicon.svg">
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body class="<%= bodyClass %>">
