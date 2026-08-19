@@ -7,42 +7,31 @@ export type PrayerTradition = 'christian'|'muslim'|'jewish'|'spiritual'|'general
 export type PrayerMode = 'text'|'audio'|'live';
 export const PRAYER_AGENT_ID = 'agent_prayer_companion';
 const PRAYER_SYSTEM_PROMPT = `[IDENTITY & ROLE]\nYou are Kurukoo's Prayer Companion, a first-class spiritual-support agent and Kurukoo-owned provider. Offer respectful, user-led prayer and spiritual conversation. Do not claim supernatural certainty, divine authority, guaranteed outcomes, healing, prophecy, or knowledge of God's intentions. Never impersonate a real religious leader.\n[BEHAVIOUR]\nListen before praying when the user wants conversation. Ask at most one useful clarification when it materially helps. Respect the user's stated tradition and wording; never assume a religion. Never fabricate scripture quotations. Never promise real-world outcomes. For immediate danger, abuse, medical emergency, or severe crisis, keep prayer supportive but direct the user to appropriate real-world help. For live voice, sound natural and keep turns interruptible.\n[OUTPUT]\nFor prayer requests, produce personalised original prayer language that names the stated concern and may include the user's name. Keep it spoken-aloud friendly.`;
+const PRAYER_SKILLS = ['prayer','prayer_partner','spiritual_support','pray_for_me','prayer_routine','live_prayer'];
 
 function sharedPrayerInstructions(): string {
   return composeBehaviourInstructions({
     skill: 'prayer_partner',
-    agent: {
-      id: PRAYER_AGENT_ID,
-      name: 'Kurukoo Prayer Companion',
-      system_prompt: PRAYER_SYSTEM_PROMPT,
-      skills: ['prayer','spiritual_support','pray_for_me','prayer_routine','live_prayer'],
-      tools: ['get_memory_context','get_reminders','execute_capability'],
-    },
+    agent: { id: PRAYER_AGENT_ID, name: 'Kurukoo Prayer Companion', system_prompt: PRAYER_SYSTEM_PROMPT, skills: PRAYER_SKILLS, tools: ['get_memory_context','get_reminders','execute_capability'] },
   });
 }
 
 const DEFAULT_AGENT: AIAgent = {
-  id: PRAYER_AGENT_ID,
-  name: 'Kurukoo Prayer Companion',
-  avatar: '🙏',
+  id: PRAYER_AGENT_ID, name: 'Kurukoo Prayer Companion', avatar: '🙏',
   system_prompt: `${sharedPrayerInstructions()}\n\n${PRAYER_SYSTEM_PROMPT}`,
-  skills: ['prayer','spiritual_support','pray_for_me','prayer_routine','live_prayer'],
-  tools: ['get_memory_context','get_reminders','execute_capability'],
-  status: 'active', lga: 'All', concurrency_limit: 20, token_quota_daily: 50000, cost_threshold_usd: 5, temperature: 0.65,
+  skills: PRAYER_SKILLS, tools: ['get_memory_context','get_reminders','execute_capability'], status: 'active', lga: 'All', concurrency_limit: 20, token_quota_daily: 50000, cost_threshold_usd: 5, temperature: 0.65,
 };
 
 export async function ensurePrayerAgent(): Promise<AIAgent> {
-  const existing = await getAIAgentById(PRAYER_AGENT_ID);
-  const expected = `${sharedPrayerInstructions()}\n\n${PRAYER_SYSTEM_PROMPT}`;
+  const existing = await getAIAgentById(PRAYER_AGENT_ID); const expected = `${sharedPrayerInstructions()}\n\n${PRAYER_SYSTEM_PROMPT}`;
   if (existing) {
-    if (existing.system_prompt !== expected || JSON.stringify(existing.skills) !== JSON.stringify(DEFAULT_AGENT.skills) || JSON.stringify(existing.tools) !== JSON.stringify(DEFAULT_AGENT.tools)) {
-      await updateAIAgent(PRAYER_AGENT_ID, { system_prompt: expected, skills: DEFAULT_AGENT.skills, tools: DEFAULT_AGENT.tools });
-      return (await getAIAgentById(PRAYER_AGENT_ID)) || { ...existing, system_prompt: expected, skills: DEFAULT_AGENT.skills, tools: DEFAULT_AGENT.tools };
+    if (existing.system_prompt !== expected || JSON.stringify(existing.skills) !== JSON.stringify(PRAYER_SKILLS) || JSON.stringify(existing.tools) !== JSON.stringify(DEFAULT_AGENT.tools)) {
+      await updateAIAgent(PRAYER_AGENT_ID, { system_prompt: expected, skills: PRAYER_SKILLS, tools: DEFAULT_AGENT.tools });
+      return (await getAIAgentById(PRAYER_AGENT_ID)) || { ...existing, system_prompt: expected, skills: PRAYER_SKILLS, tools: DEFAULT_AGENT.tools };
     }
     return existing;
   }
-  await createAIAgent(DEFAULT_AGENT);
-  return (await getAIAgentById(PRAYER_AGENT_ID)) || DEFAULT_AGENT;
+  await createAIAgent(DEFAULT_AGENT); return (await getAIAgentById(PRAYER_AGENT_ID)) || DEFAULT_AGENT;
 }
 
 function normalizeTradition(value: unknown): PrayerTradition { const text=String(value||'').trim().toLowerCase(); if(text==='christian'||text==='christianity')return'christian'; if(text==='muslim'||text==='islam'||text==='islamic')return'muslim'; if(text==='jewish'||text==='judaism')return'jewish'; if(text==='spiritual')return'spiritual'; return'general'; }
