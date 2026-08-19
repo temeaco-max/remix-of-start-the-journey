@@ -5,6 +5,7 @@ import { getClientSurfaces, type ClientFamily, type ClientSurface } from './clie
 import { getNotificationQueueStats } from './pushNotifications.js';
 import { getScaleTransitionReport } from './scaleTransition.js';
 import { getFirebaseFcmReadiness, getFirebaseWebConfig } from './firebaseCloudMessaging.js';
+import { countFcmDevices } from './fcmDeviceRegistry.js';
 
 export type AdminSurfaceGroup = {
   family: ClientFamily;
@@ -74,7 +75,7 @@ export async function getAdminPlatformOverview() {
   const notificationQueue = await getNotificationQueueStats();
   const fcmServer = getFirebaseFcmReadiness();
   const fcmWeb = getFirebaseWebConfig();
-  const fcmDevices = tableExists(db, 'memory_profiles') ? count(db, "SELECT COUNT(*) FROM memory_profiles WHERE fcm_token IS NOT NULL AND TRIM(fcm_token) != ''") : 0;
+  const fcmDevices = await countFcmDevices();
   const surfaces = (['web', 'pwa', 'native', 'admin'] as const).map((family) => ({
     family,
     label: family === 'native' ? 'iOS & Android' : family === 'pwa' ? 'PWA' : family === 'admin' ? 'Admin' : 'Web',
@@ -134,6 +135,4 @@ export async function getAdminPlatformOverview() {
   };
 }
 
-export function getAdminModules(): readonly AdminModule[] {
-  return ADMIN_MODULES;
-}
+export function getAdminModules(): readonly AdminModule[] { return ADMIN_MODULES; }
