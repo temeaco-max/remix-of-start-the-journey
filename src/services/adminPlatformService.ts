@@ -7,6 +7,7 @@ import { getNotificationQueueStats } from './pushNotifications.js';
 import { getScaleTransitionReport } from './scaleTransition.js';
 import { getFirebaseFcmReadiness, getFirebaseWebConfig } from './firebaseCloudMessaging.js';
 import { countFcmDevices } from './fcmDeviceRegistry.js';
+import { getChannelActivationSecurity } from './channelActivationSecurity.js';
 
 export type AdminSurfaceGroup = {
   family: ClientFamily;
@@ -61,6 +62,7 @@ export async function getAdminPlatformOverview() {
   const db = await getDb();
   const integrations = getExternalIntegrationReadiness();
   const operationalIntegrations = getExternalIntegrationOperationalStatus();
+  const channelActivationSecurity = getChannelActivationSecurity();
   const pilot = getPilotReadiness();
   const scaleTransition = getScaleTransitionReport();
   const notificationQueue = await getNotificationQueueStats();
@@ -99,9 +101,10 @@ export async function getAdminPlatformOverview() {
   return {
     success: true,
     generatedAt: new Date().toISOString(),
-    contractVersion: 'admin-platform-v6',
+    contractVersion: 'admin-platform-v7',
     counts,
     integrations: { total: integrations.length, implemented: implementedIntegrations, externallyActive, readiness: integrations, operational: operationalIntegrations },
+    channelActivationSecurity,
     pilot,
     readiness: pilot.categories,
     scaleTransition,
@@ -116,7 +119,7 @@ export async function getAdminPlatformOverview() {
     readinessSummary,
     surfaces,
     clientContract: {
-      sourceOfTruth: 'canonical API + clientSurfaceRegistry + pilotReadiness + scaleTransition + notification queue + operational provider state',
+      sourceOfTruth: 'canonical API + clientSurfaceRegistry + pilotReadiness + scaleTransition + notification queue + operational provider state + channel activation security',
       identity: 'one canonical identity/session boundary',
       conversation: 'one canonical conversation/agent surface',
       actions: 'canonical services own mutation; admin is an operator control surface',
