@@ -10,6 +10,15 @@ export type AdminSurfaceGroup = {
   surfaces: Array<ClientSurface & { readiness: 'ready' | 'activation_required' | 'device_required' }>;
 };
 
+export type AdminModule = {
+  id: string;
+  label: string;
+  href: string;
+  category: 'operations' | 'growth' | 'platform' | 'content';
+  owner: string;
+  state: 'connected' | 'readiness' | 'legacy-surface';
+};
+
 function count(db: any, sql: string, params: unknown[] = []): number {
   try {
     const row = db.exec(sql, params)[0]?.values?.[0]?.[0];
@@ -33,6 +42,26 @@ function surfaceReadiness(surface: ClientSurface): 'ready' | 'activation_require
   return 'ready';
 }
 
+const ADMIN_MODULES: readonly AdminModule[] = [
+  { id: 'control-room', label: 'Control Room', href: '/admin/', category: 'operations', owner: 'adminPlatform', state: 'connected' },
+  { id: 'providers', label: 'Providers & trust', href: '/admin/?section=providers', category: 'operations', owner: 'providerEntity + trust', state: 'connected' },
+  { id: 'economic', label: 'Economic requests', href: '/admin/?section=economic', category: 'operations', owner: 'economicRequest + order + payment', state: 'connected' },
+  { id: 'conversations', label: 'Conversations', href: '/admin/?section=conversations', category: 'operations', owner: 'canonical conversation', state: 'connected' },
+  { id: 'moderation', label: 'Moderation & safety', href: '/admin/?section=moderation', category: 'operations', owner: 'safety + curation', state: 'connected' },
+  { id: 'compliance', label: 'Compliance', href: '/admin/?section=compliance', category: 'operations', owner: 'trust + privacy', state: 'connected' },
+  { id: 'notifications', label: 'Notifications & delivery', href: '/admin/?section=notifications', category: 'operations', owner: 'notification queue + channels', state: 'connected' },
+  { id: 'connectors', label: 'Channels & integrations', href: '/admin/?section=connectors', category: 'platform', owner: 'externalIntegrationReadiness', state: 'connected' },
+  { id: 'agents', label: 'Agents & autonomy', href: '/admin/ai-agents.html', category: 'platform', owner: 'agentRuntime', state: 'legacy-surface' },
+  { id: 'analytics', label: 'Analytics', href: '/admin/analytics.html', category: 'growth', owner: 'analyticsEngine', state: 'legacy-surface' },
+  { id: 'revenue', label: 'Revenue', href: '/admin/revenue.html', category: 'growth', owner: 'pricing + commissions + payment', state: 'legacy-surface' },
+  { id: 'marketing', label: 'Marketing', href: '/admin/marketing.html', category: 'growth', owner: 'adManager + content', state: 'legacy-surface' },
+  { id: 'ads', label: 'Advertising', href: '/admin/ads.html', category: 'growth', owner: 'adManager', state: 'legacy-surface' },
+  { id: 'content', label: 'Content', href: '/admin/content.html', category: 'content', owner: 'contentManager', state: 'legacy-surface' },
+  { id: 'curation', label: 'Curation', href: '/admin/curation.html', category: 'content', owner: 'curationService', state: 'legacy-surface' },
+  { id: 'seo', label: 'SEO', href: '/admin/?section=seo', category: 'growth', owner: 'seoService', state: 'connected' },
+  { id: 'settings', label: 'Settings', href: '/admin/?section=settings', category: 'platform', owner: 'feature flags + readiness', state: 'connected' },
+];
+
 export async function getAdminPlatformOverview() {
   const db = await getDb();
   const integrations = getExternalIntegrationReadiness();
@@ -51,24 +80,29 @@ export async function getAdminPlatformOverview() {
     providers: count(db, "SELECT COUNT(*) FROM memory_profiles WHERE provider_type IS NOT NULL AND provider_type != ''"),
     notificationsPending: tableExists(db, 'notifications') ? count(db, "SELECT COUNT(*) FROM notifications WHERE status IN ('pending','queued')") : 0,
     trustedDevices: tableExists(db, 'trusted_devices') ? count(db, "SELECT COUNT(*) FROM trusted_devices WHERE status='active'") : 0,
+    orders: tableExists(db, 'orders') ? count(db, 'SELECT COUNT(*) FROM orders') : 0,
+    disputes: tableExists(db, 'disputes') ? count(db, "SELECT COUNT(*) FROM disputes WHERE status NOT IN ('resolved','closed')") : 0,
+    topics: tableExists(db, 'topics') ? count(db, "SELECT COUNT(*) FROM topics WHERE status IS NULL OR status NOT IN ('deleted')") : 0,
   };
 
   const implementedIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
   const externallyActive = integrations.filter((item: any) => item.activation?.active === true || item.activation?.state === 'ACTIVE').length;
+  const readinessSummary = surfaces.flatMap(group => group.surfaces).reduce((summary, surface) => {
+    summary.total += 1;
+    summary[surface.readiness] += 1;
+    return summary;
+  }, { total: 0, ready: 0, activation_required: 0, device_required: 0 });
 
   return {
     success: true,
     generatedAt: new Date().toISOString(),
-    contractVersion: 'admin-platform-v1',
+    contractVersion: 'admin-platform-v2',
     counts,
-    integrations: {
-      total: integrations.length,
-      implemented: implementedIntegrations,
-      externallyActive,
-      readiness: integrations,
-    },
+    integrations: { total: integrations.length, implemented: implementedIntegrations, externallyActive, readiness: integrations },
     pilot,
     notifications: notificationQueue,
+    modules: ADMIN_MODULES,
+    readinessSummary,
     surfaces,
     clientContract: {
       sourceOfTruth: 'canonical API + clientSurfaceRegistry',
@@ -79,4 +113,8 @@ export async function getAdminPlatformOverview() {
       externalClaims: 'Activation and verification remain evidence-gated; UI never upgrades readiness into completion.',
     },
   };
+}
+
+export function getAdminModules(): readonly AdminModule[] {
+  return ADMIN_MODULES;
 }
