@@ -3,6 +3,7 @@ import { getExternalIntegrationReadiness } from './externalIntegrationReadiness.
 import { getPilotReadiness } from './pilotReadiness.js';
 import { getClientSurfaces, type ClientFamily, type ClientSurface } from './clientSurfaceRegistry.js';
 import { getNotificationQueueStats } from './pushNotifications.js';
+import { getScaleTransitionReport } from './scaleTransition.js';
 
 export type AdminSurfaceGroup = {
   family: ClientFamily;
@@ -68,6 +69,7 @@ export async function getAdminPlatformOverview() {
   const db = await getDb();
   const integrations = getExternalIntegrationReadiness();
   const pilot = getPilotReadiness();
+  const scaleTransition = getScaleTransitionReport();
   const notificationQueue = await getNotificationQueueStats();
   const surfaces = (['web', 'pwa', 'native', 'admin'] as const).map((family) => ({
     family,
@@ -100,17 +102,18 @@ export async function getAdminPlatformOverview() {
   return {
     success: true,
     generatedAt: new Date().toISOString(),
-    contractVersion: 'admin-platform-v3',
+    contractVersion: 'admin-platform-v4',
     counts,
     integrations: { total: integrations.length, implemented: implementedIntegrations, externallyActive, readiness: integrations },
     pilot,
     readiness: pilot.categories,
+    scaleTransition,
     notifications: notificationQueue,
     modules: ADMIN_MODULES,
     readinessSummary,
     surfaces,
     clientContract: {
-      sourceOfTruth: 'canonical API + clientSurfaceRegistry + pilotReadiness',
+      sourceOfTruth: 'canonical API + clientSurfaceRegistry + pilotReadiness + scaleTransition',
       identity: 'one canonical identity/session boundary',
       conversation: 'one canonical conversation/agent surface',
       actions: 'canonical services own mutation; admin is an operator control surface',
