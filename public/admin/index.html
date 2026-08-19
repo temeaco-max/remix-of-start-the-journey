@@ -1,1 +1,92 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Kurukoo Admin</title><link rel="stylesheet" href="/css/kurukoo-platform.css"><link rel="stylesheet" href="/css/admin-pages/admin-base.css"><link rel="stylesheet" href="/css/site.css"><script src="/admin/admin-auth.js"></script></head><body><div class="k-shell"><nav class="k-nav"><a class="k-brand" href="/"><img src="/assets/brand/logo-icon.png" alt="" width="30" height="30">Kurukoo</a><a href="/admin/" aria-current="true"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#settings"></use></svg> Overview</a><a href="/admin/?section=conversations"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#chat"></use></svg> Conversations</a><a href="/admin/?section=providers"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#channels"></use></svg> Providers</a><a href="/admin/?section=economic"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#request"></use></svg> Economic requests</a><a href="/admin/?section=moderation"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#safety"></use></svg> Moderation</a><a href="/admin/?section=compliance"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#safety"></use></svg> Compliance</a><a href="/admin/?section=settings"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#settings"></use></svg> Settings</a><a href="/admin/?section=seo"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#discover"></use></svg> SEO</a></nav><main class="k-main"><header class="k-top"><div><p class="k-muted">Operations console</p><h1>Kurukoo control room</h1></div><span class="k-status"><span class="k-dot"></span> Operational controls require admin authentication</span></header><section class="k-grid"><article class="k-card k-span-4"><p class="k-muted">Open conversations</p><div class="k-stat" id="stat-conversations">—</div></article><article class="k-card k-span-4"><p class="k-muted">Economic requests</p><div class="k-stat" id="stat-requests">—</div></article><article class="k-card k-span-4"><p class="k-muted">Channel health</p><div class="k-stat" id="stat-channels">—</div></article><article class="k-card k-span-8"><h2>Operational queue</h2><p class="k-muted">Use authenticated APIs for actual records. Provider, compliance and feature-flag actions remain operator-controlled.</p><div class="k-list" id="admin-queue"><div class="k-row"><span>Load queue</span><button type="button" class="k-btn" id="load-admin">Refresh</button></div></div></article><article class="k-card k-span-4"><h2>Safety gates</h2><div class="k-list"><div class="k-row"><span>Provider verification</span><span>Required</span></div><div class="k-row"><span>Payment confirmation</span><span>Required</span></div><div class="k-row"><span>Moderation</span><span>Required</span></div><div class="k-row"><span>Audit trail</span><span>Required</span></div></div></article></section><section id="admin-section-panel" class="section" aria-live="polite"></section></main></div><script src="/js/kurukoo-admin.js" defer></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Kurukoo Control Room</title>
+  <link rel="stylesheet" href="/css/kurukoo-platform.css">
+  <link rel="stylesheet" href="/css/admin-pages/admin-base.css">
+  <link rel="stylesheet" href="/css/admin-pages/admin-platform-convergence.css">
+  <link rel="stylesheet" href="/css/site.css">
+  <script src="/admin/admin-auth.js"></script>
+</head>
+<body>
+  <div class="k-shell">
+    <nav class="k-nav" aria-label="Admin navigation">
+      <a class="k-brand" href="/"><img src="/assets/brand/logo-icon.png" alt="" width="30" height="30">Kurukoo</a>
+      <div class="k-nav-group"><span class="k-nav-label">Operations</span>
+        <a href="/admin/" aria-current="true">Overview</a>
+        <a href="/admin/?section=conversations">Conversations</a>
+        <a href="/admin/?section=providers">Providers & trust</a>
+        <a href="/admin/?section=economic">Economic requests</a>
+        <a href="/admin/?section=moderation">Moderation</a>
+        <a href="/admin/?section=compliance">Compliance</a>
+        <a href="/admin/?section=notifications">Notifications</a>
+      </div>
+      <div class="k-nav-group"><span class="k-nav-label">Platform</span>
+        <a href="/admin/?section=connectors">Channels & integrations</a>
+        <a href="/admin/ai-agents.html">Agents & autonomy</a>
+        <a href="/admin/?section=settings">Settings</a>
+        <a href="/admin/?section=seo">SEO</a>
+      </div>
+      <div class="k-nav-group"><span class="k-nav-label">Growth & content</span>
+        <a href="/admin/analytics.html">Analytics</a>
+        <a href="/admin/revenue.html">Revenue</a>
+        <a href="/admin/marketing.html">Marketing</a>
+        <a href="/admin/ads.html">Advertising</a>
+        <a href="/admin/content.html">Content</a>
+        <a href="/admin/curation.html">Curation</a>
+      </div>
+    </nav>
+
+    <main class="k-main">
+      <header class="k-top">
+        <div>
+          <p class="k-muted">Operations console</p>
+          <h1>Kurukoo control room</h1>
+          <p class="k-muted">One canonical backend for Web, PWA, iOS, Android and the operator surface.</p>
+        </div>
+        <div class="k-top-actions"><span class="k-status"><span class="k-dot"></span> Authenticated control plane</span><button type="button" class="k-btn" id="load-admin">Refresh</button></div>
+      </header>
+
+      <section class="k-grid" aria-label="Platform overview">
+        <article class="k-card k-span-3"><p class="k-muted">Profiles</p><div class="k-stat" id="stat-profiles">—</div></article>
+        <article class="k-card k-span-3"><p class="k-muted">Open requests</p><div class="k-stat" id="stat-requests">—</div></article>
+        <article class="k-card k-span-3"><p class="k-muted">Providers</p><div class="k-stat" id="stat-providers">—</div></article>
+        <article class="k-card k-span-3"><p class="k-muted">Pending notifications</p><div class="k-stat" id="stat-notifications">—</div></article>
+        <article class="k-card k-span-4"><p class="k-muted">Messages</p><div class="k-stat" id="stat-messages">—</div><p class="k-muted" id="stat-orders">Orders —</p></article>
+        <article class="k-card k-span-4"><p class="k-muted">Integrations</p><div class="k-stat" id="stat-integrations">—</div><p class="k-muted" id="stat-active-integrations">External active —</p></article>
+        <article class="k-card k-span-4"><p class="k-muted">Trusted devices</p><div class="k-stat" id="stat-devices">—</div><p class="k-muted" id="stat-disputes">Open disputes —</p></article>
+
+        <article class="k-card k-span-8">
+          <div class="k-section-heading"><div><p class="k-muted">Live platform state</p><h2>Operational queue</h2></div><span class="k-status" id="surface-contract">Loading…</span></div>
+          <div class="k-list" id="admin-queue"><div class="k-row"><span>Loading canonical state</span><span class="k-muted">Authenticated admin API</span></div></div>
+        </article>
+        <article class="k-card k-span-4">
+          <h2>Safety gates</h2>
+          <div class="k-list">
+            <div class="k-row"><span>Provider evidence</span><strong>Required</strong></div>
+            <div class="k-row"><span>Payment confirmation</span><strong>Required</strong></div>
+            <div class="k-row"><span>Moderation</span><strong>Required</strong></div>
+            <div class="k-row"><span>Audit trail</span><strong>Required</strong></div>
+            <div class="k-row"><span>External activation</span><strong>Evidence-gated</strong></div>
+          </div>
+        </article>
+
+        <article class="k-card k-span-12">
+          <div class="k-section-heading"><div><p class="k-muted">Cross-platform contract</p><h2>One backend, every surface</h2></div><span class="k-status" id="surface-summary">—</span></div>
+          <div id="client-surfaces" class="admin-surface-grid" aria-live="polite"></div>
+        </article>
+
+        <article class="k-card k-span-12">
+          <div class="k-section-heading"><div><p class="k-muted">Admin capability map</p><h2>Every operational area has an owner</h2></div></div>
+          <div id="admin-modules" class="admin-module-grid" aria-live="polite"></div>
+        </article>
+      </section>
+      <section id="admin-section-panel" class="section" aria-live="polite"></section>
+    </main>
+  </div>
+  <script src="/js/kurukoo-admin.js" defer></script>
+</body>
+</html>
