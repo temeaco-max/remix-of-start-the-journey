@@ -46,17 +46,21 @@
     input.dataset.kurukooSearchBound = 'true';
   };
 
-  const loadFoundation = () => {
-    if (document.querySelector('link[data-kurukoo-client-foundation]')) return;
+  const loadStylesheet = (id, href) => {
+    if (document.querySelector(`link[data-${id}]`)) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/css/kurukoo-client-foundation.css';
-    link.dataset.kurukooClientFoundation = 'true';
+    link.href = href;
+    link.dataset[id] = 'true';
     document.head.appendChild(link);
   };
 
+  const loadFoundation = () => loadStylesheet('kurukoo-client-foundation', '/css/kurukoo-client-foundation.css');
+  const loadWebCompletion = () => loadStylesheet('kurukoo-web-completion', '/css/kurukoo-web-completion.css');
+
   const boot = () => {
     loadFoundation();
+    loadWebCompletion();
     if (document.body.classList.contains('workspace-page')) createTabBar();
     wireExploreSearch();
   };
