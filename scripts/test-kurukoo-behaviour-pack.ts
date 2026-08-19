@@ -1,9 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 
 const packPath = path.join(process.cwd(), 'ml', 'behaviour', 'latest.json');
-if (!fs.existsSync(packPath)) throw new Error('Behaviour pack is missing. Run npx tsx scripts/compile-kurukoo-behaviour-pack.ts.');
+if (!fs.existsSync(packPath)) {
+  const compile = spawnSync('npx', ['tsx', 'scripts/compile-kurukoo-behaviour-pack.ts'], { stdio: 'inherit', encoding: 'utf8' });
+  if (compile.status !== 0) throw new Error('Behaviour pack compilation failed.');
+}
 const pack = JSON.parse(fs.readFileSync(packPath, 'utf8')) as any;
 const requiredTop = ['schemaVersion','packVersion','packHash','sourceCommit','constitution','agentRuntime','skills','capabilities','agentTools','behaviourFamilies','truthBoundary','safetyBoundary'];
 for (const key of requiredTop) if (!(key in pack)) throw new Error(`Behaviour pack missing ${key}`);
