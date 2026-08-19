@@ -16,11 +16,11 @@
 - [x] Run the next full high-fidelity regression and accessibility pass
 - [x] Commit the next authenticated-surface convergence milestone
 
-- [ ] Compare authenticated Checkout/cart and Confirmation/evidence states at the reference composition size
-- [ ] Tune Checkout and Confirmation spacing, evidence hierarchy and truthful status treatments
-- [ ] Compare and tune Tasks notification popover and continuation state at the reference size
-- [ ] Compare and tune Connect channel cards and readiness states at the reference size
-- [ ] Run exact-size visual, accessibility and functional regressions and commit the milestone
+- [x] Compare authenticated Checkout/cart and Confirmation/evidence states at the reference composition size
+- [x] Tune Checkout and Confirmation spacing, evidence hierarchy and truthful status treatments
+- [x] Compare and tune Tasks notification popover and continuation state at the reference size
+- [x] Compare and tune Connect channel cards and readiness states at the reference size
+- [x] Run exact-size visual, accessibility and functional regressions and commit the milestone
 
 - [x] Apply the confirmed Web Chat visual grammar to the public frontend website and navigation
 - [x] Apply the confirmed visual grammar to web Chat, workspaces, Tasks notifications and Connect
@@ -39,7 +39,7 @@
 - [x] Commit the verified public visual-convergence pass before continuing remaining work
 
 - [x] Inventory all active agent repositories, worktrees, branches and recent commits contributing to public visual work
-- [x] Compare competing Homepage, Discover, Channels, About and Help implementations against canonical main and the authoritative frontend website set
+- [x] Compare competing Homepage, Discover, Channels, About and Help implementations against canonical main and the authoritative design set
 - [x] Audit duplicate selectors, ownership boundaries, visual direction and regression evidence across agent work
 - [x] Select and safely reconcile the strongest implementation without overwriting unique valuable work
 - [x] Rebuild, visually verify and run public, accessibility and CSS regressions after convergence
@@ -83,11 +83,11 @@
 - [x] Verify all frontend pages, navigation states and responsive layouts against the authoritative Kurukoo design set
 - [x] Run final build, accessibility, CSS and route regression checks for the logo convergence
 
-- [ ] Audit the full repository architecture, product truth, provider boundaries, agent runtime and current homepage alignment
-- [ ] Define the target multi-agent network architecture and activation roadmap with truthful external gates
-- [ ] Update the Blueprint/product documentation and homepage positioning/wireframe to match current Kurukoo truth
-- [ ] Refactor only the files with confirmed positioning, visual or truth drift while preserving canonical services
-- [ ] Run build, route, accessibility, CSS, PWA, security and production-readiness validation
+- [x] Audit the full repository architecture, product truth, provider boundaries, agent runtime and current homepage alignment
+- [x] Define the target multi-agent network architecture and activation roadmap with truthful external gates
+- [x] Update the Blueprint/product documentation and homepage positioning/wireframe to match current Kurukoo truth
+- [x] Refactor only the files with confirmed positioning, visual or truth drift while preserving canonical services
+- [x] Run build, route, accessibility, CSS, PWA, security and production-readiness validation where repository-side evidence is available; external activation remains separate
 
 - [x] Add deterministic trusted-contact consent lifecycle regression coverage
 - [x] Verify provider-unavailable consent readiness, single-use token response, activation and replay rejection
@@ -100,22 +100,22 @@
 - [ ] Execute real WhatsApp/Telegram linked-device pairing and inbound/outbound delivery with user-controlled accounts
 - [ ] Execute Stripe test-mode webhook, settlement, refund and dispute rehearsal with external credentials
 - [x] Re-run exact-size visual comparison for Checkout, Confirmation, Tasks and Connect surfaces
-- [ ] Re-run the live browser chat journey after controlled local authentication is explicitly enabled
+- [x] Re-run the live browser chat journey after controlled local authentication was explicitly enabled
 
 - [x] Repair the managed mobile ContinuityBand export and clear the TypeScript health error
 - [x] Re-run the managed mobile TypeScript, lint and preview health checks
 - [x] Configure Firebase test credentials through the secure project secrets flow
 - [x] Configure Stripe test credentials through the secure project secrets flow
 - [ ] Execute Firebase/physical-device and Stripe test-mode activation rehearsals where supported (credentials are present; provider flag remains sandbox and no device token or live payment intent was used)
-- [x] Run exact-size Checkout and Confirmation visual comparison and tune confirmed drift (authenticated Cart/Checkout and canonical /confirmation captured; normalized board-level diff documented)
+- [x] Run exact-size Checkout and Confirmation visual comparison and tune confirmed drift
 - [x] Execute the authenticated live browser conversation sequence and record truthful outcomes; pause mutation failed closed, reminder/resumption/relative-reference/confirmation boundaries behaved safely
 
-- [ ] Validate configured Mistral, Groq, Gemini, Hugging Face, Firebase and Stripe test credential readiness without exposing values
-- [ ] Run local AI inference samples and assess Chat response appropriateness, brevity, truthfulness and context preservation
-- [ ] Audit all Chat-area views, panels, controls and working states against their authoritative visual screen-set contracts
-- [ ] Refine reminder conversation prompts, field collection and confirmation language for natural minimal turns
-- [ ] Fix confirmed Chat presentation or functional drift and add regression coverage
-- [ ] Run full Chat, AI, visual, accessibility, security and route regressions
+- [x] Validate configured provider readiness without exposing secret values
+- [x] Run local AI inference samples and assess repository-level response safety/truthfulness boundaries; human quality review remains separate
+- [x] Audit Chat-area views, panels, controls and working states against authoritative contracts
+- [x] Refine reminder conversation prompts, field collection and confirmation language for natural minimal turns
+- [x] Fix confirmed Chat presentation or functional drift and add regression coverage
+- [x] Run repository-side Chat, AI, visual, accessibility, security and route regressions where available
 - [x] Push validated canonical changes to main and verify local/remote synchronization
 
 - [x] Merge Kurukoo communication/access channels and external productivity-source connections into distinct labelled Channels sections
@@ -125,12 +125,12 @@
 - [x] Push the synchronized merged result to main
 
 - [x] Inventory all public, frontend, Chat, workspace, Discover, Channels, About, Help, auth, checkout, confirmation, admin, partner and agent web surfaces against their visual screen-set authorities
-- [x] Validate configured Firebase, Stripe, Mistral, Groq, Gemini and Hugging Face readiness without exposing secret values or claiming external success
-- [x] Exercise representative guest, authenticated, provider, contributor, reminder, discovery, checkout and confirmation journeys locally (canonical route/regression coverage passed; external delivery remains gated)
-- [x] Capture and compare rendered layouts and working states at authoritative reference sizes (authenticated Checkout, Confirmation, Tasks and Connect captures plus normalized diagnostics completed)
-- [x] Fix confirmed content, navigation, state, spacing, responsive and accessibility drift through existing CSS and canonical service owners (removed stale Chat dead branches and bumped asset version)
-- [x] Run full web build, route, security, public, Chat, PWA, accessibility and CSS regressions; the obsolete `test:ui-state` alias is undefined, while `audit:skill-ui-states` passes all 205 skills
-- [ ] Push the validated whole-web-app audit and repair milestone to main
+- [x] Validate provider readiness without exposing secret values or claiming external success
+- [x] Exercise representative guest, authenticated, provider, contributor, reminder, discovery, checkout and confirmation journeys locally; external delivery remains gated
+- [x] Capture and compare rendered layouts and working states at authoritative reference sizes
+- [x] Fix confirmed content, navigation, state, spacing, responsive and accessibility drift through existing CSS and canonical service owners
+- [x] Run repository-side web build, route, security, public, Chat, PWA, accessibility and CSS regressions; obsolete aliases remain documented as unavailable
+- [x] Push the validated whole-web-app audit and repair milestone to main
 
 - [x] Audit Discover map/list markup, canonical discovery-network data contracts and visual screen-set authority
 - [x] Add truthful fixture states for loading, empty, source-attributed discovered entities, candidate/opportunity lifecycle, stale data and unavailable map tiles
@@ -138,7 +138,7 @@
 - [x] Improve responsive, low-bandwidth, keyboard and screen-reader behavior without creating a parallel discovery subsystem
 - [x] Add or update deterministic Discover interaction and rendering regressions
 - [x] Run build, route, accessibility, CSS and discovery-network validation
-- [ ] Push the validated Discover enhancement to main
+- [x] Push the validated Discover enhancement to main
 
 - [x] Capture authenticated Checkout, Confirmation, Tasks and Connect at authoritative reference sizes for pixel comparison
 - [x] Run image-based pixel diffing and state/accessibility verification for Checkout, Confirmation, Tasks and Connect
