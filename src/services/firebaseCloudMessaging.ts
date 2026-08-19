@@ -13,6 +13,21 @@ export interface FcmReadiness {
   reason: string;
 }
 
+export interface FirebaseWebConfigResponse {
+  success: true;
+  configured: boolean;
+  reason: string;
+  config?: {
+    apiKey: string;
+    authDomain: string;
+    projectId: string;
+    storageBucket: string;
+    messagingSenderId: string;
+    appId: string;
+    vapidKey: string;
+  };
+}
+
 export interface FcmSendResult {
   attempted: boolean;
   accepted: boolean;
@@ -26,8 +41,6 @@ function readServiceAccount(): FirebaseServiceAccount | null {
   const pathValue = process.env.FCM_SERVICE_ACCOUNT_PATH || '';
   if (pathValue) {
     try {
-      // fs is only loaded when a file path is actually configured, keeping the
-      // module importable without a Node fs side effect until needed.
       const require = createRequire(import.meta.url);
       const parsed = JSON.parse(require('node:fs').readFileSync(pathValue, 'utf8')) as FirebaseServiceAccount;
       if (parsed.project_id && parsed.client_email && parsed.private_key) return parsed;
@@ -55,6 +68,22 @@ export function getFirebaseFcmReadiness(): FcmReadiness {
   const account = readServiceAccount();
   if (!account) return { configured: false, reason: 'FCM service-account configuration is absent or invalid.' };
   return { configured: true, projectId: account.project_id, reason: 'FCM service-account configuration is present; provider and device delivery still require runtime validation.' };
+}
+
+export function getFirebaseWebConfig(): FirebaseWebConfigResponse {
+  const config = {
+    apiKey: String(process.env.FIREBASE_API_KEY || '').trim(),
+    authDomain: String(process.env.FIREBASE_AUTH_DOMAIN || '').trim(),
+    projectId: String(process.env.FIREBASE_PROJECT_ID || process.env.KURUKOO_FCM_PROJECT_ID || '').trim(),
+    storageBucket: String(process.env.FIREBASE_STORAGE_BUCKET || '').trim(),
+    messagingSenderId: String(process.env.FIREBASE_MESSAGING_SENDER_ID || '').trim(),
+    appId: String(process.env.FIREBASE_APP_ID || '').trim(),
+    vapidKey: String(process.env.KURUKOO_FCM_VAPID_KEY || process.env.FIREBASE_VAPID_KEY || '').trim(),
+  };
+  const configured = Object.values(config).every(Boolean);
+  return configured
+    ? { success: true, configured: true, reason: 'Firebase web configuration is available for client registration.', config }
+    : { success: true, configured: false, reason: 'Firebase web configuration is incomplete; push permission and token registration remain unavailable until the public web configuration and VAPID key are configured.' };
 }
 
 function base64Url(value: string): string {
@@ -100,8 +129,15 @@ export async function sendFirebaseFcmMessage(input: { token: string; title: stri
       headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
       body: JSON.stringify({ message: { token, notification: { title: input.title, body: input.body }, ...(input.link ? { webpush: { fcm_options: { link: input.link } } } : {}) } }),
     });
-    const data = await response.json().catch(() => ({})) as { name?: string };
-    if (!response.ok) return { attempted: true, accepted: false, failureReason: `fcm_http_${response.status}` };
+    const data = await response.json().catch(() => ({})) as { name?: string; error?: { status?: string; message?: string } };
+    if (!response.ok) {
+      const providerStatus = String(data.error?.status || '').toUpperCase();
+      const message = String(data.error?.message || '').toLowerCase();
+      const reason = providerStatus === 'UNREGISTERED' || message.includes('unregistered') || message.includes('not a valid fcm registration token')
+        ? 'device_token_unregistered'
+        : `fcm_http_${response.status}`;
+      return { attempted: true, accepted: false, failureReason: reason };
+    }
     return { attempted: true, accepted: true, providerReference: typeof data.name === 'string' ? data.name.slice(0, 256) : undefined };
   } catch (error) {
     return { attempted: true, accepted: false, failureReason: error instanceof Error ? error.message.slice(0, 160) : 'fcm_request_failed' };
