@@ -33,7 +33,7 @@ async function main() {
 
   assert.match(publicRoutes, /router\.get\('\/admin'/, 'canonical /admin entry route must exist');
   assert.match(indexSrc, /app\.use\('\/api\/admin\/platform',\s*adminPlatformRoutes\)/, 'platform admin router must be mounted before the general admin router');
-  assert.match(indexSrc, /app\.use\('\/api\/admin',\s*adminDisputeRoutes\)\s*;\s*app\.use\('\/api\/admin',\s*adminRoutes\)/, 'canonical dispute routes must be mounted before legacy admin handlers');
+  assert.match(indexSrc, /app\.use\('\/api\/admin',\s*adminDisputeRoutes\)\s*;\s*app\.use\('\/api\/admin',\s*adminRoutes\)/, 'canonical dispute/ticket routes must be mounted before legacy admin handlers');
 
   for (const file of ['login.html', 'dashboard.html', 'ads.html', 'analytics.html', 'ai-agents.html', 'content.html', 'seo.html', 'users.html', 'pricing.html', 'revenue.html']) {
     assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', file)), `admin page ${file} must exist`);
@@ -56,6 +56,7 @@ async function main() {
   assert.match(adminJs, /\/api\/admin\/platform\/overview/, 'control room must consume canonical platform projection');
   assert.match(adminJs, /\/api\/admin\/trust\/readiness/, 'operational sections must consume canonical trust readiness');
   assert.match(adminJs, /renderModules/, 'control room must render canonical admin module registry');
+  assert.match(adminJs, /renderPilotReadiness/, 'control room must render canonical dependency readiness');
 
   assert.match(platformSrc, /router\.use\(authenticateAdmin\)/, 'platform projection must require admin authentication');
   assert.match(platformSrc, /router\.get\('\/overview'/, 'platform overview endpoint must exist');
@@ -64,11 +65,13 @@ async function main() {
   assert.match(platformSrc, /router\.get\('\/health'/, 'platform health endpoint must exist');
   assert.match(serviceSrc, /clientSurfaceRegistry/, 'admin platform service must reuse client surface registry');
   assert.match(serviceSrc, /externalIntegrationReadiness/, 'admin platform service must reuse integration readiness');
+  assert.match(serviceSrc, /pilotReadiness/, 'admin platform service must expose canonical dependency readiness');
   assert.match(serviceSrc, /ADMIN_MODULES/, 'admin module registry must have a canonical owner');
   assert.match(serviceSrc, /evidence-gated/, 'external claims must remain evidence-gated');
 
   assert.match(disputeSrc, /router\.use\(authenticateAdmin\)/, 'canonical dispute admin router must require admin authentication');
   assert.match(disputeSrc, /resolveDisputeWithEconomicLifecycle/, 'admin dispute route must use canonical resolution lifecycle');
+  assert.match(disputeSrc, /resolveDispute\(/, 'admin ticket reply must use canonical dispute service');
   assert.match(disputeSrc, /escalateDispute/, 'admin escalation route must use canonical dispute service');
   assert.match(disputeServiceSrc, /releaseEscrow/, 'dispute lifecycle must use canonical escrow release');
   assert.match(disputeServiceSrc, /refundEscrow/, 'dispute lifecycle must use canonical escrow refund');
@@ -93,7 +96,7 @@ async function main() {
   assert.match(src, /isolated_actor_context/, 'Test As must disclose isolated actor boundary');
   assert.doesNotMatch(src, /\\+2348030000000/, 'no demo phone in admin routes');
   for (const p of paths) assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
-  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, canonical dispute lifecycle, client-surface contract and module registry are present');
+  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, canonical dispute/ticket lifecycle, client-surface contract and module registry are present');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
