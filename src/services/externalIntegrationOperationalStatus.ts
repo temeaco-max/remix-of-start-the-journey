@@ -1,9 +1,10 @@
 import { getFirebaseFcmReadiness, getFirebaseWebConfig } from './firebaseCloudMessaging.js';
 import { getMqttBridgeStatus } from './iotBridge.js';
 import { getWebRTCClientConfig, getWebRTCStatus } from './webrtcSignalling.js';
+import { getTrustedContactReadiness } from './trustedContactService.js';
 
 export interface IntegrationOperationalStatus {
-  id: 'fcm' | 'mqtt_iot' | 'webrtc';
+  id: 'fcm' | 'mqtt_iot' | 'webrtc' | 'trusted_contacts';
   configured: boolean;
   connected: boolean;
   runtimeReady: boolean;
@@ -17,6 +18,7 @@ export function getExternalIntegrationOperationalStatus(): IntegrationOperationa
   const mqtt = getMqttBridgeStatus();
   const webrtc = getWebRTCStatus();
   const webrtcConfig = getWebRTCClientConfig();
+  const trustedContacts = getTrustedContactReadiness();
 
   return [
     {
@@ -48,6 +50,16 @@ export function getExternalIntegrationOperationalStatus(): IntegrationOperationa
       detail: webrtc.available
         ? `WebRTC signalling and ICE configuration are available via ${webrtcConfig.transport}; peer interoperability still requires a real call.`
         : webrtc.activationRequirement,
+    },
+    {
+      id: 'trusted_contacts',
+      configured: trustedContacts.providerAvailable,
+      connected: trustedContacts.providerAvailable,
+      runtimeReady: trustedContacts.providerAvailable,
+      physicalOrProviderEvidenceRequired: true,
+      detail: trustedContacts.providerAvailable
+        ? 'At least one trusted-contact delivery provider is configured. Consent remains owner- and recipient-driven, and provider delivery still requires evidence.'
+        : trustedContacts.reason,
     },
   ];
 }
