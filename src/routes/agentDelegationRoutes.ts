@@ -1,0 +1,58 @@
+import { Router } from 'express';
+import { authenticateUser, type AuthRequest } from '../middleware/auth.js';
+import { processDirectPayment } from '../services/directWallet.js';
+import { ensureCommercialSchema, createUserAgentDelegation, executeUserAgentDelegation, listUserAgentDelegations, recordCommercialEvent, setUserAgentDelegationInstructions } from '../services/commercialLedger.js';
+import { getDb } from '../database.js';
+
+const router = Router();
+
+router.get('/delegations', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = String(req.user?.phone || '');
+  if (!phone) return res.status(401).json({ error: 'Authenticated owner is required.' });
+  try { res.json({ success: true, delegations: await listUserAgentDelegations(phone) }); }
+  catch (error) { res.status(500).json({ error: error instanceof Error ? error.message : 'Unable to list delegated agents.' }); }
+});
+
+router.post('/delegations', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = String(req.user?.phone || '');
+  const skill = String(req.body?.skill || '').trim().slice(0, 120);
+  if (!phone || !skill) return res.status(400).json({ error: 'skill is required.' });
+  const priceMinor = Math.max(0, Number(req.body?.monthlyPriceMinor || 0));
+  const currency = String(req.body?.currency || 'NGN').trim().toUpperCase();
+  try {
+    const created = await createUserAgentDelegation({ ownerPhone: phone, skill, baseAgentId: req.body?.baseAgentId ? String(req.body.baseAgentId) : undefined, instructions: req.body?.instructions ? String(req.body.instructions) : '', authority: typeof req.body?.authority === 'object' ? req.body.authority : {}, monthlyPriceMinor: priceMinor, currency, allowDonations: Boolean(req.body?.allowDonations), donationRecipient: req.body?.donationRecipient ? String(req.body.donationRecipient).trim() : undefined });
+    res.status(201).json({ success: true, ...created, paymentRequired: priceMinor > 0 });
+  } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to create delegated agent.' }); }
+});
+
+router.post('/delegations/:id/subscribe', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = String(req.user?.phone || ''); const delegationId = String(req.params.id || '');
+  if (!phone || !delegationId) return res.status(400).json({ error: 'Delegation is required.' });
+  try {
+    await ensureCommercialSchema(); const db = await getDb(); const stmt = db.prepare(`SELECT agent_id,skill,monthly_price_minor,currency,status FROM agent_delegations WHERE id=? AND owner_phone=?`); stmt.bind([delegationId,phone]); if (!stmt.step()) { stmt.free(); return res.status(404).json({ error: 'Delegated agent not found.' }); }
+    const row = stmt.getAsObject() as any; stmt.free(); if (row.status !== 'active') return res.status(409).json({ error: 'Delegated agent is not active.' });
+    const amountMinor = Number(row.monthly_price_minor || 0); const currency = String(row.currency || 'NGN').toUpperCase();
+    if (amountMinor <= 0) return res.json({ success: true, paid: false, message: 'This delegated agent is currently free.' });
+    const paid = await processDirectPayment(phone, 'SYSTEM', amountMinor / 100);
+    if (!paid) return res.status(402).json({ success: false, payment_required: true, amountMinor, currency, message: 'Verified payment is required to activate this delegated agent.' });
+    await recordCommercialEvent({ eventType: 'agent_subscription', direction: 'inbound', status: 'settled', currency, grossMinor: amountMinor, platformFeeMinor: amountMinor, providerAmountMinor: 0, payer: phone, payee: 'KURUKOO', representedParty: phone, agentId: String(row.agent_id), skill: String(row.skill), idempotencyKey: `agent_subscription:${delegationId}:${new Date().toISOString().slice(0,7)}`, metadata: { billingPeriod: 'monthly' } });
+    res.json({ success: true, paid: true, amountMinor, currency, agentId: String(row.agent_id) });
+  } catch (error) { res.status(503).json({ error: error instanceof Error ? error.message : 'Unable to activate delegated agent.', payment_required: true }); }
+});
+
+router.patch('/delegations/:id', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = String(req.user?.phone || ''); const delegationId = String(req.params.id || '');
+  if (!phone || !delegationId) return res.status(400).json({ error: 'Delegation is required.' });
+  try { const ok = await setUserAgentDelegationInstructions(phone, delegationId, String(req.body?.instructions || ''), typeof req.body?.authority === 'object' ? req.body.authority : {}); if (!ok) return res.status(404).json({ error: 'Delegated agent not found.' }); res.json({ success: true }); }
+  catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to update delegation.' }); }
+});
+
+router.post('/delegations/:id/execute', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = String(req.user?.phone || ''); const delegationId = String(req.params.id || ''); const task = String(req.body?.task || '').trim();
+  if (!phone || !delegationId || !task) return res.status(400).json({ error: 'A delegated agent and task are required.' });
+  if (task.length > 12000) return res.status(413).json({ error: 'Task is too large.' });
+  try { res.json(await executeUserAgentDelegation(phone, delegationId, task)); }
+  catch (error) { res.status(500).json({ error: error instanceof Error ? error.message : 'Unable to execute delegated agent.' }); }
+});
+
+export default router;
