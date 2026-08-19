@@ -6,6 +6,7 @@ import { ensureCapabilityFoundation } from '../services/capabilityFoundation.js'
 import { listCapabilityRegistrations, validateCapabilityRegistry } from '../services/capabilityRegistry.js';
 import { getCapabilityRuntimeSnapshot } from '../services/capabilityFoundationIntegration.js';
 import { getNetworkMetricSnapshot, metricsPrometheus } from '../services/observability.js';
+import { getExternalIntegrationOperationalStatus } from '../services/externalIntegrationOperationalStatus.js';
 
 const router = Router();
 const startedAt = Date.now();
@@ -63,6 +64,7 @@ function runtimeSnapshot() {
       payment: readiness.categories.PAYMENTS?.configuredProvider,
       agent: readiness.categories.AGENT?.runtime,
     },
+    integrations_operational: getExternalIntegrationOperationalStatus(),
     capability_runtime: getCapabilityRuntimeSnapshot(),
   };
 }
@@ -94,7 +96,7 @@ router.get('/readyz', async (_req, res) => {
     const statePath = String(process.env.DB_PATH || '').trim();
     const durableStateReady = !persistentStateRequired || Boolean(statePath && !statePath.startsWith('/tmp/'));
     const status = modelReady && capabilityReady && durableStateReady ? 'ready' : 'not_ready';
-    res.status(status === 'ready' ? 200 : 503).json({ status, service: 'kurukoo', database: 'ok', model: runtime.model, model_required: requireModel, persistent_state_required: persistentStateRequired, durable_state_ready: durableStateReady, capabilities: capability, timestamp: new Date().toISOString() });
+    res.status(status === 'ready' ? 200 : 503).json({ status, service: 'kurukoo', database: 'ok', model: runtime.model, model_required: requireModel, persistent_state_required: persistentStateRequired, durable_state_ready: durableStateReady, capabilities: capability, integrations_operational: runtime.integrations_operational, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('[Readiness] check failed:', error);
     res.status(503).json({ status: 'not_ready', service: 'kurukoo', database: 'unavailable', timestamp: new Date().toISOString() });
