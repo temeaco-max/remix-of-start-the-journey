@@ -86,33 +86,30 @@
       window.location.assign('/admin/login.html');
     });
 
-    void fetch('/api/admin/platform/health', { headers: { Accept: 'application/json' } })
-      .then(response => response.json().catch(() => ({})))
-      .then(data => {
-        const label = document.querySelector('[data-admin-health-label]');
-        if (!label) return;
-        const checks = data.checks || {};
-        label.textContent = data.success && Object.values(checks).every(value => value === 'ok') ? 'Platform healthy' : 'Platform needs attention';
-      })
-      .catch(() => {
-        const label = document.querySelector('[data-admin-health-label]');
-        if (label) label.textContent = 'Health unavailable';
-      });
-
     void fetch('/api/admin/platform/overview', { headers: { Accept: 'application/json' } })
       .then(response => response.json().catch(() => ({})))
       .then(data => {
-        const label = document.querySelector('[data-admin-operational-label]');
-        if (!label) return;
+        const healthLabel = document.querySelector('[data-admin-health-label]');
+        const operationalLabel = document.querySelector('[data-admin-operational-label]');
+        if (!data?.success) {
+          if (healthLabel) healthLabel.textContent = 'Platform state unavailable';
+          if (operationalLabel) operationalLabel.textContent = 'Operational state unavailable';
+          return;
+        }
         const operational = Array.isArray(data.integrations?.operational) ? data.integrations.operational : [];
         const ready = operational.filter(item => item?.runtimeReady === true).length;
         const configured = operational.filter(item => item?.configured === true).length;
         const devices = Number(data.fcm?.registeredDevices || 0);
-        label.textContent = `Operational ${ready}/${operational.length} · Configured ${configured} · FCM devices ${devices}`;
+        const activation = Number(data.readinessSummary?.activation_required || 0);
+        const device = Number(data.readinessSummary?.device_required || 0);
+        if (healthLabel) healthLabel.textContent = activation === 0 && device === 0 ? 'Platform healthy' : 'Platform needs attention';
+        if (operationalLabel) operationalLabel.textContent = `Operational ${ready}/${operational.length} · Configured ${configured} · FCM devices ${devices}`;
       })
       .catch(() => {
-        const label = document.querySelector('[data-admin-operational-label]');
-        if (label) label.textContent = 'Operational state unavailable';
+        const healthLabel = document.querySelector('[data-admin-health-label]');
+        const operationalLabel = document.querySelector('[data-admin-operational-label]');
+        if (healthLabel) healthLabel.textContent = 'Platform state unavailable';
+        if (operationalLabel) operationalLabel.textContent = 'Operational state unavailable';
       });
   };
 
