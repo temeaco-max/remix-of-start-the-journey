@@ -4,6 +4,7 @@ import { startContactSyncService } from '../services/contactSyncService.js';
 import { startDeliveryStatusService } from '../services/deliveryService.js';
 import { runEscrowPass } from '../services/tradeEngine.js';
 import { drainFcmQueue, isFcmConfigured } from '../services/pushNotifications.js';
+import { requeueDueFcmFailures } from '../services/fcmRetryService.js';
 import { isWhatsAppLinkedDeviceConfigured, startWhatsAppLinkedDevice, stopWhatsAppLinkedDevice } from '../services/whatsappLinkedDeviceService.js';
 import { markAgentWorkerCycleCompleted, markAgentWorkerCycleFailed, markAgentWorkerCycleStarted, markAgentWorkerStarted, markAgentWorkerStopped, notifyGoalIfNeeded, recordAgentWorkerRun, reenterDueDeferredGoals, runDueAgentGoals } from '../services/agentRuntime.js';
 
@@ -22,10 +23,14 @@ export async function startBackgroundServices(): Promise<void> {
     logHeartbeat();
     backgroundTimers.push(setInterval(logHeartbeat, 5 * 60 * 1000));
 
-    // FCM push delivery: drain the durable internal queue to external devices.
-    // Only starts a worker when the service account + project id are configured.
+    // FCM push delivery: requeue due transient failures, then drain the durable
+    // internal queue to external devices. Only starts when server credentials exist.
     if (isFcmConfigured()) {
-        backgroundTimers.push(setInterval(() => drainFcmQueue().catch((error) => console.error('Error draining FCM queue:', error instanceof Error ? error.message : error)), 15_000));
+        const runFcmCycle = async () => {
+            await requeueDueFcmFailures();
+            await drainFcmQueue();
+        };
+        backgroundTimers.push(setInterval(() => runFcmCycle().catch((error) => console.error('Error draining FCM queue:', error instanceof Error ? error.message : error)), 15_000));
     } else {
         console.warn('[Push] FCM external delivery is not configured; internal inbox notifications only.');
     }
@@ -37,10 +42,6 @@ export async function startBackgroundServices(): Promise<void> {
     backgroundTimers.push(setTimeout(() => runEscrowPass().catch((error) => console.error('Error running initial escrow pass:', error)), 30000));
     backgroundTimers.push(setInterval(() => runEscrowPass().catch((error) => console.error('Error running daily escrow pass:', error)), 24 * 60 * 60 * 1000));
 
-    // Autonomy is an explicit deployment decision, not a side effect of
-    // starting the web process. Keep all gates fail-closed when absent; the
-    // runtime itself remains bounded by action, concurrency, retry, risk and
-    // confirmation guards. `.env.example` documents the deliberate opt-in.
     if (process.env.KURUKOO_AGENT_ENABLED === undefined) process.env.KURUKOO_AGENT_ENABLED = 'false';
     if (process.env.KURUKOO_AGENT_AUTONOMOUS === undefined) process.env.KURUKOO_AGENT_AUTONOMOUS = 'false';
     if (process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK === undefined) process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK = 'false';
