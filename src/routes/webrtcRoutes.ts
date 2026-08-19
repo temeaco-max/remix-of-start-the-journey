@@ -13,6 +13,7 @@ import {
   touchWebRTCPeer,
   destroyWebRTCRoom,
   getWebRTCStatus,
+  getWebRTCClientConfig,
 } from '../services/webrtcSignalling.js';
 
 const router = Router();
@@ -32,6 +33,19 @@ function requireWebRTCReadiness(res: any): boolean {
   });
   return false;
 }
+
+router.get('/status', authenticateUser, (_req: AuthRequest, res) => {
+  const readiness = getWebRTCStatus();
+  res.status(readiness.available ? 200 : 503).json({
+    success: readiness.available,
+    webrtc: readiness,
+  });
+});
+
+router.get('/config', authenticateUser, (_req: AuthRequest, res) => {
+  if (!requireWebRTCReadiness(res)) return;
+  res.json({ success: true, webrtc: getWebRTCClientConfig() });
+});
 
 router.post('/create', authenticateUser, (req: AuthRequest, res) => {
   if (!requireWebRTCReadiness(res)) return;
