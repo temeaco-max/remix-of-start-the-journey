@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticateAdmin, type AuthRequest } from '../middleware/auth.js';
 import { getDb, saveDb } from '../database.js';
-import { escalateDispute, resolveDisputeWithEconomicLifecycle } from '../services/disputeResolution.js';
+import { escalateDispute, resolveDispute, resolveDisputeWithEconomicLifecycle } from '../services/disputeResolution.js';
 
 const router = Router();
 router.use(authenticateAdmin);
@@ -33,7 +33,7 @@ router.post('/disputes/escalate', async (req: AuthRequest, res) => {
 
   try {
     const db = await getDb();
-    const row = db.exec('SELECT phone, status FROM disputes WHERE id = ? LIMIT 1', [disputeId])[0]?.values?.[0];
+    const row = db.exec('SELECT phone, status FROM disputes WHERE id = ? LIMIT 1', [disputeId])?.[0]?.values?.[0];
     if (!row) return res.status(404).json({ success: false, error: 'Dispute not found.' });
     if (!['open', 'escalated'].includes(String(row[1] || ''))) return res.status(409).json({ success: false, error: `Dispute cannot be escalated from status ${row[1] || 'unknown'}.` });
 
@@ -44,6 +44,26 @@ router.post('/disputes/escalate', async (req: AuthRequest, res) => {
     return res.json({ success: true, disputeId, status: 'escalated' });
   } catch (error) {
     return res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unable to escalate dispute.' });
+  }
+});
+
+router.post('/tickets/reply', async (req: AuthRequest, res) => {
+  const disputeId = Number(req.body?.disputeId);
+  const replyMessage = String(req.body?.replyMessage || '').trim();
+  if (!Number.isInteger(disputeId) || disputeId <= 0 || !replyMessage) return res.status(400).json({ success: false, error: 'A valid disputeId and replyMessage are required.' });
+
+  try {
+    const db = await getDb();
+    const dispute = db.exec('SELECT phone, order_id FROM disputes WHERE id = ? LIMIT 1', [disputeId])?.[0]?.values?.[0];
+    if (!dispute) return res.status(404).json({ success: false, error: 'Ticket/Dispute not found.' });
+
+    await resolveDispute(disputeId, replyMessage);
+    const message = `[Admin Support Reply] Regarding Ticket #${disputeId}: ${replyMessage}`;
+    db.run(`INSERT INTO messages (phone, sender, content, channel) VALUES (?, 'assistant', ?, 'pwa')`, [dispute[0], message]);
+    saveDb();
+    return res.json({ success: true, disputeId, status: 'resolved', message: 'Ticket resolved and reply sent.' });
+  } catch (error) {
+    return res.status(409).json({ success: false, error: error instanceof Error ? error.message : 'Unable to reply and resolve ticket.' });
   }
 });
 
