@@ -20,7 +20,7 @@ async function initialiseMessaging() {
       const data = message?.data || {};
       const title = String(notification.title || data.title || 'Kurukoo');
       const body = String(notification.body || data.body || 'You have a new Kurukoo update.');
-      const link = String(data.link || payload.config.authDomain ? '' : '');
+      const link = String(data.link || '');
       const target = link || '/app/notifications';
       self.registration.showNotification(title, {
         body,
