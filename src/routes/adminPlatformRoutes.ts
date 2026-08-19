@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateAdmin, type AuthRequest } from '../middleware/auth.js';
-import { getAdminPlatformOverview } from '../services/adminPlatformService.js';
+import { getAdminModules, getAdminPlatformOverview } from '../services/adminPlatformService.js';
 
 const router = Router();
 
@@ -23,11 +23,15 @@ router.get('/overview', async (_req: AuthRequest, res) => {
 router.get('/surfaces', async (_req: AuthRequest, res) => {
   try {
     const overview = await getAdminPlatformOverview();
-    res.json({ success: true, contractVersion: overview.contractVersion, generatedAt: overview.generatedAt, surfaces: overview.surfaces, clientContract: overview.clientContract });
+    res.json({ success: true, contractVersion: overview.contractVersion, generatedAt: overview.generatedAt, surfaces: overview.surfaces, readinessSummary: overview.readinessSummary, clientContract: overview.clientContract });
   } catch (error) {
     console.error('[AdminPlatform] surfaces failed:', error);
     res.status(500).json({ success: false, error: 'Unable to load client surface state.' });
   }
+});
+
+router.get('/modules', (_req: AuthRequest, res) => {
+  res.json({ success: true, contractVersion: 'admin-platform-v2', modules: getAdminModules() });
 });
 
 export default router;
