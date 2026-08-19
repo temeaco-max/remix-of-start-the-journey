@@ -2,7 +2,7 @@
   const nativeFetch = window.fetch.bind(window);
   const adminToken = () => window.localStorage.getItem('kurukoo_admin') || '';
 
-  window.fetch = (input, init = {}) => {
+  window.fetch = async (input, init = {}) => {
     const rawUrl = input instanceof Request ? input.url : String(input || '');
     const url = new URL(rawUrl, window.location.origin);
     if (!url.pathname.startsWith('/api/admin/')) return nativeFetch(input, init);
@@ -12,11 +12,17 @@
     const token = adminToken();
     if (token) headers.set('x-admin-token', token);
 
-    return nativeFetch(input, {
+    const response = await nativeFetch(input, {
       ...init,
       headers,
       credentials: init.credentials || 'same-origin',
     });
+
+    if ((response.status === 401 || response.status === 403) && !/\/admin\/login(?:\.html)?$/.test(window.location.pathname)) {
+      window.localStorage.removeItem('kurukoo_admin');
+      window.location.assign('/admin/login.html');
+    }
+    return response;
   };
 
   const isLogin = /\/admin\/login(?:\.html)?$/.test(window.location.pathname);
@@ -63,7 +69,7 @@
           <img src="/assets/brand/logo-icon.png" alt="" width="28" height="28">
           <span>Kurukoo Admin</span>
         </a>
-        <span class="kurukoo-admin-convergence-state"><span aria-hidden="true"></span> Control plane</span>
+        <span class="kurukoo-admin-convergence-state"><span aria-hidden="true"></span> <span data-admin-health-label>Checking platform</span></span>
       </div>
       <nav class="kurukoo-admin-convergence-nav" aria-label="Admin modules">
         ${links.map(([href, label]) => `<a href="${href}"${current(href) ? ' aria-current="page"' : ''}>${label}</a>`).join('')}
@@ -78,6 +84,19 @@
       window.localStorage.removeItem('kurukoo_admin');
       window.location.assign('/admin/login.html');
     });
+
+    void fetch('/api/admin/platform/health', { headers: { Accept: 'application/json' } })
+      .then(response => response.json().catch(() => ({})))
+      .then(data => {
+        const label = document.querySelector('[data-admin-health-label]');
+        if (!label) return;
+        const checks = data.checks || {};
+        label.textContent = data.success && Object.values(checks).every(value => value === 'ok') ? 'Platform healthy' : 'Platform needs attention';
+      })
+      .catch(() => {
+        const label = document.querySelector('[data-admin-health-label]');
+        if (label) label.textContent = 'Health unavailable';
+      });
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject, { once: true });
