@@ -22,6 +22,7 @@ async function main() {
   const src = await fs.promises.readFile(new URL('../src/routes/adminRoutes.ts', import.meta.url), 'utf8');
   const platformSrc = await fs.promises.readFile(new URL('../src/routes/adminPlatformRoutes.ts', import.meta.url), 'utf8');
   const serviceSrc = await fs.promises.readFile(new URL('../src/services/adminPlatformService.ts', import.meta.url), 'utf8');
+  const authSrc = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'admin-auth.js'), 'utf8');
   const indexSrc = await fs.promises.readFile(new URL('../src/index.ts', import.meta.url), 'utf8');
   const publicRoutes = await fs.promises.readFile(path.join(process.cwd(), 'src', 'routes', 'publicRoutes.ts'), 'utf8');
   assert.match(publicRoutes, /router\.get\('\/admin'/, 'canonical /admin entry route must exist');
@@ -31,6 +32,10 @@ async function main() {
     assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', file)), `admin page ${file} must exist`);
   }
   assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', 'admin-auth.js')), 'shared admin auth boundary must exist');
+  assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'css', 'admin-pages', 'admin-convergence-shell.css')), 'shared Admin convergence shell stylesheet must exist');
+  assert.match(authSrc, /x-admin-token/, 'shared admin auth must forward the operator token');
+  assert.match(authSrc, /localStorage\.removeItem\('kurukoo_admin'\)/, 'shared admin auth must clear expired credentials');
+  assert.match(authSrc, /\/api\/admin\/platform\/health/, 'shared admin auth must surface platform health');
   for (const file of await fs.promises.readdir(path.join(process.cwd(), 'public', 'admin'))) {
     if (!file.endsWith('.html')) continue;
     const page = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', file), 'utf8');
@@ -49,6 +54,7 @@ async function main() {
   assert.match(platformSrc, /router\.get\('\/overview'/, 'platform overview endpoint must exist');
   assert.match(platformSrc, /router\.get\('\/surfaces'/, 'surface contract endpoint must exist');
   assert.match(platformSrc, /router\.get\('\/modules'/, 'module registry endpoint must exist');
+  assert.match(platformSrc, /router\.get\('\/health'/, 'platform health endpoint must exist');
   assert.match(serviceSrc, /clientSurfaceRegistry/, 'admin platform service must reuse client surface registry');
   assert.match(serviceSrc, /externalIntegrationReadiness/, 'admin platform service must reuse integration readiness');
   assert.match(serviceSrc, /ADMIN_MODULES/, 'admin module registry must have a canonical owner');
@@ -73,7 +79,7 @@ async function main() {
   assert.match(src, /isolated_actor_context/, 'Test As must disclose isolated actor boundary');
   assert.doesNotMatch(src, /\\+2348030000000/, 'no demo phone in admin routes');
   for (const p of paths) assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
-  console.log('test-admin-routes: PASS: protected admin API, registered platform control plane, client-surface contract and module registry are present');
+  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, client-surface contract and module registry are present');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
