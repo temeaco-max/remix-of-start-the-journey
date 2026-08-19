@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -26,6 +27,7 @@ const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
 const { port } = server.address() as AddressInfo;
 const baseUrl = `http://127.0.0.1:${port}`;
+const authHeaders = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
 
 try {
   const webConfig = await fetch(`${baseUrl}/api/fcm/config`);
@@ -46,7 +48,7 @@ try {
 
   await updateProfile(phone, 'fcm-boundary-test', { name: 'FCM Boundary User', country: 'ng' });
   const deviceTokenA = 'device-token-test-a';
-  const registeredA = await fetch(`${baseUrl}/api/fcm/register`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ token: deviceTokenA, deviceId: 'device-test-a', platform: 'web', credentialType: 'pwa' }) });
+  const registeredA = await fetch(`${baseUrl}/api/fcm/register`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ token: deviceTokenA, deviceId: 'device-test-a', platform: 'web', credentialType: 'pwa' }) });
   assert.equal(registeredA.status, 200, 'Authenticated owner should register the first FCM device');
   const payloadA = await registeredA.json() as Record<string, unknown>;
   assert.equal(payloadA.tokenRegistered, true);
@@ -54,18 +56,28 @@ try {
   assert.equal('phone' in payloadA, false, 'Registration response must not echo the owner phone');
 
   const deviceTokenB = 'device-token-test-b';
-  const registeredB = await fetch(`${baseUrl}/api/fcm/register`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ token: deviceTokenB, deviceId: 'device-test-b', platform: 'android', credentialType: 'android' }) });
+  const registeredB = await fetch(`${baseUrl}/api/fcm/register`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ token: deviceTokenB, deviceId: 'device-test-b', platform: 'android', credentialType: 'android' }) });
   assert.equal(registeredB.status, 200, 'The same account should support a second FCM device');
   const payloadB = await registeredB.json() as Record<string, unknown>;
   assert.equal(payloadB.activeDevices, 2, 'Registration should report both active devices');
 
+  const listed = await fetch(`${baseUrl}/api/fcm/devices`, { headers: { authorization: `Bearer ${token}` } });
+  assert.equal(listed.status, 200, 'Owner should be able to list registered devices');
+  const listedPayload = await listed.json() as { devices?: Array<Record<string, unknown>> };
+  assert.equal(listedPayload.devices?.length, 2);
+  assert.equal('token' in (listedPayload.devices?.[0] || {}), false, 'Device inventory must never expose registration tokens');
+
+  const revoked = await fetch(`${baseUrl}/api/fcm/register`, { method: 'DELETE', headers: authHeaders, body: JSON.stringify({ deviceId: 'device-test-a' }) });
+  assert.equal(revoked.status, 200, 'Owner should be able to revoke a registered device');
+  const revokedPayload = await revoked.json() as Record<string, unknown>;
+  assert.equal(revokedPayload.revoked, true);
+
   const db = await getDb();
   const devices = db.exec('SELECT device_id, token, active FROM fcm_devices WHERE phone = ? ORDER BY device_id', [phone])[0]?.values || [];
-  assert.deepEqual(devices, [['device-test-a', deviceTokenA, 1], ['device-test-b', deviceTokenB, 1]], 'Both device tokens must remain active for the owner');
+  assert.deepEqual(devices, [['device-test-a', deviceTokenA, 0], ['device-test-b', deviceTokenB, 1]], 'Revocation must deactivate only the targeted device');
   const stored = db.exec('SELECT fcm_token FROM memory_profiles WHERE phone = ?', [phone]);
-  const storedTokens = JSON.parse(String(stored[0]?.values?.[0]?.[0] || '[]')) as string[];
-  assert.deepEqual(new Set(storedTokens), new Set([deviceTokenA, deviceTokenB]), 'Legacy profile field should preserve the active device token collection');
-  console.log(JSON.stringify({ ok: true, webConfig: true, unauthenticatedStatus: unauthenticated.status, firstRegistration: registeredA.status, secondRegistration: registeredB.status, activeDevices: 2, tokenEchoed: false, unauthenticatedProfileCreated: false }));
+  assert.equal(stored[0]?.values?.[0]?.[0], deviceTokenB, 'Legacy profile field should point to the remaining active token');
+  console.log(JSON.stringify({ ok: true, webConfig: true, unauthenticatedStatus: unauthenticated.status, firstRegistration: registeredA.status, secondRegistration: registeredB.status, activeDevicesBeforeRevoke: 2, revoked: true, tokenInventoryExposed: false, unauthenticatedProfileCreated: false }));
 } finally {
   await new Promise<void>(resolve => server.close(() => resolve()));
   fs.rmSync(tempDir, { recursive: true, force: true });
