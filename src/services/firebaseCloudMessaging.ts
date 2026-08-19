@@ -64,7 +64,7 @@ async function getAccessToken(account: FirebaseServiceAccount): Promise<string> 
 }
 
 async function sendOneFcmToken(accessToken: string, account: FirebaseServiceAccount, token: string, input: { title: string; body: string; link?: string }): Promise<{ accepted: boolean; providerReference?: string; failureReason?: string }> {
-  const response = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(account.project_id!)} /messages:send`.replace(' }',''), {
+  const response = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(account.project_id!)}/messages:send`, {
     method: 'POST',
     headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
     body: JSON.stringify({ message: { token, notification: { title: input.title, body: input.body }, ...(input.link ? { webpush: { fcm_options: { link: input.link } } } : {}) } }),
