@@ -2,9 +2,11 @@
   const queue = document.getElementById('admin-queue');
   const refresh = document.getElementById('load-admin');
   const panel = document.getElementById('admin-section-panel');
+  const surfaces = document.getElementById('client-surfaces');
+  const contract = document.getElementById('surface-contract');
   const section = new URLSearchParams(location.search).get('section') || 'overview';
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const render = (text) => { if (queue) queue.innerHTML = `<div class="k-row"><span>${esc(text)}</span><span class="k-muted">Authenticated admin API required</span></div>`; };
+  const render = (text) => { if (queue) queue.innerHTML = `<div class="k-row"><span>${esc(text)}</span><span class="k-muted">Authenticated admin API</span></div>`; };
 
   const loadJson = async (url) => {
     const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
@@ -12,7 +14,43 @@
     return response.json();
   };
 
+  const setStat = (id, value) => { const node = document.getElementById(id); if (node) node.textContent = String(value ?? '—'); };
+
+  const readinessLabel = (state) => ({ ready: 'Ready', activation_required: 'Needs activation', device_required: 'Needs device verification' }[state] || 'Unavailable');
+
+  const renderSurfaces = (groups) => {
+    if (!surfaces) return;
+    surfaces.innerHTML = (groups || []).map((group) => {
+      const ready = group.surfaces.filter((surface) => surface.readiness === 'ready').length;
+      const activation = group.surfaces.filter((surface) => surface.readiness === 'activation_required').length;
+      const device = group.surfaces.filter((surface) => surface.readiness === 'device_required').length;
+      return `<section class="admin-surface-group"><div class="admin-surface-group-head"><div><span class="k-muted">${esc(group.label)}</span><h3>${esc(group.family.toUpperCase())}</h3></div><span class="k-status">${ready} ready · ${activation} activation · ${device} device</span></div><div class="admin-surface-list">${group.surfaces.map((surface) => `<div class="admin-surface-row"><div><strong>${esc(surface.label)}</strong><span class="k-muted">${esc(surface.route)}</span></div><span class="admin-state admin-state-${esc(surface.readiness)}">${esc(readinessLabel(surface.readiness))}</span></div>`).join('')}</div></section>`;
+    }).join('');
+  };
+
   const renderList = (items) => `<div class="k-list">${items.map(([label, value]) => `<div class="k-row"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>`;
+
+  const loadPlatform = async () => {
+    try {
+      const data = await loadJson('/api/admin/platform/overview');
+      const counts = data.counts || {};
+      setStat('stat-profiles', counts.profiles);
+      setStat('stat-requests', counts.openRequests);
+      setStat('stat-integrations', `${data.integrations?.implemented ?? 0}/${data.integrations?.total ?? 0}`);
+      setStat('stat-providers', counts.providers);
+      setStat('stat-messages', counts.messages);
+      setStat('stat-notifications', counts.notificationsPending);
+      if (contract) contract.textContent = `${data.contractVersion || 'admin-platform'} · ${new Date(data.generatedAt).toLocaleTimeString()}`;
+      renderSurfaces(data.surfaces);
+      render(`Platform state refreshed · ${data.clientContract?.sourceOfTruth || 'canonical API'}`);
+      return data;
+    } catch (error) {
+      render(`Platform state unavailable: ${error.message}`);
+      if (contract) contract.textContent = 'Platform projection unavailable';
+      if (surfaces) surfaces.innerHTML = '<p class="k-muted">Client surface state could not be loaded. Admin authentication and canonical API health are required.</p>';
+      throw error;
+    }
+  };
 
   const renderSection = async () => {
     if (!panel) return;
@@ -65,6 +103,7 @@
     if (panel) panel.innerHTML = '';
   };
 
-  refresh?.addEventListener('click', () => render(`${section} queue ready`));
-  renderSection();
+  refresh?.addEventListener('click', () => { void loadPlatform(); });
+  void loadPlatform();
+  void renderSection();
 })();
