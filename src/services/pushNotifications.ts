@@ -76,9 +76,6 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
     const db = await ensureNotificationTable();
     const clickLink = contextLink(link, context);
     let notificationId = 0;
-
-    // Persist an internal inbox notification even when no external adapter is configured.
-    // This is a durable fallback, not evidence that an external delivery occurred.
     try {
         const duplicate = db.exec(`SELECT id FROM internal_notifications WHERE phone = ? AND title = ? AND body = ? AND COALESCE(link, '') = COALESCE(?, '') AND datetime(created_at) > datetime('now', '-10 minutes') LIMIT 1`, [phone, title, body, clickLink]);
         if (duplicate[0]?.values?.length) return false;
@@ -95,17 +92,9 @@ export async function sendFcmPush(phone: string, title: string, body: string, li
         notificationId = Number(db.exec('SELECT last_insert_rowid()')[0]?.values?.[0]?.[0] || 0);
         saveDb();
         if (notificationId) await persistCoordinatorEvent({
-            id: `notification:${notificationId}:queued`,
-            type: 'notification.action_required',
-            occurredAt: new Date().toISOString(),
-            producer: 'pushNotifications',
-            correlationId: `notification:${notificationId}`,
-            ownerPhone: phone.startsWith('anon_') ? undefined : phone,
+            id: `notification:${notificationId}:queued`, type: 'notification.action_required', occurredAt: new Date().toISOString(), producer: 'pushNotifications', correlationId: `notification:${notificationId}`, ownerPhone: phone.startsWith('anon_') ? undefined : phone,
             payload: { notificationId, title: title.slice(0, 160), link: clickLink, contextId: context?.contextId, conversationId: context?.conversationId, availableAction: context?.availableAction, canonicalAction: context?.canonicalAction, objectType: context?.objectType, objectId: context?.objectId, ownerScope: context?.ownerScope || phone, idempotencyKey: context?.idempotencyKey, surface: context?.surface, deliveryState: 'queued' },
-            sensitivity: phone.startsWith('anon_') ? 'public' : 'personal',
-            provenance: { source: 'canonical_service', sourceId: String(notificationId), evidenceLevel: 'persisted_state' },
-            policy: { autonomousAllowed: false, confirmationRequired: 'none' },
-            schemaVersion: 1,
+            sensitivity: phone.startsWith('anon_') ? 'public' : 'personal', provenance: { source: 'canonical_service', sourceId: String(notificationId), evidenceLevel: 'persisted_state' }, policy: { autonomousAllowed: false, confirmationRequired: 'none' }, schemaVersion: 1,
         });
     } catch (error) {
         console.error('[Push] Failed to store internal notification:', error);
@@ -143,19 +132,7 @@ export async function transitionNotificationDelivery(notificationId: number, del
     const updated = db.getRowsModified() > 0;
     if (updated) {
       saveDb();
-      if (updated && ['failed', 'dead_letter', 'delivered', 'suppressed'].includes(deliveryState)) await persistCoordinatorEvent({
-        id: `notification:${notificationId}:${deliveryState}:${Date.now()}`,
-        type: 'notification.action_required',
-        occurredAt: new Date().toISOString(),
-        producer: 'pushNotifications',
-        correlationId: `notification:${notificationId}`,
-        ownerPhone: phone && !phone.startsWith('anon_') ? phone : undefined,
-        payload: { notificationId, deliveryState, providerReference: providerReference || undefined, failureReason: failureReason || undefined },
-        sensitivity: phone?.startsWith('anon_') ? 'public' : 'personal',
-        provenance: { source: 'canonical_service', sourceId: String(notificationId), evidenceLevel: 'persisted_state' },
-        policy: { autonomousAllowed: false, confirmationRequired: 'none' },
-        schemaVersion: 1,
-      });
+      if (['failed', 'dead_letter', 'delivered', 'suppressed'].includes(deliveryState)) await persistCoordinatorEvent({ id: `notification:${notificationId}:${deliveryState}:${Date.now()}`, type: 'notification.action_required', occurredAt: new Date().toISOString(), producer: 'pushNotifications', correlationId: `notification:${notificationId}`, ownerPhone: phone && !phone.startsWith('anon_') ? phone : undefined, payload: { notificationId, deliveryState, providerReference: providerReference || undefined, failureReason: failureReason || undefined }, sensitivity: phone?.startsWith('anon_') ? 'public' : 'personal', provenance: { source: 'canonical_service', sourceId: String(notificationId), evidenceLevel: 'persisted_state' }, policy: { autonomousAllowed: false, confirmationRequired: 'none' }, schemaVersion: 1 });
     }
     return updated;
 }
@@ -194,17 +171,7 @@ export async function getNotificationQueueStats(): Promise<{ total: number; queu
     const stateCounts: Record<string, number> = {};
     for (const row of counts) stateCounts[String(row[0] || 'queued')] = Number(row[1] || 0);
     const oldest = db.exec(`SELECT MIN(created_at) FROM internal_notifications WHERE delivery_state = 'queued'`)[0]?.values?.[0]?.[0];
-    return {
-        total: Object.values(stateCounts).reduce((sum, value) => sum + value, 0),
-        queued: stateCounts.queued || 0,
-        accepted: stateCounts.accepted || 0,
-        sent: stateCounts.sent || 0,
-        delivered: stateCounts.delivered || 0,
-        failed: stateCounts.failed || 0,
-        suppressed: stateCounts.suppressed || 0,
-        deadLetter: stateCounts.dead_letter || 0,
-        oldestQueuedAt: oldest ? String(oldest) : undefined,
-    };
+    return { total: Object.values(stateCounts).reduce((sum, value) => sum + value, 0), queued: stateCounts.queued || 0, accepted: stateCounts.accepted || 0, sent: stateCounts.sent || 0, delivered: stateCounts.delivered || 0, failed: stateCounts.failed || 0, suppressed: stateCounts.suppressed || 0, deadLetter: stateCounts.dead_letter || 0, oldestQueuedAt: oldest ? String(oldest) : undefined };
 }
 
 export async function getInternalNotifications(phone: string, limit = 20): Promise<Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; context_id?: string; conversation_id?: string; available_action?: string; surface?: string; created_at: string }>> {
@@ -213,32 +180,18 @@ export async function getInternalNotifications(phone: string, limit = 20): Promi
     const stmt = db.prepare(`SELECT notification.* FROM internal_notifications notification INNER JOIN (SELECT phone, title, body, COALESCE(link, '') AS link_key, MAX(id) AS latest_id FROM internal_notifications WHERE phone = ? GROUP BY phone, title, body, COALESCE(link, '')) latest ON latest.latest_id = notification.id WHERE notification.phone = ? ORDER BY notification.id DESC LIMIT ?`);
     stmt.bind([phone, phone, safeLimit]);
     const results: Array<{ id: number; title: string; body: string; link: string; status: string; delivery_state: string; provider_reference?: string; failure_reason?: string; context_id?: string; conversation_id?: string; available_action?: string; surface?: string; created_at: string }> = [];
-    while (stmt.step()) results.push(stmt.getAsObject() as any);
+    while (stmt.step()) { const row = stmt.getAsObject() as any; results.push({ id: Number(row.id), title: String(row.title), body: String(row.body), link: String(row.link || '/chat'), status: String(row.status || 'unread'), delivery_state: String(row.delivery_state || 'queued'), provider_reference: row.provider_reference ? String(row.provider_reference) : undefined, failure_reason: row.failure_reason ? String(row.failure_reason) : undefined, context_id: row.context_id ? String(row.context_id) : undefined, conversation_id: row.conversation_id ? String(row.conversation_id) : undefined, available_action: row.available_action ? String(row.available_action) : undefined, surface: row.surface ? String(row.surface) : undefined, created_at: String(row.created_at || '') }); }
     stmt.free();
     return results;
 }
 
-export async function getInternalNotificationById(notificationId: number, phone: string): Promise<{ id: number; phone: string; title: string; body: string; link?: string; status: string; delivery_state: string; context_id?: string; conversation_id?: string; available_action?: string; canonical_action?: string; object_type?: string; object_id?: string; owner_scope?: string; idempotency_key?: string; surface?: string; created_at: string } | null> {
+export async function markNotificationRead(phone: string, notificationId: number): Promise<boolean> {
     const db = await ensureNotificationTable();
-    const stmt = db.prepare('SELECT * FROM internal_notifications WHERE id = ? AND phone = ? LIMIT 1');
-    stmt.bind([notificationId, phone]);
-    const row = stmt.step() ? stmt.getAsObject() as any : null;
-    stmt.free();
-    return row ? { ...row, id: Number(row.id), phone: String(row.phone), title: String(row.title), body: String(row.body), status: String(row.status), delivery_state: String(row.delivery_state), created_at: String(row.created_at) } : null;
+    db.run(`UPDATE internal_notifications SET status='read' WHERE id = ? AND phone = ?`, [notificationId, phone]);
+    const updated = db.getRowsModified() > 0;
+    if (updated) saveDb();
+    return updated;
 }
-
-export async function markNotificationRead(notificationId: number, phone: string): Promise<boolean> {
-    const db = await ensureNotificationTable();
-    try {
-        db.run(`UPDATE internal_notifications SET status = 'read' WHERE id = ? AND phone = ?`, [notificationId, phone]);
-        const updated = db.getRowsModified() > 0;
-        if (updated) saveDb();
-        return updated;
-    } catch {
-        return false;
-    }
-}
-
 
 export function isFcmConfigured(): boolean {
     return getFirebaseFcmReadiness().configured;
@@ -251,8 +204,14 @@ async function sendSingleFcmMessage(phone: string, title: string, body: string, 
     return sendFirebaseFcmMessage({ token, title, body, link });
 }
 
-export async function drainFcmQueue(limit = 50): Promise<{ sent: number; retried: number; none: number }> {
-    const outcome = { sent: 0, retried: 0, none: 0 };
+async function invalidateStoredFcmToken(phone: string): Promise<void> {
+    const db = await getDb();
+    db.run(`UPDATE memory_profiles SET fcm_token = NULL, updated_at = CURRENT_TIMESTAMP WHERE phone = ?`, [phone]);
+    if (db.getRowsModified() > 0) saveDb();
+}
+
+export async function drainFcmQueue(limit = 50): Promise<{ sent: number; retried: number; none: number; invalidTokens: number }> {
+    const outcome = { sent: 0, retried: 0, none: 0, invalidTokens: 0 };
     if (!isFcmConfigured()) return outcome;
     const rows = await listQueuedNotifications(Math.max(1, Math.min(100, Math.floor(Number(limit) || 50))));
     for (const row of rows) {
@@ -260,6 +219,11 @@ export async function drainFcmQueue(limit = 50): Promise<{ sent: number; retried
         if (result.accepted) {
             await transitionNotificationDelivery(row.id, 'accepted', row.phone, result.providerReference);
             outcome.sent += 1;
+        } else if (result.failureReason === 'device_token_unregistered') {
+            await invalidateStoredFcmToken(row.phone);
+            await transitionNotificationDelivery(row.id, 'dead_letter', row.phone, undefined, result.failureReason);
+            outcome.invalidTokens += 1;
+            outcome.none += 1;
         } else {
             const state = await recordNotificationAttempt(row.id, result.failureReason || 'fcm_delivery_failed', row.phone);
             outcome[state === 'dead_letter' ? 'none' : 'retried'] += 1;
