@@ -1,61 +1,21 @@
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
+import { deactivateFcmToken, parseFcmTokenCollection } from './fcmDeviceRegistry.js';
 
-interface FirebaseServiceAccount {
-  project_id?: string;
-  client_email?: string;
-  private_key?: string;
-}
-
-export interface FcmReadiness {
-  configured: boolean;
-  projectId?: string;
-  reason: string;
-}
-
-export interface FirebaseWebConfigResponse {
-  success: true;
-  configured: boolean;
-  reason: string;
-  config?: {
-    apiKey: string;
-    authDomain: string;
-    projectId: string;
-    storageBucket: string;
-    messagingSenderId: string;
-    appId: string;
-    vapidKey: string;
-  };
-}
-
-export interface FcmSendResult {
-  attempted: boolean;
-  accepted: boolean;
-  providerReference?: string;
-  failureReason?: string;
-}
-
+interface FirebaseServiceAccount { project_id?: string; client_email?: string; private_key?: string; }
+export interface FcmReadiness { configured: boolean; projectId?: string; reason: string; }
+export interface FirebaseWebConfigResponse { success: true; configured: boolean; reason: string; config?: { apiKey: string; authDomain: string; projectId: string; storageBucket: string; messagingSenderId: string; appId: string; vapidKey: string; }; }
+export interface FcmSendResult { attempted: boolean; accepted: boolean; providerReference?: string; failureReason?: string; }
 let cachedAccessToken: { token: string; expiresAt: number } | null = null;
 
 function readServiceAccount(): FirebaseServiceAccount | null {
   const pathValue = process.env.FCM_SERVICE_ACCOUNT_PATH || '';
   if (pathValue) {
-    try {
-      const require = createRequire(import.meta.url);
-      const parsed = JSON.parse(require('node:fs').readFileSync(pathValue, 'utf8')) as FirebaseServiceAccount;
-      if (parsed.project_id && parsed.client_email && parsed.private_key) return parsed;
-    } catch {
-      return null;
-    }
+    try { const require = createRequire(import.meta.url); const parsed = JSON.parse(require('node:fs').readFileSync(pathValue, 'utf8')) as FirebaseServiceAccount; if (parsed.project_id && parsed.client_email && parsed.private_key) return parsed; } catch { return null; }
   }
   const raw = String(process.env.FCM_SERVICE_ACCOUNT_JSON || '').trim();
   if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as FirebaseServiceAccount;
-      if (parsed.project_id && parsed.client_email && parsed.private_key) return parsed;
-    } catch {
-      return null;
-    }
+    try { const parsed = JSON.parse(raw) as FirebaseServiceAccount; if (parsed.project_id && parsed.client_email && parsed.private_key) return parsed; } catch { return null; }
   }
   const projectId = String(process.env.KURUKOO_FCM_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || '').trim();
   const clientEmail = String(process.env.KURUKOO_FCM_CLIENT_EMAIL || process.env.FIREBASE_ADMIN_CLIENT_EMAIL || '').trim();
@@ -81,35 +41,21 @@ export function getFirebaseWebConfig(): FirebaseWebConfigResponse {
     vapidKey: String(process.env.KURUKOO_FCM_VAPID_KEY || process.env.FIREBASE_VAPID_KEY || '').trim(),
   };
   const configured = Object.values(config).every(Boolean);
-  return configured
-    ? { success: true, configured: true, reason: 'Firebase web configuration is available for client registration.', config }
-    : { success: true, configured: false, reason: 'Firebase web configuration is incomplete; push permission and token registration remain unavailable until the public web configuration and VAPID key are configured.' };
+  return configured ? { success: true, configured: true, reason: 'Firebase web configuration is available for client registration.', config } : { success: true, configured: false, reason: 'Firebase web configuration is incomplete; push permission and token registration remain unavailable until the public web configuration and VAPID key are configured.' };
 }
 
-function base64Url(value: string): string {
-  return Buffer.from(value).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-}
+function base64Url(value: string): string { return Buffer.from(value).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_'); }
 
 async function getAccessToken(account: FirebaseServiceAccount): Promise<string> {
   if (cachedAccessToken && cachedAccessToken.expiresAt > Date.now() + 60_000) return cachedAccessToken.token;
   const now = Math.floor(Date.now() / 1000);
   const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const claim = base64Url(JSON.stringify({
-    iss: account.client_email,
-    scope: 'https://www.googleapis.com/auth/firebase.messaging',
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
-  }));
+  const claim = base64Url(JSON.stringify({ iss: account.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }));
   const signer = crypto.createSign('RSA-SHA256');
   signer.update(`${header}.${claim}`);
   const signature = signer.sign(String(account.private_key), 'base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   const assertion = `${header}.${claim}.${signature}`;
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${encodeURIComponent(assertion)}`,
-  });
+  const response = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${encodeURIComponent(assertion)}` });
   if (!response.ok) throw new Error(`oauth_token_http_${response.status}`);
   const data = await response.json() as { access_token?: string; expires_in?: number };
   if (!data.access_token) throw new Error('oauth_token_missing');
@@ -117,28 +63,41 @@ async function getAccessToken(account: FirebaseServiceAccount): Promise<string> 
   return data.access_token;
 }
 
+async function sendOneFcmToken(accessToken: string, account: FirebaseServiceAccount, token: string, input: { title: string; body: string; link?: string }): Promise<{ accepted: boolean; providerReference?: string; failureReason?: string }> {
+  const response = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(account.project_id!)} /messages:send`.replace(' }',''), {
+    method: 'POST',
+    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ message: { token, notification: { title: input.title, body: input.body }, ...(input.link ? { webpush: { fcm_options: { link: input.link } } } : {}) } }),
+  });
+  const data = await response.json().catch(() => ({})) as { name?: string; error?: { status?: string; message?: string } };
+  if (response.ok) return { accepted: true, providerReference: typeof data.name === 'string' ? data.name.slice(0, 256) : undefined };
+  const providerStatus = String(data.error?.status || '').toUpperCase();
+  const message = String(data.error?.message || '').toLowerCase();
+  const reason = providerStatus === 'UNREGISTERED' || message.includes('unregistered') || message.includes('not a valid fcm registration token') ? 'device_token_unregistered' : `fcm_http_${response.status}`;
+  return { accepted: false, failureReason: reason };
+}
+
 export async function sendFirebaseFcmMessage(input: { token: string; title: string; body: string; link?: string }): Promise<FcmSendResult> {
   const account = readServiceAccount();
   if (!account?.project_id || !account.client_email || !account.private_key) return { attempted: false, accepted: false, failureReason: 'fcm_not_configured' };
-  const token = String(input.token || '').trim();
-  if (!token) return { attempted: false, accepted: false, failureReason: 'device_token_missing' };
+  const tokens = parseFcmTokenCollection(input.token);
+  if (!tokens.length) return { attempted: false, accepted: false, failureReason: 'device_token_missing' };
   try {
     const accessToken = await getAccessToken(account);
-    const response = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(account.project_id)}/messages:send`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ message: { token, notification: { title: input.title, body: input.body }, ...(input.link ? { webpush: { fcm_options: { link: input.link } } } : {}) } }),
-    });
-    const data = await response.json().catch(() => ({})) as { name?: string; error?: { status?: string; message?: string } };
-    if (!response.ok) {
-      const providerStatus = String(data.error?.status || '').toUpperCase();
-      const message = String(data.error?.message || '').toLowerCase();
-      const reason = providerStatus === 'UNREGISTERED' || message.includes('unregistered') || message.includes('not a valid fcm registration token')
-        ? 'device_token_unregistered'
-        : `fcm_http_${response.status}`;
-      return { attempted: true, accepted: false, failureReason: reason };
+    let accepted = 0;
+    let firstReference: string | undefined;
+    let firstFailure: string | undefined;
+    for (const token of tokens) {
+      try {
+        const result = await sendOneFcmToken(accessToken, account, token, input);
+        if (result.accepted) { accepted += 1; firstReference ||= result.providerReference; }
+        else {
+          firstFailure ||= result.failureReason;
+          if (result.failureReason === 'device_token_unregistered') await deactivateFcmToken(token, result.failureReason).catch(() => undefined);
+        }
+      } catch (error) { firstFailure ||= error instanceof Error ? error.message.slice(0, 160) : 'fcm_request_failed'; }
     }
-    return { attempted: true, accepted: true, providerReference: typeof data.name === 'string' ? data.name.slice(0, 256) : undefined };
+    return accepted > 0 ? { attempted: true, accepted: true, providerReference: firstReference } : { attempted: true, accepted: false, failureReason: firstFailure || 'fcm_request_failed' };
   } catch (error) {
     return { attempted: true, accepted: false, failureReason: error instanceof Error ? error.message.slice(0, 160) : 'fcm_request_failed' };
   }
