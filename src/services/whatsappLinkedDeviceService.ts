@@ -26,12 +26,21 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 function configuredOwner(): string {
   return String(process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_OWNER_PHONE || '').trim();
 }
+
 function authDirectory(): string {
   return path.resolve(String(process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_AUTH_DIR || path.join(process.cwd(), '.data', 'whatsapp-linked-device')));
 }
+
+function authStorageSafe(): boolean {
+  const directory = authDirectory();
+  if (process.env.NODE_ENV !== 'production') return true;
+  return Boolean(directory) && !directory.startsWith('/tmp/') && !directory.includes(`${path.sep}tmp${path.sep}`);
+}
+
 function enabled(): boolean {
   return process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_ENABLED === 'true' && process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_ALLOW === 'true';
 }
+
 function statusBase(): LinkedDeviceStatus {
   return {
     enabled: enabled(),
@@ -42,6 +51,7 @@ function statusBase(): LinkedDeviceStatus {
     authDirectory: authDirectory(),
   };
 }
+
 function updateStatus(patch: Partial<LinkedDeviceStatus>): void {
   currentStatus = { ...currentStatus, ...patch, enabled: enabled(), ownerConfigured: Boolean(configuredOwner()), authDirectory: authDirectory() };
 }
@@ -51,7 +61,7 @@ export function getWhatsAppLinkedDeviceStatus(): LinkedDeviceStatus {
   return { ...currentStatus, enabled: enabled(), ownerConfigured: Boolean(configuredOwner()), authDirectory: authDirectory(), qrDataUrl: currentStatus.qrDataUrl };
 }
 export function isWhatsAppLinkedDeviceConfigured(): boolean {
-  return enabled() && Boolean(configuredOwner());
+  return enabled() && Boolean(configuredOwner()) && authStorageSafe();
 }
 export function isWhatsAppLinkedDeviceOwner(phone: string): boolean {
   return Boolean(configuredOwner()) && String(phone).trim() === configuredOwner();
@@ -98,7 +108,7 @@ async function handleInboundMessage(message: any): Promise<void> {
 
 export async function startWhatsAppLinkedDevice(): Promise<void> {
   if (!isWhatsAppLinkedDeviceConfigured()) {
-    updateStatus({ state: enabled() ? 'error' : 'disabled', lastError: enabled() ? 'KURUKOO_WHATSAPP_LINKED_DEVICE_OWNER_PHONE is required.' : 'Linked-device connector is disabled.' });
+    updateStatus({ state: enabled() ? 'error' : 'disabled', lastError: enabled() ? (authStorageSafe() ? 'KURUKOO_WHATSAPP_LINKED_DEVICE_OWNER_PHONE is required.' : 'WhatsApp linked-device auth storage must be persistent and outside /tmp in production.') : 'Linked-device connector is disabled.' });
     return;
   }
   if (starting) return starting;
@@ -106,6 +116,7 @@ export async function startWhatsAppLinkedDevice(): Promise<void> {
   starting = (async () => {
     const directory = authDirectory();
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    try { fs.chmodSync(directory, 0o700); } catch {}
     const { state, saveCreds } = await useMultiFileAuthState(directory);
     updateStatus({ state: state.creds.registered ? 'connecting' : 'pairing', lastError: undefined });
     socket = makeWASocket({ auth: state, printQRInTerminal: false, markOnlineOnConnect: false, syncFullHistory: false, browser: ['Kurukoo', 'Chrome', '1.0.0'] });
@@ -124,7 +135,7 @@ export async function startWhatsAppLinkedDevice(): Promise<void> {
         socket = null;
         const code = (lastDisconnect?.error as any)?.output?.statusCode;
         if (code === DisconnectReason.loggedOut || isNewLogin === false && code === DisconnectReason.loggedOut) {
-            currentQrText = '';
+          currentQrText = '';
           updateStatus({ state: 'logged_out', connected: false, qrAvailable: false, qrDataUrl: undefined, lastError: 'WhatsApp linked-device session logged out; pair again explicitly.' });
           return;
         }
