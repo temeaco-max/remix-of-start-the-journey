@@ -96,11 +96,63 @@
     return registerIfPermitted();
   };
 
+  const installOptInControl = () => {
+    if (!document.body?.classList.contains('k-app-page')) return;
+    if (document.getElementById('kurukoo-enable-notifications')) return;
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || Notification.permission !== 'default') return;
+    const host = document.querySelector('.k-app-header-actions');
+    if (!host) return;
+    const button = document.createElement('button');
+    button.id = 'kurukoo-enable-notifications';
+    button.type = 'button';
+    button.className = 'k-app-ask';
+    button.textContent = 'Enable notifications';
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      button.textContent = 'Enabling…';
+      try {
+        const result = await enable();
+        if (result.status === 'registered') {
+          button.textContent = 'Notifications on';
+          button.setAttribute('aria-label', 'Kurukoo notifications enabled');
+        } else {
+          button.textContent = result.status === 'denied' ? 'Notifications blocked' : 'Try notifications again';
+          button.disabled = false;
+        }
+      } catch (error) {
+        status = 'error';
+        console.warn('[Kurukoo FCM] permission/registration failed', error);
+        button.textContent = 'Try notifications again';
+        button.disabled = false;
+      }
+    });
+    host.prepend(button);
+  };
+
   const boot = () => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    installOptInControl();
     // Never prompt automatically. Re-register silently only after consent already exists.
     if (Notification.permission === 'granted') {
-      registerIfPermitted().catch((error) => {
+      registerIfPermitted().then(async () => {
+        try {
+          const firebase = await messagingPromise;
+          if (firebase?.messagingModule?.onMessage) {
+            firebase.messagingModule.onMessage(firebase.messaging, (payload) => {
+              if (Notification.permission !== 'granted') return;
+              const notification = payload?.notification || {};
+              const data = payload?.data || {};
+              const title = String(notification.title || data.title || 'Kurukoo');
+              const body = String(notification.body || data.body || 'You have a new Kurukoo update.');
+              const target = String(data.link || '/app/notifications');
+              const notice = new Notification(title, { body, icon: '/assets/icons/icon-192.svg', data: { link: target } });
+              notice.onclick = () => { window.focus(); window.location.assign(target); };
+            });
+          }
+        } catch (error) {
+          console.warn('[Kurukoo FCM] foreground listener unavailable', error);
+        }
+      }).catch((error) => {
         status = 'error';
         console.warn('[Kurukoo FCM] registration failed', error);
       });
