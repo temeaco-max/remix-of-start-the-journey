@@ -17,40 +17,22 @@
         </nav>
     </div>
     <div class="container">
-        <h2>Monetisation Streams</h2>
-        <div class="card-grid" id="revenue-grid">
-            <div class="stat-card">Loading...</div>
-        </div>
+        <h2>Commercial Revenue</h2>
+        <p>Canonical revenue, provider entitlement and settlement evidence from the commercial ledger.</p>
+        <div class="card-grid" id="revenue-grid"><div class="stat-card">Loading...</div></div>
     </div>
     <script>
-        fetch('/api/admin/revenue').then(r => r.json()).then(data => {
+        const money = value => `₦${Math.round(Number(value || 0)).toLocaleString()}`;
+        fetch('/api/commercial/revenue/summary').then(async r => { const data = await r.json(); if (!r.ok) throw new Error(data.error || 'Unable to load revenue summary'); return data; }).then(data => {
             document.getElementById('revenue-grid').innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-value">₦${data.subscriptions.toLocaleString()}</div>
-                    <div class="stat-label">Subscription Revenue</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">₦${data.lead_fees.toLocaleString()}</div>
-                    <div class="stat-label">Lead Fees</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">₦${data.ad_revenue.toLocaleString()}</div>
-                    <div class="stat-label">Ad Revenue</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${data.affiliate_clicks.toLocaleString()} Clicks</div>
-                    <div class="stat-label">Affiliate Traffic</div>
-                </div>
-                <div class="stat-card admin-inline-f9136614bb">
-                    <div class="stat-value">Phase 2</div>
-                    <div class="stat-label">Data Sales</div>
-                </div>
-                <div class="stat-card admin-inline-f9136614bb">
-                    <div class="stat-value">Phase 2</div>
-                    <div class="stat-label">Telco Promotions</div>
-                </div>
+                <div class="stat-card"><div class="stat-value">${money(data.grossMinor)}</div><div class="stat-label">Gross Commercial Value</div></div>
+                <div class="stat-card"><div class="stat-value">${money(data.platformFeesMinor)}</div><div class="stat-label">Kurukoo Platform Revenue</div></div>
+                <div class="stat-card"><div class="stat-value">${money(data.providerPayoutsMinor)}</div><div class="stat-label">Provider Entitlements</div></div>
+                <div class="stat-card"><div class="stat-value">${money(data.processingCostsMinor)}</div><div class="stat-label">Processing Costs</div></div>
+                <div class="stat-card"><div class="stat-value">${money(data.refundsMinor)}</div><div class="stat-label">Refunds</div></div>
+                <div class="stat-card"><div class="stat-value">${Number(data.eventCount || 0).toLocaleString()}</div><div class="stat-label">Commercial Events</div></div>
             `;
-        });
+        }).catch(error => { document.getElementById('revenue-grid').innerHTML = `<div class="stat-card"><div class="stat-value">Unavailable</div><div class="stat-label">${String(error.message || 'Revenue unavailable')}</div></div>`; });
     </script>
 </body>
 </html>
