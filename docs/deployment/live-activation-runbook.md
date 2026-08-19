@@ -18,13 +18,13 @@ KURUKOO_SMOLLM2_LOCAL=false
 
 This is the intended **Mistral bypass of local SmolLM2 for conversational traffic**. The Student/local model remains available separately for development/training/runtime experiments and is not deleted or disabled globally by this setting.
 
-Run:
+Check readiness without starting external clients:
 
 ```bash
-npx tsx scripts/live-activation-smoke.ts
+npx tsx scripts/live-activation-status.ts
 ```
 
-The smoke runner reports provider/model attribution and never prints API credentials.
+For a controlled live provider check, run only after reviewing the status output and enabling the intended integration in the local deployment. The dedicated Mistral contract already verifies provider selection without requiring a live account in CI.
 
 ## Google Drive user-owned artifact storage
 
@@ -73,7 +73,7 @@ If Telegram 2-step verification is enabled, supply the deployment secret rather 
 TELEGRAM_LINKED_DEVICE_2FA_PASSWORD=...
 ```
 
-Run the smoke command, scan the generated Telegram QR with the owned device, then send an inbound message. The inbound message must enter `canonicalChatTurnService`, not a parallel Telegram chat engine. Verify revocation/log-out and resume behavior.
+Use Connect to start pairing, scan the generated QR with the owned device, then send an inbound message. The inbound message must enter `canonicalChatTurnService`, not a parallel Telegram chat engine. Verify revocation/log-out and resume behavior.
 
 ## WhatsApp linked device
 
@@ -85,7 +85,7 @@ KURUKOO_WHATSAPP_LINKED_DEVICE_ALLOW=true
 KURUKOO_WHATSAPP_LINKED_DEVICE_OWNER_PHONE=+...
 ```
 
-Run the smoke command, scan the QR using the owned WhatsApp account, then send an inbound message to that account. Verify the message is processed by `canonicalChatTurnService`, the reply returns through the linked socket, evidence is recorded, and explicit logout clears the session.
+Use Connect to start pairing and scan the QR using the owned WhatsApp account, then send an inbound message to that account. Verify the message is processed by `canonicalChatTurnService`, the reply returns through the linked socket, evidence is recorded, and explicit logout clears the session.
 
 This is the controlled linked-device rail. It must not be presented as equivalent to the official WhatsApp Business Cloud API rail. The official business adapter has its own credentials, webhook verification and feature flag.
 
