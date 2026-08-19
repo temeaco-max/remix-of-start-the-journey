@@ -25,12 +25,12 @@ form?.addEventListener('submit', async (event) => {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok || !data.success || !data.token) {
-      status.textContent = data.message || 'Unable to sign in. Check your credentials and try again.';
+      status.textContent = data.message || data.error || 'Unable to sign in. Check your credentials and try again.';
       return;
     }
 
     localStorage.setItem('kurukoo_admin', data.token);
-    window.location.assign('/admin/dashboard.html');
+    window.location.assign('/admin/');
   } catch {
     status.textContent = 'Unable to reach the admin service. Please try again.';
   } finally {

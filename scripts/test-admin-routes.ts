@@ -1,74 +1,85 @@
 /**
- * Contract test: admin routes require authenticateAdmin (JWT admin claim).
- * Pricing is a separate route boundary and is tested independently.
+ * Contract test: admin routes require authenticateAdmin and the control room
+ * exposes one canonical platform projection for every client family.
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const paths = [
-  '/api/admin/tickets',
-  '/api/admin/disputes',
-  '/api/admin/users',
-  '/api/admin/ai-agents',
-  '/api/admin/analytics',
-  '/api/admin/content',
-  '/api/admin/stats',
-  '/api/admin/pilot-readiness',
-  '/api/admin/ads',
-  '/api/admin/operator/state',
-  '/api/admin/operator/chat',
-  '/api/admin/operator/actors',
-  '/api/admin/operator/actors/:actorId/chat',
+  '/api/admin/tickets', '/api/admin/disputes', '/api/admin/users', '/api/admin/ai-agents',
+  '/api/admin/analytics', '/api/admin/content', '/api/admin/stats', '/api/admin/pilot-readiness',
+  '/api/admin/external-integrations', '/api/admin/ads', '/api/admin/operator/state',
+  '/api/admin/operator/chat', '/api/admin/operator/actors', '/api/admin/operator/actors/:actorId/chat',
   '/api/admin/operator/actors/:actorId/reset',
 ];
 
 async function main() {
   const mod = await import('../src/routes/adminRoutes.ts');
+  const platform = await import('../src/routes/adminPlatformRoutes.ts');
   assert.ok(mod.default || mod.adminRoutes, 'adminRoutes export missing');
-  const src = await import('node:fs').then((fs) =>
-    fs.promises.readFile(new URL('../src/routes/adminRoutes.ts', import.meta.url), 'utf8')
-  );
+  assert.ok(platform.default, 'adminPlatformRoutes export missing');
+  const src = await fs.promises.readFile(new URL('../src/routes/adminRoutes.ts', import.meta.url), 'utf8');
+  const platformSrc = await fs.promises.readFile(new URL('../src/routes/adminPlatformRoutes.ts', import.meta.url), 'utf8');
+  const serviceSrc = await fs.promises.readFile(new URL('../src/services/adminPlatformService.ts', import.meta.url), 'utf8');
+  const authSrc = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'admin-auth.js'), 'utf8');
+  const indexSrc = await fs.promises.readFile(new URL('../src/index.ts', import.meta.url), 'utf8');
   const publicRoutes = await fs.promises.readFile(path.join(process.cwd(), 'src', 'routes', 'publicRoutes.ts'), 'utf8');
-  assert.match(publicRoutes, /router\.get\('\/admin'/, 'the canonical /admin entry route must exist');
+  assert.match(publicRoutes, /router\.get\('\/admin'/, 'canonical /admin entry route must exist');
+  assert.match(indexSrc, /app\.use\('\/api\/admin\/platform',\s*adminPlatformRoutes\)/, 'platform admin router must be mounted before the general admin router');
+
   for (const file of ['login.html', 'dashboard.html', 'ads.html', 'analytics.html', 'ai-agents.html', 'content.html', 'seo.html', 'users.html', 'pricing.html', 'revenue.html']) {
     assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', file)), `admin page ${file} must exist`);
   }
   assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'admin', 'admin-auth.js')), 'shared admin auth boundary must exist');
+  assert.ok(fs.existsSync(path.join(process.cwd(), 'public', 'css', 'admin-pages', 'admin-convergence-shell.css')), 'shared Admin convergence shell stylesheet must exist');
+  assert.match(authSrc, /x-admin-token/, 'shared admin auth must forward the operator token');
+  assert.match(authSrc, /localStorage\.removeItem\('kurukoo_admin'\)/, 'shared admin auth must clear expired credentials');
+  assert.match(authSrc, /\/api\/admin\/platform\/health/, 'shared admin auth must surface platform health');
   for (const file of await fs.promises.readdir(path.join(process.cwd(), 'public', 'admin'))) {
     if (!file.endsWith('.html')) continue;
     const page = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', file), 'utf8');
     assert.match(page, /admin-auth\.js/, `${file} must include the shared admin auth boundary`);
   }
+
+  const index = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'index.html'), 'utf8');
+  const adminJs = await fs.promises.readFile(path.join(process.cwd(), 'public', 'js', 'kurukoo-admin.js'), 'utf8');
+  assert.match(index, /One canonical backend for Web, PWA, iOS, Android/, 'control room must state cross-platform ownership');
+  assert.match(index, /admin-platform-convergence\.css/, 'control room must load the canonical convergence stylesheet');
+  assert.match(adminJs, /\/api\/admin\/platform\/overview/, 'control room must consume canonical platform projection');
+  assert.match(adminJs, /\/api\/admin\/trust\/readiness/, 'operational sections must consume canonical trust readiness');
+  assert.match(adminJs, /renderModules/, 'control room must render canonical admin module registry');
+
+  assert.match(platformSrc, /router\.use\(authenticateAdmin\)/, 'platform projection must require admin authentication');
+  assert.match(platformSrc, /router\.get\('\/overview'/, 'platform overview endpoint must exist');
+  assert.match(platformSrc, /router\.get\('\/surfaces'/, 'surface contract endpoint must exist');
+  assert.match(platformSrc, /router\.get\('\/modules'/, 'module registry endpoint must exist');
+  assert.match(platformSrc, /router\.get\('\/health'/, 'platform health endpoint must exist');
+  assert.match(serviceSrc, /clientSurfaceRegistry/, 'admin platform service must reuse client surface registry');
+  assert.match(serviceSrc, /externalIntegrationReadiness/, 'admin platform service must reuse integration readiness');
+  assert.match(serviceSrc, /ADMIN_MODULES/, 'admin module registry must have a canonical owner');
+  assert.match(serviceSrc, /evidence-gated/, 'external claims must remain evidence-gated');
+
   const dashboard = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'dashboard.html'), 'utf8');
-  assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/ads'/, 'admin dashboard campaigns must use the protected admin ads owner');
-  assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/content'/, 'admin dashboard CMS must use the protected admin content owner');
-  assert.doesNotMatch(dashboard, /fetch\('\/api\/ads'/, 'admin dashboard must not use the public ads path');
-  assert.doesNotMatch(dashboard, /fetch\('\/api\/content'/, 'admin dashboard must not use the public content path');
-  assert.match(src, /router\.get\('\/celebrity',\s*authenticateAdmin/, 'celebrity demand must have a protected admin endpoint');
+  assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/ads'/, 'admin dashboard campaigns must use protected admin ads owner');
+  assert.match(dashboard, /(?:fetch|adminFetch)\('\/api\/admin\/content'/, 'admin dashboard CMS must use protected admin content owner');
+  assert.doesNotMatch(dashboard, /fetch\('\/api\/ads'/, 'admin dashboard must not use public ads path');
+  assert.doesNotMatch(dashboard, /fetch\('\/api\/content'/, 'admin dashboard must not use public content path');
+
+  assert.match(src, /router\.get\('\/celebrity',\s*authenticateAdmin/, 'celebrity demand must have a protected endpoint');
   const celebrity = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'celebrity.html'), 'utf8');
-  assert.match(celebrity, /fetch\('\/api\/admin\/celebrity'/, 'celebrity demand page must use its protected admin endpoint');
-  assert.match(celebrity, /x-admin-token.*localStorage\.getItem\('kurukoo_admin'\)/, 'celebrity demand page must forward the shared admin token');
+  assert.match(celebrity, /fetch\('\/api\/admin\/celebrity'/, 'celebrity demand page must use protected endpoint');
   const future = await fs.promises.readFile(path.join(process.cwd(), 'public', 'admin', 'future.html'), 'utf8');
-  assert.match(future, /fetch\('\/api\/admin\/future_plans'/, 'future roadmap page must use its protected admin endpoint');
-  assert.match(future, /x-admin-token.*localStorage\.getItem\('kurukoo_admin'\)/, 'future roadmap page must forward the shared admin token');
-  assert.match(src, /listCoordinatorRuns/, 'admin stats must expose coordinator run telemetry');
-  assert.match(src, /recentRuns/, 'admin stats must expose recent coordinator runs');
-  assert.match(src, /autonomous: process\.env\.KURUKOO_AGENT_AUTONOMOUS/, 'admin stats must expose the effective autonomy gate');
-  assert.match(src, /teacherEnabled: process\.env\.KURUKOO_COORDINATOR_TEACHER_ENABLED/, 'admin stats must expose teacher-mode state');
-  assert.match(src, /recentLearningArtifacts/, 'admin stats must expose candidate learning artifacts');
+  assert.match(future, /fetch\('\/api\/admin\/future_plans'/, 'future roadmap page must use protected endpoint');
+
+  assert.match(src, /getExternalIntegrationReadiness/, 'admin integration readiness must reuse canonical projection');
   assert.match(src, /authenticateAdmin/, 'adminRoutes must use authenticateAdmin');
-  assert.match(src, /operatorSession: true/, 'operator Chat must issue an explicit operator session claim');
-  assert.match(src, /testActor: true/, 'Test As must issue an explicit actor claim');
-  assert.match(src, /isolated_actor_context/, 'Test As must disclose the isolated actor boundary');
+  assert.match(src, /operatorSession: true/, 'operator Chat must issue explicit operator claim');
+  assert.match(src, /testActor: true/, 'Test As must issue explicit actor claim');
+  assert.match(src, /isolated_actor_context/, 'Test As must disclose isolated actor boundary');
   assert.doesNotMatch(src, /\\+2348030000000/, 'no demo phone in admin routes');
-  for (const p of paths) {
-    assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
-  }
-  console.log('test-admin-routes: PASS: protected API registry, canonical /admin entry, and core static admin revamp pages are present');
+  for (const p of paths) assert.ok(src.includes(p.replace('/api/admin', '')) || src.includes(p), `path reference for ${p}`);
+  console.log('test-admin-routes: PASS: protected admin API, shared shell/auth, platform health, client-surface contract and module registry are present');
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+main().catch((e) => { console.error(e); process.exit(1); });

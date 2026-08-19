@@ -49,6 +49,8 @@ def load_manifest(path: pathlib.Path) -> dict:
     manifest = json.loads(path.read_text(encoding="utf-8"))
     if manifest.get("productionEnabled") is True:
         raise SystemExit("Refusing to register an already-production-enabled artifact as a candidate")
+    if manifest.get("runKind") == "feasibility_only" or manifest.get("status") == "feasibility_only" or manifest.get("registryEligible") is False:
+        raise SystemExit("Refusing to register a feasibility-only artifact")
     return manifest
 
 
@@ -65,6 +67,11 @@ def register(args: argparse.Namespace) -> int:
     record = {
         "modelId": model_id,
         "baseModel": manifest.get("base_model"),
+        "baseModelRevision": manifest.get("base_model_revision"),
+        "artifactUri": manifest.get("artifactUri"),
+        "artifactHash": manifest.get("artifactHash"),
+        "datasetHash": manifest.get("dataset_sha256"),
+        "behaviourPackHash": manifest.get("behaviourPackHash") or (manifest.get("remoteTraining") or {}).get("behaviourPackHash"),
         "artifactDirectory": str(artifact_dir),
         "artifactSha256": sha256(artifact_dir) if artifact_dir.is_file() else manifest.get("dataset_sha256"),
         "runtimeModel": manifest.get("runtimeModel") if isinstance(manifest.get("runtimeModel"), str) and manifest.get("runtimeModel").strip() else None,
@@ -97,6 +104,12 @@ def validate_evaluation(evaluation: dict) -> None:
         value = scores.get(key)
         if not isinstance(value, (int, float)) or float(value) > maximum:
             raise SystemExit(f"Evaluation exceeded maximum {key}: {value} > {maximum}")
+    comparison = evaluation.get("comparison") or {}
+    if comparison.get("studentBeatsBase") is not True:
+        raise SystemExit("Evaluation does not prove that the Student outperformed the base model on the held-out benchmark")
+    for key in ("heldOutDatasetHash", "benchmarkVersion", "baseScores", "studentScores", "examinerResults"):
+        if not comparison.get(key):
+            raise SystemExit(f"Evaluation comparison is missing required evidence: {key}")
 
 
 def promote(args: argparse.Namespace) -> int:

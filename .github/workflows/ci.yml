@@ -23,8 +23,26 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run test:routes
+      - name: Test Hugging Face Jobs training backend contract
+        run: npm run test:huggingface-jobs-backend
+      - name: Test hosted provider routing and retired Hugging Face serverless boundary
+        run: npm run test:hosted-provider-resolution && npm run test:hosted-provider-failover && npm run test:smollm2-serverless-deprecation
       - name: Test progressive identity contract
         run: npx tsx scripts/test-progressive-identity.ts
+      - name: Test food request identity and context resume
+        run: npm run test:food-auth-context-resume
+      - name: Test artifact storage ownership and durability contract
+        run: npm run test:artifact-storage
+      - name: Test Google Sheets source ownership and lifecycle contract
+        run: npm run test:google-sheets-source
+      - name: Test Notion source ownership and lifecycle contract
+        run: npm run test:notion-source
+      - name: Test Microsoft Graph source ownership and lifecycle contract
+        run: npm run test:microsoft-graph-source
+      - name: Test canonical external integration readiness contract
+        run: npm run test:external-integration-readiness
+      - name: Test Mistral Voxtral TTS contract
+        run: npm run test:mistral-tts
       - name: Test remote MCP app contract
         run: npx tsx scripts/test-mcp-app.ts
       - name: Test Pulse privacy contract
@@ -48,7 +66,7 @@ jobs:
 
   fasttext:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -57,20 +75,74 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - name: Install FastText CLI
-        run: sudo apt-get update -qq && sudo apt-get install -y fasttext
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if timeout 240 sudo apt-get -o Acquire::Retries=3 update -qq && \
+               timeout 240 sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends fasttext; then
+              exit 0
+            fi
+            echo "FastText installation attempt ${attempt}/3 failed; retrying shortly." >&2
+            sleep $((attempt * 15))
+          done
+          echo "FastText installation failed after bounded retries." >&2
+          exit 1
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run fasttext:build
       - name: Verify FastText model
         run: npm run fasttext:test
+
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: mobile/kurukoo-mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install mobile dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck mobile client
+        run: pnpm check
+      - name: Test mobile client
+        run: pnpm test
+      - name: Build mobile server bundle
+        run: pnpm build
 
   secret-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Install Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=8.24.3
+          curl --fail --silent --show-error --location "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Scan checked-out repository tree for secrets
+        shell: bash
+        run: |
+          set +e
+          gitleaks detect --source . --no-git --redact --report-format json --report-path gitleaks-report.json --exit-code 2
+          status=$?
+          if [ -f gitleaks-report.json ]; then
+            node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync("gitleaks-report.json","utf8")); for (const x of r) console.log(JSON.stringify({ruleID:x.RuleID,file:x.File,line:x.StartLine,commit:x.Commit,description:x.Description,match:x.Match?"[REDACTED]":"[NONE]"}));'
+          fi
+          exit $status
+      - name: Upload redacted Gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          fetch-depth: 0
-      - name: Scan working tree for secrets
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files-found: ignore
