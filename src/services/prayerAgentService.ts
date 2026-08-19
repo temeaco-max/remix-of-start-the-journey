@@ -1,4 +1,4 @@
-import { createAIAgent, executeAgentTask, getAIAgentById, type AIAgent } from './aiAgentService.js';
+import { createAIAgent, executeAgentTask, getAIAgentById, updateAIAgent, type AIAgent } from './aiAgentService.js';
 import { createReminder, listReminders } from './reminderService.js';
 import { getProfile } from './memoryProfile.js';
 import { composeBehaviourInstructions } from './behaviourInstructionService.js';
@@ -33,12 +33,11 @@ const DEFAULT_AGENT: AIAgent = {
 
 export async function ensurePrayerAgent(): Promise<AIAgent> {
   const existing = await getAIAgentById(PRAYER_AGENT_ID);
+  const expected = `${sharedPrayerInstructions()}\n\n${PRAYER_SYSTEM_PROMPT}`;
   if (existing) {
-    const expected = `${sharedPrayerInstructions()}\n\n${PRAYER_SYSTEM_PROMPT}`;
-    if (existing.system_prompt !== expected) {
-      const updated = { ...existing, system_prompt: expected, skills: DEFAULT_AGENT.skills, tools: DEFAULT_AGENT.tools };
-      await createAIAgent(updated);
-      return (await getAIAgentById(PRAYER_AGENT_ID)) || updated;
+    if (existing.system_prompt !== expected || JSON.stringify(existing.skills) !== JSON.stringify(DEFAULT_AGENT.skills) || JSON.stringify(existing.tools) !== JSON.stringify(DEFAULT_AGENT.tools)) {
+      await updateAIAgent(PRAYER_AGENT_ID, { system_prompt: expected, skills: DEFAULT_AGENT.skills, tools: DEFAULT_AGENT.tools });
+      return (await getAIAgentById(PRAYER_AGENT_ID)) || { ...existing, system_prompt: expected, skills: DEFAULT_AGENT.skills, tools: DEFAULT_AGENT.tools };
     }
     return existing;
   }
