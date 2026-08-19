@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kurukoo-reminder-safety-coordinator-'));
 process.env.DB_PATH = path.join(tempDir, 'flow.sqlite');
-process.env.JWT_SECRET = 'reminder-safety-coordinator-test-secret-0123456789';
+process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.KURUKOO_DISABLE_LISTEN = 'true';
 
 const { getDb } = await import('../src/database.js');
