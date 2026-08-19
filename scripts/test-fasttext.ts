@@ -4,15 +4,20 @@ import { classifyWithFastText, getFastTextRuntimeStatus } from '../src/services/
 const runtime = getFastTextRuntimeStatus();
 assert.equal(runtime.modelState, 'real', `expected a real FastText binary, got ${runtime.modelState}`);
 assert.equal(runtime.realModelPresent, true, 'realModelPresent must be true when the binary is valid');
-console.log(`FastText executable availability: ${runtime.executableAvailable ? 'available' : 'not configured in this host; deterministic fallback will be used'}`);
+console.log(`FastText executable availability: ${runtime.executableAvailable ? 'available' : 'not configured in this host; deterministic routing rules remain active'}`);
 
 const cases: Array<[string, string]> = [
+  ['hello', 'greeting'],
+  ['Thanks', 'thanks'],
+  ['yes', 'confirmation'],
   ['I need a taxi to Ikeja', 'ride_request'],
   ['Find me someone to repair my fridge', 'find_worker'],
   ['Order suya and bread near me', 'order_food'],
   ['I need emergency help after an accident', 'emergency'],
   ['Help me find a football match this weekend', 'sports_matchmaking'],
-  ['How do I fix a leaking tap?', 'find_worker']
+  ['How do I fix a leaking tap?', 'find_worker'],
+  ['How do I unlink my phone?', 'how_to_video'],
+  ['How do I top up my wallet?', 'top_up'],
 ];
 
 let failures = 0;
@@ -26,6 +31,6 @@ for (const [query, expected] of cases) {
 }
 
 if (failures) throw new Error(`FastText intent verification failed for ${failures} sample(s)`);
-if (runtime.executableAvailable) assert.ok(fastTextSourceCount >= 4, `expected at least four representative routes to use fasttext, got ${fastTextSourceCount}`);
+if (runtime.executableAvailable) assert.ok(fastTextSourceCount >= 4, `expected at least four representative non-conversational routes to use fasttext, got ${fastTextSourceCount}`);
 else assert.equal(fastTextSourceCount, 0, 'FastText source attribution must remain honest when the executable is unavailable');
-console.log(`FastText intent verification passed with ${fastTextSourceCount}/${cases.length} real-model sources and deterministic fallback readiness.`);
+console.log(`FastText intent verification passed: ${cases.length - failures}/${cases.length} cases; ${fastTextSourceCount} used the real model.`);
