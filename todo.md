@@ -169,3 +169,9 @@
 - [x] Run populated-state pixel comparisons against individual Checkout and Confirmation reference frames
 - [x] Check action visibility, sidebar collapse, text wrapping and horizontal overflow across both mobile viewports
 - [x] Revalidate and document the populated mobile fixture audit
+
+- [x] Inventory current Partners, Agents, Opportunities, impact, evidence and mobile preview routes against the authoritative Partners screen set
+- [x] Map screen-set regions to canonical templates, data contracts and existing CSS authorities
+- [x] Implement high-confidence Partners visual convergence without changing canonical service ownership or truthful state semantics
+- [x] Run exact-size desktop and mobile visual regression, accessibility and responsive checks for Partners surfaces
+- [x] Document remaining visual drift and final convergence status
