@@ -1,4 +1,4 @@
-export type CountryCode = 'ng' | 'gh' | 'gb';
+export type CountryCode = 'ng' | 'gh' | 'gb' | 'ca' | 'us';
 
 export interface CountryExperience {
   code: CountryCode;
@@ -15,18 +15,28 @@ export interface CountryExperience {
 
 const COUNTRY_EXPERIENCES: Record<CountryCode, CountryExperience> = {
   ng: {
-    code: 'ng', iso3: 'NGA', name: 'Nigeria', locale: 'en', currency: 'NGN', currencyMinorUnit: 'kobo',
+    code: 'ng', iso3: 'NGA', name: 'Nigeria', locale: 'en-NG', currency: 'NGN', currencyMinorUnit: 'kobo',
     defaultEmergencyNumber: '112', publicPath: '/ng', pricingManaged: true,
     channels: ['web', 'whatsapp', 'telegram', 'sms', 'ussd', 'email', 'fcm', 'voice'],
   },
   gh: {
-    code: 'gh', iso3: 'GHA', name: 'Ghana', locale: 'en', currency: 'GHS', currencyMinorUnit: 'pesewas',
+    code: 'gh', iso3: 'GHA', name: 'Ghana', locale: 'en-GH', currency: 'GHS', currencyMinorUnit: 'pesewas',
     defaultEmergencyNumber: '112', publicPath: '/gh', pricingManaged: true,
     channels: ['web', 'whatsapp', 'telegram', 'sms', 'ussd', 'email', 'fcm', 'voice'],
   },
   gb: {
-    code: 'gb', iso3: 'GBR', name: 'United Kingdom', locale: 'en', currency: 'GBP', currencyMinorUnit: 'pence',
+    code: 'gb', iso3: 'GBR', name: 'United Kingdom', locale: 'en-GB', currency: 'GBP', currencyMinorUnit: 'pence',
     defaultEmergencyNumber: '999', publicPath: '/gb', pricingManaged: true,
+    channels: ['web', 'whatsapp', 'telegram', 'sms', 'email', 'fcm', 'voice'],
+  },
+  ca: {
+    code: 'ca', iso3: 'CAN', name: 'Canada', locale: 'en-CA', currency: 'CAD', currencyMinorUnit: 'cents',
+    defaultEmergencyNumber: '911', publicPath: '/ca', pricingManaged: true,
+    channels: ['web', 'whatsapp', 'telegram', 'sms', 'email', 'fcm', 'voice'],
+  },
+  us: {
+    code: 'us', iso3: 'USA', name: 'United States', locale: 'en-US', currency: 'USD', currencyMinorUnit: 'cents',
+    defaultEmergencyNumber: '911', publicPath: '/us', pricingManaged: true,
     channels: ['web', 'whatsapp', 'telegram', 'sms', 'email', 'fcm', 'voice'],
   },
 };
