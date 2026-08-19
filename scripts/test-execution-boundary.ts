@@ -6,7 +6,7 @@ import path from 'node:path';
 const dbPath = path.join(os.tmpdir(), `kurukoo-execution-${process.pid}-${Date.now()}.sqlite`);
 process.env.DB_PATH = dbPath;
 process.env.NODE_ENV = 'production';
-process.env.JWT_SECRET = 'execution-boundary-test-secret-0123456789';
+process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 process.env.FF_PRIVATE_NUMBER_MASKING = 'true';
 process.env.NUMBER_MASKING_PROVIDER = 'test-proxy-provider';
