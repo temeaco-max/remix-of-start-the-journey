@@ -31,6 +31,8 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run lint
       - run: npm run build
+      - name: Run platform convergence gate
+        run: npx tsx scripts/audit-platform-convergence.ts
       - name: Run broad route contracts
         run: npm run test:routes
       - name: Upload route-suite diagnostic log
