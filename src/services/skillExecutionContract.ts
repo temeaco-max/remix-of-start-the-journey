@@ -1,4 +1,5 @@
 import { getEconomicCategory, getSkillCapabilities, getSkillRequirements } from './skillFlows.js';
+import { getSkillExtension } from './skillCatalogueConvergence.js';
 import { getConvergedSkillBehaviour } from './skillBehaviourConvergence.js';
 
 export type SkillExecutionMode = 'economic' | 'information' | 'coordination' | 'safety';
@@ -64,43 +65,60 @@ function truthBoundary(mode: SkillExecutionMode, requiresProvider: boolean, requ
 
 export function buildSkillExecutionContract(skill: string): SkillExecutionContract {
   const normalized = skill.trim().toLowerCase();
-  const category = getEconomicCategory(normalized);
+  const extension = getSkillExtension(normalized);
   const pack = getConvergedSkillBehaviour(normalized);
-  const requirements = getSkillRequirements(normalized).map(requirement => ({
-    key: requirement.key,
-    label: requirement.label,
-    required: Boolean(requirement.required),
-  }));
-  const capabilities = getSkillCapabilities(normalized).map(String);
-  const mode = inferMode(category, normalized);
-  const requiresProvider = mode === 'economic' || [
-    'reservation', 'availability', 'fulfillment', 'tracking', 'quote',
-  ].some(capability => capabilities.includes(capability));
-  const requiresPayment = capabilities.includes('payment') || capabilities.includes('escrow') ||
-    ['transaction', 'mixed', 'quote'].includes(pack?.commercial || '');
-  const requiresEvidence = capabilities.includes('evidence') || Boolean(pack?.completionEvidence?.length);
-  const completionEvidence = pack?.completionEvidence?.length ? [...pack.completionEvidence] :
-    mode === 'information' ? ['authoritative source or persisted answer'] :
-    mode === 'coordination' ? ['canonical action state or confirmation'] :
-    ['provider fulfilment or explicit canonical completion state'];
-  const failureModes = pack?.failureModes?.length ? [...pack.failureModes] : [
-    mode === 'information' ? 'authoritative source unavailable' :
-      mode === 'safety' ? 'service or safety route unavailable' :
-        requiresProvider ? 'no eligible provider or provider unavailable' : 'required information missing',
-  ];
-  const memoryKeys = ['location', 'country', 'timezone', 'preferred_channel', 'communication_style'];
-  if (['transport-mobility', 'tourism-travel', 'government-civic', 'property-real-estate'].includes(category || '')) memoryKeys.push('address');
-  if (mode === 'economic' || mode === 'coordination') memoryKeys.push('preferences');
+  const category = extension?.category || getEconomicCategory(normalized);
+  const mode = extension?.mode || inferMode(category, normalized);
+  const baseRequirements = getSkillRequirements(normalized);
+  const requirements = extension?.requirements?.length
+    ? extension.requirements.map((label, index) => ({ key: `skill_requirement_${index + 1}`, label, required: true }))
+    : baseRequirements.map(requirement => ({
+      key: requirement.key,
+      label: requirement.label,
+      required: Boolean(requirement.required),
+    }));
+  const baseCapabilities = getSkillCapabilities(normalized).map(String);
+  const capabilities = extension?.capabilities?.length ? extension.capabilities.map(String) : baseCapabilities;
+  const requiresProvider = extension
+    ? mode === 'economic' || capabilities.some(capability => ['availability', 'fulfillment', 'tracking', 'quote', 'reservation', 'discovery'].includes(capability))
+    : mode === 'economic' || ['reservation', 'availability', 'fulfillment', 'tracking', 'quote'].some(capability => capabilities.includes(capability));
+  const commercial = pack?.commercial || '';
+  const requiresPayment = capabilities.includes('payment') || capabilities.includes('escrow') || ['transaction', 'mixed', 'quote'].includes(commercial);
+  const requiresEvidence = capabilities.includes('evidence') || Boolean(pack?.completionEvidence?.length) || Boolean(extension?.evidence?.length);
+  const completionEvidence = pack?.completionEvidence?.length
+    ? [...pack.completionEvidence]
+    : extension?.evidence?.length
+      ? [...extension.evidence]
+      : mode === 'information'
+        ? ['authoritative source or persisted answer']
+        : mode === 'coordination'
+          ? ['canonical action state or confirmation']
+          : ['provider fulfilment or explicit canonical completion state'];
+  const failureModes = pack?.failureModes?.length
+    ? [...pack.failureModes]
+    : extension?.failureModes?.length
+      ? [...extension.failureModes]
+      : [
+        mode === 'information' ? 'authoritative source unavailable' :
+          mode === 'safety' ? 'service or safety route unavailable' :
+            requiresProvider ? 'no eligible provider or provider unavailable' : 'required information missing',
+      ];
+  const memoryKeys = Array.from(new Set([
+    'location', 'country', 'timezone', 'preferred_channel', 'communication_style',
+    ...(extension?.memoryKeys || []),
+    ...(['transport-mobility', 'tourism-travel', 'government-civic', 'property-real-estate'].includes(category || '') ? ['address'] : []),
+    ...((mode === 'economic' || mode === 'coordination') ? ['preferences'] : []),
+  ]));
   return {
     skill: normalized,
-    category,
+    category: category || null,
     mode,
     requirements,
     capabilities,
     instructions: pack?.instructions?.length ? [...pack.instructions] : [],
     completionEvidence,
     failureModes,
-    memoryKeys: Array.from(new Set(memoryKeys)),
+    memoryKeys,
     truthBoundary: truthBoundary(mode, requiresProvider, requiresEvidence, requiresPayment),
     requiresProvider,
     requiresPayment,
