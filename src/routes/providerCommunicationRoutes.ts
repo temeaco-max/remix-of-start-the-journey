@@ -1,0 +1,71 @@
+import { Router } from 'express';
+import { authenticateUser, type AuthRequest } from '../middleware/auth.js';
+import {
+  createProviderCommunicationSession,
+  endProviderCommunicationSession,
+  getProviderCommunicationSession,
+  getProviderCommunicationStatus,
+  recordProviderLocation,
+  updateProviderCommunicationState,
+} from '../services/providerCommunicationService.js';
+
+const router = Router();
+
+router.get('/status', authenticateUser, (_req: AuthRequest, res) => res.json({ success: true, ...getProviderCommunicationStatus() }));
+
+router.post('/sessions', authenticateUser, async (req: AuthRequest, res) => {
+  try {
+    const customerPhone = String(req.user?.phone || '');
+    const providerPhone = String(req.body?.providerPhone || '').trim();
+    if (!providerPhone) return res.status(400).json({ success: false, error: 'providerPhone is required.' });
+    const session = await createProviderCommunicationSession({ customerPhone, providerPhone, economicRequestId: req.body?.economicRequestId, mode: req.body?.mode });
+    res.status(201).json({ success: true, session, communication: { maskedCall: Boolean(session.proxyPhone), realTimeSession: Boolean(session.roomId) } });
+  } catch (error) {
+    res.status(422).json({ success: false, error: error instanceof Error ? error.message : 'Unable to create provider communication session.' });
+  }
+});
+
+router.get('/sessions/:id', authenticateUser, async (req: AuthRequest, res) => {
+  const session = await getProviderCommunicationSession(String(req.params.id));
+  if (!session) return res.status(404).json({ success: false, error: 'Communication session not found.' });
+  const phone = String(req.user?.phone || '');
+  if (session.customerPhone !== phone && session.providerPhone !== phone) return res.status(403).json({ success: false, error: 'Not a communication participant.' });
+  res.json({ success: true, session });
+});
+
+router.post('/sessions/:id/state', authenticateUser, async (req: AuthRequest, res) => {
+  try {
+    const current = await getProviderCommunicationSession(String(req.params.id));
+    const phone = String(req.user?.phone || '');
+    if (!current || (current.customerPhone !== phone && current.providerPhone !== phone)) return res.status(403).json({ success: false, error: 'Not a communication participant.' });
+    const session = await updateProviderCommunicationState(String(req.params.id), req.body?.state);
+    res.json({ success: true, session });
+  } catch (error) {
+    res.status(422).json({ success: false, error: error instanceof Error ? error.message : 'Unable to update communication state.' });
+  }
+});
+
+router.post('/sessions/:id/location', authenticateUser, async (req: AuthRequest, res) => {
+  try {
+    const current = await getProviderCommunicationSession(String(req.params.id));
+    const phone = String(req.user?.phone || '');
+    if (!current || current.providerPhone !== phone) return res.status(403).json({ success: false, error: 'Only the provider can publish live location.' });
+    const session = await recordProviderLocation(String(req.params.id), Number(req.body?.latitude), Number(req.body?.longitude));
+    res.json({ success: true, session });
+  } catch (error) {
+    res.status(422).json({ success: false, error: error instanceof Error ? error.message : 'Unable to record provider location.' });
+  }
+});
+
+router.post('/sessions/:id/end', authenticateUser, async (req: AuthRequest, res) => {
+  try {
+    const current = await getProviderCommunicationSession(String(req.params.id));
+    const phone = String(req.user?.phone || '');
+    if (!current || (current.customerPhone !== phone && current.providerPhone !== phone)) return res.status(403).json({ success: false, error: 'Not a communication participant.' });
+    res.json({ success: true, session: await endProviderCommunicationSession(String(req.params.id)) });
+  } catch (error) {
+    res.status(422).json({ success: false, error: error instanceof Error ? error.message : 'Unable to end communication session.' });
+  }
+});
+
+export default router;
