@@ -33,6 +33,7 @@ jobs:
           npx tsx scripts/test-ai-router-free-first.ts
           npx tsx scripts/test-skill-interaction-convergence.ts
           npx tsx scripts/test-platform-feature-visual-coverage.ts
+          npx tsx scripts/test-economic-dispatch-lifecycle.ts
           npx tsx scripts/test-agent-network-commerce.ts
           npx tsx scripts/test-catalogue-source-convergence.ts
           npx tsx scripts/test-provider-communication-session.ts
