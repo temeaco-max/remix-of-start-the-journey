@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getDb, saveDb } from '../database.js';
 import { getFeatureFlagStatus } from './featureFlags.js';
+import { inspectAttachmentSecurity, attachmentSecurityReadiness } from './attachmentSecurityBoundary.js';
 
 export type ArtifactKind = 'voice' | 'image' | 'video' | 'document' | 'other';
 export type ArtifactStorageProvider = 'google_drive' | 'kurukoo_managed';
@@ -210,7 +211,11 @@ export async function revokeGoogleDriveConnection(phone: string): Promise<boolea
 export async function createArtifact(input: { phone: string; filename: string; mimeType: string; data: Buffer; kind?: ArtifactKind; transcript?: string; transcriptStatus?: ArtifactRecord['transcriptStatus'] }): Promise<ArtifactRecord> {
   const phone = String(input.phone || '').trim(); if (!phone || phone.startsWith('anon_')) throw Object.assign(new Error('Artifact persistence requires an authenticated owner.'), { code: 'ARTIFACT_OWNER_REQUIRED' });
   const data = Buffer.from(input.data || []); if (!data.length || data.length > MAX_BYTES) throw Object.assign(new Error(`Artifact must contain data and may not exceed ${MAX_BYTES} bytes.`), { code: 'ARTIFACT_SIZE_INVALID' });
-  const id = crypto.randomUUID(); const filename = cleanFilename(input.filename); const mimeType = cleanMime(input.mimeType); const kind = input.kind || kindForMime(mimeType);
+  const filename = cleanFilename(input.filename); const mimeType = cleanMime(input.mimeType);
+  const security = inspectAttachmentSecurity({ data, mimeType, filename });
+  if (security.state === 'rejected') throw Object.assign(new Error(`Artifact security validation failed: ${security.reason || 'rejected'}.`), { code: `ARTIFACT_SECURITY_${String(security.reason || 'REJECTED').toUpperCase().slice(0, 50)}` });
+  if (security.state === 'pending_scan') throw Object.assign(new Error('Artifact is awaiting the configured malware scanner before persistence.'), { code: 'ARTIFACT_SCAN_PENDING' });
+  const id = crypto.randomUUID(); const kind = input.kind || kindForMime(mimeType);
   let storageProvider: ArtifactStorageProvider = 'kurukoo_managed'; let durability: ArtifactDurability = 'managed_fallback'; let externalFileId: string | undefined; let externalUrl: string | undefined; let managedPath: string | undefined;
   try { const drive = await uploadToDrive(phone, filename, mimeType, data); storageProvider = 'google_drive'; durability = 'external_verified'; externalFileId = drive.id; externalUrl = drive.url || `https://drive.google.com/open?id=${encodeURIComponent(drive.id)}`; }
   catch (error) {
@@ -232,4 +237,4 @@ export async function deleteArtifactReference(phone: string, id: string, deleteE
   if (artifact.managedPath) await fs.rm(artifact.managedPath, { force: true }).catch(() => undefined);
   const db = await ensureStorageConnectionSchema(); db.run('UPDATE artifacts SET deleted_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [id, phone]); saveDb(); return { deleted: true, externalDeleted }; }
 
-export const __artifactInternal = { encryptSecret: encryptStorageCredential, decryptSecret: decryptStorageCredential, kindForMime, extractDriveScope: () => DRIVE_SCOPE };
+export const __artifactInternal = { encryptSecret: encryptStorageCredential, decryptSecret: decryptStorageCredential, kindForMime, extractDriveScope: () => DRIVE_SCOPE, attachmentSecurityReadiness };
