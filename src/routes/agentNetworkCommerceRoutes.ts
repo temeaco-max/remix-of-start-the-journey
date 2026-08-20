@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticateAdmin, authenticateUser, type AuthRequest } from '../middleware/auth.js';
+import { createStripePaymentIntent } from '../services/stripePayment.js';
 import {
   activateNetworkAgent,
   chargeProviderLead,
@@ -50,9 +51,16 @@ router.post('/agent-network/points/topup-intents', authenticateUser, async (req:
       agentId,
       idempotencyKey: req.body?.idempotencyKey,
     });
-    res.status(201).json({ success: true, topUp: intent, paymentRequired: true, settlement: 'verified-payment-only' });
+    if (intent.status === 'settled') return res.status(200).json({ success: true, topUp: intent, paymentRequired: false, settlement: 'already-settled' });
+    const payment = await createStripePaymentIntent({
+      amountMinor: intent.fiatAmountMinor,
+      currency: intent.currency,
+      economicRequestId: `agent_points_topup:${intent.id}`,
+      idempotencyKey: `kurukoo:agent_points_topup:${intent.id}`,
+    });
+    res.status(201).json({ success: true, topUp: intent, paymentRequired: true, provider: 'stripe', paymentIntentId: payment.id, clientSecret: payment.clientSecret, amountMinor: payment.amountMinor, currency: payment.currency, settlement: 'verified-webhook-only' });
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to create Points top-up intent.' });
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Unable to create Points top-up payment intent.', payment_required: true });
   }
 });
 
@@ -82,7 +90,7 @@ router.post('/admin/agent-network/:agentId/activate', authenticateAdmin, async (
 router.post('/admin/agent-network/points/topups/:topUpId/settle', authenticateAdmin, async (req: AuthRequest, res) => {
   try {
     const result = await settlePointsTopUp(String(req.params.topUpId), String(req.body?.externalReference || ''));
-    res.json({ success: true, ...result });
+    res.json({ success: true, ...result, manualSettlement: true });
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to settle Points top-up.' });
   }
