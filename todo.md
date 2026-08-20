@@ -16,6 +16,13 @@ Repository-side implementation and convergence ledger. External/device activatio
 - [x] Guarded training/candidate curation pipeline and promotion boundary
 - [x] Security cleanup for synthetic JWT fixtures
 - [x] Push validated repository-side convergence milestones to main
+- [x] Converged skill/execution authority propagated through runtime, outcome audit and ML training universe
+- [x] Platform-wide convergence audit wired into CI
+- [x] Durable DB-backed job queue with leases, retries, exponential backoff and dead-letter state
+- [x] Background worker maintenance for FCM drain, provider-verification expiry and durable job lease recovery
+- [x] Canonical provider verification lifecycle with reviewer/evidence/expiry semantics
+- [x] Attachment security boundary with MIME/magic/hash checks and malware-scan handoff state
+- [x] Artifact persistence gated through the attachment security boundary
 
 ## External activation gates still intentionally open
 
@@ -33,4 +40,5 @@ Repository-side implementation and convergence ledger. External/device activatio
 
 - [x] Repository-side build/lint/route/security/PWA/accessibility/CSS/regression coverage where available
 - [x] Truthful UI state semantics and fail-closed external claims
+- [x] CI now executes the platform-wide convergence gate on every main/PR build
 - [ ] Post-merge CI status must be observed green on the latest main head before calling the release line fully verified
