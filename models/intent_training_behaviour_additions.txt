@@ -36,3 +36,65 @@ __label__find_worker find a pepper seller
 __label__find_worker find a fruit seller
 __label__ride_request i need a bike ride
 __label__ride_request get an okada to pick me up
+__label__bin_day remind me when my bins go out
+__label__bin_day when is bin day
+__label__bin_day what day is the rubbish collected
+__label__laptop_repairer my laptop is broken
+__label__laptop_repairer my macbook screen is damaged
+__label__laptop_repairer my dell laptop will not turn on
+__label__tablet_repairer my ipad needs repair
+__label__tablet_repairer my samsung tablet is broken
+__label__console_repairer my ps5 needs repair
+__label__console_repairer my xbox is not working
+__label__console_repairer repair my nintendo switch
+__label__tv_repairer my tv has no picture
+__label__tv_repairer my samsung television needs repair
+__label__smartwatch_repairer my apple watch is broken
+__label__smartwatch_repairer repair my galaxy watch
+__label__earbuds_repairer my airpods need repair
+__label__earbuds_repairer my wireless earbuds are not working
+__label__speaker_repairer my bluetooth speaker is broken
+__label__speaker_repairer repair my bose speaker
+__label__appliance_repairer my washing machine is broken
+__label__appliance_repairer fix my fridge
+__label__appliance_repairer my oven needs repair
+__label__bicycle_repairer my bicycle needs repair
+__label__bicycle_repairer fix my bike
+__label__motorbike_repairer repair my motorcycle
+__label__motorbike_repairer my motorbike has a fault
+__label__vehicle_recovery my car has broken down
+__label__vehicle_recovery I need a tow truck
+__label__gp_appointment help me book a gp appointment
+__label__gp_appointment I need to see my doctor
+__label__dentist_appointment book me a dentist
+__label__mot_booking book my mot
+__label__mot_booking I need an MOT test
+__label__driving_test_booking book a driving test
+__label__school_admissions help with school admissions
+__label__snow_removal clear my driveway
+__label__snow_removal I need snow plowing
+__label__winter_tire_service change my winter tyres
+__label__hydro_outage is there a power outage
+__label__pos_agent find a POS agent
+__label__pos_agent I need cash out
+__label__generator_fuel_delivery deliver fuel for my generator
+__label__borehole_water I need water delivery
+__label__gas_refill I need cooking gas
+__label__parcel_pickup collect my parcel
+__label__parcel_pickup drop off this parcel
+__label__locksmith I am locked out
+__label__locksmith I need a locksmith
+__label__boiler_repairer my boiler is broken
+__label__boiler_repairer I need a heating engineer
+__label__rubbish_removal remove my rubbish
+__label__rubbish_removal take away this junk
+__label__window_cleaner I need my windows cleaned
+__label__key_cutter cut me a spare key
+__label__laundry_pickup collect my laundry
+__label__market_shopper shop for my groceries at the market
+__label__school_run_uk pick up my child from school
+__label__local_courier I need a same day courier
+__label__neighbourhood_handyman I need a handyman
+__label__memory remember that I prefer mornings
+__label__memory what do you remember about me
+__label__memory use my saved preference
