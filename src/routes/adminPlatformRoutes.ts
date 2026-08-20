@@ -5,6 +5,8 @@ import { getScaleTransitionReport } from '../services/scaleTransition.js';
 import { getDb } from '../database.js';
 import { getExternalIntegrationOperationalStatus } from '../services/externalIntegrationOperationalStatus.js';
 import { activateConfiguredExternalProviders, probeConfiguredExternalProviders } from '../services/externalActivationService.js';
+import { listAiProviderHealth } from '../services/aiProviderHealth.js';
+import { getAiUsageSummary } from '../services/aiCostTelemetry.js';
 
 const router = Router();
 router.use(authenticateAdmin);
@@ -23,17 +25,22 @@ router.get('/modules', (_req: AuthRequest, res) => { res.json({ success: true, c
 router.get('/scale-readiness', (_req: AuthRequest, res) => { res.json({ success: true, contractVersion: 'scale-readiness-v1', report: getScaleTransitionReport() }); });
 
 router.get('/activation-matrix', (_req: AuthRequest, res) => {
-  res.json({ success: true, contractVersion: 'external-activation-matrix-v2', checkedAt: new Date().toISOString(), integrations: getExternalIntegrationOperationalStatus(), claims: 'Configured/connected/runtime-ready describe repository-side state. Use /activate to run authenticated external-provider activation calls.' });
+  res.json({ success: true, contractVersion: 'external-activation-matrix-v2', checkedAt: new Date().toISOString(), integrations: getExternalIntegrationOperationalStatus(), aiProviderHealth: listAiProviderHealth(), claims: 'Configured/connected/runtime-ready describe repository-side state. Use /activate to run authenticated external-provider activation calls.' });
 });
 
 router.post('/activate', async (_req: AuthRequest, res) => {
-  try { res.json({ success: true, contractVersion: 'external-activation-v1', ...(await activateConfiguredExternalProviders()) }); }
+  try { res.json({ success: true, contractVersion: 'external-activation-v1', ...(await activateConfiguredExternalProviders()), aiProviderHealth: listAiProviderHealth() }); }
   catch (error) { console.error('[AdminPlatform] external activation failed:', error); res.status(502).json({ success: false, error: error instanceof Error ? error.message : 'External activation failed.' }); }
 });
 
 router.get('/external-probe', async (req: AuthRequest, res) => {
-  try { const phone = String(req.query.phone || '').trim(); res.json({ success: true, contractVersion: 'external-probe-v1', ...(await probeConfiguredExternalProviders(phone)) }); }
+  try { const phone = String(req.query.phone || '').trim(); res.json({ success: true, contractVersion: 'external-probe-v1', ...(await probeConfiguredExternalProviders(phone)), aiProviderHealth: listAiProviderHealth() }); }
   catch (error) { console.error('[AdminPlatform] external probe failed:', error); res.status(502).json({ success: false, error: error instanceof Error ? error.message : 'External probe failed.' }); }
+});
+
+router.get('/ai-usage', async (req: AuthRequest, res) => {
+  try { const since = req.query.since ? String(req.query.since) : undefined; res.json({ success: true, contractVersion: 'ai-usage-v1', since: since || null, providerHealth: listAiProviderHealth(), summary: await getAiUsageSummary(since) }); }
+  catch (error) { console.error('[AdminPlatform] AI usage failed:', error); res.status(500).json({ success: false, error: 'Unable to load AI usage telemetry.' }); }
 });
 
 router.get('/health', async (_req: AuthRequest, res) => {
@@ -41,7 +48,7 @@ router.get('/health', async (_req: AuthRequest, res) => {
   try { const db = await getDb(); db.exec('SELECT 1'); checks.database = 'ok'; } catch { checks.database = 'blocked'; }
   try { await getAdminPlatformOverview(); checks.platformProjection = checks.database === 'ok' ? 'ok' : 'degraded'; } catch { checks.platformProjection = 'blocked'; }
   const status = Object.values(checks).includes('blocked') ? 503 : 200;
-  res.status(status).json({ success: status === 200, contractVersion: 'admin-platform-health-v2', checkedAt: new Date().toISOString(), checks, deployment: { nodeEnv: process.env.NODE_ENV || 'development', databaseMode: process.env.KURUKOO_DATABASE_MODE || 'sqljs', jobMode: process.env.KURUKOO_JOB_MODE || 'in_process', workers: Number(process.env.KURUKOO_WORKERS || 1), externalPaymentConfigured: Boolean(process.env.KURUKOO_PAY_PROVIDER) }, externalIntegrations: getExternalIntegrationOperationalStatus(), scaleTransition: getScaleTransitionReport(), claims: 'Internal platform health plus current external integration connectivity projections.' });
+  res.status(status).json({ success: status === 200, contractVersion: 'admin-platform-health-v3', checkedAt: new Date().toISOString(), checks, deployment: { nodeEnv: process.env.NODE_ENV || 'development', databaseMode: process.env.KURUKOO_DATABASE_MODE || 'sqljs', jobMode: process.env.KURUKOO_JOB_MODE || 'in_process', workers: Number(process.env.KURUKOO_WORKERS || 1), externalPaymentConfigured: Boolean(process.env.KURUKOO_PAY_PROVIDER) }, externalIntegrations: getExternalIntegrationOperationalStatus(), aiProviderHealth: listAiProviderHealth(), aiUsage: await getAiUsageSummary(), scaleTransition: getScaleTransitionReport(), claims: 'Internal platform health plus current external integration and AI-provider connectivity projections.' });
 });
 
 export default router;
