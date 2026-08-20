@@ -33,9 +33,11 @@ function detectAct(text: string): string | null {
 function normalizeFastTextSkill(intent: string | undefined): string | null {
   if (!intent) return null;
   const prefix = 'skill_route_';
-  if (!intent.startsWith(prefix)) return null;
-  const candidate = intent.slice(prefix.length);
-  return getAllConvergedSkillNames().includes(candidate) ? candidate : null;
+  if (intent.startsWith(prefix)) {
+    const candidate = intent.slice(prefix.length);
+    return getAllConvergedSkillNames().includes(candidate) ? candidate : null;
+  }
+  return getAllConvergedSkillNames().includes(intent) ? intent : null;
 }
 
 function catalogueSkill(text: string): string | null {
