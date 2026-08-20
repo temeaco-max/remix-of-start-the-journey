@@ -2,9 +2,10 @@ import { getFirebaseFcmReadiness, getFirebaseWebConfig } from './firebaseCloudMe
 import { getMqttBridgeStatus } from './iotBridge.js';
 import { getWebRTCClientConfig, getWebRTCStatus } from './webrtcSignalling.js';
 import { getTrustedContactReadiness } from './trustedContactService.js';
+import { getMistralStatus } from './mistralService.js';
 
 export interface IntegrationOperationalStatus {
-  id: 'fcm' | 'mqtt_iot' | 'webrtc' | 'trusted_contacts';
+  id: 'fcm' | 'mqtt_iot' | 'webrtc' | 'trusted_contacts' | 'mistral_ai';
   configured: boolean;
   connected: boolean;
   runtimeReady: boolean;
@@ -19,8 +20,18 @@ export function getExternalIntegrationOperationalStatus(): IntegrationOperationa
   const webrtc = getWebRTCStatus();
   const webrtcConfig = getWebRTCClientConfig();
   const trustedContacts = getTrustedContactReadiness();
+  const mistral = getMistralStatus();
+  const mistralText = mistral.capabilities.find(capability => capability.capability === 'text');
 
   return [
+    {
+      id: 'mistral_ai',
+      configured: mistral.configured,
+      connected: Boolean(mistralText?.available),
+      runtimeReady: Boolean(mistralText?.available),
+      physicalOrProviderEvidenceRequired: true,
+      detail: mistralText?.note || 'Mistral provider status unavailable.',
+    },
     {
       id: 'fcm',
       configured: fcm.configured && web.configured,
@@ -37,9 +48,7 @@ export function getExternalIntegrationOperationalStatus(): IntegrationOperationa
       connected: mqtt.connected,
       runtimeReady: mqtt.configured && mqtt.connected,
       physicalOrProviderEvidenceRequired: true,
-      detail: mqtt.connected
-        ? `Broker connected; ${mqtt.subscribedTopics} authorized state topics are subscribed.`
-        : mqtt.lastError || mqtt.activationRequirement,
+      detail: mqtt.connected ? `Broker connected; ${mqtt.subscribedTopics} authorized state topics are subscribed.` : mqtt.lastError || mqtt.activationRequirement,
     },
     {
       id: 'webrtc',
@@ -47,9 +56,7 @@ export function getExternalIntegrationOperationalStatus(): IntegrationOperationa
       connected: false,
       runtimeReady: webrtc.available && webrtcConfig.iceServers.length > 0,
       physicalOrProviderEvidenceRequired: true,
-      detail: webrtc.available
-        ? `WebRTC signalling and ICE configuration are available via ${webrtcConfig.transport}; peer interoperability still requires a real call.`
-        : webrtc.activationRequirement,
+      detail: webrtc.available ? `WebRTC signalling and ICE configuration are available via ${webrtcConfig.transport}; peer interoperability still requires a real call.` : webrtc.activationRequirement,
     },
     {
       id: 'trusted_contacts',
