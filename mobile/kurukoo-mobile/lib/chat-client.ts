@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "@/lib/_core/auth";
+import { createOfflineId, enqueueOfflineAction } from "@/lib/offline-queue";
 
 export type ChatRole = "user" | "assistant";
 
@@ -17,9 +18,7 @@ export type ChatStreamEvent =
   | { type: "error"; error?: string; message?: string }
   | { type: string; [key: string]: unknown };
 
-function endpoint(path: string) {
-  return `${getApiBaseUrl()}${path}`;
-}
+function endpoint(path: string) { return `${getApiBaseUrl()}${path}`; }
 
 async function requestHeaders(): Promise<Record<string, string>> {
   const token = await Auth.getSessionToken();
@@ -39,10 +38,7 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 export async function loadChatMessages(conversationId?: string): Promise<{ messages: ChatMessage[]; conversationId?: string }> {
   const query = new URLSearchParams({ limit: "50" });
   if (conversationId) query.set("conversationId", conversationId);
-  const response = await fetch(endpoint(`/api/chat/messages?${query.toString()}`), {
-    credentials: "include",
-    headers: await requestHeaders(),
-  });
+  const response = await fetch(endpoint(`/api/chat/messages?${query.toString()}`), { credentials: "include", headers: await requestHeaders() });
   if (response.status === 401) return { messages: [], conversationId };
   const payload = await parseJsonResponse<{ messages?: ChatMessage[]; conversationId?: string }>(response);
   return { messages: Array.isArray(payload.messages) ? payload.messages : [], conversationId: payload.conversationId ?? conversationId };
@@ -54,23 +50,37 @@ export async function streamChatMessage(input: {
   contextAction?: Record<string, string | undefined>;
   onEvent: (event: ChatStreamEvent) => void;
   signal?: AbortSignal;
+  queueOnFailure?: boolean;
 }): Promise<{ conversationId?: string; assistantMessageId?: number | string; reply: string; diagnostics?: Record<string, unknown>; cardData?: unknown }> {
+  const shouldQueue = input.queueOnFailure !== false;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   Object.assign(headers, await requestHeaders());
-  const response = await fetch(endpoint("/api/chat/stream"), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    signal: input.signal,
-    body: JSON.stringify({
-      message: input.message.trim(),
-      conversationId: input.conversationId,
-      channel: "mobile",
-      contextAction: input.contextAction,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(endpoint("/api/chat/stream"), {
+      method: "POST",
+      credentials: "include",
+      headers,
+      signal: input.signal,
+      body: JSON.stringify({ message: input.message.trim(), conversationId: input.conversationId, channel: "mobile", contextAction: input.contextAction }),
+    });
+  } catch (error) {
+    if (shouldQueue && !(error instanceof DOMException && error.name === "AbortError")) {
+      await enqueueOfflineAction({ kind: "chat", id: createOfflineId("chat"), message: input.message.trim(), conversationId: input.conversationId, contextAction: input.contextAction, createdAt: new Date().toISOString() });
+    }
+    throw error;
+  }
+
   if (!response.ok || !response.body) {
-    await parseJsonResponse(response);
+    try {
+      await parseJsonResponse(response);
+    } catch (error) {
+      const status = (error as Error & { status?: number }).status;
+      if (shouldQueue && (status === undefined || status >= 500)) {
+        await enqueueOfflineAction({ kind: "chat", id: createOfflineId("chat"), message: input.message.trim(), conversationId: input.conversationId, contextAction: input.contextAction, createdAt: new Date().toISOString() });
+      }
+      throw error;
+    }
     throw new Error(`Chat stream failed (${response.status})`);
   }
 
