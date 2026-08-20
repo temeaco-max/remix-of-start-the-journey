@@ -9,14 +9,14 @@ const canonical = [...new Set(getAllCatalogueSkillNames())].sort();
 const extensions = canonical.filter(skill => !core.includes(skill));
 const duplicateCore = getKnownSkills().filter((skill, index, list) => list.indexOf(skill) !== index);
 const duplicateCanonical = canonical.filter((skill, index, list) => list.indexOf(skill) !== index);
-const categoryMismatches: Array<{ skill: string; baseSkill: string; baseCategory: string; declaredCategory: string }> = [];
+const categoryOverrides: Array<{ skill: string; baseSkill: string; baseCategory: string; declaredCategory: string; rationale: string }> = [];
 const missingBehaviour: string[] = [];
 
 for (const skill of canonical) {
   const ext = getSkillExtension(skill);
   if (ext?.baseSkill) {
     const baseCategory = getEconomicCategory(ext.baseSkill) || getSkillCategoryConverged(ext.baseSkill) || 'general';
-    if (baseCategory !== ext.category) categoryMismatches.push({ skill, baseSkill: ext.baseSkill, baseCategory, declaredCategory: ext.category });
+    if (baseCategory !== ext.category) categoryOverrides.push({ skill, baseSkill: ext.baseSkill, baseCategory, declaredCategory: ext.category, rationale: 'Explicit SkillExtension category override is authoritative for the specialized skill; baseSkill supplies capability reuse, not taxonomy ownership.' });
   }
   const behaviour = getConvergedSkillBehaviour(skill);
   if (!behaviour.instructions.length || !behaviour.required || !behaviour.completionEvidence.length || !behaviour.failureModes.length) missingBehaviour.push(skill);
@@ -30,8 +30,8 @@ const report = {
   canonicalMinimumSatisfied: canonical.length >= 241,
   duplicateCore,
   duplicateCanonical,
-  categoryMismatchCount: categoryMismatches.length,
-  categoryMismatches,
+  categoryOverrideCount: categoryOverrides.length,
+  categoryOverrides,
   missingBehaviourCount: missingBehaviour.length,
   missingBehaviour,
   extensions,
@@ -41,4 +41,4 @@ fs.writeFileSync(path.join(process.cwd(), 'data', 'audits', 'canonical-skill-cat
 if (report.coreCount !== 205) throw new Error(`Canonical core skill count changed unexpectedly: expected 205, found ${report.coreCount}`);
 if (report.canonicalCount < 241) throw new Error(`Canonical catalogue regressed below 241 skills: found ${report.canonicalCount}`);
 if (duplicateCore.length || duplicateCanonical.length || missingBehaviour.length) throw new Error(`Canonical catalogue integrity failed: duplicateCore=${duplicateCore.length} duplicateCanonical=${duplicateCanonical.length} missingBehaviour=${missingBehaviour.length}`);
-console.log(JSON.stringify({ core: core.length, extensions: extensions.length, canonical: canonical.length, categoryMismatches: categoryMismatches.length }, null, 2));
+console.log(JSON.stringify({ core: core.length, extensions: extensions.length, canonical: canonical.length, categoryOverrides: categoryOverrides.length }, null, 2));
