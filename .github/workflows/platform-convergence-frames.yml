@@ -35,6 +35,7 @@ jobs:
           npx tsx scripts/test-platform-feature-visual-coverage.ts
           npx tsx scripts/test-economic-dispatch-lifecycle.ts
           npx tsx scripts/test-dispatch-review-lifecycle.ts
+          npx tsx scripts/test-platform-journey-weaver.ts
           npx tsx scripts/test-agent-network-commerce.ts
           npx tsx scripts/test-catalogue-source-convergence.ts
           npx tsx scripts/test-provider-communication-session.ts
