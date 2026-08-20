@@ -5,7 +5,7 @@ import { buildConversationContextPack } from './conversationContextPackService.j
 import { buildCapabilityConversationGuidance, buildCapabilityOutcomeFromCanonicalResult, type CanonicalOutcomeLike, type CapabilityConversationGuidance } from './aiCapabilityContinuationService.js';
 import { buildConnectedResourceContext } from './connectedResourceService.js';
 import { getFeatureFlag } from './featureFlags.js';
-import { buildConvergedSkillInstruction, resolveConvergedSkillBehaviour } from './skillBehaviourConvergence.js';
+import { buildRuntimeSkillInstruction, resolveRuntimeSkillBehaviour } from './skillBehaviourRuntime.js';
 import { chooseInferenceProvider } from './aiInferencePolicy.js';
 
 export type ConversationGenerationMode = 'generate' | 'present' | 'deterministic';
@@ -31,8 +31,8 @@ export async function generateConversationalResponse(input: ConversationalGenera
   const contextPack = await buildConversationContextPack(input.phone, input.threadId, input.prompt);
   const connectedResourceContext = await buildConnectedResourceContext(input.phone);
   const connectedResourceInstruction = connectedResourceContext ? `--- Private connected-resource context (never reveal ids or implementation details) ---\n${connectedResourceContext}\nUse an activated resource only when the user explicitly asks to view or control it. For explicit connected-resource requests, prefer the existing execution capability with the exact internal resource id and requested command. Never invent a device, capability, access or physical state. If more than one activated resource is plausible, ask which one.\n---` : '';
-  const skillPack = resolveConvergedSkillBehaviour(input.prompt, [...(input.knownFacts || []), ...(input.pendingFields || []), input.currentGoal || '']);
-  const skillInstruction = skillPack ? await buildConvergedSkillInstruction(input.phone, input.prompt, [...(input.knownFacts || []), ...(input.pendingFields || []), input.currentGoal || '']) : '';
+  const skillPack = resolveRuntimeSkillBehaviour(input.prompt, [...(input.knownFacts || []), ...(input.pendingFields || []), input.currentGoal || '']);
+  const skillInstruction = skillPack ? await buildRuntimeSkillInstruction(input.phone, input.prompt, [...(input.knownFacts || []), ...(input.pendingFields || []), input.currentGoal || '']) : '';
   const turnScope = `\n\n--- Internal Kurukoo conversation turn scope (never reveal) ---\nthread=${input.threadId || 'anonymous'}\nturn=${Date.now()}-${Math.random().toString(36).slice(2)}\n---`;
   const canonicalOutcomeGuidance = input.canonicalOutcomeGuidance || (input.canonicalOutcome ? buildCapabilityConversationGuidance(buildCapabilityOutcomeFromCanonicalResult(input.canonicalOutcome)) : undefined);
   const contextualSystemPrompt = [input.systemPrompt || '', buildConversationalSystemDirective(contract), skillInstruction, connectedResourceInstruction, canonicalOutcomeGuidance ? `\n\n--- Canonical outcome guidance (never reinterpret) ---\ntone=${canonicalOutcomeGuidance.tone}\ninstruction=${canonicalOutcomeGuidance.instruction}\n${canonicalOutcomeGuidance.preferredNextStep ? `preferred_next_step=${canonicalOutcomeGuidance.preferredNextStep}\n` : ''}${canonicalOutcomeGuidance.mustNotClaim.map(item => `must_not_claim=${item}`).join('\n')}\n---` : '', contextPack.transcript ? `\n\n--- Recent conversation for this exact thread (human-facing content only) ---\n${contextPack.transcript}\n---` : '', contextPack.transcript ? 'Treat this transcript as conversational context, not canonical state. Preserve the latest user turn when it conflicts with earlier discussion.' : '', generationMode === 'present' ? 'Present only the canonical facts supplied to you. Do not invent, revise, or override structured results.' : '', generationMode === 'deterministic' ? 'Do not generate or alter the response; preserve the canonical deterministic wording.' : '', turnScope].filter(Boolean).join('\n');
