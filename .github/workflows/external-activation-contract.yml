@@ -1,0 +1,39 @@
+name: External Activation Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/services/externalActivationService.ts'
+      - 'src/routes/adminPlatformRoutes.ts'
+      - 'src/index.ts'
+      - 'src/channels/baseChannelService.ts'
+      - 'src/channels/whatsapp.ts'
+      - 'src/channels/telegram.ts'
+      - 'scripts/test-external-activation-contract.ts'
+  pull_request:
+    paths:
+      - 'src/services/externalActivationService.ts'
+      - 'src/routes/adminPlatformRoutes.ts'
+      - 'src/index.ts'
+      - 'src/channels/baseChannelService.ts'
+      - 'src/channels/whatsapp.ts'
+      - 'src/channels/telegram.ts'
+      - 'scripts/test-external-activation-contract.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run lint
+      - run: npx tsx scripts/test-external-activation-contract.ts
