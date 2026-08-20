@@ -1,0 +1,40 @@
+import { Router } from 'express';
+import { authenticateAdmin, authenticateUser, type AuthRequest } from '../middleware/auth.js';
+import { registerCatalogueSource, upsertCatalogueProduct, searchCatalogueProducts, type CatalogueSourceType } from '../services/catalogueSourceRegistry.js';
+
+const router = Router();
+
+router.post('/catalogue/sources', authenticateUser, async (req: AuthRequest, res) => {
+  try {
+    const ownerPartyId = String(req.body?.ownerPartyId || req.user?.phone || '').trim();
+    const sourceType = String(req.body?.sourceType || 'provider') as CatalogueSourceType;
+    const source = await registerCatalogueSource({ sourceType, name: req.body?.name, ownerPartyId, providerPhone: String(req.body?.providerPhone || req.user?.phone || ''), sourceUrl: req.body?.sourceUrl, connected: Boolean(req.body?.connected), verified: sourceType === 'affiliate' ? false : Boolean(req.body?.verified) });
+    res.status(201).json({ success: true, source });
+  } catch (error) { res.status(422).json({ success: false, error: error instanceof Error ? error.message : 'Unable to register catalogue source.' }); }
+});
+
+router.post('/catalogue/products', authenticateUser, async (req: AuthRequest, res) => {
+  try {
+    const product = await upsertCatalogueProduct({
+      sourceId: String(req.body?.sourceId || ''), title: req.body?.title, description: req.body?.description,
+      sku: req.body?.sku, category: req.body?.category, location: req.body?.location, price: req.body?.price,
+      currency: req.body?.currency, available: req.body?.available, stock: req.body?.stock, sourceUrl: req.body?.sourceUrl,
+      validUntil: req.body?.validUntil, verified: Boolean(req.body?.verified),
+    });
+    res.status(201).json({ success: true, product });
+  } catch (error) { res.status(422).json({ success: false, error: error instanceof Error ? error.message : 'Unable to register catalogue product.' }); }
+});
+
+router.get('/catalogue/products/search', authenticateUser, async (req: AuthRequest, res) => {
+  try {
+    const products = await searchCatalogueProducts({ query: String(req.query.q || ''), category: req.query.category ? String(req.query.category) : undefined, location: req.query.location ? String(req.query.location) : undefined, limit: Number(req.query.limit || 10), verifiedOnly: req.query.verified !== 'false' });
+    res.json({ success: true, products });
+  } catch (error) { res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unable to search catalogue.' }); }
+});
+
+router.post('/admin/catalogue/affiliate/sources', authenticateAdmin, async (req: AuthRequest, res) => {
+  try { const source = await registerCatalogueSource({ sourceType: 'affiliate', name: req.body?.name, ownerPartyId: req.body?.partnerId, sourceUrl: req.body?.sourceUrl, connected: true, verified: true }); res.status(201).json({ success: true, source }); }
+  catch (error) { res.status(422).json({ success: false, error: error instanceof Error ? error.message : 'Unable to register affiliate catalogue source.' }); }
+});
+
+export default router;
