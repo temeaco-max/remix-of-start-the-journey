@@ -1,0 +1,18 @@
+export type ScannableKurukooContext = {
+  url: string;
+  token: string;
+};
+
+export function parseKurukooQrUrl(value: string): ScannableKurukooContext | null {
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "https:") return null;
+    if (!/(^|\.)kurukoo\.ai$/i.test(url.hostname)) return null;
+    if (url.pathname !== "/start") return null;
+    const token = url.searchParams.get("qr")?.trim();
+    if (!token || token.length > 2048 || !token.includes(".")) return null;
+    return { url: url.toString(), token };
+  } catch {
+    return null;
+  }
+}
