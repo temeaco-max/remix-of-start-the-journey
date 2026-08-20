@@ -1,5 +1,6 @@
 (() => {
   const tooltipTargetSelector = 'button[aria-label],a[aria-label],[role="button"][aria-label]';
+  const legacyIcons = new Map([['‹','chevron-left'],['›','chevron-right'],['＋','plus'],['+','plus'],['×','close'],['✕','close'],['⌄','chevron-down'],['⌃','chevron-up'],['⋯','more']]);
 
   function decorateTooltips(root = document) {
     root.querySelectorAll(tooltipTargetSelector).forEach((el) => {
@@ -8,6 +9,31 @@
       el.setAttribute('data-tooltip', label);
       if (!el.getAttribute('title')) el.setAttribute('title', label);
     });
+  }
+
+  function replaceLegacyIconButton(button) {
+    const raw = button.childNodes.length === 1 ? button.textContent?.trim() : '';
+    if (!raw || !legacyIcons.has(raw) || button.querySelector('svg')) return;
+    const icon = legacyIcons.get(raw);
+    button.textContent = '';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'k-icon');
+    svg.setAttribute('aria-hidden', 'true');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', `/icons/kurukoo-icons.svg#${icon}`);
+    svg.appendChild(use);
+    button.appendChild(svg);
+  }
+
+  function replaceLegacyGlyphs(root = document) {
+    root.querySelectorAll('button,a').forEach((button) => replaceLegacyIconButton(button));
+    const newConversationGlyph = root.querySelector('.workspace-new > span[aria-hidden="true"]');
+    if (newConversationGlyph && !newConversationGlyph.querySelector('svg') && legacyIcons.has(newConversationGlyph.textContent?.trim() || '')) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'k-icon'); svg.setAttribute('aria-hidden', 'true');
+      const use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', '/icons/kurukoo-icons.svg#plus'); svg.appendChild(use);
+      newConversationGlyph.replaceWith(svg);
+    }
   }
 
   function setSidebarState(sidebar, collapsed, storageKey) {
@@ -31,32 +57,26 @@
     const storageKey = 'kurukoo.workspace.sidebar.collapsed';
     const saved = localStorage.getItem(storageKey) === '1';
     setSidebarState(sidebar, saved, storageKey);
-    sidebar.querySelector('#workspace-collapse')?.addEventListener('click', () => {
-      setSidebarState(sidebar, !sidebar.classList.contains('is-collapsed'), storageKey);
-    });
+    const toggle = sidebar.querySelector('#workspace-collapse');
+    if (toggle && toggle.dataset.convergenceBound !== 'true') {
+      toggle.dataset.convergenceBound = 'true';
+      toggle.addEventListener('click', () => setSidebarState(sidebar, !sidebar.classList.contains('is-collapsed'), storageKey));
+    }
   }
 
   function bindMoreMenus() {
-    const toggle = document.getElementById('workspace-more');
-    const items = document.getElementById('workspace-more-items');
-    if (toggle && items) {
+    const pairs = [['workspace-more','workspace-more-items'],['sidebar-more-toggle','sidebar-more-items']];
+    pairs.forEach(([toggleId, itemsId]) => {
+      const toggle = document.getElementById(toggleId); const items = document.getElementById(itemsId);
+      if (!toggle || !items || toggle.dataset.convergenceBound === 'true') return;
+      toggle.dataset.convergenceBound = 'true';
       toggle.addEventListener('click', () => {
         const open = toggle.getAttribute('aria-expanded') === 'true';
         toggle.setAttribute('aria-expanded', String(!open));
         toggle.classList.toggle('is-open', !open);
         items.hidden = open;
       });
-    }
-    const chatMore = document.getElementById('sidebar-more-toggle');
-    const chatItems = document.getElementById('sidebar-more-items');
-    if (chatMore && chatItems) {
-      chatMore.addEventListener('click', () => {
-        const open = chatMore.getAttribute('aria-expanded') === 'true';
-        chatMore.setAttribute('aria-expanded', String(!open));
-        chatItems.hidden = open;
-        chatMore.classList.toggle('is-open', !open);
-      });
-    }
+    });
   }
 
   function addWorkspaceChatDock() {
@@ -91,12 +111,18 @@
   }
 
   function run() {
+    replaceLegacyGlyphs();
     decorateTooltips();
     bindWorkspaceSidebar();
     bindMoreMenus();
     addWorkspaceChatDock();
     bindKeyboardShortcuts();
-    const observer = new MutationObserver(() => decorateTooltips());
+    const observer = new MutationObserver(() => {
+      replaceLegacyGlyphs();
+      decorateTooltips();
+      bindWorkspaceSidebar();
+      bindMoreMenus();
+    });
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
