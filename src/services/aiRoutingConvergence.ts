@@ -42,7 +42,21 @@ function normalizeFastTextSkill(intent: string | undefined): string | null {
 
 function catalogueSkill(text: string): string | null {
   const lower = text.toLowerCase();
-  if (/\b(?:iphone|android|smartphone|mobile phone|cell phone)\b/i.test(lower) && /\b(?:repair|broken|damaged|cracked|screen|fix|not working|won't turn on|not charging)\b/i.test(lower) && getAllConvergedSkillNames().includes('phone_repairer')) return 'phone_repairer';
+  const deviceRules: Array<[RegExp, string]> = [
+    [/\b(?:iphone|android|smartphone|mobile phone|cell phone)\b/i, 'phone_repairer'],
+    [/\b(?:laptop|macbook|mac book|dell|lenovo|hp laptop|notebook)\b/i, 'laptop_repairer'],
+    [/\b(?:tablet|ipad|galaxy tab|surface)\b/i, 'tablet_repairer'],
+    [/\b(?:ps5|ps4|xbox|nintendo switch|playstation)\b/i, 'console_repairer'],
+    [/\b(?:television|smart tv|tv)\b/i, 'tv_repairer'],
+    [/\b(?:apple watch|galaxy watch|garmin|fitbit)\b/i, 'smartwatch_repairer'],
+    [/\b(?:airpods|airpod|galaxy buds|wireless earbuds)\b/i, 'earbuds_repairer'],
+    [/\b(?:bluetooth speaker|bose speaker|jbl speaker|wireless speaker)\b/i, 'speaker_repairer'],
+    [/\b(?:washing machine|fridge|refrigerator|oven|dishwasher)\b/i, 'appliance_repairer'],
+    [/\b(?:bicycle|bike)\b/i, 'bicycle_repairer'],
+    [/\b(?:motorbike|motorcycle)\b/i, 'motorbike_repairer'],
+  ];
+  const repairing = /\b(?:repair|broken|damaged|cracked|screen|fix|not working|won't turn on|not charging|fault)\b/i.test(lower);
+  if (repairing) for (const [pattern, skill] of deviceRules) if (pattern.test(lower) && getAllConvergedSkillNames().includes(skill)) return skill;
   const pack = resolveConvergedSkillBehaviour(text);
   if (pack) return pack.skill;
   for (const name of getAllConvergedSkillNames()) {
@@ -57,12 +71,13 @@ export function classifyAiRoutingSignal(text: string): AiRoutingSignal {
   if (act) return { conversationAct: act, intent: act, skill: null, category: null, confidence: 0.999, source: 'rules' };
   const fast: FastTextResult | null = classifyWithFastText(text);
   const fastSkill = normalizeFastTextSkill(fast?.intent);
-  const skill = fastSkill || catalogueSkill(text);
-  const intent = fast?.intent || skill;
-  const category = skill ? getSkillCategoryConverged(skill) : null;
-  if (fast && skill) return { conversationAct: null, intent: fastSkill ? skill : intent, skill, category, confidence: Math.max(fast.confidence, fastSkill ? 0.93 : 0), source: fast.source === 'rules' ? 'rules' : fastSkill ? 'fasttext' : 'catalogue' };
+  const skill = catalogueSkill(text);
+  const authoritativeSkill = skill || fastSkill;
+  const intent = authoritativeSkill || fast?.intent || null;
+  const category = authoritativeSkill ? getSkillCategoryConverged(authoritativeSkill) : null;
+  if (fast && authoritativeSkill) return { conversationAct: null, intent: authoritativeSkill, skill: authoritativeSkill, category, confidence: Math.max(fast.confidence, 0.93), source: skill ? 'catalogue' : fast.source === 'rules' ? 'rules' : 'fasttext' };
   if (fast) return { conversationAct: null, intent: fast.intent, skill: null, category: null, confidence: fast.confidence, source: fast.source === 'rules' ? 'rules' : 'fasttext' };
-  if (skill) return { conversationAct: null, intent: skill, skill, category, confidence: 0.95, source: 'catalogue' };
+  if (authoritativeSkill) return { conversationAct: null, intent: authoritativeSkill, skill: authoritativeSkill, category, confidence: 0.95, source: 'catalogue' };
   return { conversationAct: null, intent: null, skill: null, category: null, confidence: 0, source: 'none' };
 }
 
