@@ -14,6 +14,7 @@ process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_ALLOW = 'false';
 process.env.KURUKOO_WHATSAPP_LINKED_DEVICE_OWNER_PHONE = '';
 
 const { app } = await import('../src/index.js');
+const { isQrPairingExpiry } = await import('../src/services/whatsappLinkedDeviceService.js');
 const owner = '+2348095550301';
 const stranger = '+2348095550302';
 const tokenFor = (phone: string) => jwt.sign({ phone, role: 'user' }, process.env.JWT_SECRET!, { algorithm: 'HS256' });
@@ -49,7 +50,12 @@ try {
 
   const qrBeforeStart = await fetch(`${baseUrl}/api/whatsapp-linked-device/pairing-qr`, { headers: { authorization: `Bearer ${tokenFor(owner)}` } });
   assert.equal(qrBeforeStart.status, 404, 'Pairing QR must not exist before explicit connector startup');
-  console.log(JSON.stringify({ ok: true, pairingPageStatus: pairingPage.status, disabledStatus: disabled.status, strangerStatus: strangerStatus.status, ownerStatus: ownerStatus.status, connected: false, qrExposedBeforeStart: false }));
+
+  assert.equal(isQrPairingExpiry(408, { message: 'QR refs attempts ended' }, false), true, 'Baileys QR expiry must be classified as pairing expiry');
+  assert.equal(isQrPairingExpiry(408, { message: 'connection lost' }, true), false, 'A registered session must retain reconnect behavior');
+  assert.equal(isQrPairingExpiry(500, { message: 'fatal auth failure' }, false), false, 'Non-QR failures must not be classified as pairing expiry');
+
+  console.log(JSON.stringify({ ok: true, pairingPageStatus: pairingPage.status, disabledStatus: disabled.status, strangerStatus: strangerStatus.status, ownerStatus: ownerStatus.status, connected: false, qrExposedBeforeStart: false, qrExpiryGuard: true }));
 } finally {
   await new Promise<void>(resolve => server.close(() => resolve()));
   fs.rmSync(tempDir, { recursive: true, force: true });
