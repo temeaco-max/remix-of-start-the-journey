@@ -42,6 +42,7 @@ function normalizeFastTextSkill(intent: string | undefined): string | null {
 
 function catalogueSkill(text: string): string | null {
   const lower = text.toLowerCase();
+  if (/\b(?:iphone|android|smartphone|mobile phone|cell phone)\b/i.test(lower) && /\b(?:repair|broken|damaged|cracked|screen|fix|not working|won't turn on|not charging)\b/i.test(lower) && getAllConvergedSkillNames().includes('phone_repairer')) return 'phone_repairer';
   const pack = resolveConvergedSkillBehaviour(text);
   if (pack) return pack.skill;
   for (const name of getAllConvergedSkillNames()) {
