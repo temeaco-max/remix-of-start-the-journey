@@ -1,4 +1,4 @@
-/** Lightweight in-process workers for single-instance launch. */
+/** Lightweight in-process workers for single-instance launch. Shared durable job leases are available for scale transition. */
 import { runOrchestrationPass } from './tradeEngine.js';
 import {
   expireDeferredIntentions,
@@ -18,8 +18,11 @@ import { processExpiredCheckIns } from './safetyService.js';
 import { purgeExpiredData } from '../database.js';
 import { find_worker } from './find-worker.js';
 import { sendFcmPush } from './pushNotifications.js';
+import { drainFcmQueue } from './pushNotificationsCanonical.js';
 import { getEconomicRequest, transitionEconomicRequest } from './skillFlows.js';
 import { ensureTrustScoreSchema, recalculateAllTrustScores } from './trustScore.js';
+import { releaseExpiredDurableJobLeases } from './durableJobQueue.js';
+import { expireProviderVerifications } from './providerVerificationLifecycle.js';
 
 let started = false;
 const timers: NodeJS.Timeout[] = [];
@@ -129,6 +132,9 @@ export function startBackgroundWorkers(): void {
   const memoryMs = process.env.KURUKOO_MEMORY_INTERVAL_SEC ? Math.max(300_000, Number(process.env.KURUKOO_MEMORY_INTERVAL_SEC) * 1000) : 24 * 60 * 60 * 1000;
   const purgeMs = process.env.KURUKOO_PURGE_INTERVAL_SEC ? Math.max(300_000, Number(process.env.KURUKOO_PURGE_INTERVAL_SEC) * 1000) : 24 * 60 * 60 * 1000;
   const trustMs = process.env.KURUKOO_TRUST_SCORE_INTERVAL_SEC ? Math.max(300_000, Number(process.env.KURUKOO_TRUST_SCORE_INTERVAL_SEC) * 1000) : 24 * 60 * 60 * 1000;
+  const fcmMs = process.env.KURUKOO_FCM_DRAIN_INTERVAL_SEC ? Math.max(15_000, Number(process.env.KURUKOO_FCM_DRAIN_INTERVAL_SEC) * 1000) : 30_000;
+  const providerVerificationMs = process.env.KURUKOO_PROVIDER_VERIFICATION_INTERVAL_SEC ? Math.max(300_000, Number(process.env.KURUKOO_PROVIDER_VERIFICATION_INTERVAL_SEC) * 1000) : 24 * 60 * 60 * 1000;
+  const leaseMs = process.env.KURUKOO_JOB_LEASE_SWEEP_INTERVAL_SEC ? Math.max(30_000, Number(process.env.KURUKOO_JOB_LEASE_SWEEP_INTERVAL_SEC) * 1000) : 60_000;
 
   timers.push(setInterval(() => {
     void safe('orchestration', async () => {
@@ -184,6 +190,27 @@ export function startBackgroundWorkers(): void {
     });
   }, trustMs));
 
+  timers.push(setInterval(() => {
+    void safe('fcm-drain', async () => {
+      const result = await drainFcmQueue(50);
+      if (result.sent || result.retried || result.invalidTokens) console.log(`[Worker:fcm] sent=${result.sent} retried=${result.retried} invalidTokens=${result.invalidTokens}`);
+    });
+  }, fcmMs));
+
+  timers.push(setInterval(() => {
+    void safe('provider-verification-expiry', async () => {
+      const expired = await expireProviderVerifications();
+      if (expired) console.log(`[Worker:provider-verification] expired=${expired}`);
+    });
+  }, providerVerificationMs));
+
+  timers.push(setInterval(() => {
+    void safe('durable-job-leases', async () => {
+      const released = await releaseExpiredDurableJobLeases();
+      if (released) console.log(`[Worker:durable-jobs] releasedExpiredLeases=${released}`);
+    });
+  }, leaseMs));
+
   for (const t of timers) t.unref?.();
 
   setTimeout(() => {
@@ -192,9 +219,12 @@ export function startBackgroundWorkers(): void {
     void safe('reminders:boot', async () => { await processDueReminders(100); });
     void safe('safety:boot', async () => { await processExpiredCheckIns(); });
     void safe('trust-score:boot', async () => { await ensureTrustScoreSchema(); await recalculateAllTrustScores(); });
+    void safe('fcm:boot', async () => { await drainFcmQueue(50); });
+    void safe('provider-verification:boot', async () => { await expireProviderVerifications(); });
+    void safe('durable-job-leases:boot', async () => { await releaseExpiredDurableJobLeases(); });
   }, 15_000).unref?.();
 
-  console.log(`[Workers] Started orchestration=${Math.round(orchMs / 1000)}s deferred=${Math.round(deferredMs / 1000)}s reminders=${Math.round(reminderMs / 1000)}s safety=${Math.round(safetyMs / 1000)}s memory=${Math.round(memoryMs / 1000)}s purge=${Math.round(purgeMs / 1000)}s trust=${Math.round(trustMs / 1000)}s`);
+  console.log(`[Workers] Started orchestration=${Math.round(orchMs / 1000)}s deferred=${Math.round(deferredMs / 1000)}s reminders=${Math.round(reminderMs / 1000)}s safety=${Math.round(safetyMs / 1000)}s memory=${Math.round(memoryMs / 1000)}s purge=${Math.round(purgeMs / 1000)}s trust=${Math.round(trustMs / 1000)}s fcm=${Math.round(fcmMs / 1000)}s providerVerification=${Math.round(providerVerificationMs / 1000)}s durableJobLeases=${Math.round(leaseMs / 1000)}s`);
 }
 
 export function stopBackgroundWorkers(): void {
