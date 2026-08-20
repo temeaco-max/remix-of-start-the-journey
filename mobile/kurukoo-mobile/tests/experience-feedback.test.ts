@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const chatSource = readFileSync(resolve(process.cwd(), "app/(tabs)/index.tsx"), "utf8");
-const radarSource = readFileSync(resolve(process.cwd(), "app/(tabs)/discover.tsx"), "utf8");
+const discoverSource = readFileSync(resolve(process.cwd(), "app/(tabs)/discover.tsx"), "utf8");
 
 describe("experience feedback contract", () => {
   it("keeps Chat loading and empty states inside the canonical composer surface", () => {
@@ -15,13 +15,14 @@ describe("experience feedback contract", () => {
     expect(chatSource).toContain("Read by Kurukoo");
   });
 
-  it("keeps Nearby Radar loading and empty states source-truthful", () => {
-    expect(radarSource).toContain('"loading" | "ready" | "empty"');
-    expect(radarSource).toContain("Refreshing Nearby Radar");
-    expect(radarSource).toContain("No source-attributed results here yet");
-    expect(radarSource).toContain("has not substituted an unverified provider");
-    expect(radarSource).toContain("RefreshControl");
-    expect(radarSource).toContain("refreshRadar");
-    expect(radarSource).toContain("Updating source-attributed results");
+  it("keeps Discover loading, sparse and empty states source-truthful", () => {
+    expect(discoverSource).toContain("useState(true)");
+    expect(discoverSource).toContain("Preparing Discover…");
+    expect(discoverSource).toContain('density: "empty"');
+    expect(discoverSource).toContain("Discover is available even when the local network is quiet");
+    expect(discoverSource).toContain("Nothing attributed here yet.");
+    expect(discoverSource).toContain("RefreshControl");
+    expect(discoverSource).toContain("setRefreshing(true)");
+    expect(discoverSource).toContain("do not claim a watch was stored");
   });
 });
