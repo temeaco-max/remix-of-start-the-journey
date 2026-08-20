@@ -32,10 +32,16 @@ const requiredFiles = [
   'src/services/attachmentSecurityBoundary.ts',
   'src/services/artifactService.ts',
   'src/services/catalogueInventoryMatcher.ts',
+  'src/services/discoveryNetwork.ts',
+  'src/services/discoverExperience.ts',
+  'src/services/adManager.ts',
+  'src/services/topicService.ts',
+  'src/routes/discoveryRoutes.ts',
   'src/routes/providerVerificationRoutes.ts',
   'src/routes/healthRoutes.ts',
   'src/routes/publicRoutes.ts',
   'scripts/runtime-smoke.ts',
+  'scripts/test-discover-experience.ts',
 ];
 
 for (const file of requiredFiles) assert.ok(fs.existsSync(path.join(process.cwd(), file)), `missing canonical owner: ${file}`);
@@ -101,9 +107,10 @@ const report = {
   providerVerification: { recordsObserved: providerVerifications.length },
   attachmentSecurity: { readiness: attachmentReadiness, syntheticProbe: attachmentProbe },
   inventory: { emptyQuerySafe: true },
+  discover: { experience: 'for_you+nearby+today+topics+opportunities+explore', persistentActions: ['watch','follow','save'], sponsoredPlacementBoundary: 'adManager.public_discovery', mapIsPresentationLayer: true, sparseAreaRecovery: ['ask_kurukoo','explore_capabilities','topics','watch'] },
   scale,
   canonicalOwners: requiredFiles,
-  externalActivationBoundary: 'live payment, external channels, physical providers, connected devices, durable production infrastructure and deployment evidence remain activation gates; no audit result promotes simulation to production truth',
+  externalRuntimeBoundary: 'provider/device/infrastructure credentials and live deployment evidence are runtime configuration; repository audits never convert simulation into a production claim',
 };
 const outputDir = path.join(process.cwd(), 'data', 'audits');
 fs.mkdirSync(outputDir, { recursive: true });
