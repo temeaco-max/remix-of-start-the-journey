@@ -1,11 +1,13 @@
 import { recordChannelUsage } from '../services/channelUsageService.js';
 import { recordChannelEvidence } from '../services/progressiveTrustService.js';
+import { claimInboundWebhook } from '../services/channelWebhookDeduplication.js';
 
 export interface ChannelWebhookResult {
     status: string;
     response?: string;
     conversationId?: string;
     cardData?: any;
+    duplicate?: boolean;
     [key: string]: any;
 }
 
@@ -20,13 +22,11 @@ export abstract class BaseChannelHandler {
 
     protected async onComplete(_meta: any): Promise<void> {}
 
-    /** Canonical conversation persistence boundary shared by every external channel. */
     protected async appendChatMessage(input: { phone: string; message: string; channel: string }): Promise<{ conversationId: string; reply: string; cardData?: any }> {
         const { processCanonicalChatTurn } = await import('../services/canonicalChatTurnService.js');
         return processCanonicalChatTurn(input);
     }
 
-    /** Canonical intent/routing boundary; channel handlers never own a parallel router. */
     protected async routeIntent(input: { phone: string; message: string; channel: string }): Promise<{ conversationId: string; reply: string; cardData?: any }> {
         return this.appendChatMessage(input);
     }
@@ -37,35 +37,24 @@ export abstract class BaseChannelHandler {
             if (!parsed || !parsed.phone || !parsed.text.trim()) return { status: 'ignored' };
 
             const { phone, text, meta } = parsed;
+            const sourceRef = typeof meta?.messageId === 'string' ? meta.messageId : undefined;
+            const dedupe = await claimInboundWebhook({ channel: this.channelName, sourceRef, phone });
+            if (dedupe.duplicate) return { status: 'success', duplicate: true, response: 'Webhook already processed.' };
+
             await recordChannelEvidence({
                 phone,
                 channel: this.channelName as any,
                 evidenceType: 'verified_webhook_inbound',
                 externalSubject: typeof meta?.externalSubject === 'string' ? meta.externalSubject : undefined,
-                sourceRef: typeof meta?.messageId === 'string' ? meta.messageId : undefined,
+                sourceRef,
                 consented: true,
             });
             await this.onStart(meta);
             const turn = await this.routeIntent({ phone, message: text, channel: this.channelName });
 
-            await recordChannelUsage({
-                phone,
-                channel: this.channelName,
-                direction: 'inbound',
-                units: 1,
-                conversationId: turn.conversationId,
-                metadata: { source: 'canonical-chat-turn' },
-            });
-
+            await recordChannelUsage({ phone, channel: this.channelName, direction: 'inbound', units: 1, conversationId: turn.conversationId, metadata: { source: 'canonical-chat-turn' } });
             await this.sendReply(phone, turn.reply, { ...meta, cardData: turn.cardData, conversationId: turn.conversationId });
-            await recordChannelUsage({
-                phone,
-                channel: this.channelName,
-                direction: 'outbound',
-                units: 1,
-                conversationId: turn.conversationId,
-                metadata: { source: 'canonical-chat-turn', delivery: 'completed' },
-            });
+            await recordChannelUsage({ phone, channel: this.channelName, direction: 'outbound', units: 1, conversationId: turn.conversationId, metadata: { source: 'canonical-chat-turn', delivery: 'completed' } });
             await this.onComplete(meta);
 
             return { status: 'success', response: turn.reply, conversationId: turn.conversationId, cardData: turn.cardData };
