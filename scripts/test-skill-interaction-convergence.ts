@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import { getAllConvergedSkillNames } from '../src/services/skillBehaviourConvergence.js';
+import { buildSkillExecutionContract } from '../src/services/skillExecutionContract.js';
+
+const skills = getAllConvergedSkillNames();
+assert.equal(skills.length, 241, `expected 241 canonical skills, got ${skills.length}`);
+let dispatchCount = 0;
+for (const skill of skills) {
+  const contract = buildSkillExecutionContract(skill);
+  assert.ok(contract.interaction, `${skill}: missing interaction contract`);
+  assert.ok(contract.interaction.matchEvent, `${skill}: missing match event`);
+  assert.ok(contract.interaction.commitmentEvent, `${skill}: missing commitment event`);
+  assert.ok(contract.interaction.completionEvent, `${skill}: missing completion event`);
+  assert.ok(Array.isArray(contract.interaction.postCompletion), `${skill}: missing post-completion actions`);
+  assert.ok(Array.isArray(contract.interaction.revenueEvents), `${skill}: missing revenue events`);
+  if (contract.interaction.pattern === 'dispatch') dispatchCount += 1;
+}
+const transportDispatches = skills.map(buildSkillExecutionContract).filter(c => ['transport-mobility','logistics-freight','errands-delivery'].includes(c.category || '') && c.interaction.pattern === 'dispatch');
+assert.ok(transportDispatches.length > 0, 'expected dispatch-capable transport/logistics skills');
+for (const contract of transportDispatches) {
+  assert.ok(contract.interaction.liveSession?.allowed, `${contract.skill}: dispatch must expose shared live session contract`);
+  assert.deepEqual(contract.interaction.liveSession?.transports, ['chat','webrtc_data','webrtc_audio','webrtc_video','external_channel'], `${contract.skill}: inconsistent transport set`);
+  assert.equal(contract.interaction.liveSession?.providerLocation, true, `${contract.skill}: provider location must be shared`);
+  assert.equal(contract.interaction.liveSession?.userProviderMessaging, true, `${contract.skill}: provider messaging must be shared`);
+  assert.ok(contract.requirements.some(r => r.key === 'vehicle_type') || contract.category !== 'transport-mobility', `${contract.skill}: transport preference must be available through shared contract`);
+}
+console.log(JSON.stringify({ passed:true, canonicalSkills:skills.length, dispatchSkills:dispatchCount, transportDispatches:transportDispatches.length, model:'shared-skill-execution-contract' }, null, 2));

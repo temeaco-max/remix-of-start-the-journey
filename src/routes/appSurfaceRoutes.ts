@@ -3,6 +3,8 @@ import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.j
 import { getExternalIntegrationReadiness } from '../services/externalIntegrationReadiness.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { getClientSurfaces } from '../services/clientSurfaceRegistry.js';
+import { PLATFORM_FEATURE_VISUAL_CONTRACTS } from '../services/platformFeatureVisualRegistry.js';
+import economicDispatchRoutes from './economicDispatchRoutes.js';
 
 const router = express.Router();
 
@@ -41,8 +43,11 @@ function renderApp(req: express.Request, res: express.Response, section = 'agent
   const readiness = getPilotReadiness();
   const integrations = getExternalIntegrationReadiness();
   const enabledIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
-  return res.render('app', { selected, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, enabledIntegrations, integrationCount: integrations.length });
+  return res.render('app', { selected, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, integrations, enabledIntegrations, integrationCount: integrations.length, visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) });
 }
+
+router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) }));
+router.use('/api', economicDispatchRoutes);
 router.get('/app', optionalAuthenticateUser, (req, res) => renderApp(req, res, 'agent'));
 for (const section of surfaceMap.keys()) router.get(`/app/${section}`, optionalAuthenticateUser, (req, res) => renderApp(req, res, section));
 const completedLegacyToCanonical: Record<string, string> = { '/requests': '/app/requests', '/points': '/app/points', '/tasks': '/app/tasks', '/top-up': '/app/top-up', '/subscription': '/app/subscriptions', '/memory': '/app/memory', '/safety': '/app/safety', '/call': '/app/call', '/connect': '/app/connect', '/confirmation': '/app/confirmations' };

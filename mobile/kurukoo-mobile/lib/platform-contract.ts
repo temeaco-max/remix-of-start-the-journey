@@ -1,160 +1,23 @@
-/**
- * Cross-client implementation contract for platform work added after the Expo
- * shell was created. This is deliberately a contract/registry, not a second
- * backend authority: native surfaces call the canonical web/API owners.
- */
-export type MobileCapabilityArea =
-  | "discover"
-  | "chat"
-  | "notifications"
-  | "agents"
-  | "economic_requests"
-  | "memory"
-  | "provider_network"
-  | "ai_runtime"
-  | "safety"
-  | "credentials"
-  | "admin";
-
-export type MobileCapabilityStatus = "implemented" | "client_ready" | "server_only" | "external_required" | "admin_only";
-
-export interface MobileCapabilityContract {
-  id: string;
-  area: MobileCapabilityArea;
-  title: string;
-  status: MobileCapabilityStatus;
-  canonicalOwner: string;
-  nativeRoute: string | null;
-  api: string[];
-  notes: string;
-}
-
-/**
- * Keep this list complete when a new cross-platform backend capability lands.
- * `server_only` means no native UI is required yet; `client_ready` means the
- * native framework exists and the user surface can be built without changing
- * the ownership model; `external_required` means provider/device credentials
- * still decide runtime activation.
- */
+export type MobileCapabilityArea = "discover"|"chat"|"notifications"|"agents"|"economic_requests"|"memory"|"provider_network"|"ai_runtime"|"safety"|"credentials"|"admin"|"commerce"|"catalogue"|"communications";
+export type MobileCapabilityStatus = "implemented"|"client_ready"|"server_only"|"external_required"|"admin_only";
+export interface MobileCapabilityContract { id:string; area:MobileCapabilityArea; title:string; status:MobileCapabilityStatus; canonicalOwner:string; nativeRoute:string|null; api:string[]; notes:string; }
 export const MOBILE_PLATFORM_CONTRACTS: readonly MobileCapabilityContract[] = [
-  {
-    id: "discover",
-    area: "discover",
-    title: "Discover / Daily Picks / Topics / Opportunities",
-    status: "implemented",
-    canonicalOwner: "src/services/discoverExperience.ts",
-    nativeRoute: "/(tabs)/discover",
-    api: ["/api/discover/home", "/api/discover/items/:type/:id/actions", "/api/discover/promotions/:id/impression", "/api/discover/promotions/:id/click"],
-    notes: "Native consumes the same canonical feed and watch/follow/save action boundary as web.",
-  },
-  {
-    id: "chat-routing",
-    area: "chat",
-    title: "Canonical Chat and AI routing",
-    status: "implemented",
-    canonicalOwner: "src/services/canonicalChatTurnService.ts + src/services/fastTextService.ts",
-    nativeRoute: "/(tabs)/chat",
-    api: ["/api/chat/stream", "/api/chat/messages", "/api/chat/feedback"],
-    notes: "Mobile never routes independently; backend remains the sole turn authority.",
-  },
-  {
-    id: "notifications",
-    area: "notifications",
-    title: "Notifications and background continuation",
-    status: "client_ready",
-    canonicalOwner: "src/services/pushNotificationsCanonical.ts + internal_notifications",
-    nativeRoute: "/surface/notifications",
-    api: ["canonical notification endpoints"],
-    notes: "Existing Expo notifications framework can receive Watch, reminder, request and continuation events without a parallel queue.",
-  },
-  {
-    id: "agents",
-    area: "agents",
-    title: "First-class agents and bounded inference budgets",
-    status: "client_ready",
-    canonicalOwner: "src/services/agentRuntime.ts + src/services/agentInferenceBudgetService.ts",
-    nativeRoute: "/surface/agents",
-    api: ["agent canonical routes when enabled"],
-    notes: "Native should expose goal/control/status views only; budget enforcement stays server-side.",
-  },
-  {
-    id: "economic-requests",
-    area: "economic_requests",
-    title: "Economic Request lifecycle",
-    status: "client_ready",
-    canonicalOwner: "src/services/skillFlows.ts + src/services/economicRequest*",
-    nativeRoute: "/surface/requests",
-    api: ["canonical Economic Request routes"],
-    notes: "Payment, quote, escrow and provider evidence remain server-owned; native displays canonical lifecycle state.",
-  },
-  {
-    id: "memory",
-    area: "memory",
-    title: "Owner-scoped Memory",
-    status: "client_ready",
-    canonicalOwner: "src/services/memoryProfile.ts + livingMemoryEngine",
-    nativeRoute: "/surface/memory",
-    api: ["canonical memory routes"],
-    notes: "Native never creates a competing memory store; only owner-authorized views/actions belong here.",
-  },
-  {
-    id: "provider-network",
-    area: "provider_network",
-    title: "Provider discovery, verification and trust",
-    status: "external_required",
-    canonicalOwner: "src/services/discoveryNetwork.ts + providerVerificationLifecycle.ts",
-    nativeRoute: "/surface/provider-network",
-    api: ["/api/discover/*", "canonical provider verification routes"],
-    notes: "UI can be built now; live provider availability/verification still depends on backend evidence and deployment.",
-  },
-  {
-    id: "ai-runtime",
-    area: "ai_runtime",
-    title: "AI provider health, quotas, telemetry and fallback",
-    status: "server_only",
-    canonicalOwner: "src/services/unifiedAiEngine.ts + aiProviderHealthService.ts + aiQuotaService.ts",
-    nativeRoute: null,
-    api: [],
-    notes: "Operator telemetry and provider health belong to protected admin/control surfaces, not the consumer app.",
-  },
-  {
-    id: "safety",
-    area: "safety",
-    title: "Safety, check-ins and escalation boundaries",
-    status: "client_ready",
-    canonicalOwner: "src/services/safetyService.ts",
-    nativeRoute: "/surface/safety",
-    api: ["canonical safety routes"],
-    notes: "Mobile must preserve explicit consent, trusted-contact and evidence boundaries.",
-  },
-  {
-    id: "provider-credentials",
-    area: "credentials",
-    title: "Provider credential lifecycle",
-    status: "admin_only",
-    canonicalOwner: "src/services/providerCredentialService.ts",
-    nativeRoute: null,
-    api: [],
-    notes: "Secrets, rotation, disable/revoke and connection tests are protected operator controls; never expose them to consumer native UI.",
-  },
-  {
-    id: "admin-convergence",
-    area: "admin",
-    title: "AI telemetry, provider health and agent budgets",
-    status: "admin_only",
-    canonicalOwner: "src/routes/adminRoutes.ts",
-    nativeRoute: null,
-    api: [],
-    notes: "Web Admin Control Room remains the canonical operator surface. Native consumer clients must not duplicate it.",
-  },
+{id:"discover",area:"discover",title:"Discover / Daily Picks / Topics / Opportunities",status:"implemented",canonicalOwner:"src/services/discoverExperience.ts + discoverCommercialComposition.ts",nativeRoute:"/(tabs)/discover",api:["/api/discover/home","/api/discover/items/:type/:id/actions","/api/discover/promotions/:id/impression","/api/discover/promotions/:id/click"],notes:"Native consumes the same canonical feed and watch/follow/save action boundary as web."},
+{id:"chat-routing",area:"chat",title:"Canonical Chat and AI routing",status:"implemented",canonicalOwner:"src/services/canonicalChatTurnService.ts + src/services/fastTextService.ts + src/services/aiInferencePolicy.ts",nativeRoute:"/(tabs)/chat",api:["/api/chat/stream","/api/chat/messages","/api/chat/feedback"],notes:"Mobile never routes independently; backend remains the sole turn authority."},
+{id:"notifications",area:"notifications",title:"Notifications and background continuation",status:"client_ready",canonicalOwner:"src/services/pushNotifications.ts + internal_notifications",nativeRoute:"/surface/notifications",api:["canonical notification endpoints"],notes:"Watch, reminder, request, lead, provider and continuation events use the existing queue."},
+{id:"agents",area:"agents",title:"First-class agents and bounded inference budgets",status:"client_ready",canonicalOwner:"src/services/agentRuntime.ts + src/services/agentInferenceBudgetService.ts",nativeRoute:"/surface/agents",api:["agent canonical routes"],notes:"Budget enforcement and authority remain server-side."},
+{id:"economic-requests",area:"economic_requests",title:"Economic Request lifecycle",status:"client_ready",canonicalOwner:"src/services/skillFlows.ts + economicParticipants.ts + skillExecutionContract.ts",nativeRoute:"/(tabs)/requests",api:["/api/economic-requests/*"],notes:"Payment, quote, dispatch, evidence and recovery remain canonical server state."},
+{id:"dispatch-lifecycle",area:"economic_requests",title:"Shared dispatch: broadcast → accept → arrive → complete → review",status:"client_ready",canonicalOwner:"src/services/economicDispatchCoordinator.ts + serviceReviewService.ts",nativeRoute:"/(tabs)/requests",api:["/api/economic-requests/:id/dispatch/broadcast","/api/dispatch-leads/:id/accept","/api/dispatch-leads/:id/arrived","/api/dispatch-leads/:id/completed","/api/economic-requests/:id/review"],notes:"This is shared across transport, deliveries and other dispatch-capable skills; it is not a ride-only engine."},
+{id:"memory",area:"memory",title:"Owner-scoped Memory",status:"client_ready",canonicalOwner:"src/services/memoryProfile.ts + livingMemoryEngine",nativeRoute:"/surface/memory",api:["canonical memory routes"],notes:"Native does not create a competing memory store."},
+{id:"provider-network",area:"provider_network",title:"Provider discovery, verification and trust",status:"external_required",canonicalOwner:"src/services/discoveryNetwork.ts + providerVerificationLifecycle.ts",nativeRoute:"/surface/provider-network",api:["/api/discover/*","canonical provider verification routes"],notes:"Native UI consumes canonical provider/network state."},
+{id:"ai-runtime",area:"ai_runtime",title:"AI provider health, quotas, telemetry and router",status:"server_only",canonicalOwner:"src/services/unifiedAiEngine.ts + aiInferencePolicy.ts + aiProviderHealthService.ts + aiCostTelemetry.ts",nativeRoute:null,api:[],notes:"Operator telemetry belongs in protected Admin surfaces."},
+{id:"safety",area:"safety",title:"Safety, check-ins and escalation boundaries",status:"client_ready",canonicalOwner:"src/services/safetyService.ts",nativeRoute:"/surface/safety",api:["canonical safety routes"],notes:"Preserve explicit consent and trusted-contact boundaries."},
+{id:"provider-credentials",area:"credentials",title:"Provider credential lifecycle",status:"admin_only",canonicalOwner:"src/services/providerCredentialService.ts",nativeRoute:null,api:[],notes:"Never expose secrets to consumer mobile UI."},
+{id:"admin-convergence",area:"admin",title:"AI telemetry, provider health, agent budgets, commerce and provider controls",status:"admin_only",canonicalOwner:"src/routes/adminRoutes.ts + adminPlatformRoutes.ts",nativeRoute:null,api:[],notes:"Web Admin remains the canonical operator surface."},
+{id:"commerce-network",area:"commerce",title:"Points, POS agents, provider lead charges and agent commissions",status:"client_ready",canonicalOwner:"src/services/pointsEngine.ts + src/services/agentNetworkCommerce.ts + src/services/agentCommissionSettlement.ts + src/services/commercialLedger.ts",nativeRoute:"/surface/commerce",api:["/api/agent-network/*","canonical Points routes"],notes:"Top-up settlement requires verified payment evidence and payouts require accrued commission plus external settlement evidence."},
+{id:"catalogue",area:"catalogue",title:"Provider / business / WhatsApp / store / affiliate product inventory",status:"client_ready",canonicalOwner:"src/services/catalogueSourceRegistry.ts + src/services/catalogueInventoryMatcher.ts",nativeRoute:"/surface/catalogue",api:["/api/catalogue/sources","/api/catalogue/products","/api/catalogue/products/search","/api/discover/home","/api/discover/category/:category"],notes:"All product sources converge into one catalogue authority."},
+{id:"provider-communications",area:"communications",title:"WebRTC provider messaging, voice/video, location and optional masked-call fallback",status:"external_required",canonicalOwner:"src/services/providerCommunicationService.ts + webrtcSignalling.ts + trickbridgeTrackingAdapter.ts + twilioVoiceAdapter.ts",nativeRoute:"/surface/provider-communication",api:["/api/provider-communication/*","/api/webrtc/*","/api/voice/*"],notes:"WebRTC is the preferred live transport; external telephony is only a fallback."},
+{id:"explore-capabilities",area:"discover",title:"Explore Kurukoo feature compass",status:"implemented",canonicalOwner:"src/services/platformFeatureVisualRegistry.ts",nativeRoute:"/feature-compass",api:[],notes:"Mobile exposes the complete feature map through a dedicated compass without adding primary navigation tabs."},
 ] as const;
-
-export function getMobileCapability(id: string): MobileCapabilityContract | undefined {
-  return MOBILE_PLATFORM_CONTRACTS.find((item) => item.id === id);
-}
-
-export function assertMobileContractComplete(expectedIds: readonly string[]): void {
-  const known = new Set(MOBILE_PLATFORM_CONTRACTS.map((item) => item.id));
-  const missing = expectedIds.filter((id) => !known.has(id));
-  if (missing.length) throw new Error(`Missing native platform contracts: ${missing.join(", ")}`);
-}
+export function getMobileCapability(id:string):MobileCapabilityContract|undefined{return MOBILE_PLATFORM_CONTRACTS.find(item=>item.id===id);}
+export function assertMobileContractComplete(expectedIds:readonly string[]):void{const known=new Set(MOBILE_PLATFORM_CONTRACTS.map(item=>item.id));const missing=expectedIds.filter(id=>!known.has(id));if(missing.length)throw new Error(`Missing native platform contracts: ${missing.join(", ")}`);}
