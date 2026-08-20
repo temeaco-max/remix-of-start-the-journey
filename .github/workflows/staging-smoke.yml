@@ -1,0 +1,58 @@
+name: Kurukoo staging smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - integration/near-completion-rebased
+
+jobs:
+  staging-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      KURUKOO_BASE_URL: ${{ secrets.KURUKOO_STAGING_BASE_URL }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
+      WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install FastText
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends fasttext
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Static contract
+        run: npm run lint
+      - name: Route regression
+        run: npm run test:routes
+      - name: FastText build and tests
+        run: npm run fasttext:build && npm run fasttext:test
+      - name: Convergence regressions
+        run: |
+          npm run test:agent-inference-budget
+          npm run test:provider-credential-controls
+          npm run test:high-write-persistence
+          npm run test:discovery-network
+          npm run test:scenario-lab
+          npm run test:mobile-platform-contract
+      - name: Live runtime smoke
+        if: ${{ env.KURUKOO_BASE_URL != '' }}
+        run: npx tsx scripts/runtime-smoke.ts
+      - name: External provider activation smoke
+        if: ${{ env.KURUKOO_BASE_URL != '' }}
+        run: npx tsx scripts/test-external-provider-activation.ts
+      - name: Mobile client verify
+        working-directory: mobile/kurukoo-mobile
+        run: pnpm install --frozen-lockfile && pnpm verify:ci
