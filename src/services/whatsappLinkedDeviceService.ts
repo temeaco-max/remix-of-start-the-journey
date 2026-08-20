@@ -106,6 +106,13 @@ async function handleInboundMessage(message: any): Promise<void> {
   catch (error) { updateStatus({ state: 'error', lastError: error instanceof Error ? error.message.slice(0, 160) : 'Inbound linked-device processing failed.' }); }
 }
 
+function isQrPairingExpiry(code: number | undefined, detail: unknown, hadRegisteredSession: boolean): boolean {
+  if (hadRegisteredSession) return false;
+  const message = String((detail as any)?.message || detail || '').toLowerCase();
+  if (message.includes('qr refs attempts ended') || message.includes('qr refs') && message.includes('attempts')) return true;
+  return code === DisconnectReason.connectionLost || code === DisconnectReason.timedOut || code === DisconnectReason.connectionClosed;
+}
+
 export async function startWhatsAppLinkedDevice(): Promise<void> {
   if (!isWhatsAppLinkedDeviceConfigured()) {
     updateStatus({ state: enabled() ? 'error' : 'disabled', lastError: enabled() ? (authStorageSafe() ? 'KURUKOO_WHATSAPP_LINKED_DEVICE_OWNER_PHONE is required.' : 'WhatsApp linked-device auth storage must be persistent and outside /tmp in production.') : 'Linked-device connector is disabled.' });
@@ -119,9 +126,16 @@ export async function startWhatsAppLinkedDevice(): Promise<void> {
     try { fs.chmodSync(directory, 0o700); } catch {}
     const { state, saveCreds } = await useMultiFileAuthState(directory);
     updateStatus({ state: state.creds.registered ? 'connecting' : 'pairing', lastError: undefined });
-    socket = makeWASocket({ auth: state, printQRInTerminal: false, markOnlineOnConnect: false, syncFullHistory: false, browser: ['Kurukoo', 'Chrome', '1.0.0'] });
+    socket = makeWASocket({
+      auth: state,
+      printQRInTerminal: false,
+      markOnlineOnConnect: false,
+      syncFullHistory: false,
+      browser: ['Kurukoo', 'Chrome', '1.0.0'],
+      logger: { level: 'silent' } as any,
+    });
     socket.ev.on('creds.update', saveCreds);
-    socket.ev.on('connection.update', async ({ connection, lastDisconnect, qr, isNewLogin }) => {
+    socket.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
         const qrDataUrl = await QRCode.toDataURL(qr, { margin: 2, width: 320 });
         currentQrText = qr;
@@ -129,19 +143,42 @@ export async function startWhatsAppLinkedDevice(): Promise<void> {
       }
       if (connection === 'open') {
         currentQrText = '';
-        updateStatus({ state: 'connected', connected: true, qrAvailable: false, qrDataUrl: undefined, connectedAccount: socket?.user?.id });
+        updateStatus({ state: 'connected', connected: true, qrAvailable: false, qrDataUrl: undefined, connectedAccount: socket?.user?.id, lastError: undefined });
       }
       if (connection === 'close') {
+        const activeSocket = socket;
         socket = null;
-        const code = (lastDisconnect?.error as any)?.output?.statusCode;
-        if (code === DisconnectReason.loggedOut || isNewLogin === false && code === DisconnectReason.loggedOut) {
+        const detail = (lastDisconnect?.error as any);
+        const code = detail?.output?.statusCode as number | undefined;
+        const hadRegisteredSession = Boolean(state.creds.registered);
+
+        if (isQrPairingExpiry(code, detail, hadRegisteredSession)) {
+          currentQrText = '';
+          updateStatus({
+            state: 'idle',
+            connected: false,
+            qrAvailable: false,
+            qrDataUrl: undefined,
+            lastError: 'QR code pairing attempts timed out. Refresh to pair again.',
+          });
+          activeSocket?.end(undefined);
+          return;
+        }
+
+        if (code === DisconnectReason.loggedOut) {
           currentQrText = '';
           updateStatus({ state: 'logged_out', connected: false, qrAvailable: false, qrDataUrl: undefined, lastError: 'WhatsApp linked-device session logged out; pair again explicitly.' });
           return;
         }
+
         currentQrText = '';
         updateStatus({ state: 'error', connected: false, qrAvailable: false, qrDataUrl: undefined, lastError: 'Linked-device connection closed; retry is scheduled.' });
-        if (!reconnectTimer) reconnectTimer = setTimeout(() => { reconnectTimer = null; void startWhatsAppLinkedDevice(); }, 5000);
+        if (!reconnectTimer && hadRegisteredSession) {
+          reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            void startWhatsAppLinkedDevice();
+          }, 5000);
+        }
       }
     });
     socket.ev.on('messages.upsert', async ({ messages, type }) => {
