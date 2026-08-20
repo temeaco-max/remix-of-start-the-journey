@@ -106,10 +106,10 @@ async function handleInboundMessage(message: any): Promise<void> {
   catch (error) { updateStatus({ state: 'error', lastError: error instanceof Error ? error.message.slice(0, 160) : 'Inbound linked-device processing failed.' }); }
 }
 
-function isQrPairingExpiry(code: number | undefined, detail: unknown, hadRegisteredSession: boolean): boolean {
+export function isQrPairingExpiry(code: number | undefined, detail: unknown, hadRegisteredSession: boolean): boolean {
   if (hadRegisteredSession) return false;
   const message = String((detail as any)?.message || detail || '').toLowerCase();
-  if (message.includes('qr refs attempts ended') || message.includes('qr refs') && message.includes('attempts')) return true;
+  if (message.includes('qr refs attempts ended') || (message.includes('qr refs') && message.includes('attempts'))) return true;
   return code === DisconnectReason.connectionLost || code === DisconnectReason.timedOut || code === DisconnectReason.connectionClosed;
 }
 
@@ -148,7 +148,7 @@ export async function startWhatsAppLinkedDevice(): Promise<void> {
       if (connection === 'close') {
         const activeSocket = socket;
         socket = null;
-        const detail = (lastDisconnect?.error as any);
+        const detail = lastDisconnect?.error as any;
         const code = detail?.output?.statusCode as number | undefined;
         const hadRegisteredSession = Boolean(state.creds.registered);
 
@@ -206,4 +206,4 @@ export async function stopWhatsAppLinkedDevice(logout = false): Promise<void> {
   updateStatus({ state: logout ? 'logged_out' : enabled() ? 'idle' : 'disabled', connected: false, qrAvailable: false, qrDataUrl: undefined });
 }
 
-export const __linkedDeviceInternal = { textFromMessage, phoneFromJid, statusBase };
+export const __linkedDeviceInternal = { textFromMessage, phoneFromJid, statusBase, isQrPairingExpiry };
