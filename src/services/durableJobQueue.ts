@@ -75,7 +75,7 @@ export async function claimDurableJob(workerId: string, kinds?: string[], leaseM
   const safeLease = Math.max(5_000, Math.min(15 * 60_000, Math.floor(Number(leaseMs) || 120_000)));
   const kindList = (kinds || []).map(String).map(value => value.trim()).filter(Boolean).slice(0, 20);
   const whereKinds = kindList.length ? ` AND kind IN (${kindList.map(() => '?').join(',')})` : '';
-  const params: unknown[] = [now, now, now, ...kindList];
+  const params: unknown[] = [now, now, ...kindList];
   const row = db.exec(`SELECT id FROM durable_jobs WHERE status='queued' AND available_at <= ? AND (locked_until IS NULL OR locked_until <= ?)${whereKinds} ORDER BY available_at ASC, created_at ASC LIMIT 1`, params)[0]?.values?.[0]?.[0];
   if (!row) return null;
   const id = String(row);
@@ -88,7 +88,8 @@ export async function claimDurableJob(workerId: string, kinds?: string[], leaseM
 }
 
 function mapRow(row: unknown[], info: unknown[][]): DurableJob {
-  const names = new Map(info.map((item) => [String(item[1]), item.indexOf(item[1])]));
+  const names = new Map<string, number>();
+  for (let index = 0; index < info.length; index += 1) names.set(String(info[index][1]), index);
   const get = (name: string) => row[names.get(name) ?? -1];
   return {
     id: String(get('id')),
@@ -126,7 +127,7 @@ export async function failDurableJob(job: Pick<DurableJob, 'id' | 'attempts' | '
   const message = String(error instanceof Error ? error.message : error).slice(0, 1000) || 'job failed';
   const terminal = job.attempts >= job.maxAttempts;
   const status: DurableJobStatus = terminal ? 'dead_letter' : 'queued';
-  db.run(`UPDATE durable_jobs SET status=?, available_at=?, locked_until=NULL, locked_by=NULL, last_error=?, updated_at=CURRENT_TIMESTAMP, completed_at=CASE WHEN ?='dead_letter' THEN COALESCE(completed_at, CURRENT_TIMESTAMP) ELSE completed_at END WHERE id=? AND locked_by=? AND status='running'`, [status, terminal ? new Date().toISOString() : isoAfterMs(retryDelayMs ?? Math.min(60 * 60_000, 5_000 * (2 ** Math.min(job.attempts - 1, 7)))), message, status, job.id, workerId]);
+  db.run(`UPDATE durable_jobs SET status=?, available_at=?, locked_until=NULL, locked_by=NULL, last_error=?, updated_at=CURRENT_TIMESTAMP, completed_at=CASE WHEN ?='dead_letter' THEN COALESCE(completed_at, CURRENT_TIMESTAMP) ELSE completed_at END WHERE id=? AND locked_by=? AND status='running'`, [status, terminal ? new Date().toISOString() : isoAfterMs(retryDelayMs ?? Math.min(60 * 60_000, 5_000 * (2 ** Math.min(Math.max(job.attempts - 1, 0), 7)))), message, status, job.id, workerId]);
   if (db.getRowsModified() !== 1) return 'failed';
   saveDb();
   return status;
@@ -144,7 +145,7 @@ export async function cancelDurableJob(jobId: string): Promise<boolean> {
 export async function releaseExpiredDurableJobLeases(): Promise<number> {
   await ensureSchema();
   const db = await getDb();
-  db.run(`UPDATE durable_jobs SET status='queued', locked_until=NULL, locked_by=NULL, available_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE status='running' AND locked_until IS NOT NULL AND locked_until <= CURRENT_TIMESTAMP`);
+  db.run(`UPDATE durable_jobs SET status='queued', locked_until=NULL, locked_by=NULL, available_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE status='running' AND locked_until IS NOT NULL AND julianday(locked_until) <= julianday('now')`);
   const updated = db.getRowsModified();
   if (updated) saveDb();
   return updated;
