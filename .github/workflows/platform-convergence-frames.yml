@@ -1,0 +1,50 @@
+name: Kurukoo platform convergence frames
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/platform-convergence-frames
+      - main
+
+jobs:
+  convergence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - name: Install FastText
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends fasttext
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run test:routes
+      - run: npm run fasttext:test
+      - name: Platform frame contracts
+        run: |
+          npx tsx scripts/test-platform-convergence-frames.ts
+          npx tsx scripts/test-ai-router-free-first.ts
+          npx tsx scripts/test-skill-interaction-convergence.ts
+          npx tsx scripts/test-platform-feature-visual-coverage.ts
+          npx tsx scripts/test-economic-dispatch-lifecycle.ts
+          npx tsx scripts/test-agent-network-commerce.ts
+          npx tsx scripts/test-catalogue-source-convergence.ts
+          npx tsx scripts/test-provider-communication-session.ts
+          npx tsx scripts/test-catalogue-inventory-matcher.ts
+          npx tsx scripts/test-discover-category-commerce.ts
+          npx tsx scripts/test-order-lead-points.ts
+          npx tsx scripts/test-economic-lifecycle.ts
+      - name: Mobile contract and platform exports
+        working-directory: mobile/kurukoo-mobile
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test:platform-contract
+          npx expo export --platform android --output-dir .expo/ci-android >/dev/null
+          npx expo export --platform ios --output-dir .expo/ci-ios >/dev/null
