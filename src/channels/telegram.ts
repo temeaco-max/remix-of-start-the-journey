@@ -4,9 +4,9 @@ class TelegramHandler extends BaseChannelHandler {
     get channelName(): string { return 'telegram'; }
 
     protected async sendTelegramChatAction(chatId: number | string, action = 'typing'): Promise<void> {
+        const token = process.env.TELEGRAM_BOT_TOKEN;
+        if (!token) return;
         try {
-            const token = process.env.TELEGRAM_BOT_TOKEN;
-            if (!token) return;
             await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, action })
             });
@@ -29,25 +29,31 @@ class TelegramHandler extends BaseChannelHandler {
         const userId = message.from?.id;
         const phone = userId ? `tg_${userId}` : (chatId ? `tg_${chatId}` : '');
         if (!phone) return null;
-        return {
-            phone,
-            text: message.text,
-            meta: {
-                chatId,
-                externalSubject: userId ? `telegram:${userId}` : chatId ? `telegram-chat:${chatId}` : undefined,
-                messageId: message.message_id ? String(message.message_id) : undefined,
-            },
-        };
+        return { phone, text: message.text, meta: { chatId, externalSubject: userId ? `telegram:${userId}` : chatId ? `telegram-chat:${chatId}` : undefined, messageId: message.message_id ? String(message.message_id) : undefined } };
     }
 
     protected async sendReply(_phone: string, reply: string, meta?: any): Promise<void> {
         const chatId = meta?.chatId;
         const token = process.env.TELEGRAM_BOT_TOKEN;
-        if (!token || !chatId) return;
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: reply, parse_mode: 'Markdown' })
-        });
+        if (!token || !chatId) throw new Error('Telegram outbound delivery is not configured.');
+        let lastError = 'telegram_delivery_failed';
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: chatId, text: reply, parse_mode: 'Markdown' })
+                });
+                const body = await response.json().catch(() => ({})) as any;
+                if (response.ok && body?.ok !== false) return;
+                lastError = String(body?.description || `telegram_http_${response.status}`);
+                if (response.status < 500 && response.status !== 429) break;
+            } catch (error) {
+                lastError = error instanceof Error ? error.message : lastError;
+            }
+            await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
+        }
+        throw new Error(lastError);
     }
 }
 
