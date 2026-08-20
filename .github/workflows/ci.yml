@@ -43,6 +43,10 @@ jobs:
         run: npx tsx scripts/test-unknown-intent-review.ts
       - name: AI runtime controls contract
         run: npx tsx scripts/test-ai-runtime-controls.ts
+      - name: Bin-day end-to-end contract
+        run: npx tsx scripts/test-bin-day-outcome.ts
+      - name: Catalogue inventory matcher contract
+        run: npx tsx scripts/test-catalogue-inventory-matcher.ts
       - name: Broad route contracts
         run: npm run test:routes
       - name: Upload route-suite diagnostic log
