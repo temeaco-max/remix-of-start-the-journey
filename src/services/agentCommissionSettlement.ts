@@ -1,0 +1,34 @@
+import crypto from 'node:crypto';
+import { getDb, saveDb } from '../database.js';
+import { recordCommercialEvent } from './commercialLedger.js';
+import { getNetworkAgentByPhone } from './agentNetworkCommerce.js';
+
+export type AgentPayoutRail = 'opay' | 'moniepoint' | 'manual';
+export type AgentPayoutStatus = 'requested' | 'pending_provider' | 'settled' | 'failed' | 'cancelled';
+
+export interface AgentPayoutRequest { id:string; agentId:string; amountMinor:number; currency:string; rail:AgentPayoutRail; destinationRef:string; status:AgentPayoutStatus; externalReference?:string; createdAt:string; updatedAt:string; }
+
+async function ensureSchema(){
+ const db=await getDb();
+ db.run(`CREATE TABLE IF NOT EXISTS agent_commission_payouts (id TEXT PRIMARY KEY,agent_id TEXT NOT NULL,amount_minor INTEGER NOT NULL,currency TEXT NOT NULL,rail TEXT NOT NULL,destination_ref TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'requested',external_reference TEXT,idempotency_key TEXT NOT NULL UNIQUE,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+ db.run(`CREATE INDEX IF NOT EXISTS idx_agent_commission_payouts_agent ON agent_commission_payouts(agent_id,created_at DESC)`); saveDb();
+}
+
+export async function requestAgentCommissionPayout(input:{agentId:string;amountMinor:number;currency:string;rail:AgentPayoutRail;destinationRef:string;idempotencyKey?:string}):Promise<AgentPayoutRequest>{
+ await ensureSchema(); const amountMinor=Number(input.amountMinor); if(!Number.isSafeInteger(amountMinor)||amountMinor<=0) throw new Error('A positive payout amount is required.');
+ const agentPhone=String((await import('./agentNetworkCommerce.js')).getNetworkAgentByPhone ? '' : '');
+ const db=await getDb(); const existing=db.exec('SELECT * FROM agent_commission_payouts WHERE idempotency_key=? LIMIT 1',[String(input.idempotencyKey||'')]); if(existing[0]?.values?.length)return rowToPayout(existing[0].columns,existing[0].values[0]);
+ const agentRows=db.exec('SELECT * FROM kurukoo_network_agents WHERE id=? LIMIT 1',[String(input.agentId)]); if(!agentRows[0]?.values?.length)throw new Error('Network agent not found.');
+ const obj=Object.fromEntries(agentRows[0].columns.map((c:string,i:number)=>[c,agentRows[0].values[0][i]])); if(String(obj.status)!=='active')throw new Error('Network agent is not active.');
+ const rail=input.rail; if(!['opay','moniepoint','manual'].includes(rail))throw new Error('Unsupported agent payout rail.'); const destination=String(input.destinationRef||'').trim(); if(!destination)throw new Error('A payout destination reference is required.');
+ const idempotencyKey=String(input.idempotencyKey||`agent_payout:${input.agentId}:${amountMinor}:${crypto.randomUUID()}`); const id=`agp_${crypto.randomUUID()}`;
+ db.run(`INSERT INTO agent_commission_payouts (id,agent_id,amount_minor,currency,rail,destination_ref,status,idempotency_key) VALUES (?,?,?,?,?,?,?,?)`,[id,input.agentId,amountMinor,String(input.currency||'NGN').toUpperCase(),rail,destination,'requested',idempotencyKey]);
+ await recordCommercialEvent({eventType:'agent_commission_payout',direction:'outbound',status:'pending',currency:String(input.currency||'NGN').toUpperCase(),grossMinor:amountMinor,platformFeeMinor:0,providerAmountMinor:amountMinor,payer:'KURUKOO',payee:destination,representedParty:String(obj.phone),agentId:input.agentId,idempotencyKey,metadata:{rail,destinationRef:destination,payoutId:id}});
+ saveDb(); return {id,agentId:input.agentId,amountMinor,currency:String(input.currency||'NGN').toUpperCase(),rail,destinationRef:destination,status:'requested',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+}
+
+export async function settleAgentCommissionPayout(id:string,externalReference:string):Promise<AgentPayoutRequest>{ await ensureSchema(); const db=await getDb(); const rows=db.exec('SELECT * FROM agent_commission_payouts WHERE id=? LIMIT 1',[String(id)]); if(!rows[0]?.values?.length)throw new Error('Agent payout not found.'); const current=rowToPayout(rows[0].columns,rows[0].values[0]); if(current.status==='settled')return current; if(!externalReference.trim())throw new Error('Settlement evidence reference is required.'); db.run(`UPDATE agent_commission_payouts SET status='settled',external_reference=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,[externalReference.slice(0,220),id]); await recordCommercialEvent({eventType:'agent_commission_payout',direction:'outbound',status:'settled',currency:current.currency,grossMinor:current.amountMinor,platformFeeMinor:0,providerAmountMinor:current.amountMinor,payer:'KURUKOO',payee:current.destinationRef,representedParty:current.agentId,agentId:current.agentId,externalReference,idempotencyKey:`${id}:settled`,metadata:{rail:current.rail,payoutId:id}}); saveDb(); return {...current,status:'settled',externalReference,updatedAt:new Date().toISOString()}; }
+
+export function getAgentPayoutReadiness(){ return { providerAdapters:{ opay:Boolean(process.env.KURUKOO_OPAY_PAYOUT_ENABLED==='true'), moniepoint:Boolean(process.env.KURUKOO_MONIEPOINT_PAYOUT_ENABLED==='true') }, settlementEvidenceRequired:true, canonicalLedger:'commercialLedger', activation:'external_provider_required' as const }; }
+
+function rowToPayout(columns:string[],row:unknown[]):AgentPayoutRequest{const o=Object.fromEntries(columns.map((c,i)=>[c,row[i]]));return{id:String(o.id),agentId:String(o.agent_id),amountMinor:Number(o.amount_minor),currency:String(o.currency),rail:String(o.rail) as AgentPayoutRail,destinationRef:String(o.destination_ref),status:String(o.status) as AgentPayoutStatus,externalReference:o.external_reference?String(o.external_reference):undefined,createdAt:String(o.created_at),updatedAt:String(o.updated_at)};}
