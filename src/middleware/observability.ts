@@ -6,6 +6,9 @@ export function observabilityMiddleware(req: Request, res: Response, next: NextF
   const started = Date.now();
   (req as Request & { kurukooRequestId?: string }).kurukooRequestId = requestId;
   res.setHeader('x-request-id', requestId);
+  if (String(req.header('accept') || '').includes('text/html')) {
+    res.setHeader('Link', '</css/kurukoo-os-final.css?v=1>; rel="stylesheet"');
+  }
   beginRequest();
   res.on('finish', () => {
     const durationMs = Date.now() - started;
