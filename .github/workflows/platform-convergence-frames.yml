@@ -41,6 +41,10 @@ jobs:
           npx tsx scripts/test-discover-category-commerce.ts
           npx tsx scripts/test-order-lead-points.ts
           npx tsx scripts/test-economic-lifecycle.ts
-      - name: Mobile contract
+      - name: Mobile contract and platform exports
         working-directory: mobile/kurukoo-mobile
-        run: pnpm install --frozen-lockfile && pnpm test:platform-contract && npx expo export --platform android --output-dir .expo/ci-android >/dev/null
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test:platform-contract
+          npx expo export --platform android --output-dir .expo/ci-android >/dev/null
+          npx expo export --platform ios --output-dir .expo/ci-ios >/dev/null
