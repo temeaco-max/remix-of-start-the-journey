@@ -33,6 +33,8 @@ jobs:
       - run: npm run build
       - name: Run platform convergence gate
         run: npx tsx scripts/audit-platform-convergence.ts
+      - name: Run platform runtime foundation contract
+        run: npx tsx scripts/test-platform-foundations.ts
       - name: Run broad route contracts
         run: npm run test:routes
       - name: Upload route-suite diagnostic log
@@ -42,35 +44,37 @@ jobs:
           name: route-suite-log
           path: .artifacts/test-route-sequence.log
           if-no-files-found: ignore
-      - name: Test Hugging Face Jobs training backend contract
+      - name: Hugging Face Jobs training backend contract
         run: npm run test:huggingface-jobs-backend
-      - name: Test hosted provider routing and retired Hugging Face serverless boundary
+      - name: Hosted provider routing and retired Hugging Face serverless boundary
         run: npm run test:hosted-provider-resolution && npm run test:hosted-provider-failover && npm run test:smollm2-serverless-deprecation
-      - name: Test progressive identity contract
+      - name: Progressive identity contract
         run: npx tsx scripts/test-progressive-identity.ts
-      - name: Test food request identity and context resume
+      - name: Food request identity and context resume
         run: npm run test:food-auth-context-resume
-      - name: Test artifact storage ownership and durability contract
+      - name: Artifact storage ownership and durability contract
         run: npm run test:artifact-storage
-      - name: Test Google Sheets source ownership and lifecycle contract
+      - name: Google Sheets source ownership and lifecycle contract
         run: npm run test:google-sheets-source
-      - name: Test Notion source ownership and lifecycle contract
+      - name: Notion source ownership and lifecycle contract
         run: npm run test:notion-source
-      - name: Test Microsoft Graph source ownership and lifecycle contract
+      - name: Microsoft Graph source ownership and lifecycle contract
         run: npm run test:microsoft-graph-source
-      - name: Test canonical external integration readiness contract
+      - name: Canonical external integration readiness contract
         run: npm run test:external-integration-readiness
-      - name: Test Mistral Voxtral TTS contract
+      - name: Mistral Voxtral TTS contract
         run: npm run test:mistral-tts
-      - name: Test remote MCP app contract
+      - name: Remote MCP app contract
         run: npx tsx scripts/test-mcp-app.ts
-      - name: Test Pulse privacy contract
+      - name: Pulse privacy contract
         run: npx tsx scripts/test-pulse-privacy.ts
-      - name: Audit database schema drift
+      - name: Attachment security contract
+        run: npx tsx scripts/test-attachment-boundary.ts
+      - name: Database schema drift audit
         run: node scripts/audit-database-schema.mjs
-      - name: Validate production preflight parser
+      - name: Production preflight parser
         run: NODE_ENV=development node scripts/production-preflight.mjs
-      - name: Validate infrastructure manifests
+      - name: Infrastructure manifests
         run: cp .env.example .env && POSTGRES_PASSWORD=ci-only-dont-use docker compose -f docker-compose.production.yml config --quiet
       - name: Build production container
         run: docker build --file Dockerfile --tag kurukoo:ci .
