@@ -33,7 +33,7 @@ try {
 
   const activation = await activateConfiguredExternalProviders();
   const names = activation.results.map(result => result.provider).sort();
-  assert.deepEqual(names, ['email', 'mistral', 'stripe', 'telegram', 'whatsapp']);
+  assert.deepEqual(names, ['email', 'fcm', 'mistral', 'stripe', 'telegram', 'whatsapp']);
   assert.equal(activation.results.every(result => result.configured && result.activated && result.verified), true);
   const mistral = activation.results.find(result => result.provider === 'mistral');
   assert.ok(mistral?.detail.includes('Mistral'));
