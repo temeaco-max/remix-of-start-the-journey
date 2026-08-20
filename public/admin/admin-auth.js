@@ -30,6 +30,7 @@
 
   const inject = () => {
     document.documentElement.dataset.adminShell = 'true';
+    document.body.classList.add('admin-os');
     if (!document.getElementById('kurukoo-admin-convergence-css')) {
       const link = document.createElement('link');
       link.id = 'kurukoo-admin-convergence-css';
