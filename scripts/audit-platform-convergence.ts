@@ -30,6 +30,7 @@ const requiredFiles = [
   'src/services/providerVerificationLifecycle.ts',
   'src/services/attachmentSecurityBoundary.ts',
   'src/services/artifactService.ts',
+  'src/routes/providerVerificationRoutes.ts',
   'src/routes/healthRoutes.ts',
   'src/routes/publicRoutes.ts',
   'scripts/runtime-smoke.ts',
