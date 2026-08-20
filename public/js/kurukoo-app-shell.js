@@ -9,6 +9,7 @@
   ];
 
   const current = (href) => path === href || (href !== '/app/agent' && path.startsWith(`${href}/`));
+  const safe = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
   const createTabBar = () => {
     if (document.querySelector('.k-mobile-tabbar')) return;
@@ -24,6 +25,47 @@
       nav.appendChild(link);
     }
     document.body.appendChild(nav);
+  };
+
+  const createFeatureCompass = async () => {
+    if (!document.body.classList.contains('workspace-page') || document.querySelector('.k-feature-compass')) return;
+    try {
+      const response = await fetch('/api/platform/feature-visuals', { headers: { Accept: 'application/json' } });
+      if (!response.ok) return;
+      const payload = await response.json();
+      const features = Array.isArray(payload.features) ? payload.features : [];
+      if (!features.length) return;
+      const launcher = document.createElement('button');
+      launcher.type = 'button';
+      launcher.className = 'k-feature-compass-launcher';
+      launcher.setAttribute('aria-label', 'Explore all Kurukoo features');
+      launcher.title = 'Explore all Kurukoo features';
+      launcher.innerHTML = '<span aria-hidden="true">✦</span><span>All Kurukoo</span>';
+
+      const panel = document.createElement('aside');
+      panel.className = 'k-feature-compass';
+      panel.hidden = true;
+      panel.setAttribute('aria-label', 'Kurukoo feature compass');
+      panel.innerHTML = `<div class="k-feature-compass-header"><div><strong>Explore Kurukoo</strong><small>Every capability has a visible entry point.</small></div><button type="button" class="k-feature-compass-close" aria-label="Close feature compass">×</button></div><div class="k-feature-compass-grid"></div>`;
+      const grid = panel.querySelector('.k-feature-compass-grid');
+      for (const feature of features) {
+        const href = String(feature.webSurface || '/chat');
+        const item = document.createElement('a');
+        item.className = `k-feature-compass-item${feature.representations?.includes('primary_nav') ? ' primary' : ''}`;
+        item.href = href;
+        item.title = String(feature.tooltip || feature.label || 'Kurukoo feature');
+        item.setAttribute('aria-label', `${feature.label}: ${feature.tooltip || 'Open feature'}`);
+        item.innerHTML = `<span class="k-feature-compass-icon" aria-hidden="true">${safe(feature.icon).slice(0, 2).toUpperCase()}</span><span><strong>${safe(feature.label)}</strong><small>${safe(feature.tooltip)}</small></span>`;
+        grid.appendChild(item);
+      }
+      const close = panel.querySelector('.k-feature-compass-close');
+      const toggle = (open) => { panel.hidden = !open; document.body.classList.toggle('k-feature-compass-open', open); if (open) close?.focus(); };
+      launcher.addEventListener('click', () => toggle(panel.hidden));
+      close?.addEventListener('click', () => toggle(false));
+      document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !panel.hidden) toggle(false); });
+      document.body.appendChild(launcher);
+      document.body.appendChild(panel);
+    } catch {}
   };
 
   const wireExploreSearch = () => {
@@ -61,7 +103,10 @@
   const boot = () => {
     loadFoundation();
     loadWebCompletion();
-    if (document.body.classList.contains('workspace-page')) createTabBar();
+    if (document.body.classList.contains('workspace-page')) {
+      createTabBar();
+      void createFeatureCompass();
+    }
     wireExploreSearch();
   };
 
