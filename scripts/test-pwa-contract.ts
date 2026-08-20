@@ -7,6 +7,7 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, 'public', 'manifest.
 const serviceWorker = fs.readFileSync(path.join(root, 'public', 'sw.js'), 'utf8');
 const pwaClient = fs.readFileSync(path.join(root, 'public', 'js', 'kurukoo-pwa.js'), 'utf8');
 const offline = fs.readFileSync(path.join(root, 'public', 'offline.html'), 'utf8');
+const offlineCss = fs.readFileSync(path.join(root, 'public', 'css', 'offline.css'), 'utf8');
 
 assert.equal(manifest.id, '/chat/');
 assert.equal(manifest.start_url, '/chat/');
@@ -44,5 +45,12 @@ assert.match(pwaClient, /Checking Kurukoo connection/);
 assert.match(pwaClient, /Kurukoo is ready to continue your conversation/);
 assert.match(pwaClient, /tone: 'loading'/);
 assert.match(offline, /id="retry-button"/);
+assert.match(offline, /k-screen-set-platform/);
+assert.match(offline, /offline-boundary/);
+assert.match(offline, /Still available/);
+assert.match(offline, /Paused/);
+assert.match(offlineCss, /offline-boundary/);
+assert.match(offlineCss, /focus-visible/);
+assert.match(offlineCss, /prefers-reduced-motion/);
 
-console.log('PWA contract passed: standalone Chat launch, service-worker lifecycle, offline fallback, safe manual retry of saved chat intents, dynamic route exclusions, and canonical Chat asset freshness are present.');
+console.log('PWA contract passed: standalone Chat launch, service-worker lifecycle, offline fallback, truthful platform-state composition, safe manual retry of saved chat intents, dynamic route exclusions, and canonical Chat asset freshness are present.');
