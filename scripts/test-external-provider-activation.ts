@@ -17,11 +17,25 @@ for (const item of result.results) {
   if (item.activated) assert.equal(item.verified, true, `${item.provider}: activated implies verified`);
 }
 
-const liveConfigured = process.env.MISTRAL_API_KEY || process.env.STRIPE_SECRET_KEY || process.env.TELEGRAM_BOT_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN || process.env.RESEND_API_KEY || process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+const liveConfigured = Boolean(
+  process.env.MISTRAL_API_KEY ||
+  process.env.GEMINI_API_KEY ||
+  process.env.GROQ_API_KEY ||
+  process.env.OPENROUTER_API_KEY ||
+  process.env.STRIPE_SECRET_KEY ||
+  process.env.TELEGRAM_BOT_TOKEN ||
+  process.env.WHATSAPP_ACCESS_TOKEN ||
+  process.env.WHATSAPP_TOKEN ||
+  process.env.RESEND_API_KEY ||
+  process.env.FIREBASE_SERVICE_ACCOUNT_JSON ||
+  process.env.GOOGLE_APPLICATION_CREDENTIALS,
+);
+
+const configuredFailures = result.results.filter((item) => item.configured && !item.verified);
 if (!liveConfigured) {
+  assert.equal(configuredFailures.length, 0, 'unexpected configured-provider failure without credential signals');
   console.log(JSON.stringify({ status: 'contract-only', message: 'No live provider credentials supplied; shape and truth-boundary checks passed.', results: result.results }, null, 2));
 } else {
   console.log(JSON.stringify({ status: 'live-probe', generatedAt: result.generatedAt, results: result.results }, null, 2));
-  const hardFailures = result.results.filter((item) => item.configured && !item.verified && !['whatsapp', 'telegram'].includes(item.provider));
-  assert.equal(hardFailures.length, 0, `configured provider verification failures: ${hardFailures.map((item) => `${item.provider}: ${item.detail}`).join('; ')}`);
+  assert.equal(configuredFailures.length, 0, `configured provider verification failures: ${configuredFailures.map((item) => `${item.provider}: ${item.detail}`).join('; ')}`);
 }
