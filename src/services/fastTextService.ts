@@ -3,23 +3,35 @@ import os from 'os';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { getDb } from '../database.js';
+import { getAllConvergedSkillNames } from './skillBehaviourConvergence.js';
 
-export interface FastTextResult { intent: string; confidence: number; source?: 'fasttext' | 'rules' | 'fallback'; }
+export interface FastTextResult {
+  intent: string;
+  confidence: number;
+  source?: 'fasttext' | 'rules' | 'fallback';
+  skill?: string;
+  alternateIntents?: string[];
+}
 export type FastTextModelState = 'real' | 'missing' | 'invalid';
 export interface FastTextRuntimeStatus { modelState: FastTextModelState; realModelPresent: boolean; executableAvailable: boolean; ready: boolean; modelPath: string; trainingExamples: number; }
-let trainingSet: { label: string; tokens: Set<string> }[] = [];
+let trainingSet: { label: string; tokens: Set<string>; normalized: string }[] = [];
+let trainingExact = new Map<string, string>();
 let fastTextReady = false;
 const classificationCache = new Map<string, { result: FastTextResult | null; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const MODEL_MIN_CONFIDENCE = 0.55;
+const MODEL_MIN_CONFIDENCE = 0.57;
+const MODEL_MARGIN_CONFIDENCE = 0.08;
+const FALLBACK_MIN_SCORE = 0.42;
+const STOP_WORDS = new Set(['a','an','and','are','as','at','be','by','can','do','for','from','get','help','i','in','is','it','me','my','need','of','on','or','please','the','this','to','want','with','you']);
 function modelPath(): string { return path.join(process.cwd(), 'models', 'kurukoo_intent.bin'); }
 function trainingPath(): string { return path.join(process.cwd(), 'models', 'intent_training_data.txt'); }
 function normalize(query: string): string { return query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function meaningfulTokens(query: string): string[] { return normalize(query).split(/\s+/).filter(token => token.length > 1 && !STOP_WORDS.has(token)); }
 function isRealBinaryModel(binPath: string): boolean { try { if (!fs.existsSync(binPath)) return false; const stats=fs.statSync(binPath); if(stats.size<100)return false; return !fs.readFileSync(binPath).subarray(0,32).toString('utf8').includes('DUMMY_FASTTEXT'); } catch { return false; } }
 function getModelState(binPath: string): FastTextModelState { if(!fs.existsSync(binPath))return'missing'; return isRealBinaryModel(binPath)?'real':'invalid'; }
 function isFastTextExecutableAvailable(): boolean { try { execFileSync('fasttext',['--help'],{stdio:'ignore',timeout:1500}); return true; } catch{return false;} }
 export function getFastTextRuntimeStatus(rootDir=process.cwd()): FastTextRuntimeStatus { const binPath=path.join(rootDir,'models','kurukoo_intent.bin'); const modelState=getModelState(binPath); const realModelPresent=modelState==='real'; const executableAvailable=realModelPresent&&isFastTextExecutableAvailable(); return {modelState,realModelPresent,executableAvailable,ready:realModelPresent&&executableAvailable,modelPath:binPath,trainingExamples:trainingSet.length}; }
-function loadTrainingData(): void { try { const filePath=trainingPath(); if(!fs.existsSync(filePath))return; trainingSet=[]; for(const line of fs.readFileSync(filePath,'utf8').split(/\r?\n/)){ if(!line.startsWith('__label__'))continue; const spaceIdx=line.indexOf(' '); if(spaceIdx===-1)continue; const label=line.slice(9,spaceIdx).trim(); const tokens=new Set(normalize(line.slice(spaceIdx+1)).split(/\s+/).filter(token=>token.length>1)); trainingSet.push({label,tokens}); } console.log(`[FastText] loaded ${trainingSet.length} training examples`); } catch(err){console.error('[FastText] training-data load failed:',err);} }
+function loadTrainingData(): void { try { const filePath=trainingPath(); if(!fs.existsSync(filePath))return; trainingSet=[]; trainingExact.clear(); for(const line of fs.readFileSync(filePath,'utf8').split(/\r?\n/)){ if(!line.startsWith('__label__'))continue; const spaceIdx=line.indexOf(' '); if(spaceIdx===-1)continue; const label=line.slice(9,spaceIdx).trim(); const normalized=normalize(line.slice(spaceIdx+1)); const tokens=new Set(meaningfulTokens(normalized)); const entry={label,tokens,normalized}; trainingSet.push(entry); if(normalized.length>=3 && !trainingExact.has(normalized)) trainingExact.set(normalized,label); } console.log(`[FastText] loaded ${trainingSet.length} training examples`); } catch(err){console.error('[FastText] training-data load failed:',err);} }
 export function initializeFastText(): void { classificationCache.clear(); const binaryModelPath=modelPath(); fastTextReady=isRealBinaryModel(binaryModelPath)&&isFastTextExecutableAvailable(); loadTrainingData(); const status=getFastTextRuntimeStatus(); console.log(`[FastText] modelState=${status.modelState}, ready=${fastTextReady}, trainingExamples=${trainingSet.length}`); }
 initializeFastText();
 
@@ -27,11 +39,11 @@ initializeFastText();
 // conversation acts are deterministic so a weak/stale model cannot turn
 // ordinary chat into an unknown-intent failure.
 const conversationActRules: Array<[RegExp,string]> = [
-  [/^(hi|hello|hey|hiya|howdy|greetings|good morning|good afternoon|good evening)[!,. ]*$/i,'greeting'],
+  [/^(hi|hello|hey|hiya|howdy|greetings|good morning|good afternoon|good evening|hello there)[!,. ]*$/i,'greeting'],
   [/^(thanks|thank you|thx|cheers|much appreciated)[!,. ]*$/i,'thanks'],
   [/^(bye|goodbye|see you|see ya|talk later)[!,. ]*$/i,'farewell'],
-  [/^(yes|yeah|yep|yup|okay|ok|sure|alright)[!,. ]*$/i,'confirmation'],
-  [/^(no|nope|nah|not really)[!,. ]*$/i,'rejection'],
+  [/^(yes|yeah|yep|yup|okay|ok|sure|alright|go ahead)[!,. ]*$/i,'confirmation'],
+  [/^(no|nope|nah|not really|do not)[!,. ]*$/i,'rejection'],
   [/\b(i meant|i mean|actually i meant|my mistake|correction)\b/i,'correction'],
   [/\b(can you explain|what do you mean|what does that mean|i don't understand|explain that)\b/i,'clarification'],
   [/\b(how do i|how to|show me how|teach me how|walk me through|tutorial|guide me)\b/i,'how_to'],
@@ -41,8 +53,20 @@ const conversationActRules: Array<[RegExp,string]> = [
 const blueprintRules: Array<[RegExp,string]> = [
   [/\b(help me stay safe|keep me safe|i(?:'|’)m not safe|i feel unsafe|i feel in danger|protect me|safety help|need help staying safe)\b/i,'emergency'],
   [/\b(emergency|sos|police|accident|hospital|immediate danger|life[- ]threatening|unsafe|danger)\b/i,'emergency'],
+  [/\b(bin day|rubbish collection|bins? go out|waste collection)\b/i,'bin_day'],
   [/\b(ride|okada|keke|taxi|cab|transport|driver)\b/i,'ride_request'],
   [/\b(food|suya|rice|bread|grocery|groceries|meal|restaurant|caterer)\b/i,'order_food'],
+  [/\b(laptop|macbook|dell laptop|lenovo laptop|hp laptop).{0,40}\b(repair|broken|damaged|fix|won't turn on|not charging)\b/i,'laptop_repairer'],
+  [/\b(tablet|ipad|galaxy tab|surface).{0,40}\b(repair|broken|damaged|fix|not working)\b/i,'tablet_repairer'],
+  [/\b(ps5|ps4|xbox|nintendo switch|playstation).{0,40}\b(repair|broken|fix|not working|won't turn on)\b/i,'console_repairer'],
+  [/\b(tv|television|smart tv).{0,40}\b(repair|broken|no picture|no sound|fix)\b/i,'tv_repairer'],
+  [/\b(apple watch|galaxy watch|garmin|fitbit).{0,40}\b(repair|broken|fix|not working)\b/i,'smartwatch_repairer'],
+  [/\b(airpods|airpod|galaxy buds|wireless earbuds).{0,40}\b(repair|broken|not working|fix)\b/i,'earbuds_repairer'],
+  [/\b(bluetooth speaker|bose speaker|jbl speaker|wireless speaker).{0,40}\b(repair|broken|no sound|fix)\b/i,'speaker_repairer'],
+  [/\b(washing machine|fridge|refrigerator|oven|dishwasher).{0,40}\b(repair|broken|leak|fix|not working)\b/i,'appliance_repairer'],
+  [/\b(bicycle|bike).{0,40}\b(repair|broken|fix|damaged|puncture)\b/i,'bicycle_repairer'],
+  [/\b(motorbike|motorcycle).{0,40}\b(repair|broken|fault|fix)\b/i,'motorbike_repairer'],
+  [/\b(my car|my vehicle).{0,40}\b(broken down|won't start|tow|recovery)\b/i,'vehicle_recovery'],
   [/\b(plumber|electrician|mechanic|repair|fix|artisan|worker|painter|carpenter|tailor|cobbler|shoe maker)\b/i,'find_worker'],
   [/\b(pepper seller|pepper vendor|fruit seller|fruit vendor|vegetable seller|fish seller)\b/i,'find_worker'],
   [/\b(balance|points|wallet|credit)\b/i,'check_balance'],
@@ -52,10 +76,33 @@ const blueprintRules: Array<[RegExp,string]> = [
   [/\b(security|guard|close protection)\b/i,'security_booking'],
   [/\b(top up|top-up|recharge|add money|fund my wallet)\b/i,'top_up'],
   [/\b(unlink|unpair|disconnect).{0,40}\b(device|phone|laptop|tablet)\b/i,'unlink_device'],
+  [/\b(gp appointment|book.*gp|see my doctor)\b/i,'gp_appointment'],
+  [/\b(dentist|dental appointment)\b/i,'dentist_appointment'],
+  [/\b(mot test|book my mot|mot booking)\b/i,'mot_booking'],
+  [/\b(driving test|test centre|test center).{0,20}\b(book|slot|test)\b/i,'driving_test_booking'],
+  [/\b(snow removal|snow plowing|clear my driveway)\b/i,'snow_removal'],
+  [/\b(winter tyre|winter tire).{0,20}\b(change|service|booking)\b/i,'winter_tire_service'],
+  [/\b(power outage|hydro outage|electricity outage)\b/i,'hydro_outage'],
+  [/\b(pos agent|cash out|withdraw cash)\b/i,'pos_agent'],
+  [/\b(generator fuel|diesel delivery|fuel delivery)\b/i,'generator_fuel_delivery'],
+  [/\b(water tanker|water delivery|borehole water)\b/i,'borehole_water'],
+  [/\b(cooking gas|gas refill|lpg refill)\b/i,'gas_refill'],
+  [/\b(parcel pickup|pick up my parcel|drop off this parcel)\b/i,'parcel_pickup'],
+  [/\b(locksmith|locked out|door lock repair)\b/i,'locksmith'],
+  [/\b(boiler repair|heating engineer|boiler broken)\b/i,'boiler_repairer'],
+  [/\b(rubbish removal|junk removal|waste removal)\b/i,'rubbish_removal'],
+  [/\b(window cleaner|window cleaning)\b/i,'window_cleaner'],
+  [/\b(key cutting|cut me a key|spare key)\b/i,'key_cutter'],
+  [/\b(laundry pickup|wash and fold|laundry service)\b/i,'laundry_pickup'],
+  [/\b(market shopper|market run|shop.*market)\b/i,'market_shopper'],
+  [/\b(school run|school pickup|school drop off)\b/i,'school_run_uk'],
+  [/\b(same day courier|local courier|courier pickup)\b/i,'local_courier'],
+  [/\b(handyman|neighbourhood handyman)\b/i,'neighbourhood_handyman'],
 ];
-function ruleClassify(q:string):FastTextResult|null { for(const [rule,intent] of conversationActRules)if(rule.test(q))return{intent,confidence:.999,source:'rules'}; for(const [rule,intent] of blueprintRules)if(rule.test(q))return{intent,confidence:.99,source:'rules'}; return null; }
-function classifyWithBinaryModel(query:string):FastTextResult|null { if(!fastTextReady)return null; const clean=normalize(query); if(!clean)return null; const inputPath=path.join(os.tmpdir(),`kurukoo-fasttext-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`); try { fs.writeFileSync(inputPath,`${clean}\n`,{mode:0o600}); const stdout=execFileSync('fasttext',['predict-prob',modelPath(),inputPath,'1'],{encoding:'utf8',timeout:2500}).trim(); const match=stdout.match(/__label__([^\s]+)\s+([0-9.]+)/); if(!match)return null; const confidence=Number(match[2]); if(!Number.isFinite(confidence)||confidence<MODEL_MIN_CONFIDENCE)return null; return{intent:match[1],confidence,source:'fasttext'}; } catch(err:any){console.warn('[FastText] prediction failed:',err?.message||err);return null;} finally{try{fs.unlinkSync(inputPath);}catch{}} }
-function classifyWithMemory(query:string):FastTextResult|null { if(!trainingSet.length)return null; const tokens=normalize(query).split(/\s+/).filter(t=>t.length>1); if(!tokens.length)return null; let best='unknown';let score=0; for(const item of trainingSet){let hits=0;for(const token of tokens){if(item.tokens.has(token))hits+=1;else if([...item.tokens].some(t=>t.length>=4&&token.length>=4&&(t.includes(token)||token.includes(t))))hits+=.5;} const candidate=hits/tokens.length;if(candidate>score){score=candidate;best=item.label;}} if(best==='unknown'||score<.35)return null; return{intent:best,confidence:Math.min(.95,Math.max(.70,score)),source:'fallback'}; }
-function correctKnownDomainCollision(query:string,result:FastTextResult|null):FastTextResult|null { if(/\b(help me stay safe|keep me safe|i(?:'|’)m not safe|i feel unsafe|i feel in danger|protect me|safety help|need help staying safe|immediate danger|life[- ]threatening)\b/i.test(query))return{intent:'emergency',confidence:.999,source:'rules'}; if(/\b(advertis(?:e|ing)?|advert|campaign|sponsored|promotion|promote)\b/i.test(query)&&result?.intent!=='advertising')return{intent:'advertising',confidence:.99,source:'rules'}; return result; }
-export function classifyWithFastText(query:string):FastTextResult|null { const q=query.trim();if(!q)return null;const key=normalize(q);const cached=classificationCache.get(key);if(cached&&cached.expiresAt>Date.now())return cached.result; const result=correctKnownDomainCollision(q,ruleClassify(q)||classifyWithBinaryModel(q)||classifyWithMemory(q)); if(classificationCache.size>2000)classificationCache.delete(classificationCache.keys().next().value as string);classificationCache.set(key,{result,expiresAt:Date.now()+CACHE_TTL_MS}); if(result)console.info(`[FastText] query="${q}" intent=${result.intent} confidence=${result.confidence.toFixed(3)} source=${result.source}`); else getDb().then(db=>db.run(`INSERT INTO unknown_intents (query) VALUES (?)`,[q])).catch(()=>{}); return result; }
+function skillFromLabel(label:string): string | undefined { const prefix='skill_route_'; if (!label.startsWith(prefix)) return undefined; const candidate=label.slice(prefix.length); return getAllConvergedSkillNames().includes(candidate) ? candidate : undefined; }
+function ruleClassify(q:string):FastTextResult|null { for(const [rule,intent] of conversationActRules) if(rule.test(q)) return {intent,confidence:.999,source:'rules'}; for(const [rule,intent] of blueprintRules) if(rule.test(q)) return {intent,confidence:.995,source:'rules', skill:getAllConvergedSkillNames().includes(intent) ? intent : undefined}; return null; }
+function classifyWithBinaryModel(query:string):FastTextResult|null { if(!fastTextReady)return null; const clean=normalize(query); if(!clean)return null; const inputPath=path.join(os.tmpdir(),`kurukoo-fasttext-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`); try { fs.writeFileSync(inputPath,`${clean}\n`,{mode:0o600}); const stdout=execFileSync('fasttext',['predict-prob',modelPath(),inputPath,'3'],{encoding:'utf8',timeout:2500}).trim(); const candidates=stdout.split(/\r?\n/).map(line=>{const match=line.match(/__label__([^\s]+)\s+([0-9.]+)/); return match?{label:match[1],confidence:Number(match[2])}:null;}).filter(Boolean) as Array<{label:string;confidence:number}>; if(!candidates.length)return null; const best=candidates[0]; if(!Number.isFinite(best.confidence)||best.confidence<MODEL_MIN_CONFIDENCE)return null; const second=candidates[1]; if(second && best.confidence-second.confidence<MODEL_MARGIN_CONFIDENCE && best.confidence<0.78)return null; const skill=skillFromLabel(best.label); return {intent:skill?skill:best.label,confidence:best.confidence,source:'fasttext',skill,alternateIntents:candidates.slice(1).map(candidate=>skillFromLabel(candidate.label)||candidate.label)}; } catch(err:any){console.warn('[FastText] prediction failed:',err?.message||err);return null;} finally{try{fs.unlinkSync(inputPath);}catch{}} }
+function classifyWithMemory(query:string):FastTextResult|null { if(!trainingSet.length)return null; const normalized=normalize(query); const exact=trainingExact.get(normalized); if(exact){const skill=skillFromLabel(exact); return {intent:skill||exact.replace(/^__label__/,''),confidence:.97,source:'fallback',skill};} const tokens=meaningfulTokens(normalized); if(!tokens.length)return null; const scored=new Map<string,number>(); for(const item of trainingSet){ let hits=0; let exactTokenHits=0; for(const token of tokens){ if(item.tokens.has(token)){hits+=1; exactTokenHits+=1;} else if([...item.tokens].some(t=>t.length>=4&&token.length>=4&&(t.includes(token)||token.includes(t)))) hits+=.35; } const phraseBoost=normalized.includes(item.normalized)?0.75:(item.normalized.includes(normalized)&&normalized.length>3?0.25:0); const candidate=(hits/Math.max(tokens.length,item.tokens.size*0.55))+phraseBoost; scored.set(item.label,Math.max(scored.get(item.label)||0,candidate)); } const ranked=[...scored.entries()].sort((a,b)=>b[1]-a[1]); if(!ranked.length||ranked[0][1]<FALLBACK_MIN_SCORE)return null; const best=ranked[0]; const second=ranked[1]; if(second && best[1]-second[1]<0.08 && best[1]<0.8)return null; const skill=skillFromLabel(best[0]); return{intent:skill||best[0],confidence:Math.min(.95,Math.max(.67,best[1])),source:'fallback',skill,alternateIntents:ranked.slice(1,3).map(([label])=>skillFromLabel(label)||label)}; }
+function correctKnownDomainCollision(query:string,result:FastTextResult|null):FastTextResult|null { if(/\b(help me stay safe|keep me safe|i(?:'|’)m not safe|i feel unsafe|i feel in danger|protect me|safety help|need help staying safe|immediate danger|life[- ]threatening)\b/i.test(query))return{intent:'emergency',confidence:.999,source:'rules'}; if(/\b(advertis(?:e|ing)?|advert|campaign|sponsored|promotion|promote)\b/i.test(query)&&result?.intent!=='advertising')return{intent:'advertising',confidence:.99,source:'rules'}; if(/\b(bin day|rubbish collection|bins? go out|waste collection)\b/i.test(query))return{intent:'bin_day',confidence:.995,source:'rules',skill:'bin_day'}; return result; }
+export function classifyWithFastText(query:string):FastTextResult|null { const q=query.trim();if(!q)return null;const key=normalize(q);const cached=classificationCache.get(key);if(cached&&cached.expiresAt>Date.now())return cached.result; const result=correctKnownDomainCollision(q,ruleClassify(q)||classifyWithBinaryModel(q)||classifyWithMemory(q)); if(classificationCache.size>2000)classificationCache.delete(classificationCache.keys().next().value as string);classificationCache.set(key,{result,expiresAt:Date.now()+CACHE_TTL_MS}); if(result)console.info(`[FastText] query="${q}" intent=${result.intent} confidence=${result.confidence.toFixed(3)} source=${result.source}${result.skill ? ` skill=${result.skill}` : ''}`); else getDb().then(db=>db.run(`INSERT INTO unknown_intents (query) VALUES (?)`,[q])).catch(()=>{}); return result; }
 export function classifyIntentFastText(query:string):string{return classifyWithFastText(query)?.intent||'unknown';}
