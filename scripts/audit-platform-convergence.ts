@@ -7,6 +7,10 @@ import { classifyAiRoutingSignal } from '../src/services/aiRoutingConvergence.js
 import { getFastTextRuntimeStatus } from '../src/services/fastTextService.js';
 import { getSmolLM2RuntimeStatus } from '../src/services/smolLm2Service.js';
 import { getExternalIntegrationOperationalStatus } from '../src/services/externalIntegrationOperationalStatus.js';
+import { getDurableJobStats } from '../src/services/durableJobQueue.js';
+import { listProviderVerifications } from '../src/services/providerVerificationLifecycle.js';
+import { attachmentSecurityReadiness, inspectAttachmentSecurity } from '../src/services/attachmentSecurityBoundary.js';
+import { getScaleTransitionReport } from '../src/services/scaleTransition.js';
 
 const requiredFiles = [
   'src/services/canonicalChatTurnService.ts',
@@ -22,6 +26,10 @@ const requiredFiles = [
   'src/services/agentRuntime.ts',
   'src/services/commercialLedger.ts',
   'src/services/outcomeCompleteness.ts',
+  'src/services/durableJobQueue.ts',
+  'src/services/providerVerificationLifecycle.ts',
+  'src/services/attachmentSecurityBoundary.ts',
+  'src/services/artifactService.ts',
   'src/routes/healthRoutes.ts',
   'src/routes/publicRoutes.ts',
   'scripts/runtime-smoke.ts',
@@ -65,6 +73,12 @@ for (const [text, expected] of routingRegression) {
 const fasttext = getFastTextRuntimeStatus();
 const smollm2 = getSmolLM2RuntimeStatus();
 const integrations = getExternalIntegrationOperationalStatus();
+const durableJobs = await getDurableJobStats();
+const providerVerifications = await listProviderVerifications(undefined, 1);
+const attachmentReadiness = attachmentSecurityReadiness();
+const attachmentProbe = inspectAttachmentSecurity({ data: Buffer.from('safe synthetic attachment'), mimeType: 'text/plain', filename: 'probe.txt' });
+assert.equal(attachmentProbe.state, 'accepted', `attachment security probe unexpectedly failed: ${attachmentProbe.reason || attachmentProbe.state}`);
+const scale = getScaleTransitionReport();
 
 const report = {
   generatedAt: new Date().toISOString(),
@@ -77,6 +91,10 @@ const report = {
   routing: { regressionCases: routingRegression.length, fastTextModelState: fasttext.modelState, fastTextAvailable: fasttext.available },
   inference: smollm2,
   integrations,
+  durableJobs,
+  providerVerification: { recordsObserved: providerVerifications.length },
+  attachmentSecurity: { readiness: attachmentReadiness, syntheticProbe: attachmentProbe },
+  scale,
   canonicalOwners: requiredFiles,
   externalActivationBoundary: 'live payment, external channels, physical providers, connected devices, durable production infrastructure and deployment evidence remain activation gates; no audit result promotes simulation to production truth',
 };
