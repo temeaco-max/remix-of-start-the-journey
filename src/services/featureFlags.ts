@@ -44,7 +44,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     stripe_payments: { description: 'Stripe payment collection', lifecycle: 'pilot', defaultEnabled: false, requires: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] },
     mobile_money: { description: 'Mobile-money payment adapter', lifecycle: 'pilot', defaultEnabled: false },
     hosted_gemini: { description: 'Gemini hosted AI execution', lifecycle: 'pilot', defaultEnabled: false, requires: ['GEMINI_API_KEY'], providerPrerequisites: ['approved model, quota, privacy and retention review'], risk: 'medium', killSwitch: true, adminVisible: true },
-    hosted_mistral: { description: 'Mistral hosted AI execution', lifecycle: 'pilot', defaultEnabled: false, requires: ['MISTRAL_API_KEY'], providerPrerequisites: ['approved model, quota, privacy and retention review'], risk: 'medium', killSwitch: true, adminVisible: true },
+    hosted_mistral: { description: 'Mistral hosted AI execution', lifecycle: 'pilot', defaultEnabled: true, requires: ['MISTRAL_API_KEY'], providerPrerequisites: ['approved model, quota, privacy and retention review'], risk: 'medium', killSwitch: true, adminVisible: true },
     mistral_tts: { description: 'Mistral Voxtral text-to-speech execution', lifecycle: 'pilot', defaultEnabled: false, requires: ['MISTRAL_TTS_CONFIGURATION'], dependencies: ['hosted_mistral'], providerPrerequisites: ['approved Voxtral TTS model, saved voice profile, quota, privacy and retention review'], risk: 'high', killSwitch: true, adminVisible: true },
     hosted_groq: { description: 'Groq hosted AI execution', lifecycle: 'pilot', defaultEnabled: false, requires: ['GROQ_API_KEY'], providerPrerequisites: ['approved model, quota, privacy and retention review'], risk: 'medium', killSwitch: true, adminVisible: true },
     hosted_openrouter: { description: 'OpenRouter hosted AI execution', lifecycle: 'pilot', defaultEnabled: false, requires: ['OPENROUTER_CONFIGURATION'], providerPrerequisites: ['approved explicit model, bounded spend, privacy and retention review'], risk: 'medium', killSwitch: true, adminVisible: true },
@@ -79,46 +79,26 @@ function localeCandidates(country: string): string[] {
 }
 
 function hasRequirement(requirement: string): boolean {
-    if (requirement === 'FIREBASE_ADMIN_CREDENTIALS') {
-        return Boolean(process.env.FIREBASE_ADMIN_PRIVATE_KEY && process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
-    }
-    if (requirement === 'STUN_TURN_OR_RELAY') {
-        return Boolean(process.env.STUN_SERVERS || process.env.TURN_URL || process.env.TURN_SERVER_URL);
-    }
-    if (requirement === 'SMS_PROVIDER') {
-        return Boolean(process.env.SMS_PROVIDER || process.env.SMS_API_KEY);
-    }
-    if (requirement === 'GOOGLE_DRIVE_OAUTH') {
-        return Boolean(process.env.KURUKOO_GOOGLE_DRIVE_CLIENT_ID && process.env.KURUKOO_GOOGLE_DRIVE_CLIENT_SECRET && process.env.KURUKOO_GOOGLE_DRIVE_REDIRECT_URI && (process.env.KURUKOO_STORAGE_ENCRYPTION_KEY || process.env.MEMORY_ENCRYPTION_KEY || process.env.JWT_SECRET));
-    }
-    if (requirement === 'GOOGLE_SHEETS_OAUTH') {
-        return Boolean(process.env.KURUKOO_GOOGLE_SHEETS_CLIENT_ID && process.env.KURUKOO_GOOGLE_SHEETS_CLIENT_SECRET && process.env.KURUKOO_GOOGLE_SHEETS_REDIRECT_URI && (process.env.KURUKOO_STORAGE_ENCRYPTION_KEY || process.env.MEMORY_ENCRYPTION_KEY || process.env.JWT_SECRET));
-    }
-    if (requirement === 'MICROSOFT_GRAPH_OAUTH') {
-        return Boolean(process.env.KURUKOO_MICROSOFT_CLIENT_ID && process.env.KURUKOO_MICROSOFT_CLIENT_SECRET && process.env.KURUKOO_MICROSOFT_REDIRECT_URI && (process.env.KURUKOO_STORAGE_ENCRYPTION_KEY || process.env.MEMORY_ENCRYPTION_KEY || process.env.JWT_SECRET));
-    }
-    if (requirement === 'NOTION_OAUTH') {
-        return Boolean(process.env.KURUKOO_NOTION_CLIENT_ID && process.env.KURUKOO_NOTION_CLIENT_SECRET && process.env.KURUKOO_NOTION_REDIRECT_URI && (process.env.KURUKOO_STORAGE_ENCRYPTION_KEY || process.env.MEMORY_ENCRYPTION_KEY || process.env.JWT_SECRET));
-    }
-    if (requirement === 'EMAIL_TRANSPORT') {
-        return Boolean((process.env.RESEND_API_KEY && process.env.EMAIL_FROM) || process.env.EMAIL_WEBHOOK_URL);
-    }
+    if (requirement === 'FIREBASE_ADMIN_CREDENTIALS') return Boolean(process.env.FIREBASE_ADMIN_PRIVATE_KEY && process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
+    if (requirement === 'STUN_TURN_OR_RELAY') return Boolean(process.env.STUN_SERVERS || process.env.TURN_URL || process.env.TURN_SERVER_URL);
+    if (requirement === 'SMS_PROVIDER') return Boolean(process.env.SMS_PROVIDER || process.env.SMS_API_KEY);
+    if (requirement === 'GOOGLE_DRIVE_OAUTH') return Boolean(process.env.KURUKOO_GOOGLE_DRIVE_CLIENT_ID && process.env.KURUKOO_GOOGLE_DRIVE_CLIENT_SECRET && process.env.KURUKOO_GOOGLE_DRIVE_REDIRECT_URI && (process.env.KURUKOO_STORAGE_ENCRYPTION_KEY || process.env.MEMORY_ENCRYPTION_KEY || process.env.JWT_SECRET));
+    if (requirement === 'GOOGLE_SHEETS_OAUTH') return Boolean(process.env.KURUKOO_GOOGLE_SHEETS_CLIENT_ID && process.env.KURUKOO_GOOGLE_SHEETS_CLIENT_SECRET && process.env.KURUKOO_GOOGLE_SHEETS_REDIRECT_URI && (process.env.KURUKOO_STORAGE_ENCRYPTION_KEY || process.env.MEMORY_ENCRYPTION_KEY || process.env.JWT_SECRET));
+    if (requirement === 'MICROSOFT_GRAPH_OAUTH') return Boolean(process.env.KURUKOO_MICROSOFT_CLIENT_ID && process.env.KURUKOO_MICROSOFT_CLIENT_SECRET && process.env.KURUKOO_MICROSOFT_REDIRECT_URI && (process.env.KURUKOO_STORAGE_ENCRYPTION_KEY || process.env.MEMORY_ENCRYPTION_KEY || process.env.JWT_SECRET));
+    if (requirement === 'NOTION_OAUTH') return Boolean(process.env.KURUKOO_NOTION_CLIENT_ID && process.env.KURUKOO_NOTION_CLIENT_SECRET && process.env.KURUKOO_NOTION_REDIRECT_URI && (process.env.KURUKOO_STORAGE_ENCRYPTION_KEY || process.env.MEMORY_ENCRYPTION_KEY || process.env.JWT_SECRET));
+    if (requirement === 'EMAIL_TRANSPORT') return Boolean((process.env.RESEND_API_KEY && process.env.EMAIL_FROM) || process.env.EMAIL_WEBHOOK_URL);
     if (requirement === 'GEMINI_API_KEY') return Boolean(process.env.GEMINI_API_KEY || process.env.API_KEY);
     if (requirement === 'MISTRAL_API_KEY') return Boolean(process.env.MISTRAL_API_KEY);
     if (requirement === 'MISTRAL_TTS_CONFIGURATION') return Boolean(process.env.MISTRAL_API_KEY && process.env.MISTRAL_TTS_MODEL && process.env.MISTRAL_TTS_VOICE_ID);
     if (requirement === 'GROQ_API_KEY') return Boolean(process.env.GROQ_API_KEY);
     if (requirement === 'OPENROUTER_CONFIGURATION') return Boolean(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL);
     if (requirement === 'HUGGINGFACE_TOKEN') return Boolean(process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || process.env.HF_API_KEY);
-    if (requirement === 'NUMBER_MASKING_PROVIDER') {
-        return Boolean(process.env.NUMBER_MASKING_PROVIDER || process.env.TWILIO_ACCOUNT_SID || process.env.AFTERA_PROVIDER_KEY);
-    }
+    if (requirement === 'NUMBER_MASKING_PROVIDER') return Boolean(process.env.NUMBER_MASKING_PROVIDER || process.env.TWILIO_ACCOUNT_SID || process.env.AFTERA_PROVIDER_KEY);
     if (requirement === 'agent_runtime') return process.env.KURUKOO_AGENT_ENABLED === 'true';
     return Boolean(process.env[requirement]);
 }
 
-export function getFeatureDefinition(flagName: string): FeatureDefinition | undefined {
-    return FEATURE_REGISTRY[flagName];
-}
+export function getFeatureDefinition(flagName: string): FeatureDefinition | undefined { return FEATURE_REGISTRY[flagName]; }
 
 function testOverride(flagName: string): boolean | undefined {
     if (process.env.NODE_ENV === 'production') return undefined;
@@ -133,31 +113,13 @@ function killSwitchActive(flagName: string): boolean {
 
 function missingForDefinition(country: string, flagName: string, definition: FeatureDefinition): string[] {
     const missing = (definition.requires || []).filter((requirement) => !hasRequirement(requirement));
-    for (const dependency of definition.dependencies || []) {
-        if (!getFeatureFlag(country, dependency)) missing.push(`feature:${dependency}`);
-    }
+    for (const dependency of definition.dependencies || []) if (!getFeatureFlag(country, dependency)) missing.push(`feature:${dependency}`);
     return [...new Set(missing)];
 }
 
-export function getFeatureFlagStatus(country: string, flagName: string): {
-    enabled: boolean;
-    lifecycle: FeatureLifecycle | 'unknown';
-    configured: boolean;
-    missingRequirements: string[];
-    status: FeatureOperationalStatus | 'UNKNOWN';
-    description?: string;
-    markets?: string[];
-    dependencies?: string[];
-    providerPrerequisites?: string[];
-    risk?: FeatureRisk;
-    defaultEnabled?: boolean;
-    killSwitchActive?: boolean;
-    adminVisible?: boolean;
-    source?: 'test_override' | 'environment' | 'locale' | 'default' | 'unknown';
-} {
+export function getFeatureFlagStatus(country: string, flagName: string) {
     const definition = FEATURE_REGISTRY[flagName];
-    if (!definition) return { enabled: false, lifecycle: 'unknown', configured: false, missingRequirements: [], status: 'UNKNOWN', source: 'unknown' };
-
+    if (!definition) return { enabled: false, lifecycle: 'unknown' as const, configured: false, missingRequirements: [], status: 'UNKNOWN' as const, source: 'unknown' as const };
     const missingRequirements = missingForDefinition(country, flagName, definition);
     const configured = missingRequirements.length === 0;
     const override = testOverride(flagName);
@@ -170,30 +132,10 @@ export function getFeatureFlagStatus(country: string, flagName: string): {
     else if (killed) status = 'DISABLED';
     else if (!configured) status = definition.providerPrerequisites?.length ? 'WAITING_FOR_PROVIDER' : 'MISCONFIGURED';
     else status = enabled ? 'ENABLED' : 'DISABLED';
-    return {
-        enabled,
-        lifecycle: definition.lifecycle,
-        configured,
-        missingRequirements,
-        status,
-        description: definition.description,
-        markets: definition.markets,
-        dependencies: definition.dependencies,
-        providerPrerequisites: definition.providerPrerequisites,
-        risk: definition.risk,
-        defaultEnabled: definition.defaultEnabled,
-        killSwitchActive: killed,
-        adminVisible: definition.adminVisible !== false,
-        source: override !== undefined ? 'test_override' : process.env[`${FLAG_ENV_PREFIX}${flagName.toUpperCase()}`] !== undefined ? 'environment' : 'default',
-    };
+    return { enabled, lifecycle: definition.lifecycle, configured, missingRequirements, status, description: definition.description, markets: definition.markets, dependencies: definition.dependencies, providerPrerequisites: definition.providerPrerequisites, risk: definition.risk, defaultEnabled: definition.defaultEnabled, killSwitchActive: killed, adminVisible: definition.adminVisible !== false, source: override !== undefined ? 'test_override' : process.env[`${FLAG_ENV_PREFIX}${flagName.toUpperCase()}`] !== undefined ? 'environment' : 'default' };
 }
 
-export function getFeatureRegistryReadiness(country = 'ng') {
-    return Object.keys(FEATURE_REGISTRY).filter((flagName) => FEATURE_REGISTRY[flagName].adminVisible !== false).map((flagName) => ({
-        flagName,
-        ...getFeatureFlagStatus(country, flagName),
-    }));
-}
+export function getFeatureRegistryReadiness(country = 'ng') { return Object.keys(FEATURE_REGISTRY).filter((flagName) => FEATURE_REGISTRY[flagName].adminVisible !== false).map((flagName) => ({ flagName, ...getFeatureFlagStatus(country, flagName) })); }
 
 export function getFeatureFlag(country: string, flagName: string): boolean {
     const definition = FEATURE_REGISTRY[flagName];
@@ -202,30 +144,17 @@ export function getFeatureFlag(country: string, flagName: string): boolean {
     const override = testOverride(flagName);
     if (override !== undefined) return override && missingForDefinition(country, flagName, definition).length === 0;
     const envValue = parseBoolean(process.env[`${FLAG_ENV_PREFIX}${flagName.toUpperCase()}`]);
-    if (envValue !== undefined) {
-        if (!envValue) return false;
-        return missingForDefinition(country, flagName, definition).length === 0;
-    }
-
+    if (envValue !== undefined) return envValue && missingForDefinition(country, flagName, definition).length === 0;
     for (const locale of localeCandidates(country)) {
         const filePath = path.join(process.cwd(), 'locales', `${locale}.json`);
         try {
             if (!fs.existsSync(filePath)) continue;
             const localeData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-            const value = localeData?.feature_flags?.[flagName];
-            const parsed = typeof value === 'boolean' ? value : parseBoolean(value);
-            if (parsed !== undefined) {
-                if (!parsed) return false;
-                return missingForDefinition(country, flagName, definition).length === 0;
-            }
-        } catch (e) {
-            console.error(`Error reading feature flag ${flagName} for locale ${locale}:`, e);
-        }
+            const localeValue = localeData?.feature_flags?.[flagName];
+            if (typeof localeValue === 'boolean') return localeValue && missingForDefinition(country, flagName, definition).length === 0;
+        } catch (e) { console.error(`Error reading feature flag ${flagName} for locale ${locale}:`, e); }
     }
-
     return definition.defaultEnabled && missingForDefinition(country, flagName, definition).length === 0;
 }
 
-export function isFeatureEnabled(country: string, flagName: string): boolean {
-    return getFeatureFlag(country, flagName);
-}
+export function isFeatureEnabled(country: string, flagName: string): boolean { return getFeatureFlag(country, flagName); }
