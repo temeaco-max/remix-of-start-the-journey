@@ -15,6 +15,24 @@ export function BrandMark({ compact = false, inverse = false }: { compact?: bool
   );
 }
 
+export function IconButton({ label, onPress, children, variant = "default", disabled = false }: { label: string; onPress: () => void; children: React.ReactNode; variant?: "default" | "accent" | "danger"; disabled?: boolean }) {
+  const colors = useColors();
+  const accent = variant === "accent" ? colors.primary : variant === "danger" ? colors.error : colors.foreground;
+  const background = variant === "accent" ? `${colors.primary}12` : variant === "danger" ? `${colors.error}10` : colors.surface;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={8}
+      disabled={disabled}
+      onPress={() => { haptic.light(); onPress(); }}
+      style={({ pressed }) => [styles.iconButton, { backgroundColor: background, borderColor: colors.border }, pressed && styles.pressed, disabled && styles.disabled]}
+    >
+      <View style={{ tintColor: accent }}>{children}</View>
+    </Pressable>
+  );
+}
+
 export function SurfaceHeader({ title, eyebrow, right }: { title: string; eyebrow?: string; right?: React.ReactNode }) {
   const colors = useColors();
   return (
@@ -23,7 +41,7 @@ export function SurfaceHeader({ title, eyebrow, right }: { title: string; eyebro
         {eyebrow ? <Text style={[styles.eyebrow, { color: colors.primary }]}>{eyebrow}</Text> : null}
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>{title}</Text>
       </View>
-      {right}
+      {right ? <View style={styles.headerActions}>{right}</View> : null}
     </View>
   );
 }
@@ -44,7 +62,7 @@ export function StatusPill({ label, tone = "neutral" }: { label: string; tone?: 
   const colors = useColors();
   const toneColor = tone === "success" ? colors.success : tone === "warning" ? colors.warning : tone === "error" ? colors.error : colors.muted;
   return (
-    <View style={[styles.pill, { backgroundColor: `${toneColor}18` }]}>
+    <View style={[styles.pill, { backgroundColor: `${toneColor}18`, borderColor: `${toneColor}24` }]}>
       <View style={[styles.pillDot, { backgroundColor: toneColor }]} />
       <Text style={[styles.pillText, { color: toneColor }]}>{label}</Text>
     </View>
@@ -59,6 +77,7 @@ export function ActionButton({ label, onPress, variant = "primary", style }: { l
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      hitSlop={4}
       onPress={() => { haptic.light(); onPress(); }}
       style={({ pressed }) => [styles.actionButton, { backgroundColor, borderColor: colors.border }, variant === "ghost" && styles.ghostButton, pressed && styles.pressed, style]}
     >
@@ -97,26 +116,29 @@ const styles = StyleSheet.create({
   markImage: { width: 30, height: 30, borderRadius: 8 },
   markImageCompact: { width: 20, height: 20, borderRadius: 6 },
   markImageInverse: { tintColor: KURUKOO_VISUAL_TOKENS.inverseMark },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  headerCopy: { flex: 1, gap: 4 },
-  eyebrow: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase" },
-  headerTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 27, lineHeight: 33 },
-  pill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  iconButton: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 20 },
+  headerCopy: { flex: 1, gap: 4, minWidth: 0 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  eyebrow: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.8, textTransform: "uppercase" },
+  headerTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 26, lineHeight: 31, letterSpacing: -0.35 },
+  pill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   pillDot: { width: 6, height: 6, borderRadius: 3 },
   pillText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
-  actionButton: { minHeight: 46, paddingHorizontal: 16, borderRadius: 15, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  actionButton: { minHeight: 46, paddingHorizontal: 16, borderRadius: 13, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   ghostButton: { borderColor: "transparent", paddingHorizontal: 12 },
   actionText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
-  pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
+  disabled: { opacity: 0.45 },
   messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 9, marginBottom: 16 },
   messageRowUser: { justifyContent: "flex-end" },
   messageBubble: { maxWidth: "86%", paddingVertical: 2 },
   userBubble: { paddingHorizontal: 14, paddingVertical: 11, borderRadius: 16, borderTopRightRadius: 5, borderWidth: 1 },
   messageText: { fontFamily: "Inter_400Regular", fontSize: 16, lineHeight: 24 },
-  card: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 11, boxShadow: "0px 4px 12px rgba(36, 34, 31, 0.05)", elevation: 2 },
-  empty: { alignItems: "center", justifyContent: "center", paddingVertical: 48, gap: 12 },
-  emptyTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 20 },
-  emptyDetail: { fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 21, textAlign: "center", maxWidth: 280 },
+  card: { borderRadius: 18, borderWidth: 1, padding: 17, gap: 12, elevation: 2 },
+  empty: { alignItems: "center", justifyContent: "center", paddingVertical: 48, paddingHorizontal: 24, gap: 12 },
+  emptyTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 20, lineHeight: 24, textAlign: "center" },
+  emptyDetail: { fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 21, textAlign: "center", maxWidth: 300 },
   continuityBand: { borderWidth: 1, borderRadius: 16, padding: 13, gap: 6 },
   continuityBandTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
   continuityBandLabel: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.7, textTransform: "uppercase" },
