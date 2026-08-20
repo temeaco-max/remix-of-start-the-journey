@@ -1,0 +1,31 @@
+name: Kurukoo web/mobile visual convergence
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/web-mobile-visual-convergence
+      - main
+
+jobs:
+  visual-convergence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run lint
+      - run: npx tsx scripts/test-web-visual-convergence.ts
+      - run: npm run test:routes
+      - working-directory: mobile/kurukoo-mobile
+        run: pnpm install --frozen-lockfile && pnpm test:platform-contract
+      - working-directory: mobile/kurukoo-mobile
+        run: pnpm exec tsc --noEmit
