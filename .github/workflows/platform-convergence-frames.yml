@@ -34,6 +34,7 @@ jobs:
           npx tsx scripts/test-catalogue-source-convergence.ts
           npx tsx scripts/test-provider-communication-session.ts
           npx tsx scripts/test-catalogue-inventory-matcher.ts
+          npx tsx scripts/test-order-lead-points.ts
           npx tsx scripts/test-economic-lifecycle.ts
       - name: Mobile contract
         working-directory: mobile/kurukoo-mobile
