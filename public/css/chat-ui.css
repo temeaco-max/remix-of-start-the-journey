@@ -1,3 +1,5 @@
+@import url('/css/kurukoo-os.css?v=1');
+
 /* Kurukoo chat UI — a11y + soft-gate embed support */
 .ko-chat-live {
   position: absolute;
