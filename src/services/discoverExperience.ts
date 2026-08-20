@@ -1,0 +1,151 @@
+import { getDb, saveDb } from '../database.js';
+import { queryDiscoveryEntities } from './discoveryNetwork.js';
+import { getAllConvergedSkillNames } from './skillBehaviourConvergence.js';
+
+export type DiscoverSection = 'for_you' | 'nearby' | 'today' | 'topics' | 'opportunities' | 'explore';
+export type DiscoverItemType = 'discovery' | 'topic' | 'capability';
+export type DiscoverAction = 'watch' | 'follow' | 'save' | 'open_chat' | 'act';
+
+export interface DiscoverItem {
+  id: string;
+  type: DiscoverItemType;
+  section: DiscoverSection;
+  title: string;
+  detail: string;
+  category?: string;
+  entityType?: string;
+  source?: string;
+  freshnessAt?: string;
+  expiresAt?: string;
+  distanceMetres?: number;
+  verified?: boolean;
+  available?: boolean;
+  lifecycle?: string;
+  actions: DiscoverAction[];
+  chatAction: { type: 'open_discovery_entity' | 'open_topic' | 'open_capability'; id: string; prompt: string };
+  score: number;
+  sponsored: boolean;
+}
+
+export interface DiscoverQuery { latitude: number; longitude: number; radiusMetres?: number; limit?: number; conversationId?: string; }
+
+async function ensureSchema() {
+  const db = await getDb();
+  db.run(`CREATE TABLE IF NOT EXISTS discover_interests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone TEXT NOT NULL,
+    item_type TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(phone,item_type,item_id,action)
+  )`);
+  db.run('CREATE INDEX IF NOT EXISTS idx_discover_interests_phone ON discover_interests(phone, updated_at DESC)');
+  saveDb();
+}
+
+function scoreDiscovery(entity: any, now: number): number {
+  const verified = entity.verified ? 20 : 0;
+  const available = entity.available ? 20 : 0;
+  const lifecycle = entity.lifecycle === 'opportunity' ? 16 : entity.lifecycle === 'candidate' ? 10 : entity.lifecycle === 'available' ? 14 : 4;
+  const freshnessMs = Math.max(0, now - Date.parse(String(entity.freshnessAt || 0)));
+  const freshness = Number.isFinite(freshnessMs) ? Math.max(0, 18 - Math.min(18, freshnessMs / 86_400_000 * 3)) : 0;
+  const proximity = Number.isFinite(Number(entity.distanceMetres)) ? Math.max(0, 14 - Math.min(14, Number(entity.distanceMetres) / 1000)) : 0;
+  const expiry = entity.expiresAt ? Math.max(0, Date.parse(String(entity.expiresAt)) - now) : 0;
+  const timely = expiry > 0 && expiry < 48 * 3_600_000 ? 10 : 0;
+  return verified + available + lifecycle + freshness + proximity + timely;
+}
+
+function discoveryToItem(entity: any, section: DiscoverSection, score: number): DiscoverItem {
+  const prompt = `Help me explore ${String(entity.name || 'this nearby discovery')}`;
+  return {
+    id: String(entity.id),
+    type: 'discovery',
+    section,
+    title: String(entity.name || 'Nearby discovery'),
+    detail: String(entity.detail || 'Source-attributed discovery item'),
+    category: entity.category,
+    entityType: entity.entityType,
+    source: entity.source,
+    freshnessAt: entity.freshnessAt,
+    expiresAt: entity.expiresAt,
+    distanceMetres: entity.distanceMetres,
+    verified: Boolean(entity.verified),
+    available: Boolean(entity.available),
+    lifecycle: entity.lifecycle,
+    actions: ['open_chat', 'watch', 'save', 'act'],
+    chatAction: { type: 'open_discovery_entity', id: String(entity.id), prompt },
+    score,
+    sponsored: false,
+  };
+}
+
+async function topicItems(limit: number): Promise<DiscoverItem[]> {
+  const db = await getDb();
+  const statement = db.prepare(`SELECT t.id,t.title,t.type,t.category,t.city,t.created_at,t.updated_at,
+    (SELECT COUNT(*) FROM topic_replies r WHERE r.topic_id=t.id AND r.status='public') AS reply_count
+    FROM topics t WHERE t.status='public' ORDER BY t.updated_at DESC LIMIT ?`);
+  statement.bind([Math.max(1, Math.min(50, limit))]);
+  const rows: any[] = [];
+  while (statement.step()) rows.push(statement.getAsObject());
+  statement.free();
+  return rows.map((row) => {
+    const replyCount = Number(row.reply_count || 0);
+    const score = 20 + Math.min(20, replyCount * 3) + (Date.now() - Date.parse(String(row.updated_at || 0)) < 86_400_000 ? 12 : 0);
+    return {
+      id: String(row.id), type: 'topic', section: 'topics', title: String(row.title), detail: `${String(row.type || 'question').replaceAll('_', ' ')}${row.city ? ` · ${String(row.city)}` : ''} · ${replyCount} public replies`, category: row.category ? String(row.category) : undefined,
+      freshnessAt: String(row.updated_at || row.created_at), actions: ['open_chat', 'follow', 'save'], chatAction: { type: 'open_topic', id: String(row.id), prompt: `Help me explore and discuss the topic: ${String(row.title)}` }, score, sponsored: false,
+    } as DiscoverItem;
+  });
+}
+
+function capabilityItems(limit: number): DiscoverItem[] {
+  const names = getAllConvergedSkillNames();
+  const curated = names.filter((name) => /repair|rider|hotel|painter|seller|delivery|food|bin_day|prayer|guide|clean|plumber|electric|mechanic|photographer|tailor/i.test(name)).slice(0, limit);
+  return curated.map((name, index) => ({
+    id: `capability:${name}`, type: 'capability', section: 'explore', title: name.replaceAll('_', ' '), detail: `Ask Kurukoo to help with ${name.replaceAll('_', ' ')}`, category: 'kurukoo-capability', actions: ['open_chat', 'watch', 'save'], chatAction: { type: 'open_capability', id: name, prompt: `Show me what Kurukoo can do with ${name.replaceAll('_', ' ')}` }, score: 40 - index, sponsored: false,
+  }));
+}
+
+export async function getDiscoverHome(query: DiscoverQuery, phone?: string): Promise<{ generatedAt: string; sections: Record<DiscoverSection, DiscoverItem[]>; sparse: boolean; density: 'rich' | 'sparse' | 'empty'; explanation: string; watchedItemIds: string[] }> {
+  await ensureSchema();
+  const now = Date.now();
+  const radius = Math.min(Math.max(Number(query.radiusMetres || 10000), 1000), 50000);
+  const nearby = await queryDiscoveryEntities({ latitude: query.latitude, longitude: query.longitude, radiusMetres: radius, limit: Math.min(120, Math.max(20, query.limit || 60)) });
+  const discovery = nearby.entities.map((entity) => ({ entity, score: scoreDiscovery(entity, now) })).sort((a,b) => b.score - a.score);
+  const forYou = discovery.slice(0, 8).map((item) => discoveryToItem(item.entity, 'for_you', item.score));
+  const nearbyItems = discovery.slice(0, 12).map((item) => discoveryToItem(item.entity, 'nearby', item.score));
+  const todayItems = discovery.filter(({ entity }) => entity.expiresAt && Date.parse(String(entity.expiresAt)) > now && Date.parse(String(entity.expiresAt)) < now + 72 * 3_600_000).slice(0, 10).map((item) => discoveryToItem(item.entity, 'today', item.score + 12));
+  const opportunities = discovery.filter(({ entity }) => ['candidate','opportunity','invited','available'].includes(String(entity.lifecycle))).slice(0, 10).map((item) => discoveryToItem(item.entity, 'opportunities', item.score + 8));
+  const topics = await topicItems(10);
+  const explore = capabilityItems(12);
+  const realCount = nearby.entities.length + topics.length;
+  const density: 'rich' | 'sparse' | 'empty' = realCount >= 12 ? 'rich' : realCount > 0 ? 'sparse' : 'empty';
+  const sections = { for_you: forYou, nearby: nearbyItems, today: todayItems, topics, opportunities, explore };
+  if (density === 'empty') sections.explore = explore;
+  const watchedItemIds: string[] = [];
+  if (phone) {
+    const watched = (await getDb()).prepare("SELECT item_type,item_id FROM discover_interests WHERE phone=? AND action='watch'"); watched.bind([phone]); while (watched.step()) { const row = watched.getAsObject(); watchedItemIds.push(`${row.item_type}:${row.item_id}`); } watched.free();
+  }
+  return { generatedAt: new Date().toISOString(), sections, sparse: density !== 'rich', density, explanation: density === 'rich' ? 'Fresh local activity and community context are available.' : density === 'sparse' ? 'There are a few attributed items here. Kurukoo can still help you search, ask, follow or create a watch.' : 'There are no attributed local items here yet. Explore what Kurukoo can do, ask Kurukoo directly, or create a watch for what you need.', watchedItemIds };
+}
+
+export async function recordDiscoverAction(phone: string, itemType: DiscoverItemType, itemId: string, action: DiscoverAction): Promise<{ ok: true; itemType: DiscoverItemType; itemId: string; action: DiscoverAction }> {
+  if (!phone || phone.startsWith('anon_')) throw new Error('Authenticated user is required');
+  await ensureSchema();
+  if (!['watch','follow','save'].includes(action)) throw new Error('This endpoint records persistent watch, follow or save actions only');
+  const db = await getDb();
+  db.run(`INSERT INTO discover_interests(phone,item_type,item_id,action) VALUES(?,?,?,?) ON CONFLICT(phone,item_type,item_id,action) DO UPDATE SET updated_at=CURRENT_TIMESTAMP`, [phone, itemType, itemId.slice(0, 180), action]);
+  saveDb();
+  return { ok: true, itemType, itemId, action };
+}
+
+export async function removeDiscoverAction(phone: string, itemType: DiscoverItemType, itemId: string, action: DiscoverAction): Promise<{ ok: true }> {
+  if (!phone || phone.startsWith('anon_')) throw new Error('Authenticated user is required');
+  await ensureSchema();
+  const db = await getDb();
+  db.run('DELETE FROM discover_interests WHERE phone=? AND item_type=? AND item_id=? AND action=?', [phone, itemType, itemId.slice(0, 180), action]);
+  saveDb();
+  return { ok: true };
+}
