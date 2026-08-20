@@ -73,11 +73,17 @@ import { ensureCommercialCatalog } from './services/commercialCatalogService.js'
 import { ensureAgentDonationPolicySchema } from './services/agentDonationPolicyService.js';
 import { observabilityMiddleware } from './middleware/observability.js';
 import { startBackgroundServices } from './startup/backgroundServices.js';
+import { activateConfiguredExternalProviders } from './services/externalActivationService.js';
 ensureCapabilityPortfolioRegistration();
 void ensureCommercialSchema().then(() => ensureCommercialCatalog()).then(() => ensureAgentDonationPolicySchema()).catch(error => console.error('[Kurukoo Startup] Commercial/agent economy initialization failed:', error));
 if (process.env.NODE_ENV !== 'production' && !process.env.KURUKOO_PAY_PROVIDER) process.env.KURUKOO_PAY_PROVIDER = 'sandbox';
 if (!process.env.CREDIT_ECONOMY_ENABLED) process.env.CREDIT_ECONOMY_ENABLED = 'true';
 if (process.env.NODE_ENV === 'production' && process.env.KURUKOO_PAY_PROVIDER === 'sandbox') delete process.env.KURUKOO_PAY_PROVIDER;
+if (process.env.KURUKOO_EXTERNAL_AUTO_ACTIVATE === 'true' || (production && process.env.KURUKOO_EXTERNAL_AUTO_ACTIVATE !== 'false')) {
+  void activateConfiguredExternalProviders().then(result => {
+    for (const item of result.results) console.log(`[Kurukoo External Activation] ${item.provider}: ${item.activated ? 'active' : 'not-active'} — ${item.detail}`);
+  }).catch(error => console.error('[Kurukoo External Activation] startup activation failed:', error));
+}
 console.log(`[Kurukoo Startup] Environment initialized. PORT=${process.env.PORT || 3000}, Pay Provider=${process.env.KURUKOO_PAY_PROVIDER || 'unconfigured'}, DB=${databaseMode}, Jobs=${jobMode}, Workers=${applicationWorkers}, MCP=${mcpEnabled ? 'enabled' : 'disabled'}`);
 const app = express();
 app.set('view engine', 'ejs'); app.set('views', path.join(process.cwd(), 'views')); app.disable('x-powered-by'); app.use(observabilityMiddleware);
