@@ -1,0 +1,42 @@
+/* Final OS screen refinement. Presentation-only: route/state authorities remain canonical. */
+.k-app-page{--os-surface:#fff;--os-soft:#f0eae2;--os-border:#e6ded5;--os-muted:#6d665f;--os-ink:#24221f;--os-accent:#b95d3c;--os-success:#2e8060;--os-warning:#b87928;--os-info:#3c6f91}
+.k-app-main{background:radial-gradient(circle at top right,rgba(185,93,60,.045),transparent 34%),var(--k-cream)}
+.k-app-container{position:relative}
+.k-app-title-row{margin-bottom:16px}
+.k-app-title-row>div{min-width:0}
+.k-app-title-row h1{letter-spacing:-.04em}
+.k-app-primary,.k-app-ask{box-shadow:0 6px 18px rgba(185,93,60,.16);transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+.k-app-primary:hover,.k-app-ask:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(185,93,60,.2);background:#a85336}
+.k-app-context-band{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;margin:0 0 18px;padding:13px 14px;border:1px solid var(--os-border);border-radius:14px;background:color-mix(in srgb,var(--os-surface) 92%,var(--os-soft));box-shadow:0 5px 18px rgba(36,34,31,.035)}
+.k-app-context-mark{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:var(--os-soft);color:var(--os-accent);font:700 13px/1 var(--k-font-heading)}
+.k-app-context-copy{min-width:0}.k-app-context-copy strong,.k-app-context-copy span{display:block}.k-app-context-copy strong{font:700 12px/1.2 var(--k-font-heading);color:var(--os-ink)}.k-app-context-copy span{margin-top:3px;color:var(--os-muted);font-size:11px;line-height:1.45}
+.k-app-context-action{min-height:38px;display:inline-flex;align-items:center;justify-content:center;padding:8px 11px;border:1px solid var(--os-border);border-radius:10px;background:var(--os-surface);color:var(--os-ink);font-size:11px;font-weight:800;text-decoration:none}
+.k-app-state-rail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 18px}
+.k-app-state{min-width:0;padding:11px 12px;border:1px solid var(--os-border);border-radius:12px;background:var(--os-surface);box-shadow:0 4px 16px rgba(36,34,31,.025)}
+.k-app-state span,.k-app-state strong{display:block}.k-app-state span{color:var(--os-muted);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.k-app-state strong{margin-top:4px;color:var(--os-ink);font:700 12px/1.3 var(--k-font-heading)}
+.k-app-state[data-tone=success]{border-color:color-mix(in srgb,var(--os-success) 28%,var(--os-border));background:color-mix(in srgb,var(--os-success) 4%,var(--os-surface))}.k-app-state[data-tone=warning]{border-color:color-mix(in srgb,var(--os-warning) 28%,var(--os-border));background:color-mix(in srgb,var(--os-warning) 4%,var(--os-surface))}.k-app-state[data-tone=info]{border-color:color-mix(in srgb,var(--os-info) 28%,var(--os-border));background:color-mix(in srgb,var(--os-info) 4%,var(--os-surface))}
+.k-app-surface-grid{align-items:stretch}.k-app-surface-grid>.k-app-card{height:100%}
+.k-app-card{position:relative;overflow:hidden;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}.k-app-card::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:transparent}.k-app-card:hover{transform:translateY(-2px);border-color:#d8c9bf;box-shadow:0 14px 30px rgba(36,34,31,.07)}
+.k-app-page.k-app-surface-agent .k-app-card:first-child::before{background:var(--os-accent)}
+.k-app-page.k-app-surface-discover .k-app-card:first-child::before,.k-app-page.k-app-surface-opportunities .k-app-card:first-child::before{background:var(--os-info)}
+.k-app-page.k-app-surface-connect .k-app-card::before{background:var(--os-success)}
+.k-app-page.k-app-surface-checkout .k-app-card:first-child::before,.k-app-page.k-app-surface-confirmations .k-app-card:first-child::before{background:var(--os-warning)}
+.k-app-page.k-app-surface-memory .k-app-card:first-child::before,.k-app-page.k-app-surface-notifications .k-app-card:first-child::before{background:var(--os-info)}
+.k-app-page.k-app-surface-safety .k-app-card::before{background:var(--os-danger,var(--k-danger))}
+.k-app-page.k-app-surface-agents .k-app-card::before{background:var(--os-accent)}
+.k-app-page.k-app-surface-capabilities .k-app-card::before{background:var(--os-success)}
+.k-app-page.k-app-surface-top-up .k-app-card:first-child::before,.k-app-page.k-app-surface-subscriptions .k-app-card:first-child::before,.k-app-page.k-app-surface-wallet .k-app-card:first-child::before,.k-app-page.k-app-surface-points .k-app-card:first-child::before{background:var(--os-warning)}
+.k-app-page.k-app-surface-topics .k-app-card:first-child::before{background:var(--os-info)}
+.k-app-page.k-app-surface-call .k-app-card:first-child::before{background:var(--os-accent)}
+.k-app-page.k-app-surface-artifacts .k-app-card::before{background:var(--os-info)}
+.k-app-page.k-app-surface-prayer .k-app-card::before{background:var(--os-accent)}
+.k-app-page.k-app-surface-tasks .k-app-card::before,.k-app-page.k-app-surface-requests .k-app-card::before{background:var(--os-success)}
+.k-app-status-row{margin-top:20px;padding-top:14px;border-top:1px solid var(--os-border)}
+.k-app-status-row .k-status{background:color-mix(in srgb,var(--os-surface) 92%,var(--os-soft));}
+.k-app-page a:focus-visible{outline:3px solid rgba(185,93,60,.2);outline-offset:3px}
+.k-app-page .k-app-nav a{transition:background .14s ease,color .14s ease,transform .14s ease}
+.k-app-page .k-app-nav a.active{box-shadow:inset 3px 0 0 var(--os-accent);padding-left:14px}
+.k-app-page .k-app-new{border:1px solid transparent}.k-app-page .k-app-new:hover{border-color:var(--os-border);background:#fbf8f4}
+.k-app-page .k-mobile-tabbar a{padding-top:3px}.k-app-page .k-mobile-tabbar a[aria-current=page]{font-weight:800}
+@media(max-width:767px){.k-app-context-band{grid-template-columns:auto minmax(0,1fr)}.k-app-context-action{grid-column:2;justify-self:start}.k-app-state-rail{grid-template-columns:1fr;gap:7px}.k-app-card{border-radius:15px;padding:18px}.k-app-title-row{margin-bottom:14px}.k-app-page .k-app-status-row{padding-bottom:2px}}
+@media(prefers-reduced-motion:reduce){.k-app-primary,.k-app-ask,.k-app-card,.k-app-page .k-app-nav a{transition:none}.k-app-primary:hover,.k-app-ask:hover,.k-app-card:hover{transform:none}}
