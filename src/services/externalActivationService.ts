@@ -1,6 +1,7 @@
 import { getExternalIntegrationOperationalStatus } from './externalIntegrationOperationalStatus.js';
 import { stripeStatus } from './stripePayment.js';
 import { getDriveConnectionStatus } from './artifactService.js';
+import { testMistralConnection, getMistralModel } from './mistralService.js';
 
 export interface ExternalActivationResult {
   provider: string;
@@ -33,10 +34,10 @@ async function telegram(): Promise<ExternalActivationResult> {
 }
 
 async function whatsapp(): Promise<ExternalActivationResult> {
-  const token = String(process.env.WHATSAPP_TOKEN || '').trim();
+  const token = String(process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || '').trim();
   const phoneNumberId = String(process.env.WHATSAPP_PHONE_NUMBER_ID || '').trim();
   const graphVersion = String(process.env.WHATSAPP_GRAPH_API_VERSION || 'v23.0').trim().replace(/^v?/, 'v');
-  if (!token || !phoneNumberId) return { provider: 'whatsapp', configured: false, activated: false, verified: false, detail: 'WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID are required.' };
+  if (!token || !phoneNumberId) return { provider: 'whatsapp', configured: false, activated: false, verified: false, detail: 'WHATSAPP_TOKEN/WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID are required.' };
   const response = await fetch(`https://graph.facebook.com/${graphVersion}/${encodeURIComponent(phoneNumberId)}?fields=id,display_phone_number,verified_name`, { headers: { Authorization: `Bearer ${token}` } });
   const body = await response.json().catch(() => ({})) as any;
   if (!response.ok) return { provider: 'whatsapp', configured: true, activated: false, verified: false, detail: String(body?.error?.message || `WhatsApp phone-number lookup failed (${response.status}).`) };
@@ -65,8 +66,21 @@ async function resend(): Promise<ExternalActivationResult> {
   return response.ok ? { provider: 'email', configured: true, activated: true, verified: true, detail: `Resend API authenticated; ${Array.isArray(body?.data) ? body.data.length : 0} sender domains visible.` } : { provider: 'email', configured: true, activated: false, verified: false, detail: String(body?.message || `Resend verification failed (${response.status}).`) };
 }
 
+async function mistral(): Promise<ExternalActivationResult> {
+  const key = String(process.env.MISTRAL_API_KEY || '').trim();
+  if (!key) return { provider: 'mistral', configured: false, activated: false, verified: false, detail: 'MISTRAL_API_KEY is not configured.' };
+  try {
+    const probe = await testMistralConnection();
+    return probe.reachable
+      ? { provider: 'mistral', configured: true, activated: true, verified: true, detail: `Mistral ${getMistralModel()} is reachable; ${probe.modelCount ?? 0} models visible.`, externalReference: getMistralModel() }
+      : { provider: 'mistral', configured: true, activated: false, verified: false, detail: probe.note };
+  } catch (error) {
+    return { provider: 'mistral', configured: true, activated: false, verified: false, detail: error instanceof Error ? error.message : 'Mistral activation probe failed.' };
+  }
+}
+
 export async function activateConfiguredExternalProviders(): Promise<{ generatedAt: string; results: ExternalActivationResult[]; readiness: ReturnType<typeof getExternalIntegrationOperationalStatus> }> {
-  const results = await Promise.all([telegram(), whatsapp(), stripe(), resend()]);
+  const results = await Promise.all([telegram(), whatsapp(), stripe(), resend(), mistral()]);
   return { generatedAt: new Date().toISOString(), results, readiness: getExternalIntegrationOperationalStatus() };
 }
 
