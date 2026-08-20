@@ -6,109 +6,41 @@ export type SkillExecutionMode = 'economic' | 'information' | 'coordination' | '
 export type SkillExecutionTruth = 'provider_required' | 'source_required' | 'user_confirmation_required' | 'system_action';
 export type SkillInteractionPattern = 'information' | 'booking' | 'dispatch' | 'purchase' | 'service_delivery' | 'marketplace' | 'content' | 'community' | 'reminder' | 'safety_response' | 'multi_stage';
 
-export interface SkillInteractionContract {
-  pattern: SkillInteractionPattern;
-  requiredBeforeMatching: string[];
-  matchEvent: string;
-  commitmentEvent: string;
-  liveSession?: { allowed: boolean; transports: Array<'chat' | 'webrtc_data' | 'webrtc_audio' | 'webrtc_video' | 'external_channel'>; providerLocation?: boolean; userProviderMessaging?: boolean };
-  completionEvent: string;
-  postCompletion: string[];
-  revenueEvents: string[];
-}
-
-export interface SkillExecutionContract {
-  skill: string;
-  category: string | null;
-  mode: SkillExecutionMode;
-  requirements: Array<{ key: string; label: string; required: boolean }>;
-  capabilities: string[];
-  instructions: string[];
-  completionEvidence: string[];
-  failureModes: string[];
-  memoryKeys: string[];
-  truthBoundary: SkillExecutionTruth[];
-  requiresProvider: boolean;
-  requiresPayment: boolean;
-  requiresEvidence: boolean;
-  completionCondition: string;
-  interaction: SkillInteractionContract;
-}
+export interface SkillInteractionContract { pattern: SkillInteractionPattern; requiredBeforeMatching: string[]; matchEvent: string; commitmentEvent: string; liveSession?: { allowed: boolean; transports: Array<'chat' | 'webrtc_data' | 'webrtc_audio' | 'webrtc_video' | 'external_channel'>; providerLocation?: boolean; userProviderMessaging?: boolean }; completionEvent: string; postCompletion: string[]; revenueEvents: string[]; }
+export interface SkillExecutionContract { skill: string; category: string | null; mode: SkillExecutionMode; requirements: Array<{ key: string; label: string; required: boolean }>; capabilities: string[]; instructions: string[]; completionEvidence: string[]; failureModes: string[]; memoryKeys: string[]; truthBoundary: SkillExecutionTruth[]; requiresProvider: boolean; requiresPayment: boolean; requiresEvidence: boolean; completionCondition: string; interaction: SkillInteractionContract; }
 
 const INFORMATION_CATEGORIES = new Set(['government-civic', 'reach-reference', 'language-services', 'price-check']);
 const SAFETY_CATEGORIES = new Set(['emergency-dispatch', 'security-safety']);
 const COORDINATION_CATEGORIES = new Set(['health-medical', 'education-learning', 'events-entertainment', 'tourism-travel', 'community-neighbourhood', 'government-civic', 'accommodation-lodging', 'sports-recreation']);
-
-function inferMode(category: string | null, skill: string): SkillExecutionMode {
-  if (SKILL_MODE_OVERRIDES[skill]) return SKILL_MODE_OVERRIDES[skill];
-  if (category && SAFETY_CATEGORIES.has(category)) return 'safety';
-  if (category && INFORMATION_CATEGORIES.has(category)) return 'information';
-  if (category && COORDINATION_CATEGORIES.has(category)) return 'coordination';
-  return 'economic';
-}
-
-const SKILL_MODE_OVERRIDES: Record<string, SkillExecutionMode> = {
-  bin_day: 'information', memory: 'coordination', reminder: 'coordination', notification: 'coordination', notifications: 'coordination',
-  support_triage: 'coordination', provider_onboarding: 'coordination', provider_profile_setup: 'coordination', autonomous_agent: 'coordination',
-  prayer_partner: 'coordination', prayer: 'coordination',
-};
-
-function inferInteraction(category: string | null, mode: SkillExecutionMode, capabilities: string[], skill: string): SkillInteractionContract {
+function inferMode(category: string | null, skill: string): SkillExecutionMode { if (SKILL_MODE_OVERRIDES[skill]) return SKILL_MODE_OVERRIDES[skill]; if (category && SAFETY_CATEGORIES.has(category)) return 'safety'; if (category && INFORMATION_CATEGORIES.has(category)) return 'information'; if (category && COORDINATION_CATEGORIES.has(category)) return 'coordination'; return 'economic'; }
+const SKILL_MODE_OVERRIDES: Record<string, SkillExecutionMode> = { bin_day:'information', memory:'coordination', reminder:'coordination', notification:'coordination', notifications:'coordination', support_triage:'coordination', provider_onboarding:'coordination', provider_profile_setup:'coordination', autonomous_agent:'coordination', prayer_partner:'coordination', prayer:'coordination' };
+function inferInteraction(category: string | null, mode: SkillExecutionMode, capabilities: string[]): SkillInteractionContract {
   const cap = new Set(capabilities);
-  if (mode === 'information') return { pattern: 'information', requiredBeforeMatching: [], matchEvent: 'source_resolved', commitmentEvent: 'answer_ready', completionEvent: 'answer_delivered', postCompletion: ['offer_follow_up_or_save'], revenueEvents: [] };
-  if (mode === 'safety') return { pattern: 'safety_response', requiredBeforeMatching: [], matchEvent: 'safety_route_resolved', commitmentEvent: 'user_acknowledged', completionEvent: 'canonical_safety_outcome', postCompletion: ['check_in_if_configured', 'record_evidence'], revenueEvents: [] };
-  if (cap.has('tracking') && (category === 'transport-mobility' || category === 'logistics-freight' || category === 'errands-delivery')) return {
-    pattern: 'dispatch', requiredBeforeMatching: ['origin', 'destination'], matchEvent: 'provider_accepts_lead', commitmentEvent: 'provider_commits',
-    liveSession: { allowed: true, transports: ['chat', 'webrtc_data', 'webrtc_audio', 'webrtc_video', 'external_channel'], providerLocation: true, userProviderMessaging: true },
-    completionEvent: 'provider_marks_completed_and_required_evidence_present', postCompletion: ['request_user_rating_feedback', 'release_provider_for_next_matching', 'settle_lead_or_transaction'], revenueEvents: ['provider_lead_charge', 'optional_transaction_fee'],
-  };
-  if (cap.has('reservation') && cap.has('payment')) return { pattern: 'booking', requiredBeforeMatching: [], matchEvent: 'eligible_offer_or_provider_found', commitmentEvent: 'reservation_confirmed', completionEvent: 'reservation_or_service_completed', postCompletion: ['request_rating_when_applicable', 'settle_commercial_ledger'], revenueEvents: ['provider_subscription_or_lead', 'optional_transaction_fee'] };
-  if (cap.has('payment') && (category === 'food-drink' || category === 'classifieds-marketplace' || category === 'agriculture-produce' || category === 'water-beverage')) return { pattern: 'purchase', requiredBeforeMatching: [], matchEvent: 'product_or_seller_matched', commitmentEvent: 'order_confirmed', completionEvent: 'order_delivered_or_collected_and_confirmed', postCompletion: ['request_rating_when_applicable', 'settle_commercial_ledger'], revenueEvents: ['provider_lead_or_subscription', 'affiliate_commission_when_applicable', 'optional_transaction_fee'] };
-  if (category === 'community-neighbourhood' || category === 'spiritual-religious') return { pattern: 'community', requiredBeforeMatching: [], matchEvent: 'relevant_participant_or_content_found', commitmentEvent: 'user_engaged', completionEvent: 'interaction_completed', postCompletion: ['offer_follow_or_watch'], revenueEvents: ['optional_sponsorship_or_promotion'] };
-  if (category === 'events-entertainment' || category === 'creative-arts' || category === 'sports-recreation') return { pattern: 'booking', requiredBeforeMatching: [], matchEvent: 'eligible_provider_or_event_found', commitmentEvent: 'booking_or_reservation_confirmed', completionEvent: 'event_or_service_completed', postCompletion: ['request_rating_when_applicable', 'settle_commercial_ledger'], revenueEvents: ['lead_subscription_or_sponsorship', 'optional_transaction_fee'] };
-  if (cap.has('fulfillment')) return { pattern: 'service_delivery', requiredBeforeMatching: [], matchEvent: 'provider_accepts_lead', commitmentEvent: 'service_committed', completionEvent: 'service_completed_and_evidence_present', postCompletion: ['request_rating_when_applicable', 'settle_lead_or_transaction'], revenueEvents: ['provider_lead_charge', 'optional_transaction_fee'] };
-  if (cap.has('discovery')) return { pattern: 'marketplace', requiredBeforeMatching: [], matchEvent: 'eligible_source_found', commitmentEvent: 'user_or_provider_confirms_next_step', completionEvent: 'canonical_outcome_state', postCompletion: ['offer_watch_save_or_follow'], revenueEvents: ['lead_subscription_or_sponsorship_when_applicable'] };
-  return { pattern: 'multi_stage', requiredBeforeMatching: [], matchEvent: 'canonical_match_or_source_found', commitmentEvent: 'user_confirms_next_step', completionEvent: 'canonical_outcome_state', postCompletion: ['offer_next_step'], revenueEvents: [] };
+  if (mode === 'information') return { pattern:'information', requiredBeforeMatching:[], matchEvent:'source_resolved', commitmentEvent:'answer_ready', completionEvent:'answer_delivered', postCompletion:['offer_follow_up_or_save'], revenueEvents:[] };
+  if (mode === 'safety') return { pattern:'safety_response', requiredBeforeMatching:[], matchEvent:'safety_route_resolved', commitmentEvent:'user_acknowledged', completionEvent:'canonical_safety_outcome', postCompletion:['check_in_if_configured','record_evidence'], revenueEvents:[] };
+  if (cap.has('tracking') && (category === 'transport-mobility' || category === 'logistics-freight' || category === 'errands-delivery')) return { pattern:'dispatch', requiredBeforeMatching:['origin','destination'], matchEvent:'provider_accepts_lead', commitmentEvent:'provider_commits', liveSession:{allowed:true,transports:['chat','webrtc_data','webrtc_audio','webrtc_video','external_channel'],providerLocation:true,userProviderMessaging:true}, completionEvent:'provider_marks_completed_and_required_evidence_present', postCompletion:['request_user_rating_feedback','release_provider_for_next_matching','settle_lead_or_transaction'], revenueEvents:['provider_lead_charge','optional_transaction_fee'] };
+  if (cap.has('reservation') && cap.has('payment')) return { pattern:'booking', requiredBeforeMatching:[], matchEvent:'eligible_offer_or_provider_found', commitmentEvent:'reservation_confirmed', completionEvent:'reservation_or_service_completed', postCompletion:['request_rating_when_applicable','settle_commercial_ledger'], revenueEvents:['provider_subscription_or_lead','optional_transaction_fee'] };
+  if (cap.has('payment') && (category === 'food-drink' || category === 'classifieds-marketplace' || category === 'agriculture-produce' || category === 'water-beverage')) return { pattern:'purchase', requiredBeforeMatching:[], matchEvent:'product_or_seller_matched', commitmentEvent:'order_confirmed', completionEvent:'order_delivered_or_collected_and_confirmed', postCompletion:['request_rating_when_applicable','settle_commercial_ledger'], revenueEvents:['provider_lead_or_subscription','affiliate_commission_when_applicable','optional_transaction_fee'] };
+  if (category === 'community-neighbourhood' || category === 'spiritual-religious') return { pattern:'community', requiredBeforeMatching:[], matchEvent:'relevant_participant_or_content_found', commitmentEvent:'user_engaged', completionEvent:'interaction_completed', postCompletion:['offer_follow_or_watch'], revenueEvents:['optional_sponsorship_or_promotion'] };
+  if (category === 'events-entertainment' || category === 'creative-arts' || category === 'sports-recreation') return { pattern:'booking', requiredBeforeMatching:[], matchEvent:'eligible_provider_or_event_found', commitmentEvent:'booking_or_reservation_confirmed', completionEvent:'event_or_service_completed', postCompletion:['request_rating_when_applicable','settle_commercial_ledger'], revenueEvents:['lead_subscription_or_sponsorship','optional_transaction_fee'] };
+  if (cap.has('fulfillment')) return { pattern:'service_delivery', requiredBeforeMatching:[], matchEvent:'provider_accepts_lead', commitmentEvent:'service_committed', completionEvent:'service_completed_and_evidence_present', postCompletion:['request_rating_when_applicable','settle_lead_or_transaction'], revenueEvents:['provider_lead_charge','optional_transaction_fee'] };
+  if (cap.has('discovery')) return { pattern:'marketplace', requiredBeforeMatching:[], matchEvent:'eligible_source_found', commitmentEvent:'user_or_provider_confirms_next_step', completionEvent:'canonical_outcome_state', postCompletion:['offer_watch_save_or_follow'], revenueEvents:['lead_subscription_or_sponsorship_when_applicable'] };
+  return { pattern:'multi_stage', requiredBeforeMatching:[], matchEvent:'canonical_match_or_source_found', commitmentEvent:'user_confirms_next_step', completionEvent:'canonical_outcome_state', postCompletion:['offer_next_step'], revenueEvents:[] };
 }
+function truthBoundary(mode: SkillExecutionMode, requiresProvider: boolean, requiresEvidence: boolean, requiresPayment: boolean): SkillExecutionTruth[] { const result:SkillExecutionTruth[]=[]; if(requiresProvider)result.push('provider_required'); if(mode==='information')result.push('source_required'); if(requiresPayment)result.push('user_confirmation_required'); if(mode==='safety'||mode==='coordination')result.push('system_action'); if(requiresEvidence)result.push('user_confirmation_required'); return Array.from(new Set(result)); }
 
-function truthBoundary(mode: SkillExecutionMode, requiresProvider: boolean, requiresEvidence: boolean, requiresPayment: boolean): SkillExecutionTruth[] {
-  const result: SkillExecutionTruth[] = [];
-  if (requiresProvider) result.push('provider_required');
-  if (mode === 'information') result.push('source_required');
-  if (requiresPayment) result.push('user_confirmation_required');
-  if (mode === 'safety' || mode === 'coordination') result.push('system_action');
-  if (requiresEvidence) result.push('user_confirmation_required');
-  return Array.from(new Set(result));
+export function buildSkillExecutionContract(skill:string):SkillExecutionContract {
+  const normalized=skill.trim().toLowerCase(); const extension=getSkillExtension(normalized); const pack=getConvergedSkillBehaviour(normalized); const category=extension?.category||getEconomicCategory(normalized); const mode=extension?.mode||inferMode(category,normalized);
+  const baseRequirements=getSkillRequirements(normalized); let requirements=extension?.requirements?.length?extension.requirements.map((label,index)=>({key:`skill_requirement_${index+1}`,label,required:true})):baseRequirements.map(r=>({key:r.key,label:r.label,required:Boolean(r.required)}));
+  if(category==='transport-mobility'&&!requirements.some(r=>r.key==='vehicle_type')) requirements=[...requirements,{key:'vehicle_type',label:'Vehicle preference',required:false}];
+  const baseCapabilities=getSkillCapabilities(normalized).map(String); const capabilities=extension?.capabilities?.length?extension.capabilities.map(String):baseCapabilities;
+  const requiresProvider=extension?mode==='economic'||capabilities.some(c=>['availability','fulfillment','tracking','quote','reservation','discovery'].includes(c)):mode==='economic'||['reservation','availability','fulfillment','tracking','quote'].some(c=>capabilities.includes(c));
+  const commercial=pack?.commercial||''; const requiresPayment=capabilities.includes('payment')||capabilities.includes('escrow')||['transaction','mixed','quote'].includes(commercial); const requiresEvidence=capabilities.includes('evidence')||Boolean(pack?.completionEvidence?.length)||Boolean(extension?.evidence?.length);
+  const completionEvidence=pack?.completionEvidence?.length?[...pack.completionEvidence]:extension?.evidence?.length?[...extension.evidence]:mode==='information'?['authoritative source or persisted answer']:mode==='coordination'?['canonical action state or confirmation']:['provider fulfilment or explicit canonical completion state'];
+  const failureModes=pack?.failureModes?.length?[...pack.failureModes]:extension?.failureModes?.length?[...extension.failureModes]:[mode==='information'?'authoritative source unavailable':mode==='safety'?'service or safety route unavailable':requiresProvider?'no eligible provider or provider unavailable':'required information missing'];
+  const memoryKeys=Array.from(new Set(['location','country','timezone','preferred_channel','communication_style',...(extension?.memoryKeys||[]),...(['transport-mobility','tourism-travel','government-civic','property-real-estate'].includes(category||'')?['address']:[]),...((mode==='economic'||mode==='coordination')?['preferences']:[])]));
+  const interaction=inferInteraction(category,mode,capabilities);
+  return {skill:normalized,category:category||null,mode,requirements,capabilities,instructions:pack?.instructions?.length?[...pack.instructions]:[],completionEvidence,failureModes,memoryKeys,truthBoundary:truthBoundary(mode,requiresProvider,requiresEvidence,requiresPayment),requiresProvider,requiresPayment,requiresEvidence,completionCondition:mode==='information'?'Respond only from authoritative or explicitly qualified source information.':mode==='safety'?'Do not claim a response or dispatch occurred without canonical evidence.':mode==='coordination'?'Complete only when the canonical coordination/action state confirms the outcome.':'Complete only when provider, payment, execution and required evidence states are satisfied.',interaction};
 }
-
-export function buildSkillExecutionContract(skill: string): SkillExecutionContract {
-  const normalized = skill.trim().toLowerCase();
-  const extension = getSkillExtension(normalized);
-  const pack = getConvergedSkillBehaviour(normalized);
-  const category = extension?.category || getEconomicCategory(normalized);
-  const mode = extension?.mode || inferMode(category, normalized);
-  const baseRequirements = getSkillRequirements(normalized);
-  const requirements = extension?.requirements?.length
-    ? extension.requirements.map((label, index) => ({ key: `skill_requirement_${index + 1}`, label, required: true }))
-    : baseRequirements.map(requirement => ({ key: requirement.key, label: requirement.label, required: Boolean(requirement.required) }));
-  const baseCapabilities = getSkillCapabilities(normalized).map(String);
-  const capabilities = extension?.capabilities?.length ? extension.capabilities.map(String) : baseCapabilities;
-  const requiresProvider = extension
-    ? mode === 'economic' || capabilities.some(capability => ['availability', 'fulfillment', 'tracking', 'quote', 'reservation', 'discovery'].includes(capability))
-    : mode === 'economic' || ['reservation', 'availability', 'fulfillment', 'tracking', 'quote'].some(capability => capabilities.includes(capability));
-  const commercial = pack?.commercial || '';
-  const requiresPayment = capabilities.includes('payment') || capabilities.includes('escrow') || ['transaction', 'mixed', 'quote'].includes(commercial);
-  const requiresEvidence = capabilities.includes('evidence') || Boolean(pack?.completionEvidence?.length) || Boolean(extension?.evidence?.length);
-  const completionEvidence = pack?.completionEvidence?.length ? [...pack.completionEvidence] : extension?.evidence?.length ? [...extension.evidence] : mode === 'information' ? ['authoritative source or persisted answer'] : mode === 'coordination' ? ['canonical action state or confirmation'] : ['provider fulfilment or explicit canonical completion state'];
-  const failureModes = pack?.failureModes?.length ? [...pack.failureModes] : extension?.failureModes?.length ? [...extension.failureModes] : [mode === 'information' ? 'authoritative source unavailable' : mode === 'safety' ? 'service or safety route unavailable' : requiresProvider ? 'no eligible provider or provider unavailable' : 'required information missing'];
-  const memoryKeys = Array.from(new Set(['location', 'country', 'timezone', 'preferred_channel', 'communication_style', ...(extension?.memoryKeys || []), ...(['transport-mobility', 'tourism-travel', 'government-civic', 'property-real-estate'].includes(category || '') ? ['address'] : []), ...((mode === 'economic' || mode === 'coordination') ? ['preferences'] : [])]));
-  return { skill: normalized, category: category || null, mode, requirements, capabilities, instructions: pack?.instructions?.length ? [...pack.instructions] : [], completionEvidence, failureModes, memoryKeys, truthBoundary: truthBoundary(mode, requiresProvider, requiresEvidence, requiresPayment), requiresProvider, requiresPayment, requiresEvidence,
-    completionCondition: mode === 'information' ? 'Respond only from authoritative or explicitly qualified source information.' : mode === 'safety' ? 'Do not claim a response or dispatch occurred without canonical evidence.' : mode === 'coordination' ? 'Complete only when the canonical coordination/action state confirms the outcome.' : 'Complete only when provider, payment, execution and required evidence states are satisfied.',
-    interaction: inferInteraction(category, mode, capabilities, normalized),
-  };
-}
-
-export function buildSkillExecutionContractPrompt(contract: SkillExecutionContract): string { return [
-  '--- Canonical skill execution contract (never expose internal labels) ---', `skill=${contract.skill}`, `mode=${contract.mode}`, `provider_required=${contract.requiresProvider}`, `payment_required=${contract.requiresPayment}`, `evidence_required=${contract.requiresEvidence}`, `truth_boundary=${contract.truthBoundary.join(',')}`, `required_information=${contract.requirements.filter(item => item.required).map(item => item.label).join('; ') || 'none'}`, `completion_evidence=${contract.completionEvidence.join('; ')}`, `failure_modes=${contract.failureModes.join('; ')}`, `completion_condition=${contract.completionCondition}`, `interaction_pattern=${contract.interaction.pattern}`, `match_event=${contract.interaction.matchEvent}`, `commitment_event=${contract.interaction.commitmentEvent}`, `completion_event=${contract.interaction.completionEvent}`, `revenue_events=${contract.interaction.revenueEvents.join('; ') || 'none'}`, '--- End canonical skill execution contract ---',
-].join('\n'); }
-export function getSkillExecutionContracts(skills: string[]): SkillExecutionContract[] { return Array.from(new Set(skills.map(skill => skill.trim().toLowerCase()).filter(Boolean))).map(buildSkillExecutionContract); }
+export function buildSkillExecutionContractPrompt(contract:SkillExecutionContract):string{return['--- Canonical skill execution contract (never expose internal labels) ---',`skill=${contract.skill}`,`mode=${contract.mode}`,`provider_required=${contract.requiresProvider}`,`payment_required=${contract.requiresPayment}`,`evidence_required=${contract.requiresEvidence}`,`truth_boundary=${contract.truthBoundary.join(',')}`,`required_information=${contract.requirements.filter(i=>i.required).map(i=>i.label).join('; ')||'none'}`,`completion_evidence=${contract.completionEvidence.join('; ')}`,`failure_modes=${contract.failureModes.join('; ')}`,`completion_condition=${contract.completionCondition}`,`interaction_pattern=${contract.interaction.pattern}`,`match_event=${contract.interaction.matchEvent}`,`commitment_event=${contract.interaction.commitmentEvent}`,`completion_event=${contract.interaction.completionEvent}`,`revenue_events=${contract.interaction.revenueEvents.join('; ')||'none'}`,'--- End canonical skill execution contract ---'].join('\n');}
+export function getSkillExecutionContracts(skills:string[]):SkillExecutionContract[]{return Array.from(new Set(skills.map(skill=>skill.trim().toLowerCase()).filter(Boolean))).map(buildSkillExecutionContract);}
