@@ -34,7 +34,12 @@ try {
   const activation = await activateConfiguredExternalProviders();
   const names = activation.results.map(result => result.provider).sort();
   assert.deepEqual(names, ['email', 'fcm', 'mistral', 'stripe', 'telegram', 'whatsapp']);
-  assert.equal(activation.results.every(result => result.configured && result.activated && result.verified), true);
+  assert.equal(activation.results.filter(result => result.provider !== 'fcm').every(result => result.configured && result.activated && result.verified), true);
+  const fcm = activation.results.find(result => result.provider === 'fcm');
+  assert.ok(fcm);
+  assert.equal(fcm?.configured, false);
+  assert.equal(fcm?.activated, false);
+  assert.equal(fcm?.verified, false);
   const mistral = activation.results.find(result => result.provider === 'mistral');
   assert.ok(mistral?.detail.includes('Mistral'));
   const whatsapp = activation.results.find(result => result.provider === 'whatsapp');
