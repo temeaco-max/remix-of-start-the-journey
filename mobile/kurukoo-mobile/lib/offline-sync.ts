@@ -1,7 +1,7 @@
 import { AppState, Platform } from "react-native";
 import { getApiBaseUrl } from "@/constants/oauth";
 import { streamChatMessage } from "@/lib/chat-client";
-import { flushOfflineQueue, type PendingOfflineAction, type OfflineQueueProcessor } from "@/lib/offline-queue";
+import { flushOfflineQueue, type PendingOfflineAction } from "@/lib/offline-queue";
 import { haptic } from "@/lib/haptics";
 
 let started = false;
@@ -20,12 +20,7 @@ async function hasConnectivity(): Promise<boolean> {
 
 async function processAction(action: PendingOfflineAction): Promise<void> {
   if (action.kind === "chat") {
-    const result = await streamChatMessage({
-      message: action.message,
-      conversationId: action.conversationId,
-      contextAction: action.contextAction,
-      onEvent: () => undefined,
-    });
+    const result = await streamChatMessage({ message: action.message, conversationId: action.conversationId, contextAction: action.contextAction, onEvent: () => undefined, queueOnFailure: false });
     if (!result.reply.trim()) throw new Error("Queued chat message did not receive a response.");
     return;
   }
@@ -51,12 +46,10 @@ export function startMobileOfflineSync(): () => void {
   if (started) return () => undefined;
   started = true;
   void flushMobileOfflineQueue();
-
   const trigger = () => { void flushMobileOfflineQueue(); };
   stopTimer = setInterval(trigger, 20_000);
   if (Platform.OS !== "web") appStateSubscription = AppState.addEventListener("change", (state) => { if (state === "active") trigger(); });
   else if (typeof window !== "undefined") window.addEventListener("online", trigger);
-
   return () => {
     started = false;
     if (stopTimer) clearInterval(stopTimer);
