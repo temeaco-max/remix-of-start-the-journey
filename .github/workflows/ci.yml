@@ -43,6 +43,8 @@ jobs:
         run: npx tsx scripts/test-unknown-intent-review.ts
       - name: AI runtime controls contract
         run: npx tsx scripts/test-ai-runtime-controls.ts
+      - name: Discover experience contract
+        run: npx tsx scripts/test-discover-experience.ts
       - name: Bin-day end-to-end contract
         run: npx tsx scripts/test-bin-day-outcome.ts
       - name: Catalogue inventory matcher contract
