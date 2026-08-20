@@ -35,14 +35,15 @@ async function telegram(): Promise<ExternalActivationResult> {
 async function whatsapp(): Promise<ExternalActivationResult> {
   const token = String(process.env.WHATSAPP_TOKEN || '').trim();
   const phoneNumberId = String(process.env.WHATSAPP_PHONE_NUMBER_ID || '').trim();
+  const graphVersion = String(process.env.WHATSAPP_GRAPH_API_VERSION || 'v23.0').trim().replace(/^v?/, 'v');
   if (!token || !phoneNumberId) return { provider: 'whatsapp', configured: false, activated: false, verified: false, detail: 'WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID are required.' };
-  const response = await fetch(`https://graph.facebook.com/v18.0/${encodeURIComponent(phoneNumberId)}?fields=id,display_phone_number,verified_name`, { headers: { Authorization: `Bearer ${token}` } });
+  const response = await fetch(`https://graph.facebook.com/${graphVersion}/${encodeURIComponent(phoneNumberId)}?fields=id,display_phone_number,verified_name`, { headers: { Authorization: `Bearer ${token}` } });
   const body = await response.json().catch(() => ({})) as any;
   if (!response.ok) return { provider: 'whatsapp', configured: true, activated: false, verified: false, detail: String(body?.error?.message || `WhatsApp phone-number lookup failed (${response.status}).`) };
-  const subscription = await fetch(`https://graph.facebook.com/v18.0/${encodeURIComponent(phoneNumberId)}/subscribed_apps`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+  const subscription = await fetch(`https://graph.facebook.com/${graphVersion}/${encodeURIComponent(phoneNumberId)}/subscribed_apps`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
   const subscriptionBody = await subscription.json().catch(() => ({})) as any;
   return subscription.ok
-    ? { provider: 'whatsapp', configured: true, activated: true, verified: true, detail: `WhatsApp Cloud phone ${body?.display_phone_number || phoneNumberId} authenticated and app subscription activated.`, externalReference: String(body?.id || phoneNumberId) }
+    ? { provider: 'whatsapp', configured: true, activated: true, verified: true, detail: `WhatsApp Cloud phone ${body?.display_phone_number || phoneNumberId} authenticated and app subscription activated using ${graphVersion}.`, externalReference: String(body?.id || phoneNumberId) }
     : { provider: 'whatsapp', configured: true, activated: false, verified: true, detail: String(subscriptionBody?.error?.message || `WhatsApp app subscription failed (${subscription.status}).`) };
 }
 
