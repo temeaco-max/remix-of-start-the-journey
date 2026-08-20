@@ -6,9 +6,9 @@ const customerPhone = `ci_customer_${Date.now()}@example.com`;
 const providerPhone = `ci_provider_${Date.now()}@example.com`;
 const db = await getDb();
 try {
-  const session = await createProviderCommunicationSession({ customerPhone, providerPhone, economicRequestId: 'ci-economic-request', mode: 'masked_call' });
+  const session = await createProviderCommunicationSession({ customerPhone, providerPhone, economicRequestId: 'ci-economic-request', mode: 'webrtc_tracking' });
   assert.equal(session.customerPhone, customerPhone);
-  assert.ok(session.proxyPhone);
+  assert.ok(session.trackingBridgeId);
   const connected = await updateProviderCommunicationState(session.id, 'connected');
   assert.equal(connected.state, 'connected');
   const located = await recordProviderLocation(session.id, 6.6018, 3.3515);
@@ -18,9 +18,8 @@ try {
   assert.equal(fetched?.providerPhone, providerPhone);
   const ended = await endProviderCommunicationSession(session.id);
   assert.equal(ended.state, 'ended');
-  console.log(JSON.stringify({ passed: true, sessionId: session.id, masked: Boolean(session.proxyPhone) }, null, 2));
+  console.log(JSON.stringify({ passed: true, sessionId: session.id, trackingBridge: session.trackingBridgeId }, null, 2));
 } finally {
   db.run('DELETE FROM provider_communication_sessions WHERE customer_phone=? OR provider_phone=?', [customerPhone, providerPhone]);
-  db.run('DELETE FROM privacy_bridge WHERE real_phone IN (?, ?)', [customerPhone, providerPhone]);
   saveDb(true);
 }
