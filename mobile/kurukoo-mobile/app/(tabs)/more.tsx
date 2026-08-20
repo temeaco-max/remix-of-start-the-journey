@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { ActionButton, SectionCard, StatusPill, SurfaceHeader } from "@/components/kurukoo-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { haptic } from "@/lib/haptics";
 
 const links = [
   { title: "Capability Portfolio", detail: "Your multi-skill identity, Pulse, agents, voice and artifacts", state: "Ready", route: "/surface/capabilities" },
@@ -27,6 +28,12 @@ export default function MoreScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <SurfaceHeader eyebrow="Your Kurukoo" title="Everything stays connected" right={<StatusPill label="Available" tone="success" />} />
         <Text style={[styles.intro, { color: colors.muted }]}>Your conversations, reminders and saved context stay connected to your profile. Choose a surface without leaving the operating system.</Text>
+        <SectionCard style={[styles.qrCard, { borderColor: colors.primary }]}>
+          <Text style={[styles.kicker, { color: colors.primary }]}>Context entry</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Scan a Kurukoo QR code</Text>
+          <Text style={[styles.detail, { color: colors.muted }]}>Open signed, expiring offer, network, contributor, location or referral contexts directly from your phone.</Text>
+          <ActionButton label="Scan QR code" onPress={() => { haptic.light(); router.push("/qr-scanner"); }} />
+        </SectionCard>
         {links.map((item) => (
           <SectionCard key={item.title}>
             <View style={styles.header}><View style={styles.copy}><Text style={[styles.title, { color: colors.foreground }]}>{item.title}</Text><Text style={[styles.detail, { color: colors.muted }]}>{item.detail}</Text></View><StatusPill label={item.state} tone={item.state === "Available" ? "success" : "neutral"} /></View>
@@ -42,6 +49,7 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   content: { paddingBottom: 30, gap: 16 },
   intro: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 22 },
+  qrCard: { borderWidth: 1 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
   copy: { flex: 1, gap: 6 },
   kicker: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.7, textTransform: "uppercase" },
