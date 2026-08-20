@@ -1,4 +1,12 @@
 (() => {
+  if (document.body?.classList.contains('k-public-page') && !document.querySelector('link[data-kurukoo-os-public]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/css/kurukoo-os-public-surface.css?v=1';
+    link.dataset.kurukooOsPublic = '';
+    document.head.appendChild(link);
+  }
+
   const toggle = document.getElementById('mobile-toggle-btn');
   const nav = document.getElementById('main-nav-links');
   const overlay = document.getElementById('mobile-nav-overlay');
