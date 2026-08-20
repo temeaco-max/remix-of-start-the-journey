@@ -1,5 +1,6 @@
 import { getDb } from '../database.js';
 import { getAllCatalogueSkillNames } from './skillCatalogueConvergence.js';
+import { searchCatalogueProducts } from './catalogueSourceRegistry.js';
 
 export interface CatalogueInventoryItem {
   providerPhone: string;
@@ -13,13 +14,15 @@ export interface CatalogueInventoryItem {
   price?: number;
   currency?: string;
   rating?: number;
-  source: 'provider_skill_products';
+  source: 'provider_skill_products' | 'catalogue_source';
+  sourceId?: string;
+  sourceType?: string;
+  sourceUrl?: string;
 }
 
 function normalize(value: unknown): string {
   return String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
-
 function parseProducts(value: unknown): Array<Record<string, unknown>> {
   if (!value) return [];
   try {
@@ -29,11 +32,7 @@ function parseProducts(value: unknown): Array<Record<string, unknown>> {
   } catch {}
   return [];
 }
-
-function terms(query: string): string[] {
-  return normalize(query).split(' ').filter(term => term.length >= 2);
-}
-
+function terms(query: string): string[] { return normalize(query).split(' ').filter(term => term.length >= 2); }
 function scoreProduct(productName: string, queryTerms: string[]): { score: number; matched: string[] } {
   const normalized = normalize(productName);
   if (!normalized || !queryTerms.length) return { score: 0, matched: [] };
@@ -44,13 +43,7 @@ function scoreProduct(productName: string, queryTerms: string[]): { score: numbe
   return { score: exact + coverage, matched: unique };
 }
 
-export async function matchCatalogueInventory(options: {
-  query: string;
-  skill?: string;
-  location?: string;
-  max?: number;
-  requireVerified?: boolean;
-}): Promise<CatalogueInventoryItem[]> {
+export async function matchCatalogueInventory(options: { query: string; skill?: string; location?: string; max?: number; requireVerified?: boolean }): Promise<CatalogueInventoryItem[]> {
   const query = normalize(options.query);
   if (!query) return [];
   const db = await getDb();
@@ -98,11 +91,37 @@ export async function matchCatalogueInventory(options: {
     }
   }
   stmt.free();
+
+  const catalogueRows = await searchCatalogueProducts({ query, category: requestedSkill || undefined, location: options.location, limit: max, verifiedOnly: options.requireVerified !== false });
+  for (const item of catalogueRows) {
+    const scored = scoreProduct(item.title, queryTerms);
+    if (scored.score < 0.4) continue;
+    rows.push({
+      providerPhone: String(item.providerPhone || ''),
+      providerName: item.ownerPartyId || item.sourceType === 'affiliate' ? String(item.ownerPartyId || item.sourceType) : 'Kurukoo catalogue',
+      skill: requestedSkill || String(item.category || 'product_sourcing'),
+      product: item.title,
+      matchedTerms: scored.matched,
+      available: item.available && (item.stock === undefined || item.stock > 0),
+      verified: item.verified,
+      location: item.location,
+      price: item.price,
+      currency: item.currency,
+      rating: 0,
+      source: 'catalogue_source',
+      sourceId: item.sourceId,
+      sourceType: item.sourceType,
+      sourceUrl: item.sourceUrl,
+    });
+  }
+
   return rows
     .filter(item => item.available)
     .sort((a, b) => {
       const termDelta = b.matchedTerms.length - a.matchedTerms.length;
       if (termDelta) return termDelta;
+      const verifiedDelta = Number(b.verified) - Number(a.verified);
+      if (verifiedDelta) return verifiedDelta;
       return Number(b.rating || 0) - Number(a.rating || 0);
     })
     .slice(0, max);
