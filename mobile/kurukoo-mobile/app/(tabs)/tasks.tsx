@@ -8,12 +8,17 @@ import { tasks } from "@/lib/kurukoo-data";
 import { useColors } from "@/hooks/use-colors";
 import { useKurukooContext } from "@/lib/kurukoo-context";
 import { scheduleTaskContinuation } from "@/lib/notifications";
+import { haptic } from "@/lib/haptics";
+import { listPendingOfflineActions } from "@/lib/offline-queue";
 
 export default function TasksScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { state, setActiveTask, toggleTaskPaused } = useKurukooContext();
+  const { state, setActiveTask, toggleTaskPaused, completeTask } = useKurukooContext();
   const [reminderStatus, setReminderStatus] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const refreshPendingCount = () => { void listPendingOfflineActions().then((items) => setPendingCount(items.filter((item) => item.kind === "task").length)); };
 
   const remindMe = async (task: (typeof tasks)[number]) => {
     const notificationId = await scheduleTaskContinuation(task);
@@ -25,20 +30,29 @@ export default function TasksScreen() {
     router.push("/(tabs)");
   };
 
+  const finishTask = (task: (typeof tasks)[number]) => {
+    completeTask(task.id, task.title);
+    haptic.success();
+    setReminderStatus(`${task.title} marked complete. It will reconcile automatically when connectivity is available.`);
+    refreshPendingCount();
+  };
+
   return (
     <ScreenContainer className="px-5 pt-3" edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.content}>
         <SurfaceHeader eyebrow="Workspace" title="Tasks" right={<StatusPill label={`${tasks.length} active`} tone="warning" />} />
         <Text style={[styles.intro, { color: colors.muted }]}>Kurukoo keeps longer-running work here while your conversation stays available. You remain in control of every next step.</Text>
+        {pendingCount ? <View style={[styles.pendingBand, { borderColor: colors.border, backgroundColor: `${colors.primary}10` }]}><StatusPill label={`${pendingCount} pending`} tone="warning" /><Text style={[styles.pendingText, { color: colors.muted }]}>Task updates are safely stored on this device and will be processed when connectivity returns.</Text></View> : null}
         {state.activeContext ? <ContinuityBand contextLabel={state.activeContext.kind === "task" ? "Task" : "Conversation"} contextId={state.activeContext.id} evidence="The active context is preserved when you return to Chat. Actions remain owner-scoped and policy-bound." action={<ActionButton label="Open active context" variant="ghost" onPress={() => router.push("/(tabs)")} />} /> : null}
         {tasks.map((task) => {
           const isPaused = state.pausedTaskIds.includes(task.id);
+          const isComplete = state.completedTaskIds.includes(task.id);
           const isActive = state.activeContext?.kind === "task" && state.activeContext.id === task.id;
           return (
             <SectionCard key={task.id}>
-              <View style={styles.header}><View style={styles.copy}><Text style={[styles.kicker, { color: colors.primary }]}>{isPaused ? "Paused" : task.state}</Text><Text style={[styles.title, { color: colors.foreground }]}>{task.title}</Text></View><StatusPill label={isActive ? "In Chat" : isPaused ? "Paused" : "Running"} tone={isPaused ? "neutral" : "success"} /></View>
+              <View style={styles.header}><View style={styles.copy}><Text style={[styles.kicker, { color: colors.primary }]}>{isComplete ? "Complete" : isPaused ? "Paused" : task.state}</Text><Text style={[styles.title, { color: colors.foreground }]}>{task.title}</Text></View><StatusPill label={isComplete ? "Complete" : isActive ? "In Chat" : isPaused ? "Paused" : "Running"} tone={isComplete ? "success" : isPaused ? "neutral" : "success"} /></View>
               <Text style={[styles.detail, { color: colors.muted }]}>{task.detail}</Text>
-              <View style={styles.actions}><ActionButton label={isPaused ? "Resume" : "Pause"} variant="secondary" onPress={() => toggleTaskPaused(task.id)} /><ActionButton label="Open in Chat" variant="ghost" onPress={() => openTaskInChat(task)} /><ActionButton label="Remind me" variant="ghost" onPress={() => void remindMe(task)} /></View>
+              <View style={styles.actions}>{!isComplete ? <ActionButton label={isPaused ? "Resume" : "Pause"} variant="secondary" onPress={() => { haptic.light(); toggleTaskPaused(task.id, task.title); refreshPendingCount(); }} /> : null}{!isComplete ? <ActionButton label="Complete" onPress={() => finishTask(task)} /> : null}<ActionButton label="Open in Chat" variant="ghost" onPress={() => openTaskInChat(task)} /><ActionButton label="Remind me" variant="ghost" onPress={() => void remindMe(task)} /></View>
             </SectionCard>
           );
         })}
@@ -52,6 +66,8 @@ export default function TasksScreen() {
 const styles = StyleSheet.create({
   content: { paddingBottom: 30, gap: 16 },
   intro: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 22 },
+  pendingBand: { borderWidth: 1, borderRadius: 14, padding: 11, gap: 6 },
+  pendingText: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
   copy: { flex: 1, gap: 4 },
   kicker: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.7, textTransform: "uppercase" },
