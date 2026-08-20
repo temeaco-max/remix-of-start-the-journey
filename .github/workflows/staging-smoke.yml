@@ -44,6 +44,7 @@ jobs:
         run: npm run fasttext:build && npm run fasttext:test
       - name: Convergence regressions
         run: |
+          npx tsx scripts/audit-manus-merge-equivalence.ts
           npm run test:agent-inference-budget
           npm run test:provider-credential-controls
           npm run test:high-write-persistence
