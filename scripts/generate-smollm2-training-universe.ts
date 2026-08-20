@@ -1,14 +1,15 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { getEconomicCategory, getKnownSkills, getSkillCapabilities, getSkillFlow } from '../src/services/skillFlows.js';
+import { getAllConvergedSkillNames, getConvergedSkillBehaviour } from '../src/services/skillBehaviourConvergence.js';
+import { buildSkillExecutionContract } from '../src/services/skillExecutionContract.js';
 
-const datasetVersion = String(process.env.KURUKOO_DATASET_VERSION || 'kurukoo-core-v1');
+const datasetVersion = String(process.env.KURUKOO_DATASET_VERSION || 'kurukoo-core-v2');
 const outputDir = path.join(process.cwd(), 'ml', 'datasets');
 const actors = ['consumer', 'provider', 'business', 'contributor', 'agent', 'support_operator'];
 const channels = ['web_chat', 'pwa', 'whatsapp', 'telegram', 'sms', 'ussd', 'email', 'voice', 'linked_device'];
 const locales = ['ng:en', 'ng:pidgin', 'ng:hausa-influenced', 'gh:en', 'gb:en', 'ca:en', 'ca:fr'];
-const surfaces = ['memory', 'reminders', 'notifications', 'points', 'subscriptions', 'topics', 'media', 'support', 'products', 'orders', 'cart', 'discovery', 'provider_interaction', 'safety', 'consent', 'payment_boundary', 'locale', 'dialect'];
+const surfaces = ['memory', 'reminders', 'notifications', 'points', 'subscriptions', 'topics', 'media', 'support', 'products', 'orders', 'cart', 'discovery', 'provider_interaction', 'safety', 'consent', 'payment_boundary', 'locale', 'dialect', 'agent_representation', 'commercial_ledger'];
 const variants = [
   { key: 'normal', user: (skill: string) => `I need help with ${skill.replaceAll('_', ' ')}.`, lifecycle: 'requested' },
   { key: 'ambiguity', user: (skill: string) => `Can you handle ${skill.replaceAll('_', ' ')} for me, or do I need to find someone myself?`, lifecycle: 'clarifying' },
@@ -21,40 +22,48 @@ const variants = [
   { key: 'linked_device', user: (skill: string) => `I am continuing my ${skill.replaceAll('_', ' ')} request from a linked device. Keep the same identity and object context.`, lifecycle: 'resumed' },
 ];
 
-function createExample(skill: string, skillIndex: number, index: number, flow: Awaited<ReturnType<typeof getSkillFlow>>) {
+function createExample(skill: string, skillIndex: number, index: number) {
+  const contract = buildSkillExecutionContract(skill);
+  const pack = getConvergedSkillBehaviour(skill);
   const ordinal = skillIndex * variants.length + index;
   const variant = variants[index % variants.length];
   const actor = actors[ordinal % actors.length];
   const channel = channels[ordinal % channels.length];
   const locale = locales[ordinal % locales.length];
   const surface = surfaces[ordinal % surfaces.length];
-  const capabilities = getSkillCapabilities(skill);
-  const category = getEconomicCategory(skill);
-  const requirementKeys = (flow?.requirements || []).map((requirement) => requirement.key);
   return {
     exampleId: `${datasetVersion}:${skill}:${variant.key}:${index}`,
     datasetVersion,
     messages: [
       { role: 'user', content: variant.user(skill), actor, channel, locale },
-      { role: 'assistant', content: 'Interpret the objective, preserve active context, gather only the required information, and state any unavailable capability or external dependency truthfully.', mode: 'semantic_interpreter' },
+      { role: 'assistant', content: 'Interpret the objective, preserve active context, gather only the required information, use Memory Profile context without exposing provenance, and state any unavailable capability or external dependency truthfully.', mode: 'semantic_interpreter' },
     ],
     labels: {
       skill,
-      family: category || 'uncategorized',
-      mode: flow?.mode || 'economic',
+      family: contract.category || 'uncategorized',
+      mode: contract.mode,
       variant: variant.key,
       lifecycle: variant.lifecycle,
-      capabilities,
-      requirementKeys,
+      capabilities: contract.capabilities,
+      requirementKeys: contract.requirements.map(requirement => requirement.key),
+      requiredInformation: contract.requirements.filter(requirement => requirement.required).map(requirement => requirement.label),
+      memoryKeys: contract.memoryKeys,
+      completionEvidence: contract.completionEvidence,
+      failureModes: contract.failureModes,
+      truthBoundary: contract.truthBoundary,
+      requiresProvider: contract.requiresProvider,
+      requiresPayment: contract.requiresPayment,
+      requiresEvidence: contract.requiresEvidence,
       actor,
       channel,
       locale,
       surface,
       canonicalEntry: 'canonicalChatTurnService',
       authorityBoundary: 'canonical_domain_services',
-      forbiddenClaims: ['invented availability', 'invented provider verification', 'invented payment', 'invented evidence', 'direct state mutation by model'],
+      behaviourInstructionCount: pack.instructions.length,
+      forbiddenClaims: ['invented availability', 'invented provider verification', 'invented payment', 'invented evidence', 'direct state mutation by model', 'fabricated Memory Profile facts'],
     },
-    provenance: { source: 'canonical Kurukoo ontology', generatedBy: 'deterministic repository generator', teacherGenerated: false, productionUserData: false, reviewed: false },
+    provenance: { source: 'canonical Kurukoo converged skill catalogue', generatedBy: 'deterministic repository generator', teacherGenerated: false, productionUserData: false, reviewed: false },
     quality: { status: 'candidate', requiresReview: true, scenarioFamily: 'outcome-first-context-arbitration' },
     privacy: { containsPersonalData: false, synthetic: true },
   };
@@ -66,12 +75,9 @@ function hashFile(filePath: string) {
 function writeJsonl(filePath: string, rows: unknown[]) { fs.writeFileSync(filePath, `${rows.map((row) => JSON.stringify(row)).join('\n')}\n`); }
 
 fs.mkdirSync(outputDir, { recursive: true });
-const rows: ReturnType<typeof createExample>[] = [];
-for (const [skillIndex, skill] of getKnownSkills().entries()) {
-  const flow = await getSkillFlow(skill);
-  for (let index = 0; index < variants.length; index += 1) rows.push(createExample(skill, skillIndex, index, flow));
-}
-const splitFor = (row: ReturnType<typeof createExample>) => {
+const skills = getAllConvergedSkillNames();
+const rows = skills.flatMap((skill, skillIndex) => variants.map((_, index) => createExample(skill, skillIndex, index)));
+const splitFor = (row: (typeof rows)[number]) => {
   const bucket = crypto.createHash('sha256').update(row.exampleId).digest().readUInt16BE(0) % 100;
   return bucket < 80 ? 'train' : bucket < 90 ? 'validation' : 'test';
 };
@@ -96,7 +102,7 @@ const manifest = {
   splitCounts: Object.fromEntries(Object.entries(files).filter(([key]) => key !== 'all').map(([key, filePath]) => [key, fs.readFileSync(filePath, 'utf8').trim().split('\n').filter(Boolean).length])),
   fileSha256: Object.fromEntries(Object.entries(files).map(([key, filePath]) => [key, hashFile(filePath)])),
   evaluationSets: { golden: { count: goldenRows.length, status: 'candidate_requires_human_curation' }, adversarial: { count: adversarialRows.length, status: 'candidate_requires_human_curation' } },
-  skillCount: getKnownSkills().length,
+  skillCount: skills.length,
   familyCount: new Set(rows.map((row) => row.labels.family)).size,
   variantCount: variants.length,
   actorCoverage: [...new Set(rows.map((row) => row.labels.actor))],
@@ -104,7 +110,7 @@ const manifest = {
   localeCoverage: [...new Set(rows.map((row) => row.labels.locale))],
   surfaceCoverage: [...new Set(rows.map((row) => row.labels.surface))],
   variantCoverage: [...new Set(rows.map((row) => row.labels.variant))],
-  sourceOfTruth: ['src/services/skillFlows.ts', 'src/services/canonicalChatTurnService.ts', 'src/services/featureFlags.ts'],
+  sourceOfTruth: ['src/services/skillCatalogueConvergence.ts', 'src/services/skillBehaviourConvergence.ts', 'src/services/skillExecutionContract.ts', 'src/services/canonicalChatTurnService.ts', 'src/services/featureFlags.ts'],
   teacherOutputAllowed: true,
   teacherOutputTrustedAutomatically: false,
   productionUserDataIncluded: false,
