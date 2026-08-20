@@ -1,0 +1,86 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { getAllConvergedSkillNames, getLocalSkillExtensions, getConvergedSkillBehaviour } from '../src/services/skillBehaviourConvergence.js';
+import { buildSkillExecutionContract } from '../src/services/skillExecutionContract.js';
+import { classifyAiRoutingSignal } from '../src/services/aiRoutingConvergence.js';
+import { getFastTextRuntimeStatus } from '../src/services/fastTextService.js';
+import { getSmolLM2RuntimeStatus } from '../src/services/smolLm2Service.js';
+import { getExternalIntegrationOperationalStatus } from '../src/services/externalIntegrationOperationalStatus.js';
+
+const requiredFiles = [
+  'src/services/canonicalChatTurnService.ts',
+  'src/services/intentRouter.ts',
+  'src/services/skillFlows.ts',
+  'src/services/skillCatalogueConvergence.ts',
+  'src/services/skillBehaviourConvergence.ts',
+  'src/services/skillBehaviourRuntime.ts',
+  'src/services/skillExecutionContract.ts',
+  'src/services/capabilityRegistry.ts',
+  'src/services/universalCapabilityProtocol.ts',
+  'src/services/memoryProfile.ts',
+  'src/services/agentRuntime.ts',
+  'src/services/commercialLedger.ts',
+  'src/services/outcomeCompleteness.ts',
+  'src/routes/healthRoutes.ts',
+  'src/routes/publicRoutes.ts',
+  'scripts/runtime-smoke.ts',
+];
+
+for (const file of requiredFiles) assert.ok(fs.existsSync(path.join(process.cwd(), file)), `missing canonical owner: ${file}`);
+
+const skills = getAllConvergedSkillNames();
+const localExtensions = getLocalSkillExtensions();
+assert.ok(skills.length >= 239, `converged catalogue unexpectedly shrank: ${skills.length}`);
+assert.equal(new Set(skills).size, skills.length, 'skill ids must remain unique');
+
+const contractFailures: Array<{ skill: string; issue: string }> = [];
+for (const skill of skills) {
+  const pack = getConvergedSkillBehaviour(skill);
+  const contract = buildSkillExecutionContract(skill);
+  if (!pack.instructions.length) contractFailures.push({ skill, issue: 'missing behaviour instructions' });
+  if (!contract.requirements.length) contractFailures.push({ skill, issue: 'missing requirements' });
+  if (!contract.capabilities.length) contractFailures.push({ skill, issue: 'missing capabilities' });
+  if (!contract.completionEvidence.length) contractFailures.push({ skill, issue: 'missing completion evidence' });
+  if (!contract.failureModes.length) contractFailures.push({ skill, issue: 'missing failure/recovery' });
+  if (!contract.memoryKeys.length) contractFailures.push({ skill, issue: 'missing Memory Profile policy' });
+  if (!contract.truthBoundary.length) contractFailures.push({ skill, issue: 'missing truth boundary' });
+}
+assert.equal(contractFailures.length, 0, JSON.stringify(contractFailures.slice(0, 20)));
+
+const routingRegression = [
+  ['hello', 'greeting'],
+  ['thanks', 'thanks'],
+  ['remind me when my bins go out', 'bin_day'],
+  ['my iPhone 13 screen is broken', 'phone_repairer'],
+  ['I need my MacBook repaired', 'laptop_repairer'],
+  ['find a POS agent', 'pos_agent'],
+  ['help me pray', 'prayer'],
+] as const;
+for (const [text, expected] of routingRegression) {
+  const signal = classifyAiRoutingSignal(text);
+  assert.equal(signal.skill || signal.conversationAct, expected, `${text}: routing regression`);
+}
+
+const fasttext = getFastTextRuntimeStatus();
+const smollm2 = getSmolLM2RuntimeStatus();
+const integrations = getExternalIntegrationOperationalStatus();
+
+const report = {
+  generatedAt: new Date().toISOString(),
+  catalogue: {
+    convergedSkills: skills.length,
+    localExtensions: localExtensions.length,
+    deviceRepairSkills: skills.filter(skill => /(?:phone|laptop|tablet|console|tv|smartwatch|earbuds|speaker|appliance|bicycle|motorbike|vehicle)_/.test(skill)).length,
+  },
+  contracts: { skillsChecked: skills.length, failures: contractFailures.length },
+  routing: { regressionCases: routingRegression.length, fastTextModelState: fasttext.modelState, fastTextAvailable: fasttext.available },
+  inference: smollm2,
+  integrations,
+  canonicalOwners: requiredFiles,
+  externalActivationBoundary: 'live payment, external channels, physical providers, connected devices, durable production infrastructure and deployment evidence remain activation gates; no audit result promotes simulation to production truth',
+};
+const outputDir = path.join(process.cwd(), 'data', 'audits');
+fs.mkdirSync(outputDir, { recursive: true });
+fs.writeFileSync(path.join(outputDir, 'platform-convergence.json'), `${JSON.stringify(report, null, 2)}\n`);
+console.log(JSON.stringify(report, null, 2));
