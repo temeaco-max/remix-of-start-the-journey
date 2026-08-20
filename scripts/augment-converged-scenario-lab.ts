@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { getAllConvergedSkillNames, getConvergedSkillBehaviour } from '../src/services/skillBehaviourRegistry.js';
 import { buildSkillExecutionContract } from '../src/services/skillExecutionContract.js';
+import { getKnownSkills } from '../src/services/skillFlows.js';
 
 const outputDir = path.join(process.cwd(), 'data', 'scenario-lab');
 const scenarioPath = path.join(outputDir, 'provider-outcome-scenarios.jsonl');
@@ -28,7 +29,7 @@ function pick<T>(values: readonly T[], key: string): T {
   return values[Number.parseInt(hash(key).slice(0, 8), 16) % values.length];
 }
 
-const baseSkills = new Set((process.env.KURUKOO_BASE_SKILLS || '').split(',').map(v => v.trim()).filter(Boolean));
+const baseSkills = new Set(getKnownSkills());
 const existingRows = fs.existsSync(scenarioPath)
   ? fs.readFileSync(scenarioPath, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line))
   : [];
@@ -94,6 +95,7 @@ if (rows.length) fs.appendFileSync(scenarioPath, `${rows.map(row => JSON.stringi
 const report = {
   generatedAt: new Date().toISOString(),
   baseRows: existingRows.length,
+  baseSkillCount: baseSkills.size,
   convergedSkillCount: convergedSkills.length,
   appendedSkillCount: rows.length,
   appendedSkills: rows.map(row => row.skill),
