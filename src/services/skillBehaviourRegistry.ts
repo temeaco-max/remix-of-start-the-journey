@@ -9,6 +9,8 @@ export interface SkillBehaviourPack {
   validate: string[];
   matching: string[];
   capabilities: string[];
+  mode?: 'economic' | 'information' | 'safety' | 'coordination';
+  commercial?: 'free' | 'paid';
   compound?: { skill: string; when: string; purpose: string }[];
   completionEvidence: string[];
   failureModes: string[];
