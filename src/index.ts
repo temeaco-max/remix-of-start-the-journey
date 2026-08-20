@@ -66,6 +66,7 @@ import topicRoutes from './routes/topicRoutes.js';
 import connectionRoutes from './routes/connectionRoutes.js';
 import savedRoutes from './routes/savedRoutes.js';
 import mcpAppRoutes from './routes/mcpAppRoutes.js';
+import { providerVerificationRoutes, adminProviderVerificationRoutes } from './routes/providerVerificationRoutes.js';
 import { ensureCapabilityPortfolioRegistration } from './services/capabilityPortfolioFoundation.js';
 import { ensureCommercialSchema } from './services/commercialLedger.js';
 import { ensureCommercialCatalog } from './services/commercialCatalogService.js';
@@ -86,8 +87,8 @@ app.use(express.static(path.join(process.cwd(),'public'),{index:false,fallthroug
 app.use(express.json({limit:process.env.CHAT_ATTACHMENT_BODY_LIMIT||'35mb',verify:(req,_res,buf)=>{(req as any).rawBody=Buffer.from(buf);}}));
 app.use('/',systemRoutes); app.use('/',authChallengePublicRoutes); app.use('/',mcpAppRoutes);
 app.use('/api',channelRoutes); app.use('/api',circleRoutes); app.use('/api/economic-requests',economicRequestRouter); app.use('/api/admin/platform',adminPlatformRoutes);
-app.use('/api/admin',adminDisputeRoutes); app.use('/api/admin',adminRoutes); app.use('/api/admin',adminFcmRoutes); app.use('/api/admin/cline',adminClineRoutes);
-app.use('/api',paymentRoutes); app.use('/api',userRoutes); app.use('/api/auth',authRoutes);
+app.use('/api/admin',adminDisputeRoutes); app.use('/api/admin',adminRoutes); app.use('/api/admin',adminFcmRoutes); app.use('/api/admin/cline',adminClineRoutes); app.use('/api/admin',adminProviderVerificationRoutes);
+app.use('/api',paymentRoutes); app.use('/api',userRoutes); app.use('/api/auth',authRoutes); app.use('/api',providerVerificationRoutes);
 app.use('/api/chat',...prayerChatMiddleware);
 app.use('/api/chat',chatRouter);
 app.use('/api/prayer',prayerRoutes);
