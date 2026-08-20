@@ -1,0 +1,25 @@
+/* Public secondary screen-set refinement. Keeps consumer Web distinct from Admin density. */
+.k-public-page{--ps-surface:#fff;--ps-soft:#f7f2ec;--ps-border:#e6ded5;--ps-ink:#24221f;--ps-muted:#6d665f;--ps-accent:#b95d3c;--ps-info:#3c6f91}
+.k-public-page .container,.k-public-page .page-container{min-width:0}
+.k-public-page .page-header-center,.k-public-page .contact-hero,.k-public-page .advertise-hero,.k-public-page .partner-authority-hero{position:relative}
+.k-public-page .page-header-center{padding:8px 0 6px}
+.k-public-page .page-header-center .page-title,.k-public-page .contact-title,.k-public-page .advertise-title,.k-public-page .partner-authority-hero h1{font-family:'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:-.045em;color:var(--ps-ink)}
+.k-public-page .page-header-center .page-desc,.k-public-page .contact-subtitle,.k-public-page .advertise-desc{color:var(--ps-muted);line-height:1.7}
+.k-public-page :where(.k-screen-card,.step-card,.network-card,.contact-card,.placement-box,.resource-hub-section,.career-feature,.job-card,.placements-card,.advertise-cta-box,.partner-authority-grid .k-card,.partner-role-section,.k-trust-band){box-shadow:0 8px 24px rgba(36,34,31,.045)}
+.k-public-page :where(.k-screen-card,.step-card,.network-card,.contact-card,.placement-box,.resource-hub-section,.career-feature,.job-card,.placements-card,.advertise-cta-box){border-color:var(--ps-border)}
+.k-public-page :where(.btn,.btn-primary,.btn-outline,a.button){min-height:44px;border-radius:10px}
+.k-public-page :where(input,textarea,select):focus-visible{outline:3px solid rgba(185,93,60,.18);outline-offset:2px;border-color:var(--ps-accent)}
+.k-route-how-it-works .how-process-summary{margin-top:18px}.k-route-how-it-works .request-boundaries-panel{border-color:var(--ps-border);background:var(--ps-soft);border-radius:16px}.k-route-how-it-works .how-it-works-cta .cta-box{border:1px solid var(--ps-border);box-shadow:0 10px 28px rgba(36,34,31,.06)}
+.k-route-network .k-context-band,.k-route-resources .k-context-band,.k-route-contact .k-context-band{margin:18px 0 22px;border:1px solid var(--ps-border);border-radius:14px;background:var(--ps-soft);box-shadow:none}.k-route-network .network-role-pathways,.k-route-resources .resources-reusable-section{margin-top:18px}.k-route-network .network-card:hover,.k-route-resources .hub-link:hover{transform:none}
+.k-route-resources .resource-hub-section{min-height:100%;}.k-route-resources .latest-guides-section{margin-top:28px}.k-route-resources .latest-guides-section>h2{font-family:'Space Grotesk',Inter,sans-serif;color:var(--ps-ink)}
+.k-route-topics .topics-hero{padding-bottom:6px}.k-route-topics .topics-filter-bar{position:sticky;top:76px;z-index:5}.k-route-topics .topics-list-section,.k-route-topics .topic-detail,.k-route-topics .topic-replies{box-shadow:0 8px 24px rgba(36,34,31,.04);border-radius:14px;background:#fff}
+.k-route-pricing .access-grid{margin-top:18px}.k-route-pricing .access-card{min-height:100%;}.k-route-pricing .access-note{box-shadow:none}
+.k-route-contact .contact-hero{background:var(--ps-soft)}.k-route-contact .contact-card{min-height:100%;padding:22px}
+.k-route-careers .page-hero-careers{border-bottom:1px solid var(--ps-border);background:var(--ps-soft)}.k-route-careers .job-card{display:flex;align-items:center;justify-content:space-between;gap:18px}.k-route-careers .career-feature{background:#fff}
+.k-route-advertise .advertise-hero{background:var(--ps-soft);box-shadow:none}.k-route-advertise .placements-card,.k-route-advertise .advertise-cta-box{padding:22px}.k-route-advertise .placement-box{padding:18px}
+.k-route-legal .k-legal-content{box-shadow:0 8px 24px rgba(36,34,31,.045)}.k-route-legal .k-legal-nav a:focus-visible,.k-route-legal .k-legal-content a:focus-visible{outline:3px solid rgba(185,93,60,.2);outline-offset:3px}
+.k-route-api-docs .api-docs-section,.k-route-api-docs .docs-card,.k-route-api-docs .api-card{box-shadow:0 8px 24px rgba(36,34,31,.045);background:#fff}.k-route-api-docs pre{overflow:auto}
+.k-route-partners .partner-authority-hero{background:var(--ps-soft);box-shadow:none}.k-route-partners .partner-authority-grid .k-card,.k-route-partners .partner-role-section,.k-route-partners .k-trust-band{box-shadow:0 8px 24px rgba(36,34,31,.045)}
+.k-public-page :where(.k-screen-card,.step-card,.network-card,.contact-card,.placement-box,.resource-hub-section,.career-feature,.job-card,.placements-card,.advertise-cta-box,.partner-authority-grid .k-card,.partner-role-section,.k-trust-band):hover{border-color:#d8c9bf}
+@media(max-width:760px){.k-public-page .page-header-center{padding-top:2px}.k-route-careers .job-card{align-items:flex-start;flex-direction:column}.k-route-topics .topics-filter-bar{position:static}.k-route-advertise .placements-card,.k-route-advertise .advertise-cta-box{padding:17px}.k-route-contact .contact-card{padding:18px}}
+@media(prefers-reduced-motion:reduce){.k-public-page *{transition:none!important}}
