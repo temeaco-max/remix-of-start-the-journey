@@ -21,8 +21,11 @@ const required = [
   'src/services/pointsEngine.ts',
   'src/services/privacyBridge.ts',
   'src/routes/webrtcRoutes.ts',
+  'mobile/kurukoo-mobile/lib/platform-contract.ts',
 ];
 for (const relative of required) assert.equal(fs.existsSync(path.join(root, relative)), true, `missing convergence frame: ${relative}`);
 const framework = fs.readFileSync(path.join(root, 'docs/architecture/PLATFORM_CONVERGENCE_FRAMEWORK.md'), 'utf8');
 for (const marker of ['AI Router', 'Discover', 'Revenue paths', 'Channel monetisation', 'Product discovery', 'POS', 'masked call', 'WebRTC']) assert.ok(framework.includes(marker), `framework missing: ${marker}`);
-console.log(JSON.stringify({ passed: true, checked: required.length }, null, 2));
+const mobile = fs.readFileSync(path.join(root, 'mobile/kurukoo-mobile/lib/platform-contract.ts'), 'utf8');
+for (const marker of ['commerce-network', 'catalogue', 'provider-communications']) assert.ok(mobile.includes(marker), `mobile contract missing: ${marker}`);
+console.log(JSON.stringify({ passed: true, checked: required.length, mobile: true }, null, 2));
