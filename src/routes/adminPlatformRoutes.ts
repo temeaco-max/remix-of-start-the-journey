@@ -7,6 +7,7 @@ import { getExternalIntegrationOperationalStatus } from '../services/externalInt
 import { activateConfiguredExternalProviders, probeConfiguredExternalProviders } from '../services/externalActivationService.js';
 import { listAiProviderHealth } from '../services/aiProviderHealth.js';
 import { getAiUsageSummary } from '../services/aiCostTelemetry.js';
+import { listUnknownIntentReviewCandidates, reviewUnknownIntentCandidate } from '../services/unknownIntentReviewService.js';
 
 const router = Router();
 router.use(authenticateAdmin);
@@ -41,6 +42,20 @@ router.get('/external-probe', async (req: AuthRequest, res) => {
 router.get('/ai-usage', async (req: AuthRequest, res) => {
   try { const since = req.query.since ? String(req.query.since) : undefined; res.json({ success: true, contractVersion: 'ai-usage-v1', since: since || null, providerHealth: listAiProviderHealth(), summary: await getAiUsageSummary(since) }); }
   catch (error) { console.error('[AdminPlatform] AI usage failed:', error); res.status(500).json({ success: false, error: 'Unable to load AI usage telemetry.' }); }
+});
+
+router.get('/ai-learning/unknown-intents', async (req: AuthRequest, res) => {
+  try { res.json({ success: true, contractVersion: 'ai-learning-unknown-intents-v1', candidates: await listUnknownIntentReviewCandidates(String(req.query.status || 'pending'), Number(req.query.limit || 100)) }); }
+  catch (error) { console.error('[AdminPlatform] unknown-intent queue failed:', error); res.status(500).json({ success: false, error: 'Unable to load unknown-intent review queue.' }); }
+});
+
+router.post('/ai-learning/unknown-intents/:id/review', async (req: AuthRequest, res) => {
+  try {
+    const id = Number(req.params.id);
+    const decision = req.body?.decision === 'accepted' ? 'accepted' : 'rejected';
+    const ok = await reviewUnknownIntentCandidate(id, String((req as any).admin?.username || (req as any).user?.phone || 'admin'), decision, req.body?.category, req.body?.skill, req.body?.trainingExample, req.body?.note);
+    res.status(ok ? 200 : 404).json({ success: ok, contractVersion: 'ai-learning-review-v1', id, decision });
+  } catch (error) { console.error('[AdminPlatform] unknown-intent review failed:', error); res.status(500).json({ success: false, error: 'Unable to review unknown intent.' }); }
 });
 
 router.get('/health', async (_req: AuthRequest, res) => {
