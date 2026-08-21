@@ -2,7 +2,7 @@ const DEMO_SEED_VERSION = '2026-08-21-webapp-v2';
 
 /** Development-only, idempotent demo data for the canonical operator account. */
 export function seedDemoWorkspaceState(database: any, operatorPhone: string): void {
-  if (process.env.NODE_ENV === 'production') return;
+  if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test') return;
   if (String(process.env.KURUKOO_DEMO_DATA || 'true').toLowerCase() === 'false') return;
 
   const marker = database.exec('SELECT value FROM system_settings WHERE key=?', ['demo_workspace_seed_version']);
@@ -125,13 +125,13 @@ export function seedDemoWorkspaceState(database: any, operatorPhone: string): vo
   }
 
   const microTasks = [
-    ['Verify a local provider profile', 'Check identity, capability and evidence fields.', 'trust', 25, 'available'],
-    ['Review a delivery completion photo', 'Check whether evidence supports the fulfilment claim.', 'evidence', 35, 'available'],
-    ['Classify a community Topic', 'Assign the most useful taxonomy label.', 'content', 15, 'available'],
+    ['Verify a local provider profile', 'Check identity, capability and evidence fields.', 'trust', 25],
+    ['Review a delivery completion photo', 'Check whether evidence supports the fulfilment claim.', 'evidence', 35],
+    ['Classify a community Topic', 'Assign the most useful taxonomy label.', 'content', 15],
   ];
-  for (const [title, description, skillTag, reward, status] of microTasks) {
+  for (const [title, description, skillTag, reward] of microTasks) {
     const exists = database.exec('SELECT id FROM micro_tasks WHERE title=? AND source_type=?', [title, 'demo_seed']);
-    if (!exists[0]?.values?.length) database.run(`INSERT INTO micro_tasks (title,description,skill_tag,credits_reward,status,assigned_to,source_type,source_id,verification_kind) VALUES (?,?,?,?,?,?,?,?,?)`, [title, description, skillTag, reward, status, null, 'demo_seed', `demo-${skillTag}`, 'manual_review']);
+    if (!exists[0]?.values?.length) database.run(`INSERT INTO micro_tasks (title,description,skill_tag,credits_reward,status,source_type,source_id,verification_kind) VALUES (?,?,?,?,?,?,?,?)`, [title, description, skillTag, reward, 'available', 'demo_seed', `demo-${skillTag}`, 'manual_review']);
   }
 
   for (const [key, value] of [
