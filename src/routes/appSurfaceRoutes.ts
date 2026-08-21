@@ -60,6 +60,10 @@ function renderApp(req: express.Request, res: express.Response, section = 'desk'
 router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) }));
 router.use('/api', economicDispatchRoutes);
 
+router.get('/features', (_req, res) => res.render('features'));
+router.get('/developers', (_req, res) => res.render('developers'));
+router.get('/developers/api', (_req, res) => res.render('developers'));
+
 router.get('/chat/:conversationId', (req, res) => {
   res.setHeader('X-Kurukoo-Conversation-Id', String(req.params.conversationId));
   return res.sendFile(path.join(process.cwd(), 'public', 'chat', 'index.html'));
