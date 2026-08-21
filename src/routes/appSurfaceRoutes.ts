@@ -4,7 +4,7 @@ import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.j
 import { getExternalIntegrationReadiness } from '../services/externalIntegrationReadiness.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { getClientSurfaces } from '../services/clientSurfaceRegistry.js';
-import { PLATFORM_FEATURE_VISUAL_CONTRACTS } from '../services/platformFeatureVisualRegistry.js';
+import { getCanonicalDiscoverablePlatformFeatures } from '../services/canonicalPlatformFeatureRegistry.js';
 import { getPageContentContract } from '../services/pageContentContracts.js';
 import economicDispatchRoutes from './economicDispatchRoutes.js';
 
@@ -57,10 +57,10 @@ function renderApp(req: express.Request, res: express.Response, section = 'desk'
   const integrations = getExternalIntegrationReadiness();
   const enabledIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
   const content = getPageContentContract(section);
-  return res.render('app', { selected, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, integrations, enabledIntegrations, integrationCount: integrations.length, visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')), contentContract: content });
+  return res.render('app', { selected, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, integrations, enabledIntegrations, integrationCount: integrations.length, visualFeatures: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')), contentContract: content });
 }
 
-router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) }));
+router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')) }));
 router.use('/api', economicDispatchRoutes);
 
 router.get('/features', (_req, res) => res.render('features'));
@@ -90,7 +90,7 @@ for (const resource of ['requests','tasks','reminders','opportunities','agents',
     if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.originalUrl)}`);
     const section = resource === 'connections' ? 'connect' : resource;
     const selected = surfaceMap.get(section as string) ?? surfaceMap.get('desk')!;
-    return res.render('app', { selected: { ...selected, eyebrow: `${selected.eyebrow} · ${req.params.id}`, description: `${selected.description} This view is scoped to ${req.params.id}.` }, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces: getClientSurfaces('web'), readiness: getPilotReadiness(), integrations: getExternalIntegrationReadiness(), enabledIntegrations: 0, integrationCount: 0, visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')), resourceId: req.params.id, contentContract: getPageContentContract(section) });
+    return res.render('app', { selected: { ...selected, eyebrow: `${selected.eyebrow} · ${req.params.id}`, description: `${selected.description} This view is scoped to ${req.params.id}.` }, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces: getClientSurfaces('web'), readiness: getPilotReadiness(), integrations: getExternalIntegrationReadiness(), enabledIntegrations: 0, integrationCount: 0, visualFeatures: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')), resourceId: req.params.id, contentContract: getPageContentContract(section) });
   });
 }
 
