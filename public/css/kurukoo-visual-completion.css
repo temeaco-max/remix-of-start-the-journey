@@ -21,6 +21,31 @@ body.k-route-contact .contact-hero,body.k-route-pricing .page-header-center{marg
 body.k-route-contact .contact-card--muted{background:linear-gradient(145deg,#FBF8F4,#fff)}
 body.k-route-contact .contact-card,.access-card{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
 body.k-route-contact .contact-card:hover,body.k-route-pricing .access-card:hover{transform:translateY(-1px);border-color:#D8C8BE;box-shadow:0 12px 28px rgba(36,34,31,.07)}
+/* Authenticated Web App: one OS-grade rhythm for commerce, trust, connection and continuation surfaces. */
+body.k-app-page .k-app-container{max-width:1180px;padding:28px 28px 80px}
+body.k-app-page .k-app-eyebrow{color:var(--kc-accent);font:700 10px/1 Inter,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+body.k-app-page .k-app-title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:8px 0 26px}
+body.k-app-page .k-app-title-row h1{margin:0;color:var(--kc-ink);font:600 clamp(30px,4vw,48px)/1.05 'Space Grotesk',Inter,sans-serif;letter-spacing:-.045em}
+body.k-app-page .k-app-title-row p{max-width:700px;margin:10px 0 0;color:var(--kc-muted);font-size:14px;line-height:1.7}
+body.k-app-page .k-app-grid{gap:14px}
+body.k-app-page .k-app-card{border:1px solid var(--kc-border);border-radius:15px;background:#fff;box-shadow:0 8px 24px rgba(36,34,31,.05);transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+body.k-app-page .k-app-card:hover{border-color:#D8C8BE;box-shadow:0 12px 28px rgba(36,34,31,.07);transform:translateY(-1px)}
+body.k-app-page .k-app-card-label{color:var(--kc-accent);font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+body.k-app-page .k-app-card h2{font-family:'Space Grotesk',Inter,sans-serif;letter-spacing:-.02em}
+body.k-app-page .k-app-primary{min-height:44px;border-radius:11px;background:var(--kc-accent);color:#fff;box-shadow:none}
+body.k-app-page .k-app-status-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--kc-border)}
+body.k-app-page .k-status{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border:1px solid var(--kc-border);border-radius:999px;background:#FBFAF8;color:var(--kc-muted);font-size:10px;font-weight:700}
+body.k-app-page .k-status[data-state="success"]{background:#EAF4EE;border-color:#D5E7DC;color:var(--kc-success)}
+body.k-app-page .k-status[data-state="info"]{background:#EEF3F7;border-color:#D8E3EA;color:#3C6F91}
+body.k-app-page .k-app-sidebar{background:#24221F}
+body.k-app-page .k-app-nav a.active{background:#F2E8DE;color:#24221F}
+/* Commerce and continuation surfaces */
+body.k-app-page .k-app-grid.two .k-app-card:has(.k-app-card-label){min-height:190px}
+body.k-app-page .k-app-grid.three .k-app-card{min-height:170px}
+/* Focus and touch */
+body.k-app-page :where(a,button,input,textarea,select):focus-visible{outline:3px solid rgba(185,93,60,.25);outline-offset:3px}
+body.k-app-page :where(a,button,input,textarea,select){-webkit-tap-highlight-color:transparent}
+@media(max-width:760px){body.k-app-page .k-app-container{padding:22px 18px 72px}body.k-app-page .k-app-title-row{display:grid;align-items:start;gap:14px}body.k-app-page .k-app-title-row .k-app-primary{width:100%;justify-content:center}body.k-app-page .k-app-grid.two,body.k-app-page .k-app-grid.three{grid-template-columns:1fr}body.k-app-page .k-app-card{min-height:0!important}}
 /* Public footer density */
 body.k-public-page .frontend-site-footer,body.k-public-page .site-footer{margin-top:14px}
 /* Touch and keyboard treatment */
@@ -30,4 +55,4 @@ body.k-public-page :where(.btn,.text-link):active{transform:translateY(1px)}
 /* Narrow screens: keep headings, cards and action rows readable without clipping. */
 @media(max-width:760px){body.k-public-page .page-header-center .page-title{font-size:34px}body[class*="k-route-explore-"] .category-detail,body.k-route-contact .contact-grid{grid-template-columns:1fr}body.k-public-page .k-context-band{margin-bottom:14px}}
 @media(max-width:560px){body.k-public-page .page-container{padding-top:30px;padding-bottom:50px}body.k-public-page .page-header-center .page-title{font-size:31px}body.k-public-page .page-header-center .page-desc{font-size:13px}body.k-public-page .btn{min-height:42px}body.k-screen-set-content .k-legal-content{padding:20px;font-size:13px}}
-@media(prefers-reduced-motion:reduce){body.k-public-page :where(.btn,.text-link,.nav-link),body.k-route-contact .contact-card,body.k-route-pricing .access-card{transition:none}body.k-route-contact .contact-card:hover,body.k-route-pricing .access-card:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){body.k-public-page :where(.btn,.text-link,.nav-link),body.k-route-contact .contact-card,body.k-route-pricing .access-card,body.k-app-page .k-app-card{transition:none}body.k-route-contact .contact-card:hover,body.k-route-pricing .access-card:hover,body.k-app-page .k-app-card:hover{transform:none}}
