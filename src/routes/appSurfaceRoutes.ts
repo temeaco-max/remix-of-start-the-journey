@@ -5,6 +5,7 @@ import { getExternalIntegrationReadiness } from '../services/externalIntegration
 import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { getClientSurfaces } from '../services/clientSurfaceRegistry.js';
 import { PLATFORM_FEATURE_VISUAL_CONTRACTS } from '../services/platformFeatureVisualRegistry.js';
+import { getPageContentContract } from '../services/pageContentContracts.js';
 import economicDispatchRoutes from './economicDispatchRoutes.js';
 
 const router = express.Router();
@@ -34,6 +35,7 @@ const surfaceMap = new Map([
   ['call', { title: 'Call', eyebrow: 'Realtime communication', description: 'AI voice and peer calling remain part of the same Kurukoo relationship. Provider credentials and realtime infrastructure determine activation.', cta: '/call', ctaLabel: 'Open Call' }],
   ['notifications', { title: 'Notifications', eyebrow: 'Stay connected', description: 'Notifications return relevant continuation, request and reminder context while preserving the same conversation identity.', cta: '/notifications', ctaLabel: 'Open Notifications' }],
   ['safety', { title: 'Safety', eyebrow: 'Safety and check-ins', description: 'Safety context, trusted contacts and check-ins are explicit, consent-bound and never represented as emergency-service fulfilment.', cta: '/safety', ctaLabel: 'Open Safety' }],
+  ['settings', { title: 'Settings', eyebrow: 'Your Kurukoo preferences', description: 'Manage account, security, privacy, memory, notifications, connections, accessibility and product preferences in one place.', cta: '/settings', ctaLabel: 'Open Settings' }],
 ]);
 
 const legacySurfaceAliases: Record<string, string> = {
@@ -41,7 +43,7 @@ const legacySurfaceAliases: Record<string, string> = {
 };
 
 const cleanCanonicalSections: Record<string, string> = {
-  '/desk': 'desk', '/discover': 'discover', '/topics': 'topics', '/requests': 'requests', '/reminders': 'reminders', '/saved': 'saved', '/cart': 'cart', '/tasks': 'tasks', '/connect': 'connect', '/agents': 'agents', '/capabilities': 'capabilities', '/opportunities': 'opportunities', '/wallet': 'wallet', '/points': 'points', '/top-up': 'top-up', '/subscriptions': 'subscriptions', '/checkout': 'checkout', '/confirmations': 'confirmations', '/memory': 'memory', '/artifacts': 'artifacts', '/prayer': 'prayer', '/call': 'call', '/notifications': 'notifications', '/safety': 'safety',
+  '/desk': 'desk', '/discover': 'discover', '/topics': 'topics', '/requests': 'requests', '/reminders': 'reminders', '/saved': 'saved', '/cart': 'cart', '/tasks': 'tasks', '/connect': 'connect', '/agents': 'agents', '/capabilities': 'capabilities', '/opportunities': 'opportunities', '/wallet': 'wallet', '/points': 'points', '/top-up': 'top-up', '/subscriptions': 'subscriptions', '/checkout': 'checkout', '/confirmations': 'confirmations', '/memory': 'memory', '/artifacts': 'artifacts', '/prayer': 'prayer', '/call': 'call', '/notifications': 'notifications', '/safety': 'safety', '/settings': 'settings',
 };
 
 const sharedPublicAuthenticated = new Set(['/discover', '/topics']);
@@ -54,7 +56,8 @@ function renderApp(req: express.Request, res: express.Response, section = 'desk'
   const readiness = getPilotReadiness();
   const integrations = getExternalIntegrationReadiness();
   const enabledIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
-  return res.render('app', { selected, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, integrations, enabledIntegrations, integrationCount: integrations.length, visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) });
+  const content = getPageContentContract(section);
+  return res.render('app', { selected, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, integrations, enabledIntegrations, integrationCount: integrations.length, visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')), contentContract: content });
 }
 
 router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) }));
@@ -87,7 +90,7 @@ for (const resource of ['requests','tasks','reminders','opportunities','agents',
     if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.originalUrl)}`);
     const section = resource === 'connections' ? 'connect' : resource;
     const selected = surfaceMap.get(section as string) ?? surfaceMap.get('desk')!;
-    return res.render('app', { selected: { ...selected, eyebrow: `${selected.eyebrow} · ${req.params.id}`, description: `${selected.description} This view is scoped to ${req.params.id}.` }, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces: getClientSurfaces('web'), readiness: getPilotReadiness(), integrations: getExternalIntegrationReadiness(), enabledIntegrations: 0, integrationCount: 0, visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')), resourceId: req.params.id });
+    return res.render('app', { selected: { ...selected, eyebrow: `${selected.eyebrow} · ${req.params.id}`, description: `${selected.description} This view is scoped to ${req.params.id}.` }, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces: getClientSurfaces('web'), readiness: getPilotReadiness(), integrations: getExternalIntegrationReadiness(), enabledIntegrations: 0, integrationCount: 0, visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')), resourceId: req.params.id, contentContract: getPageContentContract(section) });
   });
 }
 
