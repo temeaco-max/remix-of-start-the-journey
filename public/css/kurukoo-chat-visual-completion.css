@@ -1,0 +1,17 @@
+/* Chat visual completion: calm hierarchy shared with Workspace and platform states. */
+.chat-shell{background:var(--chat-surface);color:var(--chat-charcoal)}
+.chat-sidebar{background:color-mix(in srgb,var(--chat-sidebar-surface) 94%,#fff);border-right-color:var(--chat-border)}
+.sidebar-top,.chat-header{min-height:60px}.brand{font-size:17px;letter-spacing:-.02em}.brand-mark-image{width:28px;height:28px;object-fit:contain}.new-chat{border-radius:10px;background:#fff;box-shadow:0 2px 8px rgba(36,34,31,.035)}
+.history-item{min-height:42px;border-radius:9px}.history-item.active{background:rgba(185,93,60,.10);color:var(--chat-charcoal)}
+.chat-header{box-shadow:0 1px 0 rgba(36,34,31,.025)}.model-name{font-size:15px}.model-badge{background:rgba(185,93,60,.10);color:var(--chat-primary)}.points-balance,.header-cart-link{border-color:var(--chat-border);box-shadow:none}
+.chat-content{width:min(900px,calc(100% - 40px));padding-top:40px}.welcome{min-height:54vh}.welcome-logo{width:44px;height:44px;object-fit:contain}.welcome h1{font-size:clamp(30px,4.5vw,44px)}.welcome p{font-size:14px;max-width:600px}
+.quick-actions button,.composer-quick-actions button{min-height:42px;padding:9px 13px;border-radius:999px;background:#fff;box-shadow:0 2px 7px rgba(36,34,31,.025)}
+.message{gap:11px;margin:22px 0}.avatar{width:28px;height:28px;border-radius:9px}.bubble{font-size:14px;line-height:1.7}.message.user .bubble{padding:10px 14px;background:#F1ECE7;border:1px solid rgba(230,222,213,.7)}.message-actions{opacity:.7}
+.provider-card,.agentic-storefront{border-color:var(--chat-border);border-radius:14px;box-shadow:0 8px 24px rgba(36,34,31,.045)}.storefront-offer,.storefront-coordination{border-radius:10px}.sf-btn{border-radius:10px}.sf-btn.sf-primary{background:var(--chat-primary)}
+.composer-wrap{padding-top:18px;background:linear-gradient(transparent,var(--chat-surface) 22%)}.composer{width:min(900px,100%);border-radius:17px;padding:8px 9px;box-shadow:0 8px 26px rgba(36,34,31,.07)}.composer textarea{font-size:14px}.send-btn{background:var(--chat-primary);border-radius:10px}.composer-footer{width:min(900px,100%);font-size:10px}
+.chat-inspector{background:var(--chat-sidebar-surface);border-left-color:var(--chat-border)}.inspector-card{border-radius:12px;box-shadow:0 5px 18px rgba(36,34,31,.03)}.inspector-label{letter-spacing:.06em}.primary-btn{background:var(--chat-primary);border-radius:9px}
+.workspace-nav .workspace-link{min-height:42px;border-radius:9px}.workspace-nav .workspace-link.active{background:rgba(185,93,60,.10);color:var(--chat-charcoal)}
+@media(max-width:1100px){.chat-content{width:min(860px,calc(100% - 36px))}}
+@media(max-width:760px){.chat-content{width:calc(100% - 24px);padding-top:24px}.welcome{min-height:52vh}.welcome h1{font-size:32px}.message{margin:18px 0}.composer{border-radius:15px}.chat-header{padding:0 12px}.header-right{gap:4px}.points-balance{padding-inline:9px}}
+@media(max-width:420px){.welcome h1{font-size:29px}.welcome p{font-size:13px}.quick-actions button{font-size:11px}.composer-quick-actions button{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.history-item,.quick-actions button,.composer-quick-actions button{transition:none}}
