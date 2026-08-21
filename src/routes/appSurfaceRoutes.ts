@@ -1,4 +1,5 @@
 import express, { Router } from 'express';
+import path from 'node:path';
 import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';
 import { getExternalIntegrationReadiness } from '../services/externalIntegrationReadiness.js';
 import { getPilotReadiness } from '../services/pilotReadiness.js';
@@ -36,39 +37,11 @@ const surfaceMap = new Map([
 ]);
 
 const legacySurfaceAliases: Record<string, string> = {
-  '/app': '/desk',
-  '/app/agent': '/desk',
-  '/web': '/desk',
-  '/workspace': '/desk',
-  '/subscription': '/subscriptions',
-  '/confirmation': '/requests',
+  '/app': '/desk', '/app/agent': '/desk', '/web': '/desk', '/workspace': '/desk', '/subscription': '/subscriptions', '/confirmation': '/requests',
 };
 
 const cleanCanonicalSections: Record<string, string> = {
-  '/desk': 'desk',
-  '/discover': 'discover',
-  '/topics': 'topics',
-  '/requests': 'requests',
-  '/reminders': 'reminders',
-  '/saved': 'saved',
-  '/cart': 'cart',
-  '/tasks': 'tasks',
-  '/connect': 'connect',
-  '/agents': 'agents',
-  '/capabilities': 'capabilities',
-  '/opportunities': 'opportunities',
-  '/wallet': 'wallet',
-  '/points': 'points',
-  '/top-up': 'top-up',
-  '/subscriptions': 'subscriptions',
-  '/checkout': 'checkout',
-  '/confirmations': 'confirmations',
-  '/memory': 'memory',
-  '/artifacts': 'artifacts',
-  '/prayer': 'prayer',
-  '/call': 'call',
-  '/notifications': 'notifications',
-  '/safety': 'safety',
+  '/desk': 'desk', '/discover': 'discover', '/topics': 'topics', '/requests': 'requests', '/reminders': 'reminders', '/saved': 'saved', '/cart': 'cart', '/tasks': 'tasks', '/connect': 'connect', '/agents': 'agents', '/capabilities': 'capabilities', '/opportunities': 'opportunities', '/wallet': 'wallet', '/points': 'points', '/top-up': 'top-up', '/subscriptions': 'subscriptions', '/checkout': 'checkout', '/confirmations': 'confirmations', '/memory': 'memory', '/artifacts': 'artifacts', '/prayer': 'prayer', '/call': 'call', '/notifications': 'notifications', '/safety': 'safety',
 };
 
 function renderApp(req: express.Request, res: express.Response, section = 'desk') {
@@ -85,42 +58,29 @@ function renderApp(req: express.Request, res: express.Response, section = 'desk'
 router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) }));
 router.use('/api', economicDispatchRoutes);
 
-// Canonical authenticated Web URLs. Keep these clean and resource-oriented; /app/* remains a compatibility namespace.
-for (const [pathname, section] of Object.entries(cleanCanonicalSections)) {
-  router.get(pathname, optionalAuthenticateUser, (req, res) => renderApp(req, res, section));
-}
+// Durable universal conversation addresses. The existing Chat runtime remains the implementation owner.
+router.get('/chat/:conversationId', (req, res) => {
+  res.setHeader('X-Kurukoo-Conversation-Id', String(req.params.conversationId));
+  return res.sendFile(path.join(process.cwd(), 'public', 'chat', 'index.html'));
+});
+router.get('/share/:shareId', (req, res) => {
+  res.setHeader('X-Kurukoo-Share-Id', String(req.params.shareId));
+  return res.sendFile(path.join(process.cwd(), 'public', 'chat', 'index.html'));
+});
 
-// Canonical durable resource URLs. Detail routes retain the object identity in the address space; the current shell
-// presents the resource context and hands the user to the canonical Chat/request owner when deeper state is required.
+for (const [pathname, section] of Object.entries(cleanCanonicalSections)) router.get(pathname, optionalAuthenticateUser, (req, res) => renderApp(req, res, section));
+
 for (const resource of ['requests','tasks','reminders','opportunities','agents','connections','memory','artifacts']) {
   router.get(`/${resource}/:id`, optionalAuthenticateUser, (req, res) => {
     const authReq = req as AuthRequest;
     if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.originalUrl)}`);
     const section = resource === 'connections' ? 'connect' : resource;
     const selected = surfaceMap.get(section as string) ?? surfaceMap.get('desk')!;
-    return res.render('app', {
-      selected: { ...selected, eyebrow: `${selected.eyebrow} · ${req.params.id}`, description: `${selected.description} This view is scoped to ${req.params.id}.` },
-      section,
-      displayName: authReq.user.name || authReq.user.phone,
-      phone: authReq.user.phone,
-      surfaces: getClientSurfaces('web'),
-      readiness: getPilotReadiness(),
-      integrations: getExternalIntegrationReadiness(),
-      enabledIntegrations: 0,
-      integrationCount: 0,
-      visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')),
-      resourceId: req.params.id,
-    });
+    return res.render('app', { selected: { ...selected, eyebrow: `${selected.eyebrow} · ${req.params.id}`, description: `${selected.description} This view is scoped to ${req.params.id}.` }, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces: getClientSurfaces('web'), readiness: getPilotReadiness(), integrations: getExternalIntegrationReadiness(), enabledIntegrations: 0, integrationCount: 0, visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')), resourceId: req.params.id });
   });
 }
 
-// Compatibility namespace. Existing bookmarks and old visual/runtime links continue to work but redirect to the clean URL.
-for (const [legacy, canonical] of Object.entries(legacySurfaceAliases)) {
-  router.get(legacy, (_req, res) => res.redirect(308, canonical));
-}
-for (const section of surfaceMap.keys()) {
-  if (section === 'desk') continue;
-  router.get(`/app/${section}`, optionalAuthenticateUser, (_req, res) => res.redirect(308, `/${section}`));
-}
+for (const [legacy, canonical] of Object.entries(legacySurfaceAliases)) router.get(legacy, (_req, res) => res.redirect(308, canonical));
+for (const section of surfaceMap.keys()) if (section !== 'desk') router.get(`/app/${section}`, optionalAuthenticateUser, (_req, res) => res.redirect(308, `/${section}`));
 
 export default router;
