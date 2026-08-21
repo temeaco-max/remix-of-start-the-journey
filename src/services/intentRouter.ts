@@ -90,6 +90,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   return {
     skill: 'general_question',
     reply,
+    cardData: { type: 'semantic_conversation', hidden: true },
     modelProvider: ai.provider,
     model: ai.model,
     classificationSource: ai.provider === 'Kurukoo Template' ? 'fallback' : 'rules',
