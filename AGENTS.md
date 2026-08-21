@@ -7,6 +7,7 @@ Also follow:
 - `/docs/architecture/CLIENT_APPLICATION_CONVERGENCE.md`
 - `/docs/architecture/CURRENT_PRODUCT_TRUTH.md`
 - `/docs/architecture/BLUEPRINT_TRUTH.md`
+- `/docs/architecture/KURUKOO_MASTER_PRODUCT_COMPLETENESS_LEDGER.md` — mandatory product-memory/completeness authority; use it to prevent omissions across pages, features, capabilities, clients, Admin, content/SEO, monetisation, state, navigation and external activation.
 
 ## Non-negotiable build principles
 
