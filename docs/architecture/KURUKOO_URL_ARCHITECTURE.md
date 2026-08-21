@@ -1,25 +1,26 @@
 # Kurukoo Canonical URL Architecture
 
-**Status:** Target architecture / migration contract
+**Status:** Canonical product URL contract
 
-## Governing rules
+## Product model
 
-1. A URL identifies a product resource or product surface, not an implementation file.
-2. Public, authenticated, admin and API namespaces are distinct.
-3. The authenticated browser OS lives under `/app/*` except the universal conversation entry `/chat` and intentionally public knowledge/content surfaces.
-4. Admin browser URLs live under `/admin/*`; `.html` filenames and `?section=` query navigation are legacy implementation details, not canonical URLs.
-5. Backend APIs live under `/api/v1/*`. Legacy `/api/*` endpoints may remain as compatibility aliases during migration but must not be emitted by frontend code.
-6. API resource nouns are plural where a collection is represented; nested resources express ownership or context.
-7. Route aliases redirect to one canonical URL with a permanent redirect where safe.
-8. Query parameters are for filtering, sorting, pagination, experiments and transient state; they are not used as the primary identity of a page/module.
-9. Human-readable public content uses slugs; internal IDs may be used for authenticated/admin resources when the object itself is private.
-10. Native/PWA deep links map to canonical web destinations where a web representation exists.
+Kurukoo is one product with three browser planes: public product/discovery, the authenticated operating environment, and Admin/Control Room.
 
-## Canonical browser URL tree
+- **Desk** is the authenticated home/workspace.
+- **Agent** is the conversational intelligence exposed primarily through `/chat`.
+- Durable product objects use clean resource URLs.
+- Public discovery and authenticated surfaces may intentionally share a URL when the same product concept has both public and authenticated representations; the server selects the appropriate representation from authentication state.
+- The filesystem is never the public URL contract.
 
-### Public discovery / knowledge
+## Canonical browser tree
+
+### Public product / discovery
 
 - `/`
+- `/about`
+- `/features`
+- `/pricing`
+- `/how-it-works`
 - `/explore`
 - `/explore/:category`
 - `/discover`
@@ -29,67 +30,79 @@
 - `/topics/:slug`
 - `/resources`
 - `/resources/:slug`
-- `/how-it-works`
-- `/about`
-- `/help`
-- `/contact`
-- `/careers`
 - `/partners`
 - `/advertise`
-- `/pricing`
-- `/blog`
-- `/legal`
-- `/legal/:document`
 - `/developers`
 - `/developers/api`
+- `/help`
+- `/contact`
+- `/blog`
+- `/careers`
+- `/legal`
+- `/legal/:document`
 
-### Universal conversation
+### Authentication entry
+
+- `/login`
+- `/signup`
+
+Login and signup share the same centered authentication entry pattern and are reusable from public CTAs. Authenticated state returns users to the requested canonical destination.
+
+### Agent / conversation
 
 - `/chat`
-- `/chat/:conversationId` only if stable shareable conversation URLs are intentionally supported; otherwise conversation identity remains application state and `/chat` stays canonical.
-- `/start` is a contextual entry resolver only; it validates QR context and redirects to `/chat` with the validated context.
+- `/chat/:conversationId`
+- `/share/:shareId`
+- `/start` is a contextual QR entry resolver that validates context and redirects into `/chat`.
 
-### Authenticated Web App
+### Authenticated operating environment
 
-- `/app` → authenticated OS landing / Agent
-- `/app/agent`
-- `/app/discover`
-- `/app/topics`
-- `/app/requests`
-- `/app/requests/:requestId`
-- `/app/reminders`
-- `/app/reminders/:reminderId`
-- `/app/saved`
-- `/app/cart`
-- `/app/tasks`
-- `/app/tasks/:taskId`
-- `/app/connect`
-- `/app/connect/:connectionId`
-- `/app/agents`
-- `/app/agents/:agentId`
-- `/app/capabilities`
-- `/app/opportunities`
-- `/app/opportunities/:opportunityId`
-- `/app/wallet`
-- `/app/points`
-- `/app/top-up`
-- `/app/subscriptions`
-- `/app/checkout`
-- `/app/confirmations`
-- `/app/memory`
-- `/app/artifacts`
-- `/app/prayer`
-- `/app/call`
-- `/app/notifications`
-- `/app/safety`
-- `/app/settings`
+The authenticated browser uses clean URLs; `/app/*` is not canonical.
+
+- `/desk`
+- `/requests`
+- `/requests/:requestId`
+- `/reminders`
+- `/reminders/:reminderId`
+- `/saved`
+- `/cart`
+- `/tasks`
+- `/tasks/:taskId`
+- `/connect`
+- `/connections/:connectionId`
+- `/agents`
+- `/agents/:agentId`
+- `/capabilities`
+- `/opportunities`
+- `/opportunities/:opportunityId`
+- `/wallet`
+- `/points`
+- `/top-up`
+- `/subscriptions`
+- `/checkout`
+- `/confirmations`
+- `/memory`
+- `/memory/:memoryId`
+- `/artifacts`
+- `/artifacts/:artifactId`
+- `/prayer`
+- `/call`
+- `/notifications`
+- `/safety`
+- `/settings`
+
+`/discover` and `/topics` are shared public/authenticated surfaces: anonymous users receive the public page; authenticated users receive the authenticated representation using the same canonical URL.
 
 ### Admin / Control Room
+
+Canonical Admin browser addresses are clean paths; `.html` filenames and `?section=` are implementation/compatibility details.
 
 - `/admin`
 - `/admin/login`
 - `/admin/conversations`
 - `/admin/providers`
+- `/admin/requests`
+- `/admin/orders`
 - `/admin/economic`
 - `/admin/moderation`
 - `/admin/compliance`
@@ -101,7 +114,7 @@
 - `/admin/referrals`
 - `/admin/commissions`
 - `/admin/partnerships`
-- `/admin/scam`
+- `/admin/trust`
 - `/admin/social`
 - `/admin/creators`
 - `/admin/celebrity`
@@ -114,39 +127,26 @@
 - `/admin/settings`
 - `/admin/seo`
 - `/admin/roadmap`
-- detail routes should use nested resource URLs, e.g. `/admin/users/:userId`, `/admin/providers/:providerId`, `/admin/requests/:requestId`.
+- nested details such as `/admin/users/:userId`, `/admin/providers/:providerId`, `/admin/requests/:requestId`, `/admin/conversations/:conversationId`, `/admin/agents/:agentId`.
 
-## Canonical API URL tree
+### API
 
-The next API version namespace is `/api/v1`.
-
-### Core
+The canonical API namespace is `/api/v1/*`. Existing `/api/*` endpoints remain compatibility surfaces until migrated and must not be emitted by new frontend code.
 
 - `/api/v1/auth/*`
-- `/api/v1/users/me`
+- `/api/v1/users/*`
 - `/api/v1/conversations/*`
 - `/api/v1/chat/*`
-- `/api/v1/memory/*`
-- `/api/v1/notifications/*`
-- `/api/v1/reminders/*`
-- `/api/v1/tasks/*`
-
-### Economic
-
 - `/api/v1/requests/*`
 - `/api/v1/orders/*`
 - `/api/v1/cart/*`
 - `/api/v1/checkout/*`
 - `/api/v1/payments/*`
-- `/api/v1/subscriptions/*`
-- `/api/v1/wallet/*`
-- `/api/v1/points/*`
-- `/api/v1/disputes/*`
-
-### Network / discovery
-
+- `/api/v1/tasks/*`
+- `/api/v1/reminders/*`
+- `/api/v1/memory/*`
+- `/api/v1/notifications/*`
 - `/api/v1/discovery/*`
-- `/api/v1/presence/*`
 - `/api/v1/opportunities/*`
 - `/api/v1/providers/*`
 - `/api/v1/capabilities/*`
@@ -154,67 +154,40 @@ The next API version namespace is `/api/v1`.
 - `/api/v1/channels/*`
 - `/api/v1/topics/*`
 - `/api/v1/content/*`
-
-### Agents / voice / files
-
 - `/api/v1/agents/*`
 - `/api/v1/voice/*`
 - `/api/v1/calls/*`
 - `/api/v1/artifacts/*`
 - `/api/v1/qr/*`
-
-### Platform / admin
-
 - `/api/v1/platform/*`
 - `/api/v1/admin/*`
-- `/api/v1/admin/...` remains operational and permission-gated; browser Admin pages must not call undocumented root-level API aliases directly.
 
-### Health / readiness
+Infrastructure endpoints remain `/health`, `/ready`, `/live`.
 
-- `/health`
-- `/ready`
-- `/live`
+## Compatibility aliases
 
-These may remain outside `/api` because they are infrastructure endpoints.
+Legacy routes may remain temporarily, but new UI must never emit them.
 
-## Legacy aliases to canonical routes
+- `/app` and `/app/agent` → `/desk`
+- `/app/<surface>` → `/<surface>`
+- `/web`, `/workspace` → `/desk`
+- `/subscription` → `/subscriptions`
+- `/confirmation` → `/requests`
+- `/admin/*.html` → corresponding `/admin/*` canonical address
+- `/admin/?section=<name>` → corresponding `/admin/<name>` canonical address
 
-During migration, retain server-side redirects/compatibility handlers for existing URLs such as:
+Compatibility handlers must not create second page owners.
 
-- `/web` → `/app`
-- `/workspace` → `/app`
-- `/requests` → `/app/requests`
-- `/reminders` → `/app/reminders`
-- `/saved` → `/app/saved`
-- `/cart` → `/app/cart`
-- `/points` → `/app/points`
-- `/tasks` → `/app/tasks`
-- `/memory` → `/app/memory`
-- `/safety` → `/app/safety`
-- `/call` → `/app/call`
-- `/connect` → `/app/connect`
-- `/confirmation` → `/app/confirmations`
-- `/subscription` → `/app/subscriptions`
-- `/top-up` → `/app/top-up`
-- `/discover` is public and authenticated discovery must use `/app/discover`; do not silently conflate the two audiences.
-- `/admin/*.html` → canonical `/admin/*`
-- `/admin/?section=<name>` → canonical `/admin/<name>`
+## Native / PWA deep links
 
-Aliases must never be emitted by canonical navigation, feature registries, SEO metadata or new application code.
+Web is the canonical resource address space. PWA, iOS and Android map the same addresses to platform-native presentations when native representations exist.
 
-## Implementation / repository rule
+Example:
 
-Filesystem placement is allowed to differ from public URL structure. EJS templates, static HTML, React/Expo screens, route modules and service files are implementation details.
+`/requests/REQ-123` → Web Request detail / iOS Request detail / Android Request detail.
 
-The URL contract belongs in one route registry and is consumed by:
+## Product-completeness rule
 
-- public navigation;
-- authenticated Web App navigation;
-- Admin navigation;
-- feature visual registry;
-- SEO canonical generation;
-- redirects/aliases;
-- Playwright route walkthrough;
-- native deep-link mapping.
+A visual reference never determines whether product content is allowed to exist. Before visual convergence, every surface must preserve its real-world purpose, user jobs, information architecture, capabilities, states, actions, navigation, truth/evidence boundaries, SEO responsibilities where applicable, canonical data owner and recovery paths.
 
-A page is not considered migrated until its canonical URL, owner, navigation links, SEO metadata, aliases and test coverage all agree.
+A page is complete only when canonical URL, product purpose, content structure, navigation, functionality, visual treatment, state coverage, SEO (where public), accessibility and truth boundaries agree.
