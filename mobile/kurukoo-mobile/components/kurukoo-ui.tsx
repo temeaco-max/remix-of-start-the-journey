@@ -40,6 +40,28 @@ export function ContinuityBand({ contextLabel, contextId, evidence, action }: { 
   );
 }
 
+export function PlatformStateBanner({ title, detail, tone = "info", action }: { title: string; detail: string; tone?: "info" | "success" | "warning" | "error"; action?: React.ReactNode }) {
+  const colors = useColors();
+  const toneColor = tone === "success" ? colors.success : tone === "warning" ? colors.warning : tone === "error" ? colors.error : colors.info;
+  return (
+    <View style={[styles.platformBanner, { backgroundColor: `${toneColor}0D`, borderColor: `${toneColor}33` }]} accessibilityRole="text">
+      <View style={[styles.platformBannerMark, { backgroundColor: `${toneColor}19` }]}><View style={[styles.platformBannerDot, { backgroundColor: toneColor }]} /></View>
+      <View style={styles.platformBannerCopy}><Text style={[styles.platformBannerTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.platformBannerDetail, { color: colors.muted }]}>{detail}</Text>{action ? <View style={styles.platformBannerAction}>{action}</View> : null}</View>
+    </View>
+  );
+}
+
+export function EvidenceRow({ label, value, state = "neutral" }: { label: string; value: string; state?: "neutral" | "success" | "warning" | "error" }) {
+  const colors = useColors();
+  const stateColor = state === "success" ? colors.success : state === "warning" ? colors.warning : state === "error" ? colors.error : colors.muted;
+  return (
+    <View style={[styles.evidenceRow, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.evidenceLabel, { color: colors.muted }]}>{label}</Text>
+      <View style={styles.evidenceValueWrap}><Text style={[styles.evidenceValue, { color: colors.foreground }]}>{value}</Text>{state !== "neutral" ? <StatusPill label={state === "success" ? "Confirmed" : state === "warning" ? "Pending" : "Needs attention"} tone={state} /> : null}</View>
+    </View>
+  );
+}
+
 export function StatusPill({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "success" | "warning" | "error" }) {
   const colors = useColors();
   const toneColor = tone === "success" ? colors.success : tone === "warning" ? colors.warning : tone === "error" ? colors.error : colors.muted;
@@ -97,10 +119,21 @@ const styles = StyleSheet.create({
   markImage: { width: 30, height: 30, borderRadius: 8 },
   markImageCompact: { width: 20, height: 20, borderRadius: 6 },
   markImageInverse: { tintColor: KURUKOO_VISUAL_TOKENS.inverseMark },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  headerCopy: { flex: 1, gap: 4 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 14 },
+  headerCopy: { flex: 1, gap: 4, minWidth: 0 },
   eyebrow: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase" },
-  headerTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 27, lineHeight: 33 },
+  headerTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 27, lineHeight: 33, letterSpacing: -0.35 },
+  platformBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, borderWidth: 1, borderRadius: 15, padding: 13, marginBottom: 14 },
+  platformBannerMark: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  platformBannerDot: { width: 8, height: 8, borderRadius: 4 },
+  platformBannerCopy: { flex: 1, gap: 3, minWidth: 0 },
+  platformBannerTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15, lineHeight: 19 },
+  platformBannerDetail: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18 },
+  platformBannerAction: { marginTop: 4, alignSelf: "flex-start" },
+  evidenceRow: { paddingVertical: 11, borderBottomWidth: 1, flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 14 },
+  evidenceLabel: { fontFamily: "Inter_500Medium", fontSize: 12, lineHeight: 18, flex: 0.8 },
+  evidenceValueWrap: { flex: 1.2, alignItems: "flex-end", gap: 5 },
+  evidenceValue: { fontFamily: "Inter_600SemiBold", fontSize: 12, lineHeight: 18, textAlign: "right" },
   pill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
   pillDot: { width: 6, height: 6, borderRadius: 3 },
   pillText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
