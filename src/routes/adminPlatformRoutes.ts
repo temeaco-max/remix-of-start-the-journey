@@ -8,6 +8,7 @@ import { activateConfiguredExternalProviders, probeConfiguredExternalProviders }
 import { listAiProviderHealth } from '../services/aiProviderHealth.js';
 import { getAiUsageSummary } from '../services/aiCostTelemetry.js';
 import { listUnknownIntentReviewCandidates, reviewUnknownIntentCandidate } from '../services/unknownIntentReviewService.js';
+import { getAdminConfigDefinitions, getAdminConfigStatus } from '../services/adminConfigMetadata.js';
 
 const router = Router();
 router.use(authenticateAdmin);
@@ -56,6 +57,24 @@ router.post('/ai-learning/unknown-intents/:id/review', async (req: AuthRequest, 
     const ok = await reviewUnknownIntentCandidate(id, String((req as any).admin?.username || (req as any).user?.phone || 'admin'), decision, req.body?.category, req.body?.skill, req.body?.trainingExample, req.body?.note);
     res.status(ok ? 200 : 404).json({ success: ok, contractVersion: 'ai-learning-review-v1', id, decision });
   } catch (error) { console.error('[AdminPlatform] unknown-intent review failed:', error); res.status(500).json({ success: false, error: 'Unable to review unknown intent.' }); }
+});
+
+router.get('/config/catalog', (_req: AuthRequest, res) => {
+  res.json({
+    success: true,
+    generatedAt: new Date().toISOString(),
+    contractVersion: 'admin-config-catalog-v1',
+    policy: { secretValues: 'never_returned', sourceOfTruth: 'process_environment', mutation: 'deployment_or_secret_manager_only' },
+    definitions: getAdminConfigDefinitions(),
+    status: getAdminConfigStatus(),
+  });
+});
+
+router.get('/config/readiness', (_req: AuthRequest, res) => {
+  const status = getAdminConfigStatus();
+  const requiredMissing = status.filter(item => item.required && !item.configured).map(item => item.key);
+  const optionalMissing = status.filter(item => !item.required && !item.configured).map(item => item.key);
+  res.json({ success: true, contractVersion: 'admin-config-readiness-v1', ready: requiredMissing.length === 0, requiredMissing, optionalMissing, configuredCount: status.filter(item => item.configured).length, totalCount: status.length, secretPolicy: 'Secret values are never exposed through this API.' });
 });
 
 router.get('/health', async (_req: AuthRequest, res) => {
