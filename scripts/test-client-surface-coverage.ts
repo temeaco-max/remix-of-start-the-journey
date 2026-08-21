@@ -11,6 +11,7 @@ const requireFile = (relativePath: string, reason: string) => { if (!exists(rela
 
 requireFile('public/css/kurukoo-client-foundation.css', 'Web/PWA visual authority');
 requireFile('public/css/kurukoo-screen-set-convergence.css', 'Visual screen-set authority');
+requireFile('public/css/kurukoo-visual-completion.css', 'Final visual completion authority');
 requireFile('public/css/kurukoo-visual-system.css', 'Shared visual system layer');
 requireFile('mobile/kurukoo-mobile/lib/visual-contract.ts', 'Native visual authority');
 requireFile('mobile/kurukoo-mobile/app/(tabs)/_layout.tsx', 'Native primary navigation');
@@ -59,19 +60,22 @@ for (const route of ['/app/reminders', '/app/saved', '/app/cart']) if (!appRoute
 
 const head = read('views/_partials/head.ejs');
 if (!head.includes('/css/kurukoo-screen-set-convergence.css')) failures.push('Shared screen-set convergence stylesheet is not loaded');
+if (!head.includes('/css/kurukoo-visual-completion.css')) failures.push('Final visual completion stylesheet is not loaded');
 if (!head.includes('/css/kurukoo-visual-system.css')) failures.push('Shared visual system stylesheet is not loaded');
 if (!head.includes('k-route-${routeSlug}')) failures.push('Route-level screen-set hook is missing');
 if (!head.includes('k-screen-set-${screenSet}')) failures.push('Screen-set classification hook is missing');
 
-for (const [file, marker] of [
-  ['views/how-it-works.ejs', 'k-screen-header'],
-  ['views/network.ejs', 'k-context-band'],
-  ['views/resources/index.ejs', 'k-screen-card'],
-  ['views/contact.ejs', 'k-screen-set'],
-  ['views/legal.ejs', 'k-legal-layout'],
+for (const [file, markers] of [
+  ['views/how-it-works.ejs', ['k-screen-header', 'how-it-works-grid']],
+  ['views/network.ejs', ['k-context-band', 'network-grid']],
+  ['views/resources/index.ejs', ['k-screen-card', 'latest-guides-section']],
+  ['views/contact.ejs', ['k-screen-set', 'contact-grid']],
+  ['views/legal.ejs', ['k-legal-layout', 'k-legal-content']],
 ] as const) {
-  if (!read(file).includes(marker)) failures.push(`${file} is not using the visual screen-set composition marker ${marker}`);
+  const source = read(file); for (const marker of markers) if (!source.includes(marker)) failures.push(`${file} is missing visual screen-set marker ${marker}`);
 }
+const completionCss = read('public/css/kurukoo-visual-completion.css');
+for (const marker of ['k-route-contact', 'k-route-pricing', 'k-route-network', 'k-route-explore', 'k-screen-set-content']) if (!completionCss.includes(marker)) failures.push(`Final visual completion layer is missing ${marker}`);
 
 const admin = read('public/admin/index.html');
 for (const section of ['providers', 'compliance', 'settings']) if (!admin.includes(`/admin/?section=${section}`)) failures.push(`Admin navigation missing ${section} section`);
@@ -101,4 +105,4 @@ const surfaceIds = new Set(CLIENT_SURFACES.map(surface => surface.id));
 for (const required of ['web-marketing', 'web-how-it-works', 'web-explore', 'web-discover-public', 'web-topics-public', 'web-network', 'web-channels', 'web-resources', 'web-help', 'web-partners', 'web-advertise', 'web-chat', 'web-topics', 'web-requests', 'web-reminders', 'web-saved', 'web-cart', 'web-tasks', 'web-connect', 'web-agents', 'web-capabilities', 'web-opportunities', 'web-wallet', 'web-points', 'web-top-up', 'web-subscriptions', 'web-checkout', 'web-confirmations', 'web-memory', 'web-notifications', 'web-artifacts', 'web-prayer', 'web-call', 'web-safety', 'pwa-shell', 'native-ios', 'native-android', 'admin-control-room', 'admin-providers', 'admin-compliance', 'admin-settings']) if (!surfaceIds.has(required)) failures.push(`Client surface registry missing ${required}`);
 
 if (failures.length) { console.error('Kurukoo client-surface coverage failed:'); failures.forEach(failure => console.error(`- ${failure}`)); process.exit(1); }
-console.log(`Kurukoo client-surface coverage passed: ${CLIENT_SURFACES.length} declared client surfaces and ${CLIENT_FEATURE_ENTRYPOINTS.length} historical capability entrypoints; public teaching, visual screen-set layer, Resources, authenticated Web App, Topics/community, Admin operator sections, PWA/native authorities and five-domain mobile navigation present.`);
+console.log(`Kurukoo client-surface coverage passed: ${CLIENT_SURFACES.length} declared client surfaces and ${CLIENT_FEATURE_ENTRYPOINTS.length} historical capability entrypoints; public teaching, final visual completion, Resources, authenticated Web App, Topics/community, Admin operator sections, PWA/native authorities and five-domain mobile navigation present.`);
