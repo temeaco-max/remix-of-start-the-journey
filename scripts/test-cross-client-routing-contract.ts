@@ -5,13 +5,15 @@ import { CANONICAL_URLS } from '../src/services/canonicalUrlRegistry.js';
 const root = process.cwd();
 const failures: string[] = [];
 const require = (condition: boolean, message: string) => { if (!condition) failures.push(message); };
-
 const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'utf8');
 
 const index = read('src/index.ts');
 const apiBridge = read('src/middleware/apiV1Bridge.ts');
 const nativeIntent = read('mobile/kurukoo-mobile/app/+native-intent.tsx');
 const appConfig = read('mobile/kurukoo-mobile/app.config.ts');
+const deskSystem = read('public/js/kurukoo-desk-system.js');
+const deskStyle = read('public/css/kurukoo-desk-system.css');
+const appExtensions = read('public/js/kurukoo-app-extensions.js');
 
 require(CANONICAL_URLS.desk.home === '/desk', 'Desk canonical URL must remain /desk.');
 require(CANONICAL_URLS.conversation.agent === '/chat', 'Agent canonical URL must remain /chat.');
@@ -23,7 +25,7 @@ require(CANONICAL_URLS.api.root === '/api/v1', 'API canonical root must remain v
 
 require(index.includes("import { apiV1Bridge } from './middleware/apiV1Bridge.js';"), 'Server must import the API v1 bridge.');
 require(index.includes("app.use('/api/v1',apiV1Bridge);"), 'Server must mount the API v1 bridge before legacy /api routers.');
-require(apiBridge.includes("X-Kurukoo-Api-Version") && apiBridge.includes("req.url = `/api${"), 'API v1 bridge must visibly translate /api/v1 into the existing service-router namespace.');
+require(apiBridge.includes('X-Kurukoo-Api-Version') && apiBridge.includes('req.url = `/api${'), 'API v1 bridge must translate /api/v1 into the existing service-router namespace.');
 
 require(nativeIntent.includes("'/desk': '/(tabs)'"), 'Native intent must map Desk to the native home surface.');
 require(nativeIntent.includes("'/chat': '/(tabs)'"), 'Native intent must map Agent/Chat to the native conversation surface.');
@@ -33,7 +35,15 @@ require(nativeIntent.includes("/^\\/connections\\//"), 'Native intent must map c
 
 require(appConfig.includes('KURUKOO_PUBLIC_BASE_URL'), 'Native build config must read the canonical public base URL.');
 require(appConfig.includes('associatedDomains'), 'iOS Universal Links must be configurable from the canonical HTTPS origin.');
-require(appConfig.includes('scheme: \"https\"') && appConfig.includes('publicHost'), 'Android App Links must be configurable from the canonical HTTPS origin.');
+require(appConfig.includes('scheme: "https"') && appConfig.includes('publicHost'), 'Android App Links must be configurable from the canonical HTTPS origin.');
+
+require(deskSystem.includes("'/app/agent': '/desk'"), 'Authenticated web runtime must canonicalize Agent to /desk.');
+require(deskSystem.includes("'/app/requests': '/requests'"), 'Authenticated web runtime must canonicalize Requests.');
+require(deskSystem.includes("'kurukoo-drawer-search'"), 'Desk search drawer must remain mounted.');
+require(deskSystem.includes("'kurukoo-drawer-notifications'"), 'Desk notifications drawer must remain mounted.');
+require(deskSystem.includes("'kurukoo-drawer-profile'"), 'Desk account drawer must remain mounted.');
+require(deskStyle.includes('.k-desk-drawer') && deskStyle.includes('.k-desk-search-result'), 'Desk drawer visual primitives must remain available.');
+require(appExtensions.includes('/js/kurukoo-desk-system.js?v=1'), 'Authenticated extension loader must mount the Desk system.');
 
 if (failures.length) {
   console.error('Cross-client routing contract failed:');
@@ -41,4 +51,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Cross-client routing contract passed: Web canonical URLs, /api/v1 bridge, native deep links, and HTTPS app-link configuration are aligned.');
+console.log('Cross-client routing contract passed: Web canonical URLs, Desk system drawers, /api/v1 bridge, native deep links, and HTTPS app-link configuration are aligned.');
