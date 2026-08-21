@@ -3,6 +3,23 @@
   const PENDING_KEY = 'kurukoo_pwa_pending_messages_v1';
   let deferredInstallPrompt = null;
 
+  function loadStylesheet(href) {
+    if (document.querySelector(`link[data-kurukoo-visual="${href}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.dataset.kurukooVisual = href;
+    document.head.appendChild(link);
+  }
+
+  function ensureClientVisualAuthority() {
+    if (!isAppSurface()) return;
+    loadStylesheet('/css/kurukoo-platform-state-visual.css?v=1');
+    if (window.location.pathname === '/chat' || window.location.pathname === '/chat/') {
+      loadStylesheet('/css/kurukoo-chat-visual-completion.css?v=1');
+    }
+  }
+
   function setPwaState(state) {
     document.documentElement.dataset.pwaState = state;
     document.documentElement.dataset.pwaOnline = navigator.onLine ? 'true' : 'false';
@@ -13,6 +30,8 @@
   function isAppSurface() {
     return window.location.pathname === '/chat/' || window.location.pathname === '/chat' || window.location.pathname.startsWith('/dashboard');
   }
+
+  ensureClientVisualAuthority();
 
   function ensureStatusRegion() {
     if (!isAppSurface() || document.querySelector('[data-pwa-status]')) return null;
@@ -183,6 +202,7 @@
   }
 
   async function registerWorker() {
+    ensureClientVisualAuthority();
     if (isAppSurface() && navigator.onLine) showNotice('Checking Kurukoo connection…', { tone: 'loading' });
     if (!("serviceWorker" in navigator)) {
       setPwaState('unsupported');
@@ -243,6 +263,7 @@
 
   window.addEventListener('load', () => {
     routeLegacyStart();
+    ensureClientVisualAuthority();
     updateConnectivityState();
     renderPendingNotice();
     registerWorker();
