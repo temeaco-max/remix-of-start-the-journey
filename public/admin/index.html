@@ -13,81 +13,52 @@
   <script src="/admin/admin-auth.js"></script>
 </head>
 <body class="admin-os">
-  <div class="k-shell">
-    <nav class="k-nav" aria-label="Admin navigation">
-      <a class="k-brand admin-os-brand" href="/"><img src="/assets/brand/logo-icon.png" alt="" width="30" height="30">Kurukoo</a>
-      <div class="k-nav-group"><span class="k-nav-label">Operations</span>
-        <a href="/admin/" aria-current="true">Overview</a>
-        <a href="/admin/?section=conversations">Conversations</a>
-        <a href="/admin/?section=providers">Providers & trust</a>
-        <a href="/admin/?section=economic">Economic requests</a>
-        <a href="/admin/?section=moderation">Moderation</a>
-        <a href="/admin/?section=compliance">Compliance</a>
-        <a href="/admin/?section=notifications">Notifications</a>
+  <main class="k-main">
+    <header class="k-top">
+      <div>
+        <p class="k-muted">Operations console</p>
+        <h1>Kurukoo control room</h1>
+        <p class="k-muted">One canonical backend for Web, PWA, iOS, Android and the operator surface.</p>
       </div>
-      <div class="k-nav-group"><span class="k-nav-label">Platform</span>
-        <a href="/admin/?section=connectors">Channels & integrations</a>
-        <a href="/admin/ai-agents.html">Agents & autonomy</a>
-        <a href="/admin/?section=settings">Settings</a>
-        <a href="/admin/?section=seo">SEO</a>
-      </div>
-      <div class="k-nav-group"><span class="k-nav-label">Growth & content</span>
-        <a href="/admin/analytics.html">Analytics</a>
-        <a href="/admin/revenue.html">Revenue</a>
-        <a href="/admin/marketing.html">Marketing</a>
-        <a href="/admin/ads.html">Advertising</a>
-        <a href="/admin/content.html">Content</a>
-        <a href="/admin/curation.html">Curation</a>
-      </div>
-    </nav>
+      <div class="k-top-actions"><span class="k-status"><span class="k-dot"></span> Authenticated control plane</span><button type="button" class="k-btn" id="load-admin">Refresh</button></div>
+    </header>
 
-    <main class="k-main">
-      <header class="k-top">
-        <div>
-          <p class="k-muted">Operations console</p>
-          <h1>Kurukoo control room</h1>
-          <p class="k-muted">One canonical backend for Web, PWA, iOS, Android and the operator surface.</p>
+    <section class="k-grid" aria-label="Platform overview">
+      <article class="k-card k-span-3"><p class="k-muted">Profiles</p><div class="k-stat" id="stat-profiles">—</div></article>
+      <article class="k-card k-span-3"><p class="k-muted">Open requests</p><div class="k-stat" id="stat-requests">—</div></article>
+      <article class="k-card k-span-3"><p class="k-muted">Providers</p><div class="k-stat" id="stat-providers">—</div></article>
+      <article class="k-card k-span-3"><p class="k-muted">Pending notifications</p><div class="k-stat" id="stat-notifications">—</div></article>
+      <article class="k-card k-span-4"><p class="k-muted">Messages</p><div class="k-stat" id="stat-messages">—</div><p class="k-muted" id="stat-orders">Orders —</p></article>
+      <article class="k-card k-span-4"><p class="k-muted">Integrations</p><div class="k-stat" id="stat-integrations">—</div><p class="k-muted" id="stat-active-integrations">External active —</p></article>
+      <article class="k-card k-span-4"><p class="k-muted">Trusted devices</p><div class="k-stat" id="stat-devices">—</div><p class="k-muted" id="stat-disputes">Open disputes —</p></article>
+
+      <article class="k-card k-span-8">
+        <div class="k-section-heading"><div><p class="k-muted">Live platform state</p><h2>Operational queue</h2></div><span class="k-status" id="surface-contract">Loading…</span></div>
+        <div class="k-list" id="admin-queue"><div class="k-row"><span>Loading canonical state</span><span class="k-muted">Authenticated admin API</span></div></div>
+      </article>
+      <article class="k-card k-span-4">
+        <h2>Safety gates</h2>
+        <div class="k-list">
+          <div class="k-row"><span>Provider evidence</span><strong>Required</strong></div>
+          <div class="k-row"><span>Payment confirmation</span><strong>Required</strong></div>
+          <div class="k-row"><span>Moderation</span><strong>Required</strong></div>
+          <div class="k-row"><span>Audit trail</span><strong>Required</strong></div>
+          <div class="k-row"><span>External activation</span><strong>Evidence-gated</strong></div>
         </div>
-        <div class="k-top-actions"><span class="k-status"><span class="k-dot"></span> Authenticated control plane</span><button type="button" class="k-btn" id="load-admin">Refresh</button></div>
-      </header>
+      </article>
 
-      <section class="k-grid" aria-label="Platform overview">
-        <article class="k-card k-span-3"><p class="k-muted">Profiles</p><div class="k-stat" id="stat-profiles">—</div></article>
-        <article class="k-card k-span-3"><p class="k-muted">Open requests</p><div class="k-stat" id="stat-requests">—</div></article>
-        <article class="k-card k-span-3"><p class="k-muted">Providers</p><div class="k-stat" id="stat-providers">—</div></article>
-        <article class="k-card k-span-3"><p class="k-muted">Pending notifications</p><div class="k-stat" id="stat-notifications">—</div></article>
-        <article class="k-card k-span-4"><p class="k-muted">Messages</p><div class="k-stat" id="stat-messages">—</div><p class="k-muted" id="stat-orders">Orders —</p></article>
-        <article class="k-card k-span-4"><p class="k-muted">Integrations</p><div class="k-stat" id="stat-integrations">—</div><p class="k-muted" id="stat-active-integrations">External active —</p></article>
-        <article class="k-card k-span-4"><p class="k-muted">Trusted devices</p><div class="k-stat" id="stat-devices">—</div><p class="k-muted" id="stat-disputes">Open disputes —</p></article>
+      <article class="k-card k-span-12">
+        <div class="k-section-heading"><div><p class="k-muted">Cross-platform contract</p><h2>One backend, every surface</h2></div><span class="k-status" id="surface-summary">—</span></div>
+        <div id="client-surfaces" class="admin-surface-grid" aria-live="polite"></div>
+      </article>
 
-        <article class="k-card k-span-8">
-          <div class="k-section-heading"><div><p class="k-muted">Live platform state</p><h2>Operational queue</h2></div><span class="k-status" id="surface-contract">Loading…</span></div>
-          <div class="k-list" id="admin-queue"><div class="k-row"><span>Loading canonical state</span><span class="k-muted">Authenticated admin API</span></div></div>
-        </article>
-        <article class="k-card k-span-4">
-          <h2>Safety gates</h2>
-          <div class="k-list">
-            <div class="k-row"><span>Provider evidence</span><strong>Required</strong></div>
-            <div class="k-row"><span>Payment confirmation</span><strong>Required</strong></div>
-            <div class="k-row"><span>Moderation</span><strong>Required</strong></div>
-            <div class="k-row"><span>Audit trail</span><strong>Required</strong></div>
-            <div class="k-row"><span>External activation</span><strong>Evidence-gated</strong></div>
-          </div>
-        </article>
-
-        <article class="k-card k-span-12">
-          <div class="k-section-heading"><div><p class="k-muted">Cross-platform contract</p><h2>One backend, every surface</h2></div><span class="k-status" id="surface-summary">—</span></div>
-          <div id="client-surfaces" class="admin-surface-grid" aria-live="polite"></div>
-        </article>
-
-        <article class="k-card k-span-12">
-          <div class="k-section-heading"><div><p class="k-muted">Admin capability map</p><h2>Every operational area has an owner</h2></div></div>
-          <div id="admin-modules" class="admin-module-grid" aria-live="polite"></div>
-        </article>
-      </section>
-      <section id="admin-section-panel" class="section" aria-live="polite"></section>
-    </main>
-  </div>
+      <article class="k-card k-span-12">
+        <div class="k-section-heading"><div><p class="k-muted">Admin capability map</p><h2>Every operational area has an owner</h2></div></div>
+        <div id="admin-modules" class="admin-module-grid" aria-live="polite"></div>
+      </article>
+    </section>
+    <section id="admin-section-panel" class="section" aria-live="polite"></section>
+  </main>
   <script src="/js/kurukoo-admin.js" defer></script>
   <script src="/js/admin-fcm.js" defer></script>
 </body>
