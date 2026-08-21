@@ -4,7 +4,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 
-import { ActionButton, ContinuityBand, SectionCard, StatusPill, SurfaceHeader } from "@/components/kurukoo-ui";
+import { ActionButton, ContinuityBand, EvidenceRow, PlatformStateBanner, SectionCard, StatusPill, SurfaceHeader } from "@/components/kurukoo-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import {
@@ -89,6 +89,11 @@ export function WorkSurfaceDetail({ kind }: { kind: WorkSurfaceKind }) {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <SurfaceHeader eyebrow={item.eyebrow} title={item.title} right={<StatusPill label={`${item.items.length} items`} tone="neutral" />} />
         <Text style={[styles.intro, { color: colors.muted }]}>{item.intro}</Text>
+        <PlatformStateBanner
+          title={kind === "requests" ? "Canonical work context" : "Reminder delivery boundary"}
+          detail={kind === "requests" ? "Request state is represented locally; provider, payment and fulfilment outcomes remain evidence-gated." : "Local scheduling can be shown as saved or scheduled. External notification delivery is never inferred from local state."}
+          tone={kind === "requests" ? "info" : "warning"}
+        />
         {selected ? <ContinuityBand contextLabel={kind === "reminders" ? "Reminder" : "Request"} contextId={selected} evidence="This exact item remains the owner-scoped context when you open detail, pause, edit or return to Chat. External delivery is never inferred from local state." action={<ActionButton label="Return to Chat" variant="ghost" onPress={() => router.replace("/(tabs)")} />} /> : null}
         {item.items.map((entry) => {
           const isPaused = paused.includes(entry.title);
@@ -105,8 +110,7 @@ export function WorkSurfaceDetail({ kind }: { kind: WorkSurfaceKind }) {
                 <StatusPill label={isPaused ? "Paused" : entry.status} tone={isPaused ? "neutral" : entry.tone} />
               </View>
               <View style={[styles.evidence, { backgroundColor: `${entry.tone === "success" ? colors.success : colors.primary}10`, borderColor: `${entry.tone === "success" ? colors.success : colors.primary}2B` }]}>
-                <Text style={[styles.evidenceLabel, { color: colors.foreground }]}>Evidence and next state</Text>
-                <Text style={[styles.detail, { color: colors.muted }]}>{entry.evidence}</Text>
+                <EvidenceRow label="Evidence" value={entry.evidence} state={entry.tone === "success" ? "success" : entry.tone === "warning" ? "warning" : "neutral"} />
               </View>
               {isSelected && kind === "reminders" && reminderDraft ? (
                 <View style={[styles.editor, { borderColor: colors.border }]}>
@@ -144,7 +148,7 @@ const styles = StyleSheet.create({
   kicker: { fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 0.7, textTransform: "uppercase" },
   title: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 17, lineHeight: 23 },
   detail: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19 },
-  evidence: { borderWidth: 1, borderRadius: 13, padding: 11, gap: 4 },
+  evidence: { borderWidth: 1, borderRadius: 13, padding: 6, gap: 4 },
   evidenceLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
   editor: { borderWidth: 1, borderRadius: 13, padding: 11, gap: 9 },
   editorTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
