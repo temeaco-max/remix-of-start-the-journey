@@ -1,11 +1,19 @@
 name: Desktop Playwright Walkthrough
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      base_url:
-        description: 'Deployed Kurukoo base URL'
+      mode:
+        description: 'Run against the repository locally or a deployed URL'
         required: true
+        default: local
+        type: choice
+        options: [local, deployed]
+      base_url:
+        description: 'Deployed Kurukoo base URL (required for deployed mode)'
+        required: false
         type: string
       fail_on_console:
         description: 'Fail on browser console errors'
@@ -18,9 +26,9 @@ on:
 
 jobs:
   walkthrough:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -33,7 +41,42 @@ jobs:
       - run: npm install --no-save playwright
       - run: npx playwright install --with-deps chromium
 
-      - name: Run desktop visual walkthrough
+      - name: Start Kurukoo locally
+        if: github.event_name == 'push' || github.event_name == 'workflow_run' || github.event.inputs.mode == 'local'
+        env:
+          NODE_ENV: test
+          PORT: 4320
+          HOST: 127.0.0.1
+          KURUKOO_DEV_AUTH: 'true'
+          KURUKOO_TEST_PHONE: '08030000000'
+          KURUKOO_TEST_NAME: 'Kurukoo Desktop Test'
+          JWT_SECRET: 'kurukoo-local-desktop-playwright-secret-32-characters'
+          ADMIN_USERNAME: admin
+          ADMIN_PASSWORD: admin-password-for-test
+          KURUKOO_WORKERS: '0'
+          DB_PATH: ${{ runner.temp }}/kurukoo-desktop.sqlite
+        run: |
+          nohup npm run dev > "$RUNNER_TEMP/kurukoo-server.log" 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:4320/api/health >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/kurukoo-server.log"
+          exit 1
+
+      - name: Run local desktop walkthrough
+        if: github.event_name == 'push' || github.event_name == 'workflow_run' || github.event.inputs.mode == 'local'
+        env:
+          KURUKOO_E2E_BASE_URL: http://127.0.0.1:4320
+          KURUKOO_E2E_LOCAL_AUTH: 'true'
+          KURUKOO_TEST_PHONE: '08030000000'
+          ADMIN_USERNAME: admin
+          ADMIN_PASSWORD: admin-password-for-test
+          KURUKOO_E2E_FAIL_CONSOLE: ${{ github.event.inputs.fail_on_console || 'true' }}
+        run: node scripts/run-desktop-playwright-walkthrough.mjs
+
+      - name: Run deployed desktop walkthrough
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'deployed'
         env:
           KURUKOO_E2E_BASE_URL: ${{ github.event.inputs.base_url || vars.KURUKOO_E2E_BASE_URL }}
           KURUKOO_E2E_AUTH_COOKIE: ${{ secrets.KURUKOO_E2E_AUTH_COOKIE }}
@@ -48,3 +91,11 @@ jobs:
           name: kurukoo-desktop-playwright-walkthrough
           path: artifacts/desktop-walkthrough/
           if-no-files-found: warn
+
+      - name: Upload local server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kurukoo-desktop-playwright-server-log
+          path: ${{ runner.temp }}/kurukoo-server.log
+          if-no-files-found: ignore
