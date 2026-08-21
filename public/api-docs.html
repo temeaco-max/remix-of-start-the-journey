@@ -1,16 +1,55 @@
 <%- include('_partials/head') %>
+<link rel="stylesheet" href="/css/kurukoo-api-docs.css?v=1">
 <%- include('_partials/nav') %>
 
-<main class="api-docs-main">
-    <h1>API Documentation</h1>
-    <div class="card">
-        <h3>GET /api/v1/user/profile</h3>
-        <p>Retrieves the profile of the current authenticated user.</p>
+<main class="api-docs-shell">
+  <header class="api-docs-hero">
+    <div>
+      <p class="api-docs-kicker">Kurukoo Developer Surface</p>
+      <h1>Build on the same OS.</h1>
+      <p>Kurukoo APIs expose canonical identities, requests, capabilities and evidence. They do not bypass conversation, authorization, payment or fulfilment boundaries.</p>
     </div>
-    <div class="card">
-        <h3>POST /api/v1/gigs/post</h3>
-        <p>Posts a new gig to the Kurukoo platform.</p>
-    </div>
+    <aside class="api-docs-truth"><strong>Integration truth</strong><span>Availability, payment, provider success and delivery remain evidence-gated. Treat every response as current system state, not a promise of external fulfilment.</span></aside>
+  </header>
+
+  <div class="api-docs-grid">
+    <section class="api-docs-list" aria-label="API endpoints">
+      <article class="api-doc-card" id="user-profile">
+        <header><span class="api-doc-method">GET</span><code class="api-doc-path">/api/v1/user/profile</code></header>
+        <p>Retrieves the current authenticated user's profile and identity context available to the connected client.</p>
+        <div class="api-doc-note">Requires authentication. Use the returned identity only for owner-scoped client context.</div>
+      </article>
+      <article class="api-doc-card" id="gig-post">
+        <header><span class="api-doc-method">POST</span><code class="api-doc-path">/api/v1/gigs/post</code></header>
+        <p>Creates a gig proposal through the canonical opportunity path. The endpoint does not imply acceptance, matching or payment.</p>
+        <div class="api-doc-note">A created proposal remains a proposal until the appropriate network and economic evidence exists.</div>
+      </article>
+      <article class="api-doc-card" id="chat">
+        <header><span class="api-doc-method">POST</span><code class="api-doc-path">/api/chat</code></header>
+        <p>Use the canonical conversation surface when the user needs natural-language understanding, clarification, context continuity or action coordination.</p>
+        <div class="api-doc-note">Prefer conversation-first entry for user intent. Do not rebuild the routing or governance layer in an integration.</div>
+      </article>
+      <article class="api-doc-card" id="economic-requests">
+        <header><span class="api-doc-method">GET</span><code class="api-doc-path">/api/chat/economic-requests</code></header>
+        <p>Returns owner-scoped Economic Request state for authenticated workspace surfaces and continuation.</p>
+        <div class="api-doc-note">Request status is canonical. Clients must render pending, awaiting input and external-dependency states truthfully.</div>
+      </article>
+    </section>
+
+    <aside class="api-doc-sidebar">
+      <h2>Guide</h2>
+      <nav>
+        <a href="#user-profile">Identity</a>
+        <a href="#gig-post">Opportunities</a>
+        <a href="#chat">Conversation</a>
+        <a href="#economic-requests">Economic Requests</a>
+        <a href="/help">Help &amp; safety</a>
+        <a href="/chat?prompt=Help%20me%20integrate%20with%20Kurukoo">Ask Kurukoo</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="api-doc-footer"><span>Kurukoo API surface · governed by canonical platform contracts</span><a href="/chat">Return to Chat →</a></footer>
 </main>
 
 <%- include('_partials/footer') %>
