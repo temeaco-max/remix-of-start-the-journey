@@ -1,0 +1,50 @@
+name: Desktop Playwright Walkthrough
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Deployed Kurukoo base URL'
+        required: true
+        type: string
+      fail_on_console:
+        description: 'Fail on browser console errors'
+        required: false
+        default: true
+        type: boolean
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+
+jobs:
+  walkthrough:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run desktop visual walkthrough
+        env:
+          KURUKOO_E2E_BASE_URL: ${{ github.event.inputs.base_url || vars.KURUKOO_E2E_BASE_URL }}
+          KURUKOO_E2E_AUTH_COOKIE: ${{ secrets.KURUKOO_E2E_AUTH_COOKIE }}
+          KURUKOO_E2E_ADMIN_TOKEN: ${{ secrets.KURUKOO_E2E_ADMIN_TOKEN }}
+          KURUKOO_E2E_FAIL_CONSOLE: ${{ github.event.inputs.fail_on_console || 'true' }}
+        run: node scripts/run-desktop-playwright-walkthrough.mjs
+
+      - name: Upload desktop screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kurukoo-desktop-playwright-walkthrough
+          path: artifacts/desktop-walkthrough/
+          if-no-files-found: warn
