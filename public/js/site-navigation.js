@@ -1,10 +1,18 @@
 (() => {
   const loadPublicVisuals = () => {
-    if (document.body?.classList.contains('k-public-page') && !document.querySelector('link[data-kurukoo-os-public]')) {
+    if (!document.body?.classList.contains('k-public-page')) return;
+    if (!document.querySelector('link[data-kurukoo-os-public]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = '/css/kurukoo-visual-system.css';
       link.dataset.kurukooOsPublic = '';
+      document.head.appendChild(link);
+    }
+    if (!document.querySelector('link[data-kurukoo-desktop-final]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/css/kurukoo-desktop-final.css?v=1';
+      link.dataset.kurukooDesktopFinal = '';
       document.head.appendChild(link);
     }
   };
