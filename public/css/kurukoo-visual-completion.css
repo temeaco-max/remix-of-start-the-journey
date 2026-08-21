@@ -1,0 +1,33 @@
+:root{--kc-accent:#B95D3C;--kc-accent-strong:#91452E;--kc-ink:#24221F;--kc-muted:#6D665F;--kc-surface:#F7F2EC;--kc-border:#E6DED5;--kc-raised:#fff;--kc-success:#2E8060;--kc-warning:#B87928;--kc-danger:#B5483D;--kc-radius:12px}
+/* Shared visual state vocabulary */
+.k-state-chip,.public-status,.status-pill{font-variant-numeric:tabular-nums}
+.public-status{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:5px 9px;border:1px solid var(--kc-border);border-radius:999px;background:#FBFAF8;color:var(--kc-muted);font:700 9px/1 Inter,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase}
+.public-status--ready{background:#EAF4EE;border-color:#D5E7DC;color:var(--kc-success)}.public-status--pending{background:#FBF1DF;border-color:#ECD9B8;color:var(--kc-warning)}.public-status--setup{background:#F1ECE7;border-color:#E2D9D0;color:var(--kc-muted)}.public-status--error{background:#FBECEA;border-color:#EACCC7;color:var(--kc-danger)}
+/* Explore category detail routes inherit the same visual composition as /explore. */
+body[class*="k-route-explore-"] .page-container,body.k-route-explore .page-container{padding-top:42px;padding-bottom:70px}
+body[class*="k-route-explore-"] .page-header-center{max-width:860px;margin:0 auto 28px;text-align:center}
+body[class*="k-route-explore-"] .page-header-center .page-title{margin:10px 0;color:var(--kc-ink);font:600 clamp(30px,5vw,50px)/1.04 'Space Grotesk',Inter,sans-serif;letter-spacing:-.05em}
+body[class*="k-route-explore-"] .page-header-center .page-desc{max-width:690px;margin:0 auto;color:var(--kc-muted);font-size:14px;line-height:1.7}
+body[class*="k-route-explore-"] .category-detail,.explore-category-detail{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:14px;align-items:start}
+body[class*="k-route-explore-"] .category-card{border:1px solid var(--kc-border);border-radius:14px;background:#fff;box-shadow:0 8px 24px rgba(36,34,31,.05)}
+body[class*="k-route-explore-"] .category-card:hover{border-color:#D8C8BE}
+/* Public legal/content readability */
+body.k-screen-set-content .section{padding-top:32px;padding-bottom:32px}
+body.k-screen-set-content .k-legal-content{font-size:14px;line-height:1.78}
+body.k-screen-set-content .k-legal-content p,body.k-screen-set-content .k-legal-content li{color:var(--kc-muted)}
+body.k-screen-set-content .k-legal-content h2{font-size:22px}body.k-screen-set-content .k-legal-content h3{font-size:16px}
+/* Public contact/utility pages */
+body.k-route-contact .contact-hero,body.k-route-pricing .page-header-center{margin-bottom:20px}
+body.k-route-contact .contact-card--muted{background:linear-gradient(145deg,#FBF8F4,#fff)}
+body.k-route-contact .contact-card,.access-card{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+body.k-route-contact .contact-card:hover,body.k-route-pricing .access-card:hover{transform:translateY(-1px);border-color:#D8C8BE;box-shadow:0 12px 28px rgba(36,34,31,.07)}
+/* Public footer density */
+body.k-public-page .frontend-site-footer,body.k-public-page .site-footer{margin-top:14px}
+/* Touch and keyboard treatment */
+body.k-public-page :where(a,button,input,textarea,select):focus-visible{outline:3px solid rgba(185,93,60,.25);outline-offset:3px}
+body.k-public-page :where(.btn,.text-link,.nav-link){transition:background-color .16s ease,border-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease}
+body.k-public-page :where(.btn,.text-link):active{transform:translateY(1px)}
+/* Narrow screens: keep headings, cards and action rows readable without clipping. */
+@media(max-width:760px){body.k-public-page .page-header-center .page-title{font-size:34px}body[class*="k-route-explore-"] .category-detail,body.k-route-contact .contact-grid{grid-template-columns:1fr}body.k-public-page .k-context-band{margin-bottom:14px}}
+@media(max-width:560px){body.k-public-page .page-container{padding-top:30px;padding-bottom:50px}body.k-public-page .page-header-center .page-title{font-size:31px}body.k-public-page .page-header-center .page-desc{font-size:13px}body.k-public-page .btn{min-height:42px}body.k-screen-set-content .k-legal-content{padding:20px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){body.k-public-page :where(.btn,.text-link,.nav-link),body.k-route-contact .contact-card,body.k-route-pricing .access-card{transition:none}body.k-route-contact .contact-card:hover,body.k-route-pricing .access-card:hover{transform:none}}
