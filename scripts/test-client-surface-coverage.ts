@@ -20,6 +20,8 @@ for (const file of [
   'public/css/kurukoo-os-final.css',
   'public/css/kurukoo-os-workspace-final.css',
   'public/css/kurukoo-webapp-pixel-refinement.css',
+  'public/css/kurukoo-webapp-screen-refinement.css',
+  'public/css/kurukoo-webapp-agent-refinement.css',
 ] as const) requireFile(file, 'Web visual authority');
 requireFile('mobile/kurukoo-mobile/lib/visual-contract.ts', 'Native visual authority');
 requireFile('mobile/kurukoo-mobile/components/kurukoo-ui.tsx', 'Native shared visual primitives');
@@ -67,6 +69,7 @@ if (!appRouter.includes('for (const section of surfaceMap.keys())')) failures.pu
 for (const route of CLIENT_SURFACES.filter(s => s.family === 'web' && s.route.startsWith('/app/')).map(s => s.route.replace('/app/', ''))) if (!appRouter.includes(`['${route}'`)) failures.push(`Canonical Web App surface ${route} missing from surface map`);
 
 const app = read('views/app.ejs');
+if (!app.includes('k-app-section-<%= section %>')) failures.push('Authenticated Web App lacks explicit section identity hook');
 if (!app.includes('href="/app/topics"')) failures.push('Authenticated Web App navigation is missing Topics');
 if (!app.includes("section === 'topics'")) failures.push('Authenticated Web App has no Topics representation');
 if (!app.includes('href="/topics"')) failures.push('Authenticated Web App Topics surface does not connect to canonical Topics frontend');
@@ -81,6 +84,9 @@ if (!head.includes('k-screen-set-${screenSet}')) failures.push('Screen-set class
 
 const appShell = read('public/js/kurukoo-app-shell.js');
 if (!appShell.includes('kurukoo-webapp-pixel-refinement')) failures.push('Web App runtime does not mount pixel refinement authority');
+if (!appShell.includes('kurukoo-webapp-screen-refinement')) failures.push('Web App runtime does not mount sequential screen refinement authority');
+if (!appShell.includes('kurukoo-webapp-agent-refinement')) failures.push('Web App runtime does not mount first-screen Agent refinement authority');
+if (!appShell.includes("path==='/app/agent'")) failures.push('Web App Agent page-specific refinement is not scoped to the Agent route');
 if (!appShell.includes('kurukoo-os-final')) failures.push('Web App runtime does not mount OS final authority');
 
 const chat = read('public/chat/index.html');
@@ -109,6 +115,10 @@ const workspaceCompletionCss = read('public/css/kurukoo-workspace-visual-complet
 for (const marker of ['chat-template-shell', 'workspace-hero-card', 'workspace-panel']) if (!workspaceCompletionCss.includes(marker)) failures.push(`Workspace visual completion authority is missing ${marker}`);
 const pixelCss = read('public/css/kurukoo-webapp-pixel-refinement.css');
 for (const marker of ['k-app-shell', 'k-app-sidebar', 'k-app-title-row', 'k-app-card', 'k-mobile-tabbar', 'workspace-page']) if (!pixelCss.includes(marker)) failures.push(`Pixel refinement authority is missing ${marker}`);
+const screenCss = read('public/css/kurukoo-webapp-screen-refinement.css');
+for (const marker of ['k-app-section-discover', 'k-app-section-requests', 'k-app-section-tasks', 'k-app-section-connect', 'k-app-section-checkout', 'k-app-section-memory', 'k-app-section-agents']) if (!screenCss.includes(marker)) failures.push(`Sequential Web App screen refinement is missing ${marker}`);
+const agentCss = read('public/css/kurukoo-webapp-agent-refinement.css');
+for (const marker of ['.k-app-grid.two .k-app-card:first-child', '.k-app-grid.two .k-app-card:nth-child(2)']) if (!agentCss.includes(marker)) failures.push(`First-screen Agent refinement is missing ${marker}`);
 
 const nativeUi = read('mobile/kurukoo-mobile/components/kurukoo-ui.tsx');
 for (const marker of ['PlatformStateBanner', 'EvidenceRow', 'ContinuityBand', 'StatusPill']) if (!nativeUi.includes(`function ${marker}`)) failures.push(`Native shared visual primitive missing ${marker}`);
@@ -145,4 +155,4 @@ const surfaceIds = new Set(CLIENT_SURFACES.map(surface => surface.id));
 for (const required of ['web-marketing', 'web-how-it-works', 'web-explore', 'web-discover-public', 'web-topics-public', 'web-network', 'web-channels', 'web-resources', 'web-help', 'web-partners', 'web-advertise', 'web-chat', 'web-topics', 'web-requests', 'web-reminders', 'web-saved', 'web-cart', 'web-tasks', 'web-connect', 'web-agents', 'web-capabilities', 'web-opportunities', 'web-wallet', 'web-points', 'web-top-up', 'web-subscriptions', 'web-checkout', 'web-confirmations', 'web-memory', 'web-notifications', 'web-artifacts', 'web-prayer', 'web-call', 'web-safety', 'pwa-shell', 'native-ios', 'native-android', 'admin-control-room', 'admin-providers', 'admin-compliance', 'admin-settings']) if (!surfaceIds.has(required)) failures.push(`Client surface registry missing ${required}`);
 
 if (failures.length) { console.error('Kurukoo client-surface coverage failed:'); failures.forEach(failure => console.error(`- ${failure}`)); process.exit(1); }
-console.log(`Kurukoo client-surface coverage passed: ${CLIENT_SURFACES.length} declared client surfaces and ${CLIENT_FEATURE_ENTRYPOINTS.length} historical capability entrypoints; public teaching, final visual completion, lifecycle states, Chat/Workspace authorities, pixel refinement, API docs, Resources, Topics/community, Provider network, Admin/Agents, PWA/native authorities and five-domain mobile navigation present.`);
+console.log(`Kurukoo client-surface coverage passed: ${CLIENT_SURFACES.length} declared client surfaces and ${CLIENT_FEATURE_ENTRYPOINTS.length} historical capability entrypoints; public teaching, final visual completion, lifecycle states, Chat/Workspace authorities, pixel refinement, sequential Web App screen refinements, first-screen Agent refinement, API docs, Resources, Topics/community, Provider network, Admin/Agents, PWA/native authorities and five-domain mobile navigation present.`);
