@@ -1,5 +1,3 @@
-import type { NativeIntent } from 'expo-router';
-
 const TAB_ROUTES: Record<string, string> = {
   '/desk': '/(tabs)',
   '/chat': '/(tabs)',
@@ -26,7 +24,7 @@ function stripOrigin(path: string): string {
  * in More until a dedicated native detail surface exists rather than silently
  * pretending a different resource is being displayed.
  */
-export const redirectSystemPath: NativeIntent['redirectSystemPath'] = ({ path }) => {
+export function redirectSystemPath({ path }: { path: string; initial?: boolean }): string {
   const pathname = stripOrigin(path).split(/[?#]/, 1)[0] || '/';
 
   const direct = TAB_ROUTES[pathname];
@@ -38,4 +36,4 @@ export const redirectSystemPath: NativeIntent['redirectSystemPath'] = ({ path })
   if (/^\/connections\//.test(pathname)) return '/(tabs)/connect';
 
   return '/(tabs)/more';
-};
+}
