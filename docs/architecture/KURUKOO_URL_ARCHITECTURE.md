@@ -131,7 +131,9 @@ Canonical Admin browser addresses are clean paths; `.html` filenames and `?secti
 
 ### API
 
-The canonical API namespace is `/api/v1/*`. Existing `/api/*` endpoints remain compatibility surfaces until migrated and must not be emitted by new frontend code.
+The canonical API namespace is `/api/v1/*`. Existing `/api/*` endpoints remain compatibility surfaces until their individual routers are migrated and must not be emitted by new frontend code.
+
+The current server uses `src/middleware/apiV1Bridge.ts` at `/api/v1`; it translates the versioned path into the existing canonical service-router path without duplicating domain routers. This is an intentional migration boundary, not a second API implementation.
 
 - `/api/v1/auth/*`
 - `/api/v1/users/*`
@@ -182,9 +184,16 @@ Compatibility handlers must not create second page owners.
 
 Web is the canonical resource address space. PWA, iOS and Android map the same addresses to platform-native presentations when native representations exist.
 
-Example:
+The Expo Router native intent resolver (`mobile/kurukoo-mobile/app/+native-intent.tsx`) currently maps:
 
-`/requests/REQ-123` → Web Request detail / iOS Request detail / Android Request detail.
+- `/desk` and `/chat` → native Agent/home surface
+- `/discover` → native Discover
+- `/requests` and `/requests/:id` → native Requests
+- `/tasks` and `/tasks/:id` → native Tasks
+- `/connect` and `/connections/:id` → native Connect
+- unsupported durable resources → native More/overflow until a truthful dedicated detail surface exists
+
+Native builds use `KURUKOO_PUBLIC_BASE_URL` when it is a valid HTTPS origin to configure iOS Universal Links and Android App Links. The development custom scheme remains available independently.
 
 ## Product-completeness rule
 
