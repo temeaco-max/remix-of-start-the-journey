@@ -6,12 +6,14 @@
     <title>You are Offline — Kurukoo</title>
     <link rel="stylesheet" href="/css/site.css?v=1.2.0">
     <link rel="stylesheet" href="/css/offline.css?v=1.0.0">
+    <link rel="stylesheet" href="/css/kurukoo-platform-state-visual.css?v=1">
 </head>
 <body class="offline-page">
     <div class="offline-card">
-        <div class="offline-icon">📡</div>
-        <h1>You're Offline</h1>
-        <p>Don't worry—Kurukoo still works for the basics. Connect to the internet to use all features.</p>
+        <div class="offline-icon" aria-hidden="true">📡</div>
+        <span class="public-status public-status--pending">Offline</span>
+        <h1>Kurukoo is offline</h1>
+        <p>Cached Kurukoo surfaces remain available. New messages are not sent automatically; reconnect and choose Retry when you are ready.</p>
         <div class="actions">
             <button class="btn-primary" id="retry-button" type="button">Try Reconnecting</button>
             <a href="/web" class="btn-secondary">Open Kurukoo</a>
