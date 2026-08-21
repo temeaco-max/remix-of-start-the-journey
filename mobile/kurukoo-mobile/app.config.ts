@@ -15,6 +15,14 @@ const bundleId =
     .join(".") || "space.manus.app";
 const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
 const schemeFromBundleId = `manus${timestamp}`;
+const publicBaseUrl = String(process.env.KURUKOO_PUBLIC_BASE_URL || "").trim();
+let publicHost = "";
+try {
+  const parsed = publicBaseUrl ? new URL(publicBaseUrl) : null;
+  publicHost = parsed?.protocol === "https:" ? parsed.hostname : "";
+} catch {
+  publicHost = "";
+}
 
 const env = {
   appName: "Kurukoo",
@@ -37,6 +45,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
+    ...(publicHost ? { associatedDomains: [`applinks:${publicHost}`] } : {}),
     ...(process.env.GOOGLE_SERVICES_PLIST ? { googleServicesFile: process.env.GOOGLE_SERVICES_PLIST } : {}),
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
   },
@@ -59,6 +68,16 @@ const config: ExpoConfig = {
         data: [{ scheme: env.scheme, host: "*" }],
         category: ["BROWSABLE", "DEFAULT"],
       },
+      ...(publicHost
+        ? [
+            {
+              action: "VIEW",
+              autoVerify: true,
+              data: [{ scheme: "https", host: publicHost, pathPrefix: "/" }],
+              category: ["BROWSABLE", "DEFAULT"],
+            },
+          ]
+        : []),
     ],
   },
   web: {
