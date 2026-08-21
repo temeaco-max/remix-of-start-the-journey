@@ -38,6 +38,13 @@
       link.href = '/css/admin-pages/admin-convergence-shell.css';
       document.head.appendChild(link);
     }
+    if (!document.getElementById('kurukoo-admin-desktop-final-css')) {
+      const link = document.createElement('link');
+      link.id = 'kurukoo-admin-desktop-final-css';
+      link.rel = 'stylesheet';
+      link.href = '/css/kurukoo-desktop-final.css?v=1';
+      document.head.appendChild(link);
+    }
 
     const path = window.location.pathname + window.location.search;
     const current = (href) => path === href || (href !== '/admin/' && path.startsWith(href));
