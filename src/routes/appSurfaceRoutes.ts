@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import express from 'express';
 import path from 'node:path';
 import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';
 import { getExternalIntegrationReadiness } from '../services/externalIntegrationReadiness.js';
@@ -44,6 +44,8 @@ const cleanCanonicalSections: Record<string, string> = {
   '/desk': 'desk', '/discover': 'discover', '/topics': 'topics', '/requests': 'requests', '/reminders': 'reminders', '/saved': 'saved', '/cart': 'cart', '/tasks': 'tasks', '/connect': 'connect', '/agents': 'agents', '/capabilities': 'capabilities', '/opportunities': 'opportunities', '/wallet': 'wallet', '/points': 'points', '/top-up': 'top-up', '/subscriptions': 'subscriptions', '/checkout': 'checkout', '/confirmations': 'confirmations', '/memory': 'memory', '/artifacts': 'artifacts', '/prayer': 'prayer', '/call': 'call', '/notifications': 'notifications', '/safety': 'safety',
 };
 
+const sharedPublicAuthenticated = new Set(['/discover', '/topics']);
+
 function renderApp(req: express.Request, res: express.Response, section = 'desk') {
   const authReq = req as AuthRequest;
   if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.originalUrl || req.path)}`);
@@ -58,7 +60,6 @@ function renderApp(req: express.Request, res: express.Response, section = 'desk'
 router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) }));
 router.use('/api', economicDispatchRoutes);
 
-// Durable universal conversation addresses. The existing Chat runtime remains the implementation owner.
 router.get('/chat/:conversationId', (req, res) => {
   res.setHeader('X-Kurukoo-Conversation-Id', String(req.params.conversationId));
   return res.sendFile(path.join(process.cwd(), 'public', 'chat', 'index.html'));
@@ -68,7 +69,13 @@ router.get('/share/:shareId', (req, res) => {
   return res.sendFile(path.join(process.cwd(), 'public', 'chat', 'index.html'));
 });
 
-for (const [pathname, section] of Object.entries(cleanCanonicalSections)) router.get(pathname, optionalAuthenticateUser, (req, res) => renderApp(req, res, section));
+for (const [pathname, section] of Object.entries(cleanCanonicalSections)) {
+  router.get(pathname, optionalAuthenticateUser, (req, res, next) => {
+    const authReq = req as AuthRequest;
+    if (!authReq.user?.phone && sharedPublicAuthenticated.has(pathname)) return next();
+    return renderApp(req, res, section);
+  });
+}
 
 for (const resource of ['requests','tasks','reminders','opportunities','agents','connections','memory','artifacts']) {
   router.get(`/${resource}/:id`, optionalAuthenticateUser, (req, res) => {
