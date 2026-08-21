@@ -15,15 +15,16 @@ const canonicalSections = [
 ];
 for (const section of canonicalSections) {
   if (!routes.includes(`['${section}'`)) failures.push(`Canonical route missing /app/${section}`);
-  if (!app.includes(`/app/${section}`)) failures.push(`Web App shell has no navigation/reference to /app/${section}`);
+  if (!app.includes(`/app/${section}`) && !shell.includes(`/app/${section}`)) failures.push(`No Web App navigation/reference to /app/${section}`);
 }
 
 const primary = ['/app/agent','/app/discover','/app/requests','/app/tasks','/app/connect'];
-for (const route of primary) if (!app.includes(`href="${route}"`)) failures.push(`Primary navigation missing ${route}`);
+for (const route of primary) if (!app.includes(`href="${route}"`)) failures.push(`Primary desktop navigation missing ${route}`);
+for (const route of primary) if (!shell.includes(`href:'${route}'`)) failures.push(`Primary mobile navigation runtime missing ${route}`);
 
-for (const route of ['/app/agent','/app/discover','/app/requests','/app/tasks','/app/connect']) {
-  if (!shell.includes(`href:'${route}'`)) failures.push(`Mobile navigation runtime missing ${route}`);
-}
+const secondary = ['/app/reminders','/app/saved','/app/cart'];
+for (const route of secondary) if (!shell.includes(`href:'${route}'`)) failures.push(`Secondary navigation runtime missing ${route}`);
+if (!shell.includes('createSecondaryNav')) failures.push('Desktop secondary Web App navigation is not mounted');
 
 const legacyMap = [
   ['/discover','/app/discover'], ['/requests','/app/requests'], ['/tasks','/app/tasks'], ['/connect','/app/connect'],
@@ -39,10 +40,12 @@ if (!shell.includes('normalizeAppLinks')) failures.push('Web App link-normalizat
 if (!app.includes('href="/chat"')) failures.push('Web App has no direct Chat recovery path');
 if (!app.includes('href="/app/agent"')) failures.push('Web App has no Agent recovery path');
 if (!app.includes('class="k-mobile-tabbar"')) failures.push('Mobile Web App tab bar is missing');
+if (!shell.includes('k-feature-compass')) failures.push('Mobile secondary feature navigation is missing');
+if (!shell.includes('k-app-secondary')) failures.push('Desktop secondary navigation grouping is missing');
 
 if (failures.length) {
   console.error('Web App screen-flow contract failed:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log(`Web App screen-flow contract passed: ${canonicalSections.length} canonical surfaces, five primary mobile/desktop destinations, legacy handoff normalization and Chat/Agent recovery paths present.`);
+console.log(`Web App screen-flow contract passed: ${canonicalSections.length} canonical surfaces, five primary destinations, three persistent secondary destinations, legacy handoff normalization, mobile overflow navigation and Chat/Agent recovery paths present.`);
