@@ -9,36 +9,72 @@ import economicDispatchRoutes from './economicDispatchRoutes.js';
 const router = express.Router();
 
 const surfaceMap = new Map([
-  ['agent', { title: 'Agent', eyebrow: 'Your Kurukoo relationship', description: 'Conversation is the universal control surface for requests, reminders, memory, agents and coordinated work.', cta: '/chat', ctaLabel: 'Open Chat' }],
+  ['desk', { title: 'Desk', eyebrow: 'Your Kurukoo workspace', description: 'See what is happening, what needs your attention and where to continue across conversations, requests, tasks, reminders, memory and connected work.', cta: '/chat', ctaLabel: 'Ask Agent' }],
   ['discover', { title: 'Discover', eyebrow: 'Your opportunity and activity surface', description: 'See what is useful, interesting, available, discussable or actionable today: nearby activity, Daily Picks, Topics, Opportunities and things Kurukoo can do.', cta: '/discover', ctaLabel: 'Open Discover' }],
   ['topics', { title: 'Topics', eyebrow: 'Community context', description: 'Browse and share moderated community questions, reports and experiences without turning community content into a provider, offer or payment claim.', cta: '/topics', ctaLabel: 'Open Topics' }],
   ['requests', { title: 'Requests', eyebrow: 'Work in motion', description: 'Economic Requests, orders, sourcing and confirmations remain owned by the canonical lifecycle and can always return to the originating conversation.', cta: '/requests', ctaLabel: 'Open Requests' }],
   ['reminders', { title: 'Reminders', eyebrow: 'Keep life on track', description: 'Create and review scheduled help without leaving the same memory, conversation and notification relationship.', cta: '/chat?prompt=Show%20me%20my%20reminders', ctaLabel: 'Manage in Chat' }],
-  ['saved', { title: 'Saved & offers', eyebrow: 'Keep useful context close', description: 'Saved items, offers, follows and watches remain tied to your owner-scoped memory and canonical conversation.', cta: '/chat?prompt=Show%20me%20my%20saved%20items', ctaLabel: 'Open Saved Items' }],
+  ['saved', { title: 'Saved', eyebrow: 'Keep useful context close', description: 'Saved items, offers, follows and watches remain tied to your owner-scoped memory and canonical conversation.', cta: '/chat?prompt=Show%20me%20my%20saved%20items', ctaLabel: 'Open Saved' }],
   ['cart', { title: 'Cart', eyebrow: 'Prepare an economic action', description: 'Review sourced items before requesting them; cart contents remain separate from payment success and final confirmation.', cta: '/cart', ctaLabel: 'Open Cart' }],
-  ['tasks', { title: 'Tasks', eyebrow: 'Contribute to the network', description: 'Tasks, reminders, evidence and agent work use the same identity, policy and execution boundaries.', cta: '/tasks', ctaLabel: 'Open Tasks' }],
+  ['tasks', { title: 'Tasks', eyebrow: 'Work to finish', description: 'Tasks, reminders, evidence and agent work use the same identity, policy and execution boundaries.', cta: '/tasks', ctaLabel: 'Open Tasks' }],
   ['connect', { title: 'Connect', eyebrow: 'Bring your tools together', description: 'Connect user-owned storage, communication channels, devices and external sources without creating parallel identity or memory.', cta: '/connect', ctaLabel: 'Open Connect' }],
-  ['agents', { title: 'Agents', eyebrow: 'Agent runtime', description: 'Review first-class agents, goals, controls and current runtime states. Agent execution remains bounded by canonical policy and evidence.', cta: '/chat?prompt=Show%20me%20my%20agents', ctaLabel: 'Manage in Chat' }],
-  ['capabilities', { title: 'Capabilities', eyebrow: 'Capability portfolio', description: 'Use multiple capabilities—provider, contributor, delivery, buyer, seller and more—under one identity and one canonical execution fabric.', cta: '/chat?prompt=Show%20me%20my%20capabilities', ctaLabel: 'Open Capability Portfolio' }],
-  ['opportunities', { title: 'Opportunities', eyebrow: 'Part of Discover', description: 'Opportunities, promotions and quiet-user engagement are surfaced as a Discover section so the feed, follow/watch actions and Chat handoff share one owner.', cta: '/app/discover', ctaLabel: 'Open Discover' }],
-  ['wallet', { title: 'Wallet & money', eyebrow: 'Economic layer', description: 'Wallet, Points, Top Up, subscriptions and payment states are presented independently of whether external payment rails are currently active.', cta: '/app/wallet', ctaLabel: 'Open money controls' }],
-  ['points', { title: 'Points', eyebrow: 'Kurukoo economy', description: 'Points remain a closed-loop utility/economy surface distinct from cash payment rails and external settlement.', cta: '/app/points', ctaLabel: 'Open Points' }],
-  ['top-up', { title: 'Top Up', eyebrow: 'Add funds', description: 'Top-up UI is available as a truthful payment surface; provider evidence determines whether a transaction can actually complete.', cta: '/app/top-up', ctaLabel: 'Open Top Up' }],
-  ['subscriptions', { title: 'Subscriptions', eyebrow: 'Plans and entitlements', description: 'Plans and entitlement states are presented independently of live billing activation and never claim a successful charge without provider evidence.', cta: '/app/subscriptions', ctaLabel: 'Open Subscriptions' }],
+  ['agents', { title: 'Agents', eyebrow: 'Your bounded autonomous workers', description: 'Review first-class agents, goals, controls and current runtime states. Agent execution remains bounded by canonical policy and evidence.', cta: '/agents', ctaLabel: 'Open Agents' }],
+  ['capabilities', { title: 'Capabilities', eyebrow: 'Capability portfolio', description: 'Use multiple capabilities—provider, contributor, delivery, buyer, seller and more—under one identity and one canonical execution fabric.', cta: '/capabilities', ctaLabel: 'Open Capabilities' }],
+  ['opportunities', { title: 'Opportunities', eyebrow: 'Ways to participate', description: 'Opportunities, promotions and useful participation paths are tied to the same discovery, capability and conversation fabric.', cta: '/opportunities', ctaLabel: 'Open Opportunities' }],
+  ['wallet', { title: 'Wallet', eyebrow: 'Economic layer', description: 'Wallet, Points, Top Up, subscriptions and payment states are presented independently of whether external payment rails are currently active.', cta: '/wallet', ctaLabel: 'Open Wallet' }],
+  ['points', { title: 'Points', eyebrow: 'Kurukoo economy', description: 'Points remain a closed-loop utility/economy surface distinct from cash payment rails and external settlement.', cta: '/points', ctaLabel: 'Open Points' }],
+  ['top-up', { title: 'Top Up', eyebrow: 'Add funds', description: 'Top-up UI is available as a truthful payment surface; provider evidence determines whether a transaction can actually complete.', cta: '/top-up', ctaLabel: 'Open Top Up' }],
+  ['subscriptions', { title: 'Subscriptions', eyebrow: 'Plans and entitlements', description: 'Plans and entitlement states are presented independently of live billing activation and never claim a successful charge without provider evidence.', cta: '/subscriptions', ctaLabel: 'Open Subscriptions' }],
   ['checkout', { title: 'Checkout', eyebrow: 'Confirm economic action', description: 'Checkout remains bound to canonical economic requests, payment policy and explicit confirmation.', cta: '/checkout', ctaLabel: 'Open Checkout' }],
-  ['confirmations', { title: 'Confirmations', eyebrow: 'Know what happened', description: 'Confirmation surfaces summarize canonical lifecycle, evidence and recovery rather than inferred success.', cta: '/confirmation', ctaLabel: 'Open Confirmations' }],
+  ['confirmations', { title: 'Confirmations', eyebrow: 'Know what happened', description: 'Confirmation surfaces summarize canonical lifecycle, evidence and recovery rather than inferred success.', cta: '/requests', ctaLabel: 'Open Requests' }],
   ['memory', { title: 'Memory', eyebrow: 'Your Kurukoo memory', description: 'Memory Profile is the canonical owner-scoped memory authority shared by all clients.', cta: '/memory', ctaLabel: 'Open Memory' }],
-  ['artifacts', { title: 'Artifacts', eyebrow: 'Your files and recordings', description: 'Artifacts are owner-scoped. Connected user-owned storage is preferred; managed storage is bounded fallback/staging.', cta: '/connect', ctaLabel: 'Open Artifact History' }],
-  ['prayer', { title: 'Prayer Companion', eyebrow: 'First-class agent', description: 'Prayer support can compose personalized prayers, preserve continuity and use the existing voice, reminder and artifact boundaries when enabled.', cta: '/chat?prompt=I%20would%20like%20a%20prayer', ctaLabel: 'Open Prayer Companion' }],
-  ['call', { title: 'Kurukoo Call', eyebrow: 'Realtime communication', description: 'AI voice and peer calling remain part of the same Kurukoo relationship. Provider credentials and realtime infrastructure determine activation.', cta: '/call', ctaLabel: 'Open Call' }],
-  ['notifications', { title: 'Notifications', eyebrow: 'Stay connected', description: 'Notifications return relevant continuation, request and reminder context while preserving the same conversation identity.', cta: '/chat?prompt=Show%20me%20my%20notifications', ctaLabel: 'Review with Kurukoo' }],
+  ['artifacts', { title: 'Artifacts', eyebrow: 'Your files and recordings', description: 'Artifacts are owner-scoped. Connected user-owned storage is preferred; managed storage is bounded fallback/staging.', cta: '/artifacts', ctaLabel: 'Open Artifacts' }],
+  ['prayer', { title: 'Prayer Companion', eyebrow: 'First-class agent capability', description: 'Prayer support can compose personalized prayers, preserve continuity and use the existing voice, reminder and artifact boundaries when enabled.', cta: '/chat?prompt=I%20would%20like%20a%20prayer', ctaLabel: 'Ask Agent' }],
+  ['call', { title: 'Call', eyebrow: 'Realtime communication', description: 'AI voice and peer calling remain part of the same Kurukoo relationship. Provider credentials and realtime infrastructure determine activation.', cta: '/call', ctaLabel: 'Open Call' }],
+  ['notifications', { title: 'Notifications', eyebrow: 'Stay connected', description: 'Notifications return relevant continuation, request and reminder context while preserving the same conversation identity.', cta: '/notifications', ctaLabel: 'Open Notifications' }],
   ['safety', { title: 'Safety', eyebrow: 'Safety and check-ins', description: 'Safety context, trusted contacts and check-ins are explicit, consent-bound and never represented as emergency-service fulfilment.', cta: '/safety', ctaLabel: 'Open Safety' }],
 ]);
 
-function renderApp(req: express.Request, res: express.Response, section = 'agent') {
+const legacySurfaceAliases: Record<string, string> = {
+  '/app': '/desk',
+  '/app/agent': '/desk',
+  '/web': '/desk',
+  '/workspace': '/desk',
+  '/subscription': '/subscriptions',
+  '/confirmation': '/requests',
+};
+
+const cleanCanonicalSections: Record<string, string> = {
+  '/desk': 'desk',
+  '/discover': 'discover',
+  '/topics': 'topics',
+  '/requests': 'requests',
+  '/reminders': 'reminders',
+  '/saved': 'saved',
+  '/cart': 'cart',
+  '/tasks': 'tasks',
+  '/connect': 'connect',
+  '/agents': 'agents',
+  '/capabilities': 'capabilities',
+  '/opportunities': 'opportunities',
+  '/wallet': 'wallet',
+  '/points': 'points',
+  '/top-up': 'top-up',
+  '/subscriptions': 'subscriptions',
+  '/checkout': 'checkout',
+  '/confirmations': 'confirmations',
+  '/memory': 'memory',
+  '/artifacts': 'artifacts',
+  '/prayer': 'prayer',
+  '/call': 'call',
+  '/notifications': 'notifications',
+  '/safety': 'safety',
+};
+
+function renderApp(req: express.Request, res: express.Response, section = 'desk') {
   const authReq = req as AuthRequest;
-  if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.path)}`);
-  const selected = surfaceMap.get(section) ?? surfaceMap.get('agent')!;
+  if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.originalUrl || req.path)}`);
+  const selected = surfaceMap.get(section) ?? surfaceMap.get('desk')!;
   const surfaces = getClientSurfaces('web');
   const readiness = getPilotReadiness();
   const integrations = getExternalIntegrationReadiness();
@@ -48,10 +84,43 @@ function renderApp(req: express.Request, res: express.Response, section = 'agent
 
 router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')) }));
 router.use('/api', economicDispatchRoutes);
-router.get('/app', optionalAuthenticateUser, (req, res) => renderApp(req, res, 'agent'));
-for (const section of surfaceMap.keys()) router.get(`/app/${section}`, optionalAuthenticateUser, (req, res) => renderApp(req, res, section));
-const completedLegacyToCanonical: Record<string, string> = { '/requests': '/app/requests', '/points': '/app/points', '/tasks': '/app/tasks', '/top-up': '/app/top-up', '/subscription': '/app/subscriptions', '/memory': '/app/memory', '/safety': '/app/safety', '/call': '/app/call', '/connect': '/app/connect', '/confirmation': '/app/confirmations' };
-for (const [legacyPath, canonicalPath] of Object.entries(completedLegacyToCanonical)) router.get(legacyPath, optionalAuthenticateUser, (req, res) => { const authReq = req as AuthRequest; if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.path)}`); return res.redirect(302, canonicalPath); });
-router.get('/web', (_req, res) => res.redirect(302, '/app'));
-router.get('/workspace', (_req, res) => res.redirect(302, '/app'));
+
+// Canonical authenticated Web URLs. Keep these clean and resource-oriented; /app/* remains a compatibility namespace.
+for (const [pathname, section] of Object.entries(cleanCanonicalSections)) {
+  router.get(pathname, optionalAuthenticateUser, (req, res) => renderApp(req, res, section));
+}
+
+// Canonical durable resource URLs. Detail routes retain the object identity in the address space; the current shell
+// presents the resource context and hands the user to the canonical Chat/request owner when deeper state is required.
+for (const resource of ['requests','tasks','reminders','opportunities','agents','connections','memory','artifacts']) {
+  router.get(`/${resource}/:id`, optionalAuthenticateUser, (req, res) => {
+    const authReq = req as AuthRequest;
+    if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.originalUrl)}`);
+    const section = resource === 'connections' ? 'connect' : resource;
+    const selected = surfaceMap.get(section as string) ?? surfaceMap.get('desk')!;
+    return res.render('app', {
+      selected: { ...selected, eyebrow: `${selected.eyebrow} · ${req.params.id}`, description: `${selected.description} This view is scoped to ${req.params.id}.` },
+      section,
+      displayName: authReq.user.name || authReq.user.phone,
+      phone: authReq.user.phone,
+      surfaces: getClientSurfaces('web'),
+      readiness: getPilotReadiness(),
+      integrations: getExternalIntegrationReadiness(),
+      enabledIntegrations: 0,
+      integrationCount: 0,
+      visualFeatures: PLATFORM_FEATURE_VISUAL_CONTRACTS.filter(feature => !feature.audience.includes('admin')),
+      resourceId: req.params.id,
+    });
+  });
+}
+
+// Compatibility namespace. Existing bookmarks and old visual/runtime links continue to work but redirect to the clean URL.
+for (const [legacy, canonical] of Object.entries(legacySurfaceAliases)) {
+  router.get(legacy, (_req, res) => res.redirect(308, canonical));
+}
+for (const section of surfaceMap.keys()) {
+  if (section === 'desk') continue;
+  router.get(`/app/${section}`, optionalAuthenticateUser, (_req, res) => res.redirect(308, `/${section}`));
+}
+
 export default router;
