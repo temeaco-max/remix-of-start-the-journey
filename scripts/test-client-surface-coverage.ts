@@ -9,40 +9,41 @@ const read = (relativePath: string) => fs.readFileSync(path.join(root, relativeP
 const failures: string[] = [];
 const requireFile = (relativePath: string, reason: string) => { if (!exists(relativePath)) failures.push(`${reason}: missing ${relativePath}`); };
 
-for (const [file, reason] of [
-  ['public/css/kurukoo-client-foundation.css', 'Web/PWA visual authority'],
-  ['public/css/kurukoo-screen-set-convergence.css', 'Visual screen-set authority'],
-  ['public/css/kurukoo-visual-completion.css', 'Final visual completion authority'],
-  ['public/css/kurukoo-platform-state-visual.css', 'Platform lifecycle visual authority'],
-  ['public/css/kurukoo-chat-visual-completion.css', 'Chat visual completion authority'],
-  ['public/css/kurukoo-workspace-visual-completion.css', 'Workspace visual completion authority'],
-  ['public/css/kurukoo-api-docs.css', 'API docs visual authority'],
-  ['public/css/kurukoo-visual-system.css', 'Shared visual system layer'],
-  ['mobile/kurukoo-mobile/lib/visual-contract.ts', 'Native visual authority'],
-  ['mobile/kurukoo-mobile/components/kurukoo-ui.tsx', 'Native shared visual primitives'],
-  ['mobile/kurukoo-mobile/components/work-surface-detail.tsx', 'Native work surface visual convergence'],
-  ['mobile/kurukoo-mobile/app/(tabs)/_layout.tsx', 'Native primary navigation'],
-  ['public/js/kurukoo-app-shell.js', 'Web App runtime visual loader'],
-  ['public/js/kurukoo-pwa.js', 'PWA lifecycle/runtime owner'],
-  ['public/offline.html', 'Offline platform-state surface'],
-  ['views/app.ejs', 'Canonical authenticated Web App shell'],
-  ['src/routes/appSurfaceRoutes.ts', 'Canonical authenticated Web App router'],
-  ['src/routes/contentRoutes.ts', 'Canonical public content/resource router'],
-  ['views/resources/index.ejs', 'Resources hub frontend'],
-  ['views/resources/article.ejs', 'Resource article frontend'],
-  ['public/js/kurukoo-resources.js', 'Resources frontend behavior module'],
-  ['src/routes/topicRoutes.ts', 'Topics route authority'],
-  ['views/topics/index.ejs', 'Topics list frontend'],
-  ['views/topics/detail.ejs', 'Topic detail frontend'],
-  ['public/admin/index.html', 'Admin control room shell'],
-  ['public/admin/ai-agents.html', 'Admin AI agents screen'],
-  ['public/js/kurukoo-admin.js', 'Admin control room behavior'],
-  ['public/css/admin-console.css', 'Admin agent visual authority'],
-  ['docs/architecture/CLIENT_APPLICATION_CONVERGENCE.md', 'Client architecture contract'],
-  ['docs/architecture/CLIENT_FEATURE_COVERAGE.md', 'Feature coverage contract'],
-] as const) requireFile(file, reason);
-
-requireFile('public/api-docs.html', 'API docs frontend');
+for (const file of [
+  'public/css/kurukoo-client-foundation.css',
+  'public/css/kurukoo-screen-set-convergence.css',
+  'public/css/kurukoo-visual-completion.css',
+  'public/css/kurukoo-platform-state-visual.css',
+  'public/css/kurukoo-chat-visual-completion.css',
+  'public/css/kurukoo-workspace-visual-completion.css',
+  'public/css/kurukoo-visual-system.css',
+  'public/css/kurukoo-os-final.css',
+  'public/css/kurukoo-os-workspace-final.css',
+  'public/css/kurukoo-webapp-pixel-refinement.css',
+] as const) requireFile(file, 'Web visual authority');
+requireFile('mobile/kurukoo-mobile/lib/visual-contract.ts', 'Native visual authority');
+requireFile('mobile/kurukoo-mobile/components/kurukoo-ui.tsx', 'Native shared visual primitives');
+requireFile('mobile/kurukoo-mobile/components/work-surface-detail.tsx', 'Native work surface visual convergence');
+requireFile('mobile/kurukoo-mobile/app/(tabs)/_layout.tsx', 'Native primary navigation');
+requireFile('public/js/kurukoo-app-shell.js', 'Web mobile navigation/runtime module');
+requireFile('public/js/kurukoo-pwa.js', 'PWA lifecycle/runtime owner');
+requireFile('public/offline.html', 'Offline platform-state surface');
+requireFile('views/app.ejs', 'Canonical authenticated Web App shell');
+requireFile('src/routes/appSurfaceRoutes.ts', 'Canonical authenticated Web App router');
+requireFile('src/routes/contentRoutes.ts', 'Canonical public content/resource router');
+requireFile('public/api-docs.html', 'API docs visual surface');
+requireFile('views/resources/index.ejs', 'Resources hub frontend');
+requireFile('views/resources/article.ejs', 'Resource article frontend');
+requireFile('public/js/kurukoo-resources.js', 'Resources frontend behavior module');
+requireFile('src/routes/topicRoutes.ts', 'Topics route authority');
+requireFile('views/topics/index.ejs', 'Topics list frontend');
+requireFile('views/topics/detail.ejs', 'Topic detail frontend');
+requireFile('public/admin/index.html', 'Admin control room shell');
+requireFile('public/admin/ai-agents.html', 'Admin AI agents screen');
+requireFile('public/js/kurukoo-admin.js', 'Admin control room behavior');
+requireFile('public/css/admin-console.css', 'Admin agent visual authority');
+requireFile('docs/architecture/CLIENT_APPLICATION_CONVERGENCE.md', 'Client architecture contract');
+requireFile('docs/architecture/CLIENT_FEATURE_COVERAGE.md', 'Feature coverage contract');
 
 if (CLIENT_FEATURE_ENTRYPOINTS.length < 30) failures.push(`Historical feature inventory is incomplete: expected at least 30 entrypoints, found ${CLIENT_FEATURE_ENTRYPOINTS.length}`);
 const featureIds = new Set(CLIENT_FEATURE_ENTRYPOINTS.map((feature) => feature.id));
@@ -72,22 +73,21 @@ if (!app.includes('href="/topics"')) failures.push('Authenticated Web App Topics
 for (const route of ['/app/reminders', '/app/saved', '/app/cart']) if (!appRouter.includes(`['${route.replace('/app/', '')}'`)) failures.push(`Authenticated Web App surface map missing ${route}`);
 
 const head = read('views/_partials/head.ejs');
-for (const required of ['/css/kurukoo-screen-set-convergence.css', '/css/kurukoo-visual-completion.css', '/css/kurukoo-visual-system.css']) if (!head.includes(required)) failures.push(`Shared visual stylesheet is not loaded: ${required}`);
+if (!head.includes('/css/kurukoo-screen-set-convergence.css')) failures.push('Shared screen-set convergence stylesheet is not loaded');
+if (!head.includes('/css/kurukoo-visual-completion.css')) failures.push('Final visual completion stylesheet is not loaded');
+if (!head.includes('/css/kurukoo-visual-system.css')) failures.push('Shared visual system stylesheet is not loaded');
 if (!head.includes('k-route-${routeSlug}')) failures.push('Route-level screen-set hook is missing');
 if (!head.includes('k-screen-set-${screenSet}')) failures.push('Screen-set classification hook is missing');
 
-const apiDocs = read('public/api-docs.html');
-for (const marker of ['api-docs-shell', 'api-docs-hero', 'api-doc-card', 'api-doc-sidebar']) if (!apiDocs.includes(marker)) failures.push(`API docs visual composition missing ${marker}`);
+const appShell = read('public/js/kurukoo-app-shell.js');
+if (!appShell.includes('kurukoo-webapp-pixel-refinement')) failures.push('Web App runtime does not mount pixel refinement authority');
+if (!appShell.includes('kurukoo-os-final')) failures.push('Web App runtime does not mount OS final authority');
 
 const chat = read('public/chat/index.html');
 if (!chat.includes('/js/kurukoo-pwa.js')) failures.push('Chat/PWA runtime owner missing');
 if (!chat.includes('/css/kurukoo-chat.css')) failures.push('Chat base visual authority missing');
-const pwa = read('public/js/kurukoo-pwa.js');
-for (const marker of ['kurukoo-platform-state-visual.css', 'kurukoo-chat-visual-completion.css']) if (!pwa.includes(marker)) failures.push(`PWA runtime does not mount ${marker}`);
 const workspace = read('views/workspace.ejs');
 if (!workspace.includes('/css/kurukoo-workspace.css')) failures.push('Workspace base visual authority missing');
-const appShell = read('public/js/kurukoo-app-shell.js');
-for (const marker of ['kurukoo-visual-completion.css', 'kurukoo-platform-state-visual.css', 'kurukoo-os-final.css', 'kurukoo-os-workspace-final.css']) if (!appShell.includes(marker)) failures.push(`Web App runtime does not mount ${marker}`);
 
 for (const [file, markers] of [
   ['views/how-it-works.ejs', ['k-screen-header', 'how-it-works-grid']],
@@ -100,13 +100,15 @@ for (const [file, markers] of [
   const source = read(file); for (const marker of markers) if (!source.includes(marker)) failures.push(`${file} is missing visual screen-set marker ${marker}`);
 }
 const completionCss = read('public/css/kurukoo-visual-completion.css');
-for (const marker of ['k-route-contact', 'k-route-pricing', 'k-route-explore', 'k-screen-set-content', 'k-app-page']) if (!completionCss.includes(marker)) failures.push(`Final visual completion layer is missing ${marker}`);
+for (const marker of ['k-route-contact', 'k-route-pricing', 'k-route-explore', 'k-screen-set-content']) if (!completionCss.includes(marker)) failures.push(`Final visual completion layer is missing ${marker}`);
 const platformCss = read('public/css/kurukoo-platform-state-visual.css');
 for (const marker of ['k-platform-status', 'offline-page', 'chat-runtime-banner']) if (!platformCss.includes(marker)) failures.push(`Platform lifecycle visual authority is missing ${marker}`);
 const chatCompletionCss = read('public/css/kurukoo-chat-visual-completion.css');
 for (const marker of ['chat-content', 'composer', 'chat-inspector']) if (!chatCompletionCss.includes(marker)) failures.push(`Chat visual completion authority is missing ${marker}`);
 const workspaceCompletionCss = read('public/css/kurukoo-workspace-visual-completion.css');
 for (const marker of ['chat-template-shell', 'workspace-hero-card', 'workspace-panel']) if (!workspaceCompletionCss.includes(marker)) failures.push(`Workspace visual completion authority is missing ${marker}`);
+const pixelCss = read('public/css/kurukoo-webapp-pixel-refinement.css');
+for (const marker of ['k-app-shell', 'k-app-sidebar', 'k-app-title-row', 'k-app-card', 'k-mobile-tabbar', 'workspace-page']) if (!pixelCss.includes(marker)) failures.push(`Pixel refinement authority is missing ${marker}`);
 
 const nativeUi = read('mobile/kurukoo-mobile/components/kurukoo-ui.tsx');
 for (const marker of ['PlatformStateBanner', 'EvidenceRow', 'ContinuityBand', 'StatusPill']) if (!nativeUi.includes(`function ${marker}`)) failures.push(`Native shared visual primitive missing ${marker}`);
@@ -143,4 +145,4 @@ const surfaceIds = new Set(CLIENT_SURFACES.map(surface => surface.id));
 for (const required of ['web-marketing', 'web-how-it-works', 'web-explore', 'web-discover-public', 'web-topics-public', 'web-network', 'web-channels', 'web-resources', 'web-help', 'web-partners', 'web-advertise', 'web-chat', 'web-topics', 'web-requests', 'web-reminders', 'web-saved', 'web-cart', 'web-tasks', 'web-connect', 'web-agents', 'web-capabilities', 'web-opportunities', 'web-wallet', 'web-points', 'web-top-up', 'web-subscriptions', 'web-checkout', 'web-confirmations', 'web-memory', 'web-notifications', 'web-artifacts', 'web-prayer', 'web-call', 'web-safety', 'pwa-shell', 'native-ios', 'native-android', 'admin-control-room', 'admin-providers', 'admin-compliance', 'admin-settings']) if (!surfaceIds.has(required)) failures.push(`Client surface registry missing ${required}`);
 
 if (failures.length) { console.error('Kurukoo client-surface coverage failed:'); failures.forEach(failure => console.error(`- ${failure}`)); process.exit(1); }
-console.log(`Kurukoo client-surface coverage passed: ${CLIENT_SURFACES.length} declared client surfaces and ${CLIENT_FEATURE_ENTRYPOINTS.length} historical capability entrypoints; public teaching, API docs, final visual completion, lifecycle states, Chat/Workspace authorities, Resources, Topics/community, Provider network, Admin/Agents, PWA/native authorities and five-domain mobile navigation present.`);
+console.log(`Kurukoo client-surface coverage passed: ${CLIENT_SURFACES.length} declared client surfaces and ${CLIENT_FEATURE_ENTRYPOINTS.length} historical capability entrypoints; public teaching, final visual completion, lifecycle states, Chat/Workspace authorities, pixel refinement, API docs, Resources, Topics/community, Provider network, Admin/Agents, PWA/native authorities and five-domain mobile navigation present.`);
