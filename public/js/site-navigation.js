@@ -3,7 +3,7 @@
     if (document.body?.classList.contains('k-public-page') && !document.querySelector('link[data-kurukoo-os-public]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = '/css/kurukoo-os-public-surface.css?v=1';
+      link.href = '/css/kurukoo-visual-system.css';
       link.dataset.kurukooOsPublic = '';
       document.head.appendChild(link);
     }
