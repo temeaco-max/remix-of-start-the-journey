@@ -62,7 +62,11 @@ Never use `COMPLETE`, `DONE`, `LIVE`, `READY`, `PRODUCTION`, or `VERIFIED` as a 
 | Topics | canonical Topic services | Implemented/foundation depending on deployment surface. |
 | Student model | `ml/` + canonical AI runtime | Training foundation exists; a Kurukoo-trained production adapter is **not** assumed until evaluation/registry evidence proves it. |
 
-## 5. Memory utilisation contract
+## 5. Locked Agent / communication foundation
+
+`docs/architecture/KURUKOO_OS_AGENT_FOUNDATION.md` records the locked future direction for one user-facing Kurukoo Agent, contextual messaging/calling, reusable Chat composition, lightweight voice presence, zero-cost Web Speech output, explicit realtime voice, opt-in proactive briefs, cross-OS Memory use, future relationship/follow primitives and future agent-to-agent/autonomous execution. It is subordinate to this document and does not itself assert that future capabilities are live.
+
+## 6. Memory utilisation contract
 
 Memory is not a standalone page feature. It is a cross-OS capability.
 
@@ -84,7 +88,7 @@ Approved uses, subject to provenance, consent and privacy policy:
 
 Memory must not be used to invent current availability, prices, provider verification, payment success, safety delivery, or external fulfilment. Canonical services remain authoritative.
 
-## 6. Voice contract
+## 7. Voice contract
 
 Kurukoo uses the cheapest sufficient speech path:
 
@@ -102,7 +106,7 @@ There is no requirement for a persistent avatar. Voice presence is represented t
 
 Realtime voice must never be permanently connected simply because a user is logged in. Proactive speech requires explicit opt-in, attention policy and privacy/quiet-hour controls.
 
-## 7. Audit architecture rule
+## 8. Audit architecture rule
 
 The repository must not maintain multiple competing completion authorities.
 
@@ -122,7 +126,7 @@ A report that is stale must be regenerated or marked historical; it must never b
 
 The compatibility commands `audit:complete` and `audit:main-truth` now delegate to the canonical repository truth gate and no longer create independent completion/reconciliation claims.
 
-## 8. Branch/release policy
+## 9. Branch/release policy
 
 `main` is the only canonical integration branch.
 
@@ -138,7 +142,7 @@ No parallel `integration/*`, `convergence-*`, `near-completion-*`, `final-*` or 
 
 Before closing a work item, compare it with current `main`, identify unique commits/files, merge useful work, close obsolete PRs, then delete the branch. If branch deletion is not available through the automation surface, record it as a GitHub maintenance action; do not pretend the branch has been deleted.
 
-## 9. Release gate
+## 10. Release gate
 
 A release candidate is not accepted because a document says complete. It must have:
 
@@ -150,7 +154,7 @@ A release candidate is not accepted because a document says complete. It must ha
 - no open PR that is a competing version of the same architecture;
 - no known broken canonical Chat path.
 
-## 10. Core journeys that matter most
+## 11. Core journeys that matter most
 
 Before adding breadth, prove these repeatedly:
 
