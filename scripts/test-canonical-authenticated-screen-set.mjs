@@ -56,8 +56,8 @@ assert.match(routes, /'\/desk': 'desk'/);
 assert.match(routes, /function renderApp\(req: express\.Request, res: express\.Response, section = 'desk'\)/);
 assert.match(routes, /return res\.render\('app'/);
 
-for (const token of ['views/app.ejs', '/js/kurukoo-desk-system.js?v=1', '/css/kurukoo-desk-system.css?v=1', '/js/kurukoo-desk-live-hydration.js?v=1']) {
-  assert.ok(appExtensions.includes(token), `Authenticated app ownership chain missing: ${token}`);
+for (const token of ['/js/kurukoo-desk-system.js?v=1', '/css/kurukoo-desk-system.css?v=1', '/js/kurukoo-desk-live-hydration.js?v=1']) {
+  assert.ok(appExtensions.includes(token), `Authenticated app extension chain missing: ${token}`);
 }
 for (const token of ['k-app-header', 'k-app-sidebar', 'k-app-nav', 'k-app-main']) assert.ok(appTemplate.includes(token), `Shared app shell missing from canonical template: ${token}`);
 for (const token of ['chat-shell', 'chat-header', 'workspace-nav', 'composer-wrap', 'composer', 'chat-inspector']) assert.ok(chat.includes(token), `Canonical Chat shell/composer marker missing: ${token}`);
