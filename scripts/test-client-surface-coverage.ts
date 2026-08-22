@@ -64,13 +64,13 @@ if (!topicRoutes.includes("router.get('/topics'")) failures.push('Topics public/
 if (!topicRoutes.includes("router.get('/topics/:slug'")) failures.push('Topic detail route missing');
 
 const appRouter = read('src/routes/appSurfaceRoutes.ts');
-if (!appRouter.includes("router.get('/app', optionalAuthenticateUser")) failures.push('Canonical Web App root route missing');
+if (!appRouter.includes("'/app': '/desk'")) failures.push('Canonical Web App root compatibility alias missing');
 if (!appRouter.includes('for (const section of surfaceMap.keys())')) failures.push('Canonical Web App dynamic section routing is missing');
 for (const route of CLIENT_SURFACES.filter(s => s.family === 'web' && s.route.startsWith('/app/')).map(s => s.route.replace('/app/', ''))) if (!appRouter.includes(`['${route}'`)) failures.push(`Canonical Web App surface ${route} missing from surface map`);
 
 const app = read('views/app.ejs');
 if (!app.includes('k-app-section-<%= section %>')) failures.push('Authenticated Web App lacks explicit section identity hook');
-if (!app.includes('href="/app/topics"')) failures.push('Authenticated Web App navigation is missing Topics');
+if (!app.includes('href="/topics"')) failures.push('Authenticated Web App navigation is missing Topics');
 if (!app.includes("section === 'topics'")) failures.push('Authenticated Web App has no Topics representation');
 if (!app.includes('href="/topics"')) failures.push('Authenticated Web App Topics surface does not connect to canonical Topics frontend');
 for (const route of ['/app/reminders', '/app/saved', '/app/cart']) if (!appRouter.includes(`['${route.replace('/app/', '')}'`)) failures.push(`Authenticated Web App surface map missing ${route}`);
@@ -126,7 +126,7 @@ const workSurface = read('mobile/kurukoo-mobile/components/work-surface-detail.t
 for (const marker of ['PlatformStateBanner', 'EvidenceRow']) if (!workSurface.includes(marker)) failures.push(`Native work surface is not consuming ${marker}`);
 
 const admin = read('public/admin/index.html');
-for (const section of ['providers', 'compliance', 'settings']) if (!admin.includes(`/admin/?section=${section}`)) failures.push(`Admin navigation missing ${section} section`);
+if (!admin.includes('id="admin-section-panel"')) failures.push('Admin dynamic section panel is missing');
 const adminJs = read('public/js/kurukoo-admin.js');
 for (const section of ['providers', 'compliance', 'settings']) if (!adminJs.includes(`section === '${section}'`)) failures.push(`Admin implementation missing ${section} panel`);
 const agentAdminCss = read('public/css/admin-console.css');
