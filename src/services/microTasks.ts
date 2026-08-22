@@ -43,20 +43,59 @@ export async function listAssignedTasks(phone: string, includeClosed = false): P
     return tasks;
 }
 
-export async function getAvailableTasks(phone: string) {
+/** Read-only owner-scoped task lookup for canonical conversation continuation. */
+export async function getAssignedTask(phone: string, taskId: number): Promise<MicroTask | null> {
+    const owner = String(phone || '').trim();
+    if (!owner || !Number.isSafeInteger(taskId) || taskId <= 0) return null;
     const db = await getDb();
-    const stmt = db.prepare(`SELECT * FROM micro_tasks WHERE status = 'available'`);
-    const tasks = [];
-    while (stmt.step()) tasks.push(stmt.getAsObject());
+    const stmt = db.prepare(`SELECT * FROM micro_tasks WHERE id = ? AND assigned_to = ? LIMIT 1`);
+    stmt.bind([taskId, owner]);
+    const task = stmt.step() ? rowToMicroTask(stmt.getAsObject()) : null;
+    stmt.free();
+    return task;
+}
+
+export async function getAvailableTasks(phone: string): Promise<MicroTask[]> {
+    const owner = String(phone || '').trim();
+    if (!owner) return [];
+    const db = await getDb();
+    const stmt = db.prepare(`
+        SELECT * FROM micro_tasks
+        WHERE (status = 'available' AND (assigned_to IS NULL OR assigned_to = ''))
+           OR assigned_to = ?
+        ORDER BY CASE status WHEN 'available' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'completed' THEN 2 WHEN 'approved' THEN 3 ELSE 4 END, id DESC
+        LIMIT 50
+    `);
+    stmt.bind([owner]);
+    const tasks: MicroTask[] = [];
+    while (stmt.step()) tasks.push(rowToMicroTask(stmt.getAsObject()));
     stmt.free();
     return tasks;
 }
 
-export async function acceptTask(phone: string, taskId: number) {
+export class TaskStateConflictError extends Error {
+    statusCode = 409;
+}
+
+export async function acceptTask(phone: string, taskId: number): Promise<MicroTask> {
+    const owner = String(phone || '').trim();
+    if (!owner) throw new TaskStateConflictError('Authenticated task owner is required');
     const db = await getDb();
-    db.run(`UPDATE micro_tasks SET status = 'in_progress', assigned_to = ? WHERE id = ? AND status = 'available'`, [phone, taskId]);
+    db.run(`
+        UPDATE micro_tasks
+        SET status = 'in_progress', assigned_to = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status = 'available' AND (assigned_to IS NULL OR assigned_to = '')
+    `, [owner, taskId]);
+    if (db.getRowsModified() !== 1) {
+        throw new TaskStateConflictError('Task is no longer available for acceptance');
+    }
+    const stmt = db.prepare(`SELECT * FROM micro_tasks WHERE id = ? AND assigned_to = ? AND status = 'in_progress' LIMIT 1`);
+    stmt.bind([taskId, owner]);
+    const task = stmt.step() ? rowToMicroTask(stmt.getAsObject()) : null;
+    stmt.free();
+    if (!task) throw new TaskStateConflictError('Task acceptance could not be confirmed');
     saveDb();
-    return true;
+    return task;
 }
 
 export async function completeTask(phone: string, taskId: number, result: string) {
@@ -73,12 +112,13 @@ export async function completeTask(phone: string, taskId: number, result: string
     stmt.free();
 
     if (reward > 0) {
-        db.run(`UPDATE micro_tasks SET status = 'completed', submitted_result = ? WHERE id = ?`, [String(result || '').slice(0, 4000), taskId]);
+        db.run(`UPDATE micro_tasks SET status = 'completed', submitted_result = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND assigned_to = ? AND status = 'in_progress'`, [String(result || '').slice(0, 4000), taskId, phone]);
+        if (db.getRowsModified() !== 1) throw new TaskStateConflictError('Task is no longer in progress for this authenticated owner');
         if (sourceType !== 'topic') await addPoints(phone, reward, `Completed micro-task #${taskId}`);
         saveDb();
         return { success: true, reward, sourceType };
     }
-    return { success: false };
+    throw new TaskStateConflictError('Task is not eligible for completion');
 }
 
 export async function createTopicVerificationTask(input: {
@@ -124,10 +164,10 @@ export async function moderateTopicVerificationTask(taskId: number, adminIdentit
     if (decision === 'approved') {
         if (String(task.status) !== 'completed' || !task.assigned_to) throw new Error('Only completed verification tasks can be approved');
         if (task.approved_at) return task;
-        db.run(`UPDATE micro_tasks SET status='approved', moderation_note=?, approved_by=?, approved_at=CURRENT_TIMESTAMP WHERE id=?`, [note ? String(note).slice(0, 1000) : null, adminIdentity.slice(0, 128), taskId]);
+        db.run(`UPDATE micro_tasks SET status='approved', moderation_note=?, approved_by=?, approved_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [note ? String(note).slice(0, 1000) : null, adminIdentity.slice(0, 128), taskId]);
         await addPoints(String(task.assigned_to), Number(task.credits_reward), `Approved Topic verification task #${taskId}`);
     } else {
-        db.run(`UPDATE micro_tasks SET status='rejected', moderation_note=?, approved_by=?, approved_at=CURRENT_TIMESTAMP WHERE id=?`, [note ? String(note).slice(0, 1000) : null, adminIdentity.slice(0, 128), taskId]);
+        db.run(`UPDATE micro_tasks SET status='rejected', moderation_note=?, approved_by=?, approved_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [note ? String(note).slice(0, 1000) : null, adminIdentity.slice(0, 128), taskId]);
     }
     saveDb();
     const updated = db.prepare(`SELECT * FROM micro_tasks WHERE id=?`);

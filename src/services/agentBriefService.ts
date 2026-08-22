@@ -90,6 +90,7 @@ const REQUESTS_NEEDING_APPROVAL = new Set(['quoted', 'awaiting_confirmation', 'p
 const ACTIVE_REQUESTS = new Set(['requested', 'awaiting_match', 'partially_matched', 'matched', 'quoting', 'reserved', 'paid', 'in_fulfillment']);
 const CLOSED_GOALS = new Set(['completed', 'cancelled', 'failed', 'expired']);
 const CLOSED_TASKS = new Set(['completed', 'approved', 'rejected']);
+const RECENT_COMPLETION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -156,12 +157,18 @@ export function isQuietHoursActive(preferences: AgentBriefPreferences, now = new
   }
 }
 
+function isRecentCompletion(timestamp: string | undefined, now: Date): boolean {
+  if (!timestamp) return false;
+  const occurredAt = new Date(timestamp).getTime();
+  return Number.isFinite(occurredAt) && occurredAt >= now.getTime() - RECENT_COMPLETION_WINDOW_MS;
+}
+
 function requestTitle(request: EconomicRequest): string {
   const raw = String(request.requirements?.service || request.requirements?.product || request.requirements?.description || request.skill || 'request').replace(/[_-]+/g, ' ').trim();
   return raw ? raw.slice(0, 80) : 'request';
 }
 
-function requestItem(request: EconomicRequest & { createdAt?: string; updatedAt?: string }): Omit<AgentBriefItem, 'attention'> | null {
+function requestItem(request: EconomicRequest, now: Date): Omit<AgentBriefItem, 'attention'> | null {
   const title = requestTitle(request);
   const base = {
     stableRef: `economic_request:${request.id}`,
@@ -170,7 +177,7 @@ function requestItem(request: EconomicRequest & { createdAt?: string; updatedAt?
     visibility: 'private' as const,
     action: { id: 'open_request', label: 'Open request', canonicalAction: 'economic_request.open', objectType: 'economic_request', objectId: request.id },
   };
-  if (CLOSED_REQUESTS.has(request.status)) return { ...base, category: 'completed', priority: 'normal', urgency: 'none', summary: `Your ${title} request is complete.`, approvalRequired: false };
+  if (CLOSED_REQUESTS.has(request.status)) return isRecentCompletion(request.updatedAt || request.createdAt, now) ? { ...base, category: 'completed', priority: 'normal', urgency: 'none', summary: `Your ${title} request is complete.`, approvalRequired: false } : null;
   if (REQUESTS_NEEDING_APPROVAL.has(request.status)) return { ...base, category: 'waiting_for_user', priority: 'high', urgency: 'time_sensitive', summary: `Your ${title} request needs your review before Kurukoo can continue.`, approvalRequired: true };
   if (request.status === 'disputed' || request.status === 'failed') return { ...base, category: 'attention_required', priority: 'high', urgency: 'time_sensitive', summary: `Your ${title} request needs attention before it can continue.`, approvalRequired: false };
   if (ACTIVE_REQUESTS.has(request.status)) {
@@ -201,9 +208,10 @@ function reminderItem(reminder: Reminder, now: Date): Omit<AgentBriefItem, 'atte
   };
 }
 
-function taskItem(task: MicroTask): Omit<AgentBriefItem, 'attention'> | null {
+function taskItem(task: MicroTask, now: Date): Omit<AgentBriefItem, 'attention'> | null {
   const title = String(task.title || 'Task').slice(0, 160);
   const completed = CLOSED_TASKS.has(String(task.status));
+  if (completed && !isRecentCompletion(task.updatedAt || task.createdAt, now)) return null;
   return {
     stableRef: `task:${task.id}`,
     category: completed ? 'completed' : 'pending',
@@ -218,7 +226,7 @@ function taskItem(task: MicroTask): Omit<AgentBriefItem, 'attention'> | null {
   };
 }
 
-function goalItem(goal: AgentGoal): Omit<AgentBriefItem, 'attention'> | null {
+function goalItem(goal: AgentGoal, now: Date): Omit<AgentBriefItem, 'attention'> | null {
   const summary = String(goal.summary || goal.objective || 'Kurukoo has an update on your objective.').slice(0, 280);
   const base = {
     stableRef: `agent_goal:${goal.id}`,
@@ -227,7 +235,7 @@ function goalItem(goal: AgentGoal): Omit<AgentBriefItem, 'attention'> | null {
     visibility: 'private' as const,
     action: { id: 'open_agent_goal', label: 'Open objective', canonicalAction: 'agent.goal.review', objectType: 'agent_goal', objectId: goal.id, conversationId: goal.conversationId },
   };
-  if (goal.status === 'completed') return { ...base, category: 'agent_work_completed', priority: 'normal', urgency: 'none', summary, approvalRequired: false };
+  if (goal.status === 'completed') return isRecentCompletion(goal.completedAt || goal.updatedAt, now) ? { ...base, category: 'agent_work_completed', priority: 'normal', urgency: 'none', summary, approvalRequired: false } : null;
   if (goal.status === 'needs_user') return { ...base, category: 'waiting_for_user', priority: 'high', urgency: 'time_sensitive', summary, approvalRequired: true };
   if (goal.status === 'blocked' || goal.status === 'failed') return { ...base, category: 'attention_required', priority: 'high', urgency: 'time_sensitive', summary, approvalRequired: false };
   if (CLOSED_GOALS.has(goal.status)) return null;
@@ -241,7 +249,16 @@ function notificationCategory(notification: { title: string; body: string; canon
   return 'important_notification';
 }
 
+function notificationBriefSummary(category: AgentBriefItemCategory): string {
+  if (category === 'safety_event') return 'You have a safety-related update that needs your attention.';
+  if (category === 'provider_update') return 'There is a verified update on your request ready for review.';
+  return 'Kurukoo has an important private update ready for your review.';
+}
+
 function notificationItem(notification: { id: number; title: string; body: string; canonical_action?: string; object_type?: string; object_id?: string; conversation_id?: string; created_at: string }): Omit<AgentBriefItem, 'attention'> | null {
+  // Fallback delivery is not a canonical state change. Re-ingesting this entry
+  // would change the deterministic material and recursively enqueue it again.
+  if (notification.canonical_action === 'agent.brief.review' || notification.object_type === 'agent_brief') return null;
   const fingerprint = `${notification.title} ${notification.body}`.toLowerCase();
   if (/\b(?:promotion|sponsored)\b/.test(fingerprint)) return null;
   const category = notificationCategory(notification);
@@ -253,8 +270,8 @@ function notificationItem(notification: { id: number; title: string; body: strin
     urgency: safety ? 'critical' : 'time_sensitive',
     timestamp: notification.created_at,
     source: 'notification',
-    summary: `${notification.title.slice(0, 100)}${notification.body ? `: ${notification.body.slice(0, 220)}` : ''}`,
-    action: { id: 'open_notification', label: 'Open update', canonicalAction: notification.canonical_action || 'notification.open', objectType: notification.object_type || 'notification', objectId: notification.object_id || String(notification.id), conversationId: notification.conversation_id },
+    summary: notificationBriefSummary(category),
+    action: { id: 'open_notification', label: 'Open update', canonicalAction: 'notification.open', objectType: 'notification', objectId: String(notification.id), conversationId: notification.conversation_id },
     approvalRequired: false,
     visibility: 'private',
   };
@@ -355,12 +372,13 @@ export async function buildAgentBrief(phone: string, options: BuildAgentBriefOpt
     getInternalNotifications(ownerPhone, 30),
   ]);
   const canonical: Array<Omit<AgentBriefItem, 'attention'>> = [
-    ...requests.map(requestItem).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
+    ...requests.map(request => requestItem(request, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
     ...reminders.map(reminder => reminderItem(reminder, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
-    ...tasks.map(taskItem).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
-    ...goals.map(goalItem).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
+    ...tasks.map(task => taskItem(task, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
+    ...goals.map(goal => goalItem(goal, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
   ];
   for (const notification of notifications) {
+    if (notification.status === 'read') continue;
     const candidate = notificationItem(notification);
     if (candidate && !hasEquivalentCanonicalItem(candidate, canonical)) canonical.push(candidate);
   }

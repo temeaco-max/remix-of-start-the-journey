@@ -1012,7 +1012,24 @@
       const items = Array.isArray(card.items) ? card.items.filter(item => item?.attention !== 'SILENT').slice(0, 6) : [];
       if (!items.length) list.appendChild(makeElement('div', 'deferred', 'No active items need attention.'));
       items.forEach(item => {
-        const row = makeElement('div', 'inspector-list-row');
+        const action = item?.action;
+        const canResume = action?.canonicalAction && action?.objectType && action?.objectId;
+        const row = makeElement(canResume ? 'button' : 'div', 'inspector-list-row');
+        if (canResume) {
+          row.type = 'button';
+          row.setAttribute('aria-label', `${String(action.label || 'Open update')}: ${String(item.summary || 'Kurukoo update')}`);
+          row.addEventListener('click', () => {
+            state.canonicalContextAction = {
+              type: 'resume_canonical_context',
+              contextId: `agent_brief:${String(card.briefId || card.id || 'current')}:${String(item.stableRef || action.objectId)}`.slice(0, 180),
+              conversationId: action.conversationId || state.conversationId || undefined,
+              canonicalAction: String(action.canonicalAction),
+              objectType: String(action.objectType),
+              objectId: String(action.objectId),
+            };
+            void sendMessage(`Open ${String(action.label || 'this update')}.`);
+          });
+        }
         row.appendChild(makeElement('span', '', String(item.summary || 'Kurukoo update')));
         if (item.approvalRequired) row.appendChild(makeElement('small', '', 'Review required'));
         list.appendChild(row);
