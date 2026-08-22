@@ -45,6 +45,12 @@ The native offline lifecycle removes a pending action only after the current str
 
 PR #64 remains a selective-reference source. Its current visual owners are already represented or overlap current-main convergence work, while its static dashboard/discover/settings files are not canonical live route owners. Its backend, CI and runtime changes must be independently completed and tested rather than merged in bulk over the reconciled visual line.
 
+## Current-Main-Precedence Candidate Map
+
+The selected policy is **current-main precedence**. The development branch has 92 changed presentation-facing files, but the live current-main routes already own the corresponding public, workspace, Chat, Admin and native surfaces. The branch-only CSS and JavaScript assets (`about-help-authority`, `admin-authority`, `chat-authority`, `confirmations-authority`, `radar-authority`, voice-note and board-state scripts) have no live current-main template or client-entry reference. The branch-only `home_hero_fixture` and `about_help` templates are likewise not live route owners.
+
+Accordingly, no branch-only legacy shell or unreferenced asset was copied into the current application. The compatible, owner-backed Quick Ride work was integrated; existing current-main public, Chat, Desk/workspace, Discover, Admin and native owners remain the authoritative presentation implementations. This avoids reintroducing a second CSS layer, a stale static dashboard/discover/settings shell, or a competing navigation/runtime path.
+
 ## Next Reconciliation Rule
 
 > Compare every candidate owner against the current live route before integration. Reconcile compatible client/presentation work into the existing owner; complete runtime branches through their tests and contracts; do not revive static legacy shells, bypass provider/payment evidence, or merge a broad branch solely because it contains visual assets.
