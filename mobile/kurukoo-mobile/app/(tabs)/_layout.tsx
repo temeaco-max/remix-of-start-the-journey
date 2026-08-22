@@ -1,4 +1,5 @@
 import { Tabs, useRouter } from "expo-router";
+// Kurukoo native tab authority: five primary destinations plus a contextual feature-compass overflow action.
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -54,4 +55,4 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1 }, compass: { position: 'absolute', right: 14, bottom: 80, minWidth: 76, height: 38, borderRadius: 19, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, elevation: 4, shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }, compassIcon: { color: '#fff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 15 }, compassLabel: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 11 }, pressed: { opacity: 0.82 }, });
+const styles = StyleSheet.create({ root: { flex: 1 }, compass: { position: 'absolute', right: 14, bottom: 80, minWidth: 76, minHeight: 44, height: 44, borderRadius: 22, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, elevation: 4, shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }, compassIcon: { color: '#fff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 15 }, compassLabel: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 11 }, pressed: { opacity: 0.82 }, });

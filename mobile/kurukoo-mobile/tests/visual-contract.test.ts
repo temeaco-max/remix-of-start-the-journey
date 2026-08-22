@@ -8,6 +8,7 @@ const themeSource = readFileSync(resolve(process.cwd(), "theme.config.js"), "utf
 const richMessageSource = readFileSync(resolve(process.cwd(), "components/chat-rich-message.tsx"), "utf8");
 const goLiveSource = readFileSync(resolve(process.cwd(), "components/go-live-flow.tsx"), "utf8");
 const firstLaunchSource = readFileSync(resolve(process.cwd(), "components/first-launch-verification.tsx"), "utf8");
+const nativeTabSource = readFileSync(resolve(process.cwd(), "app/(tabs)/_layout.tsx"), "utf8");
 
 describe("Kurukoo visual contract", () => {
   it("keeps the authoritative warm brand tokens", () => {
@@ -52,5 +53,10 @@ describe("Kurukoo visual contract", () => {
   it("keeps first-launch Change controls at the shared 44px interaction rhythm", () => {
     expect(firstLaunchSource).toContain('style={styles.changeButton}');
     expect(firstLaunchSource).toContain('changeButton: { minWidth: 60, minHeight: 44, alignItems: "flex-end", justifyContent: "center" }');
+  });
+
+  it("keeps the native feature-compass overflow action at the shared 44px interaction rhythm", () => {
+    expect(nativeTabSource).toContain("accessibilityLabel=\"Explore all Kurukoo features\"");
+    expect(nativeTabSource).toContain("compass: { position: 'absolute', right: 14, bottom: 80, minWidth: 76, minHeight: 44, height: 44, borderRadius: 22");
   });
 });
