@@ -4,6 +4,8 @@
   if (document.documentElement.dataset.kurukooDeskSystem === 'true') return;
   document.documentElement.dataset.kurukooDeskSystem = 'true';
 
+  let accountName = 'Your account';
+  let accountPhone = '';
   const legacyToCanonical = (pathname) => {
     const direct = {
       '/app': '/desk','/app/agent': '/desk','/app/discover': '/discover','/app/requests': '/requests','/app/tasks': '/tasks','/app/connect': '/connect','/app/reminders': '/reminders','/app/saved': '/saved','/app/cart': '/cart','/app/agents': '/agents','/app/capabilities': '/capabilities','/app/opportunities': '/opportunities','/app/wallet': '/wallet','/app/points': '/points','/app/top-up': '/top-up','/app/subscriptions': '/subscriptions','/app/checkout': '/checkout','/app/confirmations': '/confirmations','/app/memory': '/memory','/app/artifacts': '/artifacts','/app/prayer': '/prayer','/app/call': '/call','/app/notifications': '/notifications','/app/safety': '/safety','/app/settings': '/settings'
@@ -94,8 +96,7 @@
   };
 
   const renderProfile = (body) => {
-    const identity=document.querySelector('.k-app-identity'); const name=identity?.querySelector('strong')?.textContent?.trim()||'Your account'; const phone=identity?.querySelector('small')?.textContent?.trim()||'';
-    body.innerHTML=`<div class="k-desk-profile-card"><div class="k-desk-avatar">${name.slice(0,1).toUpperCase()}</div><div><strong>${name}</strong><span>${phone}</span></div></div>`;
+    body.innerHTML=`<div class="k-desk-profile-card"><div class="k-desk-avatar">${accountName.slice(0,1).toUpperCase()}</div><div><strong>${accountName}</strong><span>${accountPhone}</span></div></div>`;
     [['Settings','/settings'],['Memory','/memory'],['Notifications','/notifications'],['Open Agent','/chat']].forEach(([label,href])=>{const a=document.createElement('a');a.className='k-desk-drawer-link';a.href=href;a.textContent=label;body.appendChild(a);});
     const logout=document.createElement('a');logout.className='k-desk-drawer-link is-danger';logout.href='/api/auth/logout';logout.textContent='Sign out';body.appendChild(logout);
   };
@@ -130,12 +131,13 @@
   const boot = () => {
     normalizeLinks();
     const host=document.querySelector('.k-app-header-actions'); if(!host) return;
-    const search=makeDrawer({id:'kurukoo-drawer-search',title:'Search'}); const notifications=makeDrawer({id:'kurukoo-drawer-notifications',title:'Notifications'}); const profile=makeDrawer({id:'kurukoo-drawer-profile',title:'Account'}); const workspace=makeDrawer({id:'kurukoo-drawer-workspace',title:'Your Kurukoo'}); const context=makeDrawer({id:'kurukoo-drawer-context',title:'Context'}); if(!search||!notifications||!profile||!workspace||!context) return;
-
     const identity = host.querySelector('.k-app-identity');
+    accountName = identity?.querySelector('strong')?.textContent?.trim() || 'Your account';
+    accountPhone = identity?.querySelector('small')?.textContent?.trim() || '';
     const ask = host.querySelector('.k-app-ask');
-    identity?.remove();
-    ask?.remove();
+    identity?.remove(); ask?.remove();
+
+    const search=makeDrawer({id:'kurukoo-drawer-search',title:'Search'}); const notifications=makeDrawer({id:'kurukoo-drawer-notifications',title:'Notifications'}); const profile=makeDrawer({id:'kurukoo-drawer-profile',title:'Account'}); const workspace=makeDrawer({id:'kurukoo-drawer-workspace',title:'Your Kurukoo'}); const context=makeDrawer({id:'kurukoo-drawer-context',title:'Context'}); if(!search||!notifications||!profile||!workspace||!context) return;
     const controls = [searchButton(search.id), headerAction('Points','/points','points','k-desk-header-points'), headerAction('Cart','/cart','package','k-desk-header-cart'), iconButton('Notifications',notifications.id,'alert','k-desk-header-notifications'), iconButton('Open context inspector',context.id,'saved'), iconButton('Your Kurukoo workspace',workspace.id,'menu'), iconButton('Account',profile.id,'user','k-desk-header-account')];
     controls.forEach((control) => host.appendChild(control));
     wireDrawer(search,renderSearch); wireDrawer(notifications,renderNotifications); wireDrawer(profile,renderProfile); wireDrawer(workspace,renderOsWorkspace); wireDrawer(context,renderContext);
