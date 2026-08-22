@@ -1,4 +1,12 @@
 (() => {
+  // Kurukoo homepage behavior owner: preserve truthful illustrative mockups and real conversation continuations.
+  const illustrativeSend = document.querySelector('.home-chat-card__composer button[aria-label="Illustrative send"]');
+  if (illustrativeSend) {
+    illustrativeSend.tabIndex = -1;
+    illustrativeSend.setAttribute('aria-hidden', 'true');
+    illustrativeSend.setAttribute('disabled', '');
+  }
+
   const demo = document.querySelector('[data-storefront-demo]');
   if (!demo) return;
 
