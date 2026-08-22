@@ -112,7 +112,7 @@ export const CANONICAL_URLS = {
 
 export const LEGACY_URL_ALIASES = {
   '/app': CANONICAL_URLS.desk.home,
-  '/app/agent': CANONICAL_URLS.desk.home,
+  '/app/agent': CANONICAL_URLS.conversation.agent,
   '/app/discover': CANONICAL_URLS.desk.discover,
   '/app/topics': CANONICAL_URLS.desk.topics,
   '/app/requests': CANONICAL_URLS.desk.requests,

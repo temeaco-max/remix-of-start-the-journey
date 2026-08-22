@@ -76,7 +76,9 @@ Secondary areas include Wallet, Points, Top Up, Subscriptions, Profile, Memory, 
 
 ### Web App
 
-Desktop navigation may expose the same five product anchors as a rail/sidebar and may add high-value secondary destinations directly where this improves productivity. The Web App must still retain the mobile/PWA information architecture beneath its responsive composition.
+The authenticated Web App uses clean canonical routes. `/desk` is the workspace home and `/chat` is the one user-facing Agent/conversation surface. `/agents` is the separate Agent directory/runtime surface. Legacy `/app/*` paths are compatibility aliases only and must normalize to their clean canonical destinations; `/app/agent` specifically normalizes to `/chat`, never `/desk`.
+
+The Web App must retain the mobile/PWA information architecture beneath its responsive composition. Dedicated product jobs remain on their canonical surfaces rather than being replaced by a generic Desk or Chat fallback.
 
 ### Marketing
 

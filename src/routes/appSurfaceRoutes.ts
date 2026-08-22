@@ -39,7 +39,7 @@ const surfaceMap = new Map([
 ]);
 
 const legacySurfaceAliases: Record<string, string> = {
-  '/app': '/desk', '/app/agent': '/desk', '/web': '/desk', '/workspace': '/desk', '/subscription': '/subscriptions', '/confirmation': '/requests',
+  '/app': '/desk', '/app/agent': '/chat', '/web': '/desk', '/workspace': '/desk', '/subscription': '/subscriptions', '/confirmation': '/requests',
 };
 
 const cleanCanonicalSections: Record<string, string> = {
