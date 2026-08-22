@@ -127,4 +127,4 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Inspect deployment, persistence, worker, external-execution, and location-consent contracts on canonical main.
 - [x] Run repository-controlled deployment-readiness, persistence, worker, and fail-closed connector tests.
 - [x] Apply only reproducible canonical runtime corrections and revalidate the affected contracts.
-- [ ] Merge and delete one short-lived branch only if a genuine runtime correction is required; otherwise retain canonical main unchanged.
+- [x] Merge and delete one short-lived branch only if a genuine runtime correction is required; otherwise retain canonical main unchanged.
