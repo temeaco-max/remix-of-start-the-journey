@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
 import initSqlJs from 'sql.js';
 
 const require = createRequire(import.meta.url);
@@ -13,6 +15,58 @@ type MigrationOptions = {
   execute: boolean;
   verifyOnly: boolean;
 };
+
+type SourceTable = {
+  name: string;
+  ddl: string;
+  columns: unknown[][];
+  rows: unknown[][];
+  columnNames: string[];
+};
+
+type SourceIndex = { name: string; table: string; ddl: string };
+
+function digest(value: unknown): string {
+  return crypto.createHash('sha256').update(JSON.stringify(value), 'utf8').digest('hex');
+}
+
+function normalizeValue(value: unknown): unknown {
+  if (value == null) return null;
+  if (value instanceof Uint8Array || Buffer.isBuffer(value)) return Buffer.from(value).toString('base64');
+  return String(value);
+}
+
+function rowDigest(rows: unknown[][]): string {
+  return digest(rows.map(row => row.map(normalizeValue)));
+}
+
+function referencedTables(ddl: string): string[] {
+  return [...ddl.matchAll(/\bREFERENCES\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/gi)].map(match => match[1]);
+}
+
+function dependencyOrder(records: SourceTable[]): SourceTable[] {
+  const known = new Set(records.map(record => record.name));
+  const pending = new Map(records.map(record => [record.name, record]));
+  const ordered: SourceTable[] = [];
+  const resolved = new Set<string>();
+  while (pending.size) {
+    const next = [...pending.values()].find(record => referencedTables(record.ddl).filter(table => known.has(table)).every(table => resolved.has(table)));
+    if (!next) throw new Error(`Unable to determine deterministic foreign-key order for: ${[...pending.keys()].join(', ')}`);
+    pending.delete(next.name);
+    resolved.add(next.name);
+    ordered.push(next);
+  }
+  return ordered;
+}
+
+function quoteIdentifier(identifier: string): string {
+  return `"${identifier.replace(/"/g, '""')}"`;
+}
+
+function primaryKeyColumn(record: SourceTable): string | null {
+  const column = record.columns.find(columnInfo => Number(columnInfo[5]) === 1);
+  return column ? String(column[1]) : null;
+}
 
 function loadPostgres(): ((connectionString: string, options?: Record<string, unknown>) => Sql) | null {
   try {
@@ -41,6 +95,8 @@ function translateSqliteDdl(sql: string): string {
   ddl = ddl.replace(/\bAUTOINCREMENT\b/gi, '');
   ddl = ddl.replace(/\bDATETIME\b/gi, 'TEXT');
   ddl = ddl.replace(/\bBLOB\b/gi, 'BYTEA');
+  ddl = ddl.replace(/\bTEXT\s+DEFAULT\s+CURRENT_TIMESTAMP\b/gi, 'TEXT DEFAULT CURRENT_TIMESTAMP::text');
+  ddl = ddl.replace(/([,(]\s*)desc\b/gi, '$1"desc"');
   return ddl;
 }
 
@@ -49,30 +105,47 @@ async function readSourceDatabase(sourcePath: string) {
   const SQL = await initSqlJs();
   const db = new SQL.Database(fs.readFileSync(sourcePath));
   const tables = db.exec("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY name")[0]?.values || [];
-  const records = tables.map(row => {
+  const records: SourceTable[] = tables.map(row => {
     const name = String(row[0]);
     const ddl = String(row[1]);
     const columns = db.exec(`PRAGMA table_info("${name.replace(/"/g, '""')}")`)[0]?.values || [];
-    const rows = db.exec(`SELECT * FROM "${name.replace(/"/g, '""')}"`)[0];
-    return { name, ddl, columns, rows: rows?.values || [], columnNames: rows?.columns || [] };
+    const rows = db.exec(`SELECT * FROM "${name.replace(/"/g, '""')}" ORDER BY 1`)[0];
+    return { name, ddl, columns, rows: rows?.values || [], columnNames: columns.map(column => String(column[1])) };
   });
-  return { db, records };
+  const discoveredIndexes = (db.exec("SELECT name, tbl_name, sql FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY name")[0]?.values || [])
+    .map(row => ({ name: String(row[0]), table: String(row[1]), ddl: String(row[2]) })) as SourceIndex[];
+  const sourceTables = new Set(records.map(record => record.name));
+  const indexes = discoveredIndexes.filter(index => sourceTables.has(index.table));
+  const skippedIndexes = discoveredIndexes.filter(index => !sourceTables.has(index.table)).map(index => ({ name: index.name, table: index.table }));
+  return { db, records, indexes, skippedIndexes };
 }
 
-function importantIntegrityChecks(records: Array<{ name: string; columnNames: string[]; rows: unknown[][] }>) {
+function importantIntegrityChecks(records: SourceTable[]) {
   const checks = ['memory_profiles', 'messages', 'economic_requests', 'internal_notifications', 'orders', 'agent_goals', 'agent_goal_events', 'execution_requests'];
   return checks.map(name => {
     const table = records.find(item => item.name === name);
-    return { table: name, present: Boolean(table), rows: table?.rows.length ?? 0, columns: table?.columnNames.length ?? 0 };
+    return {
+      table: name,
+      present: Boolean(table),
+      rows: table?.rows.length ?? 0,
+      columns: table?.columnNames.length ?? 0,
+      sourceColumns: table?.columnNames ?? [],
+      sourceDigest: table ? rowDigest(table.rows) : null,
+    };
   });
 }
 
-async function executeImport(sql: Sql, records: Array<{ name: string; ddl: string; rows: unknown[][]; columnNames: string[] }>) {
+async function executeImport(sql: Sql, records: SourceTable[], indexes: SourceIndex[], schemaChecksum: string) {
+  const orderedRecords = dependencyOrder(records);
   await sql.begin(async (tx: Sql) => {
-    for (const record of records) {
-      await tx.unsafe(translateSqliteDdl(record.ddl));
+    for (const record of orderedRecords) {
+      try {
+        await tx.unsafe(translateSqliteDdl(record.ddl));
+      } catch (error) {
+        throw new Error(`Unable to create PostgreSQL table ${record.name}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+      }
     }
-    for (const record of records) {
+    for (const record of orderedRecords) {
       if (!record.rows.length || !record.columnNames.length) continue;
       const columns = record.columnNames.map(column => `"${column.replace(/"/g, '""')}"`).join(', ');
       const table = `"${record.name.replace(/"/g, '""')}"`;
@@ -82,6 +155,22 @@ async function executeImport(sql: Sql, records: Array<{ name: string; ddl: strin
         await tx.unsafe(`INSERT INTO ${table} (${columns}) VALUES (${placeholders})`, values);
       }
     }
+    for (const record of orderedRecords) {
+      const primaryKey = primaryKeyColumn(record);
+      if (!primaryKey || !/\bAUTOINCREMENT\b/i.test(record.ddl)) continue;
+      const table = quoteIdentifier(record.name);
+      const column = quoteIdentifier(primaryKey);
+      await tx.unsafe(`SELECT setval(pg_get_serial_sequence($1, $2), GREATEST((SELECT COALESCE(MAX(${column}), 0) + 1 FROM ${table}), 1), false)`, [record.name, primaryKey]);
+    }
+    for (const index of indexes) {
+      try {
+        await tx.unsafe(translateSqliteDdl(index.ddl));
+      } catch (error) {
+        throw new Error(`Unable to create PostgreSQL index ${index.name} on ${index.table}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+      }
+    }
+    await tx.unsafe(`CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, checksum TEXT NOT NULL, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::text)`);
+    await tx.unsafe(`INSERT INTO schema_migrations(version, checksum) VALUES ($1, $2) ON CONFLICT(version) DO NOTHING`, [`sqljs-export-${schemaChecksum.slice(0, 16)}`, schemaChecksum]);
   });
 }
 
@@ -94,20 +183,30 @@ async function verifyDestination(sql: Sql, checks: ReturnType<typeof importantIn
     }
     const rows = await sql.unsafe(`SELECT COUNT(*)::bigint AS count FROM "${check.table}"`);
     const destinationRows = Number(rows[0]?.count || 0);
-    results.push({ ...check, destinationRows, matches: destinationRows === check.rows });
+    const destinationColumns = (await sql.unsafe(`SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position`, [check.table])).map((row: any) => String(row.column_name));
+    const table = `"${check.table.replace(/"/g, '""')}"`;
+    const destinationDigestRows = await sql.unsafe(`SELECT * FROM ${table} ORDER BY 1`);
+    const destinationDigest = rowDigest(destinationDigestRows.map((row: Record<string, unknown>) => check.sourceColumns.map(column => row[column])));
+    const columnsMatch = JSON.stringify(destinationColumns) === JSON.stringify(check.sourceColumns);
+    results.push({ ...check, destinationRows, destinationColumns, destinationDigest, columnsMatch, matches: destinationRows === check.rows && columnsMatch && destinationDigest === check.sourceDigest });
   }
   return results;
 }
 
 const options = parseArgs();
-const { records } = await readSourceDatabase(options.sourcePath);
+const { records, indexes, skippedIndexes } = await readSourceDatabase(options.sourcePath);
 const checks = importantIntegrityChecks(records);
+const schemaChecksum = digest({ tables: records.map(record => ({ name: record.name, ddl: record.ddl, columns: record.columnNames })), indexes });
 
 console.log(JSON.stringify({
   source: options.sourcePath,
   schemaVersion: '2026-08-22-canonical-runtime-schema',
   mode: options.execute ? 'execute' : 'dry-run',
   tableCount: records.length,
+  sourceTables: records.map(record => record.name),
+  indexCount: indexes.length,
+  skippedIndexes,
+  schemaChecksum,
   checks,
   note: 'No live migration is performed unless --execute is explicitly supplied. Dry-run never connects to PostgreSQL.',
 }, null, 2));
@@ -126,7 +225,7 @@ const sql = factory(options.connectionString, {
 });
 try {
   await sql`SELECT 1`;
-  await executeImport(sql, records);
+  await executeImport(sql, records, indexes, schemaChecksum);
   const verification = await verifyDestination(sql, checks);
   if (verification.some(result => !result.matches)) {
     throw new Error(`PostgreSQL verification failed: ${JSON.stringify(verification)}`);

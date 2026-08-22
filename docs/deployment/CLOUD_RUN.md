@@ -49,11 +49,15 @@ The existing `Dockerfile`, `deploy/cloud-run/service.yaml`, and `cloudbuild.yaml
 
 ## PostgreSQL cutover foundation
 
-`src/services/postgresPersistence.ts` provides the async PostgreSQL connection, bounded pooling, parameterized tagged queries, transaction and graceful shutdown boundary. It intentionally does not emulate the synchronous SQL.js API.
+`src/services/postgresPersistence.ts` uses the pinned, server-only `postgres` client and provides the async PostgreSQL connection, bounded pooling, parameterized queries, transaction and graceful shutdown boundary. It intentionally does not emulate the synchronous SQL.js API.
 
-`scripts/migrate-sqlite-to-postgres.ts` provides the deterministic migration/export foundation. It defaults to a dry-run, preserves source values exactly, and never starts a production migration. `--execute` is an explicit import operation and remains an operator-controlled action.
+`scripts/migrate-sqlite-to-postgres.ts` provides the deterministic migration/export foundation. It derives a table/index manifest and schema checksum from the SQL.js source, creates tables in foreign-key dependency order, records the import in `schema_migrations`, verifies schema columns, row counts, and ordered value digests for Memory, Chat, Economic Requests, notifications, Agent state, and execution records, and never mutates the source file. It defaults to a dry-run; `--execute` is an explicit operator-controlled import operation.
 
 The migration foundation is tied to schema version `2026-08-22-canonical-runtime-schema` from `data/audits/database-schema-manifest.json`.
+
+Repository-controlled local proof uses a disposable real PostgreSQL instance through `npm run test:postgres-persistence` and `npm run test:postgres-migration-roundtrip`. These contracts cover two-process shared state, transaction rollback, duplicate idempotency rejection, SQL.js source immutability, encrypted Memory preservation, Chat, Economic Request, notification, Agent state, and execution-record preservation. They are **not** production connectivity or deployment proof.
+
+For a reproducible local-only database, `docker-compose.postgres-test.yml` starts one ephemeral `postgres:17-alpine` service on `127.0.0.1:54329`; it starts neither Redis nor the application. Set a non-production `KURUKOO_TEST_POSTGRES_URL` for that disposable database, run both PostgreSQL contracts, and then run `docker compose -f docker-compose.postgres-test.yml down -v`. The contracts intentionally refuse to use ambient `DATABASE_URL` values.
 
 ## Required production change
 
@@ -105,7 +109,7 @@ These are repository proving defaults, not claims about the cheapest production 
 
 Do not put API keys, database credentials or JWT secrets in `cloudbuild.yaml`, the Docker image, frontend bundles or Git.
 
-Use Secret Manager / Cloud Run environment configuration for `DATABASE_URL` and related database settings once external infrastructure is provisioned.
+For the eventual minimal Google Cloud configuration, use one Cloud SQL for PostgreSQL instance and one Secret Manager-backed `DATABASE_URL` injected into Cloud Run. The service should connect through the Cloud SQL connector/socket rather than exposing a public database address. Expected non-secret runtime settings are `KURUKOO_DATABASE_MODE=postgres`, `KURUKOO_POSTGRES_POOL_MAX`, `KURUKOO_POSTGRES_IDLE_TIMEOUT_SECONDS`, `KURUKOO_POSTGRES_CONNECT_TIMEOUT_SECONDS`, and `KURUKOO_POSTGRES_SSL`; production credentials remain external and must not be committed.
 
 ## Runtime health
 

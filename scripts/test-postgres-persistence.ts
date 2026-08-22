@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
 
 const require = createRequire(import.meta.url);
-const connectionString = process.env.KURUKOO_TEST_POSTGRES_URL || process.env.DATABASE_URL;
+const connectionString = process.env.KURUKOO_TEST_POSTGRES_URL;
 const childMode = process.argv[2];
 const testTable = process.env.KURUKOO_TEST_POSTGRES_TABLE || `kurukoo_pg_cutover_${crypto.randomBytes(6).toString('hex')}`;
 
@@ -31,12 +31,9 @@ const preflight = spawnSync(process.execPath, ['scripts/production-preflight.mjs
     DATABASE_URL: 'postgres://localhost/kurukoo_contract',
   },
 });
-if (!loadPostgres()) {
-  assert.notEqual(preflight.status, 0, 'production preflight must block PostgreSQL mode without the pinned client');
-  assert.match(`${preflight.stdout}${preflight.stderr}`, /requires the pinned postgres client/);
-} else {
-  assert.equal(preflight.status, 0, `${preflight.stdout}${preflight.stderr}`);
-}
+assert.notEqual(preflight.status, 0, 'production preflight must block PostgreSQL mode until both the pinned client and the complete async call-surface migration exist');
+if (!loadPostgres()) assert.match(`${preflight.stdout}${preflight.stderr}`, /requires the pinned postgres client/);
+else assert.match(`${preflight.stdout}${preflight.stderr}`, /direct SQL\.js files remain/);
 
 if (childMode) {
   if (!connectionString) throw new Error('KURUKOO_TEST_POSTGRES_URL is required for the PostgreSQL runtime child.');

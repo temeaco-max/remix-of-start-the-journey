@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${KURUKOO_POSTGRES_TEST_DB:-kurukoo_test}
+      POSTGRES_USER: ${KURUKOO_POSTGRES_TEST_USER:-kurukoo_test}
+      POSTGRES_PASSWORD: ${KURUKOO_POSTGRES_TEST_PASSWORD:-kurukoo_test_only_change_me}
+    ports:
+      - "127.0.0.1:${KURUKOO_POSTGRES_TEST_PORT:-54329}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

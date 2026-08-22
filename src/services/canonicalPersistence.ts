@@ -9,6 +9,10 @@ export interface CanonicalPersistenceStatus {
   note: string;
 }
 
+// An environment flag must never be able to claim that the asynchronous
+// PostgreSQL migration is complete while routes still open SQL.js directly.
+const POSTGRES_APPLICATION_CALL_SURFACE_MIGRATED = false;
+
 export function getCanonicalPersistenceMode(env: NodeJS.ProcessEnv = process.env): CanonicalPersistenceMode {
   return String(env.KURUKOO_DATABASE_MODE || 'sqljs').trim().toLowerCase() === 'postgres' ? 'postgres' : 'sqljs';
 }
@@ -19,7 +23,7 @@ export function getCanonicalPersistenceMode(env: NodeJS.ProcessEnv = process.env
  */
 export function getCanonicalPersistenceStatus(env: NodeJS.ProcessEnv = process.env): CanonicalPersistenceStatus {
   const mode = getCanonicalPersistenceMode(env);
-  const applicationAdapterReady = mode === 'sqljs' || String(env.KURUKOO_POSTGRES_APPLICATION_INTEGRATED || '').toLowerCase() === 'true';
+  const applicationAdapterReady = mode === 'sqljs' || POSTGRES_APPLICATION_CALL_SURFACE_MIGRATED;
   return mode === 'postgres'
     ? {
         mode,
@@ -29,7 +33,7 @@ export function getCanonicalPersistenceStatus(env: NodeJS.ProcessEnv = process.e
         concurrentWriterSafe: applicationAdapterReady,
         note: applicationAdapterReady
           ? 'PostgreSQL is the sole canonical persistence owner.'
-          : 'PostgreSQL backend exists as a foundation, but the current synchronous service surface is not yet migrated to the async adapter; startup must remain blocked.',
+          : 'PostgreSQL backend and migration tooling exist, but the application retains direct synchronous SQL.js calls; startup must remain blocked until the call surface is migrated and reviewed.',
       }
     : {
         mode,

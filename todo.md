@@ -135,3 +135,11 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Run local, blocked-cloud, and PostgreSQL-prerequisite persistence contracts using repository-controlled inputs.
 - [x] Correct only reproducible canonical persistence boundary contradictions and revalidate them.
 - [x] Merge and delete one short-lived branch only if a genuine persistence correction is required; otherwise retain canonical main unchanged.
+
+## PostgreSQL local cutover foundation
+
+- [x] Add the pinned server-only PostgreSQL client and retain fail-closed activation behavior.
+- [x] Make the canonical PostgreSQL schema and SQL.js export/import verification path deterministic and testable without dual-write.
+- [x] Add a reproducible real-local PostgreSQL runtime contract covering migration, restart, shared-process state, rollback, and idempotency.
+- [x] Update only the canonical deployment documentation and non-secret PostgreSQL configuration contract.
+- [ ] Verify, merge, and delete the one short-lived PostgreSQL foundation branch.
