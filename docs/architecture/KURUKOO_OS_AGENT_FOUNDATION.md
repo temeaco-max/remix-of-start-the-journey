@@ -25,7 +25,7 @@ Kurukoo must not become a collection of mini-apps or a clone of social media, Wh
 | Profile | canonical identity/Memory Profile + participant capabilities |
 | Contacts | canonical identity/contact capability |
 | Safety contact | Contact relationship + canonical Safety boundary |
-| Follow/subscribe | future relationship primitive + existing notification/context systems |
+| Follow/subscribe | canonical `relationshipService` + existing notification/context systems |
 | Agent conversation | Conversation + Agent |
 | Proactive brief | Requests/Tasks/Notifications/Memory + deterministic brief generation + Agent presentation |
 | Agent work | existing Agent Runtime + canonical services/tools |
@@ -144,9 +144,13 @@ Kurukoo should support one identity with multiple roles/capabilities. A person c
 
 Contact synchronisation, where implemented, should support discovery, invitations and relationship management without creating a second identity database.
 
-### Follow / subscribe — future capability
+### Follow / subscribe — canonical relationship primitive
 
-A relationship primitive may eventually support following/subscribing to people, contributors, providers, Topics, Opportunities or other eligible public/shared objects. Follow must not create a social-media subsystem; its effects should flow through existing Discover, Topics, Opportunities, Notifications and Memory/context surfaces.
+`relationshipService` owns the smallest reusable actor → relationship → target record. It currently supports active/revoked/suppressed Follow and Subscribe relationships over eligible public/shared targets, including people, contributors, providers, Topics, Opportunities, discovery entities, and eligible Agents. The relationship stores only the actor reference, target reference/type, relationship type, lifecycle status, notification preference, private/contextual visibility, optional bounded context, and revocation evidence.
+
+Follow is unidirectional and does not create communication permission, provider access, financial authority, Memory access, private profile access, Agent execution authority, location access, contact state, participant state, provider relationship state, or safety relationship state. Contacts and safety contacts remain owned by their consent-bound canonical services. Relationship data is actor-private by default, and target eligibility is checked through the existing target owner; unavailable/private/removed targets cannot be followed and future queued relationship notifications are suppressed on revocation or target removal.
+
+The primitive must not create a social-media subsystem. Its effects flow through existing Discover, Topics, Opportunities, Notifications and minimum contextual Memory use. It does not expose public counts, a feed, likes, reposts, ranking, advertising, influencer mechanics, or follower monetisation.
 
 ## 13. Memory as an OS advantage
 
@@ -219,7 +223,7 @@ The Brain/coordinator arbitrates context. Models propose meaning or wording; can
 - opt-in proactive brief delivery;
 - hosted TTS where a consistent Kurukoo voice is justified;
 - richer provider communication;
-- relationship/follow primitives if validated by usage;
+- broader relationship target adapters and contextual actions, subject to privacy and usage validation;
 - Agent tool coverage over canonical services;
 - long-running goal continuity.
 
