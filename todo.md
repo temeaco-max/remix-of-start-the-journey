@@ -114,3 +114,10 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Apply only the smallest canonical correction required for the failing validation contracts.
 - [x] Re-run focused convergence, economic, dispatch, security, and build validation.
 - [x] Push the verified current-main correction and record repository, runtime, and real-world status tiers.
+
+## Physical execution red-team follow-up
+
+- [x] Independently inspect canonical physical-execution ownership, authorization, evidence, idempotency, privacy, Quick Ride, and Agent-to-Agent boundaries.
+- [x] Execute adversarial simulated-participant tests for authorization, destination binding, lifecycle truthfulness, idempotency, and location privacy.
+- [x] Verify the controlled simulator journey and classify broad-test and deployment-readiness outcomes without scope expansion.
+- [ ] Merge and delete one short-lived task branch only if a genuine code correction is required; otherwise retain canonical main unchanged.

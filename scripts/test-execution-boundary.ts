@@ -27,6 +27,7 @@ const {
   getExecutionRequest,
   updateExecutionStatus,
   recordExecutionEvidence,
+  reviewExecutionEvidence,
 } = await import('../src/services/executionConnector.js');
 
 const db = await getDb();
@@ -191,11 +192,18 @@ const withKurukooEvidence = await recordExecutionEvidence(created.id, {
   type: 'delivery_selection',
   scope: 'delivery_provider',
   submittedBy: buyerPhone,
-  verificationState: 'verified',
+  verificationState: 'pending_review',
   payload: { selected: deliveryPhone },
 });
 assert.equal(withKurukooEvidence.evidence.at(-1)?.source, 'kurukoo_recorded');
-assert.equal(withKurukooEvidence.evidence.at(-1)?.verificationState, 'verified');
+assert.equal(withKurukooEvidence.evidence.at(-1)?.verificationState, 'pending_review');
+const reviewedKurukooEvidence = await reviewExecutionEvidence({ executionId: created.id, evidenceId: 'buyer-selection-001', verificationState: 'verified', reviewedBy: 'canonical-test-reviewer' });
+assert.equal(reviewedKurukooEvidence.evidence.find((item) => item.id === 'buyer-selection-001')?.verificationState, 'verified');
+await assert.rejects(
+  () => recordExecutionEvidence(created.id, { id: 'forged-verified-evidence', source: 'provider_reported', type: 'forged_completion', scope: 'delivery_provider', submittedBy: deliveryPhone, verificationState: 'verified' }),
+  /canonical evidence review boundary/i,
+  'a submitter cannot self-verify execution evidence',
+);
 const repeatedEvidence = await recordExecutionEvidence(created.id, {
   id: 'buyer-selection-001',
   source: 'kurukoo_recorded',

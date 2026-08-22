@@ -446,6 +446,11 @@ export async function dispatchExecutionRequest(id: string): Promise<ExecutionReq
   const execution = await getExecutionRequest(id);
   if (!execution) throw new Error('Execution request not found');
   if (['acknowledged', 'in_progress', 'succeeded', 'failed', 'cancelled', 'expired'].includes(execution.status)) return execution;
+  if (Object.prototype.hasOwnProperty.call(execution.authorizationContext, 'physical_execution')) {
+    const { validatePhysicalExecutionAuthorizationAtDispatch } = await import('./physicalExecutionParticipant.js');
+    const physicalAuthorization = await validatePhysicalExecutionAuthorizationAtDispatch(execution);
+    if (!physicalAuthorization.valid) return updateExecutionStatus(id, 'failed', { failureReason: `Physical execution authorization failed: ${physicalAuthorization.reason}` });
+  }
   const actionTimeAuthorization = await authorizeProviderExecution({
     requestId: execution.requestId,
     providerPhone: execution.providerPhone,
@@ -539,6 +544,10 @@ export async function recordExecutionEvidence(id: string, input: {
 }): Promise<ExecutionRequestRecord> {
   const execution = await getExecutionRequest(id);
   if (!execution) throw new Error('Execution request not found');
+  const verificationState = input.verificationState === undefined ? 'unverified' : validateEvidenceState(input.verificationState);
+  if (verificationState === 'verified' || verificationState === 'rejected') {
+    throw new ExecutionAuthorizationError('Recorded execution evidence must remain unverified or pending review; use the canonical evidence review boundary');
+  }
   const evidenceId = input.id || crypto.randomUUID();
   const existing = execution.evidence.find((item) => item.id === evidenceId);
   if (existing) return execution;
@@ -548,7 +557,7 @@ export async function recordExecutionEvidence(id: string, input: {
     type: cleanText(input.type, 'Evidence type', 128),
     scope: cleanText(input.scope, 'Evidence scope', 128),
     submittedBy: cleanText(input.submittedBy, 'Evidence submitter', 128),
-    verificationState: input.verificationState === undefined ? 'unverified' : validateEvidenceState(input.verificationState),
+    verificationState,
     payload: input.payload && typeof input.payload === 'object' && !Array.isArray(input.payload) ? input.payload : {},
     recordedAt: new Date().toISOString(),
   };

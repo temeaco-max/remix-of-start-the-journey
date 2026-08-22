@@ -296,6 +296,7 @@ export async function createBoundedPhysicalExecution(input: {
   idempotencyKey: string;
   correlationId: string;
   authorizationScope: {
+    requestBinding: string;
     expiresAt: string;
     destinationBinding: string;
     allowedActions: PhysicalExecutionAction[];
@@ -313,6 +314,7 @@ export async function createBoundedPhysicalExecution(input: {
   if (!participant || !participant.available || participant.verificationState !== 'verified') throw new Error('Verified available physical execution participant is required');
   if (!participant.supportedActions.includes(actionRequested as PhysicalExecutionAction)) throw new Error('Participant capability does not permit this physical execution action');
   const scope = input.authorizationScope;
+  if (requiredText(scope.requestBinding, 'Authorization request binding', 128) !== request.id) throw new Error('Physical execution authorization is not bound to this Economic Request');
   const expiresAt = new Date(requiredText(scope.expiresAt, 'Authorization expiry', 64));
   if (!Number.isFinite(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) throw new Error('Physical execution authorization must have a future expiry');
   if (!Array.isArray(scope.allowedActions) || !scope.allowedActions.includes(actionRequested as PhysicalExecutionAction)) throw new Error('Physical execution action is outside the explicit authorization scope');
@@ -332,6 +334,7 @@ export async function createBoundedPhysicalExecution(input: {
       physical_execution: {
         participant_type: participant.participantType,
         provider_type: participant.providerType,
+        request_binding: request.id,
         destination_binding: destinationBinding,
         authorization_expires_at: expiresAt.toISOString(),
         safety_policy_ref: requiredText(scope.safetyPolicyRef, 'Safety policy reference', 160),
@@ -340,6 +343,26 @@ export async function createBoundedPhysicalExecution(input: {
       },
     },
   });
+}
+
+/**
+ * Revalidate the immutable physical-execution authorization immediately before
+ * connector dispatch. This keeps the canonical request, not a caller-supplied
+ * frontend value, authoritative for destination and request scope.
+ */
+export async function validatePhysicalExecutionAuthorizationAtDispatch(execution: ExecutionRequestRecord): Promise<{ valid: true } | { valid: false; reason: string }> {
+  const physical = execution.authorizationContext.physical_execution;
+  if (!physical || typeof physical !== 'object' || Array.isArray(physical)) return { valid: false, reason: 'Physical execution authorization context is missing' };
+  const scope = physical as Record<string, unknown>;
+  if (scope.request_binding !== execution.requestId) return { valid: false, reason: 'Physical execution authorization request binding no longer matches' };
+  const expiresAt = new Date(typeof scope.authorization_expires_at === 'string' ? scope.authorization_expires_at : '');
+  if (!Number.isFinite(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) return { valid: false, reason: 'Physical execution authorization has expired' };
+  if (!Array.isArray(scope.allowed_actions) || !scope.allowed_actions.includes(execution.actionRequested)) return { valid: false, reason: 'Physical execution action is outside the active authorization scope' };
+  if (typeof scope.safety_policy_ref !== 'string' || !scope.safety_policy_ref.trim()) return { valid: false, reason: 'Physical execution safety policy reference is missing' };
+  const request = await getEconomicRequest(execution.requestId);
+  if (!request) return { valid: false, reason: 'Economic Request is no longer available for physical execution' };
+  if (scope.destination_binding !== deriveDestinationBinding(request.requirements)) return { valid: false, reason: 'Physical execution destination binding no longer matches the canonical request' };
+  return { valid: true };
 }
 
 /** Derive a readable physical stage from canonical execution state plus typed evidence; this is not a second persisted lifecycle. */
