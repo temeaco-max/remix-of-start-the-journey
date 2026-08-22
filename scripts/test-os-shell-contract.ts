@@ -12,14 +12,14 @@ const pixelCss = readFileSync(resolve(process.cwd(), 'public/css/kurukoo-webapp-
 const providerCss = readFileSync(resolve(process.cwd(), 'public/css/provider-communication.css'), 'utf8');
 const presenceRuntime = readFileSync(resolve(process.cwd(), 'public/js/kurukoo-agent-presence.js'), 'utf8');
 const icons = readFileSync(resolve(process.cwd(), 'public/icons/kurukoo-icons.svg'), 'utf8');
+const appRoutes = readFileSync(resolve(process.cwd(), 'src/routes/appSurfaceRoutes.ts'), 'utf8');
+const surfaceRegistry = readFileSync(resolve(process.cwd(), 'src/services/clientSurfaceRegistry.ts'), 'utf8');
 
 for (const required of [
   'Search Kurukoo','Notifications','Account','/points','/cart','/chat','/requests','/tasks','/discover','/connect','/topics','/saved','/reminders','/memory','/safety','/settings'
 ]) assert.ok(shellRuntime.includes(required), `Desk shell missing ${required}`);
-assert.ok(shellRuntime.includes("'k-desk-search-trigger'"));
-assert.ok(shellRuntime.includes("'k-desk-header-cart'"));
-assert.ok(shellRuntime.includes('renderOsWorkspace'));
-assert.ok(shellRuntime.includes('renderContext'));
+assert.ok(shellRuntime.includes("'/app/agent': '/chat'"), 'legacy Agent alias must converge to canonical Chat');
+assert.doesNotMatch(shellRuntime, /'\/app\/agent': '\/desk'/, 'Desk shell must not canonicalize Agent to Desk');
 assert.ok(componentCss.includes('.kos-conversation-card'));
 assert.ok(componentCss.includes('.kos-activity-card'));
 assert.ok(componentCss.includes('.kos-object-list'));
@@ -40,11 +40,24 @@ assert.ok(providerCss.includes('var(--ko-primary'));
 assert.ok(providerCss.includes('min-height:44px'));
 assert.ok(providerCss.includes('button[disabled]'));
 assert.ok(presenceRuntime.includes("'listening'"));
-assert.ok(appShellRuntime.includes("{label:'Desk',href:'/app/desk'"));
-assert.ok(appShellRuntime.includes("{label:'Agent',href:'/app/agent'"));
-assert.ok(appShellRuntime.includes("{label:'Discover',href:'/app/discover'"));
+
+for (const [label, href] of [['Desk','/desk'],['Agent','/chat'],['Requests','/requests'],['Tasks','/tasks'],['Discover','/discover']]) {
+  assert.ok(appShellRuntime.includes(`{label:'${label}',href:'${href}'`), `mobile/app navigation must use canonical ${label} route ${href}`);
+}
+for (const [legacy, canonical] of [['/app/desk','/desk'],['/app/agent','/chat'],['/app/requests','/requests'],['/app/tasks','/tasks'],['/app/discover','/discover']]) {
+  assert.ok(appShellRuntime.includes(`['${legacy}','${canonical}']`), `legacy route ${legacy} must normalize to ${canonical}`);
+}
 assert.ok(appShellRuntime.includes('const createSecondaryNav=()=>{}'));
-assert.ok(appShellRuntime.includes("['/desk','/app/desk']"));
+assert.ok(appShellRuntime.includes("if(path==='/chat')"), 'Agent route refinement must target canonical Chat');
+assert.ok(appShellRuntime.includes("if(path==='/call')"));
+assert.ok(appShellRuntime.includes("path==='/top-up'||path==='/points'"));
+
+assert.match(surfaceRegistry, /label: 'Agent'.*route: '\/chat'/s, 'surface registry Agent must be /chat');
+assert.match(surfaceRegistry, /label: 'Agents'.*route: '\/agents'/s, 'Agents directory must remain distinct from Agent');
+assert.match(appRoutes, /'\/app\/agent': '\/chat'/, 'app route alias must converge Agent to Chat');
+assert.doesNotMatch(appRoutes, /'\/app\/agent': '\/desk'/, 'app route aliases must not conflate Agent with Desk');
+assert.match(appRoutes, /for \(const resource of \['requests','tasks','reminders','opportunities','agents','connections','memory','artifacts'\]/, 'canonical object/detail route families remain declared');
+
 assert.match(icons, /symbol id="search"/);
 assert.match(icons, /symbol id="user"/);
 assert.ok(CHAT_SIDEBAR_FOUNDATION.some((item) => item.id === 'cart' && item.targetPlacement === 'header'));
@@ -53,4 +66,4 @@ assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'conversation-continu
 assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'pulse-timeline'));
 assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'context-inspector'));
 
-console.log('OS shell contract passed: canonical header controls, shared state/presence vocabulary, mobile IA, non-duplicated workspace navigation and canonical visual token bridges are present.');
+console.log('OS shell contract passed: canonical authenticated route ownership, shared state/presence vocabulary, mobile IA, non-duplicated workspace navigation and canonical visual token bridges are present.');
