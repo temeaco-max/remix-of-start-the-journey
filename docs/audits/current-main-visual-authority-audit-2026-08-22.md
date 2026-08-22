@@ -201,3 +201,9 @@ The remaining root TypeScript diagnostics were resolved in their existing owners
 | CSS, Chat, PWA and Quick Ride contracts | Passed | Existing visual/client authorities remain intact after runtime recovery. |
 
 This resolves the former import-time route blocker. Authenticated browser observation, installed-PWA behavior, configured provider/payment/channel outcomes and physical mobile-device evidence remain separately unobserved external validation activities.
+
+## Cross-Domain Existing-Owner Reconciliation
+
+The restored runtime exposed and resolved further incomplete current-owner contracts: canonical Admin feature records now target the existing Admin control room rather than obsolete query aliases; the public CTA retains the canonical **Start chatting** continuation; shutdown stops existing background services; delegated-beneficiary lookup initializes its commercial schema; conversation guidance preserves multiple active contexts; notification inbox records retain canonical action/object/owner metadata; and the outcome inventory assertion reflects the current 241-skill catalogue.
+
+The public runtime, conversation-turn, provider-selection, notification queue, economic lifecycle, strict CSS and root TypeScript checks pass after these repairs. The long all-domains suite reached 23 of 66 declared checks before `test:smollm2-local` exceeded its own 180-second local-model timeout. That is a local model-runtime boundary, not a visual/client or source-contract failure.

@@ -3,7 +3,7 @@ import { buildOutcomeCompletenessMatrix, summarizeOutcomeCompleteness } from '..
 
 const rows = await buildOutcomeCompletenessMatrix('ng');
 const summary = summarizeOutcomeCompleteness(rows);
-assert.equal(summary.skillCount, 205, 'the outcome matrix must cover all 205 canonical skills');
+assert.equal(summary.skillCount, 241, 'the outcome matrix must cover all 241 canonical skills');
 assert.equal(summary.missingImplementationCount, 0, 'every canonical skill must have a canonical flow definition');
 assert.equal(summary.familyCount, 46, 'the outcome matrix must cover all canonical skill families');
 assert.ok(rows.every((row) => row.canonicalOwner.length > 0), 'every skill must name a canonical owner');
