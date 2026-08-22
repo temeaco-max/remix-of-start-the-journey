@@ -15,6 +15,9 @@
   <% if (section === 'requests') { %>
   <link rel="stylesheet" href="/css/kurukoo-requests-convergence.css?v=1">
   <% } %>
+  <% if (section === 'tasks') { %>
+  <link rel="stylesheet" href="/css/kurukoo-tasks-convergence.css?v=1">
+  <% } %>
   <script src="/js/fcm-client.js?v=routes2" defer></script>
 </head>
 <body class="k-app-page workspace-page k-app-section-<%= section %>" data-workspace-section="<%= section %>" data-app-section="<%= section %>">
@@ -157,6 +160,9 @@
   <script src="/js/kurukoo-workspace.js?v=routes1" defer></script>
   <% if (section === 'requests') { %>
   <script src="/js/kurukoo-requests-convergence.js?v=1" defer></script>
+  <% } %>
+  <% if (section === 'tasks') { %>
+  <script src="/js/kurukoo-tasks-convergence.js?v=1" defer></script>
   <% } %>
   <script src="/js/kurukoo-app-shell.js?v=4" defer></script>
 </body>
