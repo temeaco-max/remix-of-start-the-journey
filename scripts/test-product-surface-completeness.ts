@@ -54,8 +54,8 @@ for (const contract of AUTHENTICATED_CAPABILITY_COVERAGE) {
 assert.equal(AUTHENTICATED_CAPABILITY_COVERAGE.find(item => item.id === 'agent-chat')?.canonicalRoute, '/chat');
 assert.equal(AUTHENTICATED_CAPABILITY_COVERAGE.find(item => item.id === 'agents-runtime')?.canonicalRoute, '/agents');
 assert.equal(AUTHENTICATED_CAPABILITY_COVERAGE.find(item => item.id === 'agents-runtime')?.canonicalOwner, 'agentRuntime');
-assert.notMatch(entrypoints, /authenticatedPath:'\/app\//, 'Authenticated feature entrypoints must not advertise legacy /app/* paths.');
-assert.ok(entrypoints.includes("'/app" ) === false, 'Authenticated feature entrypoint registry must remain free of legacy /app paths.');
+assert.ok(!/authenticatedPath:'\/app\//.test(entrypoints), 'Authenticated feature entrypoints must not advertise legacy /app/* paths.');
+assert.ok(!entrypoints.includes("'/app"), 'Authenticated feature entrypoint registry must remain free of legacy /app paths.');
 
 for (const requiredId of ['agent-chat','agents-runtime','requests','tasks','notifications','contacts-identity','memory','discover','topics','opportunities','follow','provider-communication','calls','voice','agent-brief','quick-ride','physical-execution','agent-to-agent','saved','cart','reminders','connect','artifacts','safety','wallet-points-topup','subscriptions-checkout','payments']) {
   assert.ok(AUTHENTICATED_CAPABILITY_COVERAGE.some(item => item.id === requiredId), `Required authenticated capability is missing from coverage contract: ${requiredId}`);
