@@ -65,6 +65,7 @@
     if (document.querySelector('script[data-kurukoo-desk-system]')) return;
     const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/css/kurukoo-desk-system.css?v=1'; css.dataset.kurukooDeskSystemStyle = 'true'; document.head.appendChild(css);
     const script = document.createElement('script'); script.src = '/js/kurukoo-desk-system.js?v=1'; script.defer = true; script.dataset.kurukooDeskSystem = 'true'; document.head.appendChild(script);
+    const hydration = document.createElement('script'); hydration.src = '/js/kurukoo-desk-live-hydration.js?v=1'; hydration.defer = true; hydration.dataset.kurukooDeskLiveHydration = 'true'; document.head.appendChild(hydration);
   };
 
   const boot = () => { loadDeskSystem(); if (section === 'subscriptions') subscriptions(); if (section === 'connect') microsoft(); };
