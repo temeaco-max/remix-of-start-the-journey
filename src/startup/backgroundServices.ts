@@ -1,5 +1,6 @@
 import { purgeExpiredData } from '../services/dataRetention.js';
 import { seedDemoAdCampaigns } from '../services/adManager.js';
+import { ensureAuthenticatedLeftRailDemoAd } from '../services/authenticatedAdvertisingSeed.js';
 import { startContactSyncService } from '../services/contactSyncService.js';
 import { startDeliveryStatusService } from '../services/deliveryService.js';
 import { runEscrowPass } from '../services/tradeEngine.js';
@@ -17,6 +18,7 @@ export async function startBackgroundServices(): Promise<void> {
     if (backgroundServicesStarted) return;
     backgroundServicesStarted = true;
     try { await seedDemoAdCampaigns(); } catch (error) { console.error('Error seeding demo ad campaigns:', error); }
+    try { await ensureAuthenticatedLeftRailDemoAd(); } catch (error) { console.error('Error seeding authenticated left-rail demo ad:', error); }
     try { await startContactSyncService(); } catch (error) { console.error('Failed to start contact sync service:', error); }
     try { await startDeliveryStatusService(); } catch (error) { console.error('Failed to start delivery status service:', error); }
     try { await runRecurringSubscriptionBillingPass(); } catch (error) { console.error('Failed to run initial recurring subscription billing pass:', error); }
