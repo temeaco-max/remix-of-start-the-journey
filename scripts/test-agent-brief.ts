@@ -100,10 +100,17 @@ assert.equal(await markNotificationRead(owner, safetyNotification.id), true, 'Th
 const afterReadBrief = await buildAgentBrief(owner, { now: fixedNow });
 assert.equal(afterReadBrief.items.some(item => item.category === 'safety_event'), false, 'Read notifications must no longer compete for Agent Brief attention.');
 
-const firstDelivery = await enqueueAgentBriefNotification(owner, brief);
-const duplicateDelivery = await enqueueAgentBriefNotification(owner, brief);
+const firstDelivery = await enqueueAgentBriefNotification(owner, afterReadBrief);
+const duplicateDelivery = await enqueueAgentBriefNotification(owner, afterReadBrief);
 assert.equal(firstDelivery.queued, true, 'Attention-worthy briefs must use the canonical notification fallback once.');
 assert.equal(duplicateDelivery.duplicate, true, 'Brief notification fallback must be idempotent.');
+const rebuiltAfterFallback = await buildAgentBrief(owner, { now: fixedNow });
+assert.equal(rebuiltAfterFallback.id, afterReadBrief.id, 'The delivery-only Agent Brief notification must not change deterministic brief material.');
+assert.equal(rebuiltAfterFallback.items.some(item => item.action?.canonicalAction === 'agent.brief.review' || item.action?.objectType === 'agent_brief'), false, 'The delivery-only Agent Brief notification must never be re-ingested as brief content.');
+const rebuiltDelivery = await enqueueAgentBriefNotification(owner, rebuiltAfterFallback);
+assert.equal(rebuiltDelivery.duplicate, true, 'Regenerating after fallback delivery must not recursively enqueue another Agent Brief notification.');
+const fallbackNotifications = (await getInternalNotifications(owner)).filter(item => item.canonical_action === 'agent.brief.review');
+assert.equal(fallbackNotifications.length, 1, 'The canonical notification centre must contain one idempotent Agent Brief fallback entry.');
 
 assert.equal(isAgentBriefQuestion('Anything important?'), true, 'Natural brief questions must be recognized deterministically.');
 const briefTurn = await processCanonicalChatTurn({ phone: owner, message: 'What have I got going on?', channel: 'web', conversationId: 'brief-conversation' });
