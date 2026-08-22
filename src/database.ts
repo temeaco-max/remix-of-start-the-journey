@@ -102,6 +102,8 @@ function initTables(database: any) {
       provider_type TEXT NOT NULL DEFAULT 'human',
       livecast_signals_remaining INTEGER DEFAULT 30,
       trust_score REAL DEFAULT 5.0,
+      phone_verified_at TEXT,
+      email_verified_at TEXT,
       last_active_at TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -297,6 +299,8 @@ function initTables(database: any) {
     'ALTER TABLE micro_tasks ADD COLUMN moderation_note TEXT',
     'ALTER TABLE micro_tasks ADD COLUMN approved_by TEXT',
     'ALTER TABLE micro_tasks ADD COLUMN approved_at TEXT',
+    'ALTER TABLE memory_profiles ADD COLUMN phone_verified_at TEXT',
+    'ALTER TABLE memory_profiles ADD COLUMN email_verified_at TEXT',
   ]) { try { database.run(migration); } catch { /* column already exists */ } }
   const skillColumns = database.exec('PRAGMA table_info(skills)')[0]?.values || [];
   if (!skillColumns.some((column: unknown[]) => String(column[1]) === 'execution_profile_json')) {

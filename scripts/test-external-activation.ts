@@ -33,8 +33,12 @@ try {
 
   const activation = await activateConfiguredExternalProviders();
   const names = activation.results.map(result => result.provider).sort();
-  assert.deepEqual(names, ['email', 'mistral', 'stripe', 'telegram', 'whatsapp']);
-  assert.equal(activation.results.every(result => result.configured && result.activated && result.verified), true);
+  assert.deepEqual(names, ['email', 'fcm', 'mistral', 'stripe', 'telegram', 'whatsapp']);
+  const configuredProviders = activation.results.filter(result => result.provider !== 'fcm');
+  assert.equal(configuredProviders.every(result => result.configured && result.activated && result.verified), true);
+  const fcm = activation.results.find(result => result.provider === 'fcm');
+  assert.ok(fcm, 'FCM readiness must be reported even when its optional runtime configuration is absent');
+  if (fcm.configured) assert.equal(fcm.verified, true, 'configured FCM must surface a verified or explicit probe state');
   const mistral = activation.results.find(result => result.provider === 'mistral');
   assert.ok(mistral?.detail.includes('Mistral'));
   const whatsapp = activation.results.find(result => result.provider === 'whatsapp');

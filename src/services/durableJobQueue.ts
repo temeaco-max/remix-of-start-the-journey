@@ -165,7 +165,10 @@ export async function getDurableJobStats(): Promise<Record<DurableJobStatus, num
 export async function getDurableJob(jobId: string): Promise<DurableJob | null> {
   await ensureSchema();
   const db = await getDb();
-  const row = db.exec('SELECT * FROM durable_jobs WHERE id=? LIMIT 1')[0]?.values?.[0];
+  const statement = db.prepare('SELECT * FROM durable_jobs WHERE id=? LIMIT 1');
+  statement.bind([String(jobId)]);
+  const row = statement.step() ? statement.get() as unknown[] : null;
+  statement.free();
   const info = db.exec('PRAGMA table_info(durable_jobs)')[0]?.values || [];
   return row ? mapRow(row, info) : null;
 }
