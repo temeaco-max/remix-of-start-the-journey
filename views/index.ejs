@@ -1,4 +1,4 @@
-<%- include('_partials/head') %>
+<%- include('_partials/head', { pageStyles: ['/css/site-authority.css?v=1','/css/kurukoo-public-pages.css?v=3','/css/kurukoo-home.css?v=3.0.1'] }) %>
 <% const publicAds = typeof homepageAds !== 'undefined' && Array.isArray(homepageAds) ? homepageAds : []; %>
 <%- include('_partials/nav') %>
 <main class="home-page">
