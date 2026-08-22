@@ -35,7 +35,7 @@
       const link = document.createElement('link');
       link.id = 'kurukoo-admin-convergence-css';
       link.rel = 'stylesheet';
-      link.href = '/css/admin-pages/admin-convergence-shell.css';
+      link.href = '/css/admin-pages/admin-convergence-shell.css?v=3';
       document.head.appendChild(link);
     }
     if (!document.getElementById('kurukoo-admin-desktop-final-css')) {
