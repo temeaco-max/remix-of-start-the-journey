@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { KURUKOO_MARK_PATH, KURUKOO_VISUAL_TOKENS } from "../lib/visual-contract";
 
 const themeSource = readFileSync(resolve(process.cwd(), "theme.config.js"), "utf8");
+const richMessageSource = readFileSync(resolve(process.cwd(), "components/chat-rich-message.tsx"), "utf8");
 
 describe("Kurukoo visual contract", () => {
   it("keeps the authoritative warm brand tokens", () => {
@@ -34,5 +35,11 @@ describe("Kurukoo visual contract", () => {
 
   it("uses the exact authoritative Kurukoo mark asset", () => {
     expect(KURUKOO_MARK_PATH).toBe("assets/images/kurukoo-logo.png");
+  });
+
+  it("keeps rich-message actions at the shared 44px interaction rhythm", () => {
+    expect(richMessageSource).toContain('actionsRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 4, minHeight: 44 }');
+    expect(richMessageSource).toContain('copyButton: { minHeight: 44');
+    expect(richMessageSource).toContain('iconButton: { minWidth: 44, minHeight: 44');
   });
 });

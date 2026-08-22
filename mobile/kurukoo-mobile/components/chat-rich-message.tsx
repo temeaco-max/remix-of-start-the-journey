@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { useColors } from "@/hooks/use-colors";
 import { BrandMark } from "@/components/kurukoo-ui";
 
+// Visual authority: native message actions retain compact text treatment while every Pressable meets the shared 44px interaction rhythm.
 export function ChatRichMessage({
   content,
   role,
@@ -110,11 +111,11 @@ const styles = StyleSheet.create({
   codeBlock: { borderRadius: 10, padding: 10, gap: 6, minWidth: 230 },
   codeLanguage: { fontFamily: "Inter_600SemiBold", fontSize: 10, textTransform: "uppercase", opacity: 0.7 },
   codeText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12, lineHeight: 18 },
-  actionsRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 4, minHeight: 32 },
-  copyButton: { minHeight: 32, justifyContent: "center", paddingHorizontal: 7, borderRadius: 8 },
+  actionsRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 4, minHeight: 44 },
+  copyButton: { minHeight: 44, justifyContent: "center", paddingHorizontal: 7, borderRadius: 8 },
   copyText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
   feedbackGroup: { flexDirection: "row", alignItems: "center", gap: 2, marginLeft: 2 },
-  iconButton: { minWidth: 30, minHeight: 30, alignItems: "center", justifyContent: "center", borderRadius: 8 },
+  iconButton: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 8 },
   selected: { backgroundColor: `${KURUKOO_VISUAL_TOKENS.primary}14` },
   pressed: { opacity: 0.65 },
 });
