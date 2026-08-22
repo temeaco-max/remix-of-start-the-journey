@@ -513,6 +513,10 @@ export async function updateExecutionStatus(id: string, statusValue: ExecutionSt
   const current = await getExecutionRequest(id);
   if (!current) throw new Error('Execution request not found');
   if (current.status === status) return current;
+  if (status === 'succeeded' && typeof current.authorizationContext.external_agent_authorization_id === 'string') {
+    const reviewedCompletion = current.evidence.some(item => item.type === 'external_agent_completion_claim' && item.verificationState === 'verified');
+    if (!reviewedCompletion) throw new ExecutionAuthorizationError('External-agent completion requires verified canonical evidence');
+  }
   if (!STATUS_TRANSITIONS[current.status].includes(status)) throw new ExecutionConflictError(`Invalid execution transition: ${current.status} -> ${status}`);
   db.run(`UPDATE execution_requests SET status=?, external_reference=COALESCE(?,external_reference), failure_reason=COALESCE(?,failure_reason), updated_at=CURRENT_TIMESTAMP WHERE id=?`, [
     status,
@@ -550,6 +554,36 @@ export async function recordExecutionEvidence(id: string, input: {
   };
   const db = await getExecutionTable();
   db.run('UPDATE execution_requests SET evidence_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?', [JSON.stringify([...execution.evidence, evidence]), execution.id]);
+  saveDb();
+  return (await getExecutionRequest(execution.id))!;
+}
+
+/**
+ * A canonical reviewer may classify an already-recorded evidence item without
+ * changing the execution lifecycle. In particular, verifying evidence does not
+ * itself convert an external completion claim into a completed outcome.
+ */
+export async function reviewExecutionEvidence(input: {
+  executionId: string;
+  evidenceId: string;
+  verificationState: Extract<EvidenceVerificationState, 'verified' | 'rejected'>;
+  reviewedBy: string;
+}): Promise<ExecutionRequestRecord> {
+  const execution = await getExecutionRequest(input.executionId);
+  if (!execution) throw new Error('Execution request not found');
+  const evidenceId = cleanText(input.evidenceId, 'Evidence id', 128);
+  const reviewedBy = cleanText(input.reviewedBy, 'Reviewer identity', 128);
+  if (!['verified', 'rejected'].includes(input.verificationState)) throw new Error('Evidence review must be verified or rejected');
+  const evidence = execution.evidence.find(item => item.id === evidenceId);
+  if (!evidence) throw new Error('Execution evidence not found');
+  if (evidence.verificationState === input.verificationState && evidence.payload.reviewed_by === reviewedBy) return execution;
+  const reviewedAt = new Date().toISOString();
+  const updatedEvidence = execution.evidence.map(item => item.id === evidenceId
+    ? { ...item, verificationState: input.verificationState, payload: { ...item.payload, reviewed_by: reviewedBy, reviewed_at: reviewedAt } }
+    : item,
+  );
+  const db = await getExecutionTable();
+  db.run('UPDATE execution_requests SET evidence_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?', [JSON.stringify(updatedEvidence), execution.id]);
   saveDb();
   return (await getExecutionRequest(execution.id))!;
 }
