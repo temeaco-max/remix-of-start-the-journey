@@ -18,6 +18,10 @@ const surfaceRegistry = readFileSync(resolve(process.cwd(), 'src/services/client
 for (const required of [
   'Search Kurukoo','Notifications','Account','/points','/cart','/chat','/requests','/tasks','/discover','/connect','/topics','/saved','/reminders','/memory','/safety','/settings'
 ]) assert.ok(shellRuntime.includes(required), `Desk shell missing ${required}`);
+assert.ok(shellRuntime.includes("'k-desk-search-trigger'"));
+assert.ok(shellRuntime.includes("'k-desk-header-cart'"));
+assert.ok(shellRuntime.includes('renderOsWorkspace'));
+assert.ok(shellRuntime.includes('renderContext'));
 assert.ok(shellRuntime.includes("'/app/agent': '/chat'"), 'legacy Agent alias must converge to canonical Chat');
 assert.doesNotMatch(shellRuntime, /'\/app\/agent': '\/desk'/, 'Desk shell must not canonicalize Agent to Desk');
 assert.ok(componentCss.includes('.kos-conversation-card'));
@@ -48,7 +52,7 @@ for (const [legacy, canonical] of [['/app/desk','/desk'],['/app/agent','/chat'],
   assert.ok(appShellRuntime.includes(`['${legacy}','${canonical}']`), `legacy route ${legacy} must normalize to ${canonical}`);
 }
 assert.ok(appShellRuntime.includes('const createSecondaryNav=()=>{}'));
-assert.ok(appShellRuntime.includes("if(path==='/chat')"), 'Agent route refinement must target canonical Chat');
+assert.ok(appShellRuntime.includes("if(path==='/chat'||path==='/app/agent')"), 'Agent route refinement must cover canonical Chat and legacy compatibility');
 assert.ok(appShellRuntime.includes("if(path==='/call')"));
 assert.ok(appShellRuntime.includes("path==='/top-up'||path==='/points'"));
 
