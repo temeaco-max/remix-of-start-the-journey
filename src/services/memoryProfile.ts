@@ -63,7 +63,10 @@ export async function getMemoryFacts(phone: string, fields?: string[]): Promise<
     await ensureMemoryFactsSchema();
     const store = await getCanonicalStore();
     const params: unknown[] = [phone];
-    let where = `phone = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)`;
+    const expiryComparison = getCanonicalPersistenceMode() === 'postgres'
+        ? `(expires_at IS NULL OR expires_at::timestamptz > CURRENT_TIMESTAMP)`
+        : `(expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)`;
+    let where = `phone = ? AND status = 'active' AND ${expiryComparison}`;
     if (fields?.length) { where += ` AND field IN (${fields.map(() => '?').join(',')})`; params.push(...fields); }
     const rows = await store.all<any>(`SELECT id, field, value, provenance, confidence, source_ref, observed_at, expires_at FROM memory_facts WHERE ${where} ORDER BY updated_at DESC`, params);
     return rows.map(row => ({ id: Number(row.id), field: String(row.field), value: String(row.value), provenance: String(row.provenance) as MemoryProvenance, confidence: row.confidence == null ? null : Number(row.confidence), sourceRef: row.source_ref == null ? null : String(row.source_ref), observedAt: String(row.observed_at), expiresAt: row.expires_at == null ? null : String(row.expires_at) }));
