@@ -142,4 +142,4 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Make the canonical PostgreSQL schema and SQL.js export/import verification path deterministic and testable without dual-write.
 - [x] Add a reproducible real-local PostgreSQL runtime contract covering migration, restart, shared-process state, rollback, and idempotency.
 - [x] Update only the canonical deployment documentation and non-secret PostgreSQL configuration contract.
-- [ ] Verify, merge, and delete the one short-lived PostgreSQL foundation branch.
+- [x] Verify, merge, and delete the one short-lived PostgreSQL foundation branch.
