@@ -5,6 +5,7 @@
  */
 import { Router } from 'express';
 import { authenticateAdmin, authenticateUser, AuthRequest } from '../middleware/auth.js';
+import { getDb } from '../database.js';
 import { bookAppointment } from '../services/appointmentService.js';
 import { createTopicVerificationTask, getAvailableTasks, acceptTask, completeTask, moderateTopicVerificationTask, TaskStateConflictError } from '../services/microTasks.js';
 
@@ -75,6 +76,28 @@ router.get('/tasks', authenticateUser, async (req: AuthRequest, res) => {
     res.json(tasks);
   } catch {
     res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
+});
+
+router.get('/tasks/summary', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  try {
+    const db = await getDb();
+    const available = db.prepare(`SELECT COUNT(*) AS count FROM micro_tasks WHERE status = 'available' AND (assigned_to IS NULL OR assigned_to = '')`);
+    const progress = db.prepare(`SELECT COUNT(*) AS count FROM micro_tasks WHERE status = 'in_progress' AND assigned_to = ?`);
+    const completed = db.prepare(`SELECT COUNT(*) AS count FROM micro_tasks WHERE status IN ('completed', 'approved') AND assigned_to = ?`);
+    const availableCount = available.step() ? Number(available.getAsObject().count || 0) : 0;
+    available.free();
+    progress.bind([phone]);
+    const progressCount = progress.step() ? Number(progress.getAsObject().count || 0) : 0;
+    progress.free();
+    completed.bind([phone]);
+    const completedCount = completed.step() ? Number(completed.getAsObject().count || 0) : 0;
+    completed.free();
+    res.json({ success: true, metrics: { available: availableCount, inProgress: progressCount, completed: completedCount } });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch task summary' });
   }
 });
 
