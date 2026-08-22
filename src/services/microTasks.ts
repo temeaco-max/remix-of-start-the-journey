@@ -1,6 +1,48 @@
 import { getDb, saveDb } from '../database.js';
 import { addPoints } from './pointsEngine.js';
 
+export interface MicroTask {
+    id: number;
+    title: string;
+    description?: string;
+    status: string;
+    assignedTo?: string;
+    sourceType?: string;
+    sourceId?: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+function rowToMicroTask(row: any): MicroTask {
+    return {
+        id: Number(row.id),
+        title: String(row.title || 'Task'),
+        description: row.description ? String(row.description) : undefined,
+        status: String(row.status || 'available'),
+        assignedTo: row.assigned_to ? String(row.assigned_to) : undefined,
+        sourceType: row.source_type ? String(row.source_type) : undefined,
+        sourceId: row.source_id ? String(row.source_id) : undefined,
+        createdAt: row.created_at ? String(row.created_at) : undefined,
+        updatedAt: row.updated_at ? String(row.updated_at) : undefined,
+    };
+}
+
+/** Read-only owner-scoped task projection for shared surfaces such as Agent Briefs. */
+export async function listAssignedTasks(phone: string, includeClosed = false): Promise<MicroTask[]> {
+    const owner = String(phone || '').trim();
+    if (!owner) return [];
+    const db = await getDb();
+    const sql = includeClosed
+        ? `SELECT * FROM micro_tasks WHERE assigned_to = ? ORDER BY id DESC LIMIT 50`
+        : `SELECT * FROM micro_tasks WHERE assigned_to = ? AND status NOT IN ('completed', 'approved', 'rejected') ORDER BY id DESC LIMIT 50`;
+    const stmt = db.prepare(sql);
+    stmt.bind([owner]);
+    const tasks: MicroTask[] = [];
+    while (stmt.step()) tasks.push(rowToMicroTask(stmt.getAsObject()));
+    stmt.free();
+    return tasks;
+}
+
 export async function getAvailableTasks(phone: string) {
     const db = await getDb();
     const stmt = db.prepare(`SELECT * FROM micro_tasks WHERE status = 'available'`);
