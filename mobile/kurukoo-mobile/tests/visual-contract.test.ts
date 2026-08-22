@@ -7,6 +7,7 @@ import { KURUKOO_MARK_PATH, KURUKOO_VISUAL_TOKENS } from "../lib/visual-contract
 const themeSource = readFileSync(resolve(process.cwd(), "theme.config.js"), "utf8");
 const richMessageSource = readFileSync(resolve(process.cwd(), "components/chat-rich-message.tsx"), "utf8");
 const goLiveSource = readFileSync(resolve(process.cwd(), "components/go-live-flow.tsx"), "utf8");
+const firstLaunchSource = readFileSync(resolve(process.cwd(), "components/first-launch-verification.tsx"), "utf8");
 
 describe("Kurukoo visual contract", () => {
   it("keeps the authoritative warm brand tokens", () => {
@@ -46,5 +47,10 @@ describe("Kurukoo visual contract", () => {
 
   it("keeps the Go Live consent decision at the shared 44px interaction rhythm", () => {
     expect(goLiveSource).toContain('checkRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 }');
+  });
+
+  it("keeps first-launch Change controls at the shared 44px interaction rhythm", () => {
+    expect(firstLaunchSource).toContain('style={styles.changeButton}');
+    expect(firstLaunchSource).toContain('changeButton: { minWidth: 60, minHeight: 44, alignItems: "flex-end", justifyContent: "center" }');
   });
 });

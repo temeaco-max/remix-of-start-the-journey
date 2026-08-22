@@ -11,6 +11,7 @@ import { haptic } from "@/lib/haptics";
 import { requestDeviceEmailVerification, verifyDeviceEmailCode } from "@/lib/device-verification-client";
 import type { DeviceVerificationState } from "@/lib/device-verification";
 
+// Visual authority: first-launch verification keeps compact inline labels while Change controls retain 44px Pressable targets.
 export function FirstLaunchVerification({ onComplete }: { onComplete: (state: DeviceVerificationState) => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -105,11 +106,11 @@ export function FirstLaunchVerification({ onComplete }: { onComplete: (state: De
           {verificationStep === "request" ? <View style={styles.emailRow}>
             <MaterialIcons name="mail-outline" size={22} color={colors.muted} />
             <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" accessibilityLabel="Verification email" style={[styles.emailInput, { color: colors.foreground }]} />
-            <Pressable accessibilityRole="button" accessibilityLabel="Change verification email" onPress={() => setEmail("")}><Text style={[styles.changeText, { color: colors.primary }]}>Change</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Change verification email" onPress={() => setEmail("")} style={styles.changeButton}><Text style={[styles.changeText, { color: colors.primary }]}>Change</Text></Pressable>
           </View> : <View style={styles.emailRow}>
             <MaterialIcons name="lock-outline" size={22} color={colors.muted} />
             <TextInput value={code} onChangeText={setCode} autoCapitalize="none" keyboardType="number-pad" inputMode="numeric" maxLength={6} accessibilityLabel="Verification code" placeholder="Enter code" placeholderTextColor={colors.muted} style={[styles.emailInput, { color: colors.foreground }]} />
-            <Pressable accessibilityRole="button" accessibilityLabel="Use a different email" onPress={() => { setVerificationStep("request"); setCode(""); setStatus(null); }}><Text style={[styles.changeText, { color: colors.primary }]}>Change</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Use a different email" onPress={() => { setVerificationStep("request"); setCode(""); setStatus(null); }} style={styles.changeButton}><Text style={[styles.changeText, { color: colors.primary }]}>Change</Text></Pressable>
           </View>}
           <Pressable accessibilityRole="button" accessibilityLabel={verificationStep === "request" ? "Request device verification" : "Verify this device"} disabled={busy || (verificationStep === "request" ? !email.trim() : code.trim().length < 4)} onPress={() => void (verificationStep === "request" ? requestVerification() : verifyCode())} style={({ pressed }) => [styles.primaryButton, { backgroundColor: colors.primary }, (busy || (verificationStep === "request" ? !email.trim() : code.trim().length < 4)) && styles.disabled, pressed && styles.pressed]}>
             {busy ? <Animated.View style={{ opacity: loadingPulse }}><ActivityIndicator color={KURUKOO_VISUAL_TOKENS.onPrimary} /></Animated.View> : <Text style={styles.primaryText}>{verificationStep === "request" ? "Verify this device" : "Confirm code"}</Text>}
@@ -144,6 +145,7 @@ const styles = StyleSheet.create({
   formCard: { width: "100%", maxWidth: 430, borderWidth: 1, borderRadius: 17, padding: 10, marginTop: 30, gap: 10 },
   emailRow: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12 },
   emailInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14 },
+  changeButton: { minWidth: 60, minHeight: 44, alignItems: "flex-end", justifyContent: "center" },
   changeText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
   primaryButton: { minHeight: 50, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   primaryText: { color: KURUKOO_VISUAL_TOKENS.onPrimary, fontFamily: "Inter_600SemiBold", fontSize: 15 },
