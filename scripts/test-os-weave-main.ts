@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+const root=process.cwd();
+for(const file of ['docs/architecture/KURUKOO_OS_WEAVE_CONTRACT.md','src/services/platformJourneyWeaver.ts','src/services/outcomeContextService.ts','src/routes/outcomeContextRoutes.ts','src/services/economicDispatchCoordinator.ts','src/services/aiInferencePolicy.ts','src/services/pointsEngine.ts','src/services/providerCommunicationService.ts','mobile/kurukoo-mobile/lib/platform-contract.ts']) assert.equal(fs.existsSync(path.join(root,file)),true,`missing OS weave surface: ${file}`);
+const contract=fs.readFileSync(path.join(root,'docs/architecture/KURUKOO_OS_WEAVE_CONTRACT.md'),'utf8');
+for(const marker of ['Outcome Context','Discover','Products','POS/agent top-up','Provider communication','Ride/delivery','AI','Channels','Mobile','Revenue rule']) assert.ok(contract.includes(marker),`weave contract missing ${marker}`);
+const mobile=fs.readFileSync(path.join(root,'mobile/kurukoo-mobile/lib/platform-contract.ts'),'utf8');
+assert.ok(mobile.includes('/api/outcomes/:requestId/context'),'mobile outcome context contract missing');
+console.log(JSON.stringify({passed:true,checked:9},null,2));
