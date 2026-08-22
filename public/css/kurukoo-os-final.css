@@ -35,7 +35,7 @@ button,a{min-height:44px}
 .k-public-page .navbar-inner{min-height:64px!important}
 .k-public-page .nav-link{font-size:13px!important;color:var(--ko-ink)!important}
 .k-public-page .nav-user-btn{min-height:44px!important;border:1px solid var(--ko-border)!important;border-radius:10px!important;background:#fff!important}
-.k-public-page .site-footer,.k-public-page .footer{background:#fff!important;border-top:1px solid var(--ko-border)!important}
+.k-public-page .site-footer,.k-public-page .footer{background:#fff!important;border-top:1px solid var(--ko-border)!important;color:var(--ko-ink)!important}.k-public-page :where(.site-footer,.footer) h4{color:var(--ko-ink)!important}.k-public-page :where(.site-footer,.footer) :where(.footer-desc,.footer-bottom,.footer-links a){color:var(--ko-muted)!important}.k-public-page :where(.site-footer,.footer) .footer-links a:hover{color:var(--ko-primary)!important}
 .k-public-page :where(.page-title,h1){font-weight:600!important}
 
 /* Authenticated workspace pages */
