@@ -16,6 +16,14 @@ walk(path.join(root, 'views'));
 walk(path.join(root, 'public'));
 const findings = [];
 function add(file, rule, message, line) { findings.push({ file: path.relative(root, file), rule, message, line }); }
+function hasAccessibleLabelHook(attrs) { return /\baria-label\s*=|\baria-labelledby\s*=|\bid\s*=/i.test(attrs); }
+function isWrappedByLabel(scanLine, matchIndex, matchLength) {
+  const before = scanLine.slice(0, matchIndex);
+  const after = scanLine.slice(matchIndex + matchLength);
+  const lastLabelOpen = before.lastIndexOf('<label');
+  const lastLabelClose = before.lastIndexOf('</label>');
+  return lastLabelOpen > lastLabelClose && after.includes('</label>');
+}
 for (const file of files) {
   const text = fs.readFileSync(file, 'utf8');
   const lines = text.split(/\r?\n/);
@@ -29,7 +37,7 @@ for (const file of files) {
     for (const match of scanLine.matchAll(/<(input|textarea|select)\b([^>]*)>/gi)) {
       const attrs = match[2];
       if (/\btype\s*=\s*["']hidden["']/i.test(attrs)) continue;
-      if (!/\baria-label\s*=|\baria-labelledby\s*=|\bid\s*=/i.test(attrs)) add(file, '1.3.1', `${match[1]} has no label, id, or ARIA label hook.`, line);
+      if (!hasAccessibleLabelHook(attrs) && !isWrappedByLabel(scanLine, match.index ?? 0, match[0].length)) add(file, '1.3.1', `${match[1]} has no label, id, or ARIA label hook.`, line);
     }
     for (const match of scanLine.matchAll(/<button\b([^>]*)>/gi)) {
       const attrs = match[1];
