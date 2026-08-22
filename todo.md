@@ -121,3 +121,10 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Execute adversarial simulated-participant tests for authorization, destination binding, lifecycle truthfulness, idempotency, and location privacy.
 - [x] Verify the controlled simulator journey and classify broad-test and deployment-readiness outcomes without scope expansion.
 - [x] Merge and delete one short-lived task branch only if a genuine code correction is required; otherwise retain canonical main unchanged.
+
+## Deployment and runtime-boundary follow-through
+
+- [x] Inspect deployment, persistence, worker, external-execution, and location-consent contracts on canonical main.
+- [x] Run repository-controlled deployment-readiness, persistence, worker, and fail-closed connector tests.
+- [x] Apply only reproducible canonical runtime corrections and revalidate the affected contracts.
+- [ ] Merge and delete one short-lived branch only if a genuine runtime correction is required; otherwise retain canonical main unchanged.
