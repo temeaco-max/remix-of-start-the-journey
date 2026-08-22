@@ -66,7 +66,7 @@ export async function listPlatformJourneyEvents(input: { economicRequestId?: str
   if (input.phone) { conditions.push('(actor_phone=? OR customer_phone=? OR provider_phone=?)'); params.push(input.phone, input.phone, input.phone); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const result = db.exec(`SELECT * FROM platform_journey_events ${where} ORDER BY occurred_at DESC LIMIT ?`, [...params, Math.max(1, Math.min(100, Math.floor(Number(input.limit || 50))))]);
-  return (result[0]?.values || []).map(row => rowToEvent(result[0].columns, row));
+  return (result[0]?.values || []).map((row: unknown[]) => rowToEvent(result[0].columns, row));
 }
 
 export async function reconcileEconomicJourney(economicRequestId: string): Promise<number> {

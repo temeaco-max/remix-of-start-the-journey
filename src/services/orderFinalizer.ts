@@ -19,7 +19,7 @@ export async function finalizeOrder(buyerPhone:string,arg2:string='',arg3:Record
     const idempotencyKey=details.idempotencyKey?String(details.idempotencyKey):null;
     if(idempotencyKey){const existing=db.prepare('SELECT id,status FROM orders WHERE idempotency_key=? LIMIT 1');existing.bind([idempotencyKey]);if(existing.step()){const row=existing.getAsObject();existing.free();return{success:true,message:`Dispatch request already exists. Status: ${row.status}`,orderId:String(row.id)};}existing.free();}
     const orderId=`ord_${Date.now()}_${Math.floor(Math.random()*10000)}`;
-    await createEconomicRequest({id:orderId,phone:buyerPhone,skill:orderType,requirements:details as Record<string,unknown>,status:'requested'});
+    await createEconomicRequest({id:orderId,phone:buyerPhone,skill:orderType,requirements:details as Record<string,unknown>});
     db.run(`INSERT INTO orders (id,phone,order_type,provider_phone,amount,status,idempotency_key) VALUES (?,?,?,?,?,?,?)`,[orderId,buyerPhone,orderType,null,Number(details.amount||0),'awaiting_match',idempotencyKey]);
     const vehicleType=details.vehicleType?String(details.vehicleType):details.vehicle_type?String(details.vehicle_type):details.vehicle?String(details.vehicle):undefined;
     const origin=details.origin?String(details.origin):details.location?String(details.location):undefined;

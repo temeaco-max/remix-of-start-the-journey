@@ -82,7 +82,7 @@ export async function getAiUsageSummary(sinceIso?: string): Promise<{ total: num
     failures: Number(overall[2] || 0),
     estimatedCostUsd: overall[3] == null ? null : Number(overall[3]),
     avgLatencyMs: overall[4] == null ? null : Number(overall[4]),
-    byProvider: providers.map(row => ({ provider: String(row[0]), requests: Number(row[1] || 0), failures: Number(row[2] || 0), estimatedCostUsd: row[3] == null ? null : Number(row[3]) })),
-    bySkill: skills.map(row => ({ skill: String(row[0]), requests: Number(row[1] || 0), estimatedCostUsd: row[2] == null ? null : Number(row[2]) })),
+    byProvider: providers.map((row: unknown[]) => ({ provider: String(row[0]), requests: Number(row[1] || 0), failures: Number(row[2] || 0), estimatedCostUsd: row[3] == null ? null : Number(row[3]) })),
+    bySkill: skills.map((row: unknown[]) => ({ skill: String(row[0]), requests: Number(row[1] || 0), estimatedCostUsd: row[2] == null ? null : Number(row[2]) })),
   };
 }

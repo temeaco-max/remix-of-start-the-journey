@@ -1,4 +1,4 @@
-export type ChatSidebarPlacement = 'primary-left' | 'secondary-left' | 'header' | 'right-context' | 'drawer' | 'chat-only';
+export type ChatSidebarPlacement = 'primary-left' | 'secondary-left' | 'header' | 'right-context' | 'drawer' | 'chat-only' | 'account-menu';
 
 export interface ChatSidebarCapability {
   id: string;

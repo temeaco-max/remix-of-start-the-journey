@@ -1,6 +1,8 @@
 /** Declarative skill behaviour packs consumed by the canonical conversation generator. */
 export interface SkillBehaviourPack {
   skill: string;
+  mode?: 'information' | 'safety' | 'coordination' | 'economic';
+  commercial?: 'free' | 'transaction' | 'mixed' | 'quote';
   aliases: string[];
   mission: string;
   required: string[];

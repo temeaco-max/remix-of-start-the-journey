@@ -34,7 +34,7 @@ export async function getOutcomeContext(input:{ownerPhone:string;requestId:strin
   await reconcileEconomicJourney(requestId);
   const db=await getDb();
   const comm=db.exec('SELECT id,provider_phone FROM provider_communication_sessions WHERE economic_request_id=? ORDER BY updated_at DESC LIMIT 1',[requestId]);
-  const commRow=comm[0]?.values?.[0]; const communicationSessionId=commRow?.[0]?String(commRow[0]):undefined; const providerPhone=commRow?.[1]?String(commRow[1]):(request.providerId?String(request.providerId):undefined);
+  const commRow=comm[0]?.values?.[0]; const communicationSessionId=commRow?.[0]?String(commRow[0]):undefined; const providerPhone=commRow?.[1]?String(commRow[1]):(request.providerPhone?String(request.providerPhone):undefined);
   const timeline=await listPlatformJourneyEvents({economicRequestId:requestId,phone:ownerPhone,limit:50});
   const state=STATE[String(request.status||'').toLowerCase()]||'unknown';
   return {

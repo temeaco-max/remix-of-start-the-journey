@@ -9,7 +9,7 @@ const COORDINATION_CATEGORIES = new Set(['accommodation-lodging','events-enterta
 
 function humanize(skill: string): string { return skill.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
 
-function modeFor(skill: string): SkillBehaviourPack['mode'] {
+function modeFor(skill: string): NonNullable<SkillBehaviourPack['mode']> {
   const ext = getSkillExtension(skill);
   if (ext) return ext.mode;
   const category = getEconomicCategory(skill) || '';
@@ -19,7 +19,7 @@ function modeFor(skill: string): SkillBehaviourPack['mode'] {
   return 'economic';
 }
 
-function familyInstruction(skill: string, category: string, mode: SkillBehaviourPack['mode']): string[] {
+function familyInstruction(skill: string, category: string, mode: NonNullable<SkillBehaviourPack['mode']>): string[] {
   const common = [
     'Treat the user’s latest message as authoritative for the current conversational turn.',
     'Use existing Memory Profile facts only when they are relevant to this outcome; never force old preferences into a new request.',

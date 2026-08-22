@@ -29,7 +29,7 @@ export async function ensureAuthenticatedLeftRailDemoAd(): Promise<void> {
     priority: 30,
     targeting: JSON.stringify({ surface: 'authenticated', role: 'consumer' }),
     startAt: new Date().toISOString(),
-    expiresAt: null,
+    expiresAt: undefined,
     assetStatus: 'approved',
     approvedBy: 'development-fixture',
     impressions: 0,

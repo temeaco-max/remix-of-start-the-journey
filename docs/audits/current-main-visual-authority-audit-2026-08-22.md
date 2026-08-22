@@ -187,3 +187,17 @@ The progressive email-link and phone-code authentication pages now reuse the exi
 | Native type/lint/focused visual suite | Passed with existing non-blocking warnings | 13 focused visual, continuity and work-surface tests passed. |
 
 The same runtime, provider, browser and device evidence boundaries remain: public-route execution is still blocked before rendering by current main's missing database exports, complete native tests still require a reachable database, and physical/provider activation checks remain operational work rather than presentation implementation claims.
+
+## Existing-Owner Runtime Recovery
+
+With explicit approval to complete the repository recovery through existing owners, the truncated current-main `src/database.ts` was restored from the compatible `develop` version of that same file. The restoration brings back the existing persistence flush, canonical operator, schema, economic-participant and execution-table contracts without merging the wider conflicting branch.
+
+The remaining root TypeScript diagnostics were resolved in their existing owners: canonical Chat account-menu placement, commercial payout event vocabulary, dispatch status bridge, request-provider field naming, typed SQLite row mapping, valid advertising expiry input, and current request/response contract shapes. No new route family, CSS layer, document, persistence model or visual component was added.
+
+| Recovery validation | Result | Scope |
+|---|---|---|
+| `npm run lint` | Passed | Root TypeScript now compiles. |
+| `npm run test:public-routes` | Passed | 56 public routes load through their module contract. |
+| CSS, Chat, PWA and Quick Ride contracts | Passed | Existing visual/client authorities remain intact after runtime recovery. |
+
+This resolves the former import-time route blocker. Authenticated browser observation, installed-PWA behavior, configured provider/payment/channel outcomes and physical mobile-device evidence remain separately unobserved external validation activities.
