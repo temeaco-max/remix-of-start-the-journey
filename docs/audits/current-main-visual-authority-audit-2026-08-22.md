@@ -207,3 +207,9 @@ This resolves the former import-time route blocker. Authenticated browser observ
 The restored runtime exposed and resolved further incomplete current-owner contracts: canonical Admin feature records now target the existing Admin control room rather than obsolete query aliases; the public CTA retains the canonical **Start chatting** continuation; shutdown stops existing background services; delegated-beneficiary lookup initializes its commercial schema; conversation guidance preserves multiple active contexts; notification inbox records retain canonical action/object/owner metadata; and the outcome inventory assertion reflects the current 241-skill catalogue.
 
 The public runtime, conversation-turn, provider-selection, notification queue, economic lifecycle, strict CSS and root TypeScript checks pass after these repairs. The long all-domains suite reached 23 of 66 declared checks before `test:smollm2-local` exceeded its own 180-second local-model timeout. That is a local model-runtime boundary, not a visual/client or source-contract failure.
+
+## Controlled Presentation Convergence
+
+The final visual authority was retained as the single token-resolution layer. The controlled audit found that the Discover continuation controls were the remaining shared-rhythm outlier: section actions, segmented controls and result actions still resolved to 40px despite the canonical 44px touch target. Those selectors now resolve through `kurukoo-os-final.css` at 44px, without changing Discover data, filtering, source attribution, sponsorship boundaries or route behavior.
+
+Strict inline-CSS audit, CSS-system audit, Chat DOM safety and PWA contracts pass after the adjustment. Legacy green usage in `site.css` remains limited to channel-specific WhatsApp affordances or textual/status semantics and was not repurposed as a primary platform action color.
