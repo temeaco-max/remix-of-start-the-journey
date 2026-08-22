@@ -10,22 +10,27 @@
         const drawer = document.getElementById('kurukoo-drawer-profile');
         const body = drawer?.querySelector('.k-desk-drawer-body');
         if (!drawer || !body || drawer.hidden) return;
+        const identityNode = document.querySelector('.k-app-identity');
+        const name = identityNode?.querySelector('strong')?.textContent?.trim() || 'Your account';
+        const phone = identityNode?.querySelector('small')?.textContent?.trim() || '';
         body.innerHTML = `
           <div class="k-account-menu-identity">
-            <div class="k-desk-avatar">${(document.querySelector('.k-app-identity strong')?.textContent?.trim() || 'U').slice(0, 1).toUpperCase()}</div>
-            <div><strong>${document.querySelector('.k-app-identity strong')?.textContent?.trim() || 'Your account'}</strong><span>${document.querySelector('.k-app-identity small')?.textContent?.trim() || ''}</span></div>
+            <div class="k-desk-avatar">${name.slice(0, 1).toUpperCase()}</div>
+            <div><strong>${name}</strong><span>${phone}</span></div>
           </div>
           <div class="k-account-menu-group"><span class="k-account-menu-label">Account</span>
             <a class="k-desk-drawer-link" href="/settings#profile">Profile</a>
             <a class="k-desk-drawer-link" href="/settings">Settings</a>
-            <a class="k-desk-drawer-link" href="/settings#contacts">Contacts</a>
+          </div>
+          <div class="k-account-menu-group"><span class="k-account-menu-label">Connections</span>
             <a class="k-desk-drawer-link" href="/connect">Connect</a>
+            <a class="k-desk-drawer-link" href="/settings#contacts">Contacts</a>
           </div>
           <div class="k-account-menu-group"><span class="k-account-menu-label">Personal</span>
-            <a class="k-desk-drawer-link" href="/settings#appearance">Appearance</a>
-            <a class="k-desk-drawer-link" href="/memory">Memory</a>
             <a class="k-desk-drawer-link" href="/saved">Saved</a>
-            <a class="k-desk-drawer-link" href="/safety">Safety & check-ins</a>
+            <a class="k-desk-drawer-link" href="/settings#appearance">Appearance</a>
+            <a class="k-desk-drawer-link" href="/settings#memory">Memory</a>
+            <a class="k-desk-drawer-link" href="/settings#safety">Safety & check-ins</a>
           </div>
           <div class="k-account-menu-group"><span class="k-account-menu-label">Money & plans</span>
             <a class="k-desk-drawer-link" href="/subscriptions">Subscriptions</a>
