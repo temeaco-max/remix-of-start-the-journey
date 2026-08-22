@@ -1,0 +1,70 @@
+/* Requests-only presentation layer. Uses existing OS/workspace tokens and components. */
+.k-app-section-requests .requests-convergence-meta {
+  display: grid;
+  gap: 0;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color, #e8e5df);
+}
+
+.k-app-section-requests .requests-convergence-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  padding: 6px 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.k-app-section-requests .requests-convergence-meta-row + .requests-convergence-meta-row {
+  border-top: 1px solid color-mix(in srgb, var(--border-color, #e8e5df) 72%, transparent);
+}
+
+.k-app-section-requests .requests-convergence-meta-row > span {
+  color: var(--muted, #77716a);
+  flex: 0 0 auto;
+}
+
+.k-app-section-requests .requests-convergence-meta-row > strong {
+  min-width: 0;
+  color: var(--text, #2b2926);
+  font-size: 11px;
+  font-weight: 650;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.k-app-section-requests .requests-convergence-primary-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 12px;
+}
+
+.k-app-section-requests .k-app-data-list .workspace-data-card {
+  min-width: 0;
+}
+
+@media (max-width: 680px) {
+  .k-app-section-requests .requests-convergence-meta-row {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .k-app-section-requests .requests-convergence-meta-row > strong {
+    max-width: 62%;
+  }
+
+  .k-app-section-requests .requests-convergence-primary-action {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-app-section-requests .requests-convergence-primary-action {
+    transition: none;
+  }
+}
