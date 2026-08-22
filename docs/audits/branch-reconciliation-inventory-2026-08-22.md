@@ -22,6 +22,29 @@ The broad platform-frames branch has six direct overlaps with the local visual c
 
 `/home/ubuntu/kurukoo-visual-audit` contains the visual convergence specification in `ideas.md` and no separate product implementation. Its specification agrees with the repository's existing warm cream/white/charcoal/terracotta visual authority, conversation-first continuity, 44px interactions and evidence-gated external states. It is a design handoff rather than unfinished route or runtime code.
 
+## Development Branch Recovery Finding
+
+Remote `develop` at `f2816159` is an active broader completion line that is 48 commits ahead of remote `main`, while remote `main` has 809 commits not on `develop`. It contains a complete 618-line `src/database.ts` that exports `saveDb` and `CANONICAL_OPERATOR_PHONE`, unlike the truncated 47-line current-main file. Its latest database-owner change is contained in development checkpoint `58edd087` alongside workspace, route, artifact and documentation changes.
+
+An isolated `--no-commit` merge preview from the current local main into `origin/develop` reported conflicts across Docker/CI, data/service contracts, canonical routes, Admin, Chat, workspace/public views, CSS authorities and the shared database owner. The preview was immediately aborted; no current-main file was overwritten. The result confirms that `develop` is a recovery/reference source for specific completed owners, not a safe wholesale merge target.
+
+The shared `src/services/deskVisualFoundation.ts` parse defect was repaired locally before this preview. A subsequent lint reaches the wider current-main persistence/type contract failures, principally the absent `saveDb` database export and related stale type definitions. This is now a repository-level recovery boundary to be reconciled owner-by-owner, not a Quick Ride-only failure.
+
+## Reconciled Quick Ride Work
+
+The compatible Quick Ride owners from PR #68 were integrated into the current reconciliation line: the canonical ride vehicle contract, validated authenticated `/api/rides/options` and `/api/rides/quick` route, request-to-economic-dispatch service, mobile request-state contract, bounded offline queue/sync lifecycle, QR context parser and native QR entry screen. The application entry already registered the missing Quick Ride router; adding the route owner repairs that unresolved import without changing route registration order.
+
+The native offline lifecycle removes a pending action only after the current streaming client produces a non-empty reply. Failed streams therefore remain queued for a later connectivity attempt. The QR entry accepts only HTTPS `kurukoo.ai/start?qr=` links with a bounded signed token shape, makes camera permission/recovery states explicit and returns to the prior native screen after opening the validated context.
+
+| Quick Ride validation | Result |
+|---|---|
+| Saved OS-weave ownership contract | Passed; 13 canonical owners and registration markers observed. |
+| Native TypeScript check | Passed after aligning the branch retry call with the current `streamChatMessage` request contract. |
+| Native lint | Passed with the pre-existing four warnings only. |
+| Focused native visual/continuity/work-surface suite | Passed; 13 tests. |
+
+PR #64 remains a selective-reference source. Its current visual owners are already represented or overlap current-main convergence work, while its static dashboard/discover/settings files are not canonical live route owners. Its backend, CI and runtime changes must be independently completed and tested rather than merged in bulk over the reconciled visual line.
+
 ## Next Reconciliation Rule
 
 > Compare every candidate owner against the current live route before integration. Reconcile compatible client/presentation work into the existing owner; complete runtime branches through their tests and contracts; do not revive static legacy shells, bypass provider/payment evidence, or merge a broad branch solely because it contains visual assets.
