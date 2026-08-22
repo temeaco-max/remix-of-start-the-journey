@@ -16,12 +16,12 @@ describe("experience feedback contract", () => {
   });
 
   it("keeps Nearby Radar loading and empty states source-truthful", () => {
-    expect(radarSource).toContain('"loading" | "ready" | "empty"');
-    expect(radarSource).toContain("Refreshing Nearby Radar");
-    expect(radarSource).toContain("No source-attributed results here yet");
-    expect(radarSource).toContain("has not substituted an unverified provider");
+    expect(radarSource).toContain('const [loading, setLoading] = useState(true);');
+    expect(radarSource).toContain("Preparing Discover");
+    expect(radarSource).toContain("Nothing attributed here yet.");
+    expect(radarSource).toContain("Discovery cards are contextual candidates.");
     expect(radarSource).toContain("RefreshControl");
-    expect(radarSource).toContain("refreshRadar");
-    expect(radarSource).toContain("Updating source-attributed results");
+    expect(radarSource).toContain("const refresh =");
+    expect(radarSource).toContain("No local availability is implied until the feed confirms it.");
   });
 });
