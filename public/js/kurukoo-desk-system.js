@@ -37,8 +37,7 @@
 
   const closeAll = () => document.querySelectorAll('.k-desk-drawer:not([hidden])').forEach((panel) => {
     panel.hidden = true;
-    const button = document.querySelector(`[aria-controls="${panel.id}"]`);
-    button?.setAttribute('aria-expanded', 'false');
+    document.querySelector(`[aria-controls="${panel.id}"]`)?.setAttribute('aria-expanded', 'false');
   });
 
   const makeDrawer = ({ id, title }) => {
@@ -51,26 +50,22 @@
     return panel;
   };
 
-  const iconButton = (label, id, icon, extraClass = '') => {
+  const buttonBase = (label, id, icon, extraClass = '') => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `k-desk-icon-button ${extraClass}`.trim();
-    button.setAttribute('aria-label', label);
-    button.setAttribute('title', label);
-    button.setAttribute('aria-controls', id);
-    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-label', label); button.setAttribute('title', label); button.setAttribute('aria-controls', id); button.setAttribute('aria-expanded', 'false');
     button.innerHTML = `<svg class="k-app-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#${icon}"></use></svg>`;
     return button;
   };
-
+  const iconButton = (label, id, icon, extraClass = '') => buttonBase(label, id, icon, extraClass);
+  const searchButton = (id) => {
+    const button = buttonBase('Search Kurukoo', id, 'search', 'k-desk-search-trigger');
+    const label = document.createElement('span'); label.textContent = 'Search Kurukoo'; button.appendChild(label);
+    return button;
+  };
   const headerAction = (label, href, icon, extraClass = '') => {
-    const anchor = document.createElement('a');
-    anchor.className = `k-desk-icon-button ${extraClass}`.trim();
-    anchor.href = href;
-    anchor.setAttribute('aria-label', label);
-    anchor.setAttribute('title', label);
-    anchor.innerHTML = `<svg class="k-app-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#${icon}"></use></svg>`;
-    return anchor;
+    const anchor = document.createElement('a'); anchor.className = `k-desk-icon-button ${extraClass}`.trim(); anchor.href = href; anchor.setAttribute('aria-label', label); anchor.setAttribute('title', label); anchor.innerHTML = `<svg class="k-app-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#${icon}"></use></svg>`; return anchor;
   };
 
   const renderSearch = (body) => {
@@ -127,35 +122,26 @@
   };
 
   const wireDrawer = (panel, render) => {
-    const button = panel && document.querySelector(`[aria-controls="${panel?.id}"]`);
+    const button = panel && document.querySelector(`[aria-controls="${panel.id}"]`);
     if (!panel || !button) return;
-    button.addEventListener('click',()=>{ if(panel.hidden){closeAll();panel.hidden=false;button.setAttribute('aria-expanded','true');render(panel.querySelector('.k-desk-drawer-body'));}else closeAll(); });
+    button.addEventListener('click', () => { if(panel.hidden){closeAll();panel.hidden=false;button.setAttribute('aria-expanded','true');render(panel.querySelector('.k-desk-drawer-body'));}else closeAll(); });
   };
 
   const boot = () => {
     normalizeLinks();
     const host=document.querySelector('.k-app-header-actions'); if(!host) return;
-    const search=makeDrawer({id:'kurukoo-drawer-search',title:'Search'});
-    const notifications=makeDrawer({id:'kurukoo-drawer-notifications',title:'Notifications'});
-    const profile=makeDrawer({id:'kurukoo-drawer-profile',title:'Account'});
-    const workspace=makeDrawer({id:'kurukoo-drawer-workspace',title:'Your Kurukoo'});
-    const context=makeDrawer({id:'kurukoo-drawer-context',title:'Context'});
-    if(!search||!notifications||!profile||!workspace||!context) return;
+    const search=makeDrawer({id:'kurukoo-drawer-search',title:'Search'}); const notifications=makeDrawer({id:'kurukoo-drawer-notifications',title:'Notifications'}); const profile=makeDrawer({id:'kurukoo-drawer-profile',title:'Account'}); const workspace=makeDrawer({id:'kurukoo-drawer-workspace',title:'Your Kurukoo'}); const context=makeDrawer({id:'kurukoo-drawer-context',title:'Context'}); if(!search||!notifications||!profile||!workspace||!context) return;
 
-    const searchButton=iconButton('Search Kurukoo',search.id,'search');
-    const workspaceButton=iconButton('Your Kurukoo workspace',workspace.id,'menu');
-    const contextButton=iconButton('Open context inspector',context.id,'saved');
-    const points=headerAction('Points','/points','points','k-desk-header-points');
-    const cart=headerAction('Cart','/cart','package','k-desk-header-cart');
-    const notificationsButton=iconButton('Notifications',notifications.id,'alert','k-desk-header-notifications');
-    const profileButton=iconButton('Account',profile.id,'user','k-desk-header-account');
-
-    [workspaceButton,searchButton,contextButton,points,cart,notificationsButton,profileButton].forEach((button)=>host.prepend(button));
+    const identity = host.querySelector('.k-app-identity');
+    const ask = host.querySelector('.k-app-ask');
+    identity?.remove();
+    ask?.remove();
+    const controls = [searchButton(search.id), headerAction('Points','/points','points','k-desk-header-points'), headerAction('Cart','/cart','package','k-desk-header-cart'), iconButton('Notifications',notifications.id,'alert','k-desk-header-notifications'), iconButton('Open context inspector',context.id,'saved'), iconButton('Your Kurukoo workspace',workspace.id,'menu'), iconButton('Account',profile.id,'user','k-desk-header-account')];
+    controls.forEach((control) => host.appendChild(control));
     wireDrawer(search,renderSearch); wireDrawer(notifications,renderNotifications); wireDrawer(profile,renderProfile); wireDrawer(workspace,renderOsWorkspace); wireDrawer(context,renderContext);
-    const ask=host.querySelector('.k-app-ask'); if(ask){ask.textContent='Ask Agent';ask.setAttribute('aria-label','Open Agent');}
     document.addEventListener('keydown',(event)=>{if(event.key==='Escape')closeAll();});
     const observer=new MutationObserver(()=>normalizeLinks()); observer.observe(document.body,{subtree:true,childList:true});
-    const components=document.querySelector('link[data-kurukoo-os-components]'); if(!components){const link=document.createElement('link');link.rel='stylesheet';link.href='/css/kurukoo-os-components.css?v=1';link.dataset.kurukooOsComponents='true';document.head.appendChild(link);}
+    if(!document.querySelector('link[data-kurukoo-os-components]')){const link=document.createElement('link');link.rel='stylesheet';link.href='/css/kurukoo-os-components.css?v=1';link.dataset.kurukooOsComponents='true';document.head.appendChild(link);}
   };
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
