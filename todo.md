@@ -134,4 +134,4 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Inspect canonical persistence, readiness, migration, and runtime ownership contracts on current main.
 - [x] Run local, blocked-cloud, and PostgreSQL-prerequisite persistence contracts using repository-controlled inputs.
 - [x] Correct only reproducible canonical persistence boundary contradictions and revalidate them.
-- [ ] Merge and delete one short-lived branch only if a genuine persistence correction is required; otherwise retain canonical main unchanged.
+- [x] Merge and delete one short-lived branch only if a genuine persistence correction is required; otherwise retain canonical main unchanged.
