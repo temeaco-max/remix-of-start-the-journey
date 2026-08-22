@@ -46,11 +46,25 @@ export async function requestRide(input: {
   }
   const validation = validateRideDispatchFields({ vehicleType, pickup: origin, destination, pickupAt: input.pickupAt, passengers: input.passengers, note: input.note });
   if (!validation.valid) throw new Error(validation.error);
+  const requestId = `ride_${crypto.randomUUID()}`;
   const request = await createEconomicRequest({
-    id: `ride_${crypto.randomUUID()}`,
+    id: requestId,
     phone: ownerPhone,
     skill: 'ride_request',
-    requirements: { origin: origin.label || `${origin.latitude},${origin.longitude}`, origin_latitude: origin.latitude, origin_longitude: origin.longitude, destination: destination.label, destination_latitude: destination.latitude, destination_longitude: destination.longitude, vehicle_type: vehicleType, pickup_at: input.pickupAt, passengers: input.passengers, note: input.note, dispatch_mode: 'live_broadcast', location_beacon_mode: 'request_origin_only' },
+    requirements: {
+      origin: origin.label || `${origin.latitude},${origin.longitude}`,
+      origin_latitude: origin.latitude,
+      origin_longitude: origin.longitude,
+      destination: destination.label,
+      destination_latitude: destination.latitude,
+      destination_longitude: destination.longitude,
+      vehicle_type: vehicleType,
+      pickup_at: input.pickupAt,
+      passengers: input.passengers,
+      note: input.note,
+      dispatch_mode: 'live_broadcast',
+      location_beacon_mode: 'request_origin_only',
+    },
   });
   const result = await broadcastDispatch({ requestId: request.id, ownerPhone, skill: 'ride_request', vehicleType, location: origin.label || `${origin.latitude},${origin.longitude}`, latitude: origin.latitude, longitude: origin.longitude, maxProviders: input.maxProviders });
   const fresh = await getEconomicRequest(request.id);
