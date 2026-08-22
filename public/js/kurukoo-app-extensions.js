@@ -67,6 +67,7 @@
     const script = document.createElement('script'); script.src = '/js/kurukoo-desk-system.js?v=1'; script.defer = true; script.dataset.kurukooDeskSystem = 'true'; document.head.appendChild(script);
     const hydration = document.createElement('script'); hydration.src = '/js/kurukoo-desk-live-hydration.js?v=1'; hydration.defer = true; hydration.dataset.kurukooDeskLiveHydration = 'true'; document.head.appendChild(hydration);
     const accountMenu = document.createElement('script'); accountMenu.src = '/js/kurukoo-account-menu.js?v=1'; accountMenu.defer = true; accountMenu.dataset.kurukooAccountMenu = 'true'; document.head.appendChild(accountMenu);
+    const authNav = document.createElement('script'); authNav.src = '/js/kurukoo-auth-navigation-runtime.js?v=1'; authNav.defer = true; authNav.dataset.kurukooAuthNavigation = 'true'; document.head.appendChild(authNav);
   };
 
   const boot = () => { loadDeskSystem(); if (section === 'subscriptions') subscriptions(); if (section === 'connect') microsoft(); };
