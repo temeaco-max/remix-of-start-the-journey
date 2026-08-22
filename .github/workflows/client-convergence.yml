@@ -23,6 +23,10 @@ jobs:
       - run: npx tsx scripts/test-client-surface-coverage.ts
       - run: npx tsx scripts/test-os-shell-contract.ts
       - run: npx tsx scripts/test-mistral-bypass.ts
+      - run: npm run audit:accessibility
+      - run: npm run audit:css:all
+      - run: npm run audit:css:strict
+      - run: npm run test:chat-dom-safety
       - run: npm run lint
 
   mobile:
