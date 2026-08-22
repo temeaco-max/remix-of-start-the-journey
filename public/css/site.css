@@ -5019,7 +5019,7 @@ table td, .admin-table td {
 .network-vision p { color: var(--white); margin-bottom: 32px; max-width: 600px; margin-left: auto; margin-right: auto; }
 .vision-actions { display: flex; gap: 16px; justify-content: center; }
 
-/* Advertise, Discover & Resources Page Classes */
+/* Kurukoo public commerce authority: clear sponsorship, warm low-elevation surfaces, terracotta continuation. */
 .advertise-main {
   max-width: 820px;
   margin: 40px auto;
@@ -5077,14 +5077,19 @@ table td, .admin-table td {
   padding: 40px;
 }
 .advertise-cta-btn {
-  padding: 14px 28px;
-  background: #25D366;
+  min-height: 44px;
+  padding: 10px 28px;
+  background: var(--terracotta);
   color: white;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: 10px;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+.advertise-cta-btn:hover { background: #91452E; }
+.advertise-context-band { margin: 0 0 24px; }
 
 .discover-main {
   max-width: 1280px;

@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+// Kurukoo mobile visual authority: shared warm surfaces, Space Grotesk hierarchy, terracotta action, and truthful semantic states.
 import { Image } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { haptic } from "@/lib/haptics";
@@ -7,7 +8,6 @@ import { KURUKOO_MARK_PATH, KURUKOO_VISUAL_TOKENS } from "@/lib/visual-contract"
 export { KURUKOO_MARK_PATH };
 
 export function BrandMark({ compact = false, inverse = false }: { compact?: boolean; inverse?: boolean }) {
-  const colors = useColors();
   return (
     <View style={[styles.mark, compact && styles.markCompact]} testID="kurukoo-canonical-icon" accessibilityLabel="Kurukoo">
       <Image source={require("@/assets/images/kurukoo-logo.png")} resizeMode="contain" accessibilityLabel="Kurukoo" accessibilityRole="image" style={[styles.markImage, compact && styles.markImageCompact, inverse && styles.markImageInverse]} />
@@ -42,7 +42,7 @@ export function ContinuityBand({ contextLabel, contextId, evidence, action }: { 
 
 export function PlatformStateBanner({ title, detail, tone = "info", action }: { title: string; detail: string; tone?: "info" | "success" | "warning" | "error"; action?: React.ReactNode }) {
   const colors = useColors();
-  const toneColor = tone === "success" ? colors.success : tone === "warning" ? colors.warning : tone === "error" ? colors.error : colors.info;
+  const toneColor = tone === "success" ? colors.success : tone === "warning" ? colors.warning : tone === "error" ? colors.error : KURUKOO_VISUAL_TOKENS.info;
   return (
     <View style={[styles.platformBanner, { backgroundColor: `${toneColor}0D`, borderColor: `${toneColor}33` }]} accessibilityRole="text">
       <View style={[styles.platformBannerMark, { backgroundColor: `${toneColor}19` }]}><View style={[styles.platformBannerDot, { backgroundColor: toneColor }]} /></View>
@@ -53,7 +53,6 @@ export function PlatformStateBanner({ title, detail, tone = "info", action }: { 
 
 export function EvidenceRow({ label, value, state = "neutral" }: { label: string; value: string; state?: "neutral" | "success" | "warning" | "error" }) {
   const colors = useColors();
-  const stateColor = state === "success" ? colors.success : state === "warning" ? colors.warning : state === "error" ? colors.error : colors.muted;
   return (
     <View style={[styles.evidenceRow, { borderBottomColor: colors.border }]}>
       <Text style={[styles.evidenceLabel, { color: colors.muted }]}>{label}</Text>

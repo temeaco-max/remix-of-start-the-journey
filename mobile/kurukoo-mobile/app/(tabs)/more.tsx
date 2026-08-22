@@ -1,3 +1,4 @@
+// Kurukoo mobile visual authority: shared warm cards, Space Grotesk hierarchy, truthful readiness tone, and canonical surface continuation.
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
@@ -19,6 +20,11 @@ const links = [
   { title: "Agents workspace", detail: "Review bounded goals, tool policy and pause controls", state: "Policy governed", kind: "agents" },
   { title: "Admin operations", detail: "Review activation prerequisites, evidence and policy controls", state: "Needs activation", kind: "admin" },
 ];
+const toneForState = (state: string): "neutral" | "success" | "warning" => {
+  if (state === "Ready" || state === "Available") return "success";
+  if (state === "Needs activation" || state === "Ready for activation") return "warning";
+  return "neutral";
+};
 
 export default function MoreScreen() {
   const colors = useColors();
@@ -29,7 +35,7 @@ export default function MoreScreen() {
         <Text style={[styles.intro, { color: colors.muted }]}>Your conversations, reminders and saved context stay connected to your profile. Choose a surface without leaving the operating system.</Text>
         {links.map((item) => (
           <SectionCard key={item.title}>
-            <View style={styles.header}><View style={styles.copy}><Text style={[styles.title, { color: colors.foreground }]}>{item.title}</Text><Text style={[styles.detail, { color: colors.muted }]}>{item.detail}</Text></View><StatusPill label={item.state} tone={item.state === "Available" ? "success" : "neutral"} /></View>
+            <View style={styles.header}><View style={styles.copy}><Text style={[styles.title, { color: colors.foreground }]}>{item.title}</Text><Text style={[styles.detail, { color: colors.muted }]}>{item.detail}</Text></View><StatusPill label={item.state} tone={toneForState(item.state)} /></View>
             <ActionButton label="Open surface" variant="ghost" onPress={() => { if ("route" in item) { router.push(item.route as "/surface/capabilities" | "/surface/artifacts" | "/surface/requests" | "/surface/reminders" | "/surface/notifications"); } else if (item.kind) { router.push({ pathname: "/surface/[kind]", params: { kind: item.kind } }); } }} />
           </SectionCard>
         ))}

@@ -1,4 +1,5 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+// Kurukoo mobile visual authority: feature discovery reuses shared surface, status, and navigation primitives.
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/use-colors';
 import { ScreenContainer } from '@/components/screen-container';
@@ -37,7 +38,7 @@ export default function FeatureCompassScreen() {
         renderItem={({ item }) => (
           <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}. ${descriptions[item.id] || item.notes}`} onPress={() => item.nativeRoute ? router.push(item.nativeRoute as never) : undefined} style={({ pressed }) => [styles.row, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}>
             <View style={[styles.icon, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.iconText, { color: colors.primary }]}>{item.title.slice(0, 1)}</Text></View>
-            <View style={styles.copy}><Text style={[styles.title, { color: colors.foreground }]}>{item.title}</Text><Text style={[styles.detail, { color: colors.muted }]}>{descriptions[item.id] || item.notes}</Text><View style={styles.meta}><StatusPill label={item.status.replace('_', ' ')} tone={item.status === 'implemented' ? 'success' : item.status === 'external_required' ? 'warning' : 'info'} /></View></View>
+            <View style={styles.copy}><Text style={[styles.title, { color: colors.foreground }]}>{item.title}</Text><Text style={[styles.detail, { color: colors.muted }]}>{descriptions[item.id] || item.notes}</Text><View style={styles.meta}><StatusPill label={item.status.replace('_', ' ')} tone={item.status === 'implemented' ? 'success' : item.status === 'external_required' ? 'warning' : 'neutral'} /></View></View>
           </Pressable>
         )}
       />

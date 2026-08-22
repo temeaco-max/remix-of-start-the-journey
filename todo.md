@@ -43,3 +43,20 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Repository-side build/lint/route/security/PWA/accessibility/CSS/regression coverage where available
 - [x] Truthful UI state semantics and fail-closed external claims
 - [x] CI executes the platform-wide convergence gate on every main/PR build
+
+## History-first visual convergence
+
+- [ ] Compare the full Git history of every visual authority before modifying it, selecting the strongest complete design-and-functionality baseline per surface.
+- [ ] Reconcile high-fidelity boards with the selected historical baselines across public web, Chat/workspaces, Admin, partners, checkout/confirmations, and Nearby Radar.
+- [ ] Consolidate only confirmed duplicate visual overrides while preserving canonical routes, meaningful content, state truthfulness, and accessibility behavior.
+- [ ] Validate the integrated surfaces at desktop and narrow widths, then record the surviving visual authority and regression evidence.
+- [ ] Audit and refine current main only; do not import, rebase, or restore any PR #65/#66 or other historical branch base, and do not alter backend/platform-owned capabilities.
+- [ ] Produce a machine-readable current-main inventory for every production-facing visual surface across web, PWA, native, Chat, Discover, fulfilment, agents, commerce, communications, and Admin.
+- [ ] Converge shared spacing, typography, surface hierarchy, controls, semantic states, context/evidence bands, and continuation patterns using existing visual owners only.
+- [ ] Prioritize Discover, Trust & Continuity, fulfilment, communication, and current operational/client surfaces while preserving verified platform truth and all canonical capability owners.
+- [ ] Continue current-main presentation-only integration across the remaining public secondary, partner/fulfilment, operational/Admin, PWA and native surface owners; document exact external and physical-device validation boundaries.
+- [ ] Continue the remaining current-main visual integrations in prioritized surface-owner increments, reusing existing public, Chat, workspace, commerce, agent, fulfilment, operational, PWA and native primitives only.
+- [ ] Continue resolving remaining current-main visual drift by selecting and validating the next highest-impact presentation owners, with runtime and device evidence kept explicitly separate.
+- [ ] Continue additional current-main visual increments across unresolved web, workspace, operational, lifecycle, and native surface owners without creating parallel components or changing platform behavior.
+- [ ] Continue the next unresolved current-main surface-owner convergence cycle with shared tokens, semantic states, evidence bands, and canonical Chat continuity preserved.
+- [x] Complete an implementation-level end-to-end current-main visual coverage pass across existing public, Chat, workspace, commerce, partner, operational, PWA, and native surface families; runtime, browser, provider, and device-only evidence remains explicitly tracked above.

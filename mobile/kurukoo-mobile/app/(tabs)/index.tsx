@@ -1,3 +1,4 @@
+// Kurukoo native Chat authority: conversation-first hierarchy, shared evidence states, and touch-safe composer controls.
 import { KURUKOO_VISUAL_TOKENS } from "@/lib/visual-contract";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   welcomeDetail: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 22 },
   conversation: { gap: 5 },
   quickPrompts: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginLeft: 33, marginBottom: 8 },
-  prompt: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  prompt: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center" },
   promptText: { fontFamily: "Inter_500Medium", fontSize: 12 },
   contextCard: { gap: 12 },
   contextHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
@@ -270,12 +271,12 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 17, lineHeight: 23 },
   cardDetail: { fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 21 },
   requestActions: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  composer: { minHeight: 94, borderWidth: 1, borderRadius: 18, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 7, gap: 7, marginBottom: 2 },
-  input: { minHeight: 42, maxHeight: 88, paddingHorizontal: 2, paddingVertical: 5, fontFamily: "Inter_400Regular", fontSize: 16, lineHeight: 23 },
-  composerFooter: { minHeight: 36, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  composer: { minHeight: 102, borderWidth: 1, borderRadius: 18, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 8, gap: 7, marginBottom: 2 },
+  input: { minHeight: 44, maxHeight: 88, paddingHorizontal: 2, paddingVertical: 5, fontFamily: "Inter_400Regular", fontSize: 16, lineHeight: 23 },
+  composerFooter: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   composerTools: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, minWidth: 0 },
-  iconToolButton: { width: 36, height: 36, borderWidth: 1, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  toolButton: { minHeight: 32, paddingHorizontal: 9, borderWidth: 1, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  iconToolButton: { width: 44, height: 44, borderWidth: 1, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  toolButton: { minHeight: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   toolButtonText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
   toolDisabled: { opacity: 0.46 },
   toolLabel: { flexShrink: 1, fontFamily: "Inter_500Medium", fontSize: 11 },

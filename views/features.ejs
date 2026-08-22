@@ -1,1 +1,51 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Features · Kurukoo</title><meta name="description" content="See what Kurukoo can help you understand, discover, organize, coordinate and get done."><link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/css/site.css?v=1.2.1"><link rel="stylesheet" href="/css/kurukoo-public-pages.css?v=3"></head><body><main class="k-public-page"><header class="k-public-page-header"><a href="/" class="k-public-brand">Kurukoo</a><nav><a href="/about">About</a><a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a><a href="/chat">Ask Kurukoo</a></nav></header><section class="k-public-hero"><span class="k-eyebrow">Features</span><h1>One conversational system for figuring things out and getting things done.</h1><p>Kurukoo combines Agent, discovery, requests, tasks, memory, connections, economic coordination and network participation around one conversation-first relationship.</p><a class="k-button-primary" href="/chat">Ask Kurukoo</a></section><section class="k-public-section"><h2>Understand and organize</h2><div class="k-public-grid"><article><h3>Agent</h3><p>Talk naturally about what you need. Agent interprets context, keeps continuity and knows when a request needs clarification.</p><a href="/chat">Open Agent</a></article><article><h3>Desk</h3><p>Your authenticated home for active work, attention, recent activity and continuity across Kurukoo.</p><a href="/desk">Open Desk</a></article><article><h3>Memory</h3><p>Review and control the useful context you choose to keep connected to Kurukoo.</p><a href="/memory">Learn about Memory</a></article><article><h3>Tasks & reminders</h3><p>Turn conversations into follow-through with clear ownership, timing and recovery.</p><a href="/tasks">Explore tasks</a></article></div></section><section class="k-public-section"><h2>Discover and coordinate</h2><div class="k-public-grid"><article><h3>Discover</h3><p>Find relevant people, places, services, products, topics and opportunities.</p><a href="/discover">Explore Discover</a></article><article><h3>Requests</h3><p>Move from conversation to a governed request with explicit lifecycle and evidence.</p><a href="/requests">Requests</a></article><article><h3>Network</h3><p>Connect to people, providers, contributors, channels and capabilities without creating parallel identity.</p><a href="/network">Explore the network</a></article><article><h3>Connect</h3><p>Bring user-owned channels, devices and services into the same Kurukoo relationship.</p><a href="/connect">Connect</a></article></div></section><section class="k-public-section"><h2>Act with clear boundaries</h2><div class="k-public-grid"><article><h3>Economic coordination</h3><p>Checkout, payment, wallet, points and subscriptions are separate states; Kurukoo never implies success without evidence.</p></article><article><h3>Agents</h3><p>Bounded autonomous workers can pursue persistent goals while policy, authorization and evidence remain canonical.</p><a href="/agents">Explore Agents</a></article><article><h3>Safety</h3><p>Safety context and trusted contacts are explicit, consent-bound and never presented as emergency-service fulfilment.</p><a href="/safety">Safety</a></article></div></section></main></body></html>
+<%# Visual authority: Kurukoo public composition — warm canvas, evidence-led feature pathways, Space Grotesk headings, and terracotta only for meaningful continuation. %>
+<%- include('_partials/head', { pageStyles: ['/css/kurukoo-public-pages.css?v=5'] }) %>
+<%- include('_partials/nav') %>
+<main class="public-composition public-composition--features container" aria-labelledby="features-title">
+  <section class="public-feature-hero">
+    <div class="public-feature-hero__copy">
+      <span class="eyebrow">Kurukoo features</span>
+      <h1 id="features-title">One conversation can become a clear next step.</h1>
+      <p>Kurukoo keeps understanding, discovery, requests, follow-through and supported coordination connected to the same conversation rather than scattering them across disconnected tools.</p>
+      <div class="public-feature-hero__actions">
+        <a class="btn btn-primary" href="/chat">Start in Web Chat</a>
+        <a class="public-return-link" href="/how-it-works">See the request lifecycle</a>
+      </div>
+    </div>
+    <aside class="public-feature-lifecycle" aria-labelledby="feature-lifecycle-title">
+      <span class="eyebrow">Continuity, not automation theatre</span>
+      <h2 id="feature-lifecycle-title">Every meaningful action retains its boundary.</h2>
+      <ol>
+        <li><span>01</span><div><strong>Understand</strong><p>Start with the conversation and the context you choose to share.</p></div></li>
+        <li><span>02</span><div><strong>Prepare</strong><p>Discovery and requests make the next option or decision explicit.</p></div></li>
+        <li><span>03</span><div><strong>Act with evidence</strong><p>Payment, provider and delivery states stay separate until their evidence exists.</p></div></li>
+      </ol>
+    </aside>
+  </section>
+
+  <section class="public-feature-section" aria-labelledby="features-understand-title">
+    <div class="public-feature-section__heading"><span class="eyebrow">01 · Understand &amp; organise</span><h2 id="features-understand-title">Keep the useful context close to the work.</h2><p>Conversation remains the return path while Desk, Memory, Tasks and Reminders give the relationship durable structure.</p></div>
+    <div class="public-feature-grid">
+      <article class="public-feature-card public-feature-card--featured"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#chat"></use></svg><h3>Agent</h3><p>Talk naturally about what you need. Agent interprets context and asks when a request needs clarification.</p><a href="/chat">Open Web Chat <span aria-hidden="true">→</span></a></article>
+      <article class="public-feature-card"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#settings"></use></svg><h3>Desk</h3><p>Your authenticated home for active work, attention, recent activity and continuity.</p><a href="/desk">Open Desk <span aria-hidden="true">→</span></a></article>
+      <article class="public-feature-card"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#memory"></use></svg><h3>Memory</h3><p>Review and control the useful context you choose to keep connected to Kurukoo.</p><a href="/memory">Manage Memory <span aria-hidden="true">→</span></a></article>
+      <article class="public-feature-card"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#tasks"></use></svg><h3>Tasks &amp; reminders</h3><p>Turn conversations into follow-through with clear ownership, timing and recovery.</p><a href="/tasks">Explore tasks <span aria-hidden="true">→</span></a></article>
+    </div>
+  </section>
+
+  <section class="public-feature-section public-feature-section--split" aria-labelledby="features-coordinate-title">
+    <div class="public-feature-section__heading"><span class="eyebrow">02 · Discover &amp; coordinate</span><h2 id="features-coordinate-title">Move from a question to a governed request.</h2><p>Discovery, Network, Requests and Connect each have a distinct role. None implies a live person, service or linked channel without the corresponding state.</p></div>
+    <div class="public-feature-grid public-feature-grid--compact">
+      <article class="public-feature-card"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#discover"></use></svg><h3>Discover</h3><p>Find relevant people, places, services, products, topics and opportunities.</p><a href="/discover">Explore Discover <span aria-hidden="true">→</span></a></article>
+      <article class="public-feature-card"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#package"></use></svg><h3>Requests</h3><p>Move from conversation to a request with an explicit lifecycle and evidence.</p><a href="/requests">Review Requests <span aria-hidden="true">→</span></a></article>
+      <article class="public-feature-card"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#channels"></use></svg><h3>Network</h3><p>Explore people, providers, contributors, channels and capabilities without creating another identity.</p><a href="/network">Explore the network <span aria-hidden="true">→</span></a></article>
+      <article class="public-feature-card"><svg class="k-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#channels"></use></svg><h3>Connect</h3><p>Bring user-owned channels, devices and services into the same Kurukoo relationship.</p><a href="/connect">Review connections <span aria-hidden="true">→</span></a></article>
+    </div>
+  </section>
+
+  <section class="public-feature-boundary" aria-labelledby="feature-boundary-title">
+    <div><span class="eyebrow">03 · Act with clear boundaries</span><h2 id="feature-boundary-title">Coordination is useful only when its state is known.</h2><p>Checkout, payment, provider matching, delivery, safety and agent actions each retain their own preparation, confirmation and recovery evidence.</p></div>
+    <div class="public-feature-boundary__links"><a href="/agents"><strong>Agents</strong><span>Bounded goals with policy and evidence</span></a><a href="/safety"><strong>Safety</strong><span>Consent-bound context and trusted contacts</span></a><a href="/how-it-works"><strong>Request states</strong><span>See what changes before an action is confirmed</span></a></div>
+  </section>
+</main>
+<%- include('_partials/footer') %>

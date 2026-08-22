@@ -95,7 +95,7 @@
       <div class="kurukoo-admin-convergence-actions">
         <span class="kurukoo-admin-convergence-state" data-admin-operational-label>Loading operational state</span>
         <a href="/" target="_blank" rel="noopener">Open site</a>
-        <a href="/app/agent">Open Web App</a>
+        <a href="/chat">Open Web Chat</a>
         <button type="button" data-admin-convergence-logout>Sign out</button>
       </div>`;
 
@@ -112,9 +112,14 @@
     ]).then(([overview, health]) => {
       const healthLabel = document.querySelector('[data-admin-health-label]');
       const operationalLabel = document.querySelector('[data-admin-operational-label]');
+      const controlRoomState = document.getElementById('admin-control-room-state');
       if (!overview?.success && !health?.success) {
         if (healthLabel) healthLabel.textContent = 'Platform state unavailable';
         if (operationalLabel) operationalLabel.textContent = 'Operational state unavailable';
+        if (controlRoomState) {
+          controlRoomState.dataset.state = 'blocked';
+          controlRoomState.lastChild.textContent = 'Operational state unavailable';
+        }
         return;
       }
       const operational = Array.isArray(overview?.integrations?.operational) ? overview.integrations.operational : [];
@@ -124,13 +129,23 @@
       const activation = Number(overview?.readinessSummary?.activation_required || 0);
       const device = Number(overview?.readinessSummary?.device_required || 0);
       const healthy = health?.healthy !== false && health?.status !== 'degraded';
-      if (healthLabel) healthLabel.textContent = healthy && activation === 0 && device === 0 ? 'Platform healthy' : 'Platform needs attention';
+      const needsAttention = !healthy || activation > 0 || device > 0;
+      if (healthLabel) healthLabel.textContent = needsAttention ? 'Platform needs attention' : 'Platform healthy';
       if (operationalLabel) operationalLabel.textContent = `Operational ${ready}/${operational.length} · Configured ${configured} · FCM devices ${devices}`;
+      if (controlRoomState) {
+        controlRoomState.dataset.state = needsAttention ? 'needs-input' : 'ready';
+        controlRoomState.lastChild.textContent = needsAttention ? 'Review operational evidence' : 'Operational evidence available';
+      }
     }).catch(() => {
       const healthLabel = document.querySelector('[data-admin-health-label]');
       const operationalLabel = document.querySelector('[data-admin-operational-label]');
       if (healthLabel) healthLabel.textContent = 'Platform state unavailable';
       if (operationalLabel) operationalLabel.textContent = 'Operational state unavailable';
+      const controlRoomState = document.getElementById('admin-control-room-state');
+      if (controlRoomState) {
+        controlRoomState.dataset.state = 'blocked';
+        controlRoomState.lastChild.textContent = 'Operational state unavailable';
+      }
     });
   };
 

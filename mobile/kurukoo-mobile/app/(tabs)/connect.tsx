@@ -1,7 +1,8 @@
+// Kurukoo mobile visual authority: owner-scoped connections use shared continuity, platform-state, and semantic status primitives.
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
-import { ActionButton, SectionCard, StatusPill, SurfaceHeader } from "@/components/kurukoo-ui";
+import { ActionButton, ContinuityBand, PlatformStateBanner, SectionCard, StatusPill, SurfaceHeader } from "@/components/kurukoo-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 
@@ -37,6 +38,8 @@ export default function ConnectTab() {
       <ScrollView contentContainerStyle={styles.content}>
         <SurfaceHeader eyebrow="Connect" title="Bring Kurukoo together" right={<StatusPill label="One OS" tone="success" />} />
         <Text style={[styles.intro, { color: colors.muted }]}>Connect storage, communication channels, devices and capabilities without creating parallel accounts or state.</Text>
+        <ContinuityBand contextLabel="Connected channels and sources" contextId="Owner-scoped" evidence="Availability is shown only after the relevant connection confirms it. Opening this surface does not activate a provider, pair a device or create a background sync." />
+        <PlatformStateBanner title="Connection readiness is evidence-led" detail="Provider-gated items remain pending until their own channel or device lifecycle returns confirmed readiness." tone="info" />
         {items.map((group) => (
           <View key={group.heading} style={styles.group}>
             <Text style={[styles.groupTitle, { color: colors.foreground }]}>{group.heading}</Text>
