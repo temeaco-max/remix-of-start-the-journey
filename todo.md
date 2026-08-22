@@ -106,4 +106,4 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Implement the smallest generic physical-execution participant/capability extension without a delivery-specific lifecycle.
 - [x] Add contract tests for authorization, state progression, idempotency, evidence, cancellation, and simulated participant failure.
 - [x] Update canonical architecture documentation and verify repository, runtime, and real-world status tiers.
-- [ ] Open, verify, merge, and delete one short-lived pull-request branch from main.
+- [x] Open, verify, merge, and delete one short-lived pull-request branch from main.
