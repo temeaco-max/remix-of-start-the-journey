@@ -34,6 +34,5 @@ export async function ensureAuthenticatedLeftRailDemoAd(): Promise<void> {
     approvedBy: 'development-fixture',
     impressions: 0,
     clicks: 0,
-    updatedAt: new Date().toISOString(),
   });
 }
