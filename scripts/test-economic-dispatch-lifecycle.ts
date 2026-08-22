@@ -20,7 +20,7 @@ const db=await getDb();
 const customer='+2347000007001';
 const driverOne='+2347000007002';
 const driverTwo='+2347000007003';
-for(const [phone,name] of [[customer,'Dispatch Customer'],[driverOne,'Bike Driver One'],[driverTwo,'Bike Driver Two']] as const){db.run('INSERT INTO memory_profiles (phone,name,country,verified_provider,points_balance,grace_leads) VALUES (?,?,?,0,0,0)',[phone,name,'ng']);}
+for(const [phone,name] of [[customer,'Dispatch Customer'],[driverOne,'Bike Driver One'],[driverTwo,'Bike Driver Two']] as const){db.run('INSERT INTO memory_profiles (phone,name,location,country,is_available,verified_provider,points_balance,grace_leads) VALUES (?,?,?, ?,1,0,0,0)',[phone,name,'Ikeja','ng']);}
 for(const phone of [driverOne,driverTwo]){db.run('UPDATE memory_profiles SET verified_provider=1,points_balance=100 WHERE phone=?',[phone]);db.run("INSERT INTO skills (phone,skill,is_available,hourly_rate,rating,jobs_completed,operation_mode) VALUES (?,?,1,100,4.8,4,'mobile')",[phone,'okada_rider']);}
 const request=await createEconomicRequest({id:'dispatch-test-request',phone:customer,skill:'ride_request',requirements:{origin:'Ikeja',destination:'Yaba',vehicle_type:'bike'}});
 assert.equal(request.skill,'ride_request');
