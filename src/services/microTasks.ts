@@ -43,6 +43,18 @@ export async function listAssignedTasks(phone: string, includeClosed = false): P
     return tasks;
 }
 
+/** Read-only owner-scoped task lookup for canonical conversation continuation. */
+export async function getAssignedTask(phone: string, taskId: number): Promise<MicroTask | null> {
+    const owner = String(phone || '').trim();
+    if (!owner || !Number.isSafeInteger(taskId) || taskId <= 0) return null;
+    const db = await getDb();
+    const stmt = db.prepare(`SELECT * FROM micro_tasks WHERE id = ? AND assigned_to = ? LIMIT 1`);
+    stmt.bind([taskId, owner]);
+    const task = stmt.step() ? rowToMicroTask(stmt.getAsObject()) : null;
+    stmt.free();
+    return task;
+}
+
 export async function getAvailableTasks(phone: string) {
     const db = await getDb();
     const stmt = db.prepare(`SELECT * FROM micro_tasks WHERE status = 'available'`);
