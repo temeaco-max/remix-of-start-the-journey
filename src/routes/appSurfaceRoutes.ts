@@ -6,6 +6,7 @@ import { getPilotReadiness } from '../services/pilotReadiness.js';
 import { getClientSurfaces } from '../services/clientSurfaceRegistry.js';
 import { getCanonicalDiscoverablePlatformFeatures } from '../services/canonicalPlatformFeatureRegistry.js';
 import { getPageContentContract } from '../services/pageContentContracts.js';
+import { getProfile } from '../services/memoryProfile.js';
 import economicDispatchRoutes from './economicDispatchRoutes.js';
 
 const router = express.Router();
@@ -70,6 +71,17 @@ function renderApp(req: express.Request, res: express.Response, section = 'desk'
     res.send(assets ? html.replace('</head>', `${assets}</head>`) : html);
   });
 }
+
+router.get('/api/memory/profile', optionalAuthenticateUser, async (req: express.Request, res: express.Response) => {
+  const phone = (req as AuthRequest).user?.phone ? String((req as AuthRequest).user?.phone) : null;
+  if (!phone) return res.status(401).json({ success: false, error: 'Authentication required' });
+  try {
+    const profile = await getProfile(phone, 'memory_surface');
+    const preferences = profile?.preferences && typeof profile.preferences === 'object' ? profile.preferences as Record<string, unknown> : {};
+    const proactiveBrief = preferences.proactive_brief && typeof preferences.proactive_brief === 'object' ? preferences.proactive_brief : {};
+    return res.json({ success: true, profile: { name: profile?.name || '', location: profile?.location || '', country: profile?.country || '' }, proactiveBrief });
+  } catch { return res.status(500).json({ success: false, error: 'Unable to read canonical Memory Profile' }); }
+});
 
 router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')) }));
 router.use('/api', economicDispatchRoutes);
