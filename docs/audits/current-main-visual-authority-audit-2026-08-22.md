@@ -169,3 +169,21 @@ The full public-route/browser path still cannot begin because current main impor
 The declared `npm run test:public-routes` contract was run after this pass. It stops before route rendering because `src/services/seoService.ts` imports the missing named `saveDb` export from `src/database.ts`. The failure is therefore a current-main server import boundary, not a template, CSS, Chat or PWA regression.
 
 The full Expo Vitest suite was also run after the focused visual pass. It reports **10 passing files, 2 skipped files and 4 failed database-dependent files** (44 passing, 2 skipped and 4 failed tests in total), with failures caused by MySQL `ECONNREFUSED`. The native visual, continuity and work-surface contracts remain part of the passing group. No database configuration, source import, API implementation or backend test behavior was changed to conceal either boundary.
+
+## Post-Checkpoint Owner Reconciliation
+
+The subsequent current-main inventory pass confirmed that the shared-conversation route intentionally reuses the canonical Chat document and final Chat authority. The isolated rich workspace template has no active `res.render('workspace')` route owner and is therefore not treated as a production visual gap. The remaining reachable isolated visual owners were the Developers page and the progressive authentication screens.
+
+`views/developers.ejs` now uses the existing public head, navigation, footer and shared public-page stylesheet rather than its standalone mini-site shell. Its lifecycle brief, governed capability cards and API-readiness section make conversation, authorization and evidence ownership legible while retaining all existing links to Chat, Requests, Capabilities, Connect, `/developers/api` and the available API reference. No endpoint, access path, identity rule or capability behavior changed.
+
+The progressive email-link and phone-code authentication pages now reuse the existing `kurukoo-auth.css` owner with canonical warm surfaces, terracotta progression/actions, focus geometry, success/error states, reduced-motion support and forced-colors treatment. The guest return, email magic-link, phone OTP, development-test banner and signed-in return logic are unchanged. The update is strictly visual and does not claim that email delivery, SMS delivery, phone verification or a magic-link completion succeeded.
+
+| Post-checkpoint check | Result | Scope |
+|---|---|---|
+| Developers EJS render | Passed | The reachable Developers route produces the shared public composition. |
+| Login and magic-link completion EJS renders | Passed | Both progressive-authentication templates load the updated shared auth authority. |
+| Strict CSS and CSS-system audits | Passed | 51 stylesheets; no inline styles, duplicate top-level rules or duplicate core tokens. |
+| Chat DOM-safety and PWA lifecycle contracts | Passed | Existing canonical conversation and PWA behavior remain intact. |
+| Native type/lint/focused visual suite | Passed with existing non-blocking warnings | 13 focused visual, continuity and work-surface tests passed. |
+
+The same runtime, provider, browser and device evidence boundaries remain: public-route execution is still blocked before rendering by current main's missing database exports, complete native tests still require a reachable database, and physical/provider activation checks remain operational work rather than presentation implementation claims.
