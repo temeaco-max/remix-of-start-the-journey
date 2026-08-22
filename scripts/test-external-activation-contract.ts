@@ -11,7 +11,7 @@ const telegram = fs.readFileSync(new URL('../src/channels/telegram.ts', import.m
 assert.match(service, /getMe/);
 assert.match(service, /setWebhook/);
 assert.match(service, /subscribed_apps/);
-assert.match(service, /api\/account/);
+assert.match(service, /api\.stripe\.com\/v1\/account/);
 assert.match(service, /api\.resend\.com\/domains/);
 assert.match(admin, /router\.post\('\/activate'/);
 assert.match(admin, /router\.get\('\/external-probe'/);
