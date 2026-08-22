@@ -50,6 +50,7 @@ const sharedPublicAuthenticated = new Set(['/discover', '/topics']);
 
 function screenAssets(section: string): string {
   if (section === 'notifications') return '<link rel="stylesheet" href="/css/kurukoo-notifications-convergence.css?v=1"><script src="/js/kurukoo-notifications-convergence.js?v=1" defer></script>';
+  if (section === 'connect') return '<link rel="stylesheet" href="/css/kurukoo-contacts-convergence.css?v=1"><script src="/js/kurukoo-contacts-convergence.js?v=1" defer></script>';
   return '';
 }
 
