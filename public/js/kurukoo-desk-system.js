@@ -51,8 +51,26 @@
     return panel;
   };
 
-  const makeButton = (label, id, symbol) => {
-    const button = document.createElement('button'); button.type = 'button'; button.className = 'k-desk-icon-button'; button.setAttribute('aria-label', label); button.setAttribute('aria-controls', id); button.setAttribute('aria-expanded', 'false'); button.innerHTML = `<span aria-hidden="true">${symbol}</span>`; return button;
+  const iconButton = (label, id, icon, extraClass = '') => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `k-desk-icon-button ${extraClass}`.trim();
+    button.setAttribute('aria-label', label);
+    button.setAttribute('title', label);
+    button.setAttribute('aria-controls', id);
+    button.setAttribute('aria-expanded', 'false');
+    button.innerHTML = `<svg class="k-app-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#${icon}"></use></svg>`;
+    return button;
+  };
+
+  const headerAction = (label, href, icon, extraClass = '') => {
+    const anchor = document.createElement('a');
+    anchor.className = `k-desk-icon-button ${extraClass}`.trim();
+    anchor.href = href;
+    anchor.setAttribute('aria-label', label);
+    anchor.setAttribute('title', label);
+    anchor.innerHTML = `<svg class="k-app-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#${icon}"></use></svg>`;
+    return anchor;
   };
 
   const renderSearch = (body) => {
@@ -75,7 +93,7 @@
       const payload = await response.json(); const items = Array.isArray(payload) ? payload : Array.isArray(payload.notifications) ? payload.notifications : [];
       if (!items.length) { body.innerHTML = '<div class="k-desk-empty-state"><strong>You are up to date.</strong><p>No notifications need your attention.</p></div>'; return; }
       body.replaceChildren(); const list=document.createElement('div'); list.className='k-desk-notification-list';
-      items.slice(0,30).forEach((item)=>{ const row=document.createElement('article'); row.className=`k-desk-notification${item.read||item.readAt?'':' is-unread'}`; const title=String(item.title||item.type||'Kurukoo update'); const message=String(item.body||item.message||''); const target=String(item.link||item.href||'/notifications'); row.innerHTML=`<div><strong>${title}</strong><p>${message}</p></div><a href="${target}">${item.actionLabel||'Open'}</a>`; list.appendChild(row); });
+      items.slice(0,30).forEach((item)=>{ const row=document.createElement('article'); row.className=`k-desk-notification${item.read||item.readAt?'':' is-unread'}`; const title=String(item.title||item.type||'Kurukoo update'); const message=String(item.body||item.message||''); const target=legacyToCanonical(String(item.link||item.href||'/notifications')); row.innerHTML=`<div><strong>${title}</strong><p>${message}</p></div><a href="${target}">${item.actionLabel||'Open'}</a>`; list.appendChild(row); });
       body.appendChild(list); const all=document.createElement('a'); all.className='k-desk-drawer-primary'; all.href='/notifications'; all.textContent='View all notifications →'; body.appendChild(all);
     } catch (error) { body.innerHTML=`<div class="k-desk-empty-state"><strong>Notifications are unavailable</strong><p>${String(error?.message||'Open Notifications for the full state.')}</p><a href="/notifications">Open Notifications →</a></div>`; }
   };
@@ -87,15 +105,57 @@
     const logout=document.createElement('a');logout.className='k-desk-drawer-link is-danger';logout.href='/api/auth/logout';logout.textContent='Sign out';body.appendChild(logout);
   };
 
+  const renderOsWorkspace = (body) => {
+    body.innerHTML = '<p class="k-muted">Your Chat workspace follows you into Desk. Nothing important from Agent is hidden here.</p>';
+    const groups = [
+      ['Conversation', [['New conversation','/chat'],['Recent conversations','/chat']]],
+      ['Work', [['Requests','/requests'],['Tasks','/tasks'],['Discover','/discover'],['Connect','/connect'],['Topics','/topics']]],
+      ['Account & continuity', [['Saved & offers','/saved'],['Reminders','/reminders'],['Memory','/memory'],['Safety & check-ins','/safety'],['Settings','/settings']]],
+      ['Economy', [['Top up','/top-up'],['Subscription','/subscriptions'],['Points','/points'],['Cart','/cart']]],
+    ];
+    for (const [title, links] of groups) {
+      const section = document.createElement('section'); section.className = 'k-desk-workspace-group';
+      const heading = document.createElement('h3'); heading.textContent = title; section.appendChild(heading);
+      links.forEach(([label, href]) => { const a=document.createElement('a'); a.className='k-desk-drawer-link'; a.href=href; a.textContent=label; section.appendChild(a); });
+      body.appendChild(section);
+    }
+    const truth = document.createElement('div'); truth.className = 'k-desk-context-note'; truth.innerHTML = '<strong>Live context</strong><span>Presence, memory, connected channels and Nearby Radar belong in the contextual inspector so they do not interrupt your primary work.</span>'; body.appendChild(truth);
+  };
+
+  const renderContext = (body) => {
+    body.innerHTML = '<div class="k-desk-context-stack"><section><span class="k-desk-drawer-kicker">Agent context</span><h3>Current objective</h3><p>Continue the current Kurukoo relationship from this screen without losing the originating conversation.</p><a class="k-desk-drawer-primary" href="/chat">Open Agent →</a></section><section><span class="k-desk-drawer-kicker">OS status</span><div class="k-desk-status-list"><div><span>Presence</span><strong>Owner-scoped</strong></div><div><span>Memory</span><strong>Connected to profile</strong></div><div><span>Channels</span><strong>Readiness-aware</strong></div><div><span>Nearby Radar</span><strong>Open in Discover</strong></div></div></section></div>';
+  };
+
+  const wireDrawer = (panel, render) => {
+    const button = panel && document.querySelector(`[aria-controls="${panel?.id}"]`);
+    if (!panel || !button) return;
+    button.addEventListener('click',()=>{ if(panel.hidden){closeAll();panel.hidden=false;button.setAttribute('aria-expanded','true');render(panel.querySelector('.k-desk-drawer-body'));}else closeAll(); });
+  };
+
   const boot = () => {
     normalizeLinks();
     const host=document.querySelector('.k-app-header-actions'); if(!host) return;
-    const search=makeDrawer({id:'kurukoo-drawer-search',title:'Search'}); const notifications=makeDrawer({id:'kurukoo-drawer-notifications',title:'Notifications'}); const profile=makeDrawer({id:'kurukoo-drawer-profile',title:'Account'}); if(!search||!notifications||!profile) return;
-    const controls=[[search,'Search','⌕',renderSearch],[notifications,'Notifications','◔',renderNotifications],[profile,'Account','◉',renderProfile]];
-    controls.forEach(([panel,label,symbol,render])=>{const button=makeButton(label,panel.id,symbol);button.addEventListener('click',()=>{if(panel.hidden){closeAll();panel.hidden=false;button.setAttribute('aria-expanded','true');render(panel.querySelector('.k-desk-drawer-body'));}else closeAll();});host.prepend(button);});
+    const search=makeDrawer({id:'kurukoo-drawer-search',title:'Search'});
+    const notifications=makeDrawer({id:'kurukoo-drawer-notifications',title:'Notifications'});
+    const profile=makeDrawer({id:'kurukoo-drawer-profile',title:'Account'});
+    const workspace=makeDrawer({id:'kurukoo-drawer-workspace',title:'Your Kurukoo'});
+    const context=makeDrawer({id:'kurukoo-drawer-context',title:'Context'});
+    if(!search||!notifications||!profile||!workspace||!context) return;
+
+    const searchButton=iconButton('Search Kurukoo',search.id,'search');
+    const workspaceButton=iconButton('Your Kurukoo workspace',workspace.id,'menu');
+    const contextButton=iconButton('Open context inspector',context.id,'saved');
+    const points=headerAction('Points','/points','points','k-desk-header-points');
+    const cart=headerAction('Cart','/cart','package','k-desk-header-cart');
+    const notificationsButton=iconButton('Notifications',notifications.id,'alert','k-desk-header-notifications');
+    const profileButton=iconButton('Account',profile.id,'user','k-desk-header-account');
+
+    [workspaceButton,searchButton,contextButton,points,cart,notificationsButton,profileButton].forEach((button)=>host.prepend(button));
+    wireDrawer(search,renderSearch); wireDrawer(notifications,renderNotifications); wireDrawer(profile,renderProfile); wireDrawer(workspace,renderOsWorkspace); wireDrawer(context,renderContext);
     const ask=host.querySelector('.k-app-ask'); if(ask){ask.textContent='Ask Agent';ask.setAttribute('aria-label','Open Agent');}
     document.addEventListener('keydown',(event)=>{if(event.key==='Escape')closeAll();});
     const observer=new MutationObserver(()=>normalizeLinks()); observer.observe(document.body,{subtree:true,childList:true});
+    const components=document.querySelector('link[data-kurukoo-os-components]'); if(!components){const link=document.createElement('link');link.rel='stylesheet';link.href='/css/kurukoo-os-components.css?v=1';link.dataset.kurukooOsComponents='true';document.head.appendChild(link);}
   };
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
