@@ -62,9 +62,11 @@ export async function ensureProviderVerification(providerPhone: string, entityTy
   db.run(`INSERT OR IGNORE INTO provider_verification(provider_phone, entity_type, state) VALUES(?, ?, 'draft')`, [phone, normalizedType]);
   db.run(`UPDATE provider_verification SET entity_type=?, updated_at=CURRENT_TIMESTAMP WHERE provider_phone=?`, [normalizedType, phone]);
   saveDb();
-  const row = db.exec('SELECT * FROM provider_verification WHERE provider_phone=? LIMIT 1')[0]?.values?.[0];
-  const info = db.exec('PRAGMA table_info(provider_verification)')[0]?.values || [];
-  const object: any = {}; for (let i = 0; i < info.length; i += 1) object[String(info[i][1])] = row?.[i];
+  const statement = db.prepare('SELECT * FROM provider_verification WHERE provider_phone=? LIMIT 1');
+  statement.bind([phone]);
+  const object = statement.step() ? statement.getAsObject() as any : null;
+  statement.free();
+  if (!object) throw new Error('Provider verification could not be loaded');
   return fromRow(object);
 }
 
