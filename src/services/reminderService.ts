@@ -82,6 +82,13 @@ export async function listReminders(phone: string, includeCompleted = false): Pr
   const result = db.exec(sql, [phone]); return (result[0]?.values || []).map((values: any[]) => rowToReminder(Object.fromEntries((result[0].columns || []).map((c: string, i: number) => [c, values[i]]))));
 }
 
+/** Read-only owner-scoped reminder lookup for canonical conversation continuation. */
+export async function getReminderForPhone(phone: string, id: string): Promise<Reminder | null> {
+  await ensureReminderSchema(); const db = await import('../database.js').then(module => module.getDb());
+  const result = db.exec('SELECT * FROM reminders WHERE id = ? AND phone = ? LIMIT 1', [id, phone]); const row = result[0]?.values?.[0];
+  return row ? rowToReminder(Object.fromEntries((result[0].columns || []).map((column: string, index: number) => [column, row[index]]))) : null;
+}
+
 export async function cancelReminder(phone: string, id: string): Promise<boolean> {
   await ensureReminderSchema(); const db = await import('../database.js').then(module => module.getDb()); db.run("UPDATE reminders SET status = 'cancelled' WHERE id = ? AND phone = ? AND status = 'scheduled'", [id, phone]); const { saveDb } = await import('../database.js'); saveDb();
   const check = db.exec("SELECT * FROM reminders WHERE id = ? AND phone = ? AND status = 'cancelled'", [id, phone]); const row = check[0]?.values?.[0]; if (!row) return false;

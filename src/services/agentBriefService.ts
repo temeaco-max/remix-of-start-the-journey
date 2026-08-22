@@ -249,6 +249,12 @@ function notificationCategory(notification: { title: string; body: string; canon
   return 'important_notification';
 }
 
+function notificationBriefSummary(category: AgentBriefItemCategory): string {
+  if (category === 'safety_event') return 'You have a safety-related update that needs your attention.';
+  if (category === 'provider_update') return 'There is a verified update on your request ready for review.';
+  return 'Kurukoo has an important private update ready for your review.';
+}
+
 function notificationItem(notification: { id: number; title: string; body: string; canonical_action?: string; object_type?: string; object_id?: string; conversation_id?: string; created_at: string }): Omit<AgentBriefItem, 'attention'> | null {
   const fingerprint = `${notification.title} ${notification.body}`.toLowerCase();
   if (/\b(?:promotion|sponsored)\b/.test(fingerprint)) return null;
@@ -261,8 +267,8 @@ function notificationItem(notification: { id: number; title: string; body: strin
     urgency: safety ? 'critical' : 'time_sensitive',
     timestamp: notification.created_at,
     source: 'notification',
-    summary: `${notification.title.slice(0, 100)}${notification.body ? `: ${notification.body.slice(0, 220)}` : ''}`,
-    action: { id: 'open_notification', label: 'Open update', canonicalAction: notification.canonical_action || 'notification.open', objectType: notification.object_type || 'notification', objectId: notification.object_id || String(notification.id), conversationId: notification.conversation_id },
+    summary: notificationBriefSummary(category),
+    action: { id: 'open_notification', label: 'Open update', canonicalAction: 'notification.open', objectType: 'notification', objectId: String(notification.id), conversationId: notification.conversation_id },
     approvalRequired: false,
     visibility: 'private',
   };
