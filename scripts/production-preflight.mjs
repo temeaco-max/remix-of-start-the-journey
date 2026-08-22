@@ -16,11 +16,13 @@ const databaseMode = String(process.env.KURUKOO_DATABASE_MODE || 'sqljs').trim()
 const jobMode = String(process.env.KURUKOO_JOB_MODE || 'in_process').trim().toLowerCase();
 const persistentRequired = process.env.KURUKOO_PERSISTENT_STATE_REQUIRED !== 'false';
 const cloudRunDetected = present(process.env.K_SERVICE) || process.env.KURUKOO_CLOUD_RUN === 'true';
+const postgresApplicationIntegrated = String(process.env.KURUKOO_POSTGRES_APPLICATION_INTEGRATED || '').toLowerCase() === 'true';
 
 if (!present(process.env.JWT_SECRET) || String(process.env.JWT_SECRET).length < 32) issues.push('JWT_SECRET must be at least 32 characters and non-placeholder.');
-if (databaseMode === 'sqljs' && workers > 1) issues.push('SQL.js is single-process; KURUKOO_WORKERS must remain 1 until an approved multi-process database adapter is active.');
+if (workers > 1) issues.push('Horizontal application workers remain disabled by policy until shared worker/lease semantics have been separately validated; keep KURUKOO_WORKERS=1.');
 if (databaseMode === 'sqljs' && cloudRunDetected) issues.push('Cloud Run production cannot use SQL.js as canonical durable state: the container filesystem is instance-local and ephemeral.');
-if (databaseMode === 'postgres') issues.push('Postgres mode is blocked until the Postgres persistence adapter is implemented, migrated, verified, and explicitly activated; DATABASE_URL alone does not switch the persistence owner.');
+if (databaseMode === 'postgres' && !postgresApplicationIntegrated) issues.push('PostgreSQL mode is blocked until the existing synchronous persistence call surface is migrated to the async canonical PostgreSQL adapter and its validation gates pass.');
+if (databaseMode === 'postgres' && !present(process.env.DATABASE_URL) && !present(process.env.POSTGRES_URL)) issues.push('KURUKOO_DATABASE_MODE=postgres requires DATABASE_URL or POSTGRES_URL for external configuration.');
 if (databaseMode !== 'sqljs' && databaseMode !== 'postgres') issues.push(`Unsupported KURUKOO_DATABASE_MODE=${databaseMode || '<empty>'}.`);
 if (jobMode === 'distributed' && !present(process.env.KURUKOO_REDIS_URL)) issues.push('KURUKOO_JOB_MODE=distributed requires KURUKOO_REDIS_URL.');
 if (persistentRequired && String(process.env.DB_PATH || '').startsWith('/tmp/')) issues.push('Persistent state is required; DB_PATH may not be under /tmp in production.');
@@ -38,6 +40,6 @@ if (process.env.KURUKOO_METRICS_ENABLED === 'true' && !present(process.env.KURUK
 if (process.env.KURUKOO_VOICE_ENABLED === 'true' && !present(process.env.GEMINI_API_KEY) && !present(process.env.API_KEY)) issues.push('Voice is enabled but Gemini credentials are absent.');
 if (process.env.KURUKOO_PROGRESSIVE_TRUST_ENABLED === 'true' && !present(process.env.MEMORY_ENCRYPTION_KEY)) warnings.push('Progressive trust is enabled; verify encrypted memory/device-related data handling before production activation.');
 
-const result = { status: issues.length ? 'blocked' : warnings.length ? 'warning' : 'ready', production, cloudRunDetected, databaseMode, jobMode, workers, issues, warnings };
+const result = { status: issues.length ? 'blocked' : warnings.length ? 'warning' : 'ready', production, cloudRunDetected, databaseMode, jobMode, workers, postgresApplicationIntegrated, issues, warnings };
 console.log(JSON.stringify(result, null, 2));
 if (issues.length) process.exit(1);
