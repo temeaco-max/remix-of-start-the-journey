@@ -10,6 +10,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { haptic } from "@/lib/haptics";
 
+// Visual authority: the Go Live consent row keeps its compact checkbox mark but exposes a 44px Pressable target for the consent decision.
 const steps = ["Location consent", "Your broadcast", "Review"];
 
 export function GoLiveFlow() {
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
   areaCopy: { flex: 1, gap: 5 },
   areaTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   link: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
-  checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 10 },
+  checkRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   lockRow: { flexDirection: "row", alignItems: "center", gap: 8, borderTopWidth: 1, paddingTop: 12, marginTop: 12 },
   lock: { fontSize: 17 },
