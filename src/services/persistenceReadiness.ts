@@ -1,5 +1,7 @@
+import { getCanonicalPersistenceStatus } from './canonicalPersistence.js';
+
 export type PersistenceMode = 'sqljs' | 'postgres' | 'unknown';
-export type PersistenceReadinessState = 'READY' | 'BLOCKED' | 'UNVERIFIED';
+export type PersistenceReadinessState = 'READY' | 'READY_FOR_EXTERNAL_CONFIG' | 'BLOCKED' | 'UNVERIFIED';
 
 export interface PersistenceReadiness {
   state: PersistenceReadinessState;
@@ -22,19 +24,32 @@ export function getPersistenceReadiness(env: NodeJS.ProcessEnv = process.env): P
   const mode: PersistenceMode = modeText === 'sqljs' || modeText === 'postgres' ? modeText : 'unknown';
   const cloudRunDetected = present(env.K_SERVICE) || env.KURUKOO_CLOUD_RUN === 'true';
   const postgresConfigured = present(env.DATABASE_URL) || present(env.POSTGRES_URL) || present(env.PGHOST);
+  const canonical = getCanonicalPersistenceStatus(env);
 
   if (mode === 'postgres') {
+    if (!canonical.applicationAdapterReady) {
+      return {
+        state: 'BLOCKED',
+        mode,
+        cloudRunDetected,
+        durableCanonicalState: false,
+        concurrentWriterSafe: false,
+        adapterImplemented: true,
+        reason: 'PostgreSQL adapter foundation exists, but the current application still exposes synchronous SQL.js persistence calls and has not been migrated to the async canonical adapter.',
+        requiredChange: 'Migrate the existing persistence call surface to the async canonical persistence interface and then run the PostgreSQL validation suite before enabling PostgreSQL mode.',
+      };
+    }
     return {
-      state: 'BLOCKED',
+      state: postgresConfigured ? 'READY_FOR_EXTERNAL_CONFIG' : 'BLOCKED',
       mode,
       cloudRunDetected,
-      durableCanonicalState: false,
-      concurrentWriterSafe: false,
-      adapterImplemented: false,
+      durableCanonicalState: true,
+      concurrentWriterSafe: true,
+      adapterImplemented: true,
       reason: postgresConfigured
-        ? 'A Postgres connection signal is present, but Kurukoo has no active Postgres persistence adapter; SQL.js remains the actual persistence owner.'
-        : 'Postgres mode is declared, but no database connection is configured and no Postgres persistence adapter is implemented.',
-      requiredChange: 'Implement and validate the existing persistence boundary against Postgres, then cut over the canonical owner with migration/rollback verification before enabling Cloud Run production.',
+        ? 'PostgreSQL is selected as the sole canonical persistence owner; the remaining dependency is external database credentials/connectivity and cutover verification.'
+        : 'PostgreSQL mode is integrated but no external database connection is configured.',
+      requiredChange: 'Provision/configure the managed PostgreSQL service, secret, schema, connectivity and migration verification before production traffic.',
     };
   }
 
@@ -47,7 +62,7 @@ export function getPersistenceReadiness(env: NodeJS.ProcessEnv = process.env): P
       concurrentWriterSafe: false,
       adapterImplemented: true,
       reason: 'SQL.js writes a local SQLite image to the container filesystem. Cloud Run container storage is instance-local and ephemeral, so restart, replacement, or a second instance can lose or diverge canonical state.',
-      requiredChange: 'Keep Cloud Run production blocked until a shared durable database adapter is implemented and validated. Do not use Cloud Storage FUSE as a transactional SQL.js database.',
+      requiredChange: 'Keep Cloud Run production blocked until PostgreSQL becomes the single canonical persistence owner. Do not use Cloud Storage FUSE as a transactional SQL.js database.',
     };
   }
 
@@ -60,7 +75,7 @@ export function getPersistenceReadiness(env: NodeJS.ProcessEnv = process.env): P
       concurrentWriterSafe: false,
       adapterImplemented: true,
       reason: 'SQL.js is acceptable for local or explicitly single-process deployments where the host filesystem is itself durable and owned by one process.',
-      requiredChange: 'Before any multi-instance or Cloud Run production deployment, migrate the canonical persistence owner to an approved shared database adapter.',
+      requiredChange: 'Before any multi-instance or Cloud Run production deployment, cut the canonical owner over to PostgreSQL.',
     };
   }
 
@@ -72,14 +87,14 @@ export function getPersistenceReadiness(env: NodeJS.ProcessEnv = process.env): P
     concurrentWriterSafe: false,
     adapterImplemented: false,
     reason: `Unsupported KURUKOO_DATABASE_MODE=${modeText || '<empty>'}.`,
-    requiredChange: 'Use the current SQL.js single-process mode for local development or implement a supported shared database adapter before production deployment.',
+    requiredChange: 'Use SQL.js for lightweight local mode or the approved PostgreSQL canonical adapter for durable shared deployment mode.',
   };
 }
 
 export function assertProductionPersistenceSafe(env: NodeJS.ProcessEnv = process.env): void {
-  const production = env.NODE_ENV === 'production';
-  if (!production) return;
+  if (env.NODE_ENV !== 'production') return;
   const readiness = getPersistenceReadiness(env);
-  if (readiness.state === 'BLOCKED') throw new Error(`[Kurukoo Persistence] ${readiness.reason} ${readiness.requiredChange}`);
-  if (readiness.mode === 'unknown') throw new Error(`[Kurukoo Persistence] ${readiness.reason}`);
+  if (readiness.state === 'BLOCKED' || readiness.state === 'UNVERIFIED') {
+    throw new Error(`[Kurukoo Persistence] ${readiness.reason} ${readiness.requiredChange}`);
+  }
 }

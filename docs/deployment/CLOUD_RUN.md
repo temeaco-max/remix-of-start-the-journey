@@ -4,18 +4,28 @@ The repository contains a direct Cloud Run deployment path so Google AI Studio B
 
 ## Current production boundary
 
-**Cloud Run production is currently BLOCKED for canonical application state.**
+**Cloud Run production remains BLOCKED until PostgreSQL is the active canonical persistence owner.**
 
 The current Kurukoo persistence owner is SQL.js backed by a local SQLite file. That is valid for a single-process environment with a genuinely durable host filesystem, but Cloud Run container storage is instance-local and ephemeral. A Cloud Run restart, replacement, or a second instance must never be allowed to define or lose canonical user/application state.
 
-The repository therefore treats the current Cloud Run shape as a proving/blocked profile:
+PR #88 established the SQL.js/Cloud Run block. The current task adds the PostgreSQL cutover foundation without provisioning or activating external infrastructure.
 
-- `KURUKOO_DATABASE_MODE=sqljs` remains explicit.
-- `KURUKOO_WORKERS=1` remains explicit.
-- `containerConcurrency=1` remains explicit.
-- `maxScale=1` prevents replica-level split-brain, but does **not** make local SQL.js durable.
-- `/readyz`, startup preflight, and production startup checks all fail closed while SQL.js is the Cloud Run persistence owner.
-- Cloud Storage FUSE must not be used as a transactional SQL.js database.
+## Persistence modes
+
+`KURUKOO_DATABASE_MODE=sqljs`
+
+- lightweight local/development canonical persistence;
+- one process/one worker only for shared-write safety;
+- Cloud Run durable production remains BLOCKED.
+
+`KURUKOO_DATABASE_MODE=postgres`
+
+- intended durable/shared deployment mode;
+- PostgreSQL is the sole semantic persistence owner once the async application adapter is integrated;
+- no SQL.js dual-write or read-through mirror is allowed;
+- the current repository deliberately fails closed because the existing services still expose synchronous SQL.js database calls and have not yet been migrated to the async PostgreSQL boundary.
+
+The readiness state therefore remains `BLOCKED` for PostgreSQL until application integration is complete. Once integrated, the readiness contract is designed to report `READY_FOR_EXTERNAL_CONFIG` when a valid PostgreSQL connection signal is present.
 
 ## Deployment shape
 
@@ -29,37 +39,53 @@ Artifact Registry
 Cloud Run
   ↓
 Kurukoo
-  ├── Web / PWA / canonical Chat
-  ├── SmolLM2 1.7B local inference when enabled
-  └── stronger hosted AI fallback when configured
+  ↓
+ONE canonical persistence owner
+  ├── SQL.js for lightweight local mode
+  └── PostgreSQL for durable shared deployment mode
 ```
 
 The existing `Dockerfile`, `deploy/cloud-run/service.yaml`, and `cloudbuild.yaml` are the canonical repository deployment artifacts.
 
+## PostgreSQL cutover foundation
+
+`src/services/postgresPersistence.ts` provides the async PostgreSQL connection, bounded pooling, parameterized tagged queries, transaction and graceful shutdown boundary. It intentionally does not emulate the synchronous SQL.js API.
+
+`scripts/migrate-sqlite-to-postgres.ts` provides the deterministic migration/export foundation. It defaults to a dry-run, preserves source values exactly, and never starts a production migration. `--execute` is an explicit import operation and remains an operator-controlled action.
+
+The migration foundation is tied to schema version `2026-08-22-canonical-runtime-schema` from `data/audits/database-schema-manifest.json`.
+
 ## Required production change
 
-Before Cloud Run can carry durable canonical state, Kurukoo needs one shared managed database adapter to become the single persistence owner. The repository already has explicit scale/persistence boundaries, but no active Postgres adapter exists today; a `DATABASE_URL` alone does not change the owner.
+The remaining application change is not another database architecture. It is the async persistence call-surface migration:
 
-The smallest acceptable transition is:
-
-1. Implement the existing persistence boundary against one managed relational database in `europe-west2`.
-2. Map the existing canonical state without introducing a second application database.
-3. Validate row counts, key constraints, idempotency, auth challenge consumption, chat/memory/request/notification/agent state, restart/reconnect behaviour and transactional worker claims.
-4. Freeze writes, perform one final export/import, verify, and cut the canonical owner over without dual-writing.
-5. Keep the SQL.js snapshot read-only as the rollback source until cutover verification is accepted.
-
-Do not run this migration against production from repository code. It requires the cloud operator and production data access boundary.
-
-## Build and deploy
-
-From a Google Cloud project with Cloud Build, Artifact Registry and Cloud Run enabled:
-
-```bash
-gcloud builds submit . --config cloudbuild.yaml \
-  --substitutions=_SERVICE=kurukoo,_REGION=europe-west2
+```text
+current services
+  ↓
+canonical async Kurukoo persistence interface
+  ↓
+SQL.js adapter       PostgreSQL adapter
+(local/test)           (durable/shared)
 ```
 
-The default proving profile is intentionally conservative for the 1.7B local model:
+After that migration, validate the PostgreSQL path with fresh schema, migration integrity, restart, two-process shared-state, transactions, idempotency, connection-loss and schema-mismatch tests. Only then should a managed PostgreSQL service be configured.
+
+The final operational cutover remains:
+
+1. stop writes;
+2. export SQL.js state;
+3. import into PostgreSQL;
+4. verify row counts, important integrity constraints and encrypted Memory preservation;
+5. switch `KURUKOO_DATABASE_MODE=postgres`;
+6. start the application;
+7. verify `/readyz` and core journeys;
+8. rollback before acceptance if verification fails.
+
+No repository operation provisions Cloud SQL, changes IAM/DNS, migrates live data or creates Redis.
+
+## Cloud Run proving configuration
+
+The current proving profile remains conservative:
 
 - Cloud Run: 4 vCPU
 - memory: 4 GiB
@@ -73,40 +99,27 @@ The default proving profile is intentionally conservative for the 1.7B local mod
 - model cache: `/tmp/huggingface`
 - background workers: one application worker only; external execution disabled
 
-These values are repository proving defaults, not claims about the cheapest production configuration. The 4 GiB profile is the explicit contract exercised by `test:cloud-run-smollm2`; measure actual Cloud Run startup, memory and latency before changing it.
+These are repository proving defaults, not claims about the cheapest production configuration.
 
 ## Secrets
 
-Do not put API keys or JWT secrets in `cloudbuild.yaml`, the Docker image, or Git.
+Do not put API keys, database credentials or JWT secrets in `cloudbuild.yaml`, the Docker image, frontend bundles or Git.
 
-Configure production secrets through Google Cloud Secret Manager / Cloud Run environment configuration. At minimum the production service needs a strong `JWT_SECRET`; other credentials are only required for the corresponding external adapters.
+Use Secret Manager / Cloud Run environment configuration for `DATABASE_URL` and related database settings once external infrastructure is provisioned.
 
 ## Runtime health
 
-`/health` reports application/database health plus persistence readiness, runtime model and external-adapter configuration state.
+`/health` reports application/database health plus persistence readiness.
 
-`/readyz` verifies that the application and database are available, that a model boundary is configured when `KURUKOO_CLOUD_RUN_REQUIRE_MODEL=true`, and that the configured persistence mode is actually safe for the deployment environment.
+`/readyz` verifies that the configured persistence mode is safe for the deployment environment. SQL.js + Cloud Run remains `not_ready`; PostgreSQL is `ready_for_external_config` only after the application adapter integration gate passes.
 
-## Persistence and workers
+## Workers and shared coordination
 
-The application deliberately keeps canonical state in one authority. Memory, Chat messages, auth challenges, Economic Requests, internal notifications, durable jobs, agent goals/events and idempotency records all ultimately depend on the SQL.js persistence owner today.
-
-Process-local worker health is not durable state. Background timers are safe only inside the current single-process boundary; distributed agents, rate limiting, presence and multi-instance job execution remain blocked until shared coordination state is introduced together with the database adapter.
+A shared database does **not** make all background workers horizontally safe by itself. Notifications, execution, escrow/payment, recurring billing and Agent worker timers remain process-local until their ownership/lease semantics are explicitly reviewed. Redis is not introduced by this persistence task.
 
 ## External activation
 
-Cloud Run hosting does not itself activate:
-
-- payment settlement;
-- WhatsApp/Telegram/SMS delivery;
-- FCM push delivery;
-- live voice/WebRTC providers;
-- provider verification or availability;
-- dispatch/logistics;
-- real emergency call connection;
-- trained/promoted SmolLM2 adapter.
-
-Those remain independently configured and evidence-gated by the existing canonical boundaries.
+Cloud Run hosting does not itself activate payment settlement, external channel delivery, FCM, voice, provider verification, dispatch or real emergency connectivity. Those remain independently configured and evidence-gated.
 
 ## Existing AI Studio deployment
 
