@@ -4,7 +4,7 @@
 **Shortcode:** `*7000#` · **Voice/WhatsApp:** `7000`
 **Previous working names:** Xentrix → **Kurukoo** (final)
 
-Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**. Users tell Kurukoo what they need, and the platform provides bounded native assistance, coordinates canonical requests, or hands off through an authorised and independently verified channel when one is configured. Web Chat is the active first-party channel; WhatsApp, USSD, Telegram, SMS, FCM, Voice, payment, private-number routing, and other external capabilities remain repository-complete but deployment/provider-dependent until independently proven.
+Kurukoo is a **conversational fulfilment network and personal assistance platform for everyday life and work**. Users tell Kurukoo what they need, and the platform provides bounded native assistance, coordinates canonical requests, or hands off through an authorised and independently verified channel when one is configured. Web, PWA, iOS and Android are first-party client presentations of the same canonical Kurukoo product model; WhatsApp, USSD, Telegram, SMS, FCM, Voice, payment, private-number routing, and other external capabilities remain repository-complete but deployment/provider-dependent until independently proven.
 
 > Kurukoo is not defined as a marketplace or chatbot. It is a conversation-first coordination system whose product definition remains stable even when a channel or external provider is unavailable.
 
@@ -21,7 +21,9 @@ Kurukoo is a **conversational fulfilment network and personal assistance platfor
 | Database | `sql.js` runs in-process and persists to `kurukoo.sqlite` (override with `DB_PATH`). Writes use a same-directory temporary file and atomic replacement, but the model remains single-process. |
 | Rate limiting | In-memory process-local limits are appropriate only for the single-instance launch model. |
 | Channels | Web Chat is active; WhatsApp, Telegram, SMS, USSD, Email, FCM, and Voice remain adapter boundaries whose readiness depends on truthful configuration. |
-| Front end | EJS public pages (`views/`) and vanilla JavaScript PWA (`public/`). Dynamic provider, opportunity, promotion, and chat text is rendered with DOM nodes and `textContent`. |
+| Web App | EJS/vanilla Web App surfaces use clean canonical URLs such as `/desk`, `/chat`, `/requests/:id`, and `/admin/*`. Desk is the authenticated home; Agent is the conversational intelligence at `/chat`. |
+| PWA | The PWA renders the same canonical product/resources and client contracts as Web, with its own install/offline/navigation mechanics. |
+| Mobile | iOS and Android use the same canonical resource identity and API contracts through native client surfaces and deep links. |
 | AI Brain | `src/services/internalCoordinator.ts` is the canonical coordinator boundary. The specialised student-model and offline learning architecture is defined by `BLUEPRINT_AI_MODEL_ADDENDUM.md` and `docs/KURUKOO_AI_MODEL_SYSTEM.md`. |
 | Student model | `ml/` contains the offline scenario, dataset, teacher, training, evaluation, export and registry foundations for Kurukoo-SmolLM2. Production must load only versioned model artifacts through the canonical runtime. |
 
