@@ -5,6 +5,7 @@
 :root{
  --ko-bg:#F7F2EC;--ko-surface:#FFFFFF;--ko-surface-2:#FBF8F4;--ko-ink:#24221F;--ko-muted:#6D665F;--ko-border:#E6DED5;
  --ko-primary:#B95D3C;--ko-primary-strong:#91452E;--ko-success:#2E8060;--ko-warning:#B87928;--ko-danger:#B5483D;--ko-info:#3C6F91;
+ --ko-radius-sm:8px;--ko-radius:12px;--ko-radius-lg:16px;
  --ko-shadow:0 1px 2px rgba(36,34,31,.04),0 8px 24px rgba(36,34,31,.05);--ko-shadow-2:0 12px 32px rgba(36,34,31,.09);
  --ko-motion-fast:160ms cubic-bezier(.2,.8,.2,1);--ko-motion:220ms cubic-bezier(.2,.8,.2,1)
 }
