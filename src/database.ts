@@ -82,6 +82,8 @@ function initTables(database: any) {
       phone TEXT PRIMARY KEY,
       name TEXT,
       email TEXT,
+      email_verified_at TEXT,
+      phone_verified_at TEXT,
       location TEXT,
       primary_lga TEXT,
       primary_state TEXT,
