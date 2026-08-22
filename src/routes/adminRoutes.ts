@@ -282,8 +282,8 @@ router.get('/stats', authenticateAdmin, async (_req: AuthRequest, res) => {
     let messages = 0;
     let credits = 0;
     let notificationQueue = { total: 0, queued: 0, accepted: 0, sent: 0, delivered: 0, failed: 0, suppressed: 0, deadLetter: 0 } as Awaited<ReturnType<typeof getNotificationQueueStats>>;
-    let coordinatorTelemetry: Awaited<ReturnType<typeof getCoordinatorTelemetry>> = { events: { total: 0, byType: {}, byProducer: {} }, runs: { total: 0, byState: {} }, learningArtifacts: { total: 0, byStatus: {} } };
-    let contextArbitrationTelemetry: Awaited<ReturnType<typeof getContextArbitrationTelemetry>> = { total: 0, byContext: {}, byRelation: {}, ambiguous: 0, preservedContextObservations: 0 };
+    let coordinatorTelemetry: Awaited<ReturnType<typeof getCoordinatorTelemetry>> = { events: { total: 0, byType: {}, byProducer: {} }, runs: { total: 0, byState: {}, latestFailure: undefined }, learningArtifacts: { total: 0, byStatus: {} } };
+    let contextArbitrationTelemetry: Awaited<ReturnType<typeof getContextArbitrationTelemetry>> = { total: 0, byContext: {}, byRelation: {}, ambiguous: 0, preservedContextObservations: 0, latestAt: undefined };
     try {
       users = Number(db.exec('SELECT COUNT(*) FROM memory_profiles')[0]?.values?.[0]?.[0] || 0);
       providers = Number(db.exec("SELECT COUNT(*) FROM memory_profiles WHERE provider_type IS NOT NULL AND lower(provider_type) NOT IN ('', 'buyer')")[0]?.values?.[0]?.[0] || 0);

@@ -128,3 +128,10 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Run repository-controlled deployment-readiness, persistence, worker, and fail-closed connector tests.
 - [x] Apply only reproducible canonical runtime corrections and revalidate the affected contracts.
 - [x] Merge and delete one short-lived branch only if a genuine runtime correction is required; otherwise retain canonical main unchanged.
+
+## Persistence cutover verification follow-through
+
+- [x] Inspect canonical persistence, readiness, migration, and runtime ownership contracts on current main.
+- [x] Run local, blocked-cloud, and PostgreSQL-prerequisite persistence contracts using repository-controlled inputs.
+- [x] Correct only reproducible canonical persistence boundary contradictions and revalidate them.
+- [ ] Merge and delete one short-lived branch only if a genuine persistence correction is required; otherwise retain canonical main unchanged.

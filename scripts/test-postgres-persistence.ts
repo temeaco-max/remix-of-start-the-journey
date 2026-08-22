@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
 
@@ -15,6 +15,27 @@ function loadPostgres(): any {
   } catch {
     return null;
   }
+}
+
+const preflight = spawnSync(process.execPath, ['scripts/production-preflight.mjs'], {
+  cwd: process.cwd(),
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    NODE_ENV: 'production',
+    JWT_SECRET: crypto.randomBytes(32).toString('hex'),
+    KURUKOO_DATABASE_MODE: 'postgres',
+    KURUKOO_POSTGRES_APPLICATION_INTEGRATED: 'true',
+    KURUKOO_PERSISTENT_STATE_REQUIRED: 'false',
+    KURUKOO_PAY_PROVIDER: 'stripe',
+    DATABASE_URL: 'postgres://localhost/kurukoo_contract',
+  },
+});
+if (!loadPostgres()) {
+  assert.notEqual(preflight.status, 0, 'production preflight must block PostgreSQL mode without the pinned client');
+  assert.match(`${preflight.stdout}${preflight.stderr}`, /requires the pinned postgres client/);
+} else {
+  assert.equal(preflight.status, 0, `${preflight.stdout}${preflight.stderr}`);
 }
 
 if (childMode) {

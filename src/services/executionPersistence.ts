@@ -2,10 +2,10 @@ import crypto from 'node:crypto';
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 import { getCanonicalStore } from './canonicalStore.js';
 import { getEconomicRequest, type EconomicRequest } from './economicRequestPersistence.js';
+import type { EconomicParticipantRole } from './economicParticipants.js';
 import { generateProxyNumber, getPrivacyBridgeStatus } from './privacyBridge.js';
 import { getConnector, dummyTestConnector } from './executionConnectorSqljs.js';
 import type { ConnectorAdapter, ExecutionEvidence, ExecutionRequestRecord, ExecutionStatus, EvidenceSource, EvidenceVerificationState } from './executionConnectorSqljs.js';
-import type { EconomicParticipantRole } from './economicParticipants.js';
 
 export { type ConnectorAdapter, type ExecutionEvidence, type ExecutionRequestRecord, type ExecutionStatus, type EvidenceSource, type EvidenceVerificationState } from './executionConnectorSqljs.js';
 
