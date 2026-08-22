@@ -12,12 +12,14 @@ const cases: Array<[string, string]> = [
   ['yes', 'confirmation'],
   ['I need a taxi to Ikeja', 'ride_request'],
   ['Find me someone to repair my fridge', 'find_worker'],
+  ['My iPhone 13 screen is broken', 'phone_repairer'],
   ['Order suya and bread near me', 'order_food'],
   ['I need emergency help after an accident', 'emergency'],
   ['Help me find a football match this weekend', 'sports_matchmaking'],
-  ['How do I fix a leaking tap?', 'find_worker'],
-  ['How do I unlink my phone?', 'how_to_video'],
-  ['How do I top up my wallet?', 'top_up'],
+  ['Help me pray', 'prayer'],
+  ['How do I fix a leaking tap?', 'how_to'],
+  ['How do I unlink my phone?', 'how_to'],
+  ['How do I top up my wallet?', 'how_to'],
 ];
 
 let failures = 0;

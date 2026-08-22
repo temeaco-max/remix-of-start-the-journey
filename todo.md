@@ -113,4 +113,4 @@ The implementation is complete for the repository/runtime boundary. The remainin
 - [x] Reproduce and isolate the current platform-convergence and economic-validation blockers.
 - [x] Apply only the smallest canonical correction required for the failing validation contracts.
 - [x] Re-run focused convergence, economic, dispatch, security, and build validation.
-- [ ] Push the verified current-main correction and record repository, runtime, and real-world status tiers.
+- [x] Push the verified current-main correction and record repository, runtime, and real-world status tiers.

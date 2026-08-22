@@ -92,9 +92,9 @@ export async function upsertAuthoritativeBinDaySchedule(schedule: Omit<BinDaySch
   db.run(`INSERT INTO authoritative_bin_schedules
     (postcode,address,council,waste_type,next_collection_at,recurrence,source_url,source_name,source_checked_at,source_expires_at,evidence)
     VALUES (?,?,?,?,?,?,?,?,?,?,?)`, [
-      clean(schedule.postcode), clean(schedule.address), clean(schedule.council), clean(schedule.wasteType),
-      schedule.nextCollectionAt, clean(schedule.recurrence), clean(schedule.sourceUrl), clean(schedule.sourceName) || 'Authoritative council source',
-      schedule.sourceCheckedAt || new Date().toISOString(), clean(schedule.sourceExpiresAt), 'authoritative_source',
+      clean(schedule.postcode) || null, clean(schedule.address) || null, clean(schedule.council) || null, clean(schedule.wasteType) || null,
+      schedule.nextCollectionAt, clean(schedule.recurrence) || null, clean(schedule.sourceUrl) || null, clean(schedule.sourceName) || 'Authoritative council source',
+      schedule.sourceCheckedAt || new Date().toISOString(), clean(schedule.sourceExpiresAt) || null, 'authoritative_source',
     ]);
   saveDb();
 }

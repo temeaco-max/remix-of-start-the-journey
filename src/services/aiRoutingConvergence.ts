@@ -52,7 +52,9 @@ export function classifyAiRoutingSignal(text: string): AiRoutingSignal {
   const act = detectAct(text);
   if (act) return { conversationAct: act, intent: act, skill: null, category: null, confidence: 0.999, source: 'rules' };
   const fast: FastTextResult | null = classifyWithFastText(text);
-  const fastSkill = normalizeFastTextSkill(fast?.intent);
+  const fastSkill = fast?.skill && getAllConvergedSkillNames().includes(fast.skill)
+    ? fast.skill
+    : normalizeFastTextSkill(fast?.intent);
   const skill = fastSkill || catalogueSkill(text);
   const intent = fast?.intent || skill;
   const category = skill ? getSkillCategoryConverged(skill) : null;
