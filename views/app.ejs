@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="/css/kurukoo-workspace.css?v=5">
   <link rel="stylesheet" href="/css/kurukoo-os-final.css?v=routes1">
   <link rel="stylesheet" href="/css/kurukoo-desktop-final.css?v=1">
+  <% if (section === 'requests') { %>
+  <link rel="stylesheet" href="/css/kurukoo-requests-convergence.css?v=1">
+  <% } %>
   <script src="/js/fcm-client.js?v=routes2" defer></script>
 </head>
 <body class="k-app-page workspace-page k-app-section-<%= section %>" data-workspace-section="<%= section %>" data-app-section="<%= section %>">
@@ -152,6 +155,9 @@
     <a href="/connect" aria-current="<%= section === 'connect' ? 'page' : 'false' %>"><span><%= icon('settings') %></span><span>Connect</span></a>
   </nav>
   <script src="/js/kurukoo-workspace.js?v=routes1" defer></script>
+  <% if (section === 'requests') { %>
+  <script src="/js/kurukoo-requests-convergence.js?v=1" defer></script>
+  <% } %>
   <script src="/js/kurukoo-app-shell.js?v=4" defer></script>
 </body>
 </html>
