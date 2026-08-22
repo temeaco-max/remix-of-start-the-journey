@@ -5398,6 +5398,10 @@ table td, .admin-table td {
   font-size: 0.95rem;
   line-height: 1.6;
 }
+.faq-item-details { padding: 0 18px; }
+.faq-item-summary { display: list-item; box-sizing: border-box; min-height: 44px; padding: 13px 6px 12px; border-radius: 8px; color: var(--terracotta); }
+.faq-item-summary:hover { background: var(--terracotta-soft); color: var(--terracotta-dark); }
+.faq-item-answer { margin: 0 6px 16px; }
 .provider-header {
   display: flex;
   align-items: center;
