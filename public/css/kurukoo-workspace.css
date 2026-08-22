@@ -194,7 +194,7 @@ body.dark .chat-template-shell{background:#171b18;color:#edf1ec}.dark .chat-temp
   .chat-template-shell .workspace-hero-card { padding: 17px 18px; border-radius: 14px; }
   .chat-template-shell .workspace-panel { padding: 16px; border-radius: 14px; }
   .chat-template-shell .workspace-header-actions { gap: 6px; }
-  .chat-template-shell .workspace-header-actions .workspace-icon-button { width: 40px; height: 40px; }
+  .chat-template-shell .workspace-header-actions .workspace-icon-button { width: 44px; height: 44px; }
 }
 
 /* Owner-scoped external source controls share the Connect workspace card language. */
