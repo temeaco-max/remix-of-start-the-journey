@@ -315,3 +315,7 @@ Matching-rule inspection showed the Features template currently renders under th
 The live How It Works lifecycle surface was also rechecked without creating a request. It contains no ink-surface hierarchy to reconcile in the observed composition; its contextual Chat continuation measures 44px and its primary Chat action measures 58px. No presentation correction is indicated for this route.
 
 The public Features continuation to `/agents` redirects this unauthenticated local session to the existing progressive login entry. No credentials or agent action were supplied, so authenticated Agents composition remains an access-controlled browser-validation boundary rather than a completed public visual observation.
+
+The live About surface retains 61px support-list pathways, a 44px Contact support action, a 58px primary Chat continuation, and the verified white shared-footer hierarchy. Its current **See how request states work** text continuation remains an inline 16px target, however. The next scoped correction should extend the existing About/public-page owner only, preserving the same lifecycle route and all narrative content.
+
+The existing public-page owner now scopes only the About detail-card continuation to `inline-flex` at 44px, and the route-specific stylesheet cache is advanced. Rendered verification confirms that **See how request states work** remains linked to `/how-it-works`, uses the canonical terracotta foreground and measures 44px; support, primary Chat, narrative and footer presentation are unchanged.
