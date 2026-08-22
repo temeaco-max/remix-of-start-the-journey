@@ -256,6 +256,9 @@ function notificationBriefSummary(category: AgentBriefItemCategory): string {
 }
 
 function notificationItem(notification: { id: number; title: string; body: string; canonical_action?: string; object_type?: string; object_id?: string; conversation_id?: string; created_at: string }): Omit<AgentBriefItem, 'attention'> | null {
+  // Fallback delivery is not a canonical state change. Re-ingesting this entry
+  // would change the deterministic material and recursively enqueue it again.
+  if (notification.canonical_action === 'agent.brief.review' || notification.object_type === 'agent_brief') return null;
   const fingerprint = `${notification.title} ${notification.body}`.toLowerCase();
   if (/\b(?:promotion|sponsored)\b/.test(fingerprint)) return null;
   const category = notificationCategory(notification);
