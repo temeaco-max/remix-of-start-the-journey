@@ -64,38 +64,36 @@ jobs:
           cat "$RUNNER_TEMP/kurukoo-server.log"
           exit 1
 
-      - name: Run local desktop walkthrough
+      - name: Run nine-screen authenticated OS runtime proof
         if: github.event_name == 'push' || github.event_name == 'workflow_run' || github.event.inputs.mode == 'local'
         env:
           KURUKOO_E2E_BASE_URL: http://127.0.0.1:4320
           KURUKOO_E2E_LOCAL_AUTH: 'true'
           KURUKOO_TEST_PHONE: '08030000000'
-          ADMIN_USERNAME: admin
-          ADMIN_PASSWORD: admin-password-for-test
-          KURUKOO_E2E_FAIL_CONSOLE: ${{ github.event.inputs.fail_on_console || 'true' }}
-        run: node scripts/run-desktop-playwright-walkthrough.mjs
+          KURUKOO_E2E_VIEWPORTS: 1440x900,390x844
+        run: node scripts/run-runtime-os-proof.mjs
 
-      - name: Run deployed desktop walkthrough
+      - name: Run deployed nine-screen authenticated OS runtime proof
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'deployed'
         env:
           KURUKOO_E2E_BASE_URL: ${{ github.event.inputs.base_url || vars.KURUKOO_E2E_BASE_URL }}
           KURUKOO_E2E_AUTH_COOKIE: ${{ secrets.KURUKOO_E2E_AUTH_COOKIE }}
-          KURUKOO_E2E_ADMIN_TOKEN: ${{ secrets.KURUKOO_E2E_ADMIN_TOKEN }}
-          KURUKOO_E2E_FAIL_CONSOLE: ${{ github.event.inputs.fail_on_console || 'true' }}
-        run: node scripts/run-desktop-playwright-walkthrough.mjs
+          KURUKOO_E2E_LOCAL_AUTH: 'false'
+          KURUKOO_E2E_VIEWPORTS: 1440x900,390x844
+        run: node scripts/run-runtime-os-proof.mjs
 
-      - name: Upload desktop screenshots and report
+      - name: Upload runtime OS proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kurukoo-desktop-playwright-walkthrough
-          path: artifacts/desktop-walkthrough/
+          name: kurukoo-runtime-os-proof
+          path: artifacts/runtime-os-proof/
           if-no-files-found: warn
 
       - name: Upload local server log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kurukoo-desktop-playwright-server-log
+          name: kurukoo-runtime-os-proof-server-log
           path: ${{ runner.temp }}/kurukoo-server.log
           if-no-files-found: ignore
