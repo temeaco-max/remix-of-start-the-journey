@@ -213,3 +213,15 @@ The public runtime, conversation-turn, provider-selection, notification queue, e
 The final visual authority was retained as the single token-resolution layer. The controlled audit found that the Discover continuation controls were the remaining shared-rhythm outlier: section actions, segmented controls and result actions still resolved to 40px despite the canonical 44px touch target. Those selectors now resolve through `kurukoo-os-final.css` at 44px, without changing Discover data, filtering, source attribution, sponsorship boundaries or route behavior.
 
 Strict inline-CSS audit, CSS-system audit, Chat DOM safety and PWA contracts pass after the adjustment. Legacy green usage in `site.css` remains limited to channel-specific WhatsApp affordances or textual/status semantics and was not repurposed as a primary platform action color.
+
+### Browser Observation Boundary
+
+An unauthenticated local-browser observation of the live `/explore` route confirmed that the shared public navigation, warm-cream background, terracotta primary request entry, capability-card hierarchy and repeated Chat continuations render through the current public authority. This is evidence for that public route at the observed desktop viewport only; it does not establish narrow-browser, authenticated workspace, installed-PWA, provider, payment, channel or physical-device completion.
+
+The live `/partners` route exposed a concrete current-authority gap: several semantic action anchors inherited `min-height` values while remaining inline, so the rendered hero, section and role continuations collapsed to their text line-height and the hero action lost its primary fill. This is a presentation-only defect in the dedicated Partners authority, not an invitation, profile, opportunity, earnings, eligibility or provider-state change.
+
+The dedicated `partners-authority.css` owner now makes primary, utility and role continuations participate in layout as visibly actionable controls, with the hero entry using the canonical terracotta primary treatment. A cache-key increment on the existing template ensures that the browser receives this owner update. A follow-up rendered observation confirmed the restored hero-action fill and control geometry; narrow-browser and authenticated/external lifecycle evidence remain unobserved.
+
+The same lower-page observation identified that the role entries were rendering as an uncomposed vertical list despite their existing card-level authority. The next scoped correction is limited to restoring that existing role-card collection as a responsive grid; role copy, continuations, state language and all partner workflow semantics remain untouched.
+
+The existing role collection now resolves to four equal 267px cards at the observed desktop width, each with a 170px card geometry and preserved Chat continuation. The grid collapses through the same owner at the existing 1060px and 560px breakpoints. This is local rendered browser evidence for the public desktop route only and does not substitute for authenticated, narrow-browser, installed-PWA, external-provider or physical-device evidence.
