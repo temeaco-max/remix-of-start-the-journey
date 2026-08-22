@@ -48,6 +48,11 @@ const cleanCanonicalSections: Record<string, string> = {
 
 const sharedPublicAuthenticated = new Set(['/discover', '/topics']);
 
+function screenAssets(section: string): string {
+  if (section === 'notifications') return '<link rel="stylesheet" href="/css/kurukoo-notifications-convergence.css?v=1"><script src="/js/kurukoo-notifications-convergence.js?v=1" defer></script>';
+  return '';
+}
+
 function renderApp(req: express.Request, res: express.Response, section = 'desk') {
   const authReq = req as AuthRequest;
   if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.originalUrl || req.path)}`);
@@ -57,7 +62,11 @@ function renderApp(req: express.Request, res: express.Response, section = 'desk'
   const integrations = getExternalIntegrationReadiness();
   const enabledIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
   const content = getPageContentContract(section);
-  return res.render('app', { selected, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, integrations, enabledIntegrations, integrationCount: integrations.length, visualFeatures: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')), contentContract: content });
+  return res.render('app', { selected, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, integrations, enabledIntegrations, integrationCount: integrations.length, visualFeatures: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')), contentContract: content }, (error, html) => {
+    if (error) return res.status(500).send('Unable to render application surface');
+    const assets = screenAssets(section);
+    res.send(assets ? html.replace('</head>', `${assets}</head>`) : html);
+  });
 }
 
 router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')) }));
