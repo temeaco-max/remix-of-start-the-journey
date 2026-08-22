@@ -1,6 +1,6 @@
 import type { ProviderCommunicationState } from './providerCommunicationService.js';
 
-const MESSAGE_READY_STATES = new Set<ProviderCommunicationState>(['accepted', 'arrived', 'in_progress']);
+const MESSAGE_READY_STATES = new Set<ProviderCommunicationState>(['connected', 'arrived', 'in_progress']);
 const VOICE_READY_STATES = new Set<ProviderCommunicationState>(['arrived', 'in_progress']);
 const LOCATION_ACTIVE_STATES = new Set<ProviderCommunicationState>(['created', 'ringing', 'connected', 'provider_en_route', 'arrived', 'in_progress']);
 

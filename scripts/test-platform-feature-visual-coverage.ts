@@ -28,7 +28,7 @@ for (const id of requiredCrossClient) assert.ok(mobileIds.has(id) || CANONICAL_P
 const publicRoutes = fs.readFileSync(path.join(process.cwd(),'src/routes/publicRoutes.ts'),'utf8');
 const contentRoutes = fs.readFileSync(path.join(process.cwd(),'src/routes/contentRoutes.ts'),'utf8');
 for (const route of ['/help','/about','/careers','/legal','/pricing','/blog','/advertise','/partners','/channels','/explore','/network']) {
-  const available = publicRoutes.includes(`router.get('${route}'`) || contentRoutes.includes(`router.get('${route}'`);
+  const available = publicRoutes.includes(`router.get('${route}'`) || contentRoutes.includes(`router.get('${route}'`) || (route === '/legal' && publicRoutes.includes("router.get('/legal/:section?'"));
   assert.ok(available, `public feature route missing from visual feature surface: ${route}`);
 }
 

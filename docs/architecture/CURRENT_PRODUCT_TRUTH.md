@@ -20,9 +20,9 @@ Every capability has three independent verification dimensions:
 
 | Dimension | Meaning |
 |---|---|
-| Repository | Code, ownership, buildability and deterministic contract evidence exist on canonical `main`. |
-| Runtime | The deployed application actually completes the relevant user journey in a controlled environment. |
-| Real-world | External provider/device/person actually performs the outcome with evidence. |
+| Repository verification | Code, ownership, buildability and deterministic contract evidence exist on canonical `main`. |
+| Runtime verification | The deployed application actually completes the relevant user journey in a controlled environment. |
+| Real-world verification | External provider/device/person actually performs the outcome with evidence. |
 
 Each dimension is classified as `VERIFIED`, `PARTIAL`, `UNVERIFIED`, `BLOCKED_EXTERNAL`, or `NOT_APPLICABLE`.
 
