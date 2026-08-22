@@ -51,6 +51,12 @@ The selected policy is **current-main precedence**. The development branch has 9
 
 Accordingly, no branch-only legacy shell or unreferenced asset was copied into the current application. The compatible, owner-backed Quick Ride work was integrated; existing current-main public, Chat, Desk/workspace, Discover, Admin and native owners remain the authoritative presentation implementations. This avoids reintroducing a second CSS layer, a stale static dashboard/discover/settings shell, or a competing navigation/runtime path.
 
+## ChatGPT-Attributed Work Inventory
+
+Repository history contains a set of ChatGPT-labelled integration commits covering the remote ChatGPT MCP contract, Channels readiness, MCP endpoint documentation, the authenticated workspace shell, router mounting and security audit work. No remote branch is explicitly named for ChatGPT/OpenAI/GPT, and every identified commit is already contained by remote `main` and the active reconciliation branches. The local Manus workspace contains a design specification only; no separate ChatGPT-created implementation workspace was found.
+
+Under current-main precedence, these commits are treated as historical implementation lineage rather than a separate unfinished code source. Their live surface owners—Channels, authenticated workspace, public developer/API guidance and connection readiness—were already covered by the current-main visual and branch-reconciliation audits. No additional owner was found that could be safely imported as a distinct ChatGPT branch asset.
+
 ## Next Reconciliation Rule
 
 > Compare every candidate owner against the current live route before integration. Reconcile compatible client/presentation work into the existing owner; complete runtime branches through their tests and contracts; do not revive static legacy shells, bypass provider/payment evidence, or merge a broad branch solely because it contains visual assets.
