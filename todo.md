@@ -46,7 +46,7 @@ The implementation is complete for the repository/runtime boundary. The remainin
 
 ## History-first visual convergence
 
-- [ ] Reconcile divergent local and origin `main` histories through a controlled non-force merge: preserve genuinely valid work, classify both divergent commit sets against canonical truth, verify repository/runtime boundaries, and push only the validated unified main.
+- [x] Reconcile divergent local and origin `main` histories through a controlled non-force merge: preserve genuinely valid work, classify both divergent commit sets against canonical truth, verify repository/runtime boundaries, and push only the validated unified main. The normal push now lands on canonical `origin/main`; no force-push, rebase, or replacement integration branch was used.
 - [ ] Compare the full Git history of every visual authority before modifying it, selecting the strongest complete design-and-functionality baseline per surface.
 - [ ] Reconcile high-fidelity boards with the selected historical baselines across public web, Chat/workspaces, Admin, partners, checkout/confirmations, and Nearby Radar.
 - [ ] Consolidate only confirmed duplicate visual overrides while preserving canonical routes, meaningful content, state truthfulness, and accessibility behavior.
