@@ -5,6 +5,7 @@ import {
   type EconomicRequestStatus,
 } from './skillFlows.js';
 import {
+  createEconomicRequest as createSqlJsEconomicRequest,
   getEconomicRequest as getSqlJsEconomicRequest,
   listEconomicRequestsForPhone as listSqlJsEconomicRequestsForPhone,
   updateEconomicRequestRequirements as updateSqlJsEconomicRequestRequirements,
@@ -93,7 +94,7 @@ export function getAllowedEconomicTransitions(status: EconomicRequestStatus): Ec
 
 export async function createEconomicRequest(input:{id:string;phone:string;skill:string;requirements:Record<string,unknown>;amount?:number}):Promise<EconomicRequest> {
   if (getCanonicalPersistenceMode() !== 'postgres') {
-    return getSqlJsEconomicRequest(input);
+    return createSqlJsEconomicRequest(input);
   }
   const category = getEconomicCategory(input.skill) || 'classifieds-marketplace';
   const capabilities = getSkillCapabilities(input.skill);
