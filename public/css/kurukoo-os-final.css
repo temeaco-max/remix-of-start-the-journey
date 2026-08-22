@@ -119,3 +119,6 @@ button,a{min-height:44px}
 
 /* Blog dark hero retains its intentional ink surface without inheriting global ink heading and muted-copy tokens. */
 .k-route-blog .blog-hero{background:var(--ko-ink)!important;color:#F7F2EC!important}.k-route-blog .blog-hero .blog-hero-title{color:#F7F2EC!important}.k-route-blog .blog-hero :where(.page-desc,.blog-hero-desc){color:#E6DED5!important}.k-route-blog .blog-hero .blog-badge{background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.22)!important;color:#F7F2EC!important}
+
+/* Features dark evidence boundary retains its intentional light heading hierarchy over the shared ink heading token. */
+.k-public-page .public-feature-boundary h2{color:#F7F2EC!important}
