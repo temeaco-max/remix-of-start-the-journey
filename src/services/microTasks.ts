@@ -54,7 +54,7 @@ export async function getAvailableTasks(phone: string) {
 
 export async function acceptTask(phone: string, taskId: number) {
     const db = await getDb();
-    db.run(`UPDATE micro_tasks SET status = 'in_progress', assigned_to = ? WHERE id = ? AND status = 'available'`, [phone, taskId]);
+    db.run(`UPDATE micro_tasks SET status = 'in_progress', assigned_to = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'available'`, [phone, taskId]);
     saveDb();
     return true;
 }
@@ -73,7 +73,7 @@ export async function completeTask(phone: string, taskId: number, result: string
     stmt.free();
 
     if (reward > 0) {
-        db.run(`UPDATE micro_tasks SET status = 'completed', submitted_result = ? WHERE id = ?`, [String(result || '').slice(0, 4000), taskId]);
+        db.run(`UPDATE micro_tasks SET status = 'completed', submitted_result = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [String(result || '').slice(0, 4000), taskId]);
         if (sourceType !== 'topic') await addPoints(phone, reward, `Completed micro-task #${taskId}`);
         saveDb();
         return { success: true, reward, sourceType };
@@ -124,10 +124,10 @@ export async function moderateTopicVerificationTask(taskId: number, adminIdentit
     if (decision === 'approved') {
         if (String(task.status) !== 'completed' || !task.assigned_to) throw new Error('Only completed verification tasks can be approved');
         if (task.approved_at) return task;
-        db.run(`UPDATE micro_tasks SET status='approved', moderation_note=?, approved_by=?, approved_at=CURRENT_TIMESTAMP WHERE id=?`, [note ? String(note).slice(0, 1000) : null, adminIdentity.slice(0, 128), taskId]);
+        db.run(`UPDATE micro_tasks SET status='approved', moderation_note=?, approved_by=?, approved_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [note ? String(note).slice(0, 1000) : null, adminIdentity.slice(0, 128), taskId]);
         await addPoints(String(task.assigned_to), Number(task.credits_reward), `Approved Topic verification task #${taskId}`);
     } else {
-        db.run(`UPDATE micro_tasks SET status='rejected', moderation_note=?, approved_by=?, approved_at=CURRENT_TIMESTAMP WHERE id=?`, [note ? String(note).slice(0, 1000) : null, adminIdentity.slice(0, 128), taskId]);
+        db.run(`UPDATE micro_tasks SET status='rejected', moderation_note=?, approved_by=?, approved_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [note ? String(note).slice(0, 1000) : null, adminIdentity.slice(0, 128), taskId]);
     }
     saveDb();
     const updated = db.prepare(`SELECT * FROM micro_tasks WHERE id=?`);
