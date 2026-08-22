@@ -29,6 +29,7 @@ jobs:
       - run: npm run fasttext:test
       - name: Platform frame contracts
         run: |
+          npx tsx scripts/test-os-weave-main.ts
           npx tsx scripts/test-platform-convergence-frames.ts
           npx tsx scripts/test-ai-router-free-first.ts
           npx tsx scripts/test-skill-interaction-convergence.ts
