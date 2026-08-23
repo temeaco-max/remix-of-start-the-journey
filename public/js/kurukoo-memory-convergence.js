@@ -1,6 +1,6 @@
 (() => {
   if (document.body?.dataset.workspaceSection !== 'memory') return;
-  const container = document.querySelector('.k-app-container');
+  const container = document.querySelector('[data-memory-root]') || document.querySelector('.k-app-container');
   if (!container) return;
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const api = async (url, options = {}) => {
