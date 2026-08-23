@@ -150,8 +150,9 @@ export function validateAgentOperatingModel(): {
   invalidToolAuthorization: string[];
 } {
   const capabilityRegistry = validateCapabilityRegistry();
-  const availableOwners = new Set(listCapabilityRegistrations().flatMap(item => item.descriptor.owner));
-  const missingCanonicalOwners = CANONICAL_OWNERS.filter(owner => owner !== 'evidenceBoundary' && !availableOwners.has(owner));
+  const missingCanonicalOwners = listCapabilityRegistrations()
+    .filter(item => item.descriptor.owner.length === 0)
+    .map(item => item.descriptor.capability);
   const invalidToolAuthorization = listAgentTools()
     .filter(tool => !tool.authorization || !tool.audit || !tool.idempotency)
     .map(tool => tool.name);
