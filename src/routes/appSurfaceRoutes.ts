@@ -50,6 +50,7 @@ const cleanCanonicalSections: Record<string, string> = {
 const sharedPublicAuthenticated = new Set(['/discover', '/topics']);
 
 function screenAssets(section: string): string {
+  if (section === 'discover') return '<link rel="stylesheet" href="/css/kurukoo-discover-convergence.css?v=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="/js/kurukoo-discover-convergence.js?v=1" defer></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script><script src="/js/kurukoo-discover-map.js?v=4" defer></script>';
   if (section === 'notifications') return '<link rel="stylesheet" href="/css/kurukoo-notifications-convergence.css?v=1"><script src="/js/kurukoo-notifications-convergence.js?v=1" defer></script>';
   if (section === 'connect') return '<link rel="stylesheet" href="/css/kurukoo-contacts-convergence.css?v=1"><script src="/js/kurukoo-contacts-convergence.js?v=1" defer></script>';
   if (section === 'memory') return '<link rel="stylesheet" href="/css/kurukoo-memory-convergence.css?v=1"><script src="/js/kurukoo-memory-convergence.js?v=1" defer></script>';
