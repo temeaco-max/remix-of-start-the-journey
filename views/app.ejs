@@ -78,7 +78,9 @@
           <a class="ko-context-action" href="/chat">Continue in Chat</a>
         </section>
         <% if (section === 'desk') { %>
-          <section class="k-app-grid two"><article class="k-app-card"><span class="k-app-card-label">Conversation</span><h2>One place to ask, coordinate and continue.</h2><p>Chat remains the source of truth for requests, reminders, safety, memory, agents and actions.</p><a href="/chat" class="k-app-card-action">Open Web Chat →</a></article><article class="k-app-card"><span class="k-app-card-label">Continuity</span><h2>Keep active work alive.</h2><p>Interruption, authentication, pause/resume and cross-channel continuation remain owned by the canonical context layer.</p><a href="/requests" class="k-app-card-action">View Requests →</a></article></section>
+          <section class="k-desk-live" data-desk-root data-workspace-owned-surface="desk" aria-label="Live Desk summary">
+            <div class="k-desk-loading" data-desk-loading aria-live="polite">Loading canonical Desk state…</div>
+          </section>
         <% } else if (section === 'connect') { %>
           <section class="k-app-card k-connect-workspace" aria-labelledby="connect-workspace-title" data-workspace-owned-surface="connect">
             <div class="k-connect-workspace-head"><div><span class="k-app-card-label">Connection readiness</span><h2 id="connect-workspace-title">Your authorized resources</h2><p>Connections remain owner-authorized and evidence-bound. This surface reports readiness; it does not claim data access, delivery, or action success before the canonical provider callback confirms it.</p></div><a class="k-app-primary" href="/channels">Channel readiness</a></div>
@@ -114,8 +116,14 @@
             <div class="k-app-empty" data-tasks-empty hidden><span class="k-app-empty-mark" aria-hidden="true">K</span><div><h3>No task work is waiting</h3><p>No available, in-progress or completed task records are currently visible to this authenticated identity.</p><a class="k-app-card-action" href="/chat">Continue in Chat →</a></div></div>
             <div class="k-app-empty" data-tasks-error hidden role="alert"><span class="k-app-empty-mark" aria-hidden="true">!</span><div><h3>Task state is unavailable</h3><p>The task authority could not be read. No task status is inferred locally; try again once the connection is restored.</p><a class="k-app-card-action" href="/tasks">Retry Tasks →</a></div></div>
           </section>
-        <% } else if (section === 'memory' || section === 'notifications') { %>
-          <section class="k-app-grid two"><article class="k-app-card"><span class="k-app-card-label"><%= section === 'memory' ? 'Memory Profile' : 'Notifications' %></span><h2><%= section === 'memory' ? 'One owner-scoped memory authority.' : 'Continuation without fragmentation.' %></h2><p><%= selected.description %></p><a href="/chat" class="k-app-card-action">Continue in Chat →</a></article><article class="k-app-card"><span class="k-app-card-label">Cross-client</span><h2>Same state across Web, PWA and native.</h2><p>Durable state comes from the canonical OS; clients keep only cache, device and rendering state locally.</p><a href="/desk" class="k-app-card-action">Open Desk →</a></article></section>
+        <% } else if (section === 'memory') { %>
+          <section class="k-memory-live" data-memory-root data-workspace-owned-surface="memory" aria-live="polite" aria-busy="true">
+            <div class="k-app-list-loading">Loading canonical Memory Profile…</div>
+          </section>
+        <% } else if (section === 'notifications') { %>
+          <section class="k-notifications-live" data-notifications-root data-workspace-owned-surface="notifications" aria-live="polite" aria-busy="true">
+            <div class="k-app-list-loading">Loading canonical notifications…</div>
+          </section>
         <% } else if (section === 'topics') { %>
           <section class="k-app-grid two"><article class="k-app-card"><span class="k-app-card-label">Community context</span><h2>Useful local knowledge, clearly labelled.</h2><p>Topics are community-shared questions, reports and experiences. They provide context and discovery signals but do not confirm provider status, price, stock, availability, booking or payment.</p><a href="/topics" class="k-app-primary">Browse Topics</a></article><article class="k-app-card"><span class="k-app-card-label">Moderation boundary</span><h2>Share with a review boundary.</h2><p>Authenticated Topics and replies remain subject to moderation and reporting. Community content never silently creates a provider, offer, economic request or transaction.</p><a href="/topics#create-topic" class="k-app-card-action">Share a Topic →</a></article></section>
         <% } else if (section === 'reminders') { %>
@@ -159,6 +167,9 @@
     <a href="/connect" aria-current="<%= section === 'connect' ? 'page' : 'false' %>"><span><%- icon('settings') %></span><span>Connect</span></a>
   </nav>
   <script src="/js/kurukoo-workspace.js?v=routes1" defer></script>
+  <% if (section === 'desk') { %>
+  <script src="/js/kurukoo-desk-data.js?v=1" defer></script>
+  <% } %>
   <% if (section === 'requests') { %>
   <script src="/js/kurukoo-requests-convergence.js?v=1" defer></script>
   <% } %>
