@@ -1,8 +1,7 @@
 (() => {
   'use strict';
   if (document.body?.dataset.workspaceSection !== 'desk' && document.body?.dataset.appSection !== 'desk') return;
-  const root = document.querySelector('[data-desk-root]');
-  if (!root || document.documentElement.dataset.kurukooDeskData === 'true') return;
+  if (document.documentElement.dataset.kurukooDeskData === 'true') return;
   document.documentElement.dataset.kurukooDeskData = 'true';
 
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' }[c]));
@@ -33,36 +32,69 @@
     'paid', 'in_fulfillment', 'fulfilled',
   ]);
 
-  const item = ({ kind, title, meta, href, primary }) => {
-    const action = href
-      ? `<a class="${primary ? 'k-app-primary' : 'k-app-card-action'}" href="${esc(href)}">${primary ? 'Continue' : 'Open'} →</a>`
-      : '';
-    return `<article class="k-app-card k-desk-item" data-desk-kind="${esc(kind)}">
-      <span class="k-app-card-label">${esc(kind)}</span>
-      <h3>${esc(title)}</h3>
-      <p>${esc(meta)}</p>
-      ${action}
-    </article>`;
+  const flowRow = (label, href, detail) => {
+    const a = document.createElement('a');
+    a.className = 'k-desk-flow-item';
+    a.href = href;
+    a.innerHTML = `<span>${esc(label)}${detail ? `<small class="k-desk-item-meta">${esc(detail)}</small>` : ''}</span><strong>Open →</strong>`;
+    return a;
   };
 
-  const renderBand = (name, html) => {
-    const band = root.querySelector(`[data-desk-band="${name}"]`);
-    const list = root.querySelector(`[data-desk-list="${name}"]`);
-    if (!band || !list) return;
-    if (!html) {
-      band.hidden = true;
-      list.innerHTML = '';
+  const setModuleState = (module, state, title, copy, action) => {
+    if (!module) return;
+    module.querySelectorAll('.k-desk-state, .k-desk-live-list').forEach((node) => node.remove());
+    const wrap = document.createElement('div');
+    wrap.className = `k-desk-state k-desk-state-${state}`;
+    const pill = document.createElement('span');
+    pill.className = 'k-desk-state-pill';
+    pill.textContent = state === 'unavailable' ? 'Unavailable' : state === 'empty' ? 'Nothing here yet' : state === 'ready' ? 'Ready' : state === 'attention' ? 'Needs attention' : state === 'progress' ? 'In progress' : state;
+    const strong = document.createElement('strong');
+    strong.textContent = title;
+    const text = document.createElement('span');
+    text.textContent = copy;
+    wrap.append(pill, strong, text);
+    if (action) {
+      const link = document.createElement('a');
+      link.href = action.href;
+      link.textContent = action.label;
+      wrap.appendChild(link);
+    }
+    module.appendChild(wrap);
+  };
+
+  const setModuleList = (module, rows, emptyTitle, emptyCopy, emptyHref) => {
+    if (!module) return;
+    module.querySelectorAll('.k-desk-state, .k-desk-live-list').forEach((node) => node.remove());
+    if (!rows.length) {
+      setModuleState(module, 'empty', emptyTitle, emptyCopy, emptyHref ? { label: 'Open →', href: emptyHref } : null);
       return;
     }
-    list.innerHTML = html;
-    band.hidden = false;
+    const list = document.createElement('div');
+    list.className = 'k-desk-live-list';
+    rows.forEach(({ label, href, detail }) => list.appendChild(flowRow(label, href, detail)));
+    module.appendChild(list);
   };
 
+  const waitForComposition = () => new Promise((resolve) => {
+    const found = document.querySelector('[data-desk-convergence="phase1"]');
+    if (found) return resolve(found);
+    const observer = new MutationObserver(() => {
+      const node = document.querySelector('[data-desk-convergence="phase1"]');
+      if (node) {
+        observer.disconnect();
+        resolve(node);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => {
+      observer.disconnect();
+      resolve(document.querySelector('[data-desk-convergence="phase1"]'));
+    }, 4000);
+  });
+
   const load = async () => {
-    const loading = root.querySelector('[data-desk-loading]');
-    const errorEl = root.querySelector('[data-desk-error]');
-    if (loading) loading.hidden = false;
-    if (errorEl) errorEl.hidden = true;
+    const composition = await waitForComposition();
+    if (!composition) return;
 
     const [requestsR, tasksR, notificationsR, remindersR, pointsR] = await Promise.all([
       settle(api('/api/chat/economic-requests')),
@@ -71,11 +103,6 @@
       settle(api('/api/reminders')),
       settle(api('/api/points/balance')),
     ]);
-
-    if (loading) loading.hidden = true;
-
-    const anyFailed = [requestsR, tasksR, notificationsR, remindersR].some((r) => !r.ok);
-    if (errorEl) errorEl.hidden = !anyFailed;
 
     const requests = requestsR.ok
       ? (Array.isArray(requestsR.value?.requests) ? requestsR.value.requests : Array.isArray(requestsR.value) ? requestsR.value : [])
@@ -100,59 +127,38 @@
       const link = typeof n.link === 'string' && n.link.startsWith('/') ? n.link
         : n.conversation_id ? `/chat/${encodeURIComponent(n.conversation_id)}`
         : '/notifications';
-      attention.push(item({
-        kind: 'Notification',
-        title: String(title).slice(0, 120),
-        meta: [humanize(n.surface || n.object_type || 'Kurukoo'), formatDate(n.created_at || n.createdAt)].filter(Boolean).join(' · '),
+      attention.push({
+        label: String(title).slice(0, 120),
+        detail: [humanize(n.surface || n.object_type || 'Kurukoo'), formatDate(n.created_at || n.createdAt)].filter(Boolean).join(' · '),
         href: link,
-        primary: true,
-      }));
+      });
     });
 
     requests.forEach((req) => {
       const status = String(req.status || '').toLowerCase();
       const id = String(req.id || '');
       const skill = humanize(req.skill || req.category || 'request');
-      const title = `${skill}${id ? ` · ${id.slice(0, 8)}` : ''}`;
-      const meta = `Status: ${humanize(status)}${req.updated_at || req.updatedAt ? ` · ${formatDate(req.updated_at || req.updatedAt)}` : ''}`;
+      const label = `${skill}${id ? ` · ${id.slice(0, 8)}` : ''}`;
+      const detail = `Status: ${humanize(status)}${req.updated_at || req.updatedAt ? ` · ${formatDate(req.updated_at || req.updatedAt)}` : ''}`;
       if (actionNeededStatuses.has(status)) {
-        attention.push(item({
-          kind: 'Request · action',
-          title,
-          meta,
-          href: `/confirmation?request=${encodeURIComponent(id)}`,
-          primary: true,
-        }));
+        attention.push({ label, detail, href: `/confirmation?request=${encodeURIComponent(id)}` });
       } else if (progressStatuses.has(status)) {
-        progress.push(item({
-          kind: 'Request',
-          title,
-          meta,
-          href: `/chat?prompt=${encodeURIComponent(`Continue my ${skill} request ${id}`)}`,
-          primary: false,
-        }));
-      } else if (status === 'completed') {
-        cont.push(item({
-          kind: 'Completed request',
-          title,
-          meta,
-          href: `/requests/${encodeURIComponent(id)}`,
-          primary: false,
-        }));
+        progress.push({ label, detail, href: `/chat?prompt=${encodeURIComponent(`Continue my ${skill} request ${id}`)}` });
+      } else if (['completed', 'fulfilled'].includes(status)) {
+        cont.push({ label, detail, href: `/requests/${encodeURIComponent(id)}` });
       }
     });
 
     tasks.forEach((task) => {
       const status = String(task.status || 'available').toLowerCase();
-      const id = String(task.id || '');
-      const title = task.title || task.name || `Task ${id.slice(0, 8)}`;
-      const meta = `Status: ${humanize(status)}${task.sourceType ? ` · ${humanize(task.sourceType)}` : ''}`;
+      const label = task.title || task.name || `Task ${String(task.id || '').slice(0, 8)}`;
+      const detail = humanize(status);
       if (status === 'available' && !task.assignedTo) {
-        attention.push(item({ kind: 'Task · available', title, meta, href: '/tasks', primary: true }));
+        attention.push({ label, detail, href: '/tasks' });
       } else if (status === 'in_progress' && task.assignedTo) {
-        progress.push(item({ kind: 'Task', title, meta, href: '/tasks', primary: false }));
+        progress.push({ label, detail, href: '/tasks' });
       } else if (['completed', 'approved'].includes(status)) {
-        cont.push(item({ kind: 'Completed task', title, meta, href: '/tasks', primary: false }));
+        cont.push({ label, detail, href: '/tasks' });
       }
     });
 
@@ -163,74 +169,110 @@
       const due = rem.dueAt || rem.due_at;
       const dueMs = due ? new Date(due).getTime() : NaN;
       const overdue = !Number.isNaN(dueMs) && dueMs < now;
-      const title = rem.title || rem.note || 'Reminder';
-      const meta = [overdue ? 'Overdue' : humanize(status), formatDate(due)].filter(Boolean).join(' · ');
-      const href = `/chat?prompt=${encodeURIComponent(`Show reminder ${rem.id || title}`)}`;
-      if (overdue) attention.push(item({ kind: 'Reminder · overdue', title, meta, href, primary: true }));
-      else progress.push(item({ kind: 'Reminder', title, meta, href, primary: false }));
+      const label = rem.title || rem.note || 'Reminder';
+      const detail = [overdue ? 'Overdue' : humanize(status), formatDate(due)].filter(Boolean).join(' · ');
+      const href = `/chat?prompt=${encodeURIComponent(`Show reminder ${rem.id || label}`)}`;
+      if (overdue) attention.push({ label, detail, href });
+      else progress.push({ label, detail, href });
     });
 
-    renderBand('attention', attention.slice(0, 8).join('') || '');
-    renderBand('progress', progress.slice(0, 8).join('') || '');
-    renderBand('continue', cont.slice(0, 6).join('') || '');
+    const today = composition.querySelector('[data-desk-module="today-flow"]');
+    const todayList = today?.querySelector('.k-desk-flow-list');
+    if (todayList) {
+      todayList.replaceChildren();
+      const hierarchy = [
+        ...attention.slice(0, 4).map((row) => ({ ...row, label: `Needs attention · ${row.label}` })),
+        ...progress.slice(0, 4).map((row) => ({ ...row, label: `In progress · ${row.label}` })),
+        ...cont.slice(0, 2).map((row) => ({ ...row, label: `Continue · ${row.label}` })),
+      ];
+      if (hierarchy.length) {
+        hierarchy.forEach((row) => todayList.appendChild(flowRow(row.label, row.href, row.detail)));
+      } else {
+        todayList.appendChild(flowRow('Ask Kurukoo', '/chat', 'Nothing needs attention right now'));
+        todayList.appendChild(flowRow('Open Requests', '/requests', 'No active economic requests'));
+        todayList.appendChild(flowRow('Open Tasks', '/tasks', 'No task work waiting'));
+      }
+    }
 
-    const availableParts = [];
-    availableParts.push(item({
-      kind: 'Conversation',
-      title: 'Ask Kurukoo',
-      meta: 'Chat remains the source of truth for requests, reminders, memory, agents and actions.',
-      href: '/chat',
-      primary: true,
-    }));
-    if (!requests.length) {
-      availableParts.push(item({
-        kind: 'Requests',
-        title: 'No Economic Requests yet',
-        meta: 'Start in Chat when you are ready to source, compare or continue a request. No provider or payment state is assumed.',
-        href: '/requests',
-        primary: false,
-      }));
+    const requestCard = composition.querySelector('[data-desk-module="active-requests"]');
+    if (!requestsR.ok) {
+      setModuleState(requestCard, 'unavailable', 'Request state unavailable', 'Canonical Economic Request authority could not be read.', { label: 'Retry Requests', href: '/requests' });
     } else {
-      availableParts.push(item({
-        kind: 'Requests',
-        title: `${requests.length} request${requests.length === 1 ? '' : 's'} on record`,
-        meta: 'Review lifecycle, next actions and continuation without a parallel order model.',
-        href: '/requests',
-        primary: false,
-      }));
+      const actionRows = requests
+        .filter((r) => actionNeededStatuses.has(String(r.status || '').toLowerCase()))
+        .slice(0, 5)
+        .map((r) => ({
+          label: humanize(r.skill || r.category || 'request'),
+          detail: humanize(r.status),
+          href: `/confirmation?request=${encodeURIComponent(String(r.id || ''))}`,
+        }));
+      const progressRows = requests
+        .filter((r) => progressStatuses.has(String(r.status || '').toLowerCase()))
+        .slice(0, 5)
+        .map((r) => ({
+          label: humanize(r.skill || r.category || 'request'),
+          detail: humanize(r.status),
+          href: `/chat?prompt=${encodeURIComponent(`Continue my request ${r.id}`)}`,
+        }));
+      setModuleList(requestCard, [...actionRows, ...progressRows], 'No active requests', 'Start in Chat when you are ready to source, compare or continue a request.', '/chat');
     }
-    availableParts.push(item({
-      kind: 'Memory',
-      title: 'Memory Profile',
-      meta: 'Kurukoo remembers useful things, and you control what it remembers.',
-      href: '/memory',
-      primary: false,
-    }));
-    availableParts.push(item({
-      kind: 'Notifications',
-      title: notifications.length ? `${notifications.length} notification${notifications.length === 1 ? '' : 's'}` : 'Notification centre',
-      meta: 'Source-linked updates with explicit next actions.',
-      href: '/notifications',
-      primary: false,
-    }));
-    if (points !== null) {
-      availableParts.push(item({
-        kind: 'Points',
-        title: `${points.toLocaleString()} points`,
-        meta: 'Balance from the canonical points owner.',
-        href: '/points',
-        primary: false,
-      }));
-    }
-    availableParts.push(item({
-      kind: 'Discover',
-      title: 'Explore the network',
-      meta: 'Nearby, Today, Topics and Opportunities from canonical discovery data.',
-      href: '/discover',
-      primary: false,
-    }));
 
-    renderBand('available', availableParts.join(''));
+    const taskModule = composition.querySelector('[data-desk-module="tasks-reminders"]');
+    if (!tasksR.ok && !remindersR.ok) {
+      setModuleState(taskModule, 'unavailable', 'Task state unavailable', 'Task authority could not be read.', { label: 'Retry Tasks', href: '/tasks' });
+    } else {
+      const rows = tasks.slice(0, 6).map((task) => ({
+        label: task.title || task.name || `Task ${String(task.id || '').slice(0, 8)}`,
+        detail: humanize(task.status || 'available'),
+        href: '/tasks',
+      }));
+      reminders
+        .filter((r) => !['cancelled', 'completed', 'done'].includes(String(r.status || '').toLowerCase()))
+        .slice(0, 4)
+        .forEach((rem) => {
+          rows.push({
+            label: rem.title || rem.note || 'Reminder',
+            detail: formatDate(rem.dueAt || rem.due_at) || humanize(rem.status),
+            href: `/chat?prompt=${encodeURIComponent(`Show reminder ${rem.id || ''}`)}`,
+          });
+        });
+      setModuleList(taskModule, rows, 'No task work waiting', 'No available or in-progress tasks for this identity.', '/tasks');
+    }
+
+    const pulse = composition.querySelector('[data-desk-module="pulse"]');
+    if (!notificationsR.ok) {
+      setModuleState(pulse, 'unavailable', 'Notifications unavailable', 'Notification authority could not be read.', { label: 'Open Notifications', href: '/notifications' });
+    } else {
+      const unread = notifications.filter((n) => !n.read && !n.readAt);
+      const rows = unread.slice(0, 5).map((n) => ({
+        label: String(n.title || n.body || n.message || 'Notification').slice(0, 100),
+        detail: formatDate(n.created_at || n.createdAt),
+        href: typeof n.link === 'string' && n.link.startsWith('/') ? n.link : '/notifications',
+      }));
+      setModuleList(pulse, rows, 'No live pulse', 'Current notifications remain available from their canonical source.', '/notifications');
+    }
+
+    const activity = composition.querySelector('[data-desk-module="activity-summary"]');
+    if (activity) {
+      const metrics = activity.querySelector('.k-desk-activity-metrics');
+      if (metrics) {
+        const openRequests = requests.filter((r) => !['completed', 'cancelled', 'failed', 'abandoned'].includes(String(r.status || '').toLowerCase())).length;
+        const openTasks = tasks.filter((t) => !['completed', 'approved', 'cancelled', 'expired'].includes(String(t.status || '').toLowerCase())).length;
+        const activeReminders = reminders.filter((r) => !['cancelled', 'completed', 'done'].includes(String(r.status || '').toLowerCase())).length;
+        const cells = metrics.querySelectorAll('div');
+        if (cells[0]) cells[0].innerHTML = `<span>Tasks</span><strong>${openTasks}</strong>`;
+        if (cells[1]) cells[1].innerHTML = `<span>Requests</span><strong>${openRequests}</strong>`;
+        if (cells[2]) cells[2].innerHTML = `<span>Reminders</span><strong>${activeReminders}</strong>`;
+      }
+    }
+
+    if (points !== null) {
+      document.querySelectorAll('[data-desk-points-value]').forEach((node) => {
+        node.textContent = `${points.toLocaleString()} points`;
+      });
+    }
+
+    composition.dataset.deskHydrated = 'true';
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load, { once: true });
