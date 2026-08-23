@@ -1,1 +1,111 @@
-<!-- SEE LOCAL FILE - WILL USE PUSH FROM CONTENT BELOW -->
+<!-- Kurukoo visual system: warm cream/white OS canvas, Space Grotesk hierarchy, Inter UI rhythm, terracotta single-action emphasis, evidence-led states. -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title><%= selected.title %> · Kurukoo</title>
+  <meta name="description" content="<%= selected.description %>">
+  <link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/site.css?v=1.2.1">
+  <link rel="stylesheet" href="/css/kurukoo-client-foundation.css?v=2">
+  <link rel="stylesheet" href="/css/kurukoo-workspace.css?v=5">
+  <link rel="stylesheet" href="/css/kurukoo-os-final.css?v=visual4">
+  <link rel="stylesheet" href="/css/kurukoo-desktop-final.css?v=1">
+  <link rel="stylesheet" href="/css/kurukoo-os-visual-advancement.css?v=1">
+  <% if (section === 'requests') { %>
+  <link rel="stylesheet" href="/css/kurukoo-requests-convergence.css?v=1">
+  <% } %>
+  <% if (section === 'tasks') { %>
+  <link rel="stylesheet" href="/css/kurukoo-tasks-convergence.css?v=1">
+  <% } %>
+  <script src="/js/fcm-client.js?v=routes2" defer></script>
+</head>
+<body class="k-app-page workspace-page k-app-section-<%= section %>" data-workspace-section="<%= section %>" data-app-section="<%= section %>">
+  <% const icon = (name) => `<svg class="k-app-icon" aria-hidden="true"><use href="/icons/kurukoo-icons.svg#${name}"></use></svg>`; %>
+  <div class="k-app-shell">
+    <header class="k-app-header">
+      <a href="/" class="k-app-brand"><img src="/assets/brand/logo-icon.png" alt="Kurukoo" width="34" height="34"><span>Kurukoo</span></a>
+      <div class="k-app-header-actions">
+        <span class="k-app-identity"><strong><%= displayName %></strong><small><%= phone %></small></span>
+        <a class="k-app-ask" href="/chat">Ask</a>
+      </div>
+    </header>
+    <aside class="k-app-sidebar" aria-label="Kurukoo application navigation">
+      <a class="k-app-new" href="/chat">＋ New conversation</a>
+      <nav class="k-app-nav" aria-label="Primary">
+        <a class="<%= section === 'desk' ? 'active' : '' %>" href="/desk"><%- icon('chat') %><span>Desk</span></a>
+        <a class="<%= section === 'discover' ? 'active' : '' %>" href="/discover"><%- icon('discover') %><span>Discover</span></a>
+        <a class="<%= section === 'requests' ? 'active' : '' %>" href="/requests"><%- icon('request') %><span>Requests</span></a>
+        <a class="<%= section === 'tasks' ? 'active' : '' %>" href="/tasks"><%- icon('work') %><span>Tasks</span></a>
+        <a class="<%= section === 'connect' ? 'active' : '' %>" href="/connect"><%- icon('settings') %><span>Connect</span></a>
+      </nav>
+      <div class="k-app-divider"></div>
+      <nav class="k-app-nav" aria-label="Account">
+        <a class="<%= section === 'memory' ? 'active' : '' %>" href="/memory"><%- icon('saved') %><span>Memory</span></a>
+        <a class="<%= section === 'notifications' ? 'active' : '' %>" href="/notifications"><%- icon('notification') %><span>Notifications</span></a>
+        <a href="/settings"><%- icon('settings') %><span>Settings</span></a>
+        <a href="/help"><%- icon('help') %><span>Help</span></a>
+      </nav>
+    </aside>
+    <main class="k-app-main">
+      <div class="k-app-container">
+        <div class="k-app-eyebrow"><%= selected.eyebrow %></div>
+        <div class="k-app-title-row">
+          <div><h1><%= selected.title %></h1><p><%= selected.description %></p></div>
+          <a class="k-app-primary" href="<%= selected.cta %>"><%= selected.ctaLabel %></a>
+        </div>
+        <section class="ko-context" aria-label="Kurukoo continuity context">
+          <span class="ko-context-mark" aria-hidden="true">K</span>
+          <div><div class="ko-context-title"><%= selected.eyebrow %></div><div class="ko-context-meta">This surface remains part of the same Kurukoo relationship. Return to Chat to continue with the exact context, ask a follow-up or take the next supported action.</div></div>
+          <a class="ko-context-action" href="/chat">Continue in Chat</a>
+        </section>
+        <% if (section === 'desk') { %>
+          <section class="k-desk-live" data-desk-root data-workspace-owned-surface="desk" aria-label="Live Desk summary">
+            <div class="k-desk-loading" data-desk-loading aria-live="polite">Loading canonical Desk state…</div>
+          </section>
+        <% } else if (section === 'requests') { %>
+          <section class="k-app-card k-request-workspace" data-workspace-owned-surface="requests">
+            <div class="k-app-data-list" data-requests-list aria-live="polite" aria-busy="true"><div class="k-app-list-loading">Loading canonical Economic Request state…</div></div>
+          </section>
+        <% } else if (section === 'tasks') { %>
+          <section class="k-app-card k-task-workspace" data-workspace-owned-surface="tasks">
+            <div class="k-app-data-list" data-tasks-list aria-live="polite" aria-busy="true"><div class="k-app-list-loading">Loading your canonical task summary…</div></div>
+          </section>
+        <% } else if (section === 'memory') { %>
+          <section class="k-memory-live" data-memory-root data-workspace-owned-surface="memory" aria-live="polite" aria-busy="true">
+            <div class="k-app-list-loading">Loading canonical Memory Profile…</div>
+          </section>
+        <% } else if (section === 'notifications') { %>
+          <section class="k-notifications-live" data-notifications-root data-workspace-owned-surface="notifications" aria-live="polite" aria-busy="true">
+            <div class="k-app-list-loading">Loading canonical notifications…</div>
+          </section>
+        <% } else { %>
+          <section class="k-app-card"><span class="k-app-card-label"><%= selected.eyebrow %></span><h2><%= selected.title %></h2><p><%= selected.description %></p><a href="<%= selected.cta %>" class="k-app-primary"><%= selected.ctaLabel %></a></section>
+        <% } %>
+        <section class="k-app-status-row">
+          <span class="k-status" data-state="success">OS connected</span>
+        </section>
+      </div>
+    </main>
+  </div>
+  <nav class="k-mobile-tabbar" aria-label="Kurukoo application navigation">
+    <a href="/desk" aria-current="<%= section === 'desk' ? 'page' : 'false' %>"><span><%- icon('chat') %></span><span>Desk</span></a>
+    <a href="/discover" aria-current="<%= section === 'discover' ? 'page' : 'false' %>"><span><%- icon('discover') %></span><span>Discover</span></a>
+    <a href="/requests" aria-current="<%= section === 'requests' ? 'page' : 'false' %>"><span><%- icon('request') %></span><span>Requests</span></a>
+    <a href="/tasks" aria-current="<%= section === 'tasks' ? 'page' : 'false' %>"><span><%- icon('work') %></span><span>Tasks</span></a>
+    <a href="/connect" aria-current="<%= section === 'connect' ? 'page' : 'false' %>"><span><%- icon('settings') %></span><span>Connect</span></a>
+  </nav>
+  <script src="/js/kurukoo-workspace.js?v=routes1" defer></script>
+  <% if (section === 'desk') { %>
+  <script src="/js/kurukoo-desk-data.js?v=1" defer></script>
+  <% } %>
+  <% if (section === 'requests') { %>
+  <script src="/js/kurukoo-requests-convergence.js?v=1" defer></script>
+  <% } %>
+  <% if (section === 'tasks') { %>
+  <script src="/js/kurukoo-tasks-convergence.js?v=1" defer></script>
+  <% } %>
+  <script src="/js/kurukoo-app-shell.js?v=4" defer></script>
+</body>
+</html>
