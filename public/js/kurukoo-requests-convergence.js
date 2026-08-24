@@ -101,6 +101,34 @@
     const coordination = await coordinationPromise;
     if (coordination) appendMetaRow(meta, 'Provider', participantState(coordination));
 
+    // Agent Goal linkage: where an economicRequestId exists, show the linked Agent Goal
+    if (request.id) {
+      try {
+        const goalResponse = await fetch(`/api/agent/goals?includeClosed=true`, { credentials: 'same-origin' });
+        if (goalResponse.ok) {
+          const goalData = await goalResponse.json();
+          const goals = Array.isArray(goalData.goals) ? goalData.goals : [];
+          const linkedGoal = goals.find(g => String(g.economicRequestId || '') === String(request.id));
+          if (linkedGoal) {
+            const goalStatus = String(linkedGoal.status || '').replace(/_/g, ' ');
+            const goalRow = document.createElement('div');
+            goalRow.className = 'requests-convergence-goal-row';
+            const goalLabel = document.createElement('span');
+            goalLabel.className = 'requests-convergence-goal-label';
+            goalLabel.textContent = `Agent Goal · ${goalStatus}`;
+            const goalAction = document.createElement('a');
+            goalAction.href = `/chat?prompt=${encodeURIComponent(`Show me my agent objective ${linkedGoal.id || ''}`)}`;
+            goalAction.textContent = 'Open goal';
+            goalAction.setAttribute('aria-label', `Open Agent Goal for this request`);
+            goalRow.append(goalLabel, goalAction);
+            meta.appendChild(goalRow);
+          }
+        }
+      } catch {
+        // Agent Goal lookup fails closed without inventing linkage
+      }
+    }
+
     const detail = card.querySelector('p');
     if (detail) detail.textContent = requestSummary(request);
     card.appendChild(meta);
