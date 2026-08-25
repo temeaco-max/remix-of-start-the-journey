@@ -1,78 +1,74 @@
 import { handleOnboardingInput, onboardNewUser } from '../src/services/progressiveOnboarding.js';
-import { getDb } from '../src/database.js';
+import { getProfile } from '../src/services/memoryProfile.js';
 
 async function runTests() {
   let passed = 0;
   let failed = 0;
 
-  console.log("--- Starting Onboarding Tests ---");
+  console.log('--- Starting Onboarding Tests ---');
 
-  // Test 1: New user onboarding name capture
   try {
     const phone = '+2348011111111';
-    await onboardNewUser(phone);
+    const welcome = await onboardNewUser(phone);
+    if (welcome.includes('Welcome to Kurukoo') && welcome.includes('what you need')) {
+      passed++;
+    } else {
+      console.error('TEST 1: Welcome flow - FAILED. Reply was:', welcome);
+      failed++;
+    }
+  } catch (e) {
+    console.error('TEST 1: Welcome flow - FAILED', e);
+    failed++;
+  }
+
+  try {
+    const phone = '+2348011111111';
     const result = await handleOnboardingInput(phone, 'Test User');
-    
-    if (result.reply.includes('Nice to meet you, Test User!')) {
-      console.log("TEST 1: Name Capture - PASSED");
+    const profile = await getProfile(phone, 'onboarding-test');
+    if (
+      result.reply.includes('Nice to meet you, Test User.') &&
+      result.reply.includes('Tell me what you need done') &&
+      result.cardData?.type === 'welcome' &&
+      profile?.name === 'Test User'
+    ) {
       passed++;
     } else {
-      console.error("TEST 1: Name Capture - FAILED. Reply was:", result.reply);
+      console.error('TEST 2: Name + handoff to useful work - FAILED. Result:', result);
       failed++;
     }
   } catch (e) {
-    console.error("TEST 1: Name Capture - FAILED", e);
+    console.error('TEST 2: Name + handoff to useful work - FAILED', e);
     failed++;
   }
 
-  // Test 2: Intent capture
   try {
-    const phone = '+2348011111111';
-    const result = await handleOnboardingInput(phone, 'Earn Money');
-    
-    if (result.reply.includes('What kind of work or skills can you do?')) {
-      console.log("TEST 2: Intent Capture - PASSED");
+    const phone = '+2348011111112';
+    await onboardNewUser(phone);
+    const result = await handleOnboardingInput(phone, 'none');
+    const profile = await getProfile(phone, 'onboarding-test-none');
+    if (result.reply.includes('Tell me what you need done') && profile?.preferences?.onboarding_complete === true) {
       passed++;
     } else {
-      console.error("TEST 2: Intent Capture - FAILED. Reply was:", result.reply);
+      console.error('TEST 3: Mid-flow progressive completion - FAILED. Result:', result);
       failed++;
     }
   } catch (e) {
-    console.error("TEST 2: Intent Capture - FAILED", e);
+    console.error('TEST 3: Mid-flow progressive completion - FAILED', e);
     failed++;
   }
 
-  // Test 3: Skill capture
   try {
-    const phone = '+2348011111111';
+    const phone = '+2348011111113';
+    await onboardNewUser(phone);
     const result = await handleOnboardingInput(phone, 'plumber');
-    
-    if (result.reply.includes('Almost done! To secure your identity')) {
-      console.log("TEST 3: Skill Capture - PASSED");
+    if (result.reply.includes('Tell me what you need done')) {
       passed++;
     } else {
-      console.error("TEST 3: Skill Capture - FAILED. Reply was:", result.reply);
+      console.error('TEST 4: Free-form first request - FAILED. Result:', result);
       failed++;
     }
   } catch (e) {
-    console.error("TEST 3: Skill Capture - FAILED", e);
-    failed++;
-  }
-
-  // Test 4: Confirmation
-  try {
-    const phone = '+2348011111111';
-    const result = await handleOnboardingInput(phone, 'CONFIRM');
-    
-    if (result.reply.includes('Congratulations! Your Kurukoo account is now fully active.')) {
-      console.log("TEST 4: Confirmation - PASSED");
-      passed++;
-    } else {
-      console.error("TEST 4: Confirmation - FAILED. Reply was:", result.reply);
-      failed++;
-    }
-  } catch (e) {
-    console.error("TEST 4: Confirmation - FAILED", e);
+    console.error('TEST 4: Free-form first request - FAILED', e);
     failed++;
   }
 
