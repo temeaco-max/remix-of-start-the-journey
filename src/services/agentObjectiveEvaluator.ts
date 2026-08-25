@@ -17,6 +17,7 @@ export interface AgentObjectiveEvaluation extends AgentQualityDecision {
   latestStatus?: string;
   evidencePresent: boolean;
   externallyVerified: boolean;
+  externalOutcomeClaimed: boolean;
 }
 
 function hasVerifiedOutcome(trace: AgentExecutionTraceEvent[]): boolean {
@@ -42,6 +43,7 @@ export async function evaluateAgentObjective(
   const trace = await listAgentExecutionTrace(input.ownerPhone, input.goalId, 200);
   const evidencePresent = hasVerifiedOutcome(trace);
   const externallyVerified = evidencePresent;
+  const externalOutcomeClaimed = hasExternalOutcomeClaim(trace);
   const latestStatus = trace.length ? trace[trace.length - 1]?.status : undefined;
   const decision = evaluateAgentWork({
     objective: input.objective,
@@ -51,8 +53,8 @@ export async function evaluateAgentObjective(
     dependenciesSatisfied: input.dependenciesSatisfied,
     evidenceRequired: input.evidenceRequired,
     evidencePresent,
-    externalOutcomeClaimed: hasExternalOutcomeClaim(trace),
+    externalOutcomeClaimed,
     externallyVerified,
   });
-  return { ...decision, traceCount: trace.length, latestStatus, evidencePresent, externallyVerified };
+  return { ...decision, traceCount: trace.length, latestStatus, evidencePresent, externallyVerified, externalOutcomeClaimed };
 }

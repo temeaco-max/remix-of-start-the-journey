@@ -2,16 +2,28 @@ import { getCanonicalStore } from './canonicalStore.js';
 
 export type AgentTraceKind =
   | 'goal_started'
+  | 'plan_selected'
+  | 'budget_checked'
+  | 'budget_exhausted'
   | 'model_decision'
+  | 'tool_requested'
+  | 'tool_started'
   | 'tool_call'
+  | 'tool_succeeded'
+  | 'tool_failed'
   | 'policy_decision'
   | 'authorization'
   | 'capability_execution'
   | 'evidence'
+  | 'quality_evaluated'
   | 'outcome'
   | 'notification'
   | 'continuation'
-  | 'execution_stopped';
+  | 'needs_user'
+  | 'execution_stopped'
+  | 'goal_completed'
+  | 'goal_failed'
+  | 'goal_cancelled';
 
 export interface AgentExecutionTraceEvent {
   id?: number;
@@ -28,6 +40,8 @@ export interface AgentExecutionTraceEvent {
   reason?: string;
   evidence?: string;
   metadata?: Record<string, unknown>;
+  /** Optional caller-supplied idempotency key. Duplicate keys are ignored. */
+  idempotencyKey?: string;
   createdAt?: string;
 }
 
@@ -72,6 +86,12 @@ export async function ensureAgentExecutionTraceSchema(): Promise<void> {
   }
   await store.run(`CREATE INDEX IF NOT EXISTS idx_agent_trace_owner_goal ON agent_execution_trace(owner_phone, goal_id, created_at DESC)`);
   await store.run(`CREATE INDEX IF NOT EXISTS idx_agent_trace_conversation ON agent_execution_trace(owner_phone, conversation_id, created_at DESC)`);
+  try {
+    await store.run(`ALTER TABLE agent_execution_trace ADD COLUMN idempotency_key TEXT`);
+  } catch {
+    /* column already exists */
+  }
+  await store.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_trace_idempotency ON agent_execution_trace(idempotency_key) WHERE idempotency_key IS NOT NULL`);
 }
 
 export async function recordAgentExecutionTrace(event: AgentExecutionTraceEvent): Promise<void> {
@@ -81,8 +101,9 @@ export async function recordAgentExecutionTrace(event: AgentExecutionTraceEvent)
   await store.run(
     `INSERT INTO agent_execution_trace(
       owner_phone, goal_id, conversation_id, kind, actor, status, tool,
-      capability, action, canonical_object_id, reason, evidence, metadata_json, created_at
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      capability, action, canonical_object_id, reason, evidence, metadata_json, idempotency_key, created_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT DO NOTHING`,
     [
       event.ownerPhone,
       event.goalId || null,
@@ -97,6 +118,7 @@ export async function recordAgentExecutionTrace(event: AgentExecutionTraceEvent)
       event.reason || null,
       event.evidence || null,
       event.metadata ? JSON.stringify(event.metadata) : null,
+      event.idempotencyKey || null,
       event.createdAt || new Date().toISOString(),
     ],
   );

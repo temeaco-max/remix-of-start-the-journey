@@ -83,6 +83,73 @@ export function recordAgentExecutionAction(
   };
 }
 
+export interface AgentExecutionBudgetInput {
+  budget: AgentExecutionBudget;
+  usage: AgentExecutionUsage;
+  /** Number of other concurrently active goals owned by the same principal. */
+  concurrentGoals?: number;
+  estimatedActionCostMinor?: number;
+  nowMs?: number;
+}
+
+export interface AgentExecutionBudgetDecision extends AgentExecutionDecision {
+  remainingActions: number;
+  remainingRetries: number;
+  remainingElapsedMs: number;
+  concurrentGoals: number;
+}
+
+/**
+ * Canonical single-decision budget evaluator for every Agent execution cycle.
+ * Composes action/retry/elapsed/concurrent/cost limits into one authoritative
+ * decision so callers never maintain a second independent budget system.
+ */
+export function evaluateExecutionBudget(input: AgentExecutionBudgetInput): AgentExecutionBudgetDecision {
+  const now = input.nowMs ?? Date.now();
+  const concurrentGoals = Math.max(0, Math.floor(input.concurrentGoals || 0));
+  const base = checkAgentExecutionBudget(
+    input.budget,
+    input.usage,
+    input.estimatedActionCostMinor ?? 0,
+    now,
+  );
+  const decision: AgentExecutionDecision =
+    base.allowed && concurrentGoals >= input.budget.maxConcurrentGoals
+      ? { allowed: false, reason: 'max_concurrent_goals' }
+      : base;
+  return {
+    ...decision,
+    remainingActions: Math.max(0, input.budget.maxActions - input.usage.actions),
+    remainingRetries: Math.max(0, input.budget.maxRetries - Math.min(input.usage.retries, input.budget.maxRetries)),
+    remainingElapsedMs: Math.max(0, input.budget.maxElapsedMs - (now - input.usage.startedAtMs)),
+    concurrentGoals,
+  };
+}
+
+/**
+ * Maps an exhausted budget reason onto the existing durable Goal states.
+ * Human-decidable exhaustion (action/retry limits) becomes needs_user;
+ * environmental exhaustion becomes blocked. Never silently continues.
+ */
+export function agentStateForBudgetReason(
+  reason: AgentExecutionStopReason,
+): 'needs_user' | 'blocked' | 'failed' {
+  switch (reason) {
+    case 'max_actions':
+    case 'max_retries':
+      return 'needs_user';
+    case 'cost_budget':
+      return 'needs_user';
+    case 'max_elapsed_ms':
+    case 'max_concurrent_goals':
+      return 'blocked';
+    case 'failed':
+      return 'failed';
+    default:
+      return 'blocked';
+  }
+}
+
 export function executionStopMessage(reason: AgentExecutionStopReason): string {
   switch (reason) {
     case 'max_actions':
