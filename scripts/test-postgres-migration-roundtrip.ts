@@ -83,6 +83,21 @@ assert.match(migration.stdout, /"status": "verified"/);
 const sourceDigestAfter = crypto.createHash('sha256').update(fs.readFileSync(sourcePath)).digest('hex');
   assert.equal(sourceDigestAfter, sourceDigestBefore, 'SQL.js export/import must not mutate the source database');
 
+// Repeated migration must be safe: identical schema checksum is recognised in the
+// migration ledger, import is skipped, and no duplicate durable effects appear.
+const repeatedMigration = spawnSync('npx', ['tsx', 'scripts/migrate-sqlite-to-postgres.ts', '--execute'], {
+  cwd: process.cwd(),
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    DB_PATH: sourcePath,
+    DATABASE_URL: connectionString,
+    KURUKOO_POSTGRES_SSL: String(process.env.KURUKOO_POSTGRES_SSL || 'false'),
+  },
+});
+assert.equal(repeatedMigration.status, 0, `${repeatedMigration.stdout}\n${repeatedMigration.stderr}`);
+assert.match(repeatedMigration.stdout, /"repeated": true/, 're-running the identical migration must be recognised as already applied');
+
   const canonicalRuntime = spawnSync('npx', ['tsx', 'scripts/test-postgres-canonical-runtime.ts'], {
     cwd: process.cwd(),
     encoding: 'utf8',

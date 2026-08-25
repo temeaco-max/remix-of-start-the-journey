@@ -17,6 +17,8 @@ function loadPostgres(): any {
   }
 }
 
+// Fail-closed contract: PostgreSQL mode must stay blocked while the operator
+// activation grant is absent, even when every technical requirement is present.
 const preflight = spawnSync(process.execPath, ['scripts/production-preflight.mjs'], {
   cwd: process.cwd(),
   encoding: 'utf8',
@@ -25,15 +27,15 @@ const preflight = spawnSync(process.execPath, ['scripts/production-preflight.mjs
     NODE_ENV: 'production',
     JWT_SECRET: crypto.randomBytes(32).toString('hex'),
     KURUKOO_DATABASE_MODE: 'postgres',
-    KURUKOO_POSTGRES_APPLICATION_INTEGRATED: 'true',
+    KURUKOO_POSTGRES_APPLICATION_INTEGRATED: 'false',
     KURUKOO_PERSISTENT_STATE_REQUIRED: 'false',
     KURUKOO_PAY_PROVIDER: 'stripe',
     DATABASE_URL: 'postgres://localhost/kurukoo_contract',
   },
 });
-assert.notEqual(preflight.status, 0, 'production preflight must block PostgreSQL mode until both the pinned client and the complete async call-surface migration exist');
+assert.notEqual(preflight.status, 0, 'production preflight must block PostgreSQL mode until the operator sets KURUKOO_POSTGRES_APPLICATION_INTEGRATED=true');
 if (!loadPostgres()) assert.match(`${preflight.stdout}${preflight.stderr}`, /requires the pinned postgres client/);
-else assert.match(`${preflight.stdout}${preflight.stderr}`, /direct SQL\.js files remain/);
+else assert.match(`${preflight.stdout}${preflight.stderr}`, /KURUKOO_POSTGRES_APPLICATION_INTEGRATED=true/);
 
 if (childMode) {
   if (!connectionString) throw new Error('KURUKOO_TEST_POSTGRES_URL is required for the PostgreSQL runtime child.');
