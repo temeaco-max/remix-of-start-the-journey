@@ -142,7 +142,13 @@ jobs:
         run: npm run test:postgres-domain-runtime
       - name: Cross-process domain restart proof
         run: npm run test:postgres-domain-restart
+      - name: Create disposable round-trip database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c 'DROP DATABASE IF EXISTS kurukoo_roundtrip_ci;'
+          PGPASSWORD=postgres psql -h localhost -U postgres -c 'CREATE DATABASE kurukoo_roundtrip_ci;'
       - name: Migration round-trip proof
+        env:
+          KURUKOO_TEST_POSTGRES_URL: postgres://postgres:postgres@localhost:5432/kurukoo_roundtrip_ci
         run: npm run test:postgres-migration-roundtrip
       - name: Production preflight fail-closed contract
         run: |
