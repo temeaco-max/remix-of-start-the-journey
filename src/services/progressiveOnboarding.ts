@@ -3,9 +3,8 @@ import { encryptData, getProfile } from './memoryProfile.js';
 
 /**
  * Onboarding is progressive guidance, not a hard conversational gate.
- * Once a user has supplied a name, or has an active Economic Request, normal
- * Chat ownership must remain available. Users should never have to complete a
- * profile survey before Kurukoo can help with an immediate request.
+ * A new user should understand Kurukoo in one sentence and get to useful work
+ * immediately. Profile enrichment is optional and can continue from normal Chat.
  */
 export async function isOnboarding(phone: string): Promise<boolean> {
     const db = await getDb();
@@ -41,71 +40,81 @@ export async function isOnboarding(phone: string): Promise<boolean> {
 export async function handleOnboardingInput(phone: string, text: string): Promise<{ reply: string, cardData?: any }> {
     const db = await getDb();
     const profile = await getProfile(phone, 'progressive_onboarding');
-    const name: string | null = profile?.name ? String(profile.name) : null;
     const prefs: any = profile?.preferences && typeof profile.preferences === 'object' ? { ...profile.preferences } : {};
-
     const step = prefs.onboarding_step || 'start';
 
     if (step === 'start') {
-        prefs.onboarding_step = 'ask_intent';
-        db.run(`UPDATE memory_profiles SET name = ?, preferences = ? WHERE phone = ?`, [text, encryptData(JSON.stringify(prefs)), phone]);
+        // Keep the first-run experience to one small identity step, then return
+        // control to normal Chat. Never make a new user complete a role survey
+        // before asking Kurukoo to actually do something.
+        const name = text.trim();
+        prefs.onboarding_complete = true;
+        prefs.onboarding_step = 'done';
+        db.run(`UPDATE memory_profiles SET name = ?, preferences = ? WHERE phone = ?`, [name, encryptData(JSON.stringify(prefs)), phone]);
         saveDb();
         return {
-            reply: `Nice to meet you, ${text}! Are you here to find services, earn from your skills, or both?`,
-            cardData: { type: 'survey', question: 'Select Your Primary Intent', options: ['Find Services', 'Earn Money', 'Both'] }
+            reply: name
+                ? `Nice to meet you, ${name}. I’m Kurukoo. Tell me what you need done — I’ll help you work it out, coordinate it, and ask you only when your input or approval is needed.`
+                : `I’m Kurukoo. Tell me what you need done — I’ll help you work it out, coordinate it, and ask you only when your input or approval is needed.`,
+            cardData: {
+                type: 'welcome',
+                title: 'What would you like to get done?',
+                prompt: 'Start with a request, a problem, a plan, or something you want to find.',
+                options: ['Find a service', 'Fix something', 'Plan something', 'Ask Kurukoo']
+            }
         };
-    } else if (step === 'ask_intent') {
+    }
+
+    // These branches are retained for users who were already mid-onboarding
+    // before the progressive experience was simplified.
+    if (step === 'ask_intent') {
         prefs.onboarding_step = 'ask_skills';
         prefs.primary_intent = text;
         db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
         saveDb();
         return {
-            reply: `Excellent choice! What kind of work or skills can you do? (e.g. plumber, baker, driver, coder, or reply 'none' if you only want to find services)`,
-            cardData: { type: 'quick_replies', options: ['plumber', 'driver', 'baker', 'none'] }
+            reply: `You can tell me what you want to accomplish first; I’ll help you decide what matters next. If earning from a skill is part of that, tell me the skill when it is useful.`,
+            cardData: { type: 'quick_replies', options: ['Find services', 'Earn from skills', 'Both'] }
         };
-    } else if (step === 'ask_skills') {
+    }
+
+    if (step === 'ask_skills') {
         const cleanSkill = text.toLowerCase().trim();
-        if (cleanSkill.includes('ride') || cleanSkill.includes('find') || cleanSkill.includes('help') || cleanSkill.includes('support') || cleanSkill === 'none') {
+        if (cleanSkill.includes('find') || cleanSkill.includes('help') || cleanSkill.includes('support') || cleanSkill === 'none') {
             prefs.onboarding_complete = true;
             prefs.onboarding_step = 'done';
-            db.run(`UPDATE memory_profiles SET wallet_balance_minor = wallet_balance_minor + 20, preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
+            db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
             saveDb();
             return {
-                reply: `🎉 Account activated automatically with 20 Credits onboarding bonus! Processing your request: "${text}"...`,
-                cardData: { type: 'reload_wallet', status: 'success' }
+                reply: `Got it. Tell me what you need done and I’ll take it from there.`,
+                cardData: { type: 'welcome', title: 'What would you like to get done?', options: ['Find a service', 'Fix something', 'Plan something', 'Ask Kurukoo'] }
             };
         }
         prefs.onboarding_step = 'confirm_code';
-        if (cleanSkill !== 'none') {
+        if (cleanSkill && cleanSkill !== 'none') {
             prefs.skills = [cleanSkill];
             db.run(`INSERT OR IGNORE INTO skills (phone, skill, source, confidence, is_available) VALUES (?, ?, 'explicit', 1.0, 1)`, [phone, cleanSkill]);
         }
         db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
         saveDb();
         return {
-            reply: `Almost done! To secure your identity and activate your account, please reply with the word CONFIRM (or type any request to proceed).`,
-            cardData: { type: 'survey', question: 'Type CONFIRM to activate', options: ['CONFIRM'] }
+            reply: `Thanks — I’ll remember that. You can start with any request now; you do not need to finish a profile survey first.`,
+            cardData: { type: 'welcome', title: 'You can start working with Kurukoo now.', options: ['Find a service', 'Fix something', 'Plan something', 'Ask Kurukoo'] }
         };
-    } else if (step === 'confirm_code') {
-        if (text.toUpperCase().trim() === 'CONFIRM' || text.length > 0) {
-            prefs.onboarding_complete = true;
-            prefs.onboarding_step = 'done';
-            let exploreMention = '';
-            if (prefs.explore_entry_category) {
-                exploreMention = ` Since you explored ${prefs.explore_entry_category} earlier, would you like me to connect you with a verified provider for that right away?`;
-            }
-            db.run(`UPDATE memory_profiles SET wallet_balance_minor = wallet_balance_minor + 20, preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
-            saveDb();
-            return {
-                reply: `🎉 Congratulations! Your Kurukoo account is now fully active.${exploreMention} We have credited 20 Credits to your balance as an onboarding bonus.`,
-                cardData: { type: 'reload_wallet', status: 'success' }
-            };
-        } else {
-            return { reply: `Please type CONFIRM exactly to activate your account.` };
-        }
     }
 
-    return { reply: `Welcome! Let's get started. What's your name?` };
+    if (step === 'confirm_code') {
+        prefs.onboarding_complete = true;
+        prefs.onboarding_step = 'done';
+        db.run(`UPDATE memory_profiles SET preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
+        saveDb();
+        return {
+            reply: `You’re all set. Tell me what you need done and I’ll help from there.`,
+            cardData: { type: 'welcome', title: 'What would you like to get done?', options: ['Find a service', 'Fix something', 'Plan something', 'Ask Kurukoo'] }
+        };
+    }
+
+    return { reply: `Tell me what you need done and I’ll help from there.` };
 }
 
 export async function onboardNewUser(phone: string): Promise<string> {
@@ -114,7 +123,7 @@ export async function onboardNewUser(phone: string): Promise<string> {
     const prefs = { onboarding_step: 'start', onboarding_complete: false };
     db.run(`UPDATE memory_profiles SET name = NULL, preferences = ? WHERE phone = ?`, [encryptData(JSON.stringify(prefs)), phone]);
     saveDb();
-    return `Welcome to Kurukoo! I am your AI assistant to help you request anything and earn from your skills. Let's get you set up in 3 simple steps.\n\nFirst, what is your name?`;
+    return `Welcome to Kurukoo. I’m here to help you get things done — from finding a service or fixing a problem to coordinating something more involved. You can just start by telling me what you need.`;
 }
 
 export function getDailyPersonalizedQuestion(day: number): { q: string, options: string[] } {
