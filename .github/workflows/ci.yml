@@ -132,12 +132,12 @@ jobs:
       - run: npm run lint
       - name: Persistence boundary audit
         run: node scripts/audit-persistence-boundary.mjs
-      - name: Shared-writer / two-process / rollback / idempotency
-        run: npm run test:postgres-persistence
       - name: Fresh domain DB prepare + bootstrap schema
         run: |
           npm run prepare:postgres-domain-db
           npm run bootstrap:postgres-domain-schema
+      - name: Shared-writer / two-process / rollback / idempotency
+        run: npm run test:postgres-persistence
       - name: Domain runtime proof (transactions, owner isolation, idempotency)
         run: npm run test:postgres-domain-runtime
       - name: Cross-process domain restart proof
