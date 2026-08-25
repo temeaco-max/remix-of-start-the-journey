@@ -101,6 +101,79 @@ jobs:
       - run: npm run audit:security
       - run: npm run test:email
 
+  postgres-persistence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KURUKOO_TEST_POSTGRES_URL: postgres://postgres:postgres@localhost:5432/kurukoo_domain_ci
+      KURUKOO_POSTGRES_SSL: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run lint
+      - name: Persistence boundary audit
+        run: node scripts/audit-persistence-boundary.mjs
+      - name: Fresh domain DB prepare + bootstrap schema
+        run: |
+          npm run prepare:postgres-domain-db
+          npm run bootstrap:postgres-domain-schema
+      - name: Shared-writer / two-process / rollback / idempotency
+        run: npm run test:postgres-persistence
+      - name: Domain runtime proof (transactions, owner isolation, idempotency)
+        run: npm run test:postgres-domain-runtime
+      - name: Cross-process domain restart proof
+        run: npm run test:postgres-domain-restart
+      - name: Create disposable round-trip database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c 'DROP DATABASE IF EXISTS kurukoo_roundtrip_ci;'
+          PGPASSWORD=postgres psql -h localhost -U postgres -c 'CREATE DATABASE kurukoo_roundtrip_ci;'
+      - name: Migration round-trip proof
+        env:
+          KURUKOO_TEST_POSTGRES_URL: postgres://postgres:postgres@localhost:5432/kurukoo_roundtrip_ci
+        run: npm run test:postgres-migration-roundtrip
+      - name: Production preflight fail-closed contract
+        run: |
+          JWT=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+          echo "== case 1: SQL.js + Cloud Run must BLOCK =="
+          OUT1=$(NODE_ENV=production KURUKOO_CLOUD_RUN=true KURUKOO_DATABASE_MODE=sqljs \
+            JWT_SECRET="$JWT" node scripts/production-preflight.mjs 2>&1 || true)
+          echo "$OUT1" | grep -q '"status": "blocked"' || { echo "FAIL: SQL.js on Cloud Run was not blocked"; exit 1; }
+          echo "== case 2: PostgreSQL configured but integration flag false must BLOCK =="
+          OUT2=$(NODE_ENV=production KURUKOO_DATABASE_MODE=postgres KURUKOO_POSTGRES_APPLICATION_INTEGRATED=false \
+            DATABASE_URL="postgres://postgres:postgres@localhost:5432/kurukoo_domain_ci" JWT_SECRET="$JWT" \
+            node scripts/production-preflight.mjs 2>&1 || true)
+          echo "$OUT2" | grep -q '"status": "blocked"' || { echo "FAIL: PostgreSQL without activation grant was not blocked"; exit 1; }
+          echo "== case 3: PostgreSQL integrated but DATABASE_URL missing must BLOCK =="
+          OUT3=$(NODE_ENV=production KURUKOO_DATABASE_MODE=postgres KURUKOO_POSTGRES_APPLICATION_INTEGRATED=true \
+            JWT_SECRET="$JWT" node scripts/production-preflight.mjs 2>&1 || true)
+          echo "$OUT3" | grep -q '"status": "blocked"' || { echo "FAIL: missing DATABASE_URL was not blocked"; exit 1; }
+          echo "== case 4: all technical requirements satisfied -> activation technically possible =="
+          OUT4=$(NODE_ENV=production KURUKOO_DATABASE_MODE=postgres KURUKOO_POSTGRES_APPLICATION_INTEGRATED=true \
+            DATABASE_URL="postgres://postgres:postgres@localhost:5432/kurukoo_domain_ci" JWT_SECRET="$JWT" \
+            node scripts/production-preflight.mjs 2>&1 || true)
+          echo "$OUT4"
+          if echo "$OUT4" | grep -q '"status": "blocked"'; then echo "FAIL: fully satisfied environment must not be blocked"; exit 1; fi
+          echo "FAIL-CLOSED MATRIX OK"
+
   fasttext:
     runs-on: ubuntu-latest
     timeout-minutes: 25
