@@ -31,7 +31,7 @@ function hasExternalOutcomeClaim(trace: AgentExecutionTraceEvent[]): boolean {
   return trace.some((event) =>
     event.kind === 'outcome' &&
     /external|provider|completed|delivered|sold|repaired/i.test(
-      `${event.status || ''} ${event.detail || ''} ${event.evidence || ''}`,
+      `${event.status || ''} ${event.reason || ''} ${event.evidence || ''}`,
     ),
   );
 }
