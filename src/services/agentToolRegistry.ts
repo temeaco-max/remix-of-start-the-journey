@@ -7,12 +7,13 @@ import { ensureCapabilityFoundation } from './capabilityFoundation.js';
 import { getCapabilityActionContract, getCapabilityRegistration, listCapabilityRegistrations, resolveCapabilityAction, resolveCapabilityComposition } from './capabilityRegistry.js';
 import { getCanonicalIdentityContext } from './memoryProfile.js';
 import { syncAgentGoalFromCapabilityResult } from './agentCapabilityOutcomeService.js';
+import { recordAgentExecutionTrace, ensureAgentExecutionTraceSchema } from './agentExecutionTrace.js';
 
 export type AgentToolPermission = 'read' | 'low_risk_write' | 'coordination' | 'high_risk';
 export type AgentToolRisk = 'read_only' | 'reversible' | 'user_confirmation_required' | 'high_risk';
 export type AgentToolName = 'get_request_state' | 'get_memory_context' | 'get_reminders' | 'get_connected_resources' | 'view_connected_resource' | 'inspect_capability_plan' | 'list_capabilities' | 'execute_capability' | 'recheck_economic_request';
 
-export interface AgentToolContext { phone: string; conversationId?: string; goalId: string; }
+export interface AgentToolContext { phone: string; conversationId?: string; goalId: string; /** Execution-budget context supplied by the canonical runtime; recorded in trace metadata. */ budget?: { allowed: boolean; reason?: string; actionsUsed: number; retriesUsed: number; remainingActions: number }; }
 export interface AgentToolResult { ok: boolean; tool: AgentToolName; permission: AgentToolPermission; data?: Record<string, unknown>; evidence?: string; message?: string; }
 export interface AgentToolDefinition { description: string; inputSchema: Record<string, string>; permission: AgentToolPermission; risk: AgentToolRisk; supportedContexts: Array<'text' | 'voice' | 'qr' | 'event'>; authorization: string; idempotency: 'none' | 'service_owned'; audit: 'goal_event'; autonomous: boolean; }
 
@@ -34,7 +35,58 @@ export function listAgentTools(): Array<{ name: AgentToolName } & AgentToolDefin
 
 function autonomousLowRiskEnabled(): boolean { return process.env.KURUKOO_AGENT_AUTONOMOUS_LOW_RISK === 'true'; }
 
+async function traceToolEvent(context: AgentToolContext, kind: 'tool_requested' | 'tool_succeeded' | 'tool_failed', name: AgentToolName, fields: { status?: string; reason?: string; evidence?: string; metadata?: Record<string, unknown> }): Promise<void> {
+  if (!context.phone || context.phone.startsWith('anon_')) return;
+  try {
+    await ensureAgentExecutionTraceSchema();
+    await recordAgentExecutionTrace({
+      ownerPhone: context.phone,
+      goalId: context.goalId,
+      conversationId: context.conversationId,
+      kind,
+      actor: 'agent_tool_registry',
+      tool: name,
+      status: fields.status,
+      reason: fields.reason,
+      evidence: fields.evidence,
+      metadata: fields.metadata,
+      idempotencyKey: `tool:${context.goalId}:${name}:${kind}:${fields.status || ''}`,
+    });
+  } catch (e) {
+    console.warn?.('[agentToolRegistry] trace write failed:', String(e instanceof Error ? e.message : e));
+  }
+}
+
+/**
+ * Canonical tool execution entry point. The Tool Registry remains the ONLY
+ * execution owner (permission, risk, authorization, idempotency, execution,
+ * audit). This wrapper enriches each invocation with durable execution-trace
+ * events and the caller's budget context without replacing any safeguard.
+ */
 export async function executeAgentTool(name: AgentToolName, args: Record<string, unknown>, context: AgentToolContext): Promise<AgentToolResult> {
+  await traceToolEvent(context, 'tool_requested', name, {
+    status: context.budget?.allowed === false ? 'budget_denied' : 'requested',
+    reason: context.budget?.allowed === false ? context.budget?.reason : undefined,
+    metadata: context.budget ? { budget: context.budget } : undefined,
+  });
+  if (context.budget && context.budget.allowed === false) {
+    return { ok: false, tool: name, permission: definitions[name]?.permission || 'high_risk', message: 'The agent execution budget for this objective is exhausted.' };
+  }
+  try {
+    const result = await executeAgentToolInternal(name, args, context);
+    await traceToolEvent(context, result.ok ? 'tool_succeeded' : 'tool_failed', name, {
+      status: result.ok ? 'success' : 'denied',
+      reason: result.message,
+      evidence: result.evidence,
+    });
+    return result;
+  } catch (e) {
+    await traceToolEvent(context, 'tool_failed', name, { status: 'error', reason: String(e instanceof Error ? e.message : e) });
+    throw e;
+  }
+}
+
+async function executeAgentToolInternal(name: AgentToolName, args: Record<string, unknown>, context: AgentToolContext): Promise<AgentToolResult> {
   const definition = definitions[name];
   if (!definition || !context.phone || context.phone.startsWith('anon_')) return { ok: false, tool: name, permission: definition?.permission || 'high_risk', message: 'This action is not available for the current identity.' };
   if (name === 'get_request_state') { const requestId = typeof args.requestId === 'string' ? args.requestId : ''; const request = requestId ? await getEconomicRequest(requestId) : null; if (!request || request.phone !== context.phone) return { ok: false, tool: name, permission: 'read', message: 'That request is unavailable.' }; return { ok: true, tool: name, permission: 'read', data: { id: request.id, skill: request.skill, status: request.status, requirements: request.requirements || {}, providerPhone: request.providerPhone || null, quote: request.quote || null }, evidence: `economic_request:${request.id}:${request.status}` }; }
