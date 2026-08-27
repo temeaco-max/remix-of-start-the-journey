@@ -154,13 +154,18 @@
     const direct = String(notification?.link || '').trim();
     if (direct.startsWith('/')) return direct;
     const conversationId = String(notification?.conversationId || notification?.conversation_id || '').trim();
-    if (conversationId) return `/chat?conversationId=${encodeURIComponent(conversationId)}`;
     const type = String(notification?.objectType || notification?.object_type || '').toLowerCase();
     const id = String(notification?.objectId || notification?.object_id || '').trim();
-    if ((type === 'request' || type === 'economic_request') && id) return `/requests/${encodeURIComponent(id)}`;
-    if (type === 'task' && id) return `/tasks/${encodeURIComponent(id)}`;
-    if (type === 'topic' && id) return `/topics/${encodeURIComponent(id)}`;
-    return '/notifications';
+    const mapped = {
+      request: ['economic_request', 'economic_request.open'],
+      economic_request: ['economic_request', 'economic_request.open'],
+      task: ['task', 'task.open'],
+      reminder: ['reminder', 'reminder.open'],
+      agent: ['agent_goal', 'agent.goal.review'],
+      agent_goal: ['agent_goal', 'agent.goal.review'],
+    }[type];
+    if (mapped && id) return exactChatHref({ prompt: 'Open this update.', objectType: mapped[0], objectId: id, canonicalAction: mapped[1], conversationId });
+    return conversationId ? exactChatHref({ prompt: 'Open this update.', conversationId }) : '/notifications';
   };
 
   const goalActivityLabel = (event) => {
