@@ -111,6 +111,8 @@ export async function createCompoundGoalIfRecognized(input: { phone: string; con
         `UPDATE agent_goals SET status='waiting_on_dependency',updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?`,
         [subGoals[i].id, owner]
       ).catch(() => {});
+      subGoals[i].status = 'waiting_on_dependency';
+      subGoals[i].nextActionAt = undefined;
     }
   }
 

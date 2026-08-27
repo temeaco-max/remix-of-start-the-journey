@@ -112,6 +112,12 @@ assert.equal(previousOutcome.cardData?.type, 'request_status');
 assert.equal(previousOutcome.cardData?.relativeReference, true);
 assert.equal(previousOutcome.cardData?.status, 'not_found');
 
+const composed = await processCanonicalChatTurn({ phone, message: 'I need to get my laptop sorted.', channel: 'web', conversationId: `${conversationId}-composed` });
+assert.equal(composed.cardData?.type, 'agent_goal', 'A broad device outcome must create one composed objective card.');
+assert.ok(Array.isArray(composed.cardData?.subGoals) && composed.cardData.subGoals.length === 3, 'The device outcome must expose ordered device, expert, and follow-up sub-goals.');
+assert.equal(composed.canonicalAction, 'agent.goal.coordinate');
+assert.equal(composed.cardData.subGoals[1]?.status, 'waiting_on_dependency', 'Expert escalation must wait for the device evidence step.');
+
 console.log('Chat OS outcome slices passed: memory record/review, relative request-status continuity, one-shot and recurring reminders, safe until-complete reminder clarification, notification inbox/read, provider/food/transport/product/discovery outcome routing, monitoring setup, communication preparation, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
 
 process.exit(0);

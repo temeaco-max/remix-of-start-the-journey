@@ -1154,9 +1154,31 @@
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 
+  function renderComposedGoalCard(card, messageEl) {
+    const goal = card.goal || {};
+    const holder = makeElement('section', 'provider-card composed-goal-card');
+    holder.setAttribute('aria-label', 'Composed Kurukoo outcome');
+    holder.appendChild(makeElement('strong', '', 'One outcome, coordinated steps'));
+    holder.appendChild(makeElement('p', '', String(goal.objective || 'Kurukoo is coordinating this outcome.')));
+    const subGoals = Array.isArray(card.subGoals) ? card.subGoals : [];
+    const list = makeElement('ol', 'inspector-list composed-goal-steps');
+    subGoals.forEach((subGoal, index) => {
+      const status = String(subGoal?.status || 'active').toLowerCase();
+      const labels = { active: 'Ready', waiting: 'Waiting', waiting_on_dependency: 'Waiting for earlier evidence', needs_user: 'Needs your input', blocked: 'Blocked safely', completed: 'Completed', cancelled: 'Stopped', failed: 'Needs review' };
+      const row = makeElement('li', 'inspector-list-row');
+      row.appendChild(makeElement('span', '', `${index + 1}. ${String(subGoal?.objective || subGoal?.goalType || 'Capability step')}`));
+      row.appendChild(makeElement('small', 'storefront-execution-status', labels[status] || 'Recorded state'));
+      list.appendChild(row);
+    });
+    if (subGoals.length) holder.appendChild(list);
+    holder.appendChild(makeElement('small', 'storefront-execution-status', 'Kurukoo will only claim an action, provider result, payment, fulfilment, notification, or completion when the corresponding canonical evidence exists.'));
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
   function renderCard(card, messageEl) {
     if (!card || !messageEl) return;
     if (card.type === 'monitoring_setup' || card.type === 'communication_prepare') return renderOutcomeActionCard(card, messageEl);
+    if (card.type === 'agent_goal' && Array.isArray(card.subGoals)) return renderComposedGoalCard(card, messageEl);
     if (card.type === 'assistance_outcome') return renderAssistanceOutcome(card, messageEl);
     if (['notifications', 'reminders', 'tasks', 'memory', 'request_status', 'os_status'].includes(card.type)) return renderOSCollection(card, messageEl);
     if (['notification_action', 'reminder_action', 'task_action', 'memory_action'].includes(card.type)) return renderOSCollection(card, messageEl);
