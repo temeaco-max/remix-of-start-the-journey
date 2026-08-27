@@ -80,6 +80,18 @@ const transport = await routeIntent('Get me to the airport tomorrow', makeDomain
 assert.equal(transport.skill, 'ride_request');
 assert.equal(transport.cardData?.type, 'agentic_storefront');
 
+const nigeriaJourneyCases = [
+  ['I\'m in Yaba. Get me to Lekki Phase 1.', 'ride_request'],
+  ['I need to be in Victoria Island by 8pm.', 'ride_request'],
+  ['Find me a bus to Ibadan.', 'ride_request'],
+  ['Get me to Lagos airport at 6am tomorrow.', 'ride_request'],
+] as const;
+for (const [message, expectedSkill] of nigeriaJourneyCases) {
+  const journey = await routeIntent(message, makeDomainPhone(30 + message.length), undefined, createContext, `${conversationId}-journey-${message.length}`);
+  assert.equal(journey.skill, expectedSkill, `Journey request should resolve to ${expectedSkill}: ${message}`);
+  assert.equal(journey.cardData?.type, 'agentic_storefront', `Journey request should enter the canonical storefront: ${message}`);
+}
+
 const charger = await routeIntent('Buy me a replacement charger', makeDomainPhone(31), undefined, createContext, `${conversationId}-charger`);
 assert.equal(charger.skill, 'product_sourcing');
 assert.equal(charger.cardData?.type, 'agentic_storefront');
@@ -154,7 +166,7 @@ assert.ok(composed.cardData.goal?.plan?.capabilityPath?.act?.length, 'Composed g
 assert.ok(composed.cardData.goal?.plan?.capabilityPath?.delegate?.length, 'Composed goals must explain provider delegation where relevant.');
 assert.ok(composed.cardData.goal?.plan?.capabilityPath?.continue?.length, 'Composed goals must explain how the outcome continues.');
 
-console.log('Chat OS outcome slices passed: memory record/review, relative request-status continuity, one-shot and recurring reminders, safe until-complete reminder clarification, notification inbox/read, provider/food/transport/product/discovery outcome routing, monitoring setup, communication preparation, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
+console.log('Chat OS outcome slices passed: memory record/review, relative request-status continuity, one-shot and recurring reminders, safe until-complete reminder clarification, notification inbox/read, Nigeria-first journey understanding and canonical transport storefront routing, provider/food/transport/product/discovery outcome routing, monitoring setup, communication preparation, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
 
 process.exit(0);
 
