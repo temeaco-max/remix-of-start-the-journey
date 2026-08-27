@@ -82,6 +82,10 @@ for (const marker of ['slice(0, 4)', 'for (const { goal } of goalDetails)', 'Wai
 if (deskData.includes('raw tool arguments') || deskData.includes('provider secrets') || deskData.includes('blockers.join')) failures.push('Desk Agent objective projection must not expose internal execution details or raw dependency identifiers');
 for (const marker of ['Waiting for earlier work', 'Your decision is needed', 'dataset.state = state', 'Your review is needed']) if (!deskData.includes(marker)) failures.push(`Desk visual Objective language or state hook is missing ${marker}`);
 for (const forbidden of ['${id.slice(0, 8)}', 'Task ${String(task.id || \'\').slice(0, 8)}', 'Continue my ${skill} request ${id}', 'Continue my request ${r.id}', 'Show reminder ${rem.id']) if (deskData.includes(forbidden)) failures.push(`Desk must not expose a raw identifier or generic object continuation: ${forbidden}`);
+const canonicalProtocol = read('src/services/universalCapabilityProtocol.ts');
+if (!canonicalProtocol.includes('contact:communication.compose')) failures.push('Canonical context protocol does not allow the explicit contact compose action.');
+const legacyIntentRouter = read('src/services/legacyIntentRouter.ts');
+for (const marker of ['row?.card_data ?? row?.cardData', 'getPersonProfile(phone, recipientPhone, \'message\')']) if (!legacyIntentRouter.includes(marker)) failures.push(`Prepared communication recovery is missing canonical persistence or exact-contact handling: ${marker}`);
 const visualAdvancement = read('public/css/kurukoo-os-visual-advancement.css');
 for (const marker of ['Final OS visual system', 'status-pill', 'waiting_on_dependency', 'needs_user', 'k-app-list-loading::before', 'prefers-reduced-motion']) if (!visualAdvancement.includes(marker)) failures.push(`Shared authenticated visual state authority is missing ${marker}`);
 const requestClient = read('public/js/kurukoo-requests-convergence.js');
@@ -93,7 +97,11 @@ for (const marker of ['actionLabelFor', 'Review and decide', 'Continue in Chat']
 const taskClient = read('public/js/kurukoo-tasks-convergence.js');
 for (const forbidden of ['Task #${escape(task.id)}', 'Task ${task?.id || \'\'}', 'task ${task?.id || \'\'}']) if (taskClient.includes(forbidden)) failures.push(`Tasks surface exposes an internal task identifier: ${forbidden}`);
 for (const marker of ['Part of an objective', 'Part of a request', 'Waiting for earlier work']) if (!taskClient.includes(marker)) failures.push(`Tasks surface lacks user-safe Objective/task continuity marker ${marker}`);
+const contactsClient = read('public/js/kurukoo-contacts-convergence.js');
+for (const marker of ['openMessageComposer', 'kurukoo_contact_message_draft', "set('contactCompose', '1')", "localStorage.getItem('kurukoo_conversation_id')", 'Prepare in Chat', 'not sent until an authorised channel']) if (!contactsClient.includes(marker)) failures.push(`Contacts surface is missing its person-specific communication handoff: ${marker}`);
+for (const forbidden of ['href="/call"', 'href="/chat?prompt=${path(`Message ${person.displayName}`)}']) if (contactsClient.includes(forbidden)) failures.push(`Contacts surface retains a generic or unbound communication link: ${forbidden}`);
 const primaryChat = read('public/js/kurukoo-primary-chat.js');
+for (const marker of ['contactCompose', 'kurukoo_contact_message_draft', "canonicalAction: 'communication.compose'", 'Message draft ready']) if (!primaryChat.includes(marker)) failures.push(`Chat lacks the private contact compose continuation contract: ${marker}`);
 for (const marker of ['waiting_on_dependency', 'Waiting for earlier work', 'dataset.objectiveState', 'A confirmed step was recorded.']) if (!primaryChat.includes(marker)) failures.push(`Chat Objective presentation is missing ${marker}`);
 for (const marker of ["input?.setAttribute('aria-invalid', 'true')", 'Kurukoo is unavailable', 'Your message is still in the composer', "toast.setAttribute('role', needsResponse ? 'alert' : 'status')"]) if (!primaryChat.includes(marker)) failures.push(`Chat unavailability feedback is missing ${marker}`);
 for (const marker of ["chat-toast chat-toast--approval", "toast.setAttribute('role', 'alert')", "toast.setAttribute('aria-live', 'assertive')"]) if (!primaryChat.includes(marker)) failures.push(`Chat device-approval announcement is missing ${marker}`);
