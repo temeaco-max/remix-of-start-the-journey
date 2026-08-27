@@ -1036,12 +1036,51 @@
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 
+  function appendOutcomeEvidence(holder, entries = []) {
+    const usable = entries.filter(entry => entry && entry.value !== undefined && entry.value !== null && String(entry.value).trim() !== '');
+    if (!usable.length) return;
+    const section = makeElement('section', 'outcome-primitive outcome-evidence');
+    section.appendChild(makeElement('strong', '', 'Evidence'));
+    const list = makeElement('dl', 'outcome-evidence-list');
+    usable.forEach(entry => {
+      list.appendChild(makeElement('dt', '', String(entry.label || 'Recorded fact')));
+      list.appendChild(makeElement('dd', '', String(entry.value)));
+    });
+    section.appendChild(list);
+    holder.appendChild(section);
+  }
+
+  function appendOutcomeChoices(holder, options = [], promptFallback) {
+    const usable = options.filter(option => option?.label && (option.prompt || promptFallback));
+    if (!usable.length) return;
+    const section = makeElement('section', 'outcome-primitive outcome-choices');
+    section.appendChild(makeElement('strong', '', 'I can'));
+    const actions = makeElement('div', 'storefront-actions');
+    usable.forEach(option => {
+      const button = makeElement('button', `sf-btn sf-${option.style === 'secondary' ? 'secondary' : 'primary'}`, String(option.label));
+      button.type = 'button';
+      button.dataset.actionId = String(option.id || 'outcome.next');
+      button.addEventListener('click', () => sendMessage(String(option.prompt || promptFallback || option.label)));
+      actions.appendChild(button);
+    });
+    section.appendChild(actions);
+    holder.appendChild(section);
+  }
+
+  function appendOutcomeStatus(holder, text, tone = 'neutral') {
+    const status = makeElement('div', `outcome-primitive outcome-status outcome-status-${tone}`);
+    status.appendChild(makeElement('strong', '', 'Work status'));
+    status.appendChild(makeElement('span', '', String(text)));
+    holder.appendChild(status);
+  }
+
   function renderDeviceSupport(card, messageEl) {
-    const holder = makeElement('section', 'provider-card device-support-card');
-    holder.setAttribute('aria-label', 'Device support');
+    const holder = makeElement('section', 'provider-card outcome-surface device-support-card');
+    holder.setAttribute('aria-label', 'Device outcome');
     const status = String(card.status || 'information');
-    const heading = status === 'completed' ? 'Recorded device observation' : status === 'needs_user' ? 'Choose a connected resource' : 'Device observation unavailable';
-    holder.appendChild(makeElement('strong', '', heading));
+    const resourceLabel = card.resource?.label ? String(card.resource.label) : 'Your device';
+    holder.appendChild(makeElement('strong', '', resourceLabel));
+    holder.appendChild(makeElement('small', 'outcome-primitive outcome-context', card.observedAt ? `Checked ${String(card.observedAt)}` : status === 'completed' ? 'Checked just now' : 'Waiting for an authorised check'));
     holder.appendChild(makeElement('p', 'storefront-offer-copy', String(card.message || 'Kurukoo has not claimed a live device diagnosis.')));
     const support = card.supportLevel && typeof card.supportLevel === 'object' ? card.supportLevel : null;
     if (support?.level) {
@@ -1050,12 +1089,12 @@
     }
     if (card.resource && typeof card.resource === 'object') {
       const resource = card.resource;
-      holder.appendChild(makeElement('small', 'storefront-execution-status', `${String(resource.label || 'Connected resource')} · ${String(resource.kind || 'device')} · ${String(resource.protocol || 'adapter')}`));
-      if (card.observedState !== null && card.observedState !== undefined) {
-        const value = typeof card.observedState === 'string' ? card.observedState : JSON.stringify(card.observedState);
-        holder.appendChild(makeElement('p', 'device-support-observation', `Recorded state: ${String(value || 'No state detail')}`));
-      }
-      if (card.observedAt) holder.appendChild(makeElement('small', 'storefront-execution-status', `Observed at ${String(card.observedAt)}`));
+      const state = card.observedState;
+      const evidence = [
+        { label: 'Resource', value: `${String(resource.kind || 'device')} · ${String(resource.protocol || 'adapter')}` },
+        ...(!state || typeof state !== 'object' ? [{ label: 'Recorded state', value: String(state || 'No state detail') }] : Object.entries(state).slice(0, 8).map(([key, value]) => ({ label: key.replace(/([A-Z])/g, ' $1'), value: typeof value === 'object' ? JSON.stringify(value) : String(value) }))),
+      ];
+      appendOutcomeEvidence(holder, evidence);
     }
     if (Array.isArray(card.resources) && card.resources.length) {
       const list = makeElement('ul', 'storefront-providers');
@@ -1072,21 +1111,9 @@
     }
     const resolution = card.resolution && typeof card.resolution === 'object' ? card.resolution : null;
     const resolutionOptions = Array.isArray(resolution?.options) ? resolution.options : [];
-    if (resolutionOptions.length) {
-      const section = makeElement('section', 'device-support-resolution');
-      section.appendChild(makeElement('strong', '', 'Choose the next resolution step'));
-      const actions = makeElement('div', 'storefront-actions');
-      resolutionOptions.forEach(option => {
-        if (!option?.label || !option?.prompt) return;
-        const button = makeElement('button', `sf-btn sf-${option.style === 'secondary' ? 'secondary' : 'primary'}`, String(option.label));
-        button.type = 'button';
-        button.dataset.actionId = String(option.id || 'device_resolution.next');
-        button.addEventListener('click', () => sendMessage(String(option.prompt)));
-        actions.appendChild(button);
-      });
-      if (actions.childElementCount) { section.appendChild(actions); holder.appendChild(section); }
-    }
-    holder.appendChild(makeElement('small', 'storefront-execution-status', card.liveObservation === true ? 'Live observation evidence received.' : 'Recorded resource state only. No live connection, diagnosis, remediation, or repair completion is claimed.'));
+    appendOutcomeChoices(holder, resolutionOptions);
+    const supportText = support?.explanation || (card.liveObservation === true ? 'Recorded observation is available for reasoning.' : 'Kurukoo can guide checks or coordinate an expert, but has not claimed direct access or completion.');
+    appendOutcomeStatus(holder, `${supportText} ${card.liveObservation === true ? 'No action is claimed until the selected next step produces evidence.' : 'No live connection, diagnosis, remediation, or repair completion is claimed.'}`, card.liveObservation === true ? 'evidence' : 'waiting');
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 
@@ -1125,14 +1152,13 @@
   }
 
   function renderOutcomeActionCard(card, messageEl) {
-    const holder = makeElement('section', 'provider-card os-outcome-action-card');
-    holder.setAttribute('aria-label', card.type === 'monitoring_setup' ? 'Monitoring setup' : card.type === 'reminder_setup' ? 'Reminder setup' : 'Communication preparation');
-    const title = card.type === 'monitoring_setup' ? 'Set up a bounded watch' : card.type === 'reminder_setup' ? 'Keep this follow-up active' : 'Message prepared for review';
+    const holder = makeElement('section', 'provider-card outcome-surface os-outcome-action-card');
+    holder.setAttribute('aria-label', 'Kurukoo outcome');
+    const title = card.type === 'monitoring_setup' ? 'Keep an eye on this' : card.type === 'reminder_setup' ? 'Keep this follow-up active' : 'Message prepared for review';
     holder.appendChild(makeElement('strong', '', title));
-    if (card.target) holder.appendChild(makeElement('span', 'storefront-execution-status', `Target: ${String(card.target)}`));
-    if (card.recipient) holder.appendChild(makeElement('span', 'storefront-execution-status', `Recipient: ${String(card.recipient)}`));
-    if (card.body) holder.appendChild(makeElement('p', '', String(card.body)));
-    const actions = makeElement('div', 'storefront-actions');
+    if (card.target) appendOutcomeEvidence(holder, [{ label: 'Target', value: String(card.target) }]);
+    if (card.recipient) appendOutcomeEvidence(holder, [{ label: 'Recipient', value: String(card.recipient) }]);
+    if (card.body) holder.appendChild(makeElement('p', 'storefront-offer-copy', String(card.body)));
     const prompts = {
       define_condition: 'Define what change I should watch for',
       connect_resource: 'Connect the resource I want Kurukoo to observe',
@@ -1143,14 +1169,9 @@
       choose_cadence: 'Choose a daily or weekly cadence for this reminder',
       define_completion: 'Define how I should know this reminder is done',
     };
-    (Array.isArray(card.actions) ? card.actions : []).forEach(action => {
-      const button = makeElement('button', `sf-btn ${action.id === 'confirm_send' ? 'sf-primary' : 'sf-secondary'}`, String(action.label || action.id || 'Continue'));
-      button.type = 'button';
-      button.addEventListener('click', () => sendMessage(prompts[action.id] || String(action.label || action.id || 'Continue')));
-      actions.appendChild(button);
-    });
-    if (actions.childElementCount) holder.appendChild(actions);
-    holder.appendChild(makeElement('small', 'storefront-execution-status', card.type === 'communication_prepare' ? 'Not sent. Recipient, channel, and confirmation are still required.' : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.'));
+    const actions = (Array.isArray(card.actions) ? card.actions : []).map(action => ({ ...action, prompt: prompts[action.id] || String(action.label || action.id || 'Continue') }));
+    appendOutcomeChoices(holder, actions);
+    appendOutcomeStatus(holder, card.type === 'communication_prepare' ? 'Not sent. Recipient, channel, and confirmation are still required.' : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.', 'waiting');
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 
