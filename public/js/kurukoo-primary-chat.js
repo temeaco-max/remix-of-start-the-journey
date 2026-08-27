@@ -669,7 +669,7 @@
     if (send) send.disabled = true;
     try {
       const res = await fetch(`/api/chat/economic-requests/offers/${encodeURIComponent(offerId)}/start`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: '{}'
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ conversationId: state.conversationId || undefined })
       });
       if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
       const data = await res.json().catch(() => ({}));

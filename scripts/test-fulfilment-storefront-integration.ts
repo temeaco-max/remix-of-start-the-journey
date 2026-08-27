@@ -32,6 +32,8 @@ const { getFulfilmentForEconomicRequest, getOpenProviderInquiry, getFulfilment, 
 const { getChannelDeliveryState } = await import('../src/services/channelDeliveryState.js');
 const { getEconomicRequest } = await import('../src/services/skillFlows.js');
 const { handleSmsWebhook } = await import('../src/channels/sms.js');
+const { processCanonicalChatTurn } = await import('../src/services/canonicalChatTurnService.js');
+const { getInternalNotifications } = await import('../src/services/pushNotifications.js');
 
 const db = await getDb();
 const customerPhone = '+2347000000411';
@@ -109,6 +111,28 @@ try {
   assert.equal(resumed?.title, 'Provider quote', 'The request surface must show the provider-confirmed quote after the reply is recorded.');
   assert.match(resumed?.message || '', /25[,_]?000/i);
 
+  const attention = (await getInternalNotifications(customerPhone, 10)).find(notification => notification.object_type === 'economic_request' && notification.object_id === requestId);
+  assert.ok(attention, 'A provider reply must queue owner-scoped attention for the same Economic Request.');
+  assert.equal(attention?.canonical_action, 'economic_request.open', 'Provider attention must retain the canonical request return action.');
+  const returned = await processCanonicalChatTurn({
+    phone: customerPhone,
+    message: 'Review the provider update',
+    channel: 'web',
+    conversationId: 'fulfilment-provider-return',
+    contextAction: {
+      type: 'resume_canonical_context',
+      contextId: attention!.context_id || `request:${requestId}`,
+      conversationId: attention!.conversation_id || 'fulfilment-provider-return',
+      canonicalAction: attention!.canonical_action!,
+      objectType: attention!.object_type!,
+      objectId: attention!.object_id!,
+    },
+  });
+  assert.equal(returned.cardData?.type, 'agentic_storefront', 'Provider attention must reopen the live storefront decision surface, not a generic context shell.');
+  assert.equal(returned.cardData?.requestId, requestId, 'Provider attention must return to the original Economic Request.');
+  assert.equal(returned.cardData?.title, 'Provider quote', 'Provider attention must return to the currently verified quote decision.');
+  assert.equal(returned.cardData?.resumedFromNotification, true, 'The returned decision must visibly preserve the notification continuation.');
+
   const duplicateReply = await handleSmsWebhook({
     From: providerPhone,
     Body: `Available today. Final price is NGN 25,000. Delivery available. Reference: KQ${reference}`,
@@ -131,7 +155,7 @@ try {
       'one outbound provider SMS accepted and delivery-reported',
       'provider reply persisted as evidence',
       'provider-confirmed quote attached to the same request',
-      'customer notification queued',
+      'customer notification queued and reopens the same quote decision in Chat',
       'outbound and inbound replays do not duplicate side effects',
     ],
   }, null, 2));

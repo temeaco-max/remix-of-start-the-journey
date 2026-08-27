@@ -47,10 +47,16 @@ requireSource(economicRoutes, "router.get('/:id', authenticateUser", 'authentica
 requireSource(economicRoutes, 'request.phone !== phone', 'owner isolation');
 requireSource(economicRoutes, "customerAllowed = new Set<EconomicRequestStatus>(['awaiting_confirmation', 'reserved', 'cancelled', 'completed'])", 'bounded customer lifecycle actions');
 requireSource(economicRoutes, 'A request must be fulfilled before the customer can complete it.', 'fail-closed fulfilment');
+requireSource(economicRoutes, "router.post('/offers/:offerId/start', authenticateUser", 'authenticated known-offer selection');
+requireSource(economicRoutes, 'createConversationGoal({', 'selected offer persists owned work');
+requireSource(economicRoutes, 'economicRequestId: result.request.id', 'selected offer goal links to the canonical request');
+requireSource(economicRoutes, 'conversationId,', 'selected offer retains Chat return context');
+requireSource(economicRoutes, 'persistWhenDisabled: true', 'selected offer work persists without autonomous runtime activation');
+requireSource(economicRoutes, 'ownedWork: true', 'selected offer card signals durable ownership');
 
 requireSource(style, '.checkout-detail-row', 'checkout detail styling');
 requireSource(style, '.confirmation-metrics', 'confirmation state styling');
 requireSource(style, '[data-confirmation-live] .workspace-actions', 'confirmation action grouping');
 requireSource(style, '@media(max-width:560px)', 'mobile checkout and confirmation styling');
 
-console.log('Checkout and confirmations journey contract passed: owner-scoped review, explicit request/payment evidence, cancellation confirmation, and return-to-Chat boundaries verified.');
+console.log('Checkout and confirmations journey contract passed: owner-scoped review, explicit request/payment evidence, cancellation confirmation, durable selected-offer ownership, and return-to-Chat boundaries verified.');

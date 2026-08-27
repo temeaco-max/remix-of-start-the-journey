@@ -94,6 +94,16 @@ for (const [message, expectedSkill] of nigeriaJourneyCases) {
   assert.equal(journey.cardData?.type, 'agentic_storefront', `Journey request should enter the canonical storefront: ${message}`);
 }
 
+for (const [message, expectedSkill] of [
+  ['Find me somewhere to stay in Lagos tomorrow.', 'hotel_deals'],
+  ['Find me a two-bedroom apartment around Yaba under 500000.', 'rental_tracker'],
+  ['Find me warehouse jobs around Lagos that I can apply for.', 'job_tracker'],
+] as const) {
+  const outcome = await routeIntent(message, makeDomainPhone(31 + message.length), undefined, createContext, `${conversationId}-broad-${message.length}`);
+  assert.equal(outcome.skill, expectedSkill, `Broad outcome should resolve to ${expectedSkill}: ${message}`);
+  assert.equal(outcome.cardData?.type, 'agentic_storefront', `Broad outcome should enter the canonical storefront: ${message}`);
+}
+
 const charger = await routeIntent('Buy me a replacement charger', makeDomainPhone(31), undefined, createContext, `${conversationId}-charger`);
 assert.equal(charger.skill, 'product_sourcing');
 assert.equal(charger.cardData?.type, 'agentic_storefront');
