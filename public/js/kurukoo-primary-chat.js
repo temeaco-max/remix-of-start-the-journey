@@ -576,6 +576,7 @@
       .replace(/\bjob_tracker\b/gi, 'job search')
       .replace(/\bphone_repairer\b/gi, 'phone repair')
       .replace(/\bfind_worker\b/gi, 'local help')
+      .replace(/\bwifi_installer\b/gi, 'connection setup')
       .replace(/Preserve the exact owner and conversation context/gi, 'Keep this work and conversation connected')
       .replace(/Find or coordinate an authorised provider through the existing Economic Request path\./gi, 'Find or coordinate an authorised provider for this request.')
       .replace(/Hand off to the existing provider, commerce, booking, or fulfilment owner when local preparation is complete\./gi, 'Continue through the appropriate confirmed provider path after local preparation.')

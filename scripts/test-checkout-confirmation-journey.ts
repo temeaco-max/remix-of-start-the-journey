@@ -41,6 +41,7 @@ requireSource(client, "rental_tracker: 'Finding a home to rent'", 'property uses
 requireSource(client, "job_tracker: 'Finding work'", 'job search uses situation-led workspace language');
 requireSource(client, "return 'Finding a tutor'", 'tutor requests use situation-led workspace language');
 requireSource(client, "return 'Finding a mechanic'", 'automotive requests use situation-led workspace language');
+requireSource(client, "wifi_installer: 'Sorting out your connection'", 'internet requests use situation-led workspace language');
 forbidSource(client, 'payment_started: true', 'fabricated payment state');
 forbidSource(client, 'window.open(', 'unbounded external checkout redirect');
 

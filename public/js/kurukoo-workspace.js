@@ -85,7 +85,7 @@
     }
     return ({
       ride_request: 'Getting you there', order_food: 'Food request', product_sourcing: 'Finding the right item',
-      phone_repairer: 'Phone repair', repair: 'Repair request',
+      phone_repairer: 'Phone repair', repair: 'Repair request', wifi_installer: 'Sorting out your connection',
       hotel_deals: 'Finding a place to stay', rental_tracker: 'Finding a home to rent', job_tracker: 'Finding work',
     }[String(request.skill || '').toLowerCase()] || humanize(request.category || request.skill || 'Request'));
   };

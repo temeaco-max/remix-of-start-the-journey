@@ -169,3 +169,7 @@ registerSkillsToFulfilmentMechanism(['job_tracker'], 'local_discovery', {
   requiredInputs: ['objective'],
   optionalInputs: ['location', 'timing', 'salary_expectation', 'employment_type'],
 });
+registerSkillsToFulfilmentMechanism(['wifi_installer'], 'service_request', {
+  requiredInputs: ['objective'],
+  optionalInputs: ['location', 'timing', 'connection_type', 'provider', 'symptoms'],
+});

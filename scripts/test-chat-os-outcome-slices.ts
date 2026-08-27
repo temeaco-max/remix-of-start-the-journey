@@ -122,6 +122,11 @@ assert.equal(automotive.skill, 'find_worker', 'Vehicle repair wording must enter
 assert.equal(automotive.cardData?.type, 'agentic_storefront');
 assert.equal((await getEconomicRequest(automotive.cardData?.requestId || ''))?.requirements.service, 'mechanic', 'Automotive repair must seed the mechanic service required for provider discovery.');
 
+const internet = await routeIntent('Arrange someone to set up Wi-Fi in Yaba tomorrow.', makeDomainPhone(42), undefined, createContext, `${conversationId}-internet-service`);
+assert.equal(internet.skill, 'wifi_installer', 'Ordinary internet setup language must enter the existing Wi-Fi installer outcome rather than generic conversation.');
+assert.equal(internet.cardData?.type, 'agentic_storefront');
+assert.match(String((await getEconomicRequest(internet.cardData?.requestId || ''))?.requirements.objective || ''), /set up Wi-Fi/i, 'Internet outcome must retain the user’s stated service objective for provider coordination.');
+
 for (const [offset, message, firstSkill] of [
   [61, 'I need somewhere to stay next week.', 'hotel_deals'],
   [67, 'Sort out my internet.', 'wifi_installer'],

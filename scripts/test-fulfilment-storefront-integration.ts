@@ -40,6 +40,7 @@ const customerPhone = '+2347000000411';
 const providerPhone = '+2347000000412';
 const hotelProviderPhone = '+2347000000413';
 const tutorProviderPhone = '+2347000000414';
+const wifiProviderPhone = '+2347000000415';
 
 db.run(
   `INSERT OR REPLACE INTO memory_profiles (phone, name, location, country, verified_provider, points_balance)
@@ -75,6 +76,16 @@ db.run(
   `INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode)
    VALUES (?, 'teacher', 1, 0, 4.9, 14, 'mobile')`,
   [tutorProviderPhone]
+);
+db.run(
+  `INSERT INTO memory_profiles (phone, name, location, country, verified_provider, points_balance)
+   VALUES (?, ?, 'Yaba', 'ng', ?, 30)`,
+  [wifiProviderPhone, 'Yaba Wi-Fi Technician', 1]
+);
+db.run(
+  `INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode)
+   VALUES (?, 'wifi_installer', 1, 0, 4.8, 12, 'mobile')`,
+  [wifiProviderPhone]
 );
 
 try {
@@ -197,6 +208,21 @@ try {
   assert.match(tutorInquiry?.question || '', /Saturday afternoon/i, 'Tutor provider inquiry must retain the requested lesson timing.');
   assert.equal(outboundCalls, 3, 'The explicit tutor inquiry must make one additional provider contact attempt.');
 
+  const internet = await startStorefrontSession(customerPhone, 'wifi_installer', {
+    objective: 'Set up reliable Wi-Fi in Yaba', location: 'Yaba', timing: 'tomorrow morning', connection_type: 'home internet',
+  }, { forceNew: true });
+  assert.equal(internet.stage, 'catalog_match', 'An internet setup outcome must reach verified Wi-Fi provider discovery.');
+  assert.ok(internet.providers?.some(provider => provider.phone === wifiProviderPhone), 'Internet service discovery must surface the verified technician without claiming installation.');
+  const internetRequestId = internet.requestId!;
+  await advanceStorefront(customerPhone, internetRequestId, { providerPhone: wifiProviderPhone }, 'select_provider');
+  const internetInquiryCard = await advanceStorefront(customerPhone, internetRequestId, {}, 'request_quote');
+  assert.equal(internetInquiryCard.title, 'Quote inquiry sent', 'The selected Wi-Fi technician must receive the existing provider availability inquiry.');
+  const internetFulfilment = await getFulfilmentForEconomicRequest(customerPhone, internetRequestId);
+  assert.equal(internetFulfilment?.mechanism, 'service_request', 'Internet coordination must reuse the service-request fulfilment mechanism.');
+  const internetInquiry = await getOpenProviderInquiry(customerPhone, internetFulfilment!.id, wifiProviderPhone);
+  assert.match(internetInquiry?.question || '', /tomorrow morning/i, 'Wi-Fi provider inquiry must retain the requested timing.');
+  assert.equal(outboundCalls, 4, 'The explicit Wi-Fi inquiry must make one additional provider contact attempt.');
+
   console.log(JSON.stringify({
     passed: true,
     requestId,
@@ -211,6 +237,7 @@ try {
       'outbound and inbound replays do not duplicate side effects',
       'accommodation progresses from discovery to the shared booking inquiry with retained timing',
       'education progresses from tutor discovery to the shared local inquiry with retained timing',
+      'internet setup progresses from technician discovery to the shared service inquiry with retained timing',
     ],
   }, null, 2));
 } finally {

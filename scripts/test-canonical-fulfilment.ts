@@ -25,6 +25,7 @@ assert.equal(getFulfilmentMechanismForSkill('food_order'), 'marketplace_purchase
 assert.equal(getFulfilmentMechanismForSkill('hotel_deals'), 'booking', 'Accommodation must continue through the shared booking lifecycle.');
 assert.equal(getFulfilmentMechanismForSkill('rental_tracker'), 'booking', 'Property search must retain the shared verified-terms inquiry lifecycle.');
 assert.equal(getFulfilmentMechanismForSkill('job_tracker'), 'local_discovery', 'Job search must continue through the shared provider/discovery lifecycle.');
+assert.equal(getFulfilmentMechanismForSkill('wifi_installer'), 'service_request', 'Internet setup and repair must continue through the shared service-request lifecycle.');
 assert.deepEqual(resolveMissingFulfilmentInputs(getFulfilmentSkillBinding('hotel_deals')!, { objective: 'Somewhere to stay in Lagos tomorrow' }), [], 'A stated accommodation outcome is ready for provider discovery without forcing unrelated booking fields.');
 
 const catalogueFlow = await createFulfilment({ ownerPhone: owner, skill: 'purchase', mechanism: 'marketplace_purchase', requirements: { item: 'suya', quantity: 2, unit: 'portions', location: 'Ikeja' }, requiredInputs: ['item','quantity','location'], missingInputs: [] });
