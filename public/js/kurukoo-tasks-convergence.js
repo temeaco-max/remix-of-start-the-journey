@@ -52,14 +52,23 @@
   const isComplete = (task) => ['completed', 'approved'].includes(state(task));
   const isClosed = (task) => ['cancelled', 'expired', 'blocked', 'failed', 'rejected'].includes(state(task));
 
+  const exactChatHref = ({ prompt, objectType, objectId, canonicalAction, conversationId }) => {
+    const params = new URLSearchParams({ prompt: String(prompt || 'Open this update.') });
+    if (conversationId) params.set('conversationId', String(conversationId).slice(0, 160));
+    if (objectType && objectId && canonicalAction) {
+      params.set('contextId', `${objectType}:${objectId}`.slice(0, 180));
+      params.set('action', 'review');
+      params.set('canonicalAction', String(canonicalAction).slice(0, 120));
+      params.set('objectType', String(objectType).slice(0, 80));
+      params.set('objectId', String(objectId).slice(0, 180));
+    }
+    return `/chat?${params.toString()}`;
+  };
+
   const continuation = (task) => {
-    const sourceType = String(task?.sourceType || '').toLowerCase();
-    if (sourceType === 'topic' && task?.sourceId) return `/topics/${encodeURIComponent(String(task.sourceId))}`;
-    if (sourceType === 'request' || sourceType === 'economic_request') return '/requests';
-    if (sourceType === 'agent') return `/chat?prompt=${encodeURIComponent('Continue the objective connected to this task.')}`;
-    if (sourceType === 'conversation') return '/chat';
-    const title = task?.title || task?.name || 'this task';
-    return `/chat?prompt=${encodeURIComponent(`Open the context for ${title}.`)}`;
+    const id = String(task?.id || '').trim();
+    if (!id) return '/chat?prompt=Show%20me%20my%20tasks';
+    return exactChatHref({ prompt: 'Open this task.', objectType: 'task', objectId: id, canonicalAction: 'task.open', conversationId: task?.conversationId || task?.conversation_id });
   };
 
   const action = (label, kind, taskId, primary = false) => `<button type="button" class="${primary ? 'k-app-primary' : 'k-app-card-action'} k-task-action" data-task-action="${kind}" data-task-id="${escape(taskId)}">${label}</button>`;
@@ -71,17 +80,15 @@
     const closed = isClosed(task);
     const sourceType = String(task.sourceType || '').toLowerCase();
     const source = sourceType === 'agent' ? 'Part of an objective' : sourceType === 'request' || sourceType === 'economic_request' ? 'Part of a request' : sourceType === 'conversation' ? 'From a conversation' : sourceType === 'topic' ? 'From a topic' : 'No source context supplied';
-    const statusLabel = { available: 'Available', in_progress: 'In progress', waiting: 'Waiting', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your input is needed', completed: 'Completed', approved: 'Completed', blocked: 'Paused safely', failed: 'Needs review', cancelled: 'Stopped', expired: 'Expired', rejected: 'Unavailable' }[currentState] || 'Updating';
-    const continuationHref = continuation(task);
-    const resultId = `task-result-${task.id}`;
-    const result = active ? `<label class="k-task-result-label" for="${resultId}">Completion note <span>optional</span></label><textarea id="${resultId}" class="k-task-result" data-task-result="${escape(task.id)}" rows="2" maxlength="4000" placeholder="Add evidence or a useful completion note"></textarea>` : '';
+    const statusLabel = { available: 'Available to take', in_progress: 'Working on it', waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your decision is needed', completed: 'Completed', approved: 'Completed', blocked: 'Needs review', failed: 'Needs recovery', cancelled: 'Cancelled', expired: 'Expired', rejected: 'Unavailable' }[currentState] || 'Updating';
+    const taskId = String(task?.id || '').trim();
+    const continuationHref = taskId ? continuation(task) : null;
+    const resultId = taskId ? `task-result-${taskId}` : '';
+    const result = active && taskId ? `<label class="k-task-result-label" for="${resultId}">Completion note <span>optional</span></label><textarea id="${resultId}" class="k-task-result" data-task-result="${escape(taskId)}" rows="2" maxlength="4000" placeholder="Add evidence or a useful completion note"></textarea>` : '';
     const actions = [];
-    if (isAvailable(task)) actions.push(action('Accept task', 'accept', task.id, true));
-    if (active) actions.push(action('Complete task', 'complete', task.id, true));
-    if (continuationHref) {
-      const isChat = continuationHref.startsWith('/chat');
-      actions.push(`<a class="k-app-card-action" href="${continuationHref}">${isChat ? 'Continue in Chat →' : 'Open source context →'}</a>`);
-    }
+    if (isAvailable(task) && taskId) actions.push(action('Accept task', 'accept', taskId, true));
+    if (active && taskId) actions.push(action('Complete task', 'complete', taskId, true));
+    if (continuationHref && !isAvailable(task)) actions.push(`<a class="k-app-card-action" href="${continuationHref}">Continue in Chat →</a>`);
     if (closed || complete) actions.push(`<span class="k-task-state-note">${complete ? 'Completion recorded.' : 'No action available in this state.'}</span>`);
     return `<article class="k-task-card" data-task-state="${escape(currentState)}"><div class="k-task-card-head"><div><span class="k-app-card-label">${escape(sourceType === 'agent' ? 'Objective task' : sourceType === 'request' || sourceType === 'economic_request' ? 'Request task' : 'Task')}</span><h3>${escape(task.title || 'Task')}</h3></div><span class="k-status k-task-status" data-state="${escape(currentState)}">${escape(statusLabel)}</span></div><p>${escape(task.description || 'No additional task instructions were supplied.')}</p><div class="k-task-context"><span>${escape(source)}</span></div>${result}<div class="k-task-actions">${actions.join('') || '<span class="k-task-state-note">Waiting for the next confirmed update.</span>'}</div></article>`;
   };

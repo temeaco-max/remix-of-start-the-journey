@@ -1044,18 +1044,19 @@
   function renderOSCollection(card, messageEl) {
     const holder = makeElement('section', 'provider-card os-collection-card');
     holder.setAttribute('aria-label', String(card.type || 'Kurukoo result').replace(/_/g, ' '));
-    const title = card.type === 'notifications' ? 'Your updates' : card.type === 'reminders' ? 'Your reminders' : card.type === 'tasks' ? 'Your tasks' : card.type === 'memory' ? 'Your saved context' : card.type === 'request_status' ? 'Request status' : card.type === 'os_status' ? `${String(card.domain || 'OS status').replace(/_/g, ' ')} status` : 'Kurukoo result';
+    const title = card.type === 'notifications' ? 'Your updates' : card.type === 'reminders' ? 'Your reminders' : card.type === 'reminder_action' ? 'Reminder review' : card.type === 'tasks' ? 'Your tasks' : card.type === 'task_action' ? 'Task review' : card.type === 'memory' ? 'Your saved context' : card.type === 'request_status' ? 'Request status' : card.type === 'os_status' ? `${String(card.domain || 'OS status').replace(/_/g, ' ')} status` : 'Kurukoo result';
     holder.appendChild(makeElement('strong', '', title));
     if (card.count !== undefined) holder.appendChild(makeElement('small', 'storefront-execution-status', `${String(card.count)} stored item${Number(card.count) === 1 ? '' : 's'}`));
     const list = makeElement('div', 'inspector-list');
-    const items = card.type === 'notifications' ? (Array.isArray(card.notifications) ? card.notifications : []) : card.type === 'reminders' ? (Array.isArray(card.reminders) ? card.reminders : []) : card.type === 'tasks' ? (Array.isArray(card.tasks) ? card.tasks : []) : card.type === 'memory' ? (Array.isArray(card.facts) ? card.facts : []) : [];
+    const items = card.type === 'notifications' ? (Array.isArray(card.notifications) ? card.notifications : []) : card.type === 'reminders' ? (Array.isArray(card.reminders) ? card.reminders : []) : card.type === 'reminder_action' ? (card.reminder ? [card.reminder] : []) : card.type === 'tasks' ? (Array.isArray(card.tasks) ? card.tasks : []) : card.type === 'task_action' ? (card.task ? [card.task] : []) : card.type === 'memory' ? (Array.isArray(card.facts) ? card.facts : []) : [];
     if (items.length) {
       items.forEach(item => {
         const row = makeElement('article', 'inspector-list-row');
         const details = makeElement('div');
-        const label = item.title || `Item ${String(item.id || '')}`;
-        const meta = item.deliveryState || item.status || item.recurrence || item.dueAt || item.sourceType || '';
-        details.append(makeElement('strong', '', String(label)), makeElement('span', '', String(meta).replace(/_/g, ' ')));
+        const label = item.title || 'Saved item';
+        const rawMeta = String(item.deliveryState || item.status || item.recurrence || item.dueAt || item.sourceType || '').toLowerCase();
+        const meta = ({ in_progress: 'Working on it', waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your decision is needed', completed: 'Completed', approved: 'Completed', failed: 'Needs recovery', scheduled: 'Scheduled', sent: 'Reminder time reached', cancelled: 'Cancelled' })[rawMeta] || rawMeta.replace(/_/g, ' ');
+        details.append(makeElement('strong', '', String(label)), makeElement('span', '', meta));
         if (item.body || item.description) details.appendChild(makeElement('small', '', String(item.body || item.description)));
         if (card.type === 'memory' && item.provenance) details.appendChild(makeElement('small', '', `Provenance: ${String(item.provenance).replace(/_/g, ' ')}`));
         const actions = makeElement('div', 'storefront-actions');

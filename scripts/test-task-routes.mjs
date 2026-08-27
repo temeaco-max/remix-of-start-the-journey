@@ -66,7 +66,7 @@ assert(template.includes('/js/kurukoo-tasks-convergence.js'), 'Tasks loads only 
 const workspace = fs.readFileSync(path.join(__dirname, '../public/js/kurukoo-workspace.js'), 'utf8');
 assert(workspace.includes("api('/api/tasks')"), 'shared workspace hydrator reads the canonical Tasks API');
 assert(workspace.includes("status === 'available'"), 'Tasks acceptance is available-state-only in the client projection');
-assert(workspace.includes("status === 'in_progress'"), 'Tasks continuation identifies canonical in-progress work');
+assert(workspace.includes('else if (task.id)'), 'Tasks continuation opens persisted owner-scoped work in the exact canonical Chat context after available work is accepted');
 assert(workspace.includes("status === 'completed'"), 'Tasks metrics identify canonical completion');
 
 const convergence = fs.readFileSync(path.join(__dirname, '../public/js/kurukoo-tasks-convergence.js'), 'utf8');

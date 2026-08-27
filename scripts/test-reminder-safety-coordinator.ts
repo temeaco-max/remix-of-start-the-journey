@@ -10,7 +10,7 @@ process.env.KURUKOO_DISABLE_LISTEN = 'true';
 process.env.KURUKOO_CONTACT_CONSENT_EXPOSE_DEV_LINK = 'true';
 
 const { getDb } = await import('../src/database.js');
-const { createReminder, cancelReminder } = await import('../src/services/reminderService.js');
+const { createReminder, getReminderForPhone, cancelReminder } = await import('../src/services/reminderService.js');
 const { addSafetyContact, listSafetyContacts, startCheckIn, completeCheckIn } = await import('../src/services/safetyService.js');
 const { createTrustedContactConsentRequest, respondToTrustedContactConsent } = await import('../src/services/trustedContactService.js');
 const { getCoordinatorTelemetry } = await import('../src/services/coordinatorStore.js');
@@ -22,12 +22,16 @@ const privateContactName = 'PRIVATE_CONTACT_SENTINEL';
 const privateRouteNote = 'PRIVATE_ROUTE_SENTINEL';
 
 try {
+  const reminderConversationId = 'reminder-conversation-proof';
   const reminder = await createReminder(phone, {
     title: privateReminderTitle,
     note: privateReminderNote,
     dueAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+    sourceConversationId: reminderConversationId,
   });
   assert.equal(reminder.status, 'scheduled');
+  assert.equal((await getReminderForPhone(phone, reminder.id))?.source_conversation_id, reminderConversationId, 'Reminder retains its originating conversation for exact Chat continuation');
+  assert.equal(await getReminderForPhone('+2348095550109', reminder.id), null, 'Another owner cannot reopen a private reminder context');
   assert.equal(await cancelReminder(phone, reminder.id), true);
 
   const contact = await addSafetyContact(phone, {
