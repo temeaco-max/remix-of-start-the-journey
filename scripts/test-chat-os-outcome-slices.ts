@@ -6,6 +6,7 @@ import { createEconomicRequest, getEconomicRequest, transitionEconomicRequest } 
 import { executeCanonicalCapabilityProposal } from '../src/services/canonicalCapabilityExecutor.js';
 import { listAgentGoals } from '../src/services/agentRuntime.js';
 import { upsertProfile } from '../src/routes/authRoutes.js';
+import { addContact } from '../src/services/identityContactService.js';
 
 const phone = `+234807${String(Date.now()).slice(-7)}`;
 const conversationId = `chat-os-outcomes-${Date.now()}`;
@@ -175,9 +176,25 @@ assert.equal(communication.cardData?.deliveryState, 'not_sent');
 const monitoringTurn = await processCanonicalChatTurn({ phone: makeDomainPhone(47), message: 'Keep an eye on my Wi-Fi', channel: 'web', conversationId: `${conversationId}-monitoring-turn` });
 assert.equal(monitoringTurn.cardData?.type, 'monitoring_setup');
 
-const communicationTurn = await processCanonicalChatTurn({ phone: makeDomainPhone(53), message: 'Tell John I am late', channel: 'web', conversationId: `${conversationId}-communication-turn` });
+const communicationPhone = makeDomainPhone(53);
+const johnPhone = makeDomainPhone(54);
+const communicationThread = `${conversationId}-communication-turn`;
+await upsertProfile(communicationPhone, 'Communication Owner');
+await upsertProfile(johnPhone, 'John Ade');
+await addContact(communicationPhone, johnPhone, 'John');
+const communicationTurn = await processCanonicalChatTurn({ phone: communicationPhone, message: 'Tell John I am late', channel: 'web', conversationId: communicationThread });
 assert.equal(communicationTurn.cardData?.type, 'communication_prepare');
 assert.equal(communicationTurn.cardData?.deliveryState, 'not_sent');
+const recipientResolved = await processCanonicalChatTurn({ phone: communicationPhone, message: 'Resolve the recipient for this message', channel: 'web', conversationId: communicationThread });
+assert.equal(recipientResolved.cardData?.type, 'communication_prepare');
+assert.equal(recipientResolved.cardData?.status, 'recipient_ready');
+assert.equal(recipientResolved.cardData?.recipientResolved, true);
+assert.equal(recipientResolved.cardData?.deliveryState, 'not_sent');
+const channelUnavailable = await processCanonicalChatTurn({ phone: communicationPhone, message: 'Choose an available channel for this message', channel: 'web', conversationId: communicationThread });
+assert.equal(channelUnavailable.cardData?.type, 'communication_prepare');
+assert.equal(channelUnavailable.cardData?.status, 'channel_unavailable');
+assert.equal(channelUnavailable.cardData?.deliveryState, 'not_sent');
+assert.match(channelUnavailable.reply, /no authorised delivery channel is active/i);
 
 const brief = await processCanonicalChatTurn({ phone, message: 'Show me what I need to deal with.', channel: 'web', conversationId });
 assert.equal(brief.cardData?.type, 'agent_brief');

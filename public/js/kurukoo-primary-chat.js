@@ -1117,7 +1117,18 @@
       const button = makeElement('button', `sf-btn sf-${option.style === 'secondary' ? 'secondary' : 'primary'}`, String(option.label));
       button.type = 'button';
       button.dataset.actionId = String(option.id || 'outcome.next');
-      button.addEventListener('click', () => sendMessage(String(option.prompt || promptFallback || option.label)));
+      button.addEventListener('click', () => {
+        if (option.id === 'copy_message' && option.copyText) {
+          const text = String(option.copyText);
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(() => pushAgentSurfaceToast('Message copied', 'No delivery channel was used.', false)).catch(() => pushAgentSurfaceToast('Copy unavailable', 'Select the message text and copy it manually. No delivery channel was used.', true));
+          } else {
+            pushAgentSurfaceToast('Copy unavailable', 'Select the message text and copy it manually. No delivery channel was used.', true);
+          }
+          return;
+        }
+        sendMessage(String(option.prompt || promptFallback || option.label));
+      });
       actions.appendChild(button);
     });
     section.appendChild(actions);
@@ -1226,9 +1237,18 @@
       choose_cadence: 'Choose a daily or weekly cadence for this reminder',
       define_completion: 'Define how I should know this reminder is done',
     };
-    const actions = (Array.isArray(card.actions) ? card.actions : []).map(action => ({ ...action, prompt: prompts[action.id] || String(action.label || action.id || 'Continue') }));
+    const actions = (Array.isArray(card.actions) ? card.actions : []).map(action => ({ ...action, prompt: prompts[action.id] || String(action.label || action.id || 'Continue'), copyText: action.id === 'copy_message' ? String(card.body || '') : undefined }));
     appendOutcomeChoices(holder, actions);
-    appendOutcomeStatus(holder, card.type === 'communication_prepare' ? 'Not sent. Recipient, channel, and confirmation are still required.' : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.', 'waiting');
+    const communicationStatus = {
+      recipient_ready: 'Recipient found. Your message is still unsent; choose a delivery route next.',
+      ready_to_send: 'Ready for your confirmation. The message has not been handed to a channel.',
+      accepted: 'Accepted by the selected channel. Delivery still needs an authoritative report.',
+      channel_unavailable: 'No authorised delivery route is active. Your message remains saved and unsent.',
+      send_failed: 'The channel did not accept the message. It remains unsent and saved here.',
+      copy_ready: 'This message was copied for you. No delivery channel was used.',
+      needs_recipient: 'Recipient, channel, and confirmation are still required. Nothing has been sent.',
+    };
+    appendOutcomeStatus(holder, card.type === 'communication_prepare' ? (communicationStatus[String(card.status || '')] || 'Not sent. Recipient, channel, and confirmation are still required.') : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.', String(card.deliveryState || '').toLowerCase() === 'accepted' ? 'neutral' : 'waiting');
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 

@@ -18,6 +18,9 @@ import { executeCanonicalCapabilityProposal } from './canonicalCapabilityExecuto
 import { connectedResourceSupportProfile, connectedResourceSupports, listConnectedResources } from './connectedResourceService.js';
 import { listChatMessages } from './chatConversationService.js';
 import { createTopicDraft } from './topicService.js';
+import { listContacts } from './identityContactService.js';
+import { getWhatsAppBusinessStatus, sendWhatsAppBusinessText } from './whatsappBusinessPlatformService.js';
+import { recordChannelDispatch } from './channelDeliveryState.js';
 import type { IntentRoutingResult } from '../types.js';
 import { extractConversationalEntities, extractFoodOrderSlots, isFoodOrderExpression, validateConversationalEntities } from './conversationalExtraction.js';
 
@@ -52,6 +55,77 @@ function skillForIntent(intent: string): string {
   if (intent === 'security_booking') return 'security_personnel';
   if (intent === 'artist_booking') return 'verified_artist';
   return intent;
+}
+
+function parsePersistedCard(row: any): any | null {
+  try {
+    const parsed = typeof row?.card_data === 'string' ? JSON.parse(row.card_data) : row?.card_data;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function communicationCard(input: { recipient: string; body: string; status: string; recipientResolved?: boolean; channel?: string | null; deliveryState?: string; actions?: any[]; messageId?: string }) {
+  return {
+    type: 'communication_prepare',
+    status: input.status,
+    recipient: input.recipient,
+    body: input.body,
+    recipientResolved: Boolean(input.recipientResolved),
+    channel: input.channel || null,
+    deliveryState: input.deliveryState || 'not_sent',
+    providerMessageId: input.messageId,
+    actions: input.actions || [],
+    truthful: true,
+  };
+}
+
+async function findPreparedCommunication(phone: string, conversationId?: string): Promise<any | null> {
+  if (!conversationId) return null;
+  const messages = await listChatMessages(phone, { conversationId, limit: 50 });
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const card = parsePersistedCard(messages[index]);
+    if (card?.type === 'communication_prepare' && card.recipient && card.body) return card;
+  }
+  return null;
+}
+
+async function resolveCommunicationRecipient(phone: string, recipient: string) {
+  const wanted = recipient.trim().replace(/\s+/g, ' ').toLowerCase();
+  if (!wanted) return null;
+  const contacts = await listContacts(phone);
+  const exact = contacts.find((contact) => String(contact.displayName || '').trim().toLowerCase() === wanted);
+  if (exact) return exact;
+  const matches = contacts.filter((contact) => {
+    const name = String(contact.displayName || '').trim().toLowerCase();
+    return name.startsWith(`${wanted} `) || wanted.startsWith(`${name} `);
+  });
+  return matches.length === 1 ? matches[0] : null;
+}
+
+async function continuePreparedCommunication(phone: string, message: string, conversationId?: string): Promise<IntentRoutingResult | null> {
+  const normalized = message.trim().toLowerCase();
+  if (!/^(?:resolve the recipient for this message|choose an available channel for this message|confirm(?: and)? send(?:ing)? this message|copy this message)\b/.test(normalized)) return null;
+  const prepared = await findPreparedCommunication(phone, conversationId);
+  if (!prepared) return null;
+  const recipient = await resolveCommunicationRecipient(phone, String(prepared.recipient));
+  const base = { recipient: String(prepared.recipient), body: String(prepared.body) };
+  if (/^resolve the recipient/.test(normalized)) {
+    if (!recipient) return { skill: 'communication', reply: `I could not match **${base.recipient}** to one authorised contact. Your message is still saved in this conversation and has not been sent. Add or identify the contact before choosing a delivery channel.`, cardData: communicationCard({ ...base, status: 'needs_recipient', actions: [{ id: 'copy_message', label: 'Copy message', style: 'secondary' }] }), canonicalAction: 'communication.recipient_required', progressStage: 'understanding', extractionSource: 'deterministic' };
+    return { skill: 'communication', reply: `I found the authorised contact **${recipient.displayName}**. Your message is still unsent. I can now check the available delivery route.`, cardData: communicationCard({ ...base, recipient: recipient.displayName, status: 'recipient_ready', recipientResolved: true, actions: [{ id: 'choose_channel', label: 'Choose an available channel' }] }), canonicalAction: 'communication.channel_review', progressStage: 'ready', extractionSource: 'deterministic' };
+  }
+  if (!recipient) return { skill: 'communication', reply: `I still need to match **${base.recipient}** to an authorised contact before I can prepare a delivery route. Nothing has been sent.`, cardData: communicationCard({ ...base, status: 'needs_recipient', actions: [{ id: 'resolve_recipient', label: 'Resolve recipient' }, { id: 'copy_message', label: 'Copy message', style: 'secondary' }] }), canonicalAction: 'communication.recipient_required', progressStage: 'understanding', extractionSource: 'deterministic' };
+  if (/^choose an available channel/.test(normalized)) {
+    if (!getWhatsAppBusinessStatus().enabled) return { skill: 'communication', reply: `I found **${recipient.displayName}**, but no authorised delivery channel is active for this message. The message remains saved here for you to copy or send once a channel is connected.`, cardData: communicationCard({ ...base, recipient: recipient.displayName, status: 'channel_unavailable', recipientResolved: true, actions: [{ id: 'copy_message', label: 'Copy message', style: 'secondary' }] }), canonicalAction: 'communication.channel_unavailable', progressStage: 'ready', extractionSource: 'deterministic' };
+    return { skill: 'communication', reply: `WhatsApp is available for **${recipient.displayName}**. Review the message and confirm before I hand it to the channel; acceptance and delivery remain separate evidence states.`, cardData: communicationCard({ ...base, recipient: recipient.displayName, status: 'ready_to_send', recipientResolved: true, channel: 'WhatsApp', actions: [{ id: 'confirm_send', label: 'Confirm and send' }, { id: 'copy_message', label: 'Copy message', style: 'secondary' }] }), canonicalAction: 'communication.send_confirmation', progressStage: 'ready', extractionSource: 'deterministic' };
+  }
+  if (/^copy this message/.test(normalized)) return { skill: 'communication', reply: `Here is the unsent message for **${recipient.displayName}**:\n\n${base.body}\n\nNo channel delivery was attempted.`, cardData: communicationCard({ ...base, recipient: recipient.displayName, status: 'copy_ready', recipientResolved: true, actions: [{ id: 'choose_channel', label: 'Choose an available channel' }] }), canonicalAction: 'communication.copy_ready', progressStage: 'information', extractionSource: 'deterministic' };
+  if (!getWhatsAppBusinessStatus().enabled) return { skill: 'communication', reply: 'No authorised WhatsApp delivery route is active, so I did not send the message. It remains saved in this conversation for you to copy or send after a channel is connected.', cardData: communicationCard({ ...base, recipient: recipient.displayName, status: 'channel_unavailable', recipientResolved: true, actions: [{ id: 'copy_message', label: 'Copy message', style: 'secondary' }] }), canonicalAction: 'communication.channel_unavailable', progressStage: 'ready', extractionSource: 'deterministic' };
+  const sent = await sendWhatsAppBusinessText(recipient.phone, base.body);
+  if (!sent.ok || !sent.messageId) return { skill: 'communication', reply: 'I could not hand that message to WhatsApp, so I have not claimed it was sent. The message remains saved here for you to retry or copy.', cardData: communicationCard({ ...base, recipient: recipient.displayName, status: 'send_failed', recipientResolved: true, channel: 'WhatsApp', deliveryState: 'not_sent', actions: [{ id: 'copy_message', label: 'Copy message', style: 'secondary' }, { id: 'choose_channel', label: 'Review channel' }] }), canonicalAction: 'communication.send_failed', progressStage: 'ready', extractionSource: 'deterministic' };
+  await recordChannelDispatch({ channel: 'whatsapp', provider: 'meta_whatsapp_business', providerMessageId: sent.messageId, phone, status: 'accepted', raw: { recipient: recipient.phone } });
+  return { skill: 'communication', reply: `WhatsApp accepted the message for **${recipient.displayName}**. I have not claimed delivery; that needs a delivery report from the channel.`, cardData: communicationCard({ ...base, recipient: recipient.displayName, status: 'accepted', recipientResolved: true, channel: 'WhatsApp', deliveryState: 'accepted', messageId: sent.messageId }), canonicalAction: 'communication.dispatch_accepted', progressStage: 'coordinating', extractionSource: 'deterministic' };
 }
 
 function isExploratoryQuestion(query: string): boolean {
@@ -338,6 +412,11 @@ async function handleExplicitOSAction(phone: string | undefined, q: string, thre
 export async function routeIntent(query: string, phone?: string, provider?: AIProvider, contextHint?: ConversationalContextHint, threadId?: string): Promise<IntentRoutingResult> {
   const q = query.trim().toLowerCase().replace(/[.!?]+$/, '');
   if (!q) return { skill: 'general_question', reply: 'Tell me what you need.' };
+
+  if (phone && !phone.startsWith('anon_')) {
+    const communicationContinuation = await continuePreparedCommunication(phone, query, threadId);
+    if (communicationContinuation) return communicationContinuation;
+  }
 
   const priority = resolveConversationPriority(query);
   if (priority.kind === 'emergency' && /\b(?:ambulance|police|fire|immediate danger|life[- ]threatening|call|dial|unconscious|attacking|not breathing)\b/i.test(q)) {
