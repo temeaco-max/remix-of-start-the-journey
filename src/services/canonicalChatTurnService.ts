@@ -218,11 +218,28 @@ export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): P
       const explicitAgentIntent = routing.skill === 'autonomous_agent' || /\b(keep checking|keep looking|monitor|watch for|tell me when|let me know when|check again)\b/i.test(message);
       agentGoal = compound?.parentGoal || (!isGuest && explicitAgentIntent ? await createConversationGoal({ phone, conversationId: userMessage.conversationId, skill: routing.skill, objective: message, economicRequestId: typeof cardData?.requestId === 'string' ? cardData.requestId : undefined, source: input.channel === 'web_qr' ? 'qr' : 'conversation' }) : null);
       if (compound) {
+        const firstStep = compound.subGoals[0];
         const dependent = compound.subGoals.find(goal => goal.status === 'waiting_on_dependency');
+        const activeStep = compound.subGoals.find(goal => ['active', 'needs_user', 'blocked'].includes(String(goal.status))) || firstStep;
+        const outcomeLabel = compound.decomposition.parentObjective.replace(/[.!?]+$/, '');
+        const firstStepLabel = activeStep?.objective || 'the first supported step';
         reply = dependent
-          ? 'I created this as a dependent objective. Kurukoo will keep the repair goal active; the sale goal is waiting until verified repair completion. No provider, payment, repair, or sale has been claimed.'
-          : 'I found the existing objective. Kurukoo is preserving its current repair and sale dependency state without claiming any provider, payment, repair, or sale outcome.';
-        cardData = { type: 'agent_goal', goal: compound.parentGoal, subGoals: compound.subGoals, exactContext: true, canonicalAction: 'agent.goal.coordinate' };
+          ? `I’m coordinating **${outcomeLabel}**. The next step is **${firstStepLabel}**; later steps will stay safely paused until the earlier evidence is recorded. I have not claimed an external provider, payment, fulfilment, notification, or completion.`
+          : `I’m coordinating **${outcomeLabel}**. I’ll start with **${firstStepLabel}**, preserve the exact context, and continue only from recorded evidence. I have not claimed an external action or completed outcome.`;
+        cardData = {
+          type: 'agent_goal',
+          goal: compound.parentGoal,
+          subGoals: compound.subGoals,
+          exactContext: true,
+          canonicalAction: 'agent.goal.coordinate',
+          situation: outcomeLabel,
+          evidence: [{ label: 'Plan', value: `${compound.subGoals.length} dependent step${compound.subGoals.length === 1 ? '' : 's'} recorded` }, { label: 'Current step', value: firstStepLabel }],
+          work: { status: dependent ? 'waiting_on_dependency' : 'coordinating', detail: routing.cardData ? `The first capability returned a recorded ${String(routing.cardData.stage || routing.cardData.status || 'next-step')} state.` : 'Kurukoo is preserving the ordered outcome path.' },
+          firstCapability: routing.cardData || null,
+          firstCapabilityAction: routing.canonicalAction || null,
+          choices: activeStep ? [{ id: 'continue_first_step', label: 'Continue the first step', prompt: activeStep.objective }, { id: 'show_outcome_plan', label: 'Show the full plan', prompt: 'Show me the full plan for this outcome' }] : [],
+          truthful: true,
+        };
         canonicalAction = 'agent.goal.coordinate';
         progressStage = 'coordinating';
       }

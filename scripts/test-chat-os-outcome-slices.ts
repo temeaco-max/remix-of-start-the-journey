@@ -88,6 +88,20 @@ const teacher = await routeIntent('Find someone who teaches guitar', makeDomainP
 assert.equal(teacher.skill, 'find_worker');
 assert.equal(teacher.cardData?.type, 'agentic_storefront');
 
+for (const [offset, message, firstSkill] of [
+  [61, 'I need somewhere to stay next week.', 'hotel_deals'],
+  [67, 'Sort out my internet.', 'wifi_installer'],
+  [71, 'I need to get to the airport tomorrow.', 'ride_request'],
+  [73, 'Find and buy the right charger for this laptop.', 'phone_repairer'],
+] as const) {
+  const composed = await processCanonicalChatTurn({ phone: makeDomainPhone(offset), message, channel: 'web', conversationId: `${conversationId}-composed-${offset}` });
+  assert.equal(composed.cardData?.type, 'agent_goal');
+  assert.equal(composed.cardData?.subGoals?.[0]?.goalType, firstSkill);
+  assert.ok(composed.cardData?.firstCapability !== undefined, `Expected first capability projection for ${message}`);
+  assert.ok(/No external (?:success|action)|not claimed/i.test(composed.reply), `Expected truthful boundary for ${message}`);
+  assert.equal(composed.cardData?.truthful, true);
+}
+
 const monitoring = await routeIntent('Keep an eye on my Wi-Fi', makeDomainPhone(41), undefined, undefined, `${conversationId}-monitoring`);
 assert.equal(monitoring.skill, 'autonomous_agent');
 assert.equal(monitoring.cardData?.type, 'monitoring_setup');

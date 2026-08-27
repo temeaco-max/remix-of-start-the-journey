@@ -1180,7 +1180,8 @@
     const holder = makeElement('section', 'provider-card composed-goal-card');
     holder.setAttribute('aria-label', 'Composed Kurukoo outcome');
     holder.appendChild(makeElement('strong', '', 'One outcome, coordinated steps'));
-    holder.appendChild(makeElement('p', '', String(goal.objective || 'Kurukoo is coordinating this outcome.')));
+    holder.appendChild(makeElement('p', '', String(card.situation || goal.objective || 'Kurukoo is coordinating this outcome.')));
+    if (Array.isArray(card.evidence) && card.evidence.length) appendOutcomeEvidence(holder, card.evidence);
     const subGoals = Array.isArray(card.subGoals) ? card.subGoals : [];
     const list = makeElement('ol', 'inspector-list composed-goal-steps');
     subGoals.forEach((subGoal, index) => {
@@ -1192,7 +1193,18 @@
       list.appendChild(row);
     });
     if (subGoals.length) holder.appendChild(list);
+    const firstCapability = card.firstCapability;
+    if (firstCapability && typeof firstCapability === 'object') {
+      const capabilitySection = makeElement('div', 'outcome-primitive composed-goal-first-capability');
+      capabilitySection.appendChild(makeElement('strong', '', 'First supported step'));
+      if (firstCapability.message) capabilitySection.appendChild(makeElement('p', 'storefront-offer-copy', String(firstCapability.message)));
+      const capabilityState = String(firstCapability.stage || firstCapability.status || 'recorded').replaceAll('_', ' ');
+      capabilitySection.appendChild(makeElement('small', 'storefront-execution-status', `Recorded state: ${capabilityState}. No external success is assumed.`));
+      holder.appendChild(capabilitySection);
+    }
     const capabilityPath = goal.plan?.capabilityPath;
+    if (Array.isArray(card.choices) && card.choices.length) appendOutcomeChoices(holder, card.choices);
+    if (card.work && typeof card.work === 'object') appendOutcomeStatus(holder, String(card.work.detail || 'Kurukoo is coordinating the next supported step.'), String(card.work.status || '').includes('waiting') ? 'waiting' : 'neutral');
     if (capabilityPath && typeof capabilityPath === 'object') {
       const pathList = makeElement('div', 'composed-goal-capability-path');
       const labels = { understand: 'I understand', assist: 'I can assist', act: 'I can act', delegate: 'I can delegate', continue: 'I can continue' };

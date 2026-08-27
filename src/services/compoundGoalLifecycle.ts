@@ -7,7 +7,7 @@
  */
 import { createConversationGoal, ensureAgentRuntimeSchema, getAgentGoal, listSubGoals, type AgentGoal } from './agentRuntime.js';
 import { attachAgentGoalDependency, refreshAgentGoalDependencies } from './agentEconomicRequestOrchestrator.js';
-import { recognizeCompoundObjective, resolveSubGoalSkill, type CompoundDecomposition } from './compoundObjectiveResolver.js';
+import { recognizeCompoundObjective, type CompoundDecomposition } from './compoundObjectiveResolver.js';
 import { getCanonicalStore } from './canonicalStore.js';
 import { recordAgentExecutionTrace } from './agentExecutionTrace.js';
 
@@ -75,7 +75,7 @@ export async function createCompoundGoalIfRecognized(input: { phone: string; con
 
   const subGoals: AgentGoal[] = [];
   for (const [index, sub] of decomposition.subObjectives.entries()) {
-    const skill = resolveSubGoalSkill(sub.objective);
+    const skill = sub.skill || 'find_worker';
     const isDependent = typeof sub.dependsOn === 'number';
     const subGoal = await createConversationGoal({
       phone: owner,
