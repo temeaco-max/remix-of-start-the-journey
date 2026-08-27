@@ -1203,8 +1203,15 @@
       holder.appendChild(capabilitySection);
     }
     const capabilityPath = goal.plan?.capabilityPath;
-    if (Array.isArray(card.choices) && card.choices.length) appendOutcomeChoices(holder, card.choices);
-    if (card.work && typeof card.work === 'object') appendOutcomeStatus(holder, String(card.work.detail || 'Kurukoo is coordinating the next supported step.'), String(card.work.status || '').includes('waiting') ? 'waiting' : 'neutral');
+    const workStatus = String(card.work?.status || goal.status || 'coordinating').toLowerCase();
+    const activeWork = ['active', 'coordinating', 'working'].includes(workStatus);
+    const needsDecision = ['needs_user', 'confirmation_required'].includes(workStatus);
+    if (Array.isArray(card.choices) && card.choices.length && (activeWork || needsDecision)) appendOutcomeChoices(holder, card.choices);
+    if (card.work && typeof card.work === 'object') {
+      const workDetail = String(card.work.detail || 'Kurukoo is coordinating the next supported step.');
+      const workLabel = workStatus === 'completed' ? 'Done' : needsDecision ? 'I need you' : workStatus.includes('waiting') ? 'Waiting for' : activeWork ? 'I’m working on it' : 'Work status';
+      appendOutcomeStatus(holder, `${workLabel}: ${workDetail}`, workStatus === 'completed' ? 'success' : workStatus.includes('waiting') ? 'waiting' : needsDecision ? 'attention' : 'neutral');
+    }
     if (capabilityPath && typeof capabilityPath === 'object') {
       const pathList = makeElement('div', 'composed-goal-capability-path');
       const labels = { understand: 'I understand', assist: 'I can assist', act: 'I can act', delegate: 'I can delegate', continue: 'I can continue' };
