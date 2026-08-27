@@ -67,11 +67,11 @@ const projector = `+234809${String(Date.now()).slice(-7)}`;
 await upsertProfile(projector, 'Projection User');
 const projectionGoal = await createConversationGoal({ phone: projector, conversationId: 'conversation-capability-projection', skill: 'find_worker', objective: 'Project a canonical capability outcome', persistWhenDisabled: true });
 assert.ok(projectionGoal, 'A persistent Goal can be created for capability projection');
-await syncAgentGoalFromCapabilityResult({ phone: projector, goalId: projectionGoal!.id, capability: 'skill.find_worker', action: 'observe', idempotencyKey: 'projection-test-1', outcome: { status: 'completed', capability: 'skill.find_worker', action: 'observe', canonicalObjectId: projectionGoal!.id, evidence: 'test:canonical-capability:completed', message: 'Canonical capability outcome recorded.' } });
+await syncAgentGoalFromCapabilityResult({ phone: projector, goalId: projectionGoal!.id, capability: 'skill.find_worker', action: 'observe', idempotencyKey: 'projection-test-1', outcome: { status: 'completed', capability: 'skill.find_worker', action: 'observe', canonicalObjectId: projectionGoal!.id, evidence: 'verified:test:canonical-capability:completed', message: 'Canonical capability outcome recorded.' } });
 const projected = await getAgentGoal(projector, projectionGoal!.id);
 assert.ok(['active', 'completed'].includes(String(projected?.status)), 'Capability outcomes must update the canonical Agent Goal progression');
 assert.match(String(projected?.summary), /Canonical capability outcome recorded/i, 'Capability outcome summary must persist');
-assert.ok((await goalTimeline(projector, "conversation-capability-projection")).events.some(event => event.action === 'skill.find_worker:observe'), 'Capability outcome must create one durable Goal event');
+const projectionEvents = await listAgentGoalEvents(projector, projectionGoal!.id); assert.ok(projectionEvents.some(event => event.action === 'skill.find_worker:observe'), 'Capability outcome must create one durable Goal event');
 
 const db = await getDb();
 const checkpointGoal = await createConversationGoal({ phone: owner, conversationId: 'conversation-nonretry-checkpoint', skill: 'find_worker', objective: 'Wait for my explicit confirmation before any consequential action.' });
