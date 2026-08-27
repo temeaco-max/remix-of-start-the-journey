@@ -1003,7 +1003,7 @@
         const row = makeElement('article', 'inspector-list-row');
         const details = makeElement('div');
         const label = item.title || `Item ${String(item.id || '')}`;
-        const meta = item.deliveryState || item.status || item.dueAt || item.sourceType || '';
+        const meta = item.deliveryState || item.status || item.recurrence || item.dueAt || item.sourceType || '';
         details.append(makeElement('strong', '', String(label)), makeElement('span', '', String(meta).replace(/_/g, ' ')));
         if (item.body || item.description) details.appendChild(makeElement('small', '', String(item.body || item.description)));
         if (card.type === 'memory' && item.provenance) details.appendChild(makeElement('small', '', `Provenance: ${String(item.provenance).replace(/_/g, ' ')}`));
@@ -1126,8 +1126,8 @@
 
   function renderOutcomeActionCard(card, messageEl) {
     const holder = makeElement('section', 'provider-card os-outcome-action-card');
-    holder.setAttribute('aria-label', card.type === 'monitoring_setup' ? 'Monitoring setup' : 'Communication preparation');
-    const title = card.type === 'monitoring_setup' ? 'Set up a bounded watch' : 'Message prepared for review';
+    holder.setAttribute('aria-label', card.type === 'monitoring_setup' ? 'Monitoring setup' : card.type === 'reminder_setup' ? 'Reminder setup' : 'Communication preparation');
+    const title = card.type === 'monitoring_setup' ? 'Set up a bounded watch' : card.type === 'reminder_setup' ? 'Keep this follow-up active' : 'Message prepared for review';
     holder.appendChild(makeElement('strong', '', title));
     if (card.target) holder.appendChild(makeElement('span', 'storefront-execution-status', `Target: ${String(card.target)}`));
     if (card.recipient) holder.appendChild(makeElement('span', 'storefront-execution-status', `Recipient: ${String(card.recipient)}`));
@@ -1140,6 +1140,8 @@
       resolve_recipient: 'Resolve the recipient for this message',
       choose_channel: 'Choose an available channel for this message',
       confirm_send: 'Confirm sending this message',
+      choose_cadence: 'Choose a daily or weekly cadence for this reminder',
+      define_completion: 'Define how I should know this reminder is done',
     };
     (Array.isArray(card.actions) ? card.actions : []).forEach(action => {
       const button = makeElement('button', `sf-btn ${action.id === 'confirm_send' ? 'sf-primary' : 'sf-secondary'}`, String(action.label || action.id || 'Continue'));
@@ -1148,7 +1150,7 @@
       actions.appendChild(button);
     });
     if (actions.childElementCount) holder.appendChild(actions);
-    holder.appendChild(makeElement('small', 'storefront-execution-status', card.type === 'communication_prepare' ? 'Not sent. Recipient, channel, and confirmation are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.'));
+    holder.appendChild(makeElement('small', 'storefront-execution-status', card.type === 'communication_prepare' ? 'Not sent. Recipient, channel, and confirmation are still required.' : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.'));
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 

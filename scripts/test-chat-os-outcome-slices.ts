@@ -51,6 +51,16 @@ assert.equal(channel.cardData?.domain, 'channel');
 
 const createContext = { relation: 'create' } as any;
 const makeDomainPhone = (offset: number) => `+234${String(Date.now() + offset).slice(-10)}`;
+const recurringReminder = await routeIntent('Remind me every day at 9am to call John', makeDomainPhone(13), undefined, undefined, `${conversationId}-recurring-reminder`);
+assert.equal(recurringReminder.skill, 'reminder');
+assert.equal(recurringReminder.cardData?.type, 'reminder');
+assert.equal(recurringReminder.cardData?.reminder?.status, 'scheduled');
+
+const untilDoneReminder = await routeIntent('Keep reminding me until I deal with this', makeDomainPhone(15), undefined, undefined, `${conversationId}-until-done-reminder`);
+assert.equal(untilDoneReminder.skill, 'reminder');
+assert.equal(untilDoneReminder.cardData?.type, 'reminder_setup');
+assert.equal(untilDoneReminder.cardData?.status, 'needs_user');
+
 const plumber = await routeIntent('Find me a plumber tomorrow', makeDomainPhone(17), undefined, createContext, `${conversationId}-plumber`);
 assert.equal(plumber.skill, 'find_worker');
 assert.equal(plumber.cardData?.type, 'agentic_storefront');
@@ -97,7 +107,7 @@ const requestStatus = await routeIntent("What's the status of my request?", phon
 assert.equal(requestStatus.cardData?.type, 'request_status');
 assert.equal(requestStatus.cardData?.status, 'not_found');
 
-console.log('Chat OS outcome slices passed: memory record/review, reminder create/list/cancel, notification inbox/read, provider/food/transport/product/discovery outcome routing, monitoring setup, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
+console.log('Chat OS outcome slices passed: memory record/review, one-shot and recurring reminders, safe until-complete reminder clarification, notification inbox/read, provider/food/transport/product/discovery outcome routing, monitoring setup, communication preparation, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
 
 process.exit(0);
 
