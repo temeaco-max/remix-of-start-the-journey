@@ -89,6 +89,11 @@
       hotel_deals: 'Finding a place to stay', rental_tracker: 'Finding a home to rent', job_tracker: 'Finding work',
     }[String(request.skill || '').toLowerCase()] || humanize(request.category || request.skill || 'Request'));
   };
+  const requestEyebrow = (request) => ({
+    find_worker: 'Local help', ride_request: 'Travel', order_food: 'Food', product_sourcing: 'Shopping',
+    phone_repairer: 'Device help', repair: 'Home or device help', wifi_installer: 'Internet help',
+    hotel_deals: 'Accommodation', rental_tracker: 'Accommodation', job_tracker: 'Work',
+  }[String(request.skill || '').toLowerCase()] || 'Request progress');
 
   const loadRequests = async () => {
     const list = qs('[data-requests-list]');
@@ -106,11 +111,19 @@
         const action = document.createElement('a');
         action.className = 'workspace-text-action';
         const requestId = String(request.id || '').trim();
-        action.href = requestId
-          ? `/chat?prompt=${encodeURIComponent('Open this request.')}&requestId=${encodeURIComponent(requestId)}&contextId=${encodeURIComponent(`request:${requestId}`)}&action=review&canonicalAction=economic_request.open&objectType=economic_request&objectId=${encodeURIComponent(requestId)}`
-          : `/chat?prompt=${encodeURIComponent('Continue this request.')}`;
-        action.textContent = 'Continue in chat';
-        list.appendChild(makeDataCard({ eyebrow: humanize(request.category || 'Request'), title: requestTitle(request), detail: requestSummary(request), state: request.status, action }));
+        const conversationId = String(request.conversationId || request.conversation_id || '').trim();
+        const params = new URLSearchParams({ prompt: requestId ? 'Open this request.' : 'I need help with a request.' });
+        if (conversationId) params.set('conversationId', conversationId.slice(0, 160));
+        if (requestId) {
+          params.set('contextId', `economic_request:${requestId}`.slice(0, 180));
+          params.set('action', 'review');
+          params.set('canonicalAction', 'economic_request.open');
+          params.set('objectType', 'economic_request');
+          params.set('objectId', requestId.slice(0, 180));
+        }
+        action.href = `/chat?${params.toString()}`;
+        action.textContent = requestId ? 'Continue in Chat' : 'Open Chat';
+        list.appendChild(makeDataCard({ eyebrow: requestEyebrow(request), title: requestTitle(request), detail: requestSummary(request), state: request.status, action }));
       });
       list.setAttribute('aria-busy', 'false');
       setEmpty('[data-requests-empty]', requests.length === 0);

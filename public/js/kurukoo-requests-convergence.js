@@ -23,17 +23,32 @@
     return 'Not completed';
   };
 
+  const exactChatHref = ({ prompt = 'Open this request.', objectType, objectId, canonicalAction, conversationId }) => {
+    const params = new URLSearchParams({ prompt });
+    if (conversationId) params.set('conversationId', String(conversationId).slice(0, 160));
+    if (objectType && objectId && canonicalAction) {
+      params.set('contextId', `${objectType}:${objectId}`.slice(0, 180));
+      params.set('action', 'review');
+      params.set('canonicalAction', String(canonicalAction).slice(0, 120));
+      params.set('objectType', String(objectType).slice(0, 80));
+      params.set('objectId', String(objectId).slice(0, 180));
+    }
+    return `/chat?${params.toString()}`;
+  };
+
   const nextAction = (request) => {
     const id = String(request?.id || '').trim();
-    const skill = humanize(request?.skill || request?.category || 'request');
-    const continuationPrompt = `Continue my ${skill} request.`;
-    if (['awaiting_confirmation', 'reserved', 'payment_pending'].includes(String(request?.status || ''))) {
+    const status = String(request?.status || '').toLowerCase();
+    if (id && ['awaiting_confirmation', 'reserved', 'payment_pending'].includes(status)) {
       return { label: 'Review request', href: `/confirmations?request=${encodeURIComponent(id)}` };
     }
-    if (String(request?.status || '') === 'completed') {
+    if (id && status === 'completed') {
       return { label: 'View confirmation', href: `/confirmations?request=${encodeURIComponent(id)}` };
     }
-    return { label: 'Continue in Chat', href: `/chat?prompt=${encodeURIComponent(continuationPrompt)}` };
+    if (id) {
+      return { label: 'Continue in Chat', href: exactChatHref({ objectType: 'economic_request', objectId: id, canonicalAction: 'economic_request.open', conversationId: request?.conversationId || request?.conversation_id }) };
+    }
+    return { label: 'Open Chat', href: '/chat?prompt=I%20need%20help%20with%20a%20request.' };
   };
 
   const parseRequirements = (request) => {
@@ -49,6 +64,27 @@
       .filter(Boolean).map(String);
     return details.length ? details.slice(0, 2).join(' · ') : 'Details remain in the linked conversation.';
   };
+
+  const requestTitle = (request) => {
+    const requirements = parseRequirements(request);
+    const service = String(requirements.service || '').toLowerCase();
+    if (String(request?.skill || '').toLowerCase() === 'find_worker') {
+      if (['teacher', 'guitar_teacher'].includes(service)) return 'Finding a tutor';
+      if (service === 'mechanic') return 'Finding a mechanic';
+      return 'Finding someone to help';
+    }
+    return ({
+      ride_request: 'Getting you there', order_food: 'Food request', product_sourcing: 'Finding the right item',
+      phone_repairer: 'Phone repair', repair: 'Repair request', wifi_installer: 'Sorting out your connection',
+      hotel_deals: 'Finding a place to stay', rental_tracker: 'Finding a home to rent', job_tracker: 'Finding work',
+    }[String(request?.skill || '').toLowerCase()] || humanize(request?.category || request?.skill || 'Request'));
+  };
+
+  const requestEyebrow = (request) => ({
+    find_worker: 'Local help', ride_request: 'Travel', order_food: 'Food', product_sourcing: 'Shopping',
+    phone_repairer: 'Device help', repair: 'Home or device help', wifi_installer: 'Internet help',
+    hotel_deals: 'Accommodation', rental_tracker: 'Accommodation', job_tracker: 'Work',
+  }[String(request?.skill || '').toLowerCase()] || 'Request progress');
 
   const participantState = (coordination) => {
     const participants = Array.isArray(coordination?.participants) ? coordination.participants : [];
@@ -72,11 +108,17 @@
       const payload = await response.json();
       const continuation = payload?.continuation;
       if (!continuation) return;
-      appendMetaRow(meta, continuation.ready ? 'Agent next' : 'Agent waiting', String(continuation.nextAction || 'Continue objective'));
+      appendMetaRow(meta, continuation.ready ? 'Objective update' : 'Objective update', continuation.ready ? 'Kurukoo is continuing this objective.' : 'This objective is waiting for an earlier step.');
       const row = document.createElement('div');
       row.className = 'requests-convergence-goal-row';
       const action = document.createElement('a');
-      action.href = `/chat?prompt=${encodeURIComponent(continuation.ready ? 'Continue the objective for this request.' : 'Show me what this request is waiting for.')}`;
+      action.href = exactChatHref({
+        prompt: continuation.ready ? 'Continue this objective.' : 'Review this objective.',
+        objectType: 'agent_goal',
+        objectId: String(linkedGoal.id),
+        canonicalAction: 'agent.goal.review',
+        conversationId: linkedGoal.conversationId || linkedGoal.conversation_id,
+      });
       action.textContent = continuation.ready ? 'Continue in Chat' : 'Review what is waiting';
       action.setAttribute('aria-label', continuation.ready ? 'Continue this request objective in Chat' : 'Review what this request is waiting for');
       row.appendChild(action); meta.appendChild(row);
@@ -92,6 +134,10 @@
 
     const action = card.querySelector('.workspace-text-action');
     const canonicalAction = nextAction(request);
+    const eyebrow = card.querySelector('.workspace-eyebrow');
+    if (eyebrow) eyebrow.textContent = requestEyebrow(request);
+    const heading = card.querySelector('h3');
+    if (heading) heading.textContent = requestTitle(request);
     if (action) {
       action.href = canonicalAction.href;
       action.textContent = canonicalAction.label;
@@ -119,10 +165,10 @@
           const linkedGoal = goals.find(g => String(g.economicRequestId || '') === String(request.id));
           if (linkedGoal) {
             const goalStatus = String(linkedGoal.status || '').toLowerCase();
-            const goalStateLabel = { active: 'Working', waiting: 'Waiting', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your input is needed', blocked: 'Paused safely', completed: 'Completed', failed: 'Needs review', cancelled: 'Stopped' };
+            const goalStateLabel = { active: 'Working on it', waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your decision is needed', paused: 'Paused by you', blocked: 'Needs review', completed: 'Completed', failed: 'Needs recovery', cancelled: 'Stopped', expired: 'Expired' };
             const goalRow = document.createElement('div'); goalRow.className = 'requests-convergence-goal-row';
             const goalLabel = document.createElement('span'); goalLabel.className = 'status-pill requests-convergence-goal-label'; goalLabel.dataset.state = goalStatus; goalLabel.textContent = `Objective · ${goalStateLabel[goalStatus] || 'Updating'}`;
-            const goalAction = document.createElement('a'); goalAction.href = `/chat?prompt=${encodeURIComponent('Show me the next step for this request objective.')}`; goalAction.textContent = 'Open in Chat';
+            const goalAction = document.createElement('a'); goalAction.href = exactChatHref({ prompt: 'Open this objective.', objectType: 'agent_goal', objectId: String(linkedGoal.id), canonicalAction: 'agent.goal.review', conversationId: linkedGoal.conversationId || linkedGoal.conversation_id }); goalAction.textContent = 'Open in Chat';
             goalAction.setAttribute('aria-label', 'Open this request objective in Chat');
             goalRow.append(goalLabel, goalAction); meta.appendChild(goalRow);
             await appendGoalContinuation(meta, linkedGoal);
