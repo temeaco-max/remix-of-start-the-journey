@@ -89,7 +89,10 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
     }
     const digits = supplied.replace(/\D/g, ''); if (digits.length < 10) return { reply: "That doesn't look like a valid phone number. Please enter your full phone number (e.g. 080...)" };
     const fullPhone = normalizeOtpPhone(supplied);
-    const result = await requestPhoneOtp(fullPhone);
+    const controlledTest = isDevelopmentTestIdentity(fullPhone);
+    const result = controlledTest
+      ? { success: true, message: 'Development test verification is ready. No external SMS was sent.' }
+      : await requestPhoneOtp(fullPhone);
     if (!result.success) {
       if (isMagicLinkAuthEnabled() && data.name) {
         const emailHint = String(data.email || '').trim().toLowerCase();
@@ -101,7 +104,7 @@ export async function handleConversationalAuth(guestPhone: string, text: string)
       return { reply: `I couldn't request a code for that number: ${result.message || 'unknown error'}. Please try again.` };
     }
     await setAuthState(guestPhone, 'awaiting_otp', { ...data, phone: fullPhone });
-    const controlledTest = isDevelopmentTestIdentity(fullPhone); const delivered = /sent|delivery/i.test(String(result.message || '')) && !/generated|configure/i.test(String(result.message || ''));
+    const delivered = /sent|delivery/i.test(String(result.message || '')) && !/generated|configure/i.test(String(result.message || ''));
     const reply = controlledTest ? `For this controlled development test, use verification code ${developmentTestOtpLabel()}. No external SMS was sent.` : delivered ? "I've sent a 6-digit verification code to your phone. Enter it here to continue." : "I've created the verification request, but external SMS/WhatsApp delivery is not configured in this environment. Do not assume a code was delivered; connect an approved delivery provider before using this flow with real users.";
     return { reply, cardData: { type: 'auth_conversation', step: 'otp', phone: fullPhone, devCode: controlledTest ? developmentTestOtpLabel() : undefined } };
   }

@@ -550,6 +550,44 @@
 
   function addUserMessage(text, id = null) { $('welcome')?.remove(); state.messages.push({ role: 'user', text, id }); return createMessage('user', text, id); }
 
+  const storefrontStageLabels = Object.freeze({
+    intent_extraction: 'Getting the details right',
+    slot_fill: 'One detail needed',
+    catalog_match: 'Options ready to review',
+    quote_review: 'Your decision is needed',
+    offer_review: 'Offer ready to review',
+    delivery_selection: 'Choose delivery',
+    seller_handover: 'Waiting for handover',
+    delivery_in_progress: 'Delivery update',
+    service_in_progress: 'Service update',
+    escrow_confirm: 'Payment review',
+    fulfillment: 'Provider is progressing the request',
+    complete: 'Sorted',
+    deferred: 'Still looking',
+    information: 'Details ready',
+    safety: 'Important safety step',
+    coordination: 'Arranging the next step',
+  });
+  function storefrontStageLabel(stage) { return storefrontStageLabels[String(stage || '').toLowerCase()] || 'Current request update'; }
+  function outcomeSafeCopy(value) {
+    return String(value || '')
+      .replace(/\bhotel_deals\b/gi, 'accommodation request')
+      .replace(/\brental_tracker\b/gi, 'home search')
+      .replace(/\bjob_tracker\b/gi, 'job search')
+      .replace(/\bphone_repairer\b/gi, 'phone repair')
+      .replace(/\bfind_worker\b/gi, 'local help')
+      .replace(/Preserve the exact owner and conversation context/gi, 'Keep this work and conversation connected')
+      .replace(/Find or coordinate an authorised provider through the existing Economic Request path\./gi, 'Find or coordinate an authorised provider for this request.')
+      .replace(/Hand off to the existing provider, commerce, booking, or fulfilment owner when local preparation is complete\./gi, 'Continue through the appropriate confirmed provider path after local preparation.')
+      .replace(/Prepare a canonical action; execute only when the capability, authorization, and confirmation allow it\./gi, 'Prepare the next step, and act only after the required permission and confirmation are available.')
+      .replace(/\bEconomic Request\b/gi, 'request')
+      .replace(/\bcanonical capability plan\b/gi, 'next-step plan')
+      .replace(/\bcanonical capability\b/gi, 'supported step')
+      .replace(/\bcanonical action\b/gi, 'next step')
+      .replace(/\bcanonical\b/gi, 'shared')
+      .replace(/\bexact owner and conversation context\b/gi, 'this work and conversation connected')
+      .replace(/\ba recorded deferred state\b/gi, 'no verified option yet');
+  }
   function setDeferredStatus(card) {
     const status = $('deferred-status');
     if (!status) return;
@@ -557,13 +595,15 @@
     if (card.type === 'agentic_storefront') {
       if (card.stage === 'deferred') {
         status.hidden = false;
-        status.textContent = '⏳ Request deferred — Kurukoo will retain the request for a supported next step. Any notification depends on a configured channel.';
+        status.textContent = 'Waiting for: Kurukoo is still looking for a verified option and will retain this request for the next supported update.';
       } else if (card.stage === 'fulfillment') {
         status.hidden = false;
-        status.textContent = 'Fulfilment milestone recorded. Confirm completion to continue the documented request lifecycle.';
+        status.textContent = 'I need you: payment evidence is recorded. Review the result before confirming completion.';
       } else if (['slot_fill', 'quote_review', 'offer_review', 'delivery_selection', 'seller_handover', 'delivery_in_progress'].includes(card.stage)) {
         status.hidden = false;
-        status.textContent = `Request flow · ${card.stage.replace(/_/g, ' ')} · ${card.progress || 0}%`;
+        const stageLabel = storefrontStageLabel(card.stage);
+        const prefix = ['quote_review', 'offer_review', 'delivery_selection', 'escrow_confirm'].includes(card.stage) ? 'I need you' : ['seller_handover', 'delivery_in_progress'].includes(card.stage) ? 'Waiting for' : 'I’m working on it';
+        status.textContent = `${prefix}: ${stageLabel}.`;
       } else {
         status.hidden = true;
       }
@@ -723,7 +763,7 @@
     const head = makeElement('div', 'storefront-head');
     head.append(
       makeElement('strong', '', card.title || 'Kurukoo'),
-      makeElement('span', 'storefront-stage', String(card.stage || '').replace(/_/g, ' '))
+      makeElement('span', 'storefront-stage', storefrontStageLabel(card.stage))
     );
     holder.appendChild(head);
     holder.appendChild(makeElement('p', 'outcome-primitive outcome-situation', String(card.message || card.description || 'Kurukoo is carrying this request through its canonical path.')));
@@ -736,7 +776,7 @@
     const storefrontStage = String(card.stage || card.status || 'working').toLowerCase();
     const storefrontTone = /complete|fulfilled|success/.test(storefrontStage) ? 'success' : /quote|confirm|payment|select|approval/.test(storefrontStage) ? 'attention' : /wait|pending|search|match|in_fulfillment/.test(storefrontStage) ? 'waiting' : 'neutral';
     const storefrontLabel = storefrontTone === 'success' ? 'Done' : storefrontTone === 'attention' ? 'I need you' : storefrontTone === 'waiting' ? 'Waiting for' : 'I’m working on it';
-    appendOutcomeStatus(holder, `${storefrontLabel}: ${String(card.stage || card.status || 'current request state').replace(/_/g, ' ')}.`, storefrontTone);
+    appendOutcomeStatus(holder, `${storefrontLabel}: ${storefrontStageLabel(card.stage || card.status)}.`, storefrontTone);
 
     const progressBar = makeElement('div', 'storefront-progress');
     progressBar.setAttribute('role', 'progressbar');
@@ -867,12 +907,11 @@
       const participants = makeElement('ul', 'storefront-participants');
       card.participants.forEach(participant => {
         const item = makeElement('li');
-        const role = String(participant.role || 'participant').replace(/_/g, ' ');
-        const status = String(participant.status || 'invited').replace(/_/g, ' ');
-        item.append(
-          makeElement('strong', '', role),
-          makeElement('span', '', `${status}${participant.capability ? ` · ${String(participant.capability).replace(/_/g, ' ')}` : ''}`)
-        );
+        const roleLabels = { seller: 'Seller', delivery_provider: 'Delivery provider', service_provider: 'Service provider', external_platform: 'Partner service', agent: 'Kurukoo' };
+        const participantStatusLabels = { invited: 'Awaiting response', offered: 'Offer recorded', selected: 'Selected', confirmed: 'Confirmed', handover_pending: 'Handover pending', handed_over: 'Handover recorded', collected: 'Collection recorded', in_progress: 'Progress update recorded', delivered: 'Delivery reported', declined: 'Unavailable', withdrawn: 'No longer available' };
+        const role = roleLabels[String(participant.role || '')] || 'Participant';
+        const status = participantStatusLabels[String(participant.status || '')] || 'Update recorded';
+        item.append(makeElement('strong', '', role), makeElement('span', '', status));
         participants.appendChild(item);
       });
       coordination.appendChild(participants);
@@ -884,7 +923,7 @@
       execution.appendChild(makeElement('strong', '', 'Latest progress'));
       execution.appendChild(makeElement('span', 'storefront-execution-status', String(card.execution.status || 'pending').replace(/_/g, ' ')));
       execution.appendChild(makeElement('small', '', card.execution.connectorId ? 'Recorded through an authorized service.' : 'No external dispatch is claimed.'));
-      if (card.execution.externalReference) execution.appendChild(makeElement('small', '', `Reference: ${String(card.execution.externalReference)}`));
+      if (card.execution.externalReference) execution.appendChild(makeElement('small', '', 'An execution reference has been recorded.'));
       if (card.execution.failureReason) execution.appendChild(makeElement('small', 'storefront-execution-failure', `Dispatch failed: ${String(card.execution.failureReason)}. Manual confirmation is required.`));
       if (Array.isArray(card.execution.evidence) && card.execution.evidence.length) {
         const evidence = makeElement('ul', 'storefront-execution-evidence');
@@ -910,7 +949,7 @@
           const actionId = button.dataset.sfAction || '';
           const fields = collectStorefrontFields(holder);
           if (actionId === 'start' && !card.requestId) {
-            sendMessage(`Continue with ${card.skill || 'this request'}`);
+            sendMessage('Let’s continue this request.');
             return;
           }
           if (!card.requestId || !actionId) return;
@@ -921,7 +960,7 @@
       holder.appendChild(actionGroup);
     }
 
-    if (card.escrowProtected !== false) holder.appendChild(makeElement('span', 'escrow-badge', '🔒 Escrow Protected'));
+    if (card.escrowProtected !== false) holder.appendChild(makeElement('span', 'escrow-badge', 'Payment protection recorded'));
 
     holder.querySelectorAll('[data-storefront-field]').forEach(field => {
       field.addEventListener('keydown', event => {
@@ -1205,7 +1244,7 @@
       const status = String(subGoal?.status || 'active').toLowerCase();
       const labels = { active: 'Ready', waiting: 'Waiting', waiting_on_dependency: 'Waiting for earlier evidence', needs_user: 'Needs your input', blocked: 'Blocked safely', completed: 'Completed', cancelled: 'Stopped', failed: 'Needs review' };
       const row = makeElement('li', 'inspector-list-row');
-      row.appendChild(makeElement('span', '', `${index + 1}. ${String(subGoal?.objective || subGoal?.goalType || 'Capability step')}`));
+      row.appendChild(makeElement('span', '', `${index + 1}. ${outcomeSafeCopy(subGoal?.objective || subGoal?.goalType || 'Next step')}`));
       row.appendChild(makeElement('small', 'storefront-execution-status', labels[status] || 'Recorded state'));
       list.appendChild(row);
     });
@@ -1215,8 +1254,8 @@
       const capabilitySection = makeElement('div', 'outcome-primitive composed-goal-first-capability');
       capabilitySection.appendChild(makeElement('strong', '', 'First supported step'));
       if (firstCapability.message) capabilitySection.appendChild(makeElement('p', 'storefront-offer-copy', String(firstCapability.message)));
-      const capabilityState = String(firstCapability.stage || firstCapability.status || 'recorded').replaceAll('_', ' ');
-      capabilitySection.appendChild(makeElement('small', 'storefront-execution-status', `Recorded state: ${capabilityState}. No external success is assumed.`));
+      const capabilityState = storefrontStageLabel(firstCapability.stage || firstCapability.status);
+      capabilitySection.appendChild(makeElement('small', 'storefront-execution-status', `Working state: ${capabilityState}. No external success is assumed.`));
       holder.appendChild(capabilitySection);
     }
     const capabilityPath = goal.plan?.capabilityPath;
@@ -1229,7 +1268,7 @@
     const decisionActions = Array.isArray(card.firstCapability?.actions) ? card.firstCapability.actions.filter(action => action?.label && !['cancel', 'check_again'].includes(String(action.id || '').toLowerCase())).map(action => ({ ...action, prompt: action.prompt || action.label })) : [];
     if (requiresDecision && decisionActions.length) appendOutcomeChoices(holder, decisionActions, undefined, 'I need you');
     if (card.work && typeof card.work === 'object') {
-      const workDetail = String(card.work.detail || 'Kurukoo is coordinating the next supported step.');
+      const workDetail = outcomeSafeCopy(card.work.detail || 'Kurukoo is coordinating the next supported step.');
       const workLabel = workStatus === 'completed' ? 'Done' : needsDecision ? 'I need you' : workStatus.includes('waiting') ? 'Waiting for' : activeWork ? 'I’m working on it' : 'Work status';
       appendOutcomeStatus(holder, `${workLabel}: ${workDetail}`, workStatus === 'completed' ? 'success' : workStatus.includes('waiting') ? 'waiting' : needsDecision ? 'attention' : 'neutral');
     }
@@ -1241,7 +1280,7 @@
         if (!details.length) return;
         const row = makeElement('p', 'storefront-execution-status');
         row.appendChild(makeElement('strong', '', `${label}: `));
-        row.appendChild(document.createTextNode(details.join(' ')));
+        row.appendChild(document.createTextNode(details.map(outcomeSafeCopy).join(' ')));
         pathList.appendChild(row);
       });
       if (pathList.childElementCount) holder.appendChild(pathList);
@@ -1514,6 +1553,7 @@
           if (data.type === 'auth_success') {
             state.isGuest = false; state.authStep = 'none';
             setAuthComposerStep('none');
+            applyWorkspaceIdentityState();
             setConnection(true);
             const logoutButton = $('workspace-logout') || $('logout-sidebar-btn'); if (logoutButton) logoutButton.hidden = false;
             if (data.phone) localStorage.setItem('kurukoo_user_phone', data.phone);

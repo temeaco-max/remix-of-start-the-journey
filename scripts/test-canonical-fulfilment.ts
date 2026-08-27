@@ -22,6 +22,10 @@ assert.equal(purchase?.catalogueFirst, true);
 assert.equal(purchase?.providerInquiryFallback, true);
 assert.deepEqual(resolveMissingFulfilmentInputs(purchase!, { item: 'suya' }), ['quantity', 'location'], 'Chat can identify the missing information before execution');
 assert.equal(getFulfilmentMechanismForSkill('food_order'), 'marketplace_purchase', 'Adjacent skills must reuse the same purchase mechanism');
+assert.equal(getFulfilmentMechanismForSkill('hotel_deals'), 'booking', 'Accommodation must continue through the shared booking lifecycle.');
+assert.equal(getFulfilmentMechanismForSkill('rental_tracker'), 'booking', 'Property search must retain the shared verified-terms inquiry lifecycle.');
+assert.equal(getFulfilmentMechanismForSkill('job_tracker'), 'local_discovery', 'Job search must continue through the shared provider/discovery lifecycle.');
+assert.deepEqual(resolveMissingFulfilmentInputs(getFulfilmentSkillBinding('hotel_deals')!, { objective: 'Somewhere to stay in Lagos tomorrow' }), [], 'A stated accommodation outcome is ready for provider discovery without forcing unrelated booking fields.');
 
 const catalogueFlow = await createFulfilment({ ownerPhone: owner, skill: 'purchase', mechanism: 'marketplace_purchase', requirements: { item: 'suya', quantity: 2, unit: 'portions', location: 'Ikeja' }, requiredInputs: ['item','quantity','location'], missingInputs: [] });
 const catalogueOffer = await createOffer({ fulfilmentId: catalogueFlow.id, ownerPhone: owner, title: 'Beef suya', description: 'Two portions of beef suya', source: 'catalogue', status: 'available', priceMinor: 600000, currency: 'NGN', quantity: 2, unit: 'portions', availability: 'available_today', location: 'Ikeja', delivery: 'delivery', evidenceLevel: 'source_attributed', sourceRef: 'provider-catalogue:test' });

@@ -32,6 +32,13 @@ requireSource(client, "'No payment has been taken'", 'client non-payment copy');
 requireSource(client, "'Not claimed until the canonical lifecycle records it.'", 'no fabricated fulfilment');
 requireSource(client, 'chatContinuationHref', 'request-specific Chat continuation');
 requireSource(client, 'visualFixture', 'fixture preservation');
+requireSource(client, 'canonicalAction=economic_request.open', 'workspace request links retain exact canonical return');
+requireSource(client, 'objectType=economic_request', 'workspace request links retain exact object identity');
+requireSource(client, "failed: 'Your review is needed'", 'failed request remains an explicit review state');
+requireSource(client, "disputed: 'Your review is needed'", 'disputed request remains an explicit review state');
+requireSource(client, "hotel_deals: 'Finding a place to stay'", 'accommodation uses situation-led workspace language');
+requireSource(client, "rental_tracker: 'Finding a home to rent'", 'property uses situation-led workspace language');
+requireSource(client, "job_tracker: 'Finding work'", 'job search uses situation-led workspace language');
 forbidSource(client, 'payment_started: true', 'fabricated payment state');
 forbidSource(client, 'window.open(', 'unbounded external checkout redirect');
 
@@ -59,4 +66,4 @@ requireSource(style, '.confirmation-metrics', 'confirmation state styling');
 requireSource(style, '[data-confirmation-live] .workspace-actions', 'confirmation action grouping');
 requireSource(style, '@media(max-width:560px)', 'mobile checkout and confirmation styling');
 
-console.log('Checkout and confirmations journey contract passed: owner-scoped review, explicit request/payment evidence, cancellation confirmation, durable selected-offer ownership, and return-to-Chat boundaries verified.');
+console.log('Checkout and confirmations journey contract passed: owner-scoped review, explicit request/payment evidence, cancellation confirmation, durable selected-offer ownership, situation-led native request states, and exact return-to-Chat boundaries verified.');

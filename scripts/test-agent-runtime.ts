@@ -15,7 +15,7 @@ process.env.KURUKOO_AGENT_MAX_RETRIES = '1';
 process.env.KURUKOO_AGENT_MAX_ELAPSED_MS = '120000';
 
 const { upsertProfile } = await import('../src/routes/authRoutes.js');
-const { createEconomicRequest } = await import('../src/services/skillFlows.js');
+const { createEconomicRequest, transitionEconomicRequest } = await import('../src/services/skillFlows.js');
 const { executeAgentTool, listAgentTools } = await import('../src/services/agentToolRegistry.js');
 const { cancelAgentGoal, createConversationGoal, getAgentGoal, goalTimeline, listAgentGoalEvents, listAgentGoals, runAgentGoal, runDueAgentGoals } = await import('../src/services/agentRuntime.js');
 const { listAgentExecutionTrace } = await import('../src/services/agentExecutionTrace.js');
@@ -52,6 +52,20 @@ assert.ok(trace.some(event => event.kind === 'policy_decision'), 'Runtime must r
 assert.ok(trace.some(event => event.kind === 'tool_call' && event.tool === 'get_request_state'), 'Runtime must trace the existing Agent Tool Registry call');
 assert.ok(trace.some(event => event.kind === 'outcome' && event.status === 'waiting'), 'Runtime must trace the truthful waiting outcome');
 assert.ok(trace.every(event => event.ownerPhone === owner && event.goalId === goal.id), 'Trace records must remain owner- and goal-scoped');
+
+const failedRequest = await createEconomicRequest({ id: `agent-failed-${Date.now()}`, phone: owner, skill: 'find_worker', requirements: { location: 'Ikeja', description: 'Recoverable failed request' } });
+for (const status of ['awaiting_match', 'matched', 'quoted', 'awaiting_confirmation', 'reserved', 'payment_pending', 'failed'] as const) await transitionEconomicRequest(failedRequest.id, status);
+const failedGoal = await createConversationGoal({ phone: owner, conversationId: 'conversation-failed-request', skill: 'find_worker', objective: 'Recover the failed provider request.', economicRequestId: failedRequest.id });
+const failedCheckpoint = await runAgentGoal(failedGoal!.id, owner);
+assert.equal(failedCheckpoint?.status, 'needs_user', 'A failed request must remain an explicit recoverable decision, not be falsely completed or terminally hidden.');
+assert.match(String(failedCheckpoint?.summary), /retry or cancel/i, 'The failed request checkpoint must direct the owner to a truthful next decision.');
+
+const disputedRequest = await createEconomicRequest({ id: `agent-disputed-${Date.now()}`, phone: owner, skill: 'find_worker', requirements: { location: 'Ikeja', description: 'Disputed fulfilment request' } });
+for (const status of ['awaiting_match', 'matched', 'reserved', 'paid', 'in_fulfillment', 'disputed'] as const) await transitionEconomicRequest(disputedRequest.id, status);
+const disputedGoal = await createConversationGoal({ phone: owner, conversationId: 'conversation-disputed-request', skill: 'find_worker', objective: 'Review the disputed fulfilment request.', economicRequestId: disputedRequest.id });
+const disputedCheckpoint = await runAgentGoal(disputedGoal!.id, owner);
+assert.equal(disputedCheckpoint?.status, 'needs_user', 'A disputed request must pause at an explicit owner-review checkpoint.');
+assert.match(String(disputedCheckpoint?.summary), /under review/i, 'The dispute checkpoint must not claim fulfilment or completion.');
 
 const ownRequest = await executeAgentTool('get_request_state', { requestId: request.id }, { phone: owner, conversationId: 'conversation-agent-test', goalId: goal.id });
 assert.equal(ownRequest.ok, true, 'Owned request state may be read through the controlled registry');
@@ -136,4 +150,4 @@ assert.deepEqual(await runDueAgentGoals(), [], 'The worker must remain inactive 
 process.env.KURUKOO_AGENT_ENABLED = 'false';
 process.env.KURUKOO_AGENT_AUTONOMOUS = 'false';
 assert.equal(await createConversationGoal({ phone: owner, skill: 'find_worker', objective: 'Disabled runtime', economicRequestId: request.id }), null, 'Disabled runtime must preserve normal chat behaviour without creating goals');
-console.log('Agent runtime regression passed: persistent owned goals, idempotency, bounded tools, waiting-only worker re-entry, non-retry checkpoints, durable action/concurrency budget checkpoints, canonical capability outcome persistence, durable execution trace, quality evaluation, cancellation, disabled mode, and high-risk denial.');
+console.log('Agent runtime regression passed: persistent owned goals, idempotency, bounded tools, waiting-only worker re-entry, recoverable failed/disputed request checkpoints, non-retry checkpoints, durable action/concurrency budget checkpoints, canonical capability outcome persistence, durable execution trace, quality evaluation, cancellation, disabled mode, and high-risk denial.');

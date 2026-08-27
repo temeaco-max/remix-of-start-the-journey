@@ -40,16 +40,16 @@
     const state = String(value || '').toLowerCase();
     if (['active', 'requested', 'awaiting_match', 'partially_matched', 'matched', 'quoting', 'paid', 'in_fulfillment', 'in_progress'].includes(state)) return 'active';
     if (['waiting', 'waiting_on_dependency', 'quoted', 'reserved'].includes(state)) return 'waiting';
-    if (['needs_user', 'awaiting_confirmation', 'payment_pending', 'needs-input'].includes(state)) return 'needs_user';
-    if (['blocked', 'failed', 'cancelled', 'expired', 'rejected', 'unavailable', 'disabled'].includes(state)) return state === 'cancelled' || state === 'expired' ? 'unavailable' : state;
+    if (['needs_user', 'awaiting_confirmation', 'payment_pending', 'needs-input', 'failed', 'disputed'].includes(state)) return 'needs_user';
+    if (['blocked', 'cancelled', 'expired', 'rejected', 'unavailable', 'disabled'].includes(state)) return state === 'cancelled' || state === 'expired' ? 'unavailable' : state;
     if (['completed', 'approved', 'fulfilled', 'connected', 'ready', 'verified'].includes(state)) return 'completed';
     return '';
   };
   const stateLabel = (value) => ({
     active: 'Working', requested: 'Working', awaiting_match: 'Waiting for a match', partially_matched: 'Working', matched: 'Working', quoting: 'Working', paid: 'Working', in_fulfillment: 'Working', in_progress: 'In progress',
     waiting: 'Waiting', waiting_on_dependency: 'Waiting for earlier work', quoted: 'Waiting for your choice', reserved: 'Waiting for your choice',
-    needs_user: 'Your input is needed', awaiting_confirmation: 'Your input is needed', payment_pending: 'Your input is needed',
-    blocked: 'Paused safely', failed: 'Needs review', cancelled: 'Stopped', expired: 'Expired', rejected: 'Unavailable', unavailable: 'Unavailable', disabled: 'Disabled',
+    needs_user: 'Your input is needed', awaiting_confirmation: 'Your input is needed', payment_pending: 'Your input is needed', failed: 'Your review is needed', disputed: 'Your review is needed',
+    blocked: 'Paused safely', cancelled: 'Stopped', expired: 'Expired', rejected: 'Unavailable', unavailable: 'Unavailable', disabled: 'Disabled',
     completed: 'Completed', approved: 'Completed', fulfilled: 'Completed', connected: 'Connected', ready: 'Ready', verified: 'Verified', available: 'Available',
   }[String(value || '').toLowerCase()] || humanize(value));
   const clear = (element) => { if (element) element.replaceChildren(); };
@@ -71,9 +71,14 @@
   const requestSummary = (request) => {
     const source = request.requirements || request.requirements_json || {};
     const requirements = typeof source === 'string' ? (() => { try { return JSON.parse(source); } catch { return {}; } })() : source;
-    const details = [requirements.origin, requirements.destination, requirements.location, requirements.items, requirements.service, requirements.event].filter(Boolean).map(String);
+    const details = [requirements.objective, requirements.product, requirements.items, requirements.device_or_asset, requirements.issue, requirements.service, requirements.origin, requirements.destination, requirements.location, requirements.event, requirements.timing].filter(Boolean).map(String);
     return details.length ? details.slice(0, 2).join(' · ') : 'Details are in the linked conversation.';
   };
+  const requestTitle = (request) => ({
+    ride_request: 'Getting you there', order_food: 'Food request', product_sourcing: 'Finding the right item',
+    phone_repairer: 'Phone repair', repair: 'Repair request', find_worker: 'Finding someone to help',
+    hotel_deals: 'Finding a place to stay', rental_tracker: 'Finding a home to rent', job_tracker: 'Finding work',
+  }[String(request.skill || '').toLowerCase()] || humanize(request.category || request.skill || 'Request'));
 
   const loadRequests = async () => {
     const list = qs('[data-requests-list]');
@@ -82,17 +87,20 @@
       const payload = await api('/api/chat/economic-requests');
       const requests = Array.isArray(payload.requests) ? payload.requests : [];
       clear(list);
-      const openStatuses = new Set(['requested', 'awaiting_match', 'partially_matched', 'matched', 'quoting', 'quoted', 'awaiting_confirmation', 'reserved', 'payment_pending', 'paid', 'in_fulfillment', 'fulfilled', 'disputed']);
-      const actionStatuses = new Set(['awaiting_confirmation', 'payment_pending']);
+      const openStatuses = new Set(['requested', 'awaiting_match', 'partially_matched', 'matched', 'quoting', 'quoted', 'awaiting_confirmation', 'reserved', 'payment_pending', 'paid', 'in_fulfillment', 'fulfilled', 'disputed', 'failed']);
+      const actionStatuses = new Set(['awaiting_confirmation', 'payment_pending', 'disputed', 'failed']);
       qsa('[data-request-metric="open"]').forEach((node) => { node.textContent = String(requests.filter((item) => openStatuses.has(item.status)).length); });
       qsa('[data-request-metric="action"]').forEach((node) => { node.textContent = String(requests.filter((item) => actionStatuses.has(item.status)).length); });
       qsa('[data-request-metric="completed"]').forEach((node) => { node.textContent = String(requests.filter((item) => item.status === 'completed').length); });
       requests.forEach((request) => {
         const action = document.createElement('a');
         action.className = 'workspace-text-action';
-        action.href = `/chat?prompt=${encodeURIComponent(`Continue my ${request.skill || 'request'}`)}`;
+        const requestId = String(request.id || '').trim();
+        action.href = requestId
+          ? `/chat?prompt=${encodeURIComponent('Open this request.')}&requestId=${encodeURIComponent(requestId)}&contextId=${encodeURIComponent(`request:${requestId}`)}&action=review&canonicalAction=economic_request.open&objectType=economic_request&objectId=${encodeURIComponent(requestId)}`
+          : `/chat?prompt=${encodeURIComponent('Continue this request.')}`;
         action.textContent = 'Continue in chat';
-        list.appendChild(makeDataCard({ eyebrow: humanize(request.category || 'Request'), title: humanize(request.skill || request.category || 'Request'), detail: requestSummary(request), state: request.status, action }));
+        list.appendChild(makeDataCard({ eyebrow: humanize(request.category || 'Request'), title: requestTitle(request), detail: requestSummary(request), state: request.status, action }));
       });
       list.setAttribute('aria-busy', 'false');
       setEmpty('[data-requests-empty]', requests.length === 0);

@@ -60,7 +60,7 @@ try {
 
   const naturalLanguage = await routeIntent('Find me a phone repair shop near me and arrange a repair for my iPhone 13. The screen is cracked and charging is intermittent. I need it today in Ikeja.', customerPhone);
   const naturalCard = naturalLanguage.cardData as any;
-  assert.equal(naturalLanguage.skill, 'repair');
+  assert.equal(naturalLanguage.skill, 'phone_repairer', 'Explicit phone-repair language must retain the canonical provider capability used for discovery.');
   assert.equal(naturalCard?.stage, 'catalog_match', 'Clearly stated phone-repair details must reach bounded provider discovery without redundant clarification.');
   assert.ok(naturalCard?.providers?.some((provider: any) => provider.phone === providerPhone));
 
