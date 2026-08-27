@@ -726,6 +726,17 @@
       makeElement('span', 'storefront-stage', String(card.stage || '').replace(/_/g, ' '))
     );
     holder.appendChild(head);
+    holder.appendChild(makeElement('p', 'outcome-primitive outcome-situation', String(card.message || card.description || 'Kurukoo is carrying this request through its canonical path.')));
+    const resultEvidence = [];
+    if (card.quote && typeof card.quote === 'object') resultEvidence.push({ label: 'Quote', value: `${String(card.quote.amount_minor ?? card.quote.priceMinor ?? 'Pending')} ${String(card.quote.currency || 'local currency')}` });
+    if (card.offer && typeof card.offer === 'object') resultEvidence.push({ label: 'Offer', value: String(card.offer.title || card.offer.description || 'Recorded offer') });
+    if (card.execution && typeof card.execution === 'object') resultEvidence.push({ label: 'Execution', value: String(card.execution.status || 'recorded').replace(/_/g, ' ') });
+    if (card.provider && typeof card.provider === 'object') resultEvidence.push({ label: 'Provider', value: String(card.provider.name || card.provider.label || 'Recorded provider') });
+    appendOutcomeEvidence(holder, resultEvidence);
+    const storefrontStage = String(card.stage || card.status || 'working').toLowerCase();
+    const storefrontTone = /complete|fulfilled|success/.test(storefrontStage) ? 'success' : /quote|confirm|payment|select|approval/.test(storefrontStage) ? 'attention' : /wait|pending|search|match|in_fulfillment/.test(storefrontStage) ? 'waiting' : 'neutral';
+    const storefrontLabel = storefrontTone === 'success' ? 'Done' : storefrontTone === 'attention' ? 'I need you' : storefrontTone === 'waiting' ? 'Waiting for' : 'I’m working on it';
+    appendOutcomeStatus(holder, `${storefrontLabel}: ${String(card.stage || card.status || 'current request state').replace(/_/g, ' ')}.`, storefrontTone);
 
     const progressBar = makeElement('div', 'storefront-progress');
     progressBar.setAttribute('role', 'progressbar');
@@ -1028,9 +1039,15 @@
       Object.entries(facts).forEach(([key, value]) => { if (value === undefined || value === null || value === '') return; holder.appendChild(makeElement('small', '', `${key.replace(/([A-Z])/g, ' $1')}: ${typeof value === 'object' ? JSON.stringify(value) : String(value)}`)); });
     }
     if (card.type === 'request_status') {
-      holder.appendChild(makeElement('span', 'storefront-execution-status', `Status: ${String(card.status || 'unknown').replace(/_/g, ' ')}`));
-      if (card.quote) holder.appendChild(makeElement('small', '', `Quote evidence: ${JSON.stringify(card.quote)}`));
-      if (card.fulfillment) holder.appendChild(makeElement('small', '', `Fulfilment evidence: ${JSON.stringify(card.fulfillment)}`));
+      const requestStatus = String(card.status || 'unknown').toLowerCase();
+      const requestEvidence = [];
+      if (card.requestId) requestEvidence.push({ label: 'Request', value: String(card.requestId) });
+      if (card.quote && typeof card.quote === 'object') requestEvidence.push({ label: 'Quote', value: `${String(card.quote.amount_minor ?? card.quote.priceMinor ?? 'Recorded')} ${String(card.quote.currency || 'local currency')}` });
+      if (card.fulfillment && typeof card.fulfillment === 'object') requestEvidence.push({ label: 'Fulfilment', value: String(card.fulfillment.status || card.fulfillment.stage || 'recorded').replace(/_/g, ' ') });
+      appendOutcomeEvidence(holder, requestEvidence);
+      const requestTone = /complete|fulfilled|paid/.test(requestStatus) ? 'success' : /quote|confirm|payment|approval|needs_user/.test(requestStatus) ? 'attention' : /wait|pending|requested|match|fulfillment/.test(requestStatus) ? 'waiting' : 'neutral';
+      const requestLabel = requestTone === 'success' ? 'Done' : requestTone === 'attention' ? 'I need you' : requestTone === 'waiting' ? 'Waiting for' : 'I’m working on it';
+      appendOutcomeStatus(holder, `${requestLabel}: ${requestStatus.replace(/_/g, ' ')}.`, requestTone);
     }
     holder.appendChild(makeElement('small', 'storefront-execution-status', card.ownerScoped === true ? 'Owner-scoped persisted state. Choose an exact item to continue.' : 'Persisted state only; no external delivery or fulfilment is implied.'));
     messageEl.querySelector('.bubble')?.appendChild(holder);
