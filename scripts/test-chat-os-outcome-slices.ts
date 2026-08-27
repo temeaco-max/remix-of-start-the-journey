@@ -4,6 +4,8 @@ import { processCanonicalChatTurn } from '../src/services/canonicalChatTurnServi
 import { sendFcmPush } from '../src/services/pushNotifications.js';
 import { createEconomicRequest, transitionEconomicRequest } from '../src/services/skillFlows.js';
 import { executeCanonicalCapabilityProposal } from '../src/services/canonicalCapabilityExecutor.js';
+import { listAgentGoals } from '../src/services/agentRuntime.js';
+import { upsertProfile } from '../src/routes/authRoutes.js';
 
 const phone = `+234807${String(Date.now()).slice(-7)}`;
 const conversationId = `chat-os-outcomes-${Date.now()}`;
@@ -113,6 +115,15 @@ for (const [offset, message, firstSkill] of [
   assert.ok(/No external (?:success|action)|not claimed/i.test(composed.reply), `Expected truthful boundary for ${message}`);
   assert.equal(composed.cardData?.truthful, true);
 }
+
+const ownedFoodPhone = makeDomainPhone(39);
+await upsertProfile(ownedFoodPhone, 'Owned Food User');
+const ownedFoodConversation = `${conversationId}-owned-food`;
+const ownedFood = await processCanonicalChatTurn({ phone: ownedFoodPhone, message: 'I am hungry. Find me something good nearby and get it delivered.', channel: 'web', conversationId: ownedFoodConversation });
+assert.equal(ownedFood.cardData?.type, 'agentic_storefront');
+assert.equal(ownedFood.cardData?.ownedWork, true, 'ordinary storefront outcomes should become owned work without requiring a separate monitor command');
+assert.equal(typeof ownedFood.cardData?.agentGoalId, 'string');
+assert.equal((await listAgentGoals(ownedFoodPhone)).some(goal => goal.id === ownedFood.cardData?.agentGoalId && goal.economicRequestId === ownedFood.cardData?.requestId), true, 'the food outcome must persist one goal attached to the same canonical request');
 
 const monitoring = await routeIntent('Keep an eye on my Wi-Fi', makeDomainPhone(41), undefined, undefined, `${conversationId}-monitoring`);
 assert.equal(monitoring.skill, 'autonomous_agent');
