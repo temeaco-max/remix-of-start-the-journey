@@ -14,7 +14,7 @@ process.on('exit', () => { try { fs.rmSync(isolatedDbPath, { force: true }); } c
 
 const { upsertProfile } = await import('../src/routes/authRoutes.js');
 const { processCanonicalChatTurn } = await import('../src/services/canonicalChatTurnService.js');
-const { listSubGoals, getAgentGoal, resumeAgentGoal, runDueAgentGoals, createConversationGoal } = await import('../src/services/agentRuntime.js');
+const { listSubGoals, getAgentGoal, resumeAgentGoal, runDueAgentGoals, runAgentGoal, createConversationGoal } = await import('../src/services/agentRuntime.js');
 const { syncSubGoalStatusesWithDependencies } = await import('../src/services/agentEconomicRequestOrchestrator.js');
 const { listAgentExecutionTrace, recordAgentExecutionTrace } = await import('../src/services/agentExecutionTrace.js');
 const { getInternalNotifications } = await import('../src/services/pushNotifications.js');
@@ -106,6 +106,13 @@ const completedMemory = await getMemoryFacts(owner, ['completed_outcome']);
 assert.ok(completedMemory.some(fact => fact.value.includes(objective) && fact.provenance === 'verified'), 'A verified parent outcome must be remembered with verified provenance.');
 const completionNotifications = await getInternalNotifications(owner, 20);
 assert.ok(completionNotifications.some(notification => notification.body.includes('verified every step')), 'A verified parent outcome must be surfaced through the internal notification path.');
+
+const observationGoal = await createConversationGoal({ phone: owner, conversationId: 'outcome-device-observation', skill: 'device_support', objective: 'Keep an eye on my laptop and tell me if anything changes', source: 'conversation', persistWhenDisabled: true });
+assert.ok(observationGoal, 'A device observation outcome must persist as owned work.');
+const observedGoal = await runAgentGoal(observationGoal!.id, owner);
+assert.equal(observedGoal?.status, 'waiting', 'A safe device observation must remain waiting for the next evidence update rather than claiming a diagnosis.');
+const observationTrace = await listAgentExecutionTrace(owner, observationGoal!.id);
+assert.ok(observationTrace.some(event => event.tool === 'get_connected_resources'), 'The autonomous device outcome must use the existing connected-resource observation tool.');
 
 const trace = await listAgentExecutionTrace(owner, sale!.id);
 assert.ok(trace.some(event => event.kind === 'capability_execution'), 'Capability results must add a durable capability-execution trace event.');
