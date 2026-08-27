@@ -27,20 +27,52 @@
     if (/review|open/.test(action)) return 'Review update';
     return href ? 'Open update' : '';
   };
-  const deliveryLabel = (state) => ({ queued: 'Delivery queued', accepted: 'Delivery accepted by provider', sent: 'Delivery sent', delivered: 'Delivery confirmed', failed: 'Delivery failed', suppressed: 'Delivery suppressed', dead_letter: 'Delivery stopped', unavailable: 'Delivery unavailable' }[String(state || '')] || 'In-app state recorded');
+  const deliveryPresentation = (state) => ({
+    queued: { label: 'Saved; device alert pending', detail: 'This update is available here while Kurukoo awaits a configured device.' },
+    accepted: { label: 'Alert accepted for delivery', detail: 'The external service accepted the alert; device receipt is not yet confirmed.' },
+    sent: { label: 'Alert sent to delivery service', detail: 'The delivery service accepted the alert; device receipt is not yet confirmed.' },
+    delivered: { label: 'Device alert confirmed', detail: 'The linked delivery service recorded this alert as delivered.' },
+    failed: { label: 'Alert could not be delivered', detail: 'This update remains available here in Kurukoo.' },
+    suppressed: { label: 'Kept in Kurukoo', detail: 'This update is available here; no external alert was sent.' },
+    dead_letter: { label: 'Alert delivery stopped', detail: 'This update remains available here. Reconnect a device before a later alert can be delivered.' },
+    unavailable: { label: 'Kept in Kurukoo', detail: 'No authorised device-alert route is active. This update remains available here.' },
+  }[String(state || '')] || { label: 'Available in Kurukoo', detail: 'This update remains available here.' });
+  const exactChatHref = ({ prompt = 'Open this update.', conversationId, contextId, objectType, objectId, canonicalAction }) => {
+    const params = new URLSearchParams({ prompt });
+    if (conversationId) params.set('conversationId', String(conversationId).slice(0, 160));
+    if (objectType && objectId && canonicalAction) {
+      params.set('contextId', String(contextId || `${objectType}:${objectId}`).slice(0, 180));
+      params.set('action', 'review');
+      params.set('canonicalAction', String(canonicalAction).slice(0, 120));
+      params.set('objectType', String(objectType).slice(0, 80));
+      params.set('objectId', String(objectId).slice(0, 180));
+    }
+    return `/chat?${params.toString()}`;
+  };
+  const fallbackContext = (notification) => {
+    const rawType = String(notification.object_type || '').toLowerCase();
+    const objectId = String(notification.object_id || '').trim();
+    const mapped = {
+      request: ['economic_request', 'economic_request.open'],
+      economic_request: ['economic_request', 'economic_request.open'],
+      task: ['task', 'task.open'],
+      reminder: ['reminder', 'reminder.open'],
+      agent: ['agent_goal', 'agent.goal.review'],
+      agent_goal: ['agent_goal', 'agent.goal.review'],
+    }[rawType];
+    if (!mapped || !objectId) return null;
+    return { objectType: mapped[0], canonicalAction: mapped[1], objectId };
+  };
   const canonicalHref = (notification) => {
     const storedLink = safeInternalHref(notification.link);
     if (storedLink) return storedLink;
-    if (notification.conversation_id) return `/chat/${escapePath(notification.conversation_id)}`;
-    const type = String(notification.object_type || '').toLowerCase();
-    const id = String(notification.object_id || '').trim();
-    if (!id) return null;
-    if (type === 'request' || type === 'economic_request') return `/requests/${escapePath(id)}`;
-    if (type === 'task') return `/tasks/${escapePath(id)}`;
-    if (type === 'topic') return `/topics/${escapePath(id)}`;
-    if (type === 'opportunity') return `/opportunities/${escapePath(id)}`;
-    if (type === 'agent') return `/agents/${escapePath(id)}`;
-    return null;
+    const fallback = fallbackContext(notification);
+    if (!fallback && !notification.conversation_id) return null;
+    return exactChatHref({
+      conversationId: notification.conversation_id,
+      contextId: notification.context_id,
+      ...(fallback || {}),
+    });
   };
   const api = async (path, options = {}) => {
     const response = await fetch(path, { credentials: 'same-origin', ...options });
@@ -63,9 +95,9 @@
         const isUnread = String(item.status || '') !== 'read';
         const href = canonicalHref(item);
         const actionLabel = actionLabelFor(item, href);
-        const delivery = deliveryLabel(item.delivery_state);
+        const delivery = deliveryPresentation(item.delivery_state);
         const source = sourceLabel(item);
-        return `<article class="k57-notification-card ${isUnread ? 'is-unread' : ''}" data-notification-id="${escapeHtml(item.id)}"><div><div class="k57-notification-meta"><span class="k57-notification-source">${escapeHtml(source)}</span><span>${escapeHtml(formatDate(item.created_at))}</span><span class="k57-delivery">${escapeHtml(delivery)}</span></div><h3>${escapeHtml(item.title || 'Notification')}</h3><p class="k57-notification-copy">${escapeHtml(item.body || '')}</p><div class="k57-notification-actions">${href ? `<a class="k-app-card-action k57-notification-action" href="${escapeHtml(href)}" data-k57-open="${escapeHtml(item.id)}">${escapeHtml(actionLabel || 'Open')}</a>` : ''}${isUnread ? `<button class="workspace-text-action k57-notification-action" type="button" data-k57-read="${escapeHtml(item.id)}">Mark read</button>` : ''}</div></div></article>`;
+        return `<article class="k57-notification-card ${isUnread ? 'is-unread' : ''}" data-notification-id="${escapeHtml(item.id)}"><div><div class="k57-notification-meta"><span class="k57-notification-source">${escapeHtml(source)}</span><span>${escapeHtml(formatDate(item.created_at))}</span><span class="k57-delivery">${escapeHtml(delivery.label)}</span></div><h3>${escapeHtml(item.title || 'Notification')}</h3><p class="k57-notification-copy">${escapeHtml(item.body || '')}</p><p class="k57-delivery-detail">${escapeHtml(delivery.detail)}</p><div class="k57-notification-actions">${href ? `<a class="k-app-card-action k57-notification-action" href="${escapeHtml(href)}" data-k57-open="${escapeHtml(item.id)}">${escapeHtml(actionLabel || 'Open')}</a>` : ''}${isUnread ? `<button class="workspace-text-action k57-notification-action" type="button" data-k57-read="${escapeHtml(item.id)}">Mark read</button>` : ''}</div></div></article>`;
       }).join('')}</div></section>`;
     };
     setInner(shell(`${section('Needs your attention', unread)}${section('Earlier', read)}`));
