@@ -6,7 +6,7 @@
     activeStorefrontId: null,
     nativeAssistance: { reminders: [], checkIns: [] },
     lastCapabilityResult: null,
-    pinnedMessages: [], surfaceView: null, canonicalContextAction: null, notifiedNotificationIds: new Set(), notifiedTrustChallengeIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') !== '0', radarLive: false, lastAgentBriefId: null
+    pinnedMessages: [], surfaceView: null, canonicalContextAction: null, resumeCanonicalContextOnLoad: false, notifiedNotificationIds: new Set(), notifiedTrustChallengeIds: new Set(), radarActive: localStorage.getItem('kurukoo_radar_enabled') !== '0', radarLive: false, lastAgentBriefId: null
   };
   const $ = id => document.getElementById(id);
   const chatContent = $('chat-content'), scroll = $('chat-scroll'), input = $('message-input'), send = $('send-message'), stop = $('stop-generation');
@@ -2216,7 +2216,10 @@
     const contactCompose = params.get('contactCompose') === '1';
     if (conversationId) { state.conversationId = conversationId.slice(0, 160); localStorage.setItem('kurukoo_conversation_id', state.conversationId); }
     if (discoveryEntityId) state.discoveryContextAction = { type: 'open_discovery_entity', entityId: discoveryEntityId.slice(0, 180) };
-    if (canonicalAction && objectType && objectId) state.canonicalContextAction = { type: 'resume_canonical_context', contextId: contextId?.slice(0, 180), conversationId: conversationId?.slice(0, 180), canonicalAction: canonicalAction.slice(0, 120), objectType: objectType.slice(0, 80), objectId: objectId.slice(0, 180) };
+    if (canonicalAction && objectType && objectId) {
+      state.canonicalContextAction = { type: 'resume_canonical_context', contextId: contextId?.slice(0, 180), conversationId: conversationId?.slice(0, 180), canonicalAction: canonicalAction.slice(0, 120), objectType: objectType.slice(0, 80), objectId: objectId.slice(0, 180) };
+      state.resumeCanonicalContextOnLoad = ['economic_request.open', 'agent.goal.review', 'task.open', 'reminder.open'].includes(canonicalAction);
+    }
     let contactMessageDraft = null;
     if (contactCompose && input) {
       try {
@@ -2327,6 +2330,10 @@
     loadProactiveInspector();
     loadNearbyInspector(state.surfaceView);
       await loadAgentBrief();
+      if (state.resumeCanonicalContextOnLoad && state.canonicalContextAction && input?.value.trim()) {
+        state.resumeCanonicalContextOnLoad = false;
+        void sendMessage(input.value);
+      }
     }
   });
 

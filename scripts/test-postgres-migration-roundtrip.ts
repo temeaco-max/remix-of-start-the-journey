@@ -22,6 +22,7 @@ const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'kurukoo-postgres-roundt
 const sourcePath = path.join(workspace, 'source.sqlite');
 const sourcePhone = '+2348000000999';
 const requestId = `pg-roundtrip-${crypto.randomUUID()}`;
+const conversationId = `pg-conversation-${crypto.randomUUID()}`;
 const executionId = `exec-roundtrip-${crypto.randomUUID()}`;
 const schemaMigrationVersion = `sqljs-export-`;
 
@@ -44,7 +45,7 @@ await updateProfile(sourcePhone, 'postgres-roundtrip', {
   provenance: 'user_declared',
 });
 await appendChatMessage({ phone: sourcePhone, sender: 'user', content: 'Keep this canonical chat message.', channel: 'web' });
-await createEconomicRequest({ id: requestId, phone: sourcePhone, skill: 'plumber', requirements: { urgency: 'today' } });
+await createEconomicRequest({ id: requestId, phone: sourcePhone, skill: 'plumber', requirements: { urgency: 'today' }, conversationId });
 await sendFcmPush(sourcePhone, 'Round-trip notification', 'Retain this queue record.', '/chat');
 await recordAgentWorkerRun({ startedAt: new Date().toISOString(), status: 'completed', dueGoalCount: 0, updatedGoalCount: 0 });
 
@@ -127,8 +128,8 @@ try {
 
   const messages = await sql`SELECT content FROM messages WHERE phone = ${sourcePhone}`;
   assert.equal(messages.some((row: any) => row.content === 'Keep this canonical chat message.'), true, 'Chat message must survive import');
-  const requests = await sql`SELECT id, status FROM economic_requests WHERE id = ${requestId}`;
-  assert.deepEqual(requests.map((row: any) => [row.id, row.status]), [[requestId, 'requested']], 'Economic Request must survive import');
+  const requests = await sql`SELECT id, status, conversation_id FROM economic_requests WHERE id = ${requestId}`;
+  assert.deepEqual(requests.map((row: any) => [row.id, row.status, row.conversation_id]), [[requestId, 'requested', conversationId]], 'Economic Request and initiating conversation must survive import');
   const notifications = await sql`SELECT title FROM internal_notifications WHERE phone = ${sourcePhone}`;
   assert.equal(notifications.some((row: any) => row.title === 'Round-trip notification'), true, 'Notification queue record must survive import');
   const agentRuns = await sql`SELECT COUNT(*)::int AS count FROM agent_worker_runs`;

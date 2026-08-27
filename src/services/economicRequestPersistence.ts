@@ -26,6 +26,7 @@ export interface EconomicRequest {
   providerPhone?: string | null;
   quote?: Record<string, unknown> | null;
   fulfillment?: Record<string, unknown> | null;
+  conversationId?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -49,6 +50,7 @@ function rowToRequest(row: any): EconomicRequest {
     providerPhone: row.provider_phone ? String(row.provider_phone) : null,
     quote: row.quote_json ? JSON.parse(String(row.quote_json)) : null,
     fulfillment: row.fulfillment_json ? JSON.parse(String(row.fulfillment_json)) : null,
+    conversationId: row.conversation_id ? String(row.conversation_id) : null,
     createdAt: row.created_at ? String(row.created_at) : undefined,
     updatedAt: row.updated_at ? String(row.updated_at) : undefined,
   };
@@ -67,9 +69,11 @@ async function ensurePostgresSchema() {
     provider_phone TEXT,
     quote_json TEXT,
     fulfillment_json TEXT,
+    conversation_id TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
+  await store.run(`ALTER TABLE economic_requests ADD COLUMN IF NOT EXISTS conversation_id TEXT`);
   await store.run(`CREATE INDEX IF NOT EXISTS idx_economic_requests_phone_status ON economic_requests(phone,status)`);
   return store;
 }
@@ -92,7 +96,7 @@ function recordLifecycleEvent(current: EconomicRequest, status: EconomicRequestS
 
 export function getAllowedEconomicTransitions(status: EconomicRequestStatus): EconomicRequestStatus[] { return [...(TRANSITIONS[status] || [])]; }
 
-export async function createEconomicRequest(input:{id:string;phone:string;skill:string;requirements:Record<string,unknown>;amount?:number}):Promise<EconomicRequest> {
+export async function createEconomicRequest(input:{id:string;phone:string;skill:string;requirements:Record<string,unknown>;amount?:number;conversationId?:string}):Promise<EconomicRequest> {
   if (getCanonicalPersistenceMode() !== 'postgres') {
     return createSqlJsEconomicRequest(input);
   }
@@ -100,8 +104,9 @@ export async function createEconomicRequest(input:{id:string;phone:string;skill:
   const capabilities = getSkillCapabilities(input.skill);
   const store = await ensurePostgresSchema();
   const requirements = JSON.stringify({ ...input.requirements, amount_minor: input.amount ?? null });
-  await store.run(`INSERT INTO economic_requests(id,phone,skill,category,status,requirements_json,capabilities_json) VALUES(?,?,?,?,?,?,?)`, [input.id,input.phone,input.skill,category,'requested',requirements,JSON.stringify(capabilities)]);
-  await persistCoordinatorEvent({id:`economic-request:${input.id}:created`,type:'economic_request.state_changed',occurredAt:new Date().toISOString(),producer:'economicRequestPersistence',correlationId:`economic_request:${input.id}`,ownerPhone:input.phone.startsWith('anon_')?undefined:input.phone,economicRequestId:input.id,payload:{requestId:input.id,skill:input.skill,category,status:'requested',capabilities},sensitivity:input.phone.startsWith('anon_')?'public':'personal',provenance:{source:'canonical_service',sourceId:input.id,evidenceLevel:'persisted_state'},policy:{autonomousAllowed:false,confirmationRequired:'none'},schemaVersion:1});
+  const conversationId = String(input.conversationId || '').trim().slice(0, 160) || null;
+  await store.run(`INSERT INTO economic_requests(id,phone,skill,category,status,requirements_json,capabilities_json,conversation_id) VALUES(?,?,?,?,?,?,?,?)`, [input.id,input.phone,input.skill,category,'requested',requirements,JSON.stringify(capabilities),conversationId]);
+  await persistCoordinatorEvent({id:`economic-request:${input.id}:created`,type:'economic_request.state_changed',occurredAt:new Date().toISOString(),producer:'economicRequestPersistence',correlationId:`economic_request:${input.id}`,ownerPhone:input.phone.startsWith('anon_')?undefined:input.phone,economicRequestId:input.id,payload:{requestId:input.id,skill:input.skill,category,status:'requested',capabilities,conversationId:conversationId||undefined},sensitivity:input.phone.startsWith('anon_')?'public':'personal',provenance:{source:'canonical_service',sourceId:input.id,evidenceLevel:'persisted_state'},policy:{autonomousAllowed:false,confirmationRequired:'none'},schemaVersion:1});
   return (await getEconomicRequest(input.id))!;
 }
 
