@@ -70,7 +70,7 @@ assert.equal(chatTurn.cardData?.resolution?.status, 'options');
 assert.match(chatTurn.reply, /recorded state|resolution choice/i);
 
 const repairTurn = await routeIntent('Please find a phone repairer for my Work MacBook screen is broken in Ikeja.', phone, undefined, undefined, chatTurn.conversationId);
-assert.equal(repairTurn.skill, 'phone_repair');
+assert.equal(repairTurn.skill, 'phone_repairer');
 assert.ok(repairTurn.cardData?.requestId);
 const repairRequest = await getEconomicRequest(String(repairTurn.cardData.requestId));
 assert.equal(repairRequest?.requirements?.prior_diagnostics?.source, 'canonical_chat_device_support');
