@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 import { getCanonicalStore } from './canonicalStore.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
+import { sendFcmPush } from './pushNotifications.js';
 
 export type FulfilmentStatus =
   | 'draft'
@@ -553,6 +554,20 @@ export async function recordProviderInquiryResponse(input: { ownerPhone: string;
   }
   await store.run('INSERT INTO provider_inquiry_response_events(idempotency_key,inquiry_id,owner_phone,offer_id) VALUES(?,?,?,?)', [key, input.inquiryId, input.ownerPhone, offer?.id || null]);
   await lifecycleEvent(fulfilment, 'provider_response_recorded', { inquiryId:input.inquiryId, evidenceLevel:responseEvidence, offerId:offer?.id, idempotencyKey:key });
+  const requestId = fulfilment.economicRequestId;
+  const providerLabel = inquiry.providerName || 'Your provider';
+  const responseSummary = offer?.title
+    ? `${providerLabel} replied with a recorded option: ${offer.title}${offer.priceMinor != null ? ` (${offer.currency || ''} ${offer.priceMinor})` : ''}. Review the same request in Kurukoo before approving anything.`
+    : `${providerLabel} replied. The response is recorded against your request and needs your review before any booking, payment, or fulfilment is claimed.`;
+  await sendFcmPush(input.ownerPhone, `${providerLabel} replied`, responseSummary, requestId ? `/app/requests?request=${encodeURIComponent(requestId)}` : '/app/requests', {
+    contextId: requestId ? `request:${requestId}` : `fulfilment:${fulfilment.id}`,
+    canonicalAction: requestId ? 'economic_request.open' : 'fulfilment.open',
+    objectType: requestId ? 'economic_request' : 'fulfilment',
+    objectId: requestId || fulfilment.id,
+    ownerScope: input.ownerPhone,
+    idempotencyKey: `provider-response-attention:${input.inquiryId}:${key}`,
+    surface: 'requests',
+  }).catch(() => false);
   return { inquiry, offer };
 }
 

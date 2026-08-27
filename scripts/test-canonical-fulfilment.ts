@@ -11,6 +11,7 @@ import {
   updateFulfilmentRequirements,
 } from '../src/services/canonicalFulfilmentService.js';
 import { getFulfilmentMechanismForSkill, getFulfilmentSkillBinding, resolveMissingFulfilmentInputs } from '../src/services/fulfilmentSkillBindings.js';
+import { getInternalNotifications } from '../src/services/pushNotifications.js';
 
 const owner = `+234809${String(Date.now()).slice(-7)}`;
 
@@ -41,6 +42,8 @@ assert.equal(response.inquiry.evidenceLevel, 'provider_confirmed');
 assert.ok(response.offer, 'Provider response must materialize into the same Offer object used by catalogue results');
 assert.equal(response.offer?.source, 'provider_inquiry');
 assert.equal(response.offer?.evidenceLevel, 'provider_confirmed');
+const providerAttention = await getInternalNotifications(owner, 20);
+assert.ok(providerAttention.some(notification => notification.title.includes('replied') && notification.object_id === inquiryFlow.id), 'Provider response must create an owner attention notification attached to the existing fulfilment context.');
 assert.equal((await listOffers(owner, inquiryFlow.id))[0]?.priceMinor, 600000);
 
 await updateFulfilmentRequirements(owner, inquiryFlow.id, { budgetMinor: 700000 }, []);
