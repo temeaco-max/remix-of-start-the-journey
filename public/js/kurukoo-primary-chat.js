@@ -1050,11 +1050,11 @@
     holder.appendChild(section);
   }
 
-  function appendOutcomeChoices(holder, options = [], promptFallback) {
+  function appendOutcomeChoices(holder, options = [], promptFallback, heading = 'I can') {
     const usable = options.filter(option => option?.label && (option.prompt || promptFallback));
     if (!usable.length) return;
     const section = makeElement('section', 'outcome-primitive outcome-choices');
-    section.appendChild(makeElement('strong', '', 'I can'));
+    section.appendChild(makeElement('strong', '', heading));
     const actions = makeElement('div', 'storefront-actions');
     usable.forEach(option => {
       const button = makeElement('button', `sf-btn sf-${option.style === 'secondary' ? 'secondary' : 'primary'}`, String(option.label));
@@ -1207,6 +1207,10 @@
     const activeWork = ['active', 'coordinating', 'working'].includes(workStatus);
     const needsDecision = ['needs_user', 'confirmation_required'].includes(workStatus);
     if (Array.isArray(card.choices) && card.choices.length && (activeWork || needsDecision)) appendOutcomeChoices(holder, card.choices);
+    const decisionStage = String(card.firstCapability?.stage || card.firstCapability?.status || '').toLowerCase();
+    const requiresDecision = needsDecision || ['quoted', 'awaiting_confirmation', 'payment_pending', 'matched', 'provider_selected', 'quote_ready'].some(value => decisionStage.includes(value));
+    const decisionActions = Array.isArray(card.firstCapability?.actions) ? card.firstCapability.actions.filter(action => action?.label && !['cancel', 'check_again'].includes(String(action.id || '').toLowerCase())).map(action => ({ ...action, prompt: action.prompt || action.label })) : [];
+    if (requiresDecision && decisionActions.length) appendOutcomeChoices(holder, decisionActions, undefined, 'I need you');
     if (card.work && typeof card.work === 'object') {
       const workDetail = String(card.work.detail || 'Kurukoo is coordinating the next supported step.');
       const workLabel = workStatus === 'completed' ? 'Done' : needsDecision ? 'I need you' : workStatus.includes('waiting') ? 'Waiting for' : activeWork ? 'I’m working on it' : 'Work status';
