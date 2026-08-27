@@ -171,10 +171,10 @@ export async function syncSubGoalStatusesWithDependencies(phone: string, parentG
     if (next === null) continue;
     if (dep.goalId) {
       const sg = await store.one<any>('SELECT id,status FROM agent_goals WHERE id=? AND phone=? LIMIT 1', [dep.goalId, phone]);
-      if (sg && sg.status !== next) await store.run('UPDATE agent_goals SET status=?,next_action_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [next, next === 'active' ? new Date().toISOString() : null, sg.id, phone]);
+      if (sg && sg.status !== 'paused' && sg.status !== next) await store.run('UPDATE agent_goals SET status=?,next_action_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [next, next === 'active' ? new Date().toISOString() : null, sg.id, phone]);
     } else {
       const sgs = await store.all<any>('SELECT id,status FROM agent_goals WHERE phone=? AND parent_goal_id=? AND goal_type=? LIMIT 1', [phone, parentGoalId, dep.skill]);
-      for (const sg of sgs) { if (sg.status !== next) await store.run('UPDATE agent_goals SET status=?,next_action_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [next, next === 'active' ? new Date().toISOString() : null, sg.id, phone]); }
+      for (const sg of sgs) { if (sg.status !== 'paused' && sg.status !== next) await store.run('UPDATE agent_goals SET status=?,next_action_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [next, next === 'active' ? new Date().toISOString() : null, sg.id, phone]); }
     }
   }
   // Parent terminal policy: complete only when ALL children completed;
@@ -185,7 +185,26 @@ export async function syncSubGoalStatusesWithDependencies(phone: string, parentG
     if (parent && !['completed','cancelled','failed','expired'].includes(String(parent.status))) {
       const allCompleted = children.every(c => String(c.status)==='completed');
       const nextStatus = allCompleted ? 'completed' : (children.some(c => String(c.status)==='cancelled') ? 'cancelled' : 'failed');
-      await store.run('UPDATE agent_goals SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [nextStatus, parentGoalId, phone]);
+      const summary = nextStatus === 'completed'
+        ? 'Kurukoo verified every step of this outcome through the canonical evidence path.'
+        : nextStatus === 'cancelled'
+          ? 'This outcome was stopped before every step completed.'
+          : 'This outcome could not complete because one or more dependent steps did not complete.';
+      await store.run('UPDATE agent_goals SET status=?,summary=?,completed_at=?,next_action_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [nextStatus, summary, nextStatus === 'completed' ? new Date().toISOString() : null, parentGoalId, phone]);
+      try {
+        const parent = await store.one<any>('SELECT * FROM agent_goals WHERE id=? AND phone=? LIMIT 1', [parentGoalId, phone]);
+        if (parent) {
+          const runtime = await import('./agentRuntime.js');
+          const projected = await runtime.getAgentGoal(phone, parentGoalId);
+          if (projected) await runtime.notifyGoalIfNeeded(projected);
+          if (nextStatus === 'completed') {
+            const memory = await import('./memoryProfile.js');
+            await memory.recordMemoryFact(phone, 'completed_outcome', String(parent.objective || '').slice(0, 500), 'verified', { sourceRef: `agent_goal:${parentGoalId}` });
+          }
+        }
+      } catch {
+        // Delivery projections must never roll back the canonical parent state.
+      }
     }
   }
 }

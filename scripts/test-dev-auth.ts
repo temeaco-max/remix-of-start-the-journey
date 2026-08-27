@@ -15,6 +15,7 @@ process.env.KURUKOO_WORKERS = '0';
 process.env.DB_PATH = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'kurukoo-dev-auth-')), 'test.sqlite');
 
 const { app } = await import('../src/index.js');
+const { handleConversationalAuth, setAuthState } = await import('../src/services/conversationalAuthService.js');
 const server = app.listen(0);
 const base = `http://127.0.0.1:${(server.address() as any).port}`;
 const cookieFrom = (response: Response): string => String(response.headers.get('set-cookie') || '').split(';')[0];
@@ -42,6 +43,15 @@ try {
   assert.equal(me.status, 200);
   assert.equal(meData.developmentTestAccount, true);
   assert.equal(meData.user.phone, '+2348030000000');
+
+  const inChatGuest = `anon_dev_auth_${Date.now()}`;
+  await setAuthState(inChatGuest, 'awaiting_phone', { name: 'In-Chat Test User' });
+  const inChatOtpRequest = await handleConversationalAuth(inChatGuest, process.env.KURUKOO_TEST_PHONE!);
+  assert.match(inChatOtpRequest.reply, /controlled development test/i, 'In-Chat onboarding must recognize the configured development identity before external OTP delivery.');
+  assert.equal(inChatOtpRequest.cardData?.devCode, '111111', 'In-Chat onboarding must expose the controlled test code only in the development test mode.');
+  const inChatOtpVerify = await handleConversationalAuth(inChatGuest, '111111');
+  assert.equal(inChatOtpVerify.authenticated, true, 'The configured development identity must complete the same in-Chat verification path.');
+  assert.equal(inChatOtpVerify.phone, '+2348030000000');
 
   const chatTurn = async (message: string) => {
     const response = await fetch(`${base}/api/chat/stream`, { method: 'POST', headers: { cookie: userCookie, 'content-type': 'application/json' }, body: JSON.stringify({ message, channel: 'web' }) });
@@ -82,7 +92,7 @@ try {
 
   const source = fs.readFileSync(path.join(process.cwd(), 'src/routes/chatRouter.ts'), 'utf8');
   assert.match(source, /processCanonicalChatTurn/);
-  console.log('Development auth regression passed: controlled OTP, production rejection, normal session, admin launch/reset, owner identity, and canonical Chat wiring.');
+  console.log('Development auth regression passed: controlled OTP, production rejection, normal and in-Chat controlled OTP, production rejection, admin launch/reset, owner identity, and canonical Chat wiring.');
 } finally {
   server.close();
 }

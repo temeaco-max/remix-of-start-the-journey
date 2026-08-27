@@ -11,6 +11,7 @@ import {
   updateFulfilmentRequirements,
 } from '../src/services/canonicalFulfilmentService.js';
 import { getFulfilmentMechanismForSkill, getFulfilmentSkillBinding, resolveMissingFulfilmentInputs } from '../src/services/fulfilmentSkillBindings.js';
+import { getInternalNotifications } from '../src/services/pushNotifications.js';
 
 const owner = `+234809${String(Date.now()).slice(-7)}`;
 
@@ -21,6 +22,11 @@ assert.equal(purchase?.catalogueFirst, true);
 assert.equal(purchase?.providerInquiryFallback, true);
 assert.deepEqual(resolveMissingFulfilmentInputs(purchase!, { item: 'suya' }), ['quantity', 'location'], 'Chat can identify the missing information before execution');
 assert.equal(getFulfilmentMechanismForSkill('food_order'), 'marketplace_purchase', 'Adjacent skills must reuse the same purchase mechanism');
+assert.equal(getFulfilmentMechanismForSkill('hotel_deals'), 'booking', 'Accommodation must continue through the shared booking lifecycle.');
+assert.equal(getFulfilmentMechanismForSkill('rental_tracker'), 'booking', 'Property search must retain the shared verified-terms inquiry lifecycle.');
+assert.equal(getFulfilmentMechanismForSkill('job_tracker'), 'local_discovery', 'Job search must continue through the shared provider/discovery lifecycle.');
+assert.equal(getFulfilmentMechanismForSkill('wifi_installer'), 'service_request', 'Internet setup and repair must continue through the shared service-request lifecycle.');
+assert.deepEqual(resolveMissingFulfilmentInputs(getFulfilmentSkillBinding('hotel_deals')!, { objective: 'Somewhere to stay in Lagos tomorrow' }), [], 'A stated accommodation outcome is ready for provider discovery without forcing unrelated booking fields.');
 
 const catalogueFlow = await createFulfilment({ ownerPhone: owner, skill: 'purchase', mechanism: 'marketplace_purchase', requirements: { item: 'suya', quantity: 2, unit: 'portions', location: 'Ikeja' }, requiredInputs: ['item','quantity','location'], missingInputs: [] });
 const catalogueOffer = await createOffer({ fulfilmentId: catalogueFlow.id, ownerPhone: owner, title: 'Beef suya', description: 'Two portions of beef suya', source: 'catalogue', status: 'available', priceMinor: 600000, currency: 'NGN', quantity: 2, unit: 'portions', availability: 'available_today', location: 'Ikeja', delivery: 'delivery', evidenceLevel: 'source_attributed', sourceRef: 'provider-catalogue:test' });
@@ -41,6 +47,8 @@ assert.equal(response.inquiry.evidenceLevel, 'provider_confirmed');
 assert.ok(response.offer, 'Provider response must materialize into the same Offer object used by catalogue results');
 assert.equal(response.offer?.source, 'provider_inquiry');
 assert.equal(response.offer?.evidenceLevel, 'provider_confirmed');
+const providerAttention = await getInternalNotifications(owner, 20);
+assert.ok(providerAttention.some(notification => notification.title.includes('replied') && notification.object_id === inquiryFlow.id), 'Provider response must create an owner attention notification attached to the existing fulfilment context.');
 assert.equal((await listOffers(owner, inquiryFlow.id))[0]?.priceMinor, 600000);
 
 await updateFulfilmentRequirements(owner, inquiryFlow.id, { budgetMinor: 700000 }, []);

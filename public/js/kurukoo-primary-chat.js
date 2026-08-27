@@ -550,6 +550,45 @@
 
   function addUserMessage(text, id = null) { $('welcome')?.remove(); state.messages.push({ role: 'user', text, id }); return createMessage('user', text, id); }
 
+  const storefrontStageLabels = Object.freeze({
+    intent_extraction: 'Getting the details right',
+    slot_fill: 'One detail needed',
+    catalog_match: 'Options ready to review',
+    quote_review: 'Your decision is needed',
+    offer_review: 'Offer ready to review',
+    delivery_selection: 'Choose delivery',
+    seller_handover: 'Waiting for handover',
+    delivery_in_progress: 'Delivery update',
+    service_in_progress: 'Service update',
+    escrow_confirm: 'Payment review',
+    fulfillment: 'Provider is progressing the request',
+    complete: 'Sorted',
+    deferred: 'Still looking',
+    information: 'Details ready',
+    safety: 'Important safety step',
+    coordination: 'Arranging the next step',
+  });
+  function storefrontStageLabel(stage) { return storefrontStageLabels[String(stage || '').toLowerCase()] || 'Current request update'; }
+  function outcomeSafeCopy(value) {
+    return String(value || '')
+      .replace(/\bhotel_deals\b/gi, 'accommodation request')
+      .replace(/\brental_tracker\b/gi, 'home search')
+      .replace(/\bjob_tracker\b/gi, 'job search')
+      .replace(/\bphone_repairer\b/gi, 'phone repair')
+      .replace(/\bfind_worker\b/gi, 'local help')
+      .replace(/\bwifi_installer\b/gi, 'connection setup')
+      .replace(/Preserve the exact owner and conversation context/gi, 'Keep this work and conversation connected')
+      .replace(/Find or coordinate an authorised provider through the existing Economic Request path\./gi, 'Find or coordinate an authorised provider for this request.')
+      .replace(/Hand off to the existing provider, commerce, booking, or fulfilment owner when local preparation is complete\./gi, 'Continue through the appropriate confirmed provider path after local preparation.')
+      .replace(/Prepare a canonical action; execute only when the capability, authorization, and confirmation allow it\./gi, 'Prepare the next step, and act only after the required permission and confirmation are available.')
+      .replace(/\bEconomic Request\b/gi, 'request')
+      .replace(/\bcanonical capability plan\b/gi, 'next-step plan')
+      .replace(/\bcanonical capability\b/gi, 'supported step')
+      .replace(/\bcanonical action\b/gi, 'next step')
+      .replace(/\bcanonical\b/gi, 'shared')
+      .replace(/\bexact owner and conversation context\b/gi, 'this work and conversation connected')
+      .replace(/\ba recorded deferred state\b/gi, 'no verified option yet');
+  }
   function setDeferredStatus(card) {
     const status = $('deferred-status');
     if (!status) return;
@@ -557,13 +596,15 @@
     if (card.type === 'agentic_storefront') {
       if (card.stage === 'deferred') {
         status.hidden = false;
-        status.textContent = '⏳ Request deferred — Kurukoo will retain the request for a supported next step. Any notification depends on a configured channel.';
+        status.textContent = 'Waiting for: Kurukoo is still looking for a verified option and will retain this request for the next supported update.';
       } else if (card.stage === 'fulfillment') {
         status.hidden = false;
-        status.textContent = 'Fulfilment milestone recorded. Confirm completion to continue the documented request lifecycle.';
+        status.textContent = 'I need you: payment evidence is recorded. Review the result before confirming completion.';
       } else if (['slot_fill', 'quote_review', 'offer_review', 'delivery_selection', 'seller_handover', 'delivery_in_progress'].includes(card.stage)) {
         status.hidden = false;
-        status.textContent = `Request flow · ${card.stage.replace(/_/g, ' ')} · ${card.progress || 0}%`;
+        const stageLabel = storefrontStageLabel(card.stage);
+        const prefix = ['quote_review', 'offer_review', 'delivery_selection', 'escrow_confirm'].includes(card.stage) ? 'I need you' : ['seller_handover', 'delivery_in_progress'].includes(card.stage) ? 'Waiting for' : 'I’m working on it';
+        status.textContent = `${prefix}: ${stageLabel}.`;
       } else {
         status.hidden = true;
       }
@@ -669,7 +710,7 @@
     if (send) send.disabled = true;
     try {
       const res = await fetch(`/api/chat/economic-requests/offers/${encodeURIComponent(offerId)}/start`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: '{}'
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ conversationId: state.conversationId || undefined })
       });
       if (res.status === 401) { await ensureIdentity(); throw new Error('Session expired'); }
       const data = await res.json().catch(() => ({}));
@@ -723,9 +764,20 @@
     const head = makeElement('div', 'storefront-head');
     head.append(
       makeElement('strong', '', card.title || 'Kurukoo'),
-      makeElement('span', 'storefront-stage', String(card.stage || '').replace(/_/g, ' '))
+      makeElement('span', 'storefront-stage', storefrontStageLabel(card.stage))
     );
     holder.appendChild(head);
+    holder.appendChild(makeElement('p', 'outcome-primitive outcome-situation', String(card.message || card.description || 'Kurukoo is carrying this request through its canonical path.')));
+    const resultEvidence = [];
+    if (card.quote && typeof card.quote === 'object') resultEvidence.push({ label: 'Quote', value: `${String(card.quote.amount_minor ?? card.quote.priceMinor ?? 'Pending')} ${String(card.quote.currency || 'local currency')}` });
+    if (card.offer && typeof card.offer === 'object') resultEvidence.push({ label: 'Offer', value: String(card.offer.title || card.offer.description || 'Recorded offer') });
+    if (card.execution && typeof card.execution === 'object') resultEvidence.push({ label: 'Execution', value: String(card.execution.status || 'recorded').replace(/_/g, ' ') });
+    if (card.provider && typeof card.provider === 'object') resultEvidence.push({ label: 'Provider', value: String(card.provider.name || card.provider.label || 'Recorded provider') });
+    appendOutcomeEvidence(holder, resultEvidence);
+    const storefrontStage = String(card.stage || card.status || 'working').toLowerCase();
+    const storefrontTone = /complete|fulfilled|success/.test(storefrontStage) ? 'success' : /quote|confirm|payment|select|approval/.test(storefrontStage) ? 'attention' : /wait|pending|search|match|in_fulfillment/.test(storefrontStage) ? 'waiting' : 'neutral';
+    const storefrontLabel = storefrontTone === 'success' ? 'Done' : storefrontTone === 'attention' ? 'I need you' : storefrontTone === 'waiting' ? 'Waiting for' : 'I’m working on it';
+    appendOutcomeStatus(holder, `${storefrontLabel}: ${storefrontStageLabel(card.stage || card.status)}.`, storefrontTone);
 
     const progressBar = makeElement('div', 'storefront-progress');
     progressBar.setAttribute('role', 'progressbar');
@@ -756,7 +808,7 @@
 
     if (Array.isArray(card.knownOffers) && card.knownOffers.length) {
       const offers = makeElement('section', 'storefront-known-offers');
-      offers.appendChild(makeElement('strong', '', 'Known seller offers'));
+      offers.appendChild(makeElement('strong', '', 'I found these seller options'));
       const list = makeElement('ul', 'storefront-offers-list');
       card.knownOffers.forEach(offer => {
         const item = makeElement('li');
@@ -788,14 +840,14 @@
 
     if (Array.isArray(card.deliveryCandidates) && card.deliveryCandidates.length) {
       const candidates = makeElement('section', 'storefront-delivery-candidates');
-      candidates.appendChild(makeElement('strong', '', 'Delivery options'));
+      candidates.appendChild(makeElement('strong', '', 'I need you to choose delivery'));
       const list = makeElement('ul', 'storefront-offers-list');
       card.deliveryCandidates.forEach(provider => {
         const item = makeElement('li');
         const details = makeElement('div');
         details.append(
           makeElement('strong', '', provider.name || 'Delivery provider'),
-          makeElement('span', '', `Profile details · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
+          makeElement('span', '', `Verified option · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
         );
         const button = makeElement('button', 'sf-btn sf-primary', 'Choose delivery');
         button.type = 'button';
@@ -814,7 +866,7 @@
         const details = makeElement('div');
         details.append(
           makeElement('strong', '', provider.name || 'Provider'),
-          makeElement('span', '', `Profile details · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
+          makeElement('span', '', `Verified option · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
         );
         item.appendChild(details);
         if (card.requestId && provider.phone) {
@@ -852,16 +904,15 @@
 
     if (Array.isArray(card.participants) && card.participants.length) {
       const coordination = makeElement('section', 'storefront-coordination');
-      coordination.appendChild(makeElement('strong', '', 'Coordination participants'));
+      coordination.appendChild(makeElement('strong', '', 'What is happening'));
       const participants = makeElement('ul', 'storefront-participants');
       card.participants.forEach(participant => {
         const item = makeElement('li');
-        const role = String(participant.role || 'participant').replace(/_/g, ' ');
-        const status = String(participant.status || 'invited').replace(/_/g, ' ');
-        item.append(
-          makeElement('strong', '', role),
-          makeElement('span', '', `${status} · ${String(participant.capability || 'coordination detail pending')}`)
-        );
+        const roleLabels = { seller: 'Seller', delivery_provider: 'Delivery provider', service_provider: 'Service provider', external_platform: 'Partner service', agent: 'Kurukoo' };
+        const participantStatusLabels = { invited: 'Awaiting response', offered: 'Offer recorded', selected: 'Selected', confirmed: 'Confirmed', handover_pending: 'Handover pending', handed_over: 'Handover recorded', collected: 'Collection recorded', in_progress: 'Progress update recorded', delivered: 'Delivery reported', declined: 'Unavailable', withdrawn: 'No longer available' };
+        const role = roleLabels[String(participant.role || '')] || 'Participant';
+        const status = participantStatusLabels[String(participant.status || '')] || 'Update recorded';
+        item.append(makeElement('strong', '', role), makeElement('span', '', status));
         participants.appendChild(item);
       });
       coordination.appendChild(participants);
@@ -870,10 +921,10 @@
 
     if (card.execution && typeof card.execution === 'object') {
       const execution = makeElement('section', 'storefront-execution');
-      execution.appendChild(makeElement('strong', '', 'Execution status'));
+      execution.appendChild(makeElement('strong', '', 'Latest progress'));
       execution.appendChild(makeElement('span', 'storefront-execution-status', String(card.execution.status || 'pending').replace(/_/g, ' ')));
-      execution.appendChild(makeElement('small', '', `Connector: ${String(card.execution.connectorId || 'not specified')}`));
-      if (card.execution.externalReference) execution.appendChild(makeElement('small', '', `Provider reference: ${String(card.execution.externalReference)}`));
+      execution.appendChild(makeElement('small', '', card.execution.connectorId ? 'Recorded through an authorized service.' : 'No external dispatch is claimed.'));
+      if (card.execution.externalReference) execution.appendChild(makeElement('small', '', 'An execution reference has been recorded.'));
       if (card.execution.failureReason) execution.appendChild(makeElement('small', 'storefront-execution-failure', `Dispatch failed: ${String(card.execution.failureReason)}. Manual confirmation is required.`));
       if (Array.isArray(card.execution.evidence) && card.execution.evidence.length) {
         const evidence = makeElement('ul', 'storefront-execution-evidence');
@@ -899,7 +950,7 @@
           const actionId = button.dataset.sfAction || '';
           const fields = collectStorefrontFields(holder);
           if (actionId === 'start' && !card.requestId) {
-            sendMessage(`Continue with ${card.skill || 'this request'}`);
+            sendMessage('Let’s continue this request.');
             return;
           }
           if (!card.requestId || !actionId) return;
@@ -910,7 +961,7 @@
       holder.appendChild(actionGroup);
     }
 
-    if (card.escrowProtected !== false) holder.appendChild(makeElement('span', 'escrow-badge', '🔒 Escrow Protected'));
+    if (card.escrowProtected !== false) holder.appendChild(makeElement('span', 'escrow-badge', 'Payment protection recorded'));
 
     holder.querySelectorAll('[data-storefront-field]').forEach(field => {
       field.addEventListener('keydown', event => {
@@ -990,21 +1041,128 @@
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 
+  function renderOSCollection(card, messageEl) {
+    const holder = makeElement('section', 'provider-card os-collection-card');
+    holder.setAttribute('aria-label', String(card.type || 'Kurukoo result').replace(/_/g, ' '));
+    const title = card.type === 'notifications' ? 'Your updates' : card.type === 'reminders' ? 'Your reminders' : card.type === 'tasks' ? 'Your tasks' : card.type === 'memory' ? 'Your saved context' : card.type === 'request_status' ? 'Request status' : card.type === 'os_status' ? `${String(card.domain || 'OS status').replace(/_/g, ' ')} status` : 'Kurukoo result';
+    holder.appendChild(makeElement('strong', '', title));
+    if (card.count !== undefined) holder.appendChild(makeElement('small', 'storefront-execution-status', `${String(card.count)} stored item${Number(card.count) === 1 ? '' : 's'}`));
+    const list = makeElement('div', 'inspector-list');
+    const items = card.type === 'notifications' ? (Array.isArray(card.notifications) ? card.notifications : []) : card.type === 'reminders' ? (Array.isArray(card.reminders) ? card.reminders : []) : card.type === 'tasks' ? (Array.isArray(card.tasks) ? card.tasks : []) : card.type === 'memory' ? (Array.isArray(card.facts) ? card.facts : []) : [];
+    if (items.length) {
+      items.forEach(item => {
+        const row = makeElement('article', 'inspector-list-row');
+        const details = makeElement('div');
+        const label = item.title || `Item ${String(item.id || '')}`;
+        const meta = item.deliveryState || item.status || item.recurrence || item.dueAt || item.sourceType || '';
+        details.append(makeElement('strong', '', String(label)), makeElement('span', '', String(meta).replace(/_/g, ' ')));
+        if (item.body || item.description) details.appendChild(makeElement('small', '', String(item.body || item.description)));
+        if (card.type === 'memory' && item.provenance) details.appendChild(makeElement('small', '', `Provenance: ${String(item.provenance).replace(/_/g, ' ')}`));
+        const actions = makeElement('div', 'storefront-actions');
+        if (card.type === 'notifications') {
+          const open = makeElement('button', 'sf-btn sf-secondary', 'Open'); open.type = 'button'; open.addEventListener('click', () => sendMessage(`Open notification ${String(item.id)}`)); actions.appendChild(open);
+          if (String(item.status) !== 'read') { const read = makeElement('button', 'sf-btn sf-primary', 'Mark read'); read.type = 'button'; read.addEventListener('click', () => sendMessage(`Mark notification ${String(item.id)} as read`)); actions.appendChild(read); }
+        } else if (card.type === 'reminders') { const cancel = makeElement('button', 'sf-btn sf-secondary', 'Cancel'); cancel.type = 'button'; cancel.addEventListener('click', () => sendMessage(`Cancel reminder ${String(item.id)}`)); actions.appendChild(cancel); }
+        else if (card.type === 'tasks' && String(item.status) === 'available') { const accept = makeElement('button', 'sf-btn sf-primary', 'Accept task'); accept.type = 'button'; accept.addEventListener('click', () => sendMessage(`Accept task ${String(item.id)}`)); actions.appendChild(accept); }
+        else if (card.type === 'memory' && item.id) { const forget = makeElement('button', 'sf-btn sf-secondary', 'Forget'); forget.type = 'button'; forget.addEventListener('click', () => sendMessage(`Forget memory ${String(item.id)}`)); actions.appendChild(forget); }
+        if (actions.childElementCount) details.appendChild(actions);
+        row.appendChild(details); list.appendChild(row);
+      });
+    } else if (card.type !== 'request_status') list.appendChild(makeElement('div', 'deferred', 'Nothing is waiting here.'));
+    if (items.length) holder.appendChild(list);
+    if (card.type === 'memory_action') {
+      holder.appendChild(makeElement('span', 'storefront-execution-status', 'Saved to your owner-scoped Memory Profile.'));
+    }
+    if (card.type === 'os_status') {
+      holder.appendChild(makeElement('span', 'storefront-execution-status', `Status: ${String(card.status || 'unknown').replace(/_/g, ' ')}`));
+      const facts = card.facts && typeof card.facts === 'object' ? card.facts : {};
+      Object.entries(facts).forEach(([key, value]) => { if (value === undefined || value === null || value === '') return; holder.appendChild(makeElement('small', '', `${key.replace(/([A-Z])/g, ' $1')}: ${typeof value === 'object' ? JSON.stringify(value) : String(value)}`)); });
+    }
+    if (card.type === 'request_status') {
+      const requestStatus = String(card.status || 'unknown').toLowerCase();
+      const requestEvidence = [];
+      if (card.requestId) requestEvidence.push({ label: 'Request', value: String(card.requestId) });
+      if (card.quote && typeof card.quote === 'object') requestEvidence.push({ label: 'Quote', value: `${String(card.quote.amount_minor ?? card.quote.priceMinor ?? 'Recorded')} ${String(card.quote.currency || 'local currency')}` });
+      if (card.fulfillment && typeof card.fulfillment === 'object') requestEvidence.push({ label: 'Fulfilment', value: String(card.fulfillment.status || card.fulfillment.stage || 'recorded').replace(/_/g, ' ') });
+      appendOutcomeEvidence(holder, requestEvidence);
+      const requestTone = /complete|fulfilled|paid/.test(requestStatus) ? 'success' : /quote|confirm|payment|approval|needs_user/.test(requestStatus) ? 'attention' : /wait|pending|requested|match|fulfillment/.test(requestStatus) ? 'waiting' : 'neutral';
+      const requestLabel = requestTone === 'success' ? 'Done' : requestTone === 'attention' ? 'I need you' : requestTone === 'waiting' ? 'Waiting for' : 'I’m working on it';
+      appendOutcomeStatus(holder, `${requestLabel}: ${requestStatus.replace(/_/g, ' ')}.`, requestTone);
+    }
+    holder.appendChild(makeElement('small', 'storefront-execution-status', card.ownerScoped === true ? 'Owner-scoped persisted state. Choose an exact item to continue.' : 'Persisted state only; no external delivery or fulfilment is implied.'));
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
+  function appendOutcomeEvidence(holder, entries = []) {
+    const usable = entries.filter(entry => entry && entry.value !== undefined && entry.value !== null && String(entry.value).trim() !== '');
+    if (!usable.length) return;
+    const section = makeElement('section', 'outcome-primitive outcome-evidence');
+    section.appendChild(makeElement('strong', '', 'Evidence'));
+    const list = makeElement('dl', 'outcome-evidence-list');
+    usable.forEach(entry => {
+      list.appendChild(makeElement('dt', '', String(entry.label || 'Recorded fact')));
+      list.appendChild(makeElement('dd', '', String(entry.value)));
+    });
+    section.appendChild(list);
+    holder.appendChild(section);
+  }
+
+  function appendOutcomeChoices(holder, options = [], promptFallback, heading = 'I can') {
+    const usable = options.filter(option => option?.label && (option.prompt || promptFallback));
+    if (!usable.length) return;
+    const section = makeElement('section', 'outcome-primitive outcome-choices');
+    section.appendChild(makeElement('strong', '', heading));
+    const actions = makeElement('div', 'storefront-actions');
+    usable.forEach(option => {
+      const button = makeElement('button', `sf-btn sf-${option.style === 'secondary' ? 'secondary' : 'primary'}`, String(option.label));
+      button.type = 'button';
+      button.dataset.actionId = String(option.id || 'outcome.next');
+      button.addEventListener('click', () => {
+        if (option.id === 'copy_message' && option.copyText) {
+          const text = String(option.copyText);
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(() => pushAgentSurfaceToast('Message copied', 'No delivery channel was used.', false)).catch(() => pushAgentSurfaceToast('Copy unavailable', 'Select the message text and copy it manually. No delivery channel was used.', true));
+          } else {
+            pushAgentSurfaceToast('Copy unavailable', 'Select the message text and copy it manually. No delivery channel was used.', true);
+          }
+          return;
+        }
+        sendMessage(String(option.prompt || promptFallback || option.label));
+      });
+      actions.appendChild(button);
+    });
+    section.appendChild(actions);
+    holder.appendChild(section);
+  }
+
+  function appendOutcomeStatus(holder, text, tone = 'neutral') {
+    const status = makeElement('div', `outcome-primitive outcome-status outcome-status-${tone}`);
+    status.appendChild(makeElement('strong', '', 'Work status'));
+    status.appendChild(makeElement('span', '', String(text)));
+    holder.appendChild(status);
+  }
+
   function renderDeviceSupport(card, messageEl) {
-    const holder = makeElement('section', 'provider-card device-support-card');
-    holder.setAttribute('aria-label', 'Device support');
+    const holder = makeElement('section', 'provider-card outcome-surface device-support-card');
+    holder.setAttribute('aria-label', 'Device outcome');
     const status = String(card.status || 'information');
-    const heading = status === 'completed' ? 'Recorded device observation' : status === 'needs_user' ? 'Choose a connected resource' : 'Device observation unavailable';
-    holder.appendChild(makeElement('strong', '', heading));
+    const resourceLabel = card.resource?.label ? String(card.resource.label) : 'Your device';
+    holder.appendChild(makeElement('strong', '', resourceLabel));
+    holder.appendChild(makeElement('small', 'outcome-primitive outcome-context', card.observedAt ? `Checked ${String(card.observedAt)}` : status === 'completed' ? 'Checked just now' : 'Waiting for an authorised check'));
     holder.appendChild(makeElement('p', 'storefront-offer-copy', String(card.message || 'Kurukoo has not claimed a live device diagnosis.')));
+    const support = card.supportLevel && typeof card.supportLevel === 'object' ? card.supportLevel : null;
+    if (support?.level) {
+      holder.appendChild(makeElement('strong', 'device-support-level', `Support level ${String(support.level)} · ${String(support.name || 'Available support')}`));
+      holder.appendChild(makeElement('p', 'device-support-explanation', String(support.explanation || 'Kurukoo will use the strongest capability currently available and remain clear about what it cannot do.')));
+    }
     if (card.resource && typeof card.resource === 'object') {
       const resource = card.resource;
-      holder.appendChild(makeElement('small', 'storefront-execution-status', `${String(resource.label || 'Connected resource')} · ${String(resource.kind || 'device')} · ${String(resource.protocol || 'adapter')}`));
-      if (card.observedState !== null && card.observedState !== undefined) {
-        const value = typeof card.observedState === 'string' ? card.observedState : JSON.stringify(card.observedState);
-        holder.appendChild(makeElement('p', 'device-support-observation', `Recorded state: ${String(value || 'No state detail')}`));
-      }
-      if (card.observedAt) holder.appendChild(makeElement('small', 'storefront-execution-status', `Observed at ${String(card.observedAt)}`));
+      const state = card.observedState;
+      const evidence = [
+        { label: 'Resource', value: `${String(resource.kind || 'device')} · ${String(resource.protocol || 'adapter')}` },
+        ...(!state || typeof state !== 'object' ? [{ label: 'Recorded state', value: String(state || 'No state detail') }] : Object.entries(state).slice(0, 8).map(([key, value]) => ({ label: key.replace(/([A-Z])/g, ' $1'), value: typeof value === 'object' ? JSON.stringify(value) : String(value) }))),
+      ];
+      appendOutcomeEvidence(holder, evidence);
     }
     if (Array.isArray(card.resources) && card.resources.length) {
       const list = makeElement('ul', 'storefront-providers');
@@ -1019,7 +1177,11 @@
       });
       holder.appendChild(list);
     }
-    holder.appendChild(makeElement('small', 'storefront-execution-status', card.liveObservation === true ? 'Live observation evidence received.' : 'Recorded resource state only. No live connection, diagnosis, remediation, or repair completion is claimed.'));
+    const resolution = card.resolution && typeof card.resolution === 'object' ? card.resolution : null;
+    const resolutionOptions = Array.isArray(resolution?.options) ? resolution.options : [];
+    appendOutcomeChoices(holder, resolutionOptions);
+    const supportText = support?.explanation || (card.liveObservation === true ? 'Recorded observation is available for reasoning.' : 'Kurukoo can guide checks or coordinate an expert, but has not claimed direct access or completion.');
+    appendOutcomeStatus(holder, `${supportText} ${card.liveObservation === true ? 'No action is claimed until the selected next step produces evidence.' : 'No live connection, diagnosis, remediation, or repair completion is claimed.'}`, card.liveObservation === true ? 'evidence' : 'waiting');
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 
@@ -1057,9 +1219,121 @@
     messageEl.appendChild(holder);
   }
 
+  function renderOutcomeActionCard(card, messageEl) {
+    const holder = makeElement('section', 'provider-card outcome-surface os-outcome-action-card');
+    holder.setAttribute('aria-label', 'Kurukoo outcome');
+    const title = card.type === 'monitoring_setup' ? 'Keep an eye on this' : card.type === 'reminder_setup' ? 'Keep this follow-up active' : 'Message prepared for review';
+    holder.appendChild(makeElement('strong', '', title));
+    if (card.target) appendOutcomeEvidence(holder, [{ label: 'Target', value: String(card.target) }]);
+    if (card.recipient) appendOutcomeEvidence(holder, [{ label: 'Recipient', value: String(card.recipient) }]);
+    if (card.body) holder.appendChild(makeElement('p', 'storefront-offer-copy', String(card.body)));
+    const prompts = {
+      define_condition: 'Define what change I should watch for',
+      connect_resource: 'Connect the resource I want Kurukoo to observe',
+      enable_notifications: 'Enable notifications for this watch',
+      resolve_recipient: 'Resolve the recipient for this message',
+      choose_channel: 'Choose an available channel for this message',
+      confirm_send: 'Confirm sending this message',
+      choose_cadence: 'Choose a daily or weekly cadence for this reminder',
+      define_completion: 'Define how I should know this reminder is done',
+    };
+    const actions = (Array.isArray(card.actions) ? card.actions : []).map(action => ({ ...action, prompt: prompts[action.id] || String(action.label || action.id || 'Continue'), copyText: action.id === 'copy_message' ? String(card.body || '') : undefined }));
+    appendOutcomeChoices(holder, actions);
+    const communicationStatus = {
+      recipient_ready: 'Recipient found. Your message is still unsent; choose a delivery route next.',
+      ready_to_send: 'Ready for your confirmation. The message has not been handed to a channel.',
+      accepted: 'Accepted by the selected channel. Delivery still needs an authoritative report.',
+      channel_unavailable: 'No authorised delivery route is active. Your message remains saved and unsent.',
+      send_failed: 'The channel did not accept the message. It remains unsent and saved here.',
+      copy_ready: 'This message was copied for you. No delivery channel was used.',
+      needs_recipient: 'Recipient, channel, and confirmation are still required. Nothing has been sent.',
+    };
+    appendOutcomeStatus(holder, card.type === 'communication_prepare' ? (communicationStatus[String(card.status || '')] || 'Not sent. Recipient, channel, and confirmation are still required.') : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.', String(card.deliveryState || '').toLowerCase() === 'accepted' ? 'neutral' : 'waiting');
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
+  function renderTopicDraftCard(card, messageEl) {
+    const holder = makeElement('section', 'provider-card outcome-surface topic-draft-card');
+    holder.setAttribute('aria-label', 'Private community draft');
+    holder.appendChild(makeElement('strong', '', 'Private community draft'));
+    holder.appendChild(makeElement('p', 'storefront-offer-copy', 'Your draft is private. Review and edit it before you choose to submit it for moderation.'));
+    if (card.title) appendOutcomeEvidence(holder, [{ label: 'Topic', value: String(card.title) }]);
+    const review = makeElement('a', 'sf-btn sf-primary', 'Review draft');
+    review.href = String(card.draftLink || '/topics');
+    review.setAttribute('aria-label', 'Review your private community draft');
+    const actions = makeElement('div', 'storefront-actions');
+    actions.appendChild(review);
+    holder.appendChild(actions);
+    appendOutcomeStatus(holder, 'Nothing has been published, and this draft is not evidence of a provider, availability, price, booking, payment, or completed service.', 'waiting');
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
+  function renderComposedGoalCard(card, messageEl) {
+    const goal = card.goal || {};
+    const holder = makeElement('section', 'provider-card composed-goal-card');
+    holder.setAttribute('aria-label', 'Composed Kurukoo outcome');
+    holder.appendChild(makeElement('strong', '', 'One outcome, coordinated steps'));
+    holder.appendChild(makeElement('p', '', String(card.situation || goal.objective || 'Kurukoo is coordinating this outcome.')));
+    if (Array.isArray(card.evidence) && card.evidence.length) appendOutcomeEvidence(holder, card.evidence);
+    const subGoals = Array.isArray(card.subGoals) ? card.subGoals : [];
+    const list = makeElement('ol', 'inspector-list composed-goal-steps');
+    subGoals.forEach((subGoal, index) => {
+      const status = String(subGoal?.status || 'active').toLowerCase();
+      const labels = { active: 'Ready', waiting: 'Waiting', waiting_on_dependency: 'Waiting for earlier evidence', needs_user: 'Needs your input', blocked: 'Blocked safely', completed: 'Completed', cancelled: 'Stopped', failed: 'Needs review' };
+      const row = makeElement('li', 'inspector-list-row');
+      row.appendChild(makeElement('span', '', `${index + 1}. ${outcomeSafeCopy(subGoal?.objective || subGoal?.goalType || 'Next step')}`));
+      row.appendChild(makeElement('small', 'storefront-execution-status', labels[status] || 'Recorded state'));
+      list.appendChild(row);
+    });
+    if (subGoals.length) holder.appendChild(list);
+    const firstCapability = card.firstCapability;
+    if (firstCapability && typeof firstCapability === 'object') {
+      const capabilitySection = makeElement('div', 'outcome-primitive composed-goal-first-capability');
+      capabilitySection.appendChild(makeElement('strong', '', 'First supported step'));
+      if (firstCapability.message) capabilitySection.appendChild(makeElement('p', 'storefront-offer-copy', String(firstCapability.message)));
+      const capabilityState = storefrontStageLabel(firstCapability.stage || firstCapability.status);
+      capabilitySection.appendChild(makeElement('small', 'storefront-execution-status', `Working state: ${capabilityState}. No external success is assumed.`));
+      holder.appendChild(capabilitySection);
+    }
+    const capabilityPath = goal.plan?.capabilityPath;
+    const workStatus = String(card.work?.status || goal.status || 'coordinating').toLowerCase();
+    const activeWork = ['active', 'coordinating', 'working'].includes(workStatus);
+    const needsDecision = ['needs_user', 'confirmation_required'].includes(workStatus);
+    if (Array.isArray(card.choices) && card.choices.length && (activeWork || needsDecision)) appendOutcomeChoices(holder, card.choices);
+    const decisionStage = String(card.firstCapability?.stage || card.firstCapability?.status || '').toLowerCase();
+    const requiresDecision = needsDecision || ['quoted', 'awaiting_confirmation', 'payment_pending', 'matched', 'provider_selected', 'quote_ready'].some(value => decisionStage.includes(value));
+    const decisionActions = Array.isArray(card.firstCapability?.actions) ? card.firstCapability.actions.filter(action => action?.label && !['cancel', 'check_again'].includes(String(action.id || '').toLowerCase())).map(action => ({ ...action, prompt: action.prompt || action.label })) : [];
+    if (requiresDecision && decisionActions.length) appendOutcomeChoices(holder, decisionActions, undefined, 'I need you');
+    if (card.work && typeof card.work === 'object') {
+      const workDetail = outcomeSafeCopy(card.work.detail || 'Kurukoo is coordinating the next supported step.');
+      const workLabel = workStatus === 'completed' ? 'Done' : needsDecision ? 'I need you' : workStatus.includes('waiting') ? 'Waiting for' : activeWork ? 'I’m working on it' : 'Work status';
+      appendOutcomeStatus(holder, `${workLabel}: ${workDetail}`, workStatus === 'completed' ? 'success' : workStatus.includes('waiting') ? 'waiting' : needsDecision ? 'attention' : 'neutral');
+    }
+    if (capabilityPath && typeof capabilityPath === 'object') {
+      const pathList = makeElement('div', 'composed-goal-capability-path');
+      const labels = { understand: 'I understand', assist: 'I can assist', act: 'I can act', delegate: 'I can delegate', continue: 'I can continue' };
+      Object.entries(labels).forEach(([key, label]) => {
+        const details = Array.isArray(capabilityPath[key]) ? capabilityPath[key].filter(Boolean) : [];
+        if (!details.length) return;
+        const row = makeElement('p', 'storefront-execution-status');
+        row.appendChild(makeElement('strong', '', `${label}: `));
+        row.appendChild(document.createTextNode(details.map(outcomeSafeCopy).join(' ')));
+        pathList.appendChild(row);
+      });
+      if (pathList.childElementCount) holder.appendChild(pathList);
+    }
+    holder.appendChild(makeElement('small', 'storefront-execution-status', 'Kurukoo will only claim an action, provider result, payment, fulfilment, notification, or completion when the corresponding canonical evidence exists.'));
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
   function renderCard(card, messageEl) {
     if (!card || !messageEl) return;
+    if (card.type === 'monitoring_setup' || card.type === 'communication_prepare') return renderOutcomeActionCard(card, messageEl);
+    if (card.type === 'agent_goal' && card.goal) return renderComposedGoalCard(card, messageEl);
+    if (card.type === 'topic_draft') return renderTopicDraftCard(card, messageEl);
     if (card.type === 'assistance_outcome') return renderAssistanceOutcome(card, messageEl);
+    if (['notifications', 'reminders', 'tasks', 'memory', 'request_status', 'os_status'].includes(card.type)) return renderOSCollection(card, messageEl);
+    if (['notification_action', 'reminder_action', 'task_action', 'memory_action'].includes(card.type)) return renderOSCollection(card, messageEl);
     if (card.type === 'device_support' || card.type === 'device_resource_selection') return renderDeviceSupport(card, messageEl);
     if (card.type === 'agentic_storefront') {
       if (card.stage === 'slot_fill' || card.stage === 'intent_extraction') {
@@ -1317,6 +1591,7 @@
           if (data.type === 'auth_success') {
             state.isGuest = false; state.authStep = 'none';
             setAuthComposerStep('none');
+            applyWorkspaceIdentityState();
             setConnection(true);
             const logoutButton = $('workspace-logout') || $('logout-sidebar-btn'); if (logoutButton) logoutButton.hidden = false;
             if (data.phone) localStorage.setItem('kurukoo_user_phone', data.phone);

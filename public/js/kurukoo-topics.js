@@ -72,7 +72,11 @@
       if (!window.confirm(message)) return;
       status.textContent = 'Submitting for review…'; submit.disabled = true;
       try {
-        const { topic } = await api('/api/topics', { method:'POST', headers: { 'Idempotency-Key': crypto.randomUUID().replace(/-/g, '') }, body: JSON.stringify({ title:data.get('title'), body:data.get('body'), type:data.get('type'), category:data.get('category'), skills:selectedSkills, city:data.get('city'), lga:data.get('lga') }) });
+        const payload = { title:data.get('title'), body:data.get('body'), type:data.get('type'), category:data.get('category'), skills:selectedSkills, city:data.get('city'), lga:data.get('lga') };
+        const draftId = String(form.dataset.topicId || '');
+        const { topic } = draftId
+          ? await api(`/api/topics/${encodeURIComponent(draftId)}`, { method:'PUT', body: JSON.stringify(payload) })
+          : await api('/api/topics', { method:'POST', headers: { 'Idempotency-Key': crypto.randomUUID().replace(/-/g, '') }, body: JSON.stringify(payload) });
         form.reset(); renderSkills(); status.textContent = `Submitted for review. Your Topic is private until it is made public.`; form.dataset.topicId = topic.id;
       } catch (error) { status.textContent = error instanceof Error ? error.message : 'Unable to submit Topic'; } finally { submit.disabled = false; }
     });
@@ -85,6 +89,31 @@
       try { await api(`/api/topics/${encodeURIComponent(topic.id)}/report`, { method:'POST', body:JSON.stringify({ reason }) }); button.textContent = 'Reported for review'; button.disabled = true; }
       catch (error) { window.alert(error instanceof Error ? error.message : 'Unable to submit report'); }
     }); return button;
+  }
+
+  async function restoreDraftFromUrl() {
+    const draftId = new URLSearchParams(window.location.search).get('draft');
+    if (!draftId) return;
+    const form = byId('topics-create-form'); const status = byId('topics-create-status');
+    if (!form) return;
+    try {
+      const { topic } = await api(`/api/topics/mine/${encodeURIComponent(draftId)}`);
+      if (!topic || topic.status !== 'draft') throw new Error('This private draft is no longer available for review.');
+      form.elements.title.value = topic.title || '';
+      form.elements.body.value = topic.body || '';
+      byId('topics-create-type').value = topic.type || 'question';
+      byId('topics-create-category').value = topic.category || '';
+      renderSkills();
+      const selected = new Set(Array.isArray(topic.skills) ? topic.skills : []);
+      [...byId('topics-create-skills').options].forEach((option) => { option.selected = selected.has(option.value); });
+      form.elements.city.value = topic.city || '';
+      form.elements.lga.value = topic.lga || '';
+      form.dataset.topicId = topic.id;
+      if (status) status.textContent = 'Your private draft is ready. Review or edit it, then choose Submit for review when it is ready.';
+      document.getElementById('create-topic')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      if (status) status.textContent = error instanceof Error ? error.message : 'This private draft could not be loaded.';
+    }
   }
 
   async function relationshipControls(topic) {
@@ -153,7 +182,7 @@
 
   async function initialize() {
     await populateSelects();
-    if (root.dataset.topicsPage === 'index') { byId('topics-category')?.addEventListener('change', loadIndex); byId('topics-type')?.addEventListener('change', loadIndex); byId('topics-clear-filters')?.addEventListener('click', () => { byId('topics-category').value = ''; byId('topics-type').value = ''; loadIndex(); }); loadIndex(); setupComposer(); }
+    if (root.dataset.topicsPage === 'index') { byId('topics-category')?.addEventListener('change', loadIndex); byId('topics-type')?.addEventListener('change', loadIndex); byId('topics-clear-filters')?.addEventListener('click', () => { byId('topics-category').value = ''; byId('topics-type').value = ''; loadIndex(); }); loadIndex(); await setupComposer(); await restoreDraftFromUrl(); }
     if (root.dataset.topicsPage === 'detail') loadDetail();
   }
   void initialize();

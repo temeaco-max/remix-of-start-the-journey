@@ -50,6 +50,7 @@ import {
 } from '../services/executionConnector.js';
 import { assertIdentityAllows } from '../services/progressiveIdentityService.js';
 import { isPhysicalExecutionAction } from '../services/physicalExecutionParticipant.js';
+import { createConversationGoal } from '../services/agentRuntime.js';
 
 const router = Router();
 
@@ -222,8 +223,18 @@ router.post('/offers/:offerId/start', authenticateUser, async (req: AuthRequest,
       deliveryLocation: typeof req.body?.deliveryLocation === 'string' ? req.body.deliveryLocation : undefined,
       quantity: typeof req.body?.quantity === 'string' ? req.body.quantity : undefined,
     });
+    const conversationId = typeof req.body?.conversationId === 'string' ? req.body.conversationId.slice(0, 160) : undefined;
+    const agentGoal = await createConversationGoal({
+      phone,
+      conversationId,
+      skill: result.request.skill,
+      objective: `Continue the selected offer: ${result.offer.description}`,
+      economicRequestId: result.request.id,
+      source: 'conversation',
+      persistWhenDisabled: true,
+    });
     const card = await advanceStorefront(phone, result.request.id, {}, 'view_offer');
-    res.status(201).json({ success: true, request: result.request, card });
+    res.status(201).json({ success: true, request: result.request, agentGoal: agentGoal ? { id: agentGoal.id, status: agentGoal.status } : null, card: agentGoal ? { ...card, agentGoalId: agentGoal.id, ownedWork: true } : card });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to start a request from this offer';
     res.status(/not found/.test(message) ? 404 : 422).json({ success: false, error: message });

@@ -143,17 +143,33 @@ registerSkillsToFulfilmentMechanism(['contact_provider','message_provider','requ
 // the mechanism shared while preserving the request owner's collected fields.
 registerSkillsToFulfilmentMechanism(['order_food'], 'marketplace_purchase', {
   requiredInputs: ['items', 'location'],
-  optionalInputs: ['quantity', 'delivery_time', 'dietary_requirements'],
+  optionalInputs: ['quantity', 'delivery_time', 'dietary_requirements', 'delivery', 'delivery_address', 'delivery_provider', 'tracking_reference'],
 });
 registerSkillsToFulfilmentMechanism(['product_sourcing'], 'marketplace_purchase', {
   requiredInputs: ['product'],
-  optionalInputs: ['quantity', 'budget', 'location', 'deadline'],
+  optionalInputs: ['quantity', 'budget', 'location', 'deadline', 'delivery', 'delivery_address', 'delivery_provider', 'tracking_reference'],
 });
-registerSkillsToFulfilmentMechanism(['repair'], 'service_request', {
+registerSkillsToFulfilmentMechanism(['repair', 'phone_repairer'], 'service_request', {
   requiredInputs: ['device_or_asset', 'issue', 'location'],
-  optionalInputs: ['urgency', 'parts_preference'],
+  optionalInputs: ['urgency', 'parts_preference', 'collection_address', 'delivery_address', 'delivery_provider', 'tracking_reference'],
 });
 registerSkillsToFulfilmentMechanism(['find_worker'], 'local_discovery', {
   requiredInputs: ['service', 'location'],
-  optionalInputs: ['time', 'budget'],
+  optionalInputs: ['time', 'budget', 'delivery_address', 'delivery_provider', 'tracking_reference'],
+});
+registerSkillsToFulfilmentMechanism(['hotel_deals'], 'booking', {
+  requiredInputs: ['objective'],
+  optionalInputs: ['location', 'timing', 'budget', 'guest_count', 'room_preference'],
+});
+registerSkillsToFulfilmentMechanism(['rental_tracker'], 'booking', {
+  requiredInputs: ['objective'],
+  optionalInputs: ['location', 'timing', 'budget', 'bedrooms', 'property_preference'],
+});
+registerSkillsToFulfilmentMechanism(['job_tracker'], 'local_discovery', {
+  requiredInputs: ['objective'],
+  optionalInputs: ['location', 'timing', 'salary_expectation', 'employment_type'],
+});
+registerSkillsToFulfilmentMechanism(['wifi_installer'], 'service_request', {
+  requiredInputs: ['objective'],
+  optionalInputs: ['location', 'timing', 'connection_type', 'provider', 'symptoms'],
 });

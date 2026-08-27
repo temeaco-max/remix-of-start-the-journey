@@ -124,7 +124,10 @@ router.get('/topics/mine/:id', authenticateUser, async (req: AuthRequest, res) =
 
 router.post('/topics/drafts', authenticateUser, topicMutationRateLimit, async (req: AuthRequest, res) => {
   const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
-  try { res.status(201).json({ topic: await createTopicDraft(phone, req.body || {}) }); }
+  try {
+    const topic = await createTopicDraft(phone, req.body || {});
+    res.status((topic as any)?.idempotent ? 200 : 201).json({ topic });
+  }
   catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to save Topic draft' }); }
 });
 

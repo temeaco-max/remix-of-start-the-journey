@@ -24,6 +24,8 @@ import { controlConnectedResource, getConnectedResource, viewConnectedResource }
 import { getExecutionAdapter } from './capabilityExecutionAdapterBridgeV2.js';
 import { resolveExecutableCapabilityPlan } from './capabilityFoundationIntegration.js';
 import { getCapabilityRegistration } from './capabilityRegistry.js';
+import { getWhatsAppBusinessStatus } from './whatsappBusinessPlatformService.js';
+import { getWhatsAppLinkedDeviceStatus } from './whatsappLinkedDeviceService.js';
 
 type ExecutorStatus = UniversalCapabilityResult['status'] | 'in_progress' | 'external_unavailable' | 'stale_context' | 'unauthorized' | 'invalid';
 
@@ -258,7 +260,14 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
     if (!requestId) return invalidResult(input, 'needs_user', 'Tell me which request payment status you want me to inspect.', 'economic_request_required');
     const request = await getEconomicRequest(requestId);
     if (!request || request.phone !== input.phone) return invalidResult(input, 'unauthorized', 'That payment context is not available to this account.', 'foreign_or_missing_economic_request');
-    return baseResult(input, 'completed', `Payment state for this request is ${request.status}.`, { canonicalFacts: { economicRequestId: request.id, requestStatus: request.status, quote: request.quote || null, fulfillment: request.fulfillment || null }, evidenceLevel: 'canonical_service', nextActions: request.status === 'quoted' || request.status === 'awaiting_confirmation' ? [{ action: 'pay', label: 'Continue to payment' }] : [] });
+    const paymentConfigured = process.env.KURUKOO_PAY_PROVIDER === 'stripe' && Boolean(String(process.env.STRIPE_SECRET_KEY || '').trim());
+    const readyForPayment = ['quoted', 'awaiting_confirmation', 'payment_pending'].includes(request.status);
+    const nextActions = readyForPayment
+      ? paymentConfigured ? [{ action: 'pay', label: 'Continue to payment' }] : [{ action: 'connect_payment', label: 'Connect payment to continue' }]
+      : [];
+    return baseResult(input, 'completed', readyForPayment
+      ? paymentConfigured ? `The exact request is ready for the payment step.` : `The exact request is ready for payment preparation. Stripe is not connected here, so no charge has been attempted.`
+      : `Payment state for this request is ${request.status}.`, { canonicalFacts: { economicRequestId: request.id, requestStatus: request.status, quote: request.quote || null, fulfillment: request.fulfillment || null, paymentPrepared: readyForPayment, paymentActivation: paymentConfigured ? 'available' : 'required' }, evidenceLevel: 'canonical_service', nextActions });
   }
   if (input.capability === 'order' && ['inspect', 'status'].includes(input.action)) {
     const requestId = String(input.canonicalObjectId || args.economicRequestId || '').trim();
@@ -271,7 +280,20 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
     const names = ['web', 'whatsapp', 'telegram', 'sms', 'ussd', 'email', 'ivr'];
     const requested = String(args.channel || input.canonicalObjectId || '').trim().toLowerCase();
     const channels = (requested ? names.filter(name => name === requested) : names).map(name => ({ channel: name, nativeChat: name === 'web', externalDelivery: name !== 'web' }));
-    return baseResult(input, 'completed', requested ? `${requested} channel is registered with Kurukoo.` : 'I checked the channel adapters available to Kurukoo.', { canonicalFacts: { channels }, evidenceLevel: 'canonical_service' });
+    const whatsappBusiness = getWhatsAppBusinessStatus();
+    const whatsappLinked = getWhatsAppLinkedDeviceStatus();
+    const channelState = requested === 'whatsapp' ? {
+      channel: 'whatsapp',
+      nativeChatAvailable: true,
+      externalDelivery: Boolean(whatsappBusiness.liveVerified || whatsappLinked.connected),
+      preparationAvailable: true,
+      activation: whatsappBusiness.liveVerified || whatsappLinked.connected ? 'available' : 'required',
+      business: { enabled: whatsappBusiness.enabled, configured: whatsappBusiness.configured, liveVerified: whatsappBusiness.liveVerified },
+      linkedDevice: { enabled: whatsappLinked.enabled, connected: whatsappLinked.connected, state: whatsappLinked.state },
+    } : null;
+    return baseResult(input, 'completed', requested === 'whatsapp'
+      ? channelState?.externalDelivery ? 'WhatsApp delivery is connected for this channel.' : 'I can prepare and continue this conversation in Chat, but WhatsApp delivery is not connected here.'
+      : requested ? `${requested} channel is available for local preparation; external delivery may require activation.` : 'I checked the channel adapters available to Kurukoo.', { canonicalFacts: { channels, requested: channelState }, evidenceLevel: 'canonical_service', nextActions: requested === 'whatsapp' && !channelState?.externalDelivery ? [{ action: 'use_chat', label: 'Continue in Chat' }, { action: 'connect_channel', label: 'Connect WhatsApp' }] : [] });
   }
   if (input.capability === 'discovery' && ['inspect', 'open', 'status'].includes(input.action)) {
     const entityId = String(input.canonicalObjectId || args.entityId || '').trim();
@@ -305,7 +327,8 @@ export async function executeCanonicalCapabilityProposal(input: CanonicalCapabil
     await persistResult(input, idempotencyKey, result);
     return result;
   }
-  const confirmationRequired = input.confirmationRequired ?? policy?.confirmation === 'explicit';
+  const readOnlyAction = ['inspect', 'status', 'open', 'view'].includes(String(input.action || '').toLowerCase());
+  const confirmationRequired = readOnlyAction ? false : (input.confirmationRequired ?? policy?.confirmation === 'explicit');
   const validation = validateCapabilityProposal({ ...input, confirmationRequired }, descriptor, { ownerVerified: true, objectVerified: owner.ok, stale: false, confirmationGranted: Boolean(input.confirmationGranted) });
   if (!validation.valid) {
     const result = invalidResult(input, validation.code === 'missing_confirmation' ? 'confirmation_required' : validation.code === 'foreign_context' ? 'unauthorized' : validation.code === 'stale_context' ? 'stale_context' : 'invalid', validation.message || 'This capability action could not be accepted.', validation.code || 'invalid');

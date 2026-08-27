@@ -51,8 +51,12 @@ function goalStatus(status: string, plan: GoalPlanStep[], currentIndex: number):
   if (status === 'blocked' || status === 'unauthorized') return 'blocked';
   if (status === 'failed' || status === 'invalid') return 'failed';
   if (status === 'needs_user' || status === 'confirmation_required') return 'needs_user';
+  // A canonical completed result is authoritative for the current user outcome.
+  // Descriptive continuation steps (notify, remember, re-check) must not keep a
+  // genuinely completed outcome in an active state; they are projections after
+  // completion, not evidence that the outcome itself is unfinished.
+  if (status === 'completed') return 'completed';
   const pending = plan.some((step, index) => index > currentIndex && ['pending', 'running', 'waiting'].includes(step.status));
-  if (status === 'completed') return pending ? 'active' : 'completed';
   if (status === 'waiting' || status === 'externally_pending') return 'waiting';
   return 'active';
 }

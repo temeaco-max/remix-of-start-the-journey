@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { registerConnectedResource, activateConnectedResource, controlConnectedResource } from '../src/services/connectedResourceService.js';
+import { registerConnectedResource, activateConnectedResource, controlConnectedResource, connectedResourceSupportProfile } from '../src/services/connectedResourceService.js';
 import { routeIntent } from '../src/services/intentRouter.js';
 import { processCanonicalChatTurn } from '../src/services/canonicalChatTurnService.js';
 import { getEconomicRequest } from '../src/services/skillFlows.js';
@@ -15,6 +15,7 @@ const { resource, challenge } = await registerConnectedResource({
 });
 const activated = await activateConnectedResource(phone, resource.id, challenge.code);
 assert.equal(activated?.status, 'active');
+assert.equal(connectedResourceSupportProfile(resource).level, 1);
 
 const first = await controlConnectedResource({ phone, id: resource.id, command: 'control', payload: 'on', idempotencyKey: 'ledger-test-1' });
 assert.equal(first.accepted, false);
@@ -41,21 +42,35 @@ const diagnostic = await registerConnectedResource({
 });
 const diagnosticActive = await activateConnectedResource(phone, diagnostic.resource.id, diagnostic.challenge.code);
 assert.equal(diagnosticActive?.status, 'active');
+assert.equal(connectedResourceSupportProfile(diagnosticActive!).level, 2);
+
+const actionable = await registerConnectedResource({ phone, kind: 'phone', label: 'Actionable Phone', protocol: 'mqtt', capabilities: ['observe', 'control'], metadata: { baseTopic: 'kurukoo/test/actionable-phone' } });
+const actionableActive = await activateConnectedResource(phone, actionable.resource.id, actionable.challenge.code);
+assert.equal(connectedResourceSupportProfile(actionableActive!).level, 3);
+
+const physical = await registerConnectedResource({ phone, kind: 'iot', label: 'Physical Sensor', protocol: 'mqtt', capabilities: ['observe', 'control'], metadata: { baseTopic: 'kurukoo/test/physical-sensor', physicalWorld: true } });
+const physicalActive = await activateConnectedResource(phone, physical.resource.id, physical.challenge.code);
+assert.equal(connectedResourceSupportProfile(physicalActive!).level, 4);
+
 const inspected = await routeIntent('Check my Work MacBook.', phone, undefined, undefined, 'connected-resource-test');
 assert.equal(inspected.skill, 'device_support');
 assert.equal(inspected.cardData?.type, 'device_support');
 assert.equal(inspected.cardData?.status, 'completed');
 assert.equal(inspected.cardData?.liveObservation, false);
 assert.equal(inspected.cardData?.observedState?.performance, 'unknown');
-assert.match(inspected.reply, /recorded state|not a live connection test/i);
+assert.equal(inspected.cardData?.resolution?.status, 'options');
+assert.ok(Array.isArray(inspected.cardData?.resolution?.options));
+assert.ok(inspected.cardData?.resolution?.options?.some((option: any) => option.id === 'monitor' || option.id === 'no_action'));
+assert.match(inspected.reply, /recorded state|resolution choice/i);
 
 const chatTurn = await processCanonicalChatTurn({ phone, message: 'Check my Work MacBook.', channel: 'web', conversationId: 'connected-resource-chat-test' });
 assert.equal(chatTurn.cardData?.type, 'device_support');
 assert.equal(chatTurn.cardData?.status, 'completed');
-assert.match(chatTurn.reply, /recorded state|not a live connection test/i);
+assert.equal(chatTurn.cardData?.resolution?.status, 'options');
+assert.match(chatTurn.reply, /recorded state|resolution choice/i);
 
 const repairTurn = await routeIntent('Please find a phone repairer for my Work MacBook screen is broken in Ikeja.', phone, undefined, undefined, chatTurn.conversationId);
-assert.equal(repairTurn.skill, 'phone_repair');
+assert.equal(repairTurn.skill, 'phone_repairer');
 assert.ok(repairTurn.cardData?.requestId);
 const repairRequest = await getEconomicRequest(String(repairTurn.cardData.requestId));
 assert.equal(repairRequest?.requirements?.prior_diagnostics?.source, 'canonical_chat_device_support');

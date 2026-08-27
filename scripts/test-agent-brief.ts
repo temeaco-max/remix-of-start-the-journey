@@ -9,7 +9,7 @@ process.env.KURUKOO_AGENT_ENABLED = 'true';
 process.env.KURUKOO_AGENT_AUTONOMOUS = 'false';
 process.on('exit', () => { try { fs.rmSync(isolatedDbPath, { force: true }); } catch {} });
 
-const { updateProfile } = await import('../src/services/memoryProfile.js');
+const { updateProfile, recordMemoryFact } = await import('../src/services/memoryProfile.js');
 const { createEconomicRequest } = await import('../src/services/skillFlows.js');
 const { createReminder } = await import('../src/services/reminderService.js');
 const { createConversationGoal, getAgentGoal } = await import('../src/services/agentRuntime.js');
@@ -39,6 +39,7 @@ const basePreferences = {
 };
 await updateProfile(owner, 'test-agent-brief', { name: 'Brief Owner', preferences: basePreferences });
 await updateProfile(other, 'test-agent-brief', { name: 'Other Owner', preferences: basePreferences });
+await recordMemoryFact(owner, 'preference', 'Call the workshop after 10am', 'user_declared', { sourceRef: 'test-agent-brief' });
 
 const request = await createEconomicRequest({ id: `brief-request-${Date.now()}`, phone: owner, skill: 'find_worker', requirements: { service: 'car repair', location: 'Ikeja' } });
 const otherRequest = await createEconomicRequest({ id: `brief-other-request-${Date.now()}`, phone: other, skill: 'find_worker', requirements: { service: 'other repair', location: 'Yaba' } });
@@ -71,6 +72,7 @@ assert.ok(brief.items.some(item => item.stableRef === `economic_request:${reques
 assert.ok(brief.items.some(item => item.stableRef === `agent_goal:${goal.id}` && item.category === 'waiting_for_user'), 'Existing Agent Runtime work must be surfaced through its canonical status.');
 assert.ok(brief.items.some(item => item.stableRef === `reminder:${reminder.id}` && item.category === 'upcoming_task'), 'Upcoming canonical reminders must be classified as upcoming tasks.');
 assert.ok(brief.items.some(item => item.source === 'task' && item.category === 'pending'), 'Assigned canonical tasks must be included as pending work.');
+assert.ok(brief.items.some(item => item.source === 'memory' && item.category === 'remembered_context' && /Call the workshop/.test(item.summary)), 'Relevant owner-scoped memory must be included as remembered context.');
 assert.equal(brief.items.some(item => item.stableRef === `economic_request:${historicRequest.id}`), false, 'Completed requests older than the recent-completion window must not remain in a current brief.');
 assert.equal(brief.items.some(item => /Historic completed task/.test(item.summary)), false, 'Completed tasks older than the recent-completion window must not remain in a current brief.');
 assert.equal(brief.items.some(item => item.stableRef === `agent_goal:${historicGoal.id}`), false, 'Completed Agent Runtime goals older than the recent-completion window must not remain in a current brief.');
@@ -113,11 +115,17 @@ const fallbackNotifications = (await getInternalNotifications(owner)).filter(ite
 assert.equal(fallbackNotifications.length, 1, 'The canonical notification centre must contain one idempotent Agent Brief fallback entry.');
 
 assert.equal(isAgentBriefQuestion('Anything important?'), true, 'Natural brief questions must be recognized deterministically.');
+assert.equal(isAgentBriefQuestion('What do I need to remember today?'), true, 'Today-oriented memory attention questions must enter the unified brief.');
+assert.equal(isAgentBriefQuestion('Anything I need to deal with?'), true, 'Situation-oriented attention questions must enter the unified brief.');
 const briefTurn = await processCanonicalChatTurn({ phone: owner, message: 'What have I got going on?', channel: 'web', conversationId: 'brief-conversation' });
 assert.equal(briefTurn.cardData?.type, 'agent_brief', 'A brief question must stay in the canonical conversation owner and return the structured brief card.');
 assert.equal(briefTurn.canonicalAction, 'agent.brief.review', 'A brief response must advertise a read-only review action rather than execute work.');
+const rememberTodayTurn = await processCanonicalChatTurn({ phone: owner, message: 'What do I need to remember today?', channel: 'web', conversationId: 'brief-conversation' });
+assert.equal(rememberTodayTurn.cardData?.type, 'agent_brief', 'Today-oriented memory language must return the unified Agent Brief card.');
+const dealWithTurn = await processCanonicalChatTurn({ phone: owner, message: 'Anything I need to deal with?', channel: 'web', conversationId: 'brief-conversation' });
+assert.equal(dealWithTurn.cardData?.type, 'agent_brief', 'Situation-oriented attention language must return the unified Agent Brief card.');
 const continuation = await processCanonicalChatTurn({ phone: owner, message: 'Open that objective', channel: 'web', conversationId: 'brief-conversation', contextAction: { type: 'resume_canonical_context', contextId: `goal:${goal.id}`, conversationId: 'brief-conversation', canonicalAction: 'agent.goal.review', objectType: 'agent_goal', objectId: goal.id } });
-assert.match(continuation.reply, /reopened the exact Kurukoo context/i, 'The existing Conversation owner must continue from a brief-referenced Agent Runtime context.');
+assert.match(continuation.reply, /same work item|reopened the exact Kurukoo context/i, 'The existing Conversation owner must continue from a brief-referenced Agent Runtime context.');
 assert.equal((await getAgentGoal(owner, goal.id))?.status, 'needs_user', 'Conversation continuation from a brief must not change approval-bound work automatically.');
 
 const speechAdapter = fs.readFileSync('public/js/kurukoo-speech-output.js', 'utf8');
@@ -132,4 +140,4 @@ const sanitizedPreferencePatch = sanitizeProactiveBriefPreferences({ voice_enabl
 assert.deepEqual(sanitizedPreferencePatch, { voice_enabled: true, style: 'detailed', interruption_sensitivity: 'minimal', allow_critical_interruption: false, notification_categories: ['safety_event'], quiet_hours: { start: '22:00', end: '07:00', timeZone: 'Africa/Lagos' } }, 'The existing profile route must accept only supported Agent Brief preference fields.');
 assert.equal(sanitizeProactiveBriefPreferences('invalid'), null, 'Invalid proactive preference payloads must be rejected at the established profile boundary.');
 
-console.log('Agent Brief regression passed: deterministic aggregation, attention, preferences, privacy, idempotency, notification fallback, browser speech wiring, approval boundary, and canonical conversation continuation.');
+console.log('Agent Brief regression passed: deterministic aggregation, remembered context, situation-oriented triggers, attention, preferences, privacy, idempotency, notification fallback, browser speech wiring, approval boundary, and canonical conversation continuation.');

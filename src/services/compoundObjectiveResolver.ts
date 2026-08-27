@@ -40,6 +40,30 @@ export function recognizeCompoundObjective(text: string): CompoundDecomposition 
   const trimmed = String(text || '').trim();
   if (!trimmed || trimmed.length < 10) return null;
   const lower = trimmed.toLowerCase();
+  const broadOutcome = (subObjectives: CompoundSubObjective[]): CompoundDecomposition => ({ parentObjective: trimmed, subObjectives });
+  if (/\b(?:get|sort)\s+(?:my|this)\s+(?:laptop|computer|phone|device)\s+(?:sorted|working|fixed|ready)\b/.test(lower)) return broadOutcome([
+    { skill: 'phone_repairer', objective: 'Understand and inspect the device issue' },
+    { skill: 'find_worker', objective: 'Find an expert if the device cannot be resolved locally', dependsOn: 0 },
+    { skill: 'reminder', objective: 'Keep a follow-up reminder for the device outcome', dependsOn: 1 },
+  ]);
+  if (/\b(?:somewhere to stay|a place to stay|accommodation|hotel)\b.*\b(?:next week|tomorrow|tonight|this week)\b/.test(lower)) return broadOutcome([
+    { skill: 'hotel_deals', objective: 'Find a suitable place to stay for the requested dates' },
+    { skill: 'reminder', objective: 'Remind me to review and confirm the accommodation options', dependsOn: 0 },
+  ]);
+  if (/\b(?:sort out|fix|resolve|repair)\s+(?:my|the)\s+(?:internet|wi[- ]?fi|wifi|router)\b/.test(lower)) return broadOutcome([
+    { skill: 'wifi_installer', objective: 'Understand and diagnose the internet or Wi-Fi problem' },
+    { skill: 'find_worker', objective: 'Find an internet or network expert if guided checks cannot resolve it', dependsOn: 0 },
+    { skill: 'reminder', objective: 'Keep a follow-up reminder until the internet issue is resolved', dependsOn: 1 },
+  ]);
+  if (/\b(?:get|take)\s+(?:me|to me)\s+to\s+(?:the\s+)?airport\b|\bneed\s+to\s+get\s+to\s+(?:the\s+)?airport\b/.test(lower)) return broadOutcome([
+    { skill: 'ride_request', objective: 'Arrange transport to the airport at the requested time' },
+    { skill: 'reminder', objective: 'Remind me about the airport journey', dependsOn: 0 },
+  ]);
+  if (/\b(?:find|buy|get)\b.*\b(?:right|replacement)\s+charger\b/.test(lower)) return broadOutcome([
+    { skill: 'phone_repairer', objective: 'Identify the device and compatible charger requirements' },
+    { skill: 'product_sourcing', objective: 'Find and compare the right charger from authoritative offers', dependsOn: 0 },
+    { skill: 'reminder', objective: 'Keep the charger fulfilment follow-up visible until resolved', dependsOn: 1 },
+  ]);
   for (const pattern of COMPOUND_CONJUNCTIONS) {
     const match = pattern.exec(lower);
     if (!match) continue;

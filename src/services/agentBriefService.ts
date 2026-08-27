@@ -23,7 +23,8 @@ export type AgentBriefItemCategory =
   | 'safety_event'
   | 'agent_work_in_progress'
   | 'agent_work_completed'
-  | 'waiting_for_user';
+  | 'waiting_for_user'
+  | 'remembered_context';
 
 export type AgentBriefPriority = 'low' | 'normal' | 'high' | 'critical';
 export type AgentBriefUrgency = 'none' | 'upcoming' | 'due' | 'time_sensitive' | 'critical';
@@ -46,7 +47,7 @@ export interface AgentBriefItem {
   priority: AgentBriefPriority;
   urgency: AgentBriefUrgency;
   timestamp?: string;
-  source: 'request' | 'task' | 'reminder' | 'notification' | 'agent_runtime';
+  source: 'request' | 'task' | 'reminder' | 'notification' | 'agent_runtime' | 'memory';
   summary: string;
   action?: AgentBriefAction;
   approvalRequired: boolean;
@@ -114,7 +115,7 @@ function normaliseQuietHours(value: unknown): AgentBriefPreferences['quietHours'
 
 function normaliseCategories(value: unknown): AgentBriefItemCategory[] | undefined {
   if (!Array.isArray(value)) return undefined;
-  const allowed = new Set<AgentBriefItemCategory>(['completed', 'pending', 'attention_required', 'upcoming_task', 'provider_update', 'important_notification', 'safety_event', 'agent_work_in_progress', 'agent_work_completed', 'waiting_for_user']);
+  const allowed = new Set<AgentBriefItemCategory>(['completed', 'pending', 'attention_required', 'upcoming_task', 'provider_update', 'important_notification', 'safety_event', 'agent_work_in_progress', 'agent_work_completed', 'waiting_for_user', 'remembered_context']);
   const categories = value.filter((item): item is AgentBriefItemCategory => typeof item === 'string' && allowed.has(item as AgentBriefItemCategory));
   return categories.length ? [...new Set(categories)] : undefined;
 }
@@ -226,6 +227,22 @@ function taskItem(task: MicroTask, now: Date): Omit<AgentBriefItem, 'attention'>
   };
 }
 
+function memoryItem(fact: { id: number; field: string; value: string; provenance: string; observedAt: string }, now: Date): Omit<AgentBriefItem, 'attention'> | null {
+  if (!fact.value || fact.provenance === 'expired') return null;
+  return {
+    stableRef: `memory_fact:${fact.id}`,
+    category: 'remembered_context',
+    priority: 'low',
+    urgency: 'none',
+    timestamp: fact.observedAt,
+    source: 'memory',
+    summary: `Remembered context: ${fact.field.replace(/[_-]+/g, ' ')} — ${fact.value.slice(0, 160)}.`,
+    action: { id: 'open_memory', label: 'Review memory', canonicalAction: 'memory.inspect', objectType: 'memory_fact', objectId: String(fact.id) },
+    approvalRequired: false,
+    visibility: 'private',
+  };
+}
+
 function goalItem(goal: AgentGoal, now: Date): Omit<AgentBriefItem, 'attention'> | null {
   const summary = String(goal.summary || goal.objective || 'Kurukoo has an update on your objective.').slice(0, 280);
   const base = {
@@ -290,6 +307,7 @@ function capabilityForItem(item: Omit<AgentBriefItem, 'attention'>): string {
   if (item.source === 'reminder') return 'reminder.open';
   if (item.source === 'agent_runtime') return 'agent.goal.review';
   if (item.category === 'provider_update' || item.source === 'request') return 'economic_request.open';
+  if (item.source === 'memory') return 'memory.inspect';
   return 'notification.open';
 }
 
@@ -364,18 +382,20 @@ export async function buildAgentBrief(phone: string, options: BuildAgentBriefOpt
   const now = options.now || new Date();
   const profile = await getProfile(ownerPhone, 'agentBrief');
   const preferences = resolveAgentBriefPreferences(profile?.preferences, options.preferences);
-  const [requests, reminders, tasks, goals, notifications] = await Promise.all([
+  const [requests, reminders, tasks, goals, notifications, memoryFacts] = await Promise.all([
     listEconomicRequestsForPhone(ownerPhone, { includeClosed: true, limit: 30 }),
     listReminders(ownerPhone, false),
     listAssignedTasks(ownerPhone, true),
     listAgentGoals(ownerPhone, true),
     getInternalNotifications(ownerPhone, 30),
+    import('./memoryProfile.js').then(module => module.getMemoryFacts(ownerPhone)),
   ]);
   const canonical: Array<Omit<AgentBriefItem, 'attention'>> = [
     ...requests.map(request => requestItem(request, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
     ...reminders.map(reminder => reminderItem(reminder, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
     ...tasks.map(task => taskItem(task, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
     ...goals.map(goal => goalItem(goal, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
+    ...memoryFacts.slice(0, 5).map(fact => memoryItem(fact, now)).filter((item): item is Omit<AgentBriefItem, 'attention'> => Boolean(item)),
   ];
   for (const notification of notifications) {
     if (notification.status === 'read') continue;
@@ -438,5 +458,5 @@ export async function enqueueAgentBriefNotification(phone: string, brief: AgentB
 }
 
 export function isAgentBriefQuestion(message: string): boolean {
-  return /^(?:what(?:'s| is) (?:important|going on)|anything important|what have i got going on|give me (?:my |an )?(?:brief|update)|(?:show|read) (?:my |the )?(?:brief|updates)|what needs my attention)\??$/i.test(String(message || '').trim());
+  return /^(?:what(?:'s| is) (?:important|going on|on my plate|should i deal with)|what do i need to remember(?: today)?|anything important|anything i need to deal with|what have i got going on|give me (?:my |an )?(?:brief|update)|(?:show|read) (?:my |the )?(?:brief|updates)|what needs my attention|show me what i need to deal with|what do i need to deal with(?: first| now)?|what should i deal with(?: first| now)?)[.!?]?$/i.test(String(message || '').trim());
 }

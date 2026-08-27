@@ -32,6 +32,16 @@ requireSource(client, "'No payment has been taken'", 'client non-payment copy');
 requireSource(client, "'Not claimed until the canonical lifecycle records it.'", 'no fabricated fulfilment');
 requireSource(client, 'chatContinuationHref', 'request-specific Chat continuation');
 requireSource(client, 'visualFixture', 'fixture preservation');
+requireSource(client, 'canonicalAction=economic_request.open', 'workspace request links retain exact canonical return');
+requireSource(client, 'objectType=economic_request', 'workspace request links retain exact object identity');
+requireSource(client, "failed: 'Your review is needed'", 'failed request remains an explicit review state');
+requireSource(client, "disputed: 'Your review is needed'", 'disputed request remains an explicit review state');
+requireSource(client, "hotel_deals: 'Finding a place to stay'", 'accommodation uses situation-led workspace language');
+requireSource(client, "rental_tracker: 'Finding a home to rent'", 'property uses situation-led workspace language');
+requireSource(client, "job_tracker: 'Finding work'", 'job search uses situation-led workspace language');
+requireSource(client, "return 'Finding a tutor'", 'tutor requests use situation-led workspace language');
+requireSource(client, "return 'Finding a mechanic'", 'automotive requests use situation-led workspace language');
+requireSource(client, "wifi_installer: 'Sorting out your connection'", 'internet requests use situation-led workspace language');
 forbidSource(client, 'payment_started: true', 'fabricated payment state');
 forbidSource(client, 'window.open(', 'unbounded external checkout redirect');
 
@@ -47,10 +57,16 @@ requireSource(economicRoutes, "router.get('/:id', authenticateUser", 'authentica
 requireSource(economicRoutes, 'request.phone !== phone', 'owner isolation');
 requireSource(economicRoutes, "customerAllowed = new Set<EconomicRequestStatus>(['awaiting_confirmation', 'reserved', 'cancelled', 'completed'])", 'bounded customer lifecycle actions');
 requireSource(economicRoutes, 'A request must be fulfilled before the customer can complete it.', 'fail-closed fulfilment');
+requireSource(economicRoutes, "router.post('/offers/:offerId/start', authenticateUser", 'authenticated known-offer selection');
+requireSource(economicRoutes, 'createConversationGoal({', 'selected offer persists owned work');
+requireSource(economicRoutes, 'economicRequestId: result.request.id', 'selected offer goal links to the canonical request');
+requireSource(economicRoutes, 'conversationId,', 'selected offer retains Chat return context');
+requireSource(economicRoutes, 'persistWhenDisabled: true', 'selected offer work persists without autonomous runtime activation');
+requireSource(economicRoutes, 'ownedWork: true', 'selected offer card signals durable ownership');
 
 requireSource(style, '.checkout-detail-row', 'checkout detail styling');
 requireSource(style, '.confirmation-metrics', 'confirmation state styling');
 requireSource(style, '[data-confirmation-live] .workspace-actions', 'confirmation action grouping');
 requireSource(style, '@media(max-width:560px)', 'mobile checkout and confirmation styling');
 
-console.log('Checkout and confirmations journey contract passed: owner-scoped review, explicit request/payment evidence, cancellation confirmation, and return-to-Chat boundaries verified.');
+console.log('Checkout and confirmations journey contract passed: owner-scoped review, explicit request/payment evidence, cancellation confirmation, durable selected-offer ownership, situation-led native request states, and exact return-to-Chat boundaries verified.');

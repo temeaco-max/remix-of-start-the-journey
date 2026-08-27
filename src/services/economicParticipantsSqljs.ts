@@ -524,6 +524,20 @@ export async function updateEconomicParticipant(input: {
     [status, JSON.stringify(evidence), Number(row.id)],
   );
   saveDb();
+  if (!isOwner && String(row.status) !== status) {
+    const participantLabel = role === 'delivery_provider' ? 'delivery provider' : role === 'service_provider' ? 'provider' : role === 'seller' ? 'seller' : 'participant';
+    const statusLabel = status.replace(/_/g, ' ');
+    const progressMessage = `Your ${participantLabel} recorded ${statusLabel} for this request. This is provider-reported progress and not final completion unless the request’s completion evidence confirms it. Review the same work item in Kurukoo.`;
+    await import('./pushNotifications.js').then(({ sendFcmPush }) => sendFcmPush(request.phone, `Update from your ${participantLabel}`, progressMessage, `/app/requests?request=${encodeURIComponent(requestId)}`, {
+      contextId: `request:${requestId}`,
+      canonicalAction: 'economic_request.open',
+      objectType: 'economic_request',
+      objectId: requestId,
+      ownerScope: request.phone,
+      idempotencyKey: `participant-progress-attention:${requestId}:${role}:${providerPhone}:${status}:${priorSubmissions.length + 1}`,
+      surface: 'requests',
+    })).catch(() => false);
+  }
   return (await getEconomicParticipants(requestId)).find((participant) => participant.id === Number(row.id))!;
 }
 

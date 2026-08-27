@@ -7,7 +7,7 @@
  */
 import { createConversationGoal, ensureAgentRuntimeSchema, getAgentGoal, listSubGoals, type AgentGoal } from './agentRuntime.js';
 import { attachAgentGoalDependency, refreshAgentGoalDependencies } from './agentEconomicRequestOrchestrator.js';
-import { recognizeCompoundObjective, resolveSubGoalSkill, type CompoundDecomposition } from './compoundObjectiveResolver.js';
+import { recognizeCompoundObjective, type CompoundDecomposition } from './compoundObjectiveResolver.js';
 import { getCanonicalStore } from './canonicalStore.js';
 import { recordAgentExecutionTrace } from './agentExecutionTrace.js';
 
@@ -28,7 +28,7 @@ export async function createCompoundGoalIfRecognized(input: { phone: string; con
   // Idempotent: an existing active parent with the same objective wins.
   const store = await getCanonicalStore();
   const existingParent = await store.one<any>(
-    `SELECT id FROM agent_goals WHERE phone=? AND lower(objective)=lower(?) AND parent_goal_id IS NULL AND status IN ('active','waiting','waiting_on_dependency','needs_user','blocked') LIMIT 1`,
+    `SELECT id FROM agent_goals WHERE phone=? AND lower(objective)=lower(?) AND parent_goal_id IS NULL AND status IN ('active','waiting','waiting_on_dependency','paused','needs_user','blocked') LIMIT 1`,
     [owner, decomposition.parentObjective]
   );
   if (existingParent) {
@@ -75,7 +75,7 @@ export async function createCompoundGoalIfRecognized(input: { phone: string; con
 
   const subGoals: AgentGoal[] = [];
   for (const [index, sub] of decomposition.subObjectives.entries()) {
-    const skill = resolveSubGoalSkill(sub.objective);
+    const skill = sub.skill || 'find_worker';
     const isDependent = typeof sub.dependsOn === 'number';
     const subGoal = await createConversationGoal({
       phone: owner,
@@ -111,6 +111,8 @@ export async function createCompoundGoalIfRecognized(input: { phone: string; con
         `UPDATE agent_goals SET status='waiting_on_dependency',updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?`,
         [subGoals[i].id, owner]
       ).catch(() => {});
+      subGoals[i].status = 'waiting_on_dependency';
+      subGoals[i].nextActionAt = undefined;
     }
   }
 
