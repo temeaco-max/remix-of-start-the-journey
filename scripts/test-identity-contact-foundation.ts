@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { getDb, saveDb } from '../src/database.js';
 import { addContact, canCommunicate, getPersonProfile, listContacts, placeholderAvatar, removeContact, contactSchemaForTests } from '../src/services/identityContactService.js';
+import { processCanonicalChatTurn } from '../src/services/canonicalChatTurnService.js';
+import { routeIntent } from '../src/services/intentRouter.js';
 
 const suffix = Date.now();
 const owner = `identity_owner_${suffix}@example.com`;
@@ -50,9 +52,39 @@ try {
   db.run(`INSERT INTO user_safety_contacts (id, owner_phone, name, phone, status) VALUES ('safety-${suffix}', ?, 'Verified Provider', ?, 'active')`, [owner, provider]);
   assert.equal((await getPersonProfile(owner, provider))?.relationship.safetyContact, true);
 
+  const prepared = await processCanonicalChatTurn({
+    phone: owner,
+    channel: 'web',
+    message: 'I will arrive at six.',
+    contextAction: { type: 'resume_canonical_context', contextId: `contact:${provider}`, canonicalAction: 'communication.compose', objectType: 'contact', objectId: provider },
+  });
+  assert.equal(prepared.canonicalAction, 'communication.contact.prepared');
+  assert.equal(prepared.cardData?.type, 'communication_prepare');
+  assert.equal(prepared.cardData?.recipient, 'Verified Provider');
+  assert.equal(prepared.cardData?.recipientPhone, provider, 'the prepared message must retain the exact authorized contact identity');
+  assert.equal(prepared.cardData?.body, 'I will arrive at six.');
+  assert.equal(prepared.cardData?.deliveryState, 'not_sent');
+  assert.equal(prepared.cardData?.exactContext, true);
+  assert.match(prepared.reply, /has not been sent/i);
+
+  const channelBoundary = await routeIntent('Choose an available channel for this message', owner, undefined, undefined, prepared.conversationId);
+  assert.equal(channelBoundary.cardData?.type, 'communication_prepare');
+  assert.equal(channelBoundary.cardData?.recipient, 'Verified Provider', 'channel review must use the exact prepared contact before falling back to name matching');
+  assert.equal(channelBoundary.cardData?.deliveryState, 'not_sent');
+  assert.match(channelBoundary.reply, /no authorised delivery channel is active|WhatsApp is available/i, 'channel state must remain evidence-bound');
+
   assert.equal(await removeContact(owner, provider), true);
   assert.equal(await getPersonProfile(owner, provider), null, 'removed contacts must no longer be discoverable');
   assert.equal((await canCommunicate(owner, provider, 'message')).allowed, false, 'removed contacts cannot be messaged');
+  const removedContactContinuation = await processCanonicalChatTurn({
+    phone: owner,
+    channel: 'web',
+    message: 'This should not be prepared.',
+    contextAction: { type: 'resume_canonical_context', contextId: `contact:${provider}`, canonicalAction: 'communication.compose', objectType: 'contact', objectId: provider },
+  });
+  assert.equal(removedContactContinuation.canonicalAction, 'context.continuation.unavailable');
+  assert.equal(removedContactContinuation.cardData?.type, 'canonical_context_unavailable');
+  assert.match(removedContactContinuation.reply, /not authorized|no longer available/i);
   assert.equal((await getPersonProfile(owner, outsider)), null, 'private outsider remains hidden');
 
   console.log('Identity/contact foundation checks passed');

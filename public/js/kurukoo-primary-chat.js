@@ -1247,6 +1247,7 @@
       send_failed: 'The channel did not accept the message. It remains unsent and saved here.',
       copy_ready: 'This message was copied for you. No delivery channel was used.',
       needs_recipient: 'Recipient, channel, and confirmation are still required. Nothing has been sent.',
+      needs_message: 'Tell Kurukoo what you want to say. Nothing was prepared or sent.',
     };
     appendOutcomeStatus(holder, card.type === 'communication_prepare' ? (communicationStatus[String(card.status || '')] || 'Not sent. Recipient, channel, and confirmation are still required.') : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.', String(card.deliveryState || '').toLowerCase() === 'accepted' ? 'neutral' : 'waiting');
     messageEl.querySelector('.bubble')?.appendChild(holder);
@@ -2212,18 +2213,34 @@
     const objectType = params.get('objectType');
     const objectId = params.get('objectId');
     const contextId = params.get('contextId');
+    const contactCompose = params.get('contactCompose') === '1';
     if (conversationId) { state.conversationId = conversationId.slice(0, 160); localStorage.setItem('kurukoo_conversation_id', state.conversationId); }
     if (discoveryEntityId) state.discoveryContextAction = { type: 'open_discovery_entity', entityId: discoveryEntityId.slice(0, 180) };
     if (canonicalAction && objectType && objectId) state.canonicalContextAction = { type: 'resume_canonical_context', contextId: contextId?.slice(0, 180), conversationId: conversationId?.slice(0, 180), canonicalAction: canonicalAction.slice(0, 120), objectType: objectType.slice(0, 80), objectId: objectId.slice(0, 180) };
+    let contactMessageDraft = null;
+    if (contactCompose && input) {
+      try {
+        const stored = sessionStorage.getItem('kurukoo_contact_message_draft');
+        const candidate = stored ? JSON.parse(stored) : null;
+        if (candidate && typeof candidate.contactId === 'string' && typeof candidate.body === 'string' && candidate.contactId.length <= 180 && candidate.body.trim()) {
+          contactMessageDraft = candidate;
+          state.canonicalContextAction = { type: 'resume_canonical_context', contextId: `contact:${candidate.contactId}`.slice(0, 180), canonicalAction: 'communication.compose', objectType: 'contact', objectId: candidate.contactId.slice(0, 180) };
+          input.value = candidate.body.trim().slice(0, 4000);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        sessionStorage.removeItem('kurukoo_contact_message_draft');
+      } catch { /* A private local draft is optional; Chat remains usable without it. */ }
+    }
     const contextParts = [];
     if (providerSlug) contextParts.push(`Provider context: ${providerSlug}`);
     if (topicSlug) contextParts.push(`Topic context: ${topicSlug}`);
     if (resourceSlug) contextParts.push(`Resource context: ${resourceSlug}`);
     if (requestId) contextParts.push(`Request context: ${requestId}`);
     if (discoveryEntityId) contextParts.push(`Discovery context: ${discoveryEntityId}`);
+    if (contactMessageDraft) contextParts.push('Message draft ready');
     const contextBanner = $('qr-context-banner');
     if (contextBanner && contextParts.length) { contextBanner.textContent = `${contextParts.join(' · ')}. Kurukoo will keep this context with the conversation.`; contextBanner.hidden = false; }
-    if (prompt && input) { input.value = prompt.slice(0, 12000); input.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (prompt && input && !contactMessageDraft) { input.value = prompt.slice(0, 12000); input.dispatchEvent(new Event('input', { bubbles: true })); }
   }
 
   async function loadAgentBrief() {

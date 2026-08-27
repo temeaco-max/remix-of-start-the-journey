@@ -18,7 +18,7 @@ import { executeCanonicalCapabilityProposal } from './canonicalCapabilityExecuto
 import { connectedResourceSupportProfile, connectedResourceSupports, listConnectedResources } from './connectedResourceService.js';
 import { listChatMessages } from './chatConversationService.js';
 import { createTopicDraft } from './topicService.js';
-import { listContacts } from './identityContactService.js';
+import { getPersonProfile, listContacts } from './identityContactService.js';
 import { getWhatsAppBusinessStatus, sendWhatsAppBusinessText } from './whatsappBusinessPlatformService.js';
 import { recordChannelDispatch } from './channelDeliveryState.js';
 import type { IntentRoutingResult } from '../types.js';
@@ -59,7 +59,8 @@ function skillForIntent(intent: string): string {
 
 function parsePersistedCard(row: any): any | null {
   try {
-    const parsed = typeof row?.card_data === 'string' ? JSON.parse(row.card_data) : row?.card_data;
+    const raw = row?.card_data ?? row?.cardData;
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     return parsed && typeof parsed === 'object' ? parsed : null;
   } catch {
     return null;
@@ -91,7 +92,13 @@ async function findPreparedCommunication(phone: string, conversationId?: string)
   return null;
 }
 
-async function resolveCommunicationRecipient(phone: string, recipient: string) {
+async function resolveCommunicationRecipient(phone: string, recipient: string, recipientPhone?: string) {
+  if (recipientPhone) {
+    try {
+      const exactContact = await getPersonProfile(phone, recipientPhone, 'message');
+      if (exactContact?.communication.message) return exactContact;
+    } catch { /* Removed or unauthorized contacts must not be recovered by an old prepared card. */ }
+  }
   const wanted = recipient.trim().replace(/\s+/g, ' ').toLowerCase();
   if (!wanted) return null;
   const contacts = await listContacts(phone);
@@ -109,7 +116,7 @@ async function continuePreparedCommunication(phone: string, message: string, con
   if (!/^(?:resolve the recipient for this message|choose an available channel for this message|confirm(?: and)? send(?:ing)? this message|copy this message)\b/.test(normalized)) return null;
   const prepared = await findPreparedCommunication(phone, conversationId);
   if (!prepared) return null;
-  const recipient = await resolveCommunicationRecipient(phone, String(prepared.recipient));
+  const recipient = await resolveCommunicationRecipient(phone, String(prepared.recipient), typeof prepared.recipientPhone === 'string' ? prepared.recipientPhone : undefined);
   const base = { recipient: String(prepared.recipient), body: String(prepared.body) };
   if (/^resolve the recipient/.test(normalized)) {
     if (!recipient) return { skill: 'communication', reply: `I could not match **${base.recipient}** to one authorised contact. Your message is still saved in this conversation and has not been sent. Add or identify the contact before choosing a delivery channel.`, cardData: communicationCard({ ...base, status: 'needs_recipient', actions: [{ id: 'copy_message', label: 'Copy message', style: 'secondary' }] }), canonicalAction: 'communication.recipient_required', progressStage: 'understanding', extractionSource: 'deterministic' };
