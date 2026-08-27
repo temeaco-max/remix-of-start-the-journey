@@ -17,6 +17,8 @@ const { processCanonicalChatTurn } = await import('../src/services/canonicalChat
 const { listSubGoals, getAgentGoal, resumeAgentGoal, runDueAgentGoals, createConversationGoal } = await import('../src/services/agentRuntime.js');
 const { syncSubGoalStatusesWithDependencies } = await import('../src/services/agentEconomicRequestOrchestrator.js');
 const { listAgentExecutionTrace, recordAgentExecutionTrace } = await import('../src/services/agentExecutionTrace.js');
+const { getInternalNotifications } = await import('../src/services/pushNotifications.js');
+const { getMemoryFacts } = await import('../src/services/memoryProfile.js');
 const { syncAgentGoalFromCapabilityResult } = await import('../src/services/agentCapabilityOutcomeService.js');
 const { closeCanonicalStore } = await import('../src/services/canonicalStore.js');
 
@@ -43,8 +45,8 @@ await upsertProfile(owner, 'Objective Loop Tester');
 
 const chat = await processCanonicalChatTurn({ phone: owner, message: objective, channel: 'web', conversationId });
 assert.ok(chat.agentGoal, 'The exact compound objective must materialize from authenticated Chat without an extra monitoring phrase.');
-assert.match(chat.reply, /dependent objective|existing objective/i, 'Compound Chat entry must project its canonical dependency state rather than generic context clarification.');
-assert.match(chat.reply, /No provider, payment, repair, or sale has been claimed|without claiming any provider, payment, repair, or sale outcome/i, 'Compound Chat entry must remain truthful about external outcome boundaries.');
+assert.match(chat.reply, /coordinating|next step/i, 'Compound Chat entry must project the current outcome step rather than generic context clarification.');
+assert.match(chat.reply, /have not claimed an external|not claimed/i, 'Compound Chat entry must remain truthful about external outcome boundaries.');
 const canonicalConversationId = chat.conversationId;
 assert.ok(canonicalConversationId, 'The canonical Chat turn must return a durable conversation identifier.');
 assert.equal(chat.agentGoal!.conversationId, canonicalConversationId, 'The parent Goal must preserve the canonical originating conversation correlation.');
@@ -100,6 +102,10 @@ const sold = await completeWithVerifiedFakeProviderOutcome({
 assert.equal(sold?.status, 'completed', 'The sale child may complete only after verified evidence is recorded.');
 await syncSubGoalStatusesWithDependencies(owner, parent.id);
 assert.equal((await getAgentGoal(owner, parent.id))?.status, 'completed', 'The parent must complete only after every required child truly completes.');
+const completedMemory = await getMemoryFacts(owner, ['completed_outcome']);
+assert.ok(completedMemory.some(fact => fact.value.includes(objective) && fact.provenance === 'verified'), 'A verified parent outcome must be remembered with verified provenance.');
+const completionNotifications = await getInternalNotifications(owner, 20);
+assert.ok(completionNotifications.some(notification => notification.body.includes('verified every step')), 'A verified parent outcome must be surfaced through the internal notification path.');
 
 const trace = await listAgentExecutionTrace(owner, sale!.id);
 assert.ok(trace.some(event => event.kind === 'capability_execution'), 'Capability results must add a durable capability-execution trace event.');
