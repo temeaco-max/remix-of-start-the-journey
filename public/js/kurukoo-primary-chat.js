@@ -1019,6 +1019,22 @@
       });
       holder.appendChild(list);
     }
+    const resolution = card.resolution && typeof card.resolution === 'object' ? card.resolution : null;
+    const resolutionOptions = Array.isArray(resolution?.options) ? resolution.options : [];
+    if (resolutionOptions.length) {
+      const section = makeElement('section', 'device-support-resolution');
+      section.appendChild(makeElement('strong', '', 'Choose the next resolution step'));
+      const actions = makeElement('div', 'storefront-actions');
+      resolutionOptions.forEach(option => {
+        if (!option?.label || !option?.prompt) return;
+        const button = makeElement('button', `sf-btn sf-${option.style === 'secondary' ? 'secondary' : 'primary'}`, String(option.label));
+        button.type = 'button';
+        button.dataset.actionId = String(option.id || 'device_resolution.next');
+        button.addEventListener('click', () => sendMessage(String(option.prompt)));
+        actions.appendChild(button);
+      });
+      if (actions.childElementCount) { section.appendChild(actions); holder.appendChild(section); }
+    }
     holder.appendChild(makeElement('small', 'storefront-execution-status', card.liveObservation === true ? 'Live observation evidence received.' : 'Recorded resource state only. No live connection, diagnosis, remediation, or repair completion is claimed.'));
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }

@@ -47,12 +47,16 @@ assert.equal(inspected.cardData?.type, 'device_support');
 assert.equal(inspected.cardData?.status, 'completed');
 assert.equal(inspected.cardData?.liveObservation, false);
 assert.equal(inspected.cardData?.observedState?.performance, 'unknown');
-assert.match(inspected.reply, /recorded state|not a live connection test/i);
+assert.equal(inspected.cardData?.resolution?.status, 'options');
+assert.ok(Array.isArray(inspected.cardData?.resolution?.options));
+assert.ok(inspected.cardData?.resolution?.options?.some((option: any) => option.id === 'monitor' || option.id === 'no_action'));
+assert.match(inspected.reply, /recorded state|resolution choice/i);
 
 const chatTurn = await processCanonicalChatTurn({ phone, message: 'Check my Work MacBook.', channel: 'web', conversationId: 'connected-resource-chat-test' });
 assert.equal(chatTurn.cardData?.type, 'device_support');
 assert.equal(chatTurn.cardData?.status, 'completed');
-assert.match(chatTurn.reply, /recorded state|not a live connection test/i);
+assert.equal(chatTurn.cardData?.resolution?.status, 'options');
+assert.match(chatTurn.reply, /recorded state|resolution choice/i);
 
 const repairTurn = await routeIntent('Please find a phone repairer for my Work MacBook screen is broken in Ikeja.', phone, undefined, undefined, chatTurn.conversationId);
 assert.equal(repairTurn.skill, 'phone_repair');

@@ -14,7 +14,7 @@ import { generateReferralCode } from './referralService.js';
 import { getAssistanceOutcome } from './assistanceOutcomeService.js';
 import { resolveConversationPriority } from './conversationPriorityService.js';
 import { executeCanonicalCapabilityProposal } from './canonicalCapabilityExecutor.js';
-import { listConnectedResources } from './connectedResourceService.js';
+import { connectedResourceSupports, listConnectedResources } from './connectedResourceService.js';
 import { listChatMessages } from './chatConversationService.js';
 import type { IntentRoutingResult } from '../types.js';
 import { extractConversationalEntities, extractFoodOrderSlots, isFoodOrderExpression, validateConversationalEntities } from './conversationalExtraction.js';
@@ -165,6 +165,18 @@ async function recentDeviceObservation(phone: string, threadId: string | undefin
   return undefined;
 }
 
+function deviceResolutionOptions(resource: { label: string; kind: string }, facts: Record<string, any>, issue?: string): Array<{ id: string; label: string; prompt: string; basis: string }> {
+  const label = resource.label || resource.kind || 'device';
+  const serialized = JSON.stringify(facts.observedState || {}).toLowerCase();
+  const options: Array<{ id: string; label: string; prompt: string; basis: string }> = [];
+  if (/storage.{0,30}(full|low|critical)|(?:full|low|critical).{0,30}storage/.test(serialized)) options.push({ id: 'guided_cleanup', label: 'Help me free storage', prompt: `Help me safely free storage on my ${label}.`, basis: 'observed_storage_pressure' });
+  if (/background|battery.{0,30}(high|unusual)|high.{0,30}activity/.test(serialized)) options.push({ id: 'guided_configuration', label: 'Review background activity', prompt: `Help me review and reduce unusual background activity on my ${label}.`, basis: 'observed_background_activity' });
+  if (issue || /slow|sluggish|fault|error|broken|not working/.test(serialized)) options.push({ id: 'find_provider', label: 'Find an expert', prompt: `Find someone who can inspect or fix my ${label}; include the recorded device evidence.`, basis: 'reported_or_observed_issue' });
+  if (facts.liveObservation === true || facts.observedAt) options.push({ id: 'monitor', label: 'Keep monitoring it', prompt: `Keep an eye on my ${label} and tell me if anything changes.`, basis: 'recorded_observation_available' });
+  if (!options.length) options.push({ id: 'no_action', label: 'It may be fine', prompt: `The available information suggests my ${label} may be fine. Help me decide whether any action is needed.`, basis: 'no_actionable_issue_observed' });
+  return options.slice(0, 4);
+}
+
 async function inspectConnectedResourceForDeviceSupport(phone: string | undefined, query: string, threadId?: string): Promise<IntentRoutingResult | null> {
   if (!phone || phone.startsWith('anon_')) return null;
   const active = (await listConnectedResources(phone)).filter(resource => resource.status === 'active');
@@ -175,9 +187,16 @@ async function inspectConnectedResourceForDeviceSupport(phone: string | undefine
     return { skill: 'device_support', reply: `I found more than one connected resource that could match this request: ${labels}. Tell me the exact resource name before I inspect anything.`, cardData: { type: 'device_resource_selection', status: 'needs_user', resources: matches.slice(0, 5).map(resource => ({ id: resource.id, kind: resource.kind, label: resource.label, vendor: resource.vendor || null, capabilities: resource.capabilities })), ownerScoped: true, noInspectionPerformed: true }, progressStage: 'understanding', extractionSource: 'deterministic' };
   }
   const resource = matches[0];
+  if (!connectedResourceSupports(resource, 'inspect')) return {
+    skill: 'device_support',
+    reply: `Your connected ${resource.kind} is registered, but this client has not exposed an authorised inspection capability. I will not claim to have checked it. I can guide safe checks or help find someone to inspect it.`,
+    cardData: { type: 'device_support', status: 'needs_user', title: 'Inspection unavailable', resource: { id: resource.id, kind: resource.kind, label: resource.label, protocol: resource.protocol }, inspection: { status: 'unavailable', reason: 'client_inspection_capability_not_exposed' }, resolution: { status: 'options', options: [{ id: 'guided_checks', label: 'Guide me through checks', prompt: `Guide me through safe checks for my ${resource.label}.`, basis: 'direct_inspection_unavailable' }, { id: 'find_provider', label: 'Find an inspector', prompt: `Find someone who can inspect my ${resource.label}.`, basis: 'direct_inspection_unavailable' }] }, liveObservation: false, noInspectionPerformed: true, ownerScoped: true }, canonicalAction: 'device_support.inspection_unavailable', progressStage: 'information', extractionSource: 'deterministic',
+  };
   const result = await executeCanonicalCapabilityProposal({ capability: 'execution', action: 'dispatch', canonicalObjectId: resource.id, arguments: { resourceId: resource.id, command: 'status' }, phone, conversationId: threadId, channel: 'chat', confirmationRequired: false, idempotencyKey: `device-support-inspect:${threadId || 'turn'}:${resource.id}:${query.toLowerCase().slice(0, 120)}` });
-  const facts = result.canonicalFacts || {};
-  return { skill: 'device_support', reply: result.message, cardData: { type: 'device_support', status: result.status, title: `Recorded ${resource.kind} observation`, message: result.message, resource: facts.resource || { id: resource.id, kind: resource.kind, label: resource.label }, observedState: facts.observedState ?? null, observedAt: facts.observedAt ?? null, liveObservation: facts.liveObservation === true, evidenceLevel: result.evidenceLevel, nextActions: result.nextActions, ownerScoped: true }, canonicalAction: 'execution.dispatch', progressStage: result.status === 'completed' ? 'information' : 'coordination', extractionSource: 'deterministic' };
+  const facts = (result.canonicalFacts || {}) as Record<string, any>;
+  const resolutionOptions = result.status === 'completed' ? deviceResolutionOptions(resource, { ...facts, liveObservation: facts.liveObservation === true }, facts.issue || facts.observedState?.issue) : [];
+  const resolution = result.status === 'completed' ? { status: 'options', options: resolutionOptions } : { status: 'waiting_for_evidence', options: [] };
+  return { skill: 'device_support', reply: result.status === 'completed' ? `${result.message} Based on that evidence, the next step is a resolution choice rather than assuming repair.` : result.message, cardData: { type: 'device_support', status: result.status, title: `Recorded ${resource.kind} observation`, message: result.message, resource: facts.resource || { id: resource.id, kind: resource.kind, label: resource.label }, observedState: facts.observedState ?? null, observedAt: facts.observedAt ?? null, liveObservation: facts.liveObservation === true, evidenceLevel: result.evidenceLevel, nextActions: result.nextActions, resolution, ownerScoped: true }, canonicalAction: 'execution.dispatch', progressStage: result.status === 'completed' ? 'checking' : 'coordination', extractionSource: 'deterministic' };
 }
 
 function extractRepairSlots(q: string): Record<string, unknown> {
@@ -292,7 +311,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       return {
         skill: 'device_support',
         reply: `I can help check your ${extractedEntities.device || 'device'}${extractedEntities.issue ? ` — I noted that it is ${extractedEntities.issue}` : ''}. I do not have a live connection or a recorded observation for it yet. Connect the device or tell me what you can see, and I’ll guide the safest next check before suggesting any repair.`,
-        cardData: { type: 'device_support', status: 'needs_user', resource: extractedEntities.device ? { kind: extractedEntities.device, label: extractedEntities.deviceModel || extractedEntities.device } : null, issue: extractedEntities.issue || null, liveObservation: false, noInspectionPerformed: true, ownerScoped: true },
+        cardData: { type: 'device_support', status: 'needs_user', resource: extractedEntities.device ? { kind: extractedEntities.device, label: extractedEntities.deviceModel || extractedEntities.device } : null, issue: extractedEntities.issue || null, inspection: { status: 'unavailable', reason: 'no_authorized_connected_resource' }, resolution: { status: 'options', options: [{ id: 'guided_checks', label: 'Guide me through checks', prompt: `Guide me through safe checks for my ${extractedEntities.deviceModel || extractedEntities.device || 'device'}.`, basis: 'no_authorized_connected_resource' }, { id: 'find_provider', label: 'Find an inspector', prompt: `Find someone who can inspect my ${extractedEntities.deviceModel || extractedEntities.device || 'device'}.`, basis: 'no_authorized_connected_resource' }] }, liveObservation: false, noInspectionPerformed: true, ownerScoped: true },
         extractedEntities: extractedEntities as Record<string, unknown>,
         extractionSource: 'deterministic',
         progressStage: 'understanding',
