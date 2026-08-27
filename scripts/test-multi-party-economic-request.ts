@@ -17,6 +17,7 @@ const { resumeStorefrontFromRequest } = await import('../src/services/agenticSto
 const { createAIAgent } = await import('../src/services/aiAgentService.js');
 const { createOpenIntention } = await import('../src/services/deferredRequestService.js');
 const { routeIntent } = await import('../src/services/intentRouter.js');
+const { getInternalNotifications } = await import('../src/services/pushNotifications.js');
 
 const db = await getDb();
 const buyerPhone = '+2347000010101';
@@ -124,6 +125,8 @@ const participantHandover = await updateEconomicParticipant({
 assert.equal(participantHandover.evidence.handover_receipt, 'seller-submitted-handover-001', 'the seller can submit its own handover evidence');
 assert.equal(Array.isArray(participantHandover.evidence._submissions), true, 'server records evidence submission attribution rather than trusting an asserted actor');
 assert.equal((participantHandover.evidence._submissions as any[])[0]?.actor_phone, sellerPhone, 'participant evidence includes the authenticated submitter recorded by the service');
+const handoverAttention = await getInternalNotifications(buyerPhone, 20);
+assert.equal(handoverAttention.some((notification: any) => notification.title === 'Update from your seller' && notification.object_id === knownRequest.request.id && notification.canonical_action === 'economic_request.open'), true, 'a seller handover update must notify the owner with the same request context');
 await assert.rejects(
   () => updateEconomicParticipant({ requestId: knownRequest.request.id, actorPhone: intruderPhone, role: 'seller', providerPhone: sellerPhone, status: 'handed_over', evidence: { forged: true } }),
   /ownership or participant identity/i,
