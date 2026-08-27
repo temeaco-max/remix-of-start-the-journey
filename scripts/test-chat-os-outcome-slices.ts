@@ -107,7 +107,12 @@ const requestStatus = await routeIntent("What's the status of my request?", phon
 assert.equal(requestStatus.cardData?.type, 'request_status');
 assert.equal(requestStatus.cardData?.status, 'not_found');
 
-console.log('Chat OS outcome slices passed: memory record/review, one-shot and recurring reminders, safe until-complete reminder clarification, notification inbox/read, provider/food/transport/product/discovery outcome routing, monitoring setup, communication preparation, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
+const previousOutcome = await routeIntent('What happened with that?', phone, undefined, undefined, conversationId);
+assert.equal(previousOutcome.cardData?.type, 'request_status');
+assert.equal(previousOutcome.cardData?.relativeReference, true);
+assert.equal(previousOutcome.cardData?.status, 'not_found');
+
+console.log('Chat OS outcome slices passed: memory record/review, relative request-status continuity, one-shot and recurring reminders, safe until-complete reminder clarification, notification inbox/read, provider/food/transport/product/discovery outcome routing, monitoring setup, communication preparation, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
 
 process.exit(0);
 
