@@ -95,6 +95,7 @@ export function extractFoodOrderSlots(text: string): { items?: string; location?
   const unique = [...new Set(found)];
   const explicitFoodIntent = /\b(?:order|buy|get|need|want|deliver(?:ed|y)?|bring|send|food|meal|grocer(?:y|ies))\b/i.test(query);
   const contextualFoodIntent = unique.length >= 2 && Boolean(location);
+  if (!unique.length && explicitFoodIntent) { const vagueItem = query.match(/\b(?:something|anything|a meal|food)\b/i)?.[0]?.toLowerCase(); if (vagueItem) return { items: vagueItem, ...(location ? { location } : {}), ...(delivery ? { delivery: true } : {}) }; }
   if (!unique.length || (!explicitFoodIntent && !contextualFoodIntent)) return {};
   return { items: unique.join(' and '), ...(location ? { location } : {}), ...(delivery ? { delivery: true } : {}) };
 }
