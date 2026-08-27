@@ -103,10 +103,16 @@ assert.equal(knownRequest.request.skill, 'product_sourcing', 'known offer select
 assert.equal(knownRequest.request.requirements.delivery_required, 'yes', 'the buyer delivery preference is stored as request context, not a second lifecycle');
 assert.equal(knownRequest.seller.role, 'seller', 'known offer selection records the verified seller participant');
 assert.equal(knownRequest.offer.originOfferId, offer.id, 'the selected request snapshots the known offer reference for auditability');
+const deliveryDecision = await resumeStorefrontFromRequest(buyerPhone, knownRequest.request.id);
+assert.equal(deliveryDecision?.stage, 'delivery_selection', 'an offer with requested delivery projects the existing courier choice as one decision on the same request');
+assert.equal((deliveryDecision?.deliveryCandidates || []).some(provider => provider.phone === deliveryPhone), true, 'the delivery decision exposes only current verified delivery candidates');
 const deliveryCandidates = await getDeliveryCandidates({ requestId: knownRequest.request.id, ownerPhone: buyerPhone });
 assert.equal(deliveryCandidates.providers.some((provider) => provider.phone === deliveryPhone), true, 'delivery candidates reuse existing verified skill matching');
 const selectedDelivery = await selectDeliveryCandidate({ requestId: knownRequest.request.id, ownerPhone: buyerPhone, providerPhone: deliveryPhone });
 assert.equal(selectedDelivery.status, 'selected', 'buyer selection records one delivery participant without altering the primary provider field');
+const selectedDeliveryDecision = await resumeStorefrontFromRequest(buyerPhone, knownRequest.request.id);
+assert.equal(selectedDeliveryDecision?.stage, 'delivery_selection', 'the same request resumes after courier selection without starting another delivery workflow');
+assert.equal(selectedDeliveryDecision?.actions?.some(action => action.id === 'dispatch_delivery'), true, 'the selected courier advances to the existing authorized dispatch boundary');
 const participantHandover = await updateEconomicParticipant({
   requestId: knownRequest.request.id,
   actorPhone: sellerPhone,

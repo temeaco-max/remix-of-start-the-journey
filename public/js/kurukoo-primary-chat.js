@@ -767,7 +767,7 @@
 
     if (Array.isArray(card.knownOffers) && card.knownOffers.length) {
       const offers = makeElement('section', 'storefront-known-offers');
-      offers.appendChild(makeElement('strong', '', 'Known seller offers'));
+      offers.appendChild(makeElement('strong', '', 'I found these seller options'));
       const list = makeElement('ul', 'storefront-offers-list');
       card.knownOffers.forEach(offer => {
         const item = makeElement('li');
@@ -799,14 +799,14 @@
 
     if (Array.isArray(card.deliveryCandidates) && card.deliveryCandidates.length) {
       const candidates = makeElement('section', 'storefront-delivery-candidates');
-      candidates.appendChild(makeElement('strong', '', 'Delivery options'));
+      candidates.appendChild(makeElement('strong', '', 'I need you to choose delivery'));
       const list = makeElement('ul', 'storefront-offers-list');
       card.deliveryCandidates.forEach(provider => {
         const item = makeElement('li');
         const details = makeElement('div');
         details.append(
           makeElement('strong', '', provider.name || 'Delivery provider'),
-          makeElement('span', '', `Profile details · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
+          makeElement('span', '', `Verified option · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
         );
         const button = makeElement('button', 'sf-btn sf-primary', 'Choose delivery');
         button.type = 'button';
@@ -825,7 +825,7 @@
         const details = makeElement('div');
         details.append(
           makeElement('strong', '', provider.name || 'Provider'),
-          makeElement('span', '', `Profile details · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
+          makeElement('span', '', `Verified option · listed rate ${String(provider.hourly_rate || 0)} ${String(provider.currency || 'local currency')}`)
         );
         item.appendChild(details);
         if (card.requestId && provider.phone) {
@@ -863,7 +863,7 @@
 
     if (Array.isArray(card.participants) && card.participants.length) {
       const coordination = makeElement('section', 'storefront-coordination');
-      coordination.appendChild(makeElement('strong', '', 'Coordination participants'));
+      coordination.appendChild(makeElement('strong', '', 'What is happening'));
       const participants = makeElement('ul', 'storefront-participants');
       card.participants.forEach(participant => {
         const item = makeElement('li');
@@ -871,7 +871,7 @@
         const status = String(participant.status || 'invited').replace(/_/g, ' ');
         item.append(
           makeElement('strong', '', role),
-          makeElement('span', '', `${status} · ${String(participant.capability || 'coordination detail pending')}`)
+          makeElement('span', '', `${status}${participant.capability ? ` · ${String(participant.capability).replace(/_/g, ' ')}` : ''}`)
         );
         participants.appendChild(item);
       });
@@ -881,10 +881,10 @@
 
     if (card.execution && typeof card.execution === 'object') {
       const execution = makeElement('section', 'storefront-execution');
-      execution.appendChild(makeElement('strong', '', 'Execution status'));
+      execution.appendChild(makeElement('strong', '', 'Latest progress'));
       execution.appendChild(makeElement('span', 'storefront-execution-status', String(card.execution.status || 'pending').replace(/_/g, ' ')));
-      execution.appendChild(makeElement('small', '', `Connector: ${String(card.execution.connectorId || 'not specified')}`));
-      if (card.execution.externalReference) execution.appendChild(makeElement('small', '', `Provider reference: ${String(card.execution.externalReference)}`));
+      execution.appendChild(makeElement('small', '', card.execution.connectorId ? 'Recorded through an authorized service.' : 'No external dispatch is claimed.'));
+      if (card.execution.externalReference) execution.appendChild(makeElement('small', '', `Reference: ${String(card.execution.externalReference)}`));
       if (card.execution.failureReason) execution.appendChild(makeElement('small', 'storefront-execution-failure', `Dispatch failed: ${String(card.execution.failureReason)}. Manual confirmation is required.`));
       if (Array.isArray(card.execution.evidence) && card.execution.evidence.length) {
         const evidence = makeElement('ul', 'storefront-execution-evidence');
