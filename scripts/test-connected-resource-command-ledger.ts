@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { registerConnectedResource, activateConnectedResource, controlConnectedResource } from '../src/services/connectedResourceService.js';
+import { registerConnectedResource, activateConnectedResource, controlConnectedResource, connectedResourceSupportProfile } from '../src/services/connectedResourceService.js';
 import { routeIntent } from '../src/services/intentRouter.js';
 import { processCanonicalChatTurn } from '../src/services/canonicalChatTurnService.js';
 import { getEconomicRequest } from '../src/services/skillFlows.js';
@@ -15,6 +15,7 @@ const { resource, challenge } = await registerConnectedResource({
 });
 const activated = await activateConnectedResource(phone, resource.id, challenge.code);
 assert.equal(activated?.status, 'active');
+assert.equal(connectedResourceSupportProfile(resource).level, 1);
 
 const first = await controlConnectedResource({ phone, id: resource.id, command: 'control', payload: 'on', idempotencyKey: 'ledger-test-1' });
 assert.equal(first.accepted, false);
@@ -41,6 +42,16 @@ const diagnostic = await registerConnectedResource({
 });
 const diagnosticActive = await activateConnectedResource(phone, diagnostic.resource.id, diagnostic.challenge.code);
 assert.equal(diagnosticActive?.status, 'active');
+assert.equal(connectedResourceSupportProfile(diagnosticActive!).level, 2);
+
+const actionable = await registerConnectedResource({ phone, kind: 'phone', label: 'Actionable Phone', protocol: 'mqtt', capabilities: ['observe', 'control'], metadata: { baseTopic: 'kurukoo/test/actionable-phone' } });
+const actionableActive = await activateConnectedResource(phone, actionable.resource.id, actionable.challenge.code);
+assert.equal(connectedResourceSupportProfile(actionableActive!).level, 3);
+
+const physical = await registerConnectedResource({ phone, kind: 'iot', label: 'Physical Sensor', protocol: 'mqtt', capabilities: ['observe', 'control'], metadata: { baseTopic: 'kurukoo/test/physical-sensor', physicalWorld: true } });
+const physicalActive = await activateConnectedResource(phone, physical.resource.id, physical.challenge.code);
+assert.equal(connectedResourceSupportProfile(physicalActive!).level, 4);
+
 const inspected = await routeIntent('Check my Work MacBook.', phone, undefined, undefined, 'connected-resource-test');
 assert.equal(inspected.skill, 'device_support');
 assert.equal(inspected.cardData?.type, 'device_support');

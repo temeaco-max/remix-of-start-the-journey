@@ -997,6 +997,11 @@
     const heading = status === 'completed' ? 'Recorded device observation' : status === 'needs_user' ? 'Choose a connected resource' : 'Device observation unavailable';
     holder.appendChild(makeElement('strong', '', heading));
     holder.appendChild(makeElement('p', 'storefront-offer-copy', String(card.message || 'Kurukoo has not claimed a live device diagnosis.')));
+    const support = card.supportLevel && typeof card.supportLevel === 'object' ? card.supportLevel : null;
+    if (support?.level) {
+      holder.appendChild(makeElement('strong', 'device-support-level', `Support level ${String(support.level)} · ${String(support.name || 'Available support')}`));
+      holder.appendChild(makeElement('p', 'device-support-explanation', String(support.explanation || 'Kurukoo will use the strongest capability currently available and remain clear about what it cannot do.')));
+    }
     if (card.resource && typeof card.resource === 'object') {
       const resource = card.resource;
       holder.appendChild(makeElement('small', 'storefront-execution-status', `${String(resource.label || 'Connected resource')} · ${String(resource.kind || 'device')} · ${String(resource.protocol || 'adapter')}`));
