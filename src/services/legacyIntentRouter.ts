@@ -2,14 +2,15 @@ import { queryUnifiedAI, type AIProvider, type ConversationalContextHint } from 
 import { decideConversationIntelligence } from './conversationIntelligenceService.js';
 import { getProfile, getMemoryFacts, updateProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
-import { getContextualIntentSuggestions, getEconomicCategory, getKnownSkills, getSkillFlow } from './skillFlows.js';
+import { getContextualIntentSuggestions, getEconomicCategory, getEconomicRequest, getKnownSkills, getSkillFlow } from './skillFlows.js';
 import { classifyWithFastText } from './fastTextService.js';
 import { advanceStorefront, previewStorefrontCard, startStorefrontSession, tryResumeStorefront } from './agenticStorefront.js';
 import { searchKnownEconomicOffers } from './economicParticipants.js';
 import { listReminders } from './reminderService.js';
 import { listSafetyContacts } from './safetyService.js';
-import { getInternalNotifications } from './pushNotifications.js';
+import { getInternalNotificationById, getInternalNotifications, markNotificationRead } from './pushNotifications.js';
 import { cancelAgentGoal, listAgentGoals, pauseAgentGoal, resumeAgentGoal } from './agentRuntime.js';
+import { acceptTask, completeTask, listAssignedTasks } from './microTasks.js';
 import { generateReferralCode } from './referralService.js';
 import { getAssistanceOutcome } from './assistanceOutcomeService.js';
 import { resolveConversationPriority } from './conversationPriorityService.js';
@@ -241,11 +242,85 @@ async function handleExplicitMemory(phone: string, q: string): Promise<IntentRou
     const statement = remember[1].trim(); const profile = await getProfile(phone, 'conversation_memory'); const preferences = { ...(profile?.preferences || {}) }; const locationMatch = statement.match(/\busual area is\s+([a-z][a-z -]{1,40}?)(?:\s+and\b|$)/i);
     if (/\b(prefer|want|like)\b.*\b(short|simple|concise|brief)\b/i.test(statement)) preferences.response_style = 'concise'; else if (/\bevening\b.*\breminder/i.test(statement)) preferences.reminder_time_preference = 'evening'; else if (!locationMatch) return { skill: 'memory', reply: 'I can remember preferences such as how you like answers, your usual area, or when you prefer reminders. Tell me that preference in a specific way.' };
     await updateProfile(phone, 'conversation_memory', { preferences, ...(locationMatch ? { location: locationMatch[1].trim(), provenance: 'user_declared' as const, source_ref: 'conversation_memory' } : {}) });
-    return { skill: 'memory', reply: locationMatch ? `Got it. I’ll remember **${locationMatch[1].trim()}** as your usual area and keep your preference with your Kurukoo Memory Profile.` : 'Got it. I’ll keep that preference with your Kurukoo Memory Profile.' };
+    return { skill: 'memory', reply: locationMatch ? `Got it. I’ll remember **${locationMatch[1].trim()}** as your usual area and keep your preference with your Kurukoo Memory Profile.` : 'Got it. I’ll keep that preference with your Kurukoo Memory Profile.', cardData: { type: 'memory_action', status: 'recorded', provenance: 'user_declared', source: 'conversation_memory' }, canonicalAction: 'memory.record', progressStage: 'complete' };
   }
   if (/^what do you remember\b|^what do you know about me\b/i.test(q)) {
     const profile = await getProfile(phone, 'conversation_memory'); const facts = await getMemoryFacts(phone, ['name', 'location']); const preferences = profile?.preferences || {}; const nameFact = facts.find((fact) => fact.field === 'name'); const locationFact = facts.find((fact) => fact.field === 'location'); const items = [nameFact ? `your name is ${nameFact.value}` : '', locationFact ? `your usual area is ${locationFact.value}` : '', preferences.response_style === 'concise' ? 'you prefer short, simple answers' : '', preferences.reminder_time_preference === 'evening' ? 'you prefer evening reminders' : ''].filter(Boolean);
-    return { skill: 'memory', reply: items.length ? `I remember that ${items.join('; ')}.` : 'I do not have any saved preferences or declared profile facts for you yet.' };
+    return { skill: 'memory', reply: items.length ? `I remember that ${items.join('; ')}.` : 'I do not have any saved preferences or declared profile facts for you yet.', cardData: { type: 'memory', status: items.length ? 'stored' : 'empty', facts: facts.map((fact: any) => ({ id: fact.id, field: fact.field, value: fact.value, provenance: fact.provenance, sourceRef: fact.source_ref })), preferences: { responseStyle: preferences.response_style, reminderTimePreference: preferences.reminder_time_preference }, ownerScoped: true }, canonicalAction: 'memory.review', progressStage: 'information' };
+  }
+  return null;
+}
+
+async function handleExplicitOSAction(phone: string | undefined, q: string, threadId?: string): Promise<IntentRoutingResult | null> {
+  if (!phone || phone.startsWith('anon_')) return null;
+  const notificationRead = q.match(/^(?:mark|set) notification (\d+) as (?:read|seen)$/i);
+  if (notificationRead) {
+    const id = Number(notificationRead[1]);
+    const existing = await getInternalNotificationById(phone, id);
+    if (!existing) return { skill: 'notifications', reply: 'That exact notification is not available to this account, so I did not substitute another one.', cardData: { type: 'notification_action', status: 'unavailable', notificationId: id, exactContext: true }, canonicalAction: 'notification.read.unavailable', progressStage: 'information' };
+    const changed = await markNotificationRead(phone, id);
+    return { skill: 'notifications', reply: changed ? `Marked **${existing.title}** as read. Its source context remains available from the notification record.` : `That exact notification is already read or no longer active. I did not substitute another notification.`, cardData: { type: 'notification_action', status: changed ? 'completed' : 'stale_context', notification: existing, exactContext: true, canonicalAction: changed ? 'notification.dismiss' : 'notification.read.unavailable' }, canonicalAction: changed ? 'notification.dismiss' : 'notification.read.unavailable', progressStage: 'complete' };
+  }
+  const notificationOpen = q.match(/^open notification (\d+)$/i);
+  if (notificationOpen) {
+    const id = Number(notificationOpen[1]);
+    const notification = await getInternalNotificationById(phone, id);
+    if (!notification) return { skill: 'notifications', reply: 'That exact notification is no longer available, so I did not substitute another one.', cardData: { type: 'notification_action', status: 'unavailable', notificationId: id, exactContext: true }, canonicalAction: 'notification.open.unavailable', progressStage: 'information' };
+    return { skill: 'notifications', reply: `${notification.title}: ${notification.body}`, cardData: { type: 'notification_action', status: 'opened', notification, exactContext: true, canonicalAction: 'notification.open' }, canonicalAction: 'notification.open', progressStage: 'information' };
+  }
+  if (/^(?:what notifications|show (?:my )?notifications|what updates are waiting|show (?:my )?updates)$/i.test(q)) {
+    const notifications = await getInternalNotifications(phone, 20);
+    return { skill: 'notifications', reply: notifications.length ? `I found ${notifications.length} stored notification${notifications.length === 1 ? '' : 's'} and kept each source context separate.` : 'There are no stored notifications waiting for you right now. External push delivery is not assumed unless the delivery state says so.', cardData: { type: 'notifications', status: 'stored', count: notifications.length, notifications: notifications.map(item => ({ id: item.id, title: item.title, body: item.body, status: item.status, deliveryState: item.delivery_state, link: item.link, objectType: item.object_type, objectId: item.object_id, conversationId: item.conversation_id, canonicalAction: item.canonical_action })), exactContext: false, ownerScoped: true }, canonicalAction: 'notification.inbox.open', progressStage: 'information' };
+  }
+  if (/^(?:show|list) (?:my )?reminders$|^what are my reminders$/i.test(q)) {
+    const reminders = await listReminders(phone);
+    return { skill: 'reminder', reply: reminders.length ? `You have ${reminders.length} active reminder${reminders.length === 1 ? '' : 's'}. Choose one below to continue or cancel it.` : 'You have no active reminders. Tell me what you want me to remind you about and when.', cardData: { type: 'reminders', status: 'stored', reminders: reminders.slice(0, 20).map(item => ({ id: item.id, title: item.title, dueAt: item.due_at, recurrence: item.recurrence, status: item.status, sourceConversationId: item.source_conversation_id, resumeContextId: item.resume_context_id })), ownerScoped: true }, canonicalAction: 'reminder.inbox.open', progressStage: 'information' };
+  }
+  const reminderId = q.match(/^cancel reminder (\S+)$/i);
+  if (reminderId) {
+    const exactId = reminderId[1];
+    const result = await executeCanonicalCapabilityProposal({ capability: 'reminder', action: 'cancel', canonicalObjectId: exactId, phone, conversationId: threadId, channel: 'chat', idempotencyKey: `route-reminder-cancel:${phone}:${exactId}` });
+    return { skill: 'reminder', reply: result.message, cardData: { type: 'reminder_action', status: result.status, reminderId: exactId, canonicalFacts: result.canonicalFacts || {}, exactContext: true }, canonicalAction: 'reminder.cancel', progressStage: result.status === 'completed' ? 'complete' : 'information' };
+  }
+  const forgetMemory = q.match(/^forget memory (\d+)$/i);
+  if (forgetMemory) {
+    const exactId = forgetMemory[1];
+    const result = await executeCanonicalCapabilityProposal({ capability: 'memory', action: 'forget', canonicalObjectId: exactId, phone, conversationId: threadId, channel: 'chat', idempotencyKey: `route-memory-forget:${phone}:${exactId}` });
+    return { skill: 'memory', reply: result.message, cardData: { type: 'memory_action', status: result.status, factId: exactId, canonicalFacts: result.canonicalFacts || {}, exactContext: true }, canonicalAction: 'memory.forget', progressStage: result.status === 'completed' ? 'complete' : 'information' };
+  }
+  if (/^(?:show|list) (?:my )?tasks$|^what are my tasks$/i.test(q)) {
+    const tasks = await listAssignedTasks(phone);
+    return { skill: 'tasks', reply: tasks.length ? `I found ${tasks.length} active task${tasks.length === 1 ? '' : 's'} assigned to you. Choose a task to accept or continue.` : 'You have no active assigned tasks right now.', cardData: { type: 'tasks', status: 'stored', tasks: tasks.slice(0, 20).map(task => ({ id: task.id, title: task.title, status: task.status, description: task.description, sourceType: task.sourceType })), ownerScoped: true }, canonicalAction: 'task.inbox.open', progressStage: 'information' };
+  }
+  const acceptTaskMatch = q.match(/^accept task (\d+)$/i);
+  if (acceptTaskMatch) {
+    try { const task = await acceptTask(phone, Number(acceptTaskMatch[1])); return { skill: 'tasks', reply: `Accepted task **${task.title}**. Complete the work, then tell me “complete task ${task.id}: [your result]” so I can record the submitted evidence.`, cardData: { type: 'task_action', status: 'in_progress', task, exactContext: true }, canonicalAction: 'task.accept', progressStage: 'ready' }; } catch (error) { return { skill: 'tasks', reply: error instanceof Error ? error.message : 'I could not accept that exact task.', cardData: { type: 'task_action', status: 'blocked', taskId: Number(acceptTaskMatch[1]), exactContext: true }, canonicalAction: 'task.accept.blocked', progressStage: 'information' }; }
+  }
+  const completeTaskMatch = q.match(/^complete task (\d+)\s*:\s*(.+)$/i);
+  if (completeTaskMatch) {
+    try { const result = await completeTask(phone, Number(completeTaskMatch[1]), completeTaskMatch[2].trim()); return { skill: 'tasks', reply: result.success ? `Submitted the result for task **${completeTaskMatch[1]}**. The completion record and any eligible Points award are now persisted.` : 'I could not confirm completion of that exact task.', cardData: { type: 'task_action', status: result.success ? 'completed' : 'blocked', taskId: Number(completeTaskMatch[1]), reward: result.reward, evidence: completeTaskMatch[2].trim(), exactContext: true }, canonicalAction: 'task.complete', progressStage: result.success ? 'complete' : 'information' }; } catch (error) { return { skill: 'tasks', reply: error instanceof Error ? error.message : 'I could not complete that exact task.', cardData: { type: 'task_action', status: 'blocked', taskId: Number(completeTaskMatch[1]), exactContext: true }, canonicalAction: 'task.complete.blocked', progressStage: 'information' }; }
+  }
+  if (/^(?:what is|what's|show) (?:my )?(?:points balance|points history)$/i.test(q)) {
+    const action = /history/i.test(q) ? 'history' : 'inspect';
+    const result = await executeCanonicalCapabilityProposal({ capability: 'points', action, phone, conversationId: threadId, channel: 'chat', idempotencyKey: `route-points:${phone}:${action}` });
+    return { skill: 'view_balance', reply: result.message, cardData: { type: 'os_status', domain: 'points', status: result.status, facts: result.canonicalFacts || {}, nextActions: result.nextActions || [], ownerScoped: true }, canonicalAction: `points.${action}`, progressStage: 'information' };
+  }
+  if (/^(?:what is|what's|show) (?:my )?(?:subscription|plan)$/i.test(q)) {
+    const result = await executeCanonicalCapabilityProposal({ capability: 'subscription', action: 'status', phone, conversationId: threadId, channel: 'chat', idempotencyKey: `route-subscription:${phone}` });
+    return { skill: 'subscription', reply: result.message, cardData: { type: 'os_status', domain: 'subscription', status: result.status, facts: result.canonicalFacts || {}, nextActions: result.nextActions || [], ownerScoped: true }, canonicalAction: 'subscription.status', progressStage: 'information' };
+  }
+  const channelMatch = q.match(/^is (whatsapp|telegram|sms|email|ivr|web) connected\??$/i);
+  if (channelMatch) {
+    const channel = channelMatch[1].toLowerCase();
+    const result = await executeCanonicalCapabilityProposal({ capability: 'channel', action: 'status', arguments: { channel }, phone, conversationId: threadId, channel: 'chat', idempotencyKey: `route-channel:${phone}:${channel}` });
+    return { skill: 'channel', reply: result.message, cardData: { type: 'os_status', domain: 'channel', channel, status: result.status, facts: result.canonicalFacts || {}, nextActions: result.nextActions || [], ownerScoped: true }, canonicalAction: 'channel.status', progressStage: 'information' };
+  }
+  if (/^(?:what is|what's|show) (?:the )?(?:status|state) of my (?:request|order|booking)$/i.test(q)) {
+    const active = await tryResumeStorefront(phone);
+    if (!active?.requestId) return { skill: 'requests', reply: 'I could not find an active request, order, or booking in this conversation. I have not substituted another one.', cardData: { type: 'request_status', status: 'not_found', exactContext: true }, canonicalAction: 'economic_request.status.not_found', progressStage: 'information' };
+    const request = await getEconomicRequest(active.requestId);
+    if (!request || request.phone !== phone) return { skill: 'requests', reply: 'That request context is not available to this account, so I have not substituted another request.', cardData: { type: 'request_status', status: 'unavailable', requestId: active.requestId, exactContext: true }, canonicalAction: 'economic_request.status.unavailable', progressStage: 'information' };
+    return { skill: 'requests', reply: `Your ${request.skill.replace(/_/g, ' ')} request is currently **${request.status}**. I have not claimed a provider, payment, dispatch, or fulfilment outcome beyond the evidence recorded on the request.`, cardData: { type: 'request_status', status: request.status, requestId: request.id, skill: request.skill, requirements: request.requirements || {}, quote: request.quote || null, fulfillment: request.fulfillment || null, exactContext: true, ownerScoped: true }, canonicalAction: 'economic_request.status', progressStage: 'information' };
   }
   return null;
 }
@@ -262,6 +337,8 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   }
 
   if (phone) { const memoryResult = await handleExplicitMemory(phone, q); if (memoryResult) return memoryResult; }
+  const osAction = await handleExplicitOSAction(phone, q, threadId);
+  if (osAction) return osAction;
   if (phone && /^(what notifications|show (my )?notifications|what updates are waiting|show (my )?updates)\b/i.test(q)) {
     const notifications = await getInternalNotifications(phone, 10); if (!notifications.length) return { skill: 'notifications', reply: 'There are no stored notifications waiting for you right now. External push delivery is not assumed unless the delivery state says so.' }; const summary = notifications.slice(0, 5).map(item => `${item.title}: ${item.body} (${item.delivery_state})`).join('; '); return { skill: 'notifications', reply: `I found ${notifications.length} stored notification${notifications.length === 1 ? '' : 's'}: ${summary}`, cardData: { type: 'notifications', status: 'stored', count: notifications.length } };
   }

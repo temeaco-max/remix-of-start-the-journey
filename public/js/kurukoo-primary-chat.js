@@ -990,6 +990,52 @@
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 
+  function renderOSCollection(card, messageEl) {
+    const holder = makeElement('section', 'provider-card os-collection-card');
+    holder.setAttribute('aria-label', String(card.type || 'Kurukoo result').replace(/_/g, ' '));
+    const title = card.type === 'notifications' ? 'Your updates' : card.type === 'reminders' ? 'Your reminders' : card.type === 'tasks' ? 'Your tasks' : card.type === 'memory' ? 'Your saved context' : card.type === 'request_status' ? 'Request status' : card.type === 'os_status' ? `${String(card.domain || 'OS status').replace(/_/g, ' ')} status` : 'Kurukoo result';
+    holder.appendChild(makeElement('strong', '', title));
+    if (card.count !== undefined) holder.appendChild(makeElement('small', 'storefront-execution-status', `${String(card.count)} stored item${Number(card.count) === 1 ? '' : 's'}`));
+    const list = makeElement('div', 'inspector-list');
+    const items = card.type === 'notifications' ? (Array.isArray(card.notifications) ? card.notifications : []) : card.type === 'reminders' ? (Array.isArray(card.reminders) ? card.reminders : []) : card.type === 'tasks' ? (Array.isArray(card.tasks) ? card.tasks : []) : card.type === 'memory' ? (Array.isArray(card.facts) ? card.facts : []) : [];
+    if (items.length) {
+      items.forEach(item => {
+        const row = makeElement('article', 'inspector-list-row');
+        const details = makeElement('div');
+        const label = item.title || `Item ${String(item.id || '')}`;
+        const meta = item.deliveryState || item.status || item.dueAt || item.sourceType || '';
+        details.append(makeElement('strong', '', String(label)), makeElement('span', '', String(meta).replace(/_/g, ' ')));
+        if (item.body || item.description) details.appendChild(makeElement('small', '', String(item.body || item.description)));
+        if (card.type === 'memory' && item.provenance) details.appendChild(makeElement('small', '', `Provenance: ${String(item.provenance).replace(/_/g, ' ')}`));
+        const actions = makeElement('div', 'storefront-actions');
+        if (card.type === 'notifications') {
+          const open = makeElement('button', 'sf-btn sf-secondary', 'Open'); open.type = 'button'; open.addEventListener('click', () => sendMessage(`Open notification ${String(item.id)}`)); actions.appendChild(open);
+          if (String(item.status) !== 'read') { const read = makeElement('button', 'sf-btn sf-primary', 'Mark read'); read.type = 'button'; read.addEventListener('click', () => sendMessage(`Mark notification ${String(item.id)} as read`)); actions.appendChild(read); }
+        } else if (card.type === 'reminders') { const cancel = makeElement('button', 'sf-btn sf-secondary', 'Cancel'); cancel.type = 'button'; cancel.addEventListener('click', () => sendMessage(`Cancel reminder ${String(item.id)}`)); actions.appendChild(cancel); }
+        else if (card.type === 'tasks' && String(item.status) === 'available') { const accept = makeElement('button', 'sf-btn sf-primary', 'Accept task'); accept.type = 'button'; accept.addEventListener('click', () => sendMessage(`Accept task ${String(item.id)}`)); actions.appendChild(accept); }
+        else if (card.type === 'memory' && item.id) { const forget = makeElement('button', 'sf-btn sf-secondary', 'Forget'); forget.type = 'button'; forget.addEventListener('click', () => sendMessage(`Forget memory ${String(item.id)}`)); actions.appendChild(forget); }
+        if (actions.childElementCount) details.appendChild(actions);
+        row.appendChild(details); list.appendChild(row);
+      });
+    } else if (card.type !== 'request_status') list.appendChild(makeElement('div', 'deferred', 'Nothing is waiting here.'));
+    if (items.length) holder.appendChild(list);
+    if (card.type === 'memory_action') {
+      holder.appendChild(makeElement('span', 'storefront-execution-status', 'Saved to your owner-scoped Memory Profile.'));
+    }
+    if (card.type === 'os_status') {
+      holder.appendChild(makeElement('span', 'storefront-execution-status', `Status: ${String(card.status || 'unknown').replace(/_/g, ' ')}`));
+      const facts = card.facts && typeof card.facts === 'object' ? card.facts : {};
+      Object.entries(facts).forEach(([key, value]) => { if (value === undefined || value === null || value === '') return; holder.appendChild(makeElement('small', '', `${key.replace(/([A-Z])/g, ' $1')}: ${typeof value === 'object' ? JSON.stringify(value) : String(value)}`)); });
+    }
+    if (card.type === 'request_status') {
+      holder.appendChild(makeElement('span', 'storefront-execution-status', `Status: ${String(card.status || 'unknown').replace(/_/g, ' ')}`));
+      if (card.quote) holder.appendChild(makeElement('small', '', `Quote evidence: ${JSON.stringify(card.quote)}`));
+      if (card.fulfillment) holder.appendChild(makeElement('small', '', `Fulfilment evidence: ${JSON.stringify(card.fulfillment)}`));
+    }
+    holder.appendChild(makeElement('small', 'storefront-execution-status', card.ownerScoped === true ? 'Owner-scoped persisted state. Choose an exact item to continue.' : 'Persisted state only; no external delivery or fulfilment is implied.'));
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
   function renderDeviceSupport(card, messageEl) {
     const holder = makeElement('section', 'provider-card device-support-card');
     holder.setAttribute('aria-label', 'Device support');
@@ -1081,6 +1127,8 @@
   function renderCard(card, messageEl) {
     if (!card || !messageEl) return;
     if (card.type === 'assistance_outcome') return renderAssistanceOutcome(card, messageEl);
+    if (['notifications', 'reminders', 'tasks', 'memory', 'request_status', 'os_status'].includes(card.type)) return renderOSCollection(card, messageEl);
+    if (['notification_action', 'reminder_action', 'task_action', 'memory_action'].includes(card.type)) return renderOSCollection(card, messageEl);
     if (card.type === 'device_support' || card.type === 'device_resource_selection') return renderDeviceSupport(card, messageEl);
     if (card.type === 'agentic_storefront') {
       if (card.stage === 'slot_fill' || card.stage === 'intent_extraction') {
