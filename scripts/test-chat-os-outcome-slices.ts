@@ -150,6 +150,19 @@ assert.equal(ownedFood.cardData?.ownedWork, true, 'ordinary storefront outcomes 
 assert.equal(typeof ownedFood.cardData?.agentGoalId, 'string');
 assert.equal((await listAgentGoals(ownedFoodPhone)).some(goal => goal.id === ownedFood.cardData?.agentGoalId && goal.economicRequestId === ownedFood.cardData?.requestId), true, 'the food outcome must persist one goal attached to the same canonical request');
 
+const communityPhone = makeDomainPhone(44);
+const communityThread = `${conversationId}-community`;
+const communityMessage = 'Ask the community where neighbours have found safe generator repair guidance in Ibadan.';
+const communityDraft = await routeIntent(communityMessage, communityPhone, undefined, createContext, communityThread);
+assert.equal(communityDraft.skill, 'topic');
+assert.equal(communityDraft.cardData?.type, 'topic_draft');
+assert.equal(communityDraft.cardData?.status, 'review_required');
+assert.equal(communityDraft.cardData?.privacy, 'private_by_default');
+assert.equal(typeof communityDraft.cardData?.topicId, 'string');
+assert.equal(communityDraft.cardData?.requestId, undefined, 'A community draft must not create an Economic Request.');
+const replayedCommunityDraft = await routeIntent(communityMessage, communityPhone, undefined, createContext, communityThread);
+assert.equal(replayedCommunityDraft.cardData?.topicId, communityDraft.cardData?.topicId, 'A replayed Chat turn must return to the same private Topic draft.');
+
 const monitoring = await routeIntent('Keep an eye on my Wi-Fi', makeDomainPhone(41), undefined, undefined, `${conversationId}-monitoring`);
 assert.equal(monitoring.skill, 'autonomous_agent');
 assert.equal(monitoring.cardData?.type, 'monitoring_setup');

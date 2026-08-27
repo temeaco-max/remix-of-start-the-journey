@@ -17,6 +17,7 @@ import { resolveConversationPriority } from './conversationPriorityService.js';
 import { executeCanonicalCapabilityProposal } from './canonicalCapabilityExecutor.js';
 import { connectedResourceSupportProfile, connectedResourceSupports, listConnectedResources } from './connectedResourceService.js';
 import { listChatMessages } from './chatConversationService.js';
+import { createTopicDraft } from './topicService.js';
 import type { IntentRoutingResult } from '../types.js';
 import { extractConversationalEntities, extractFoodOrderSlots, isFoodOrderExpression, validateConversationalEntities } from './conversationalExtraction.js';
 
@@ -370,7 +371,22 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
   if (/\bkeep reminding me\b[\s\S]*\buntil\b/i.test(q)) { return { skill: 'reminder', reply: 'I can keep reminding you, but I need a cadence and a clear completion condition before scheduling it. Tell me, for example, “Remind me every day at 9am to call John until I say it is done.” No reminder has been created yet.', cardData: { type: 'reminder_setup', status: 'needs_user', requirement: 'cadence_and_completion_condition', actions: [{ id: 'choose_cadence', label: 'Choose a daily or weekly cadence' }, { id: 'define_completion', label: 'Define how I should know it is done' }] }, canonicalAction: 'reminder.setup', progressStage: 'understanding', extractionSource: 'deterministic' }; }
   if (/^(?:remind me|set (?:me )?a reminder)\b/.test(q)) { if (!phone || phone.startsWith('anon_')) return { skill: 'reminder', reply: 'I can save that reminder as soon as you sign in, so it stays with your Kurukoo profile.' }; const reminder = parseReminderQuery(q); if (reminder) { try { const created = await executeCanonicalCapabilityProposal({ capability: 'reminder', action: 'create', arguments: { title: reminder.title, dueAt: reminder.dueAt, ...(reminder.recurrence ? { recurrence: reminder.recurrence } : {}) }, phone, conversationId: threadId, contextId: threadId ? `conv:${threadId}` : undefined, channel: 'chat', idempotencyKey: `route-reminder:${phone}:${threadId || 'turn'}:${reminder.dueAt}` }); return { skill: 'reminder', reply: created.status === 'completed' ? `⏰ Done. I’ll remind you **${reminder.title}** (${reminder.displayTime})${reminder.recurrence ? ` until you cancel it` : ''}.` : 'I could not create that reminder.', cardData: decorateCardWithSuggestions({ type: 'reminder', reminder: { id: created.canonicalObjectId, title: reminder.title, due_at: reminder.dueAt, recurrence: reminder.recurrence || null, status: 'scheduled' } }, 'reminder') }; } catch (e) { return { skill: 'reminder', reply: e instanceof Error ? e.message : 'I could not create that reminder.' }; } } return { skill: 'reminder', reply: 'I can set that reminder. Tell me the time, for example: “Remind me in 20 minutes to call Mum” or “Remind me tomorrow at 9am to check reports”.' }; }
   if (q === 'reset onboarding') return { skill: 'general_question', reply: 'Onboarding reset is available from your profile settings.' };
-  if (/^(ask the community|share with the community|post to the community)\b/i.test(q)) return { skill: 'topic', reply: 'I can help you draft a community Topic. Nothing from this private conversation will be shared automatically; review the draft and choose what to publish.', cardData: { type: 'topic_draft', status: 'review_required', privacy: 'private_by_default', source: 'explicit_user_request', content: '' } };
+  if (/^(ask the community|share with the community|post to the community)\b/i.test(q)) {
+    if (!phone || phone.startsWith('anon_')) return { skill: 'topic', reply: 'Sign in first and I can prepare a private community draft for your review. Nothing from this conversation will be shared automatically.', cardData: { type: 'topic_draft', status: 'sign_in_required', privacy: 'private_by_default' } };
+    const subject = query.replace(/^(?:ask\s+(?:(?:with|to)\s+)?|share\s+with\s+|post\s+to\s+)the\s+community\b[:\s,-]*/i, '').trim() || 'a local question I need help with';
+    const matchedSkill = matchCanonicalSkill(query);
+    const skill = matchedSkill && getKnownSkills().includes(matchedSkill) ? matchedSkill : null;
+    const category = skill ? getEconomicCategory(skill) : null;
+    const title = `Community question: ${subject}`.slice(0, 160);
+    const body = `I would value community experiences and practical guidance about ${subject}. Please share only what you personally know. This does not verify a provider, price, availability, booking, payment, or completed service.`.slice(0, 8000);
+    const idempotencyKey = `chat_topic_${Buffer.from(`${threadId || 'turn'}:${query}`).toString('base64url').slice(0, 120)}`;
+    try {
+      const draft = await createTopicDraft(phone, { title, body, type: 'question', category: category || undefined, skills: skill ? [skill] : [], idempotencyKey });
+      return { skill: 'topic', reply: `I prepared a private community draft about **${subject}**. Review it before submitting it for moderation; nothing has been published or treated as provider evidence.`, cardData: { type: 'topic_draft', status: 'review_required', privacy: 'private_by_default', source: 'explicit_user_request', topic: draft, topicId: draft?.id, title: draft?.title || title, body: draft?.body || body, category: draft?.category || category, skills: draft?.skills || (skill ? [skill] : []), city: draft?.city || null, draftLink: draft?.id ? `/topics?draft=${encodeURIComponent(draft.id)}` : '/topics' }, canonicalAction: 'topic.draft.review', progressStage: 'coordination', extractionSource: 'deterministic' };
+    } catch (error) {
+      return { skill: 'topic', reply: error instanceof Error ? `I could not prepare that private community draft: ${error.message}` : 'I could not prepare that private community draft yet. Nothing has been shared.' };
+    }
+  }
   if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone) };
   if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
 

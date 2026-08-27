@@ -1232,6 +1232,22 @@
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 
+  function renderTopicDraftCard(card, messageEl) {
+    const holder = makeElement('section', 'provider-card outcome-surface topic-draft-card');
+    holder.setAttribute('aria-label', 'Private community draft');
+    holder.appendChild(makeElement('strong', '', 'Private community draft'));
+    holder.appendChild(makeElement('p', 'storefront-offer-copy', 'Your draft is private. Review and edit it before you choose to submit it for moderation.'));
+    if (card.title) appendOutcomeEvidence(holder, [{ label: 'Topic', value: String(card.title) }]);
+    const review = makeElement('a', 'sf-btn sf-primary', 'Review draft');
+    review.href = String(card.draftLink || '/topics');
+    review.setAttribute('aria-label', 'Review your private community draft');
+    const actions = makeElement('div', 'storefront-actions');
+    actions.appendChild(review);
+    holder.appendChild(actions);
+    appendOutcomeStatus(holder, 'Nothing has been published, and this draft is not evidence of a provider, availability, price, booking, payment, or completed service.', 'waiting');
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
   function renderComposedGoalCard(card, messageEl) {
     const goal = card.goal || {};
     const holder = makeElement('section', 'provider-card composed-goal-card');
@@ -1294,6 +1310,7 @@
     if (!card || !messageEl) return;
     if (card.type === 'monitoring_setup' || card.type === 'communication_prepare') return renderOutcomeActionCard(card, messageEl);
     if (card.type === 'agent_goal' && card.goal) return renderComposedGoalCard(card, messageEl);
+    if (card.type === 'topic_draft') return renderTopicDraftCard(card, messageEl);
     if (card.type === 'assistance_outcome') return renderAssistanceOutcome(card, messageEl);
     if (['notifications', 'reminders', 'tasks', 'memory', 'request_status', 'os_status'].includes(card.type)) return renderOSCollection(card, messageEl);
     if (['notification_action', 'reminder_action', 'task_action', 'memory_action'].includes(card.type)) return renderOSCollection(card, messageEl);

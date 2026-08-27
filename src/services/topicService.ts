@@ -3,6 +3,7 @@ import { getDb, saveDb } from '../database.js';
 import { ECONOMIC_CATEGORIES, getEconomicCategory, getKnownSkills } from './skillFlows.js';
 import { addRedirect } from './seoService.js';
 import { notifyRelationshipTargetUpdate, revokeRelationshipsForTarget } from './relationshipService.js';
+import { sendFcmPush } from './pushNotifications.js';
 
 /**
  * Topics are a deliberately small durable-content authority. They are not a
@@ -203,7 +204,18 @@ export async function createTopic(authorPhone: string, input: TopicInput, suppli
 
 export async function createTopicDraft(authorPhone: string, input: TopicInput) {
   const clean = normalizeInput(input);
+  const idempotencyKey = validIdempotencyKey(input.idempotencyKey);
   const db = await getDb();
+  if (idempotencyKey) {
+    const existing = db.prepare('SELECT topic_id FROM topic_idempotency_keys WHERE author_phone=? AND idempotency_key=? LIMIT 1');
+    existing.bind([authorPhone, idempotencyKey]);
+    const row = existing.step() ? existing.getAsObject() : null;
+    existing.free();
+    if (row?.topic_id) {
+      const prior = await getTopicForOwner(String(row.topic_id), authorPhone);
+      if (prior) return { ...prior, idempotent: true };
+    }
+  }
   const id = randomUUID();
   let created = false;
   let lastError: unknown = null;
@@ -221,8 +233,26 @@ export async function createTopicDraft(authorPhone: string, input: TopicInput) {
     }
   }
   if (!created) throw new Error(lastError instanceof Error ? lastError.message : 'Unable to save Topic draft');
+  if (idempotencyKey) {
+    try {
+      db.run('INSERT INTO topic_idempotency_keys(author_phone,idempotency_key,topic_id) VALUES(?,?,?)', [authorPhone, idempotencyKey, id]);
+    } catch (error) {
+      if (!isUniqueConstraint(error)) throw error;
+      const existing = db.prepare('SELECT topic_id FROM topic_idempotency_keys WHERE author_phone=? AND idempotency_key=? LIMIT 1');
+      existing.bind([authorPhone, idempotencyKey]);
+      const row = existing.step() ? existing.getAsObject() : null;
+      existing.free();
+      if (row?.topic_id && String(row.topic_id) !== id) {
+        db.run('DELETE FROM topics WHERE id=?', [id]);
+        saveDb();
+        const prior = await getTopicForOwner(String(row.topic_id), authorPhone);
+        if (prior) return { ...prior, idempotent: true };
+      }
+    }
+  }
   saveDb();
-  return getTopicForOwner(id, authorPhone);
+  const topic = await getTopicForOwner(id, authorPhone);
+  return topic ? { ...topic, idempotent: false } : topic;
 }
 
 export async function updateTopic(authorPhone: string, id: string, input: TopicInput) {
@@ -418,6 +448,28 @@ export async function listSubmittedTopics(limit = 100) {
   const topics: any[] = []; while (statement.step()) topics.push(parseTopic(statement.getAsObject(), true)); statement.free(); return topics;
 }
 
+async function notifyTopicAuthorModeration(topic: Pick<ReturnType<typeof parseTopic>, 'id' | 'slug' | 'status' | 'updatedAt' | 'createdAt'>, authorPhone: string | null) {
+  if (!authorPhone) return;
+  const status = String(topic.status || 'restricted');
+  const title = status === 'public' ? 'Your Topic is now public' : status === 'restricted' ? 'Your Topic needs review' : 'Your Topic was removed';
+  const body = status === 'public'
+    ? 'Your Topic is public after moderation. Community content still does not verify a provider, availability, price, booking, payment, or completed service.'
+    : status === 'restricted'
+      ? 'A moderator left a review outcome. You can review the note and revise your private Topic before submitting it again.'
+      : 'A moderator removed this Topic. It is not public. Review the moderation note in your private context.';
+  const link = status === 'public' ? `/topics/${encodeURIComponent(topic.slug)}` : `/topics?draft=${encodeURIComponent(topic.id)}`;
+  await sendFcmPush(authorPhone, title, body, link, {
+    contextId: `topic:${topic.id}`,
+    availableAction: status === 'public' ? 'view' : 'review',
+    canonicalAction: 'topic.review',
+    objectType: 'topic',
+    objectId: topic.id,
+    ownerScope: authorPhone,
+    idempotencyKey: `topic:${topic.id}:moderation:${status}:${topic.updatedAt || topic.createdAt}`,
+    surface: 'topics',
+  }).catch(() => false);
+}
+
 export async function moderateTopic(id: string, input: TopicModerationInput) {
   const decision = input.decision === 'public' || input.decision === 'restricted' || input.decision === 'removed' ? input.decision : null;
   if (!decision) throw new Error('Moderation decision must be public, restricted, or removed');
@@ -432,7 +484,9 @@ export async function moderateTopic(id: string, input: TopicModerationInput) {
   } else if (decision !== 'public') {
     await revokeRelationshipsForTarget('topic', id, 'topic_no_longer_public');
   }
-  return updated ? parseTopic(updated, true) : null;
+  const result = updated ? parseTopic(updated, true) : null;
+  if (result) await notifyTopicAuthorModeration(result, updated?.author_phone ? String(updated.author_phone) : null);
+  return result;
 }
 
 export async function listSubmittedReplies(limit = 100) {
