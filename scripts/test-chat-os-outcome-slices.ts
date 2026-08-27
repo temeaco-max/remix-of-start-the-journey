@@ -80,6 +80,13 @@ assert.equal(communication.skill, 'communication');
 assert.equal(communication.cardData?.type, 'communication_prepare');
 assert.equal(communication.cardData?.deliveryState, 'not_sent');
 
+const monitoringTurn = await processCanonicalChatTurn({ phone: makeDomainPhone(47), message: 'Keep an eye on my Wi-Fi', channel: 'web', conversationId: `${conversationId}-monitoring-turn` });
+assert.equal(monitoringTurn.cardData?.type, 'monitoring_setup');
+
+const communicationTurn = await processCanonicalChatTurn({ phone: makeDomainPhone(53), message: 'Tell John I am late', channel: 'web', conversationId: `${conversationId}-communication-turn` });
+assert.equal(communicationTurn.cardData?.type, 'communication_prepare');
+assert.equal(communicationTurn.cardData?.deliveryState, 'not_sent');
+
 const brief = await processCanonicalChatTurn({ phone, message: 'Show me what I need to deal with.', channel: 'web', conversationId });
 assert.equal(brief.cardData?.type, 'agent_brief');
 
