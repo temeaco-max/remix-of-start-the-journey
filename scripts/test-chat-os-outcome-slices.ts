@@ -2,9 +2,16 @@ import assert from 'node:assert/strict';
 import { routeIntent } from '../src/services/intentRouter.js';
 import { processCanonicalChatTurn } from '../src/services/canonicalChatTurnService.js';
 import { sendFcmPush } from '../src/services/pushNotifications.js';
+import { createEconomicRequest, transitionEconomicRequest } from '../src/services/skillFlows.js';
+import { executeCanonicalCapabilityProposal } from '../src/services/canonicalCapabilityExecutor.js';
 
 const phone = `+234807${String(Date.now()).slice(-7)}`;
 const conversationId = `chat-os-outcomes-${Date.now()}`;
+const paymentPhone = `+234806${String(Date.now()).slice(-7)}`;
+const paymentRequest = await createEconomicRequest({ id: `graceful-payment-${Date.now()}`, phone: paymentPhone, skill: 'product_sourcing', requirements: { product: 'replacement charger', location: 'Ikeja' } });
+await transitionEconomicRequest(paymentRequest.id, 'awaiting_match');
+await transitionEconomicRequest(paymentRequest.id, 'matched');
+await transitionEconomicRequest(paymentRequest.id, 'quoted', { quote: { amountMinor: 125000, currency: 'NGN', source: 'test' } });
 
 const remembered = await routeIntent('Remember that I prefer concise answers.', phone, undefined, undefined, conversationId);
 assert.equal(remembered.skill, 'memory');
@@ -111,6 +118,16 @@ const previousOutcome = await routeIntent('What happened with that?', phone, und
 assert.equal(previousOutcome.cardData?.type, 'request_status');
 assert.equal(previousOutcome.cardData?.relativeReference, true);
 assert.equal(previousOutcome.cardData?.status, 'not_found');
+
+const paymentPreparation = await executeCanonicalCapabilityProposal({ phone: paymentPhone, capability: 'payment', action: 'status', canonicalObjectId: paymentRequest.id, arguments: {}, conversationId, channel: 'web' });
+assert.equal(paymentPreparation.canonicalFacts?.paymentPrepared, true, 'A quoted request must be prepared locally before payment activation.');
+assert.equal(paymentPreparation.canonicalFacts?.paymentActivation, 'required', 'Unconfigured payment must remain an explicit final dependency.');
+assert.equal(paymentPreparation.nextActions?.[0]?.action, 'connect_payment');
+
+const whatsappReadiness = await executeCanonicalCapabilityProposal({ phone, capability: 'channel', action: 'status', canonicalObjectId: 'whatsapp', arguments: { channel: 'whatsapp' }, conversationId, channel: 'web' });
+assert.equal(whatsappReadiness.canonicalFacts?.requested?.preparationAvailable, true, 'WhatsApp preparation must remain available without live WhatsApp delivery.');
+assert.equal(whatsappReadiness.canonicalFacts?.requested?.activation, 'required', 'WhatsApp activation must remain explicit when not connected.');
+assert.equal(whatsappReadiness.nextActions?.[0]?.action, 'use_chat');
 
 const composed = await processCanonicalChatTurn({ phone, message: 'I need to get my laptop sorted.', channel: 'web', conversationId: `${conversationId}-composed` });
 assert.equal(composed.cardData?.type, 'agent_goal', 'A broad device outcome must create one composed objective card.');
