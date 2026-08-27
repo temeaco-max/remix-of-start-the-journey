@@ -134,6 +134,11 @@ assert.equal(composed.cardData?.type, 'agent_goal', 'A broad device outcome must
 assert.ok(Array.isArray(composed.cardData?.subGoals) && composed.cardData.subGoals.length === 3, 'The device outcome must expose ordered device, expert, and follow-up sub-goals.');
 assert.equal(composed.canonicalAction, 'agent.goal.coordinate');
 assert.equal(composed.cardData.subGoals[1]?.status, 'waiting_on_dependency', 'Expert escalation must wait for the device evidence step.');
+assert.ok(composed.cardData.goal?.plan?.capabilityPath?.understand?.length, 'Composed goals must explain what Kurukoo understands.');
+assert.ok(composed.cardData.goal?.plan?.capabilityPath?.assist?.length, 'Composed goals must explain local assistance.');
+assert.ok(composed.cardData.goal?.plan?.capabilityPath?.act?.length, 'Composed goals must explain the guarded action path.');
+assert.ok(composed.cardData.goal?.plan?.capabilityPath?.delegate?.length, 'Composed goals must explain provider delegation where relevant.');
+assert.ok(composed.cardData.goal?.plan?.capabilityPath?.continue?.length, 'Composed goals must explain how the outcome continues.');
 
 console.log('Chat OS outcome slices passed: memory record/review, relative request-status continuity, one-shot and recurring reminders, safe until-complete reminder clarification, notification inbox/read, provider/food/transport/product/discovery outcome routing, monitoring setup, communication preparation, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
 

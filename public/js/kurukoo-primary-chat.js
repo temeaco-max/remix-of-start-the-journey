@@ -1171,6 +1171,20 @@
       list.appendChild(row);
     });
     if (subGoals.length) holder.appendChild(list);
+    const capabilityPath = goal.plan?.capabilityPath;
+    if (capabilityPath && typeof capabilityPath === 'object') {
+      const pathList = makeElement('div', 'composed-goal-capability-path');
+      const labels = { understand: 'I understand', assist: 'I can assist', act: 'I can act', delegate: 'I can delegate', continue: 'I can continue' };
+      Object.entries(labels).forEach(([key, label]) => {
+        const details = Array.isArray(capabilityPath[key]) ? capabilityPath[key].filter(Boolean) : [];
+        if (!details.length) return;
+        const row = makeElement('p', 'storefront-execution-status');
+        row.appendChild(makeElement('strong', '', `${label}: `));
+        row.appendChild(document.createTextNode(details.join(' ')));
+        pathList.appendChild(row);
+      });
+      if (pathList.childElementCount) holder.appendChild(pathList);
+    }
     holder.appendChild(makeElement('small', 'storefront-execution-status', 'Kurukoo will only claim an action, provider result, payment, fulfilment, notification, or completion when the corresponding canonical evidence exists.'));
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
