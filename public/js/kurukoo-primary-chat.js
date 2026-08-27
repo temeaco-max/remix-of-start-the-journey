@@ -1124,8 +1124,37 @@
     messageEl.appendChild(holder);
   }
 
+  function renderOutcomeActionCard(card, messageEl) {
+    const holder = makeElement('section', 'provider-card os-outcome-action-card');
+    holder.setAttribute('aria-label', card.type === 'monitoring_setup' ? 'Monitoring setup' : 'Communication preparation');
+    const title = card.type === 'monitoring_setup' ? 'Set up a bounded watch' : 'Message prepared for review';
+    holder.appendChild(makeElement('strong', '', title));
+    if (card.target) holder.appendChild(makeElement('span', 'storefront-execution-status', `Target: ${String(card.target)}`));
+    if (card.recipient) holder.appendChild(makeElement('span', 'storefront-execution-status', `Recipient: ${String(card.recipient)}`));
+    if (card.body) holder.appendChild(makeElement('p', '', String(card.body)));
+    const actions = makeElement('div', 'storefront-actions');
+    const prompts = {
+      define_condition: 'Define what change I should watch for',
+      connect_resource: 'Connect the resource I want Kurukoo to observe',
+      enable_notifications: 'Enable notifications for this watch',
+      resolve_recipient: 'Resolve the recipient for this message',
+      choose_channel: 'Choose an available channel for this message',
+      confirm_send: 'Confirm sending this message',
+    };
+    (Array.isArray(card.actions) ? card.actions : []).forEach(action => {
+      const button = makeElement('button', `sf-btn ${action.id === 'confirm_send' ? 'sf-primary' : 'sf-secondary'}`, String(action.label || action.id || 'Continue'));
+      button.type = 'button';
+      button.addEventListener('click', () => sendMessage(prompts[action.id] || String(action.label || action.id || 'Continue')));
+      actions.appendChild(button);
+    });
+    if (actions.childElementCount) holder.appendChild(actions);
+    holder.appendChild(makeElement('small', 'storefront-execution-status', card.type === 'communication_prepare' ? 'Not sent. Recipient, channel, and confirmation are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.'));
+    messageEl.querySelector('.bubble')?.appendChild(holder);
+  }
+
   function renderCard(card, messageEl) {
     if (!card || !messageEl) return;
+    if (card.type === 'monitoring_setup' || card.type === 'communication_prepare') return renderOutcomeActionCard(card, messageEl);
     if (card.type === 'assistance_outcome') return renderAssistanceOutcome(card, messageEl);
     if (['notifications', 'reminders', 'tasks', 'memory', 'request_status', 'os_status'].includes(card.type)) return renderOSCollection(card, messageEl);
     if (['notification_action', 'reminder_action', 'task_action', 'memory_action'].includes(card.type)) return renderOSCollection(card, messageEl);

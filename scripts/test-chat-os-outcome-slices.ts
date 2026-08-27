@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { routeIntent } from '../src/services/intentRouter.js';
+import { processCanonicalChatTurn } from '../src/services/canonicalChatTurnService.js';
 import { sendFcmPush } from '../src/services/pushNotifications.js';
 
 const phone = `+234807${String(Date.now()).slice(-7)}`;
@@ -48,11 +49,48 @@ const channel = await routeIntent('Is WhatsApp connected?', phone, undefined, un
 assert.equal(channel.cardData?.type, 'os_status');
 assert.equal(channel.cardData?.domain, 'channel');
 
+const createContext = { relation: 'create' } as any;
+const makeDomainPhone = (offset: number) => `+234${String(Date.now() + offset).slice(-10)}`;
+const plumber = await routeIntent('Find me a plumber tomorrow', makeDomainPhone(17), undefined, createContext, `${conversationId}-plumber`);
+assert.equal(plumber.skill, 'find_worker');
+assert.equal(plumber.cardData?.type, 'agentic_storefront');
+
+const food = await routeIntent('Find me a good place to eat nearby', makeDomainPhone(23), undefined, createContext, `${conversationId}-food`);
+assert.equal(food.skill, 'order_food');
+assert.equal(food.cardData?.type, 'agentic_storefront');
+
+const transport = await routeIntent('Get me to the airport tomorrow', makeDomainPhone(29), undefined, createContext, `${conversationId}-transport`);
+assert.equal(transport.skill, 'ride_request');
+assert.equal(transport.cardData?.type, 'agentic_storefront');
+
+const charger = await routeIntent('Buy me a replacement charger', makeDomainPhone(31), undefined, createContext, `${conversationId}-charger`);
+assert.equal(charger.skill, 'product_sourcing');
+assert.equal(charger.cardData?.type, 'agentic_storefront');
+
+const teacher = await routeIntent('Find someone who teaches guitar', makeDomainPhone(37), undefined, createContext, `${conversationId}-teacher`);
+assert.equal(teacher.skill, 'find_worker');
+assert.equal(teacher.cardData?.type, 'agentic_storefront');
+
+const monitoring = await routeIntent('Keep an eye on my Wi-Fi', makeDomainPhone(41), undefined, undefined, `${conversationId}-monitoring`);
+assert.equal(monitoring.skill, 'autonomous_agent');
+assert.equal(monitoring.cardData?.type, 'monitoring_setup');
+
+const communication = await routeIntent('Tell John I am late', makeDomainPhone(43), undefined, undefined, `${conversationId}-communication`);
+assert.equal(communication.skill, 'communication');
+assert.equal(communication.cardData?.type, 'communication_prepare');
+assert.equal(communication.cardData?.deliveryState, 'not_sent');
+
+const brief = await processCanonicalChatTurn({ phone, message: 'Show me what I need to deal with.', channel: 'web', conversationId });
+assert.equal(brief.cardData?.type, 'agent_brief');
+
+const firstItem = await processCanonicalChatTurn({ phone, message: 'Deal with the first one.', channel: 'web', conversationId });
+assert.ok(['agent_brief', 'notification_action', 'reminder_action', 'task_action', 'agent_goal', 'agentic_storefront'].includes(String(firstItem.cardData?.type)));
+
 const requestStatus = await routeIntent("What's the status of my request?", phone, undefined, undefined, conversationId);
 assert.equal(requestStatus.cardData?.type, 'request_status');
 assert.equal(requestStatus.cardData?.status, 'not_found');
 
-console.log('Chat OS outcome slices passed: memory record/review, reminder create/list/cancel, notification inbox/read, Points/subscription/channel status, and exact request-status fallback.');
+console.log('Chat OS outcome slices passed: memory record/review, reminder create/list/cancel, notification inbox/read, provider/food/transport/product/discovery outcome routing, monitoring setup, Agent Brief attention and first-item continuation, Points/subscription/channel status, and exact request-status fallback.');
 
 process.exit(0);
 

@@ -438,5 +438,5 @@ export async function enqueueAgentBriefNotification(phone: string, brief: AgentB
 }
 
 export function isAgentBriefQuestion(message: string): boolean {
-  return /^(?:what(?:'s| is) (?:important|going on)|anything important|what have i got going on|give me (?:my |an )?(?:brief|update)|(?:show|read) (?:my |the )?(?:brief|updates)|what needs my attention)\??$/i.test(String(message || '').trim());
+  return /^(?:what(?:'s| is) (?:important|going on|on my plate|should i deal with)|anything important|what have i got going on|give me (?:my |an )?(?:brief|update)|(?:show|read) (?:my |the )?(?:brief|updates)|what needs my attention|show me what i need to deal with|what do i need to deal with(?: first| now)?|what should i deal with(?: first| now)?)[.!?]?$/i.test(String(message || '').trim());
 }
