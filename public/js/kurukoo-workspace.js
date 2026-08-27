@@ -46,11 +46,11 @@
     return '';
   };
   const stateLabel = (value) => ({
-    active: 'Working', requested: 'Working', awaiting_match: 'Waiting for a match', partially_matched: 'Working', matched: 'Working', quoting: 'Working', paid: 'Working', in_fulfillment: 'Working', in_progress: 'In progress',
-    waiting: 'Waiting', waiting_on_dependency: 'Waiting for earlier work', quoted: 'Waiting for your choice', reserved: 'Waiting for your choice',
-    needs_user: 'Your input is needed', awaiting_confirmation: 'Your input is needed', payment_pending: 'Your input is needed', failed: 'Your review is needed', disputed: 'Your review is needed',
-    blocked: 'Paused safely', cancelled: 'Stopped', expired: 'Expired', rejected: 'Unavailable', unavailable: 'Unavailable', disabled: 'Disabled',
-    completed: 'Completed', approved: 'Completed', fulfilled: 'Completed', connected: 'Connected', ready: 'Ready', verified: 'Verified', available: 'Available',
+    active: 'Working', requested: 'Working', awaiting_match: 'Waiting for a match', partially_matched: 'Working', matched: 'Working', quoting: 'Working', paid: 'Working', in_fulfillment: 'Working', in_progress: 'Working on it',
+    waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', quoted: 'Waiting for your choice', reserved: 'Waiting for your choice',
+    needs_user: 'Your decision is needed', awaiting_confirmation: 'Your decision is needed', payment_pending: 'Payment needs your review', failed: 'Needs recovery', disputed: 'Your review is needed',
+    blocked: 'Needs review', cancelled: 'Cancelled', expired: 'Expired', rejected: 'Unavailable', unavailable: 'Unavailable', disabled: 'Disabled',
+    scheduled: 'Scheduled', sent: 'Reminder time reached', completed: 'Completed', approved: 'Completed', fulfilled: 'Completed', connected: 'Connected', ready: 'Ready', verified: 'Verified', available: 'Available',
   }[String(value || '').toLowerCase()] || humanize(value));
   const clear = (element) => { if (element) element.replaceChildren(); };
   const setEmpty = (selector, visible) => qs(selector)?.toggleAttribute('hidden', !visible);
@@ -206,18 +206,19 @@
     const list = qs('[data-tasks-list]');
     if (!list) return [];
     const taskStatus = (task) => String(task.status || 'available').toLowerCase();
-    const taskTitle = (task) => String(task.title || task.name || `Task ${task.id || ''}`).trim() || 'Task';
+    const taskTitle = (task) => String(task.title || task.name || 'Task waiting for attention').trim() || 'Task waiting for attention';
     const taskContextHref = (task) => {
-      const sourceType = String(task.sourceType || task.source_type || '').toLowerCase();
-      const sourceId = task.sourceId || task.source_id;
-      if (sourceType === 'topic' && sourceId) return `/topics/${encodeURIComponent(String(sourceId))}`;
-      return `/chat?prompt=${encodeURIComponent(`Open my ${taskTitle(task)} context`)}`;
+      const id = String(task?.id || '').trim();
+      if (!id) return '/chat?prompt=Show%20me%20my%20tasks';
+      const params = new URLSearchParams({ prompt: 'Open this task.', contextId: `task:${id}`.slice(0, 180), action: 'review', canonicalAction: 'task.open', objectType: 'task', objectId: id.slice(0, 180) });
+      const conversationId = String(task?.conversationId || task?.conversation_id || '').trim();
+      if (conversationId) params.set('conversationId', conversationId.slice(0, 160));
+      return `/chat?${params.toString()}`;
     };
     const taskDetail = (task) => {
-      const sourceType = String(task.sourceType || task.source_type || '').trim();
-      const sourceId = task.sourceId || task.source_id;
-      const source = sourceType ? `Source: ${humanize(sourceType)}${sourceId ? ` #${sourceId}` : ''}.` : '';
-      const body = task.description || task.instructions || (task.due_at || task.dueAt ? `Due ${formatDate(task.due_at || task.dueAt)}.` : 'Review the underlying work and evidence in its originating context.');
+      const sourceType = String(task.sourceType || task.source_type || '').trim().toLowerCase();
+      const source = sourceType === 'agent' ? 'Part of a current objective.' : sourceType === 'request' || sourceType === 'economic_request' ? 'Part of a saved request.' : sourceType === 'conversation' ? 'Created in your Kurukoo conversation.' : sourceType === 'topic' ? 'Part of a community discussion.' : '';
+      const body = task.description || task.instructions || (task.due_at || task.dueAt ? `Due ${formatDate(task.due_at || task.dueAt)}.` : 'Review the underlying work and evidence in Kurukoo.');
       return [body, source].filter(Boolean).join(' ');
     };
     try {
@@ -245,14 +246,14 @@
             try { await api('/api/tasks/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId: task.id }) }); await loadTasks(); }
             catch (_) { action.disabled = false; action.textContent = 'Could not accept — retry'; }
           });
-        } else {
+        } else if (task.id) {
           action = document.createElement('a');
           action.className = 'workspace-text-action';
           action.href = taskContextHref(task);
-          action.textContent = status === 'in_progress' ? 'Continue task context' : 'Open source context';
-          action.setAttribute('aria-label', `${action.textContent}: ${taskTitle(task)}`);
+          action.textContent = 'Continue in Chat';
+          action.setAttribute('aria-label', `Continue in Chat: ${taskTitle(task)}`);
         }
-        list.appendChild(makeDataCard({ eyebrow: humanize(task.category || task.kind || 'Task'), title: taskTitle(task), detail: taskDetail(task), state: status, action }));
+        list.appendChild(makeDataCard({ eyebrow: task.sourceType === 'agent' ? 'Objective task' : task.sourceType === 'request' || task.sourceType === 'economic_request' ? 'Request task' : 'Task', title: taskTitle(task), detail: taskDetail(task), state: status, action }));
       });
       list.setAttribute('aria-busy', 'false');
       setEmpty('[data-tasks-empty]', tasks.length === 0);
@@ -282,9 +283,20 @@
       const reminders = Array.isArray(payload.reminders) ? payload.reminders : [];
       clear(list);
       reminders.forEach((reminder) => {
-        const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'workspace-text-action'; cancel.textContent = 'Cancel reminder';
-        cancel.addEventListener('click', () => cancelReminder(reminder.id, cancel));
-        list.appendChild(makeDataCard({ eyebrow: formatDate(reminder.dueAt || reminder.due_at), title: reminder.title || 'Reminder', detail: reminder.note || 'Created from your Kurukoo conversation.', state: reminder.status || 'upcoming', action: cancel }));
+        const id = String(reminder?.id || '').trim();
+        const status = String(reminder?.status || 'scheduled').toLowerCase();
+        const actions = document.createElement('div'); actions.className = 'workspace-inline-actions';
+        if (id) {
+          const params = new URLSearchParams({ prompt: 'Open this reminder.', contextId: `reminder:${id}`.slice(0, 180), action: 'review', canonicalAction: 'reminder.open', objectType: 'reminder', objectId: id.slice(0, 180) });
+          const conversationId = String(reminder?.sourceConversationId || reminder?.source_conversation_id || reminder?.conversationId || reminder?.conversation_id || '').trim();
+          if (conversationId) params.set('conversationId', conversationId.slice(0, 160));
+          const open = document.createElement('a'); open.className = 'workspace-text-action'; open.href = `/chat?${params.toString()}`; open.textContent = 'Continue in Chat'; open.setAttribute('aria-label', `Continue in Chat: ${String(reminder.title || 'Reminder')}`); actions.appendChild(open);
+        }
+        if (id && status === 'scheduled') {
+          const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'workspace-text-action'; cancel.textContent = 'Cancel reminder';
+          cancel.addEventListener('click', () => cancelReminder(id, cancel)); actions.appendChild(cancel);
+        }
+        list.appendChild(makeDataCard({ eyebrow: formatDate(reminder.dueAt || reminder.due_at), title: reminder.title || 'Reminder', detail: reminder.note || (reminder.sourceConversationId || reminder.source_conversation_id ? 'Created from your Kurukoo conversation.' : 'Saved in Kurukoo.'), state: status, action: actions.childNodes.length ? actions : null }));
       });
       setEmpty('[data-reminders-empty]', reminders.length === 0);
       return reminders;

@@ -8,7 +8,7 @@ process.env.DB_PATH = dbPath;
 process.env.KURUKOO_DB_SAVE_DEBOUNCE_MS = '0';
 
 const { getDb, saveDb } = await import('../src/database.ts');
-const { getAvailableTasks, acceptTask, completeTask, TaskStateConflictError } = await import('../src/services/microTasks.ts');
+const { getAvailableTasks, getAssignedTask, acceptTask, completeTask, TaskStateConflictError } = await import('../src/services/microTasks.ts');
 
 function statusCount(tasks: Array<{ status: string }>, status: string) {
   return tasks.filter((task) => task.status === status).length;
@@ -20,8 +20,9 @@ async function expectConflict(work: () => Promise<unknown>, label: string) {
 
 const db = await getDb();
 db.run(`DELETE FROM micro_tasks`);
+db.run(`INSERT OR REPLACE INTO chat_conversations (id, phone, title, channel) VALUES (?, ?, ?, ?)`, ['task-conversation-proof', 'owner-a', 'Task context proof', 'web']);
 db.run(`INSERT INTO micro_tasks(title, description, credits_reward, status, source_type, source_id) VALUES(?, ?, ?, 'available', 'topic', ?)`, ['Available topic check', 'Verify the canonical source context.', 5, 'topic-available']);
-db.run(`INSERT INTO micro_tasks(title, credits_reward, status, assigned_to, source_type, source_id) VALUES(?, ?, 'in_progress', ?, 'topic', ?)`, ['Owned in-progress check', 5, 'owner-a', 'topic-progress']);
+db.run(`INSERT INTO micro_tasks(title, credits_reward, status, assigned_to, source_type, source_id) VALUES(?, ?, 'in_progress', ?, 'conversation', ?)`, ['Owned in-progress check', 5, 'owner-a', 'task-conversation-proof']);
 db.run(`INSERT INTO micro_tasks(title, credits_reward, status, assigned_to, source_type, source_id) VALUES(?, ?, 'completed', ?, 'topic', ?)`, ['Owned completed check', 5, 'owner-a', 'topic-completed']);
 db.run(`INSERT INTO micro_tasks(title, credits_reward, status, assigned_to) VALUES(?, ?, 'in_progress', ?)`, ['Other owner task', 5, 'owner-b']);
 db.run(`INSERT INTO micro_tasks(title, credits_reward, status, assigned_to) VALUES(?, ?, 'cancelled', ?)`, ['Owned cancelled task', 5, 'owner-a']);
@@ -33,12 +34,15 @@ assert.equal(statusCount(initial, 'in_progress'), 1, 'in-progress metric is sour
 assert.equal(statusCount(initial, 'completed'), 1, 'completed metric is sourced from canonical completed records');
 assert.equal(initial.some((task) => task.title === 'Other owner task'), false, 'another owner’s task is never exposed');
 assert.equal(initial.find((task) => task.title === 'Available topic check')?.sourceId, 'topic-available', 'source context is retained in the shared task projection');
+assert.equal(initial.find((task) => task.title === 'Owned in-progress check')?.conversationId, 'task-conversation-proof', 'conversation-source task retains exact originating Chat context');
 
 const available = initial.find((task) => task.title === 'Available topic check');
 assert.ok(available, 'available canonical task exists');
 const accepted = await acceptTask('owner-a', available.id);
 assert.equal(accepted.status, 'in_progress', 'acceptance transitions the canonical task to in_progress');
 assert.equal(accepted.assignedTo, 'owner-a', 'acceptance writes the canonical authenticated owner');
+assert.equal((await getAssignedTask('owner-a', accepted.id))?.id, accepted.id, 'the assigned owner can reopen the exact canonical task');
+assert.equal(await getAssignedTask('owner-b', accepted.id), null, 'a different owner cannot reopen another person’s exact task context');
 
 const afterAccept = await getAvailableTasks('owner-a');
 assert.equal(statusCount(afterAccept, 'available'), 0, 'accepted task leaves Available work');

@@ -9,19 +9,23 @@ export interface MicroTask {
     assignedTo?: string;
     sourceType?: string;
     sourceId?: string;
+    conversationId?: string;
     createdAt?: string;
     updatedAt?: string;
 }
 
 function rowToMicroTask(row: any): MicroTask {
+    const sourceType = row.source_type ? String(row.source_type) : undefined;
+    const sourceId = row.source_id ? String(row.source_id) : undefined;
     return {
         id: Number(row.id),
         title: String(row.title || 'Task'),
         description: row.description ? String(row.description) : undefined,
         status: String(row.status || 'available'),
         assignedTo: row.assigned_to ? String(row.assigned_to) : undefined,
-        sourceType: row.source_type ? String(row.source_type) : undefined,
-        sourceId: row.source_id ? String(row.source_id) : undefined,
+        sourceType,
+        sourceId,
+        conversationId: row.conversation_id ? String(row.conversation_id) : undefined,
         createdAt: row.created_at ? String(row.created_at) : undefined,
         updatedAt: row.updated_at ? String(row.updated_at) : undefined,
     };
@@ -33,10 +37,10 @@ export async function listAssignedTasks(phone: string, includeClosed = false): P
     if (!owner) return [];
     const db = await getDb();
     const sql = includeClosed
-        ? `SELECT * FROM micro_tasks WHERE assigned_to = ? ORDER BY id DESC LIMIT 50`
-        : `SELECT * FROM micro_tasks WHERE assigned_to = ? AND status NOT IN ('completed', 'approved', 'rejected') ORDER BY id DESC LIMIT 50`;
+        ? `SELECT micro_tasks.*, CASE WHEN micro_tasks.source_type = 'conversation' AND EXISTS (SELECT 1 FROM chat_conversations WHERE id = micro_tasks.source_id AND phone = ?) THEN micro_tasks.source_id END AS conversation_id FROM micro_tasks WHERE micro_tasks.assigned_to = ? ORDER BY micro_tasks.id DESC LIMIT 50`
+        : `SELECT micro_tasks.*, CASE WHEN micro_tasks.source_type = 'conversation' AND EXISTS (SELECT 1 FROM chat_conversations WHERE id = micro_tasks.source_id AND phone = ?) THEN micro_tasks.source_id END AS conversation_id FROM micro_tasks WHERE micro_tasks.assigned_to = ? AND micro_tasks.status NOT IN ('completed', 'approved', 'rejected') ORDER BY micro_tasks.id DESC LIMIT 50`;
     const stmt = db.prepare(sql);
-    stmt.bind([owner]);
+    stmt.bind([owner, owner]);
     const tasks: MicroTask[] = [];
     while (stmt.step()) tasks.push(rowToMicroTask(stmt.getAsObject()));
     stmt.free();
@@ -48,8 +52,8 @@ export async function getAssignedTask(phone: string, taskId: number): Promise<Mi
     const owner = String(phone || '').trim();
     if (!owner || !Number.isSafeInteger(taskId) || taskId <= 0) return null;
     const db = await getDb();
-    const stmt = db.prepare(`SELECT * FROM micro_tasks WHERE id = ? AND assigned_to = ? LIMIT 1`);
-    stmt.bind([taskId, owner]);
+    const stmt = db.prepare(`SELECT micro_tasks.*, CASE WHEN micro_tasks.source_type = 'conversation' AND EXISTS (SELECT 1 FROM chat_conversations WHERE id = micro_tasks.source_id AND phone = ?) THEN micro_tasks.source_id END AS conversation_id FROM micro_tasks WHERE micro_tasks.id = ? AND micro_tasks.assigned_to = ? LIMIT 1`);
+    stmt.bind([owner, taskId, owner]);
     const task = stmt.step() ? rowToMicroTask(stmt.getAsObject()) : null;
     stmt.free();
     return task;
@@ -60,13 +64,14 @@ export async function getAvailableTasks(phone: string): Promise<MicroTask[]> {
     if (!owner) return [];
     const db = await getDb();
     const stmt = db.prepare(`
-        SELECT * FROM micro_tasks
-        WHERE (status = 'available' AND (assigned_to IS NULL OR assigned_to = ''))
-           OR assigned_to = ?
-        ORDER BY CASE status WHEN 'available' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'completed' THEN 2 WHEN 'approved' THEN 3 ELSE 4 END, id DESC
+        SELECT micro_tasks.*, CASE WHEN micro_tasks.source_type = 'conversation' AND EXISTS (SELECT 1 FROM chat_conversations WHERE id = micro_tasks.source_id AND phone = ?) THEN micro_tasks.source_id END AS conversation_id
+        FROM micro_tasks
+        WHERE (micro_tasks.status = 'available' AND (micro_tasks.assigned_to IS NULL OR micro_tasks.assigned_to = ''))
+           OR micro_tasks.assigned_to = ?
+        ORDER BY CASE micro_tasks.status WHEN 'available' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'completed' THEN 2 WHEN 'approved' THEN 3 ELSE 4 END, micro_tasks.id DESC
         LIMIT 50
     `);
-    stmt.bind([owner]);
+    stmt.bind([owner, owner]);
     const tasks: MicroTask[] = [];
     while (stmt.step()) tasks.push(rowToMicroTask(stmt.getAsObject()));
     stmt.free();
