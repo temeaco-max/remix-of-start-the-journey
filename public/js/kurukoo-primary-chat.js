@@ -1232,7 +1232,7 @@
   function renderCard(card, messageEl) {
     if (!card || !messageEl) return;
     if (card.type === 'monitoring_setup' || card.type === 'communication_prepare') return renderOutcomeActionCard(card, messageEl);
-    if (card.type === 'agent_goal' && Array.isArray(card.subGoals)) return renderComposedGoalCard(card, messageEl);
+    if (card.type === 'agent_goal' && card.goal) return renderComposedGoalCard(card, messageEl);
     if (card.type === 'assistance_outcome') return renderAssistanceOutcome(card, messageEl);
     if (['notifications', 'reminders', 'tasks', 'memory', 'request_status', 'os_status'].includes(card.type)) return renderOSCollection(card, messageEl);
     if (['notification_action', 'reminder_action', 'task_action', 'memory_action'].includes(card.type)) return renderOSCollection(card, messageEl);

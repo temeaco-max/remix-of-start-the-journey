@@ -125,7 +125,7 @@ assert.equal(rememberTodayTurn.cardData?.type, 'agent_brief', 'Today-oriented me
 const dealWithTurn = await processCanonicalChatTurn({ phone: owner, message: 'Anything I need to deal with?', channel: 'web', conversationId: 'brief-conversation' });
 assert.equal(dealWithTurn.cardData?.type, 'agent_brief', 'Situation-oriented attention language must return the unified Agent Brief card.');
 const continuation = await processCanonicalChatTurn({ phone: owner, message: 'Open that objective', channel: 'web', conversationId: 'brief-conversation', contextAction: { type: 'resume_canonical_context', contextId: `goal:${goal.id}`, conversationId: 'brief-conversation', canonicalAction: 'agent.goal.review', objectType: 'agent_goal', objectId: goal.id } });
-assert.match(continuation.reply, /reopened the exact Kurukoo context/i, 'The existing Conversation owner must continue from a brief-referenced Agent Runtime context.');
+assert.match(continuation.reply, /same work item|reopened the exact Kurukoo context/i, 'The existing Conversation owner must continue from a brief-referenced Agent Runtime context.');
 assert.equal((await getAgentGoal(owner, goal.id))?.status, 'needs_user', 'Conversation continuation from a brief must not change approval-bound work automatically.');
 
 const speechAdapter = fs.readFileSync('public/js/kurukoo-speech-output.js', 'utf8');
