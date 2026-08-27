@@ -25,8 +25,32 @@
   };
 
   const settle = (promise) => promise.then((value) => ({ ok: true, value })).catch((error) => ({ ok: false, error }));
+  const exactChatHref = ({ prompt, objectType, objectId, canonicalAction, conversationId }) => {
+    const params = new URLSearchParams({ prompt: String(prompt || 'Open this update.') });
+    if (conversationId) params.set('conversationId', String(conversationId).slice(0, 160));
+    if (objectType && objectId && canonicalAction) {
+      params.set('contextId', `${objectType}:${objectId}`.slice(0, 180));
+      params.set('action', 'review');
+      params.set('canonicalAction', String(canonicalAction).slice(0, 120));
+      params.set('objectType', String(objectType).slice(0, 80));
+      params.set('objectId', String(objectId).slice(0, 180));
+    }
+    return `/chat?${params.toString()}`;
+  };
+  const exactRequestHref = (request) => {
+    const id = String(request?.id || '').trim();
+    return id ? exactChatHref({ prompt: 'Open this request.', objectType: 'economic_request', objectId: id, canonicalAction: 'economic_request.open', conversationId: request?.conversationId || request?.conversation_id }) : '/chat?prompt=Continue%20this%20request.';
+  };
+  const exactTaskHref = (task) => {
+    const id = String(task?.id || '').trim();
+    return id ? exactChatHref({ prompt: 'Open this task.', objectType: 'task', objectId: id, canonicalAction: 'task.open', conversationId: task?.conversationId || task?.conversation_id }) : '/tasks';
+  };
+  const exactReminderHref = (reminder) => {
+    const id = String(reminder?.id || '').trim();
+    return id ? exactChatHref({ prompt: 'Open this reminder.', objectType: 'reminder', objectId: id, canonicalAction: 'reminder.open', conversationId: reminder?.conversationId || reminder?.conversation_id }) : '/reminders';
+  };
 
-  const actionNeededStatuses = new Set(['awaiting_confirmation', 'reserved', 'payment_pending']);
+  const actionNeededStatuses = new Set(['awaiting_confirmation', 'reserved', 'payment_pending', 'failed', 'disputed']);
   const progressStatuses = new Set([
     'requested', 'awaiting_match', 'partially_matched', 'matched', 'quoting', 'quoted',
     'paid', 'in_fulfillment', 'fulfilled',
@@ -79,16 +103,65 @@
   };
 
   const goalPresenceLabel = (status) => ({
-    active: 'Working',
+    active: 'Working on it',
+    running: 'Working on it',
     waiting: 'Waiting for an update',
     waiting_on_dependency: 'Waiting for earlier work',
-    needs_user: 'Your input is needed',
-    blocked: 'Paused safely',
-    completed: 'Completed',
-    cancelled: 'Stopped',
-    failed: 'Needs review',
+    needs_user: 'Your decision is needed',
+    paused: 'Paused by you',
+    blocked: 'Needs review',
+    completed: 'Done',
+    cancelled: 'Cancelled',
+    failed: 'Needs recovery',
     expired: 'Expired',
   }[String(status || '').toLowerCase()] || humanize(status));
+  const requestStatusLabel = (status) => ({
+    requested: 'Preparing your request',
+    awaiting_match: 'Waiting for a match',
+    partially_matched: 'Reviewing available help',
+    matched: 'A match is ready to review',
+    quoting: 'Reviewing options',
+    quoted: 'Your choice is needed',
+    awaiting_confirmation: 'Your decision is needed',
+    reserved: 'Your decision is needed',
+    payment_pending: 'Payment needs your review',
+    paid: 'Payment evidence recorded',
+    in_fulfillment: 'Being carried out',
+    fulfilled: 'Result recorded',
+    completed: 'Completed',
+    failed: 'Your review is needed',
+    disputed: 'Your review is needed',
+    cancelled: 'Cancelled',
+  }[String(status || '').toLowerCase()] || humanize(status));
+  const requestTitle = (request) => {
+    const source = request?.requirements || request?.requirements_json || {};
+    let requirements = source;
+    if (typeof source === 'string') { try { requirements = JSON.parse(source); } catch { requirements = {}; } }
+    const service = String(requirements?.service || '').toLowerCase();
+    if (String(request?.skill || '').toLowerCase() === 'find_worker') {
+      if (['teacher', 'guitar_teacher'].includes(service)) return 'Finding a tutor';
+      if (service === 'mechanic') return 'Finding a mechanic';
+      return 'Finding someone to help';
+    }
+    return ({
+      ride_request: 'Getting you there', order_food: 'Food request', product_sourcing: 'Finding the right item',
+      phone_repairer: 'Phone repair', repair: 'Repair request', wifi_installer: 'Sorting out your connection',
+      hotel_deals: 'Finding a place to stay', rental_tracker: 'Finding a home to rent', job_tracker: 'Finding work',
+    }[String(request?.skill || '').toLowerCase()] || humanize(request?.category || request?.skill || 'Request'));
+  };
+  const taskTitle = (task) => String(task?.title || task?.name || 'Task waiting for attention').trim() || 'Task waiting for attention';
+  const notificationHref = (notification) => {
+    const direct = String(notification?.link || '').trim();
+    if (direct.startsWith('/')) return direct;
+    const conversationId = String(notification?.conversationId || notification?.conversation_id || '').trim();
+    if (conversationId) return `/chat?conversationId=${encodeURIComponent(conversationId)}`;
+    const type = String(notification?.objectType || notification?.object_type || '').toLowerCase();
+    const id = String(notification?.objectId || notification?.object_id || '').trim();
+    if ((type === 'request' || type === 'economic_request') && id) return `/requests/${encodeURIComponent(id)}`;
+    if (type === 'task' && id) return `/tasks/${encodeURIComponent(id)}`;
+    if (type === 'topic' && id) return `/topics/${encodeURIComponent(id)}`;
+    return '/notifications';
+  };
 
   const goalActivityLabel = (event) => {
     const kind = String(event?.kind || '');
@@ -136,7 +209,7 @@
       order,
       label: objective,
       detail,
-      href: '/agents',
+      href: exactChatHref({ prompt: 'Open this objective.', objectType: 'agent_goal', objectId: String(goal?.id || ''), canonicalAction: 'agent.goal.review', conversationId: goal?.conversationId || goal?.conversation_id || continuation?.conversationId }),
     };
   };
 
@@ -188,8 +261,8 @@
     const points = pointsR.ok ? Number(pointsR.value?.points ?? pointsR.value?.balance ?? 0) : null;
     const goalContinuations = new Map();
     const goalTraces = new Map();
-    const visibleGoalStatuses = new Set(['active', 'waiting', 'waiting_on_dependency', 'needs_user', 'blocked']);
-    const goalStatusPriority = { needs_user: 0, blocked: 1, waiting_on_dependency: 2, active: 3, waiting: 4 };
+    const visibleGoalStatuses = new Set(['active', 'waiting', 'waiting_on_dependency', 'needs_user', 'paused', 'blocked']);
+    const goalStatusPriority = { needs_user: 0, paused: 1, blocked: 2, waiting_on_dependency: 3, active: 4, waiting: 5 };
     const goalDetails = goals
       .map((goal, order) => ({ goal, order, status: String(goal?.status || '').toLowerCase() }))
       .filter(({ status }) => visibleGoalStatuses.has(status))
@@ -213,9 +286,7 @@
 
     notifications.filter((n) => !n.read && !n.readAt).slice(0, 6).forEach((n) => {
       const title = n.title || n.body || n.message || 'Notification';
-      const link = typeof n.link === 'string' && n.link.startsWith('/') ? n.link
-        : n.conversation_id ? `/chat/${encodeURIComponent(n.conversation_id)}`
-        : '/notifications';
+      const link = notificationHref(n);
       attention.push({
         label: String(title).slice(0, 120),
         detail: [humanize(n.surface || n.object_type || 'Kurukoo'), formatDate(n.created_at || n.createdAt)].filter(Boolean).join(' · '),
@@ -226,28 +297,28 @@
     requests.forEach((req) => {
       const status = String(req.status || '').toLowerCase();
       const id = String(req.id || '');
-      const skill = humanize(req.skill || req.category || 'request');
-      const label = `${skill}${id ? ` · ${id.slice(0, 8)}` : ''}`;
-      const detail = `Status: ${humanize(status)}${req.updated_at || req.updatedAt ? ` · ${formatDate(req.updated_at || req.updatedAt)}` : ''}`;
+      const label = requestTitle(req);
+      const detail = [requestStatusLabel(status), req.updated_at || req.updatedAt ? formatDate(req.updated_at || req.updatedAt) : ''].filter(Boolean).join(' · ');
       if (actionNeededStatuses.has(status)) {
         attention.push({ label, detail, href: `/confirmations?request=${encodeURIComponent(id)}` });
       } else if (progressStatuses.has(status)) {
-        progress.push({ label, detail, href: `/chat?prompt=${encodeURIComponent(`Continue my ${skill} request ${id}`)}` });
+        progress.push({ label, detail, href: exactRequestHref(req) });
       } else if (['completed', 'fulfilled'].includes(status)) {
-        cont.push({ label, detail, href: `/requests/${encodeURIComponent(id)}` });
+        cont.push({ label, detail, href: id ? `/requests/${encodeURIComponent(id)}` : '/requests' });
       }
     });
 
     tasks.forEach((task) => {
       const status = String(task.status || 'available').toLowerCase();
-      const label = task.title || task.name || `Task ${String(task.id || '').slice(0, 8)}`;
-      const detail = humanize(status);
+      const label = taskTitle(task);
+      const detail = ({ available: 'Ready to take on', in_progress: 'In progress', waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your input is needed', completed: 'Completed', approved: 'Completed', blocked: 'Needs review', failed: 'Needs recovery', cancelled: 'Cancelled', expired: 'Expired' }[status] || humanize(status));
+      const href = exactTaskHref(task);
       if (status === 'available' && !task.assignedTo) {
-        attention.push({ label, detail, href: '/tasks' });
+        attention.push({ label, detail, href });
       } else if (status === 'in_progress' && task.assignedTo) {
-        progress.push({ label, detail, href: '/tasks' });
+        progress.push({ label, detail, href });
       } else if (['completed', 'approved'].includes(status)) {
-        cont.push({ label, detail, href: '/tasks' });
+        cont.push({ label, detail, href });
       }
     });
 
@@ -260,7 +331,7 @@
       const overdue = !Number.isNaN(dueMs) && dueMs < now;
       const label = rem.title || rem.note || 'Reminder';
       const detail = [overdue ? 'Overdue' : humanize(status), formatDate(due)].filter(Boolean).join(' · ');
-      const href = `/chat?prompt=${encodeURIComponent(`Show reminder ${rem.id || label}`)}`;
+      const href = exactReminderHref(rem);
       if (overdue) attention.push({ label, detail, href });
       else progress.push({ label, detail, href });
     });
@@ -269,7 +340,7 @@
     goalRows.forEach((row) => {
       if (['needs_user', 'blocked'].includes(row.status)) attention.push(row);
       else if (['active', 'waiting', 'waiting_on_dependency'].includes(row.status)) progress.push(row);
-      else if (['completed', 'cancelled', 'failed', 'expired'].includes(row.status)) cont.push(row);
+      else if (['paused', 'completed', 'cancelled', 'failed', 'expired'].includes(row.status)) cont.push(row);
     });
 
     const today = composition.querySelector('[data-desk-module="today-flow"]');
@@ -297,7 +368,7 @@
       const visibleGoalRows = goalRows
         .filter((row) => visibleGoalStatuses.has(row.status))
         .sort((a, b) => (goalStatusPriority[a.status] ?? 99) - (goalStatusPriority[b.status] ?? 99) || a.order - b.order);
-      setModuleList(agentObjectives, visibleGoalRows.slice(0, 6), 'No active Agent objectives', 'No Agent objective is currently active, waiting, blocked or awaiting your input.', '/agents');
+      setModuleList(agentObjectives, visibleGoalRows.slice(0, 6), 'No active Agent objectives', 'No Agent objective is currently active, waiting, paused, blocked or awaiting your input.', '/agents');
     }
 
     const requestCard = composition.querySelector('[data-desk-module="active-requests"]');
@@ -308,17 +379,17 @@
         .filter((r) => actionNeededStatuses.has(String(r.status || '').toLowerCase()))
         .slice(0, 5)
         .map((r) => ({
-          label: humanize(r.skill || r.category || 'request'),
-          detail: humanize(r.status),
+          label: requestTitle(r),
+          detail: requestStatusLabel(r.status),
           href: `/confirmations?request=${encodeURIComponent(String(r.id || ''))}`,
         }));
       const progressRows = requests
         .filter((r) => progressStatuses.has(String(r.status || '').toLowerCase()))
         .slice(0, 5)
         .map((r) => ({
-          label: humanize(r.skill || r.category || 'request'),
-          detail: humanize(r.status),
-          href: `/chat?prompt=${encodeURIComponent(`Continue my request ${r.id}`)}`,
+          label: requestTitle(r),
+          detail: requestStatusLabel(r.status),
+          href: exactRequestHref(r),
         }));
       setModuleList(requestCard, [...actionRows, ...progressRows], 'No active requests', 'Start in Chat when you are ready to source, compare or continue a request.', '/chat');
     }
@@ -328,9 +399,9 @@
       setModuleState(taskModule, 'unavailable', 'Task state unavailable', 'Task authority could not be read.', { label: 'Retry Tasks', href: '/tasks' });
     } else {
       const rows = tasks.slice(0, 6).map((task) => ({
-        label: task.title || task.name || `Task ${String(task.id || '').slice(0, 8)}`,
-        detail: humanize(task.status || 'available'),
-        href: '/tasks',
+        label: taskTitle(task),
+        detail: ({ available: 'Ready to take on', in_progress: 'In progress', waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your input is needed', completed: 'Completed', approved: 'Completed', blocked: 'Needs review', failed: 'Needs recovery', cancelled: 'Cancelled', expired: 'Expired' }[String(task.status || 'available').toLowerCase()] || humanize(task.status || 'available')),
+        href: exactTaskHref(task),
       }));
       reminders
         .filter((r) => !['cancelled', 'completed', 'done'].includes(String(r.status || '').toLowerCase()))
@@ -339,7 +410,7 @@
           rows.push({
             label: rem.title || rem.note || 'Reminder',
             detail: formatDate(rem.dueAt || rem.due_at) || humanize(rem.status),
-            href: `/chat?prompt=${encodeURIComponent(`Show reminder ${rem.id || ''}`)}`,
+            href: exactReminderHref(rem),
           });
         });
       setModuleList(taskModule, rows, 'No task work waiting', 'No available or in-progress tasks for this identity.', '/tasks');
@@ -353,7 +424,7 @@
       const rows = unread.slice(0, 5).map((n) => ({
         label: String(n.title || n.body || n.message || 'Notification').slice(0, 100),
         detail: formatDate(n.created_at || n.createdAt),
-        href: typeof n.link === 'string' && n.link.startsWith('/') ? n.link : '/notifications',
+        href: notificationHref(n),
       }));
       setModuleList(pulse, rows, 'No live pulse', 'Current notifications remain available from their canonical source.', '/notifications');
     }
