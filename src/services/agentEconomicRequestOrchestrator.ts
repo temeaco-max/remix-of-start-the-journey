@@ -171,10 +171,10 @@ export async function syncSubGoalStatusesWithDependencies(phone: string, parentG
     if (next === null) continue;
     if (dep.goalId) {
       const sg = await store.one<any>('SELECT id,status FROM agent_goals WHERE id=? AND phone=? LIMIT 1', [dep.goalId, phone]);
-      if (sg && sg.status !== next) await store.run('UPDATE agent_goals SET status=?,next_action_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [next, next === 'active' ? new Date().toISOString() : null, sg.id, phone]);
+      if (sg && sg.status !== 'paused' && sg.status !== next) await store.run('UPDATE agent_goals SET status=?,next_action_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [next, next === 'active' ? new Date().toISOString() : null, sg.id, phone]);
     } else {
       const sgs = await store.all<any>('SELECT id,status FROM agent_goals WHERE phone=? AND parent_goal_id=? AND goal_type=? LIMIT 1', [phone, parentGoalId, dep.skill]);
-      for (const sg of sgs) { if (sg.status !== next) await store.run('UPDATE agent_goals SET status=?,next_action_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [next, next === 'active' ? new Date().toISOString() : null, sg.id, phone]); }
+      for (const sg of sgs) { if (sg.status !== 'paused' && sg.status !== next) await store.run('UPDATE agent_goals SET status=?,next_action_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [next, next === 'active' ? new Date().toISOString() : null, sg.id, phone]); }
     }
   }
   // Parent terminal policy: complete only when ALL children completed;

@@ -11,8 +11,9 @@
   const esc = (value) => String(value ?? '').replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const humanize = (value) => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()) || 'Unknown';
   const formatDate = (value) => { if (!value) return ''; const date = new Date(value); return Number.isNaN(date.getTime()) ? '' : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); };
-  const api = async (url) => { const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } }); const type = response.headers.get('content-type') || ''; const payload = type.includes('application/json') ? await response.json().catch(() => null) : null; if (!response.ok) { const err = new Error(payload?.error || `Request failed (${response.status})`); err.status = response.status; throw err; } return payload; };
-  const goalPresenceLabel = (status) => ({ active: 'Working', working: 'Working', waiting: 'Waiting', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your input is needed', blocked: 'Paused safely', completed: 'Completed', cancelled: 'Stopped', failed: 'Needs review', expired: 'Expired', unavailable: 'Unavailable' }[String(status || '').toLowerCase()] || 'Updating');
+  const live = (message) => { let region = document.querySelector('[data-agents-live]'); if (!region) { region = document.createElement('div'); region.className = 'k-sr-only'; region.dataset.agentsLive = ''; region.setAttribute('aria-live', 'polite'); document.body.appendChild(region); } region.textContent = String(message || ''); };
+  const api = async (url, options = {}) => { const response = await fetch(url, { credentials: 'same-origin', ...options, headers: { Accept: 'application/json', ...(options.headers || {}) } }); const type = response.headers.get('content-type') || ''; const payload = type.includes('application/json') ? await response.json().catch(() => null) : null; if (!response.ok) { const err = new Error(payload?.error || `Request failed (${response.status})`); err.status = response.status; throw err; } return payload; };
+  const goalPresenceLabel = (status) => ({ active: 'Working on it', running: 'Working on it', working: 'Working on it', waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your decision is needed', paused: 'Paused by you', blocked: 'Needs review', completed: 'Done', cancelled: 'Cancelled', failed: 'Needs recovery', expired: 'Expired', unavailable: 'Unavailable' }[String(status || '').toLowerCase()] || 'Updating');
   const activityLabel = (event) => {
     const kind = String(event?.kind || '');
     const status = String(event?.status || '');
@@ -43,10 +44,13 @@
       const presence = esc(goalPresenceLabel(goal.status));
       const updated = esc(formatDate(goal.updatedAt || goal.updated_at));
       const continuation = continuations.get(String(goal.id || ''));
-      const next = esc(safeNextAction(continuation?.nextAction));
+      const next = esc(status === 'paused' ? 'Work is paused. Resume when you want Kurukoo to continue.' : status === 'needs_user' ? 'Review the decision Kurukoo needs before work can continue.' : status === 'blocked' ? 'Review the recorded update before work can continue.' : safeNextAction(continuation?.nextAction));
       const ready = continuation ? Boolean(continuation.ready) : true;
       const activity = (traces.get(String(goal.id || '')) || []).slice(-3).reverse();
-      const href = `/chat?prompt=${encodeURIComponent('Continue this objective.')}`;
+      const conversationId = String(goal.conversationId || goal.conversation_id || continuation?.conversationId || '').trim();
+      const href = conversationId ? `/chat?conversationId=${encodeURIComponent(conversationId)}` : `/chat?prompt=${encodeURIComponent('Continue this objective.')}`;
+      const canPause = ['active', 'running', 'working', 'waiting', 'waiting_on_dependency', 'needs_user', 'blocked', 'paused'].includes(status);
+      const canCancel = !['cancelled', 'completed', 'failed', 'expired'].includes(status);
       return `<article class="k-agent-goal-row">
         <div class="k-agent-goal-head">
           <strong class="k-agent-goal-objective">${objective}</strong>
@@ -55,10 +59,32 @@
         ${updated ? `<small class="k-agent-goal-updated">Updated ${updated}</small>` : ''}
         ${activity.length ? `<div class="k-agent-goal-activity" aria-label="Recent activity">${activity.map((event) => `<small>${esc(activityLabel(event))}${event.createdAt ? ` · ${esc(formatDate(event.createdAt))}` : ''}</small>`).join('')}</div>` : ''}
         <small class="k-agent-goal-next" data-agent-goal-ready="${ready ? 'true' : 'false'}">${next}</small>
-        <a class="k-agent-goal-link" href="${href}">${ready ? 'Continue in Chat' : 'Review blocker'} →</a>
+        <div class="k-agent-goal-actions">
+          <a class="k-agent-goal-link" href="${href}">${ready ? 'Continue in Chat' : 'Review in Chat'} →</a>
+          ${canPause ? `<button type="button" class="k-agent-goal-link" data-agent-goal-action="${status === 'paused' ? 'resume' : 'pause'}" data-agent-goal-id="${esc(goal.id)}">${status === 'paused' ? 'Resume work' : 'Pause work'}</button>` : ''}
+          ${canCancel ? `<button type="button" class="k-agent-goal-link" data-agent-goal-action="cancel" data-agent-goal-id="${esc(goal.id)}">Cancel work</button>` : ''}
+        </div>
       </article>`;
     }).join('');
   };
+
+  list.addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-agent-goal-action][data-agent-goal-id]');
+    if (!button) return;
+    const goalId = String(button.dataset.agentGoalId || '').trim();
+    const action = String(button.dataset.agentGoalAction || '').trim();
+    if (!goalId || !['pause', 'resume', 'cancel'].includes(action)) return;
+    if (action === 'cancel' && !window.confirm('Cancel this work item? This stops further automatic progress.')) return;
+    button.disabled = true;
+    try {
+      await api(`/api/agent/goals/${encodeURIComponent(goalId)}/${action}`, { method: 'POST' });
+      live(action === 'pause' ? 'Work paused.' : action === 'resume' ? 'Work resumed.' : 'Work cancelled.');
+      await load();
+    } catch (error) {
+      button.disabled = false;
+      live(error?.message || 'Unable to update this work item.');
+    }
+  });
 
   const load = async () => {
     try {

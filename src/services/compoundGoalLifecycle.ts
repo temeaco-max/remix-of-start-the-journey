@@ -28,7 +28,7 @@ export async function createCompoundGoalIfRecognized(input: { phone: string; con
   // Idempotent: an existing active parent with the same objective wins.
   const store = await getCanonicalStore();
   const existingParent = await store.one<any>(
-    `SELECT id FROM agent_goals WHERE phone=? AND lower(objective)=lower(?) AND parent_goal_id IS NULL AND status IN ('active','waiting','waiting_on_dependency','needs_user','blocked') LIMIT 1`,
+    `SELECT id FROM agent_goals WHERE phone=? AND lower(objective)=lower(?) AND parent_goal_id IS NULL AND status IN ('active','waiting','waiting_on_dependency','paused','needs_user','blocked') LIMIT 1`,
     [owner, decomposition.parentObjective]
   );
   if (existingParent) {
