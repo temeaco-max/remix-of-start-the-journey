@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { routeIntent } from '../src/services/intentRouter.js';
 import { processCanonicalChatTurn } from '../src/services/canonicalChatTurnService.js';
 import { sendFcmPush } from '../src/services/pushNotifications.js';
-import { createEconomicRequest, transitionEconomicRequest } from '../src/services/skillFlows.js';
+import { createEconomicRequest, getEconomicRequest, transitionEconomicRequest } from '../src/services/skillFlows.js';
 import { executeCanonicalCapabilityProposal } from '../src/services/canonicalCapabilityExecutor.js';
 import { listAgentGoals } from '../src/services/agentRuntime.js';
 import { upsertProfile } from '../src/routes/authRoutes.js';
@@ -111,6 +111,16 @@ assert.equal(charger.cardData?.type, 'agentic_storefront');
 const teacher = await routeIntent('Find someone who teaches guitar', makeDomainPhone(37), undefined, createContext, `${conversationId}-teacher`);
 assert.equal(teacher.skill, 'find_worker');
 assert.equal(teacher.cardData?.type, 'agentic_storefront');
+
+const tutor = await routeIntent('Find a maths tutor in Yaba for lessons on Saturday.', makeDomainPhone(38), undefined, createContext, `${conversationId}-tutor`);
+assert.equal(tutor.skill, 'find_worker', 'Ordinary tutor language must enter the existing local-help outcome rather than generic conversation.');
+assert.equal(tutor.cardData?.type, 'agentic_storefront');
+assert.equal((await getEconomicRequest(tutor.cardData?.requestId || ''))?.requirements.service, 'teacher', 'Tutor language must seed the reusable teacher-provider service required for discovery.');
+
+const automotive = await routeIntent('Find a car mechanic in Ikeja to diagnose my engine problem today.', makeDomainPhone(40), undefined, createContext, `${conversationId}-automotive`);
+assert.equal(automotive.skill, 'find_worker', 'Vehicle repair wording must enter the existing local-mechanic outcome rather than a ride request.');
+assert.equal(automotive.cardData?.type, 'agentic_storefront');
+assert.equal((await getEconomicRequest(automotive.cardData?.requestId || ''))?.requirements.service, 'mechanic', 'Automotive repair must seed the mechanic service required for provider discovery.');
 
 for (const [offset, message, firstSkill] of [
   [61, 'I need somewhere to stay next week.', 'hotel_deals'],

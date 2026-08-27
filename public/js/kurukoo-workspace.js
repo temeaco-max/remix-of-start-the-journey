@@ -74,11 +74,21 @@
     const details = [requirements.objective, requirements.product, requirements.items, requirements.device_or_asset, requirements.issue, requirements.service, requirements.origin, requirements.destination, requirements.location, requirements.event, requirements.timing].filter(Boolean).map(String);
     return details.length ? details.slice(0, 2).join(' · ') : 'Details are in the linked conversation.';
   };
-  const requestTitle = (request) => ({
-    ride_request: 'Getting you there', order_food: 'Food request', product_sourcing: 'Finding the right item',
-    phone_repairer: 'Phone repair', repair: 'Repair request', find_worker: 'Finding someone to help',
-    hotel_deals: 'Finding a place to stay', rental_tracker: 'Finding a home to rent', job_tracker: 'Finding work',
-  }[String(request.skill || '').toLowerCase()] || humanize(request.category || request.skill || 'Request'));
+  const requestTitle = (request) => {
+    const source = request.requirements || request.requirements_json || {};
+    const requirements = typeof source === 'string' ? (() => { try { return JSON.parse(source); } catch { return {}; } })() : source;
+    const service = String(requirements.service || '').toLowerCase();
+    if (String(request.skill || '').toLowerCase() === 'find_worker') {
+      if (['teacher', 'guitar_teacher'].includes(service)) return 'Finding a tutor';
+      if (service === 'mechanic') return 'Finding a mechanic';
+      return 'Finding someone to help';
+    }
+    return ({
+      ride_request: 'Getting you there', order_food: 'Food request', product_sourcing: 'Finding the right item',
+      phone_repairer: 'Phone repair', repair: 'Repair request',
+      hotel_deals: 'Finding a place to stay', rental_tracker: 'Finding a home to rent', job_tracker: 'Finding work',
+    }[String(request.skill || '').toLowerCase()] || humanize(request.category || request.skill || 'Request'));
+  };
 
   const loadRequests = async () => {
     const list = qs('[data-requests-list]');

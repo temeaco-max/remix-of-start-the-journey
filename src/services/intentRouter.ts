@@ -10,11 +10,15 @@ const CANONICAL_LOOKUP_RE = /^(remember that|what do you remember|what do you kn
 const TRANSPORT_OUTCOME_RE = /\b(?:get|take|drive|bring)\s+me\s+(?:to|from)\b|\b(?:need|want)\s+to\s+(?:get|be)\s+(?:to|in)\b|\b(?:find|book|hire)\s+(?:me\s+)?(?:a\s+)?(?:bus|taxi|ride|driver|train|ferry|car)\b|\b(?:airport|station|transport|ride|travel|bus|taxi|train|ferry|journey|trip)\b[\s\S]*\b(?:tomorrow|today|tonight|by\s+\d|arrive|arrival|leave|leaving|cheapest|fastest|quickest)\b/i;
 const SAFETY_RE = /\b(?:emergency|immediate danger|life[- ]threatening|ambulance|fire service|police|safety contact|security interruption|stolen phone|otp|recovery code)\b/i;
 const DEVICE_SUPPORT_RE = /\b(?:check|diagnose|troubleshoot|investigate|help(?: me)? with)\b.*\b(?:wi-?fi|network|internet|device|phone|iphone|ipad|laptop|macbook|computer|tv|camera|cctv|router|iot)\b|\b(?:wi-?fi|network|internet|device|phone|iphone|ipad|laptop|macbook|computer|tv|camera|cctv|router|iot)\b.*\b(?:slow|slowly|sluggish|offline|not working|won't connect|will not connect|malware|virus|charging|diagnostic|diagnostics)\b/i;
+const TUTOR_OUTCOME_RE = /\b(?:find|hire|book|get|need|want|looking)\b[\s\S]*\b(?:tutor|tutoring|teacher|teach(?:ing)?|lesson|lessons|guitar)\b|\b(?:tutor|tutoring|teacher|teach(?:ing)?|lesson|lessons|guitar)\b[\s\S]*\b(?:find|hire|book|get|need|want|looking)\b/i;
+const AUTOMOTIVE_SERVICE_OUTCOME_RE = /\b(?:car|vehicle|auto|engine|tyre|tire|brake|battery)\b[\s\S]*\b(?:mechanic|repair|fix|service|diagnos(?:e|is)|breakdown|broken)\b|\b(?:mechanic|repair|fix|service|diagnos(?:e|is)|breakdown|broken)\b[\s\S]*\b(?:car|vehicle|auto|engine|tyre|tire|brake|battery)\b/i;
 
 function shouldDelegateToCanonicalRouter(message: string, semantic: Awaited<ReturnType<typeof interpretConversationSemantics>>): boolean {
   if (CANONICAL_LOOKUP_RE.test(message.trim()) || TRANSPORT_OUTCOME_RE.test(message)) return true;
   if (SAFETY_RE.test(message)) return true;
   if (DEVICE_SUPPORT_RE.test(message)) return true;
+  if (TUTOR_OUTCOME_RE.test(message)) return true;
+  if (AUTOMOTIVE_SERVICE_OUTCOME_RE.test(message)) return true;
   if (semantic.mode === 'action' || semantic.mode === 'control' || semantic.mode === 'reference') return true;
   if (semantic.explicitAuthorization) return true;
   return false;

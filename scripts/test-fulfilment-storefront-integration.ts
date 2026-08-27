@@ -39,6 +39,7 @@ const db = await getDb();
 const customerPhone = '+2347000000411';
 const providerPhone = '+2347000000412';
 const hotelProviderPhone = '+2347000000413';
+const tutorProviderPhone = '+2347000000414';
 
 db.run(
   `INSERT OR REPLACE INTO memory_profiles (phone, name, location, country, verified_provider, points_balance)
@@ -64,6 +65,16 @@ db.run(
   `INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode)
    VALUES (?, 'hotel_deals', 1, 0, 4.7, 8, 'stationary')`,
   [hotelProviderPhone]
+);
+db.run(
+  `INSERT INTO memory_profiles (phone, name, location, country, verified_provider, points_balance)
+   VALUES (?, ?, 'Yaba', 'ng', ?, 30)`,
+  [tutorProviderPhone, 'Yaba Maths Tutor', 1]
+);
+db.run(
+  `INSERT INTO skills (phone, skill, is_available, hourly_rate, rating, jobs_completed, operation_mode)
+   VALUES (?, 'teacher', 1, 0, 4.9, 14, 'mobile')`,
+  [tutorProviderPhone]
 );
 
 try {
@@ -171,6 +182,21 @@ try {
   assert.match(accommodationInquiry?.question || '', /tomorrow/i, 'The accommodation provider inquiry must retain the user’s collected timing.');
   assert.equal(outboundCalls, 2, 'The explicit accommodation inquiry must make one additional provider contact attempt.');
 
+  const tutor = await startStorefrontSession(customerPhone, 'find_worker', {
+    service: 'teacher', location: 'Yaba', timing: 'Saturday afternoon', description: 'Maths tutoring',
+  }, { forceNew: true });
+  assert.equal(tutor.stage, 'catalog_match', 'A tutor outcome must reach verified local-provider discovery.');
+  assert.ok(tutor.providers?.some(provider => provider.phone === tutorProviderPhone), 'Tutor discovery must surface the verified teacher without claiming a confirmed lesson.');
+  const tutorRequestId = tutor.requestId!;
+  await advanceStorefront(customerPhone, tutorRequestId, { providerPhone: tutorProviderPhone }, 'select_provider');
+  const tutorInquiryCard = await advanceStorefront(customerPhone, tutorRequestId, {}, 'request_quote');
+  assert.equal(tutorInquiryCard.title, 'Quote inquiry sent', 'The selected tutor must receive the existing provider availability inquiry.');
+  const tutorFulfilment = await getFulfilmentForEconomicRequest(customerPhone, tutorRequestId);
+  assert.equal(tutorFulfilment?.mechanism, 'local_discovery', 'Tutor coordination must reuse the local discovery fulfilment mechanism.');
+  const tutorInquiry = await getOpenProviderInquiry(customerPhone, tutorFulfilment!.id, tutorProviderPhone);
+  assert.match(tutorInquiry?.question || '', /Saturday afternoon/i, 'Tutor provider inquiry must retain the requested lesson timing.');
+  assert.equal(outboundCalls, 3, 'The explicit tutor inquiry must make one additional provider contact attempt.');
+
   console.log(JSON.stringify({
     passed: true,
     requestId,
@@ -184,6 +210,7 @@ try {
       'customer notification queued and reopens the same quote decision in Chat',
       'outbound and inbound replays do not duplicate side effects',
       'accommodation progresses from discovery to the shared booking inquiry with retained timing',
+      'education progresses from tutor discovery to the shared local inquiry with retained timing',
     ],
   }, null, 2));
 } finally {
