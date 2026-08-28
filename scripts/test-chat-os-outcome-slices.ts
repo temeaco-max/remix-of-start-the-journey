@@ -112,7 +112,6 @@ assert.equal(propertyRequest?.requirements.bedrooms, 2, 'Property discovery must
 assert.equal(propertyRequest?.requirements.furnishing, 'furnished', 'Property discovery must retain furnishing preferences.');
 assert.equal(propertyRequest?.requirements.security_requirements, 'security_requested', 'Property discovery must retain safety requirements without asserting building security.');
 assert.match(String(propertyRequest?.requirements.transport_proximity || ''), /bus stop/i, 'Property discovery must retain transport-proximity preferences.');
-
 const hotel = await routeIntent('Find a hotel in Yaba for 3 guests with 2 rooms and wheelchair access.', makeDomainPhone(36), undefined, createContext, `${conversationId}-hotel-preferences`);
 assert.equal(hotel.skill, 'hotel_deals');
 const hotelRequest = await getEconomicRequest(hotel.cardData?.requestId || '');
@@ -120,18 +119,28 @@ assert.equal(hotelRequest?.requirements.guest_count, 3, 'Hotel discovery must re
 assert.equal(hotelRequest?.requirements.room_count, 2, 'Hotel discovery must retain room count.');
 assert.equal(hotelRequest?.requirements.accessibility_requirements, 'accessibility_requested', 'Hotel discovery must retain accessibility needs without asserting a room is accessible.');
 
+const jobSearch = await routeIntent('Find me a remote full-time warehouse job in Yaba.', makeDomainPhone(36), undefined, createContext, `${conversationId}-job-preferences`);
+assert.equal(jobSearch.skill, 'job_tracker');
+const jobSearchRequest = await getEconomicRequest(jobSearch.cardData?.requestId || '');
+assert.equal(jobSearchRequest?.requirements.role, 'warehouse', 'Job discovery must retain the requested role.');
+assert.equal(jobSearchRequest?.requirements.work_mode, 'remote', 'Job discovery must retain the requested work mode.');
+assert.equal(jobSearchRequest?.requirements.employment_type, 'full-time', 'Job discovery must retain the requested employment type.');
+
 const charger = await routeIntent('Buy me a replacement charger', makeDomainPhone(31), undefined, createContext, `${conversationId}-charger`);
 assert.equal(charger.skill, 'product_sourcing');
 assert.equal(charger.cardData?.type, 'agentic_storefront');
 
 const teacher = await routeIntent('Find someone who teaches guitar', makeDomainPhone(37), undefined, createContext, `${conversationId}-teacher`);
-assert.equal(teacher.skill, 'find_worker');
+assert.equal(teacher.skill, 'home_tutor');
 assert.equal(teacher.cardData?.type, 'agentic_storefront');
 
 const tutor = await routeIntent('Find a maths tutor in Yaba for lessons on Saturday.', makeDomainPhone(38), undefined, createContext, `${conversationId}-tutor`);
-assert.equal(tutor.skill, 'find_worker', 'Ordinary tutor language must enter the existing local-help outcome rather than generic conversation.');
+assert.equal(tutor.skill, 'home_tutor', 'Ordinary tutor language must enter the shared tutoring service outcome rather than generic conversation.');
 assert.equal(tutor.cardData?.type, 'agentic_storefront');
-assert.equal((await getEconomicRequest(tutor.cardData?.requestId || ''))?.requirements.service, 'teacher', 'Tutor language must seed the reusable teacher-provider service required for discovery.');
+const tutorRequest = await getEconomicRequest(tutor.cardData?.requestId || '');
+assert.match(String(tutorRequest?.requirements.objective || ''), /maths tutor/i, 'Tutoring must retain the learner’s stated outcome for provider coordination.');
+assert.equal(tutorRequest?.requirements.location, 'Yaba', 'Tutoring must retain the stated learning location.');
+assert.match(String(tutorRequest?.requirements.timing || ''), /Saturday/i, 'Tutoring must retain timing without treating it as a confirmed session.');
 
 const automotive = await routeIntent('Find a car mechanic in Ikeja to diagnose my engine problem today.', makeDomainPhone(40), undefined, createContext, `${conversationId}-automotive`);
 assert.equal(automotive.skill, 'mechanic', 'Vehicle repair wording must enter the shared mechanic service outcome rather than a ride request.');
