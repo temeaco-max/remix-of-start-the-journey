@@ -21,7 +21,7 @@ assert.match(screen, /\/api\/memory\/profile/);
 assert.match(screen, /\/api\/profile\/update/);
 assert.match(screen, /\/api\/chat\/economic-requests\/memory\/facts/);
 assert.match(screen, /Remove fact/);
-assert.match(screen, /Agent Brief preferences/);
+assert.match(screen, /Communication preferences/);
 assert.match(screen, /Continue in Chat/);
 assert.doesNotMatch(screen, /CREATE TABLE|memory_profiles|memory_facts.*INSERT/);
 assert.match(css, /k-app-section-memory/);
@@ -29,7 +29,7 @@ assert.match(css, /min-height:44px/);
 assert.match(surfaceRoutes, /router\.get\('\/api\/memory\/profile'/);
 assert.match(surfaceRoutes, /await getProfile\(phone, 'memory_surface'\)/);
 assert.match(surfaceRoutes, /section === 'memory'/);
-assert.match(surfaceRoutes, /kurukoo-memory-convergence\\.css/);
-assert.match(surfaceRoutes, /kurukoo-memory-convergence\\.js/);
+assert.match(surfaceRoutes, /kurukoo-memory-convergence\.css/);
+assert.match(surfaceRoutes, /kurukoo-memory-convergence\.js/);
 
 console.log('Memory convergence contract passed.');

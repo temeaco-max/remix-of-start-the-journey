@@ -157,7 +157,8 @@
           facts.forEach(fact => {
             const row = makeElement('article', 'workspace-data-row');
             const copy = makeElement('div');
-            copy.append(makeElement('strong', '', `${String(fact.field || 'Context')}: ${String(fact.value || '')}`), makeElement('small', '', `Provenance: ${String(fact.provenance || 'unknown').replace(/_/g, ' ')}`));
+            const memorySource = ({ user_declared: 'You asked Kurukoo to remember this.', verified: 'Recorded as confirmed information.', observed: 'Recorded from an observed signal.', inferred: 'Learned from context; remove it if it is not right.', system_generated: 'Saved by Kurukoo for your review.' })[String(fact.provenance || '').toLowerCase()] || 'Saved in your Memory Profile for review.';
+            copy.append(makeElement('strong', '', `${String(fact.field || 'Context').replace(/_/g, ' ')}: ${String(fact.value || '')}`), makeElement('small', '', memorySource));
             const remove = makeElement('button', 'text-btn text-btn-danger', 'Remove');
             remove.type = 'button';
             remove.addEventListener('click', async () => {
@@ -1053,12 +1054,12 @@
       items.forEach(item => {
         const row = makeElement('article', 'inspector-list-row');
         const details = makeElement('div');
-        const label = item.title || 'Saved item';
+        const label = item.title || item.field || 'Saved item';
         const rawMeta = String(item.deliveryState || item.status || item.recurrence || item.dueAt || item.sourceType || '').toLowerCase();
-        const meta = ({ in_progress: 'Working on it', waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your decision is needed', completed: 'Completed', approved: 'Completed', failed: 'Needs recovery', scheduled: 'Scheduled', sent: 'Reminder time reached', cancelled: 'Cancelled' })[rawMeta] || rawMeta.replace(/_/g, ' ');
+        const meta = ({ in_progress: 'Working on it', waiting: 'Waiting for an update', waiting_on_dependency: 'Waiting for earlier work', needs_user: 'Your decision is needed', completed: 'Completed', approved: 'Completed', failed: 'Needs recovery', scheduled: 'Scheduled', sent: 'Reminder time reached', cancelled: 'Cancelled', saved: 'Saved' })[rawMeta] || rawMeta.replace(/_/g, ' ');
         details.append(makeElement('strong', '', String(label)), makeElement('span', '', meta));
-        if (item.body || item.description) details.appendChild(makeElement('small', '', String(item.body || item.description)));
-        if (card.type === 'memory' && item.provenance) details.appendChild(makeElement('small', '', `Provenance: ${String(item.provenance).replace(/_/g, ' ')}`));
+        if (item.body || item.description || (card.type === 'memory' && item.value)) details.appendChild(makeElement('small', '', String(item.body || item.description || item.value)));
+        if (card.type === 'memory' && item.provenance) { const memorySource = ({ user_declared: 'You asked Kurukoo to remember this.', verified: 'Recorded as confirmed information.', observed: 'Recorded from an observed signal.', inferred: 'Learned from context; remove it if it is not right.', system_generated: 'Saved by Kurukoo for your review.' })[String(item.provenance).toLowerCase()] || 'Saved in your Memory Profile for review.'; details.appendChild(makeElement('small', '', memorySource)); }
         const actions = makeElement('div', 'storefront-actions');
         if (card.type === 'notifications') {
           const open = makeElement('button', 'sf-btn sf-secondary', 'Open'); open.type = 'button'; open.addEventListener('click', () => sendMessage(`Open notification ${String(item.id)}`)); actions.appendChild(open);
@@ -2219,7 +2220,7 @@
     if (discoveryEntityId) state.discoveryContextAction = { type: 'open_discovery_entity', entityId: discoveryEntityId.slice(0, 180) };
     if (canonicalAction && objectType && objectId) {
       state.canonicalContextAction = { type: 'resume_canonical_context', contextId: contextId?.slice(0, 180), conversationId: conversationId?.slice(0, 180), canonicalAction: canonicalAction.slice(0, 120), objectType: objectType.slice(0, 80), objectId: objectId.slice(0, 180) };
-      state.resumeCanonicalContextOnLoad = ['economic_request.open', 'agent.goal.review', 'task.open', 'reminder.open'].includes(canonicalAction);
+      state.resumeCanonicalContextOnLoad = ['economic_request.open', 'agent.goal.review', 'task.open', 'reminder.open', 'memory.context.open'].includes(canonicalAction);
     }
     let contactMessageDraft = null;
     if (contactCompose && input) {

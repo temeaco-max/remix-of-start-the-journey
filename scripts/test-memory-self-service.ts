@@ -33,6 +33,7 @@ assert.equal(repeated.reason, 'already_revoked');
 const source = fs.readFileSync(path.join(process.cwd(), 'src/routes/economicRequestRouter.ts'), 'utf8');
 assert.match(source, /router\.get\('\/memory\/facts', authenticateUser/);
 assert.match(source, /router\.delete\('\/memory\/facts\/:id', authenticateUser/);
-assert.match(source, /facts\.map\(\(\{ id, field, value, provenance, confidence, observedAt, expiresAt \}\)/, 'memory route must not expose source_ref');
+assert.match(source, /facts\.map\(\(\{ id, field, value, provenance, confidence, sourceConversationId, observedAt, expiresAt \}\)/, 'memory route must project only the owner-verified conversation context');
+assert.doesNotMatch(source, /source_ref/, 'memory route must not expose raw source_ref provenance');
 
 console.log('Memory self-service contract passed: owner scoping, revocation, repeat handling, active retrieval, and source-reference redaction.');

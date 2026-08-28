@@ -59,7 +59,7 @@ export async function recordMemoryFact(phone: string, field: string, value: unkn
         [phone, field, normalized, provenance, options.confidence ?? null, options.sourceRef ?? null, options.expiresAt ?? null]);
 }
 
-export async function getMemoryFacts(phone: string, fields?: string[]): Promise<Array<{ id: number; field: string; value: string; provenance: MemoryProvenance; confidence: number | null; sourceRef: string | null; observedAt: string; expiresAt: string | null }>> {
+export async function getMemoryFacts(phone: string, fields?: string[]): Promise<Array<{ id: number; field: string; value: string; provenance: MemoryProvenance; confidence: number | null; sourceRef: string | null; sourceConversationId: string | null; observedAt: string; expiresAt: string | null }>> {
     await ensureMemoryFactsSchema();
     const store = await getCanonicalStore();
     const params: unknown[] = [phone];
@@ -69,7 +69,23 @@ export async function getMemoryFacts(phone: string, fields?: string[]): Promise<
     let where = `phone = ? AND status = 'active' AND ${expiryComparison}`;
     if (fields?.length) { where += ` AND field IN (${fields.map(() => '?').join(',')})`; params.push(...fields); }
     const rows = await store.all<any>(`SELECT id, field, value, provenance, confidence, source_ref, observed_at, expires_at FROM memory_facts WHERE ${where} ORDER BY updated_at DESC`, params);
-    return rows.map(row => ({ id: Number(row.id), field: String(row.field), value: String(row.value), provenance: String(row.provenance) as MemoryProvenance, confidence: row.confidence == null ? null : Number(row.confidence), sourceRef: row.source_ref == null ? null : String(row.source_ref), observedAt: String(row.observed_at), expiresAt: row.expires_at == null ? null : String(row.expires_at) }));
+    const sourceConversationIds = new Set<string>();
+    for (const row of rows) {
+        const match = String(row.source_ref || '').match(/^chat:([^:]{1,160})(?::|$)/);
+        if (match?.[1]) sourceConversationIds.add(match[1]);
+    }
+    const ownedConversationIds = new Set<string>();
+    for (const conversationId of sourceConversationIds) {
+        try {
+            const conversation = await store.one<any>(`SELECT id FROM chat_conversations WHERE id = ? AND phone = ? LIMIT 1`, [conversationId, phone]);
+            if (conversation?.id) ownedConversationIds.add(conversationId);
+        } catch { /* An unavailable conversation table must never expose a source reference. */ }
+    }
+    return rows.map(row => {
+        const sourceRef = row.source_ref == null ? null : String(row.source_ref);
+        const sourceConversationId = sourceRef?.match(/^chat:([^:]{1,160})(?::|$)/)?.[1] || null;
+        return { id: Number(row.id), field: String(row.field), value: String(row.value), provenance: String(row.provenance) as MemoryProvenance, confidence: row.confidence == null ? null : Number(row.confidence), sourceRef, sourceConversationId: sourceConversationId && ownedConversationIds.has(sourceConversationId) ? sourceConversationId : null, observedAt: String(row.observed_at), expiresAt: row.expires_at == null ? null : String(row.expires_at) };
+    });
 }
 
 export async function revokeMemoryFact(phone: string, factId: number): Promise<{ revoked: boolean; reason?: 'not_found' | 'already_revoked' }> {
