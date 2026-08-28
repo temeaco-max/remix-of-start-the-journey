@@ -320,12 +320,12 @@ function extractFollowUpPatch(q: string, skill: string): Record<string, unknown>
 
 async function applyFollowUpSlot(phone: string, q: string): Promise<IntentRoutingResult | null> { const active = await tryResumeStorefront(phone); if (!active?.requestId) return null; const patch = extractFollowUpPatch(q, active.skill); if (!Object.keys(patch).length) return null; const card = await advanceStorefront(phone, active.requestId, patch); return { skill: active.skill, reply: card.message, cardData: card }; }
 
-async function handleExplicitMemory(phone: string, q: string): Promise<IntentRoutingResult | null> {
+async function handleExplicitMemory(phone: string, q: string, conversationId?: string): Promise<IntentRoutingResult | null> {
   const remember = q.match(/^remember that\s+(.+)$/i);
   if (remember) {
     const statement = remember[1].trim(); const profile = await getProfile(phone, 'conversation_memory'); const preferences = { ...(profile?.preferences || {}) }; const locationMatch = statement.match(/\busual area is\s+([a-z][a-z -]{1,40}?)(?:\s+and\b|$)/i);
     if (/\b(prefer|want|like)\b.*\b(short|simple|concise|brief)\b/i.test(statement)) preferences.response_style = 'concise'; else if (/\bevening\b.*\breminder/i.test(statement)) preferences.reminder_time_preference = 'evening'; else if (!locationMatch) return { skill: 'memory', reply: 'I can remember preferences such as how you like answers, your usual area, or when you prefer reminders. Tell me that preference in a specific way.' };
-    await updateProfile(phone, 'conversation_memory', { preferences, ...(locationMatch ? { location: locationMatch[1].trim(), provenance: 'user_declared' as const, source_ref: 'conversation_memory' } : {}) });
+    await updateProfile(phone, 'conversation_memory', { preferences, ...(locationMatch ? { location: locationMatch[1].trim(), provenance: 'user_declared' as const, source_ref: conversationId ? `chat:${conversationId}:memory_preference` : 'conversation_memory' } : {}) });
     return { skill: 'memory', reply: locationMatch ? `Got it. I’ll remember **${locationMatch[1].trim()}** as your usual area and keep your preference with your Kurukoo Memory Profile.` : 'Got it. I’ll keep that preference with your Kurukoo Memory Profile.', cardData: { type: 'memory_action', status: 'recorded', provenance: 'user_declared', source: 'conversation_memory' }, canonicalAction: 'memory.record', progressStage: 'complete' };
   }
   if (/^what do you remember\b|^what do you know about me\b/i.test(q)) {
@@ -432,7 +432,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
     return { skill: 'emergency', reply: result.message, cardData: { type: 'emergency_dispatch', status: result.status, service, ...(result.canonicalFacts || {}), actions: result.nextActions, recovery: result.retryRecovery, canonicalAction: 'safety.emergency_dispatch', priority: priority.kind }, canonicalAction: 'safety.emergency_dispatch', progressStage: 'safety', extractionSource: 'deterministic' };
   }
 
-  if (phone) { const memoryResult = await handleExplicitMemory(phone, q); if (memoryResult) return memoryResult; }
+  if (phone) { const memoryResult = await handleExplicitMemory(phone, q, threadId); if (memoryResult) return memoryResult; }
   const osAction = await handleExplicitOSAction(phone, q, threadId);
   if (osAction) return osAction;
   if (phone && /^(what notifications|show (my )?notifications|what updates are waiting|show (my )?updates)\b/i.test(q)) {
