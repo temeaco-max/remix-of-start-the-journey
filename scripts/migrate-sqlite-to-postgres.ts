@@ -21,7 +21,22 @@ type SourceTable = {
   columns: unknown[][];
   rows: unknown[][];
   columnNames: string[];
+  columnTypes: string[];
 };
+
+function sqliteTypeToPostgres(sqliteType: string): string {
+  const trimmed = (sqliteType || 'TEXT').trim();
+  if (!trimmed) return 'TEXT';
+  const upper = trimmed.toUpperCase();
+  if (/\bBLOB\b/i.test(upper)) return 'BYTEA';
+  if (/\bDATETIME\b/i.test(upper)) return 'TEXT';
+  if (/\bINTEGER\b/i.test(upper)) return 'BIGINT';
+  if (/\bINT\b/i.test(upper)) return 'BIGINT';
+  if (/\bREAL\b/i.test(upper) || /\bFLOAT\b/i.test(upper) || /\bDOUBLE\b/i.test(upper)) return 'REAL';
+  if (/\bTEXT\b/i.test(upper)) return 'TEXT';
+  if (/\bNUMERIC\b/i.test(upper)) return 'NUMERIC';
+  return 'TEXT';
+}
 
 type SourceIndex = { name: string; table: string; ddl: string };
 
@@ -32,6 +47,19 @@ function digest(value: unknown): string {
 function normalizeValue(value: unknown): unknown {
   if (value == null) return null;
   if (value instanceof Uint8Array || Buffer.isBuffer(value)) return Buffer.from(value).toString('base64');
+  if (typeof value === 'number') {
+    // SQLite REAL is a 64-bit double; PostgreSQL REAL is 32-bit float.
+    // Normalize to 7-digit precision (sufficient for 32-bit) so digests
+    // are stable across both backends regardless of floating-point expansion.
+    if (Number.isInteger(value)) return String(value);
+    return String(parseFloat(value.toFixed(7)));
+  }
+  if (typeof value === 'string') {
+    const num = Number(value);
+    if (!Number.isNaN(num) && !Number.isInteger(num)) {
+      return String(parseFloat(num.toFixed(7)));
+    }
+  }
   return String(value);
 }
 
@@ -111,7 +139,7 @@ async function readSourceDatabase(sourcePath: string) {
     const ddl = String(row[1]);
     const columns = db.exec(`PRAGMA table_info("${name.replace(/"/g, '""')}")`)[0]?.values || [];
     const rows = db.exec(`SELECT * FROM "${name.replace(/"/g, '""')}" ORDER BY 1`)[0];
-    return { name, ddl, columns, rows: rows?.values || [], columnNames: columns.map(column => String(column[1])) };
+        return { name, ddl, columns, rows: rows?.values || [], columnNames: columns.map(column => String(column[1])), columnTypes: columns.map(column => String(column[2] || '')) };
   });
   const discoveredIndexes = (db.exec("SELECT name, tbl_name, sql FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY name")[0]?.values || [])
     .map(row => ({ name: String(row[0]), table: String(row[1]), ddl: String(row[2]) })) as SourceIndex[];
@@ -122,7 +150,7 @@ async function readSourceDatabase(sourcePath: string) {
 }
 
 function importantIntegrityChecks(records: SourceTable[]) {
-  const checks = ['memory_profiles', 'messages', 'economic_requests', 'internal_notifications', 'orders', 'agent_goals', 'agent_goal_events', 'execution_requests'];
+  const checks = ['memory_profiles', 'messages', 'economic_requests', 'internal_notifications', 'orders', 'agent_goals', 'agent_goal_events', 'execution_requests', 'ad_campaigns'];
   return checks.map(name => {
     const table = records.find(item => item.name === name);
     return {
@@ -147,13 +175,55 @@ async function executeImport(sql: Sql, records: SourceTable[], indexes: SourceIn
       }
     }
     for (const record of orderedRecords) {
-      if (!record.rows.length || !record.columnNames.length) continue;
-      const columns = record.columnNames.map(column => `"${column.replace(/"/g, '""')}"`).join(', ');
+      if (!record.columnNames.length) continue;
       const table = `"${record.name.replace(/"/g, '""')}"`;
+      const destinationColumns = (await tx.unsafe(`SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position`, [record.name])).map((row: any) => String(row.column_name));
+      const destSet = new Set(destinationColumns);
+      for (let i = 0; i < record.columnNames.length; i++) {
+        const colName = record.columnNames[i];
+        if (destSet.has(colName)) continue;
+        const colType = sqliteTypeToPostgres(record.columnTypes[i]);
+        const quotedCol = `"${colName.replace(/"/g, '""')}"`;
+        await tx.unsafe(`ALTER TABLE ${table} ADD COLUMN ${quotedCol} ${colType}`);
+      }
+    }
+    for (const record of orderedRecords) {
+      if (!record.rows.length || !record.columnNames.length) continue;
+      const table = `"${record.name.replace(/"/g, '""')}"`;
+      const destinationColumns = (await tx.unsafe(`SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position`, [record.name])).map((row: any) => String(row.column_name));
+      const destSet = new Set(destinationColumns);
+      const insertColumns = record.columnNames.filter(col => destSet.has(col));
+      if (!insertColumns.length) continue;
+      const columnsClause = insertColumns.map(col => `"${col.replace(/"/g, '""')}"`).join(', ');
+      const pkCol = primaryKeyColumn(record);
+      // Pre-check for type mismatches: SQLite is dynamically typed, so a value
+      // may not match the DDL-declared type (e.g. a JSON string stored in an
+      // INTEGER column after a DDL column-order change). Widen mismatched columns
+      // to TEXT before inserting so no data is silently dropped.
+      for (let i = 0; i < insertColumns.length; i++) {
+        const col = insertColumns[i];
+        if (col === pkCol) continue; // identity columns cannot be altered to TEXT
+        const colType = record.columnTypes[record.columnNames.indexOf(col)];
+        const pgType = sqliteTypeToPostgres(colType);
+        if (pgType === 'TEXT') continue;
+        const hasMismatch = record.rows.some(row => {
+          const val = row[record.columnNames.indexOf(col)];
+          if (val == null) return false;
+          if (typeof val === 'string') {
+            if (pgType === 'BIGINT' || pgType === 'INTEGER') return !/^-?[0-9]+$/.test(val);
+            if (pgType === 'REAL') return isNaN(Number(val));
+          }
+          return false;
+        });
+        if (hasMismatch) {
+          const quotedCol = `"${col.replace(/"/g, '""')}"`;
+          await tx.unsafe(`ALTER TABLE ${table} ALTER COLUMN ${quotedCol} TYPE TEXT`);
+        }
+      }
       for (const row of record.rows) {
-        const values = record.columnNames.map((_, index) => row[index]);
-        const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
-        await tx.unsafe(`INSERT INTO ${table} (${columns}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`, values);
+        const insertValues = insertColumns.map(col => row[record.columnNames.indexOf(col)]);
+        const placeholders = insertValues.map((_, index) => `$${index + 1}`).join(', ');
+        await tx.unsafe(`INSERT INTO ${table} (${columnsClause}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`, insertValues);
       }
     }
     for (const record of orderedRecords) {
