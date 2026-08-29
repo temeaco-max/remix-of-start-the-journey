@@ -464,9 +464,17 @@
 
   const chatContinuationHref = (request) => {
     const id = String(request?.id || '').trim();
-    const skill = humanize(request?.skill || request?.category || 'request');
-    const prompt = id ? `Continue my ${skill} request ${id}` : `Continue my ${skill} request`;
-    return `/chat?prompt=${encodeURIComponent(prompt)}`;
+    const params = new URLSearchParams({ prompt: 'Review this request.' });
+    const conversationId = String(request?.conversationId || request?.conversation_id || '').trim();
+    if (conversationId) params.set('conversationId', conversationId.slice(0, 160));
+    if (id) {
+      params.set('contextId', `economic_request:${id}`.slice(0, 180));
+      params.set('action', 'review');
+      params.set('canonicalAction', 'economic_request.open');
+      params.set('objectType', 'economic_request');
+      params.set('objectId', id.slice(0, 180));
+    }
+    return `/chat?${params.toString()}`;
   };
 
   const appendDetail = (container, label, value) => {
