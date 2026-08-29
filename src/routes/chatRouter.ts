@@ -10,6 +10,7 @@ import { migrateGuestSessionToAccount } from '../services/guestSessionMigration.
 import { applyQrReferralAttribution } from '../services/qrContextService.js';
 import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 import { getAuthState, setAuthState } from '../services/conversationalAuthService.js';
+import { inspectAttachmentSecurity } from '../services/attachmentSecurityBoundary.js';
 import economicRequestRouter from './economicRequestRouter.js';
 import { listUniversalCapabilities } from '../services/universalCapabilityProtocol.js';
 import { executeCanonicalCapabilityProposal } from '../services/canonicalCapabilityExecutor.js';
@@ -231,12 +232,21 @@ router.post('/attachments', async (req: AuthRequest, res) => {
   const limit = type.startsWith('video/') ? 25 * 1024 * 1024 : 10 * 1024 * 1024;
   if (!bytes || bytes > limit) return res.status(413).json({ error: `Attachment exceeds ${Math.floor(limit / 1024 / 1024)}MB limit` });
   const safeName = name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 160) || 'attachment';
+  // Run attachment through the malware/content security boundary
+  // (magic byte validation, forbidden content scan, file type verification)
+  const securityResult = inspectAttachmentSecurity({ data: buffer, mimeType: type, filename: safeName });
+  if (securityResult.state === 'rejected') {
+    return res.status(403).json({ error: `Attachment rejected: ${securityResult.reason}` });
+  }
+  if (securityResult.state === 'pending_scan') {
+    return res.status(202).json({ success: true, pendingScan: true, reason: securityResult.reason });
+  }
   const safeExt = path.extname(safeName).toLowerCase().replace(/[^a-z0-9.]/g, '').slice(0, 8) || '.bin';
   const dir = privateAttachmentDir();
   await fs.mkdir(dir, { recursive: true });
   const id = crypto.randomUUID();
   const storedPath = path.join(dir, `${id}${safeExt}`);
-  const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+  const sha256 = securityResult.sha256;
   const db = await getDb();
   await ensurePrivateAttachmentTable(db);
   await cleanupExpiredAttachments(db);
