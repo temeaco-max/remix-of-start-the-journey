@@ -26,6 +26,7 @@ ai-studio/
 .github-sync/
 github-workspace/
 github-sync/
+.agents/
 
 
 # Local GitHub/agent credentials and token material
