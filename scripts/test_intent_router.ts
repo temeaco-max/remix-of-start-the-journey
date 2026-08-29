@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { routeIntent } from '../src/services/intentRouter.js';
 
 async function assertStorefront(query: string, expectedSkill: string) {

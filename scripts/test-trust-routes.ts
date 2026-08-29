@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Contract test: trust routes (disputes/escrow/scam) use JWT phone only.
  * Run: npx tsx scripts/test-trust-routes.ts

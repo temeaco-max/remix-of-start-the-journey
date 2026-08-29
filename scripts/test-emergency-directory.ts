@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getEmergencyServices } from '../src/services/emergencyDirectoryService.js';
 
 const expectations: Record<string, Record<string, string>> = {

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Contract test: circle routes use JWT phone only (no client-trusted identity).
  * Run: npx tsx scripts/test-circle-routes.ts

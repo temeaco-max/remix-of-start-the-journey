@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 
 function xmlEscape(value: string): string {

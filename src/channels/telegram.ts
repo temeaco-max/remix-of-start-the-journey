@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { BaseChannelHandler } from './baseChannelService.js';
 
 class TelegramHandler extends BaseChannelHandler {

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { AIProvider, resolveHostedProviderCandidates, resolveConfiguredHostedProvider } from '../src/services/unifiedAiEngine.js';
 import { AiProvider, isAiProviderUsable, recordAiProviderSuccess, recordAiProviderFailure, resetAiProviderHealth, listAiProviderHealth } from '../src/services/aiProviderHealth.js';
 import { getFeatureFlag, getFeatureFlagStatus } from '../src/services/featureFlags.js';

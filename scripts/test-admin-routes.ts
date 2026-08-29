@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Contract test: Admin routes require authenticateAdmin and the control room
  * exposes one canonical platform projection for every client family.

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { AUTHENTICATED_AD_PLACEMENTS, AUTHENTICATED_LEFT_RAIL_SPONSORED_CARD } from '../src/services/authenticatedAdvertisingFoundation';
 

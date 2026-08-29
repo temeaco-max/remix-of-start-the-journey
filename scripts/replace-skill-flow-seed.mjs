@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import fs from 'node:fs';
 const path = 'src/services/skillFlows.ts';
 const source = fs.readFileSync(path, 'utf8');

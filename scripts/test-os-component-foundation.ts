@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { CHAT_SIDEBAR_FOUNDATION } from '../src/services/chatSidebarFoundation.js';
 import { KURUKOO_OS_COMPONENTS, KURUKOO_BRAND_REFERENCE_BOUNDARY } from '../src/services/kurukooOsComponentRegistry.js';

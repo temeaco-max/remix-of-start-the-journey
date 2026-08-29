@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { listUniversalCapabilities } from '../src/services/universalCapabilityProtocol.js';
 import { ensureCapabilityFoundation } from '../src/services/capabilityFoundation.js';

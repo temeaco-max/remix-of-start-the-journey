@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { extractConversationalEntities, validateConversationalEntities } from '../src/services/conversationalExtraction.js';
 import { detectUserOutcomeVerb, isDirectOutcomeRequest } from '../src/services/outcomeSupport.js';

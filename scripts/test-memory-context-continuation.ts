@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { getDb, saveDb } from '../src/database.js';

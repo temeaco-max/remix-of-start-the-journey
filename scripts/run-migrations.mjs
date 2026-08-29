@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb } from '../dist/database.js';
 import { migrationReadiness, runMigrations } from '../dist/services/migrationRunner.js';
 

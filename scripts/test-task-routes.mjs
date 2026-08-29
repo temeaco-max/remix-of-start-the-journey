@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Contract tests for taskRoutes (appointments + micro-tasks).
  * Static analysis — no runtime Express import required.

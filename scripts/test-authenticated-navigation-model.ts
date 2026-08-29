@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { strict as assert } from 'node:assert';
 import {
   PRIMARY_SIDEBAR_ITEMS,

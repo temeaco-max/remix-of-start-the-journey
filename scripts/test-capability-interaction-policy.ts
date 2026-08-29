@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { deriveInteractionPolicyForCapabilityName, getAllCapabilityInteractionPolicies, type CapabilityInteractionPolicy } from '../src/services/capabilityInteractionPolicyService.js';
 
 const policies = await getAllCapabilityInteractionPolicies();

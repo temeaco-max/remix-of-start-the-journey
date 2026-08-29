@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getFeatureFlagStatus } from '../src/services/featureFlags.js';
 import { getDriveConnectionStatus } from '../src/services/artifactService.js';
 import { getTelegramLinkedDeviceStatus, isTelegramLinkedDeviceConfigured } from '../src/services/telegramLinkedDeviceService.js';

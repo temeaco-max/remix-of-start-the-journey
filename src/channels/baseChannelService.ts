@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { recordChannelUsage } from '../services/channelUsageService.js';
 import { recordChannelEvidence } from '../services/progressiveTrustService.js';
 import { claimInboundWebhook } from '../services/channelWebhookDeduplication.js';

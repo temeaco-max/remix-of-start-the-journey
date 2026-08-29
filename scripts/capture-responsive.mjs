@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, existsSync, rmSync } from 'node:fs';
 import path from 'node:path';

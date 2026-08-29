@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import type { NextFunction, Request, Response } from 'express';
 import { beginRequest, createRequestId, recordRequest, logStructured } from '../services/observability.js';
 

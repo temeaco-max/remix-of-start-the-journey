@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import 'dotenv/config';
 
 const apiKey = String(process.env.MISTRAL_API_KEY || '').trim();

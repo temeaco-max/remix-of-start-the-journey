@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getKnownSkills } from '../src/services/skillFlows.js';
 import { ensureCapabilityFoundation } from '../src/services/capabilityFoundation.js';
 import { resolveExecutableCapabilityPlan, resolveSkillCapabilityPlan } from '../src/services/capabilityFoundationIntegration.js';

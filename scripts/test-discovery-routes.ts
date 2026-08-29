@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import discoveryRouter from '../src/routes/discoveryRoutes.js';
 
 const stack = (discoveryRouter as any).stack || [];

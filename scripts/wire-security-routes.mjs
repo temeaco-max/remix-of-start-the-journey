@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Idempotent wiring: mount all extracted route modules into src/index.ts and
  * neutralize dangerous / duplicated legacy handlers in the monolith.

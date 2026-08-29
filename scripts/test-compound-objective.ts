@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Compound objective lifecycle test — 12 phases.
  * Covers: recognition, skill inference, goal creation, dependency attachment,

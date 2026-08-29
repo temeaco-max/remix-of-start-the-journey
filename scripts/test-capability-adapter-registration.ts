@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 // Proves the capability execution adapter bridge registers ALL built-in execution
 // adapters at runtime (points, discovery, subscription, payment, order, channel,
 // connected_resource) and that connected_resource control is dispatched, not a stub.

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { executeCanonicalCapabilityProposal } from '../src/services/canonicalCapabilityExecutor.js';
 import { createConversationGoal } from '../src/services/agentRuntime.js';

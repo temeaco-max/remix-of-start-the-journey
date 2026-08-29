@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb, CANONICAL_OPERATOR_PHONE } from '../src/database.js';
 
 if (process.env.NODE_ENV === 'production') throw new Error('Demo workspace reset is disabled in production.');

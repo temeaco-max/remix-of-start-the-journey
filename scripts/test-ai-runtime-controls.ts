@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { strict as assert } from 'node:assert';
 import { getFastTextThresholdConfig } from '../src/services/fastTextThresholds.js';
 import { getAiProviderHealth, isAiProviderUsable, recordAiProviderFailure, recordAiProviderSuccess, resetAiProviderHealth } from '../src/services/aiProviderHealth.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { strict as assert } from 'node:assert';
 import { getDb } from '../src/database.js';
 import { recordUnknownIntentCandidate, listUnknownIntentReviewCandidates, reviewUnknownIntentCandidate } from '../src/services/unknownIntentReviewService.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import AdmZip from 'adm-zip';
 import fs from 'fs';
 import path from 'path';

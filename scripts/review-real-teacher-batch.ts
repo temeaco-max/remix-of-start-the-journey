@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getCurationCandidate, reviewCurationCandidate, rewriteCurationCandidate, getCurationAudit, getCurationStats, getAcceptedCorpusGate } from '../src/services/curationService.js';
 
 const reviewer = 'admin:control-room-reviewer';

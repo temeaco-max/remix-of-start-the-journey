@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { handleWhatsAppWebhook } from './whatsapp.js';
 import { handleTelegramWebhook } from './telegram.js';
 import { handleSmsWebhook } from './sms.js';
