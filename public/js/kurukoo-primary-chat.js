@@ -2153,12 +2153,31 @@
   document.addEventListener('kurukoo:qr', event => {
     const detail = event.detail || {};
     if (!detail.conversationId || !detail.intro) return;
-    state.conversationId = detail.conversationId;
+    state.conversationId = String(detail.conversationId).slice(0, 160);
     localStorage.setItem('kurukoo_conversation_id', state.conversationId);
+    const contextId = `qr:${String(detail.messageId || detail.conversationId)}`.slice(0, 180);
+    if (state.canonicalContextAction?.contextId === contextId) return;
+    state.canonicalContextAction = {
+      type: 'resume_canonical_context',
+      contextId,
+      conversationId: state.conversationId,
+      canonicalAction: 'qr.context.open',
+      objectType: 'qr_context',
+      objectId: String(detail.messageId || detail.conversationId).slice(0, 180),
+    };
+    state.resumeCanonicalContextOnLoad = true;
+    if (input && !input.value.trim()) {
+      input.value = 'Continue with this context.';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     $('welcome')?.remove();
     state.messages.push({ role: 'assistant', text: detail.intro, id: detail.messageId || null });
     createMessage('assistant', detail.intro, detail.messageId || null);
     refreshHistory();
+    if (!state.isGuest && !state.busy && input?.value.trim()) {
+      state.resumeCanonicalContextOnLoad = false;
+      void sendMessage(input.value);
+    }
   });
 
   document.addEventListener('kurukoo:voice', event => {
