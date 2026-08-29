@@ -1,7 +1,7 @@
 {
-  "schema_version": "2026-08-22-canonical-runtime-schema",
+  "schema_version": "2026-08-29-canonical-runtime-schema",
   "schema_path": "src/database.ts",
-  "schema_git_blob_sha": "73c8f90e8a71044dbf40b7a15dd399371b08e9c5",
-  "migration_note": "This reviewed schema includes canonical execution and participant tables, the bounded physical-execution skills.execution_profile_json profile field, the dispatch completion_reported participant lifecycle required for owner-confirmed outcomes, and compatibility migrations for legacy Memory Profile verification timestamps. Existing databases receive additive phone_verified_at and email_verified_at columns plus the participant lifecycle constraint migration without fabricating verification evidence or creating a delivery-specific lifecycle.",
+  "schema_git_blob_sha": "09f7d203b1c04e33e3ef2953ab7a8663aa95f36b",
+  "migration_note": "This reviewed schema includes canonical execution and participant tables, the bounded physical-execution skills.execution_profile_json profile field, the dispatch completion_reported participant lifecycle required for owner-confirmed outcomes, and compatibility migrations for legacy Memory Profile verification timestamps. Existing databases receive additive phone_verified_at and email_verified_at columns plus the participant lifecycle constraint migration without fabricating verification evidence or creating a delivery-specific lifecycle. This manifest refresh records the current reviewed schema blob after the provider-network and connected-resource migrations already present on main.",
   "migration_policy": "Future schema changes require a reviewed migration/update and an explicit manifest refresh; runtime CREATE TABLE IF NOT EXISTS remains the legacy bootstrap baseline until the persistence adapter is cut over."
 }
