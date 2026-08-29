@@ -1,0 +1,77 @@
+# Kurukoo Proprietary License
+
+Copyright (c) 2026 temeaco-max (Kurukoo). All rights reserved.
+
+## 1. Copyright Assertion
+
+The Kurukoo platform, including but not limited to all source code,
+documentation, designs, algorithms, models, data structures, behavioural
+instructions, capability registrations, agent definitions, AI adapters,
+canonical services, Economic Requests, provider integrations, connected
+resource protocols, visual assets, and any other intellectual property
+contained in this repository (collectively "the Work"), is the property
+of temeaco-max and its licensors.
+
+All rights are expressly reserved.
+
+## 2. No Permission Is Granted
+
+Unless you have received an explicit license agreement or written
+permission from the copyright holder, you are hereby notified that:
+
+- You may **not** copy, reproduce, distribute, republish, download,
+  store, transmit, modify, adapt, translate, or create derivative works
+  from the Work, in whole or in part.
+- You may **not** use the Work for any purpose, commercial or
+  non-commercial, without prior written authorization.
+- You may **not** submit pull requests, fork the repository, or
+  redistribute any portion of the Work.
+- You may **not** reverse-engineer, decompile, disassemble, or
+  otherwise attempt to derive source code, algorithms, or trade
+  secrets from the Work.
+
+## 3. No Implied License
+
+Nothing in this repository, the README, or any other file constitutes
+an express or implied license, permission, or waiver of any copyright,
+patent, trademark, or other intellectual property right, except as
+expressly stated in a separate written agreement signed by the copyright
+holder.
+
+## 4. Patent Protection
+
+All patent rights reserved. No patent license or implied patent
+licensing is granted hereby.
+
+## 5. Trademarks
+
+"Kurukoo" and the Kurukoo logo are trademarks of temeaco-max. No
+trademark license is granted. Use of these marks requires explicit
+written permission.
+
+## 6. No Warranty
+
+THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, NONINFRINGEMENT, OR TITLE. IN NO EVENT
+SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
+FROM, OUT OF, OR IN CONNECTION WITH THE WORK OR THE USE OR OTHER DEALINGS
+IN THE WORK.
+
+## 7. Severability
+
+If any provision of this License is held to be unenforceable, the
+remaining provisions remain in full force and effect.
+
+## 8. Governing Law
+
+This License shall be governed by and construed in accordance with the
+laws of the United Kingdom, without regard to its conflict of law
+principles. Any dispute arising under this License shall be subject to
+the exclusive jurisdiction of the courts of England and Wales.
+
+---
+
+For licensing inquiries or to request permission, contact:
+temeaco-max (https://github.com/temeaco-max)

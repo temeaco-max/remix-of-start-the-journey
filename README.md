@@ -152,3 +152,11 @@ Current CI includes build, test, custom audit, FastText, and secret-scan jobs. T
 ## Stack
 
 `express` · `ejs` · `sql.js` · `mqtt` (Universal Remote/IoT) · `dotenv` · `tsx` · `typescript` (strict)
+
+## License
+
+**Kurukoo is proprietary software.** Copyright (c) 2026 temeaco-max. All rights reserved.
+
+No copying, modification, distribution, or derivative use is permitted without explicit written authorization. See [`LICENSE`](LICENSE) for the full terms.
+
+For licensing inquiries, contact the repository owner.
