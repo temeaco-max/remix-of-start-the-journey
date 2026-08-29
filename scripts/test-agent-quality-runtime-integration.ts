@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Agent quality runtime integration test — budget, trace, quality gate,
  * completion semantics, needs_user persistence and compound gating.

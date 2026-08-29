@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Contract test: seoAdminRoutes exposes expected §53 SEO admin paths.
  */

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { CANONICAL_URLS } from '../src/services/canonicalUrlRegistry.js';

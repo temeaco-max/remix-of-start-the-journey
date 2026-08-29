@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';

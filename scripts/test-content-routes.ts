@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import contentRouter from '../src/routes/contentRoutes.js';
 
 const stack = (contentRouter as any).stack || [];

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 // Compatibility entrypoint only.
 // Historical versions wrote generated reconciliation snapshots and hard-coded product classifications.
 // That is no longer an authority and must not write current truth.

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { buildAICapabilityOrchestration } from '../src/services/aiCapabilityOrchestrator.js';
 import { buildConversationTurnContract } from '../src/services/conversationTurnContractService.js';
 import type { IntentRoutingResult } from '../src/types.js';

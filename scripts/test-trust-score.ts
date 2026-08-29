@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { calculateTrustScoreValue, listTrustScoreLedger, recalculateTrustScore } from '../src/services/trustScore.js';
 import { upsertProfile } from '../src/routes/authRoutes.js';

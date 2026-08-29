@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import fs from 'fs';
 import { routeIntent } from '../src/services/intentRouter.js';
 import { addPoints, deductPoints, getPointsBalance, addCredits, deductCredits } from '../src/services/pointsEngine.js';

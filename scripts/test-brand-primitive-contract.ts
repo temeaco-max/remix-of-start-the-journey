@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { BRAND_ICON_SIZES, BRAND_PRIMITIVES, getBrandPrimitive } from '../src/services/brandPrimitiveRegistry.js';
 

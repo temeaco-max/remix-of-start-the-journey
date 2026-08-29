@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { classifyWithFastText } from '../src/services/fastTextService.js';
 import { queryUnifiedAI } from '../src/services/unifiedAiEngine.js';
 

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { generateConversationalResponse } from '../src/services/conversationalGenerationService.js';
 
 function assert(condition: unknown, message: string): asserts condition {

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /** Composition-root contract test. */
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';

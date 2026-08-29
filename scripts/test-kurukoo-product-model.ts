@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { DESKTOP_AUTHENTICATED_HOME, CLIENT_SURFACES } from '../src/services/clientSurfaceRegistry.js';
 import { CANONICAL_PLATFORM_FEATURE_CONTRACTS, assertCanonicalPlatformFeatureSurfaces } from '../src/services/canonicalPlatformFeatureRegistry.js';

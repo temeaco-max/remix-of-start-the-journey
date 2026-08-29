@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { execFileSync } from 'node:child_process';
 
 const staged = execFileSync('git', ['diff', '--cached', '--no-ext-diff', '--unified=0'], {

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import fs from 'node:fs';
 
 function assert(condition, message) { if (!condition) throw new Error(`FAIL: ${message}`); console.log(`ok: ${message}`); }

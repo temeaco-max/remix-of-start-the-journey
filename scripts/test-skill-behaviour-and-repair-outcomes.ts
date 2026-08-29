@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { buildSkillBehaviourInstruction, resolveSkillBehaviour } from '../src/services/skillBehaviourRegistry.js';
 import { getServiceJurisdictionProfile } from '../src/services/jurisdictionServiceProfiles.js';

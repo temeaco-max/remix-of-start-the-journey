@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 process.env.NODE_ENV = 'test';
 process.env.KURUKOO_AGENT_ENABLED = 'true';
 process.env.KURUKOO_AGENT_AUTONOMOUS = 'false';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import fs from 'fs';
 import path from 'path';
 const root=process.cwd();const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');const chat=read('public/chat/index.html');const primary=read('public/js/kurukoo-primary-chat.js');const nav=read('views/_partials/nav.ejs');const footer=read('views/_partials/footer.ejs');const routes=read('src/routes/publicRoutes.ts');const appRoutes=read('src/routes/appSurfaceRoutes.ts');const workspace=read('views/workspace.ejs');const workspaceClient=read('public/js/kurukoo-workspace.js');const fail:string[]=[];const mustInclude=(source:string,value:string,label:string)=>{if(!source.includes(value))fail.push(`${label}: missing ${value}`)};const mustNotInclude=(source:string,value:string,label:string)=>{if(source.includes(value))fail.push(`${label}: contains legacy ${value}`)};

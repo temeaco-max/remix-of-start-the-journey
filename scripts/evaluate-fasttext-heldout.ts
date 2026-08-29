@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 // Holds-out FastText evaluation framework.
 // Evaluates the CURRENT production classifier (src/services/fastTextService.ts)
 // against models/eval/intent_eval_heldout.v1.txt — NEVER used for training.

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { queryMistral, getMistralModel, testMistralConnection } from '../src/services/mistralService.js';
 import { querySmolLM2, getSmolLM2RuntimeStatus } from '../src/services/smolLm2Service.js';
 import { assessConversationQuality, classifyConversationDifficulty, type ConversationQualityContext } from '../src/services/conversationQualityService.js';

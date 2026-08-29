@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 
 const connectionString = String(process.env.KURUKOO_TEST_POSTGRES_URL || '').trim();

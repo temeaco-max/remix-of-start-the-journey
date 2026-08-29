@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import assert from 'node:assert/strict';
 import { classifyAiRoutingSignal, shouldEscalateToAi } from '../src/services/aiRoutingConvergence.js';
 

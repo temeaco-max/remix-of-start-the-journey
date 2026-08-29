@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { requestStatusToLinkStatus, nextActionForRequest } from '../src/services/agentEconomicRequestOrchestrator.js';

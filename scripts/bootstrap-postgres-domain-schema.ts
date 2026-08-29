@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 process.env.KURUKOO_DATABASE_MODE = 'postgres';
 process.env.DATABASE_URL = String(process.env.KURUKOO_TEST_POSTGRES_URL || '').trim();
 

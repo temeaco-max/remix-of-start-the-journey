@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { importTeacherCandidates, listCurationCandidates, getCurationStats } from '../src/services/curationService.js';
 
 const imported = await importTeacherCandidates();
