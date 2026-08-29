@@ -33,7 +33,9 @@ async function main() {
   const indexSrc = await fs.promises.readFile(new URL('../src/index.ts', import.meta.url), 'utf8');
   const publicRoutes = await fs.promises.readFile(path.join(process.cwd(), 'src', 'routes', 'publicRoutes.ts'), 'utf8');
 
-  assert.match(publicRoutes, /router\.get\('\/admin'/, 'canonical /admin entry route must exist');
+  assert.match(publicRoutes, /router\.get\('\/admin',adminConsolePage\('index\.html'\)\)/, 'canonical /admin entry route must serve the Control Room shell');
+  assert.match(publicRoutes, /router\.get\('\/admin\/',adminConsolePage\('index\.html'\)\)/, 'canonical /admin/ entry route must serve the Control Room shell');
+  assert.match(publicRoutes, /router\.get\('\/admin\/login',adminConsolePage\('login\.html'\)\)/, 'explicit admin login route must remain available');
   assert.match(indexSrc, /app\.use\('\/api\/admin\/platform',\s*adminPlatformRoutes\)/, 'platform admin router must be mounted before the general admin router');
   assert.match(indexSrc, /app\.use\('\/api\/admin',\s*adminDisputeRoutes\)\s*;\s*app\.use\('\/api\/admin',\s*adminRoutes\)/, 'canonical dispute/ticket routes must be mounted before legacy admin handlers');
 
@@ -56,11 +58,17 @@ async function main() {
   const adminJs = await fs.promises.readFile(path.join(process.cwd(), 'public', 'js', 'kurukoo-admin.js'), 'utf8');
   assert.match(index, /One canonical backend for Web, PWA, iOS, Android/, 'control room must state cross-platform ownership');
   assert.match(index, /admin-platform-convergence\.css/, 'control room must load the canonical convergence stylesheet');
+  assert.match(index, /Operational queue/, 'control room must present an operational queue workspace');
   assert.match(adminJs, /\/api\/admin\/platform\/overview/, 'control room must consume canonical platform projection');
   assert.match(adminJs, /\/api\/admin\/trust\/readiness/, 'operational sections must consume canonical trust readiness');
   assert.match(adminJs, /renderModules/, 'control room must render canonical admin module registry');
   assert.match(adminJs, /renderPilotReadiness/, 'control room must render canonical dependency readiness');
   assert.match(adminJs, /renderScaleTransition/, 'control room must render scale transition readiness');
+  assert.match(adminJs, /renderOperationalQueue/, 'control room must render the canonical operational queue');
+  assert.match(serviceSrc, /operationalQueue/, 'admin platform projection must expose an operational queue');
+  assert.match(serviceSrc, /providerInquiriesPending/, 'operational queue must use canonical provider inquiry state');
+  assert.match(serviceSrc, /workerFailures/, 'operational queue must expose canonical worker failures');
+  assert.match(serviceSrc, /Activation is shown separately from implementation/, 'operational queue must preserve external activation truthfulness');
 
   assert.match(platformSrc, /router\.use\(authenticateAdmin\)/, 'platform projection must require admin authentication');
   assert.match(platformSrc, /router\.get\('\/overview'/, 'platform overview endpoint must exist');

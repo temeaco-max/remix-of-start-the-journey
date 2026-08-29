@@ -85,12 +85,23 @@ export async function getAdminPlatformOverview() {
     trustedDevices: tableExists(db, 'trusted_devices') ? count(db, "SELECT COUNT(*) FROM trusted_devices WHERE status='active'") : 0,
     orders: tableExists(db, 'orders') ? count(db, 'SELECT COUNT(*) FROM orders') : 0,
     disputes: tableExists(db, 'disputes') ? count(db, "SELECT COUNT(*) FROM disputes WHERE status NOT IN ('resolved','closed')") : 0,
+    providerInquiriesPending: tableExists(db, 'provider_inquiries') ? count(db, "SELECT COUNT(*) FROM provider_inquiries WHERE status IN ('pending','sent')") : 0,
+    workerFailures: tableExists(db, 'coordinator_runs') ? count(db, "SELECT COUNT(*) FROM coordinator_runs WHERE state IN ('failed','error')") : 0,
     topics: tableExists(db, 'topics') ? count(db, "SELECT COUNT(*) FROM topics WHERE status IS NULL OR status NOT IN ('deleted')") : 0,
     fcmRegisteredDevices: fcmDevices,
   };
 
   const implementedIntegrations = integrations.filter((item: any) => item.readiness?.IMPLEMENTED === true || item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
   const externallyActive = integrations.filter((item: any) => item.readiness?.PRODUCTION_ACTIVE === true || item.activation?.active === true || item.activation?.state === 'ACTIVE').length;
+  const operationalQueue = [
+    { key: 'economic-requests', label: 'Economic requests', count: counts.openRequests, state: counts.openRequests > 0 ? 'attention' : 'clear', description: counts.openRequests > 0 ? 'Requests still need canonical progression.' : 'No open requests are waiting in the canonical lifecycle.', href: '/admin/?section=economic' },
+    { key: 'notifications', label: 'Notification delivery', count: counts.notificationsPending, state: counts.notificationsPending > 0 ? 'pending' : 'clear', description: counts.notificationsPending > 0 ? 'In-app updates are queued; external delivery remains evidence-gated.' : 'No in-app notifications are queued.', href: '/admin/?section=notifications' },
+    { key: 'disputes', label: 'Disputes and trust', count: counts.disputes, state: counts.disputes > 0 ? 'attention' : 'clear', description: counts.disputes > 0 ? 'Disputes require operator review through the canonical trust lifecycle.' : 'No unresolved disputes are waiting for review.', href: '/admin/?section=providers' },
+    { key: 'provider-follow-up', label: 'Provider follow-up', count: counts.providerInquiriesPending, state: counts.providerInquiriesPending > 0 ? 'pending' : 'clear', description: counts.providerInquiriesPending > 0 ? 'Provider inquiries remain pending or sent; no response is inferred.' : 'No provider inquiry follow-ups are pending.', href: '/admin/?section=providers' },
+    { key: 'worker-failures', label: 'Worker failures', count: counts.workerFailures, state: counts.workerFailures > 0 ? 'attention' : 'clear', description: counts.workerFailures > 0 ? 'A canonical worker run failed and needs recovery review.' : 'No failed canonical worker runs are recorded.', href: '/admin/?section=overview' },
+    { key: 'external-activation', label: 'External activation', count: integrations.filter((item: any) => item.uiState === 'activation_required' || item.activation?.state === 'REQUIRED').length, state: integrations.some((item: any) => item.uiState === 'activation_required' || item.activation?.state === 'REQUIRED') ? 'blocked' : 'clear', description: 'Activation is shown separately from implementation and never treated as live delivery.', href: '/admin/?section=connectors' },
+  ];
+
   const readinessSummary = surfaces.flatMap(group => group.surfaces).reduce<ReadinessSummary>((summary, surface) => {
     summary.total += 1;
     if (surface.readiness === 'ready') summary.ready += 1;
@@ -104,6 +115,7 @@ export async function getAdminPlatformOverview() {
     generatedAt: new Date().toISOString(),
     contractVersion: 'admin-platform-v7',
     counts,
+    operationalQueue,
     integrations: { total: integrations.length, implemented: implementedIntegrations, externallyActive, readiness: integrations, operational: operationalIntegrations },
     channelActivationSecurity,
     pilot,

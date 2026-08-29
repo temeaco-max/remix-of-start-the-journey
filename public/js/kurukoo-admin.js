@@ -43,6 +43,11 @@
   };
 
   const renderList = (items) => `<div class="k-list">${items.map(([label, value]) => `<div class="k-row"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>`;
+  const renderOperationalQueue = (items) => {
+    if (!queue) return;
+    const rows = Array.isArray(items) ? items : [];
+    queue.innerHTML = rows.length ? rows.map((item) => `<a class="k-row admin-queue-row admin-queue-${esc(item.state)}" href="${esc(item.href)}"><span><strong>${esc(item.label)}</strong><small>${esc(item.description)}</small></span><span class="k-status">${esc(item.count)} · ${esc(item.state === 'clear' ? 'Clear' : item.state === 'blocked' ? 'Activation boundary' : item.state === 'pending' ? 'Pending' : 'Needs review')}</span></a>`).join('') : '<div class="k-row"><span>No operational items are currently projected.</span><span class="k-muted">Canonical admin API</span></div>';
+  };
 
   const renderPilotReadiness = (readiness) => {
     if (!readiness || typeof readiness !== 'object') return '<p class="admin-muted">Canonical dependency readiness is unavailable.</p>';
@@ -86,10 +91,12 @@
       if (summary && data.readinessSummary) summary.textContent = `${data.readinessSummary.ready} ready · ${data.readinessSummary.activation_required} activation · ${data.readinessSummary.device_required} device`;
       renderSurfaces(data.surfaces);
       renderModules(data.modules);
+      renderOperationalQueue(data.operationalQueue);
       render(`Platform state refreshed · ${data.clientContract?.sourceOfTruth || 'canonical API'}`);
       return data;
     } catch (error) {
       render(`Platform state unavailable: ${error.message}`);
+      renderOperationalQueue([]);
       if (contract) contract.textContent = 'Platform projection unavailable';
       if (surfaces) surfaces.innerHTML = '<p class="admin-error">Client surface state could not be loaded. Admin authentication and canonical API health are required.</p>';
       if (modules) modules.innerHTML = '<p class="admin-error">Admin module registry could not be loaded.</p>';
