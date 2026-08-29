@@ -5,6 +5,10 @@ import { getDiscoveryEntity, inviteContributorToDiscoveryEntity, queryDiscoveryE
 import { processCanonicalChatTurn } from '../src/services/canonicalChatTurnService.js';
 
 const discoverController = fs.readFileSync(new URL('../public/js/kurukoo-discover-map.js', import.meta.url), 'utf8');
+const discoverExperience = fs.readFileSync(new URL('../src/services/discoverExperience.ts', import.meta.url), 'utf8');
+assert.match(discoverExperience, /canonicalAction:'notification\.open'/, 'watch notifications must return through the canonical notification action');
+assert.match(discoverExperience, /contextId:`notification:\$\{inserted\}`/, 'watch notifications must preserve their persisted notification context');
+assert.doesNotMatch(discoverExperience, /Check what changed in something I am watching/, 'watch notifications must not fall back to a generic Chat prompt');
 assert.match(discoverController, /discoveryEntityId/, 'Discover Chat links must carry the canonical entity identity');
 assert.match(discoverController, /Open exact context in Chat/, 'Discover must label the exact-context handoff');
 assert.match(discoverController, /Nothing attributed here yet/, 'Discovery must show a truthful empty state when no attributed results exist');
