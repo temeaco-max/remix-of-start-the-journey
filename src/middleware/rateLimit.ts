@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Shared rate limiting — Blueprint / security audit priority #7.
  * In-memory per-instance buckets (move to Redis for multi-instance).

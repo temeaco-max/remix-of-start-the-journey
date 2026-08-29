@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Generates a standardized WhatsApp deep-link URL (wa.me/number?text=encodedText)
  * @param text The pre-filled message text to send to WhatsApp

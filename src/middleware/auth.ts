@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
