@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { listChatMessages } from './chatConversationService.js';
 import { getCanonicalIdentityContext, type CanonicalIdentityContext } from './memoryProfile.js';
 

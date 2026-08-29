@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type PageState = 'loading' | 'ready' | 'empty' | 'pending' | 'needs_input' | 'success' | 'failure' | 'unavailable' | 'cancelled' | 'recovery';
 
 export type PageContentContract = {

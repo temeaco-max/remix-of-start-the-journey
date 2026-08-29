@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { classifyWithFastText, type FastTextResult } from './fastTextService.js';
 import { resolveConvergedSkillBehaviour, getAllConvergedSkillNames } from './skillBehaviourConvergence.js';
 import { getSkillCategoryConverged } from './skillCatalogueConvergence.js';

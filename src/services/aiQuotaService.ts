@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Hard AI quotas — cost discipline for free cascade.
  * Per-user daily request + estimated token budgets; global soft ceiling.

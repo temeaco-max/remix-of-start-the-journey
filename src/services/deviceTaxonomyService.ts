@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type RepairableDomain = 'phone' | 'tablet' | 'laptop' | 'console' | 'tv' | 'smartwatch' | 'earbuds' | 'speaker' | 'appliance' | 'bicycle' | 'motorbike' | 'vehicle';
 
 export interface DeviceFamily {

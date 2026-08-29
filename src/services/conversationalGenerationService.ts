@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { queryUnifiedAI, resolveConfiguredHostedProvider, getLastAiRoutingDiagnostic, type AIProvider, type AIResponse, type ConversationalContextHint } from './unifiedAiEngine.js';
 import { assessConversationQuality, type ConversationQualityAssessment } from './conversationQualityService.js';
 import { buildConversationTurnContract, buildConversationalSystemDirective, type ConversationTurnContract } from './conversationTurnContractService.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { ensureCapabilityFoundation } from './capabilityFoundation.js';
 import { getCapabilityRegistration, resolveCapabilityComposition } from './capabilityRegistry.js';
 import type { CapabilityActionProposal } from './universalCapabilityProtocol.js';

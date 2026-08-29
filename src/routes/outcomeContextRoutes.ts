@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { Router } from 'express';
 import { authenticateUser, type AuthRequest } from '../middleware/auth.js';
 import { getOutcomeContext } from '../services/outcomeContextService.js';

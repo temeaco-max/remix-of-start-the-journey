@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Living Memory Engine — Blueprint §4.3
  * Selective retrieval + consolidation lifecycle.

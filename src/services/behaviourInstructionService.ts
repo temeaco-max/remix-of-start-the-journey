@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getSkillCapabilities, getSkillRequirements, getEconomicCategory, getKnownSkills } from './skillFlows.js';
 
 export type BehaviourFamily = 'conversation' | 'economic_skill' | 'support' | 'agent' | 'provider' | 'safety';

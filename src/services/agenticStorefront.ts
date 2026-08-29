@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /** Shared Economic OS storefront: requirements vary by skill; lifecycle/capabilities stay shared. */
 import crypto from 'crypto';
 import { createEconomicRequest, getEconomicRequest, updateEconomicRequestRequirements, transitionEconomicRequest, getEconomicCategory, getSkillRequirements, getSkillFlow } from './skillFlows.js';

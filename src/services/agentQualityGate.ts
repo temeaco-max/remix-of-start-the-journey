@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type AgentQualityVerdict = 'pass' | 'needs_user' | 'blocked' | 'fail';
 
 export interface AgentQualityInput {

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export const USER_OUTCOME_VERBS = ['help','fix','solve','check','diagnose','find','get','book','buy','order','arrange','organise','clean','configure','connect','recover','replace','deliver','contact','schedule','monitor','watch'] as const;
 export type UserOutcomeVerb = typeof USER_OUTCOME_VERBS[number];
 const VERB_PATTERNS: Array<[RegExp, UserOutcomeVerb]> = [

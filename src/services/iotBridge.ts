@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import mqtt, { type MqttClient } from 'mqtt';
 import { isFeatureEnabled } from './featureFlags.js';
 import { getDb, saveDb } from '../database.js';

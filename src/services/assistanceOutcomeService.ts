@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getAllContent, type ContentItem } from './contentManager.js';
 import { listPublicTopics } from './topicService.js';
 

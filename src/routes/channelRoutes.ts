@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Channel webhooks + USSD — extracted from legacyApp during channel consolidation.
  * Single dispatch via channelRegistry; no parallel channel identity stores.

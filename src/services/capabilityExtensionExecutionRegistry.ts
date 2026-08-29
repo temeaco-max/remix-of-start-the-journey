@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import type { CapabilityExtensionExecutionAdapter } from './capabilityExtensionExecutionTypes.js';
 
 const adapters = new Map<string, CapabilityExtensionExecutionAdapter>();

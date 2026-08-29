@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /** Canonical phone-rooted auth plus additive progressive identity. */
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';

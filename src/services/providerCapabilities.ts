@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type ProviderName = 'local' | 'fasttext' | 'gemini' | 'mistral' | 'groq' | 'openrouter' | 'poolside';
 export type ProviderCapability = 'text' | 'transcription' | 'tts' | 'live' | 'vision' | 'moderation';
 export type ProviderLimitStatus = 'configured' | 'unknown' | 'unavailable';

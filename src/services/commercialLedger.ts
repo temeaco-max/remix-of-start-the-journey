@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 // @ts-nocheck -- the delegated fallback gains its canonical identifier in the createAIAgent payload.
 import { getDb, saveDb } from '../database.js';
 import { createAIAgent, getAIAgentById, type AIAgent } from './aiAgentService.js';

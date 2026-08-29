@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getEconomicRequest, transitionEconomicRequest, type EconomicRequest } from './skillFlows.js';
 import { getDb, saveDb } from '../database.js';
 

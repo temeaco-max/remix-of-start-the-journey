@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getFeatureFlagStatus, type FeatureOperationalStatus } from './featureFlags.js';
 import { getPilotReadiness, type ReadinessItem } from './pilotReadiness.js';
 

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { registerComposableSkillExtension } from './capabilityExtensionService.js';
 import { createPrayerRoutine, generatePrayer } from './prayerAgentService.js';
 

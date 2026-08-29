@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { hasConfiguredSecret, unknownLimits, type ProviderCapabilityStatus, type ProviderReadiness } from './providerCapabilities.js';
 import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
 import { getFeatureFlag } from './featureFlags.js';

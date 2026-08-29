@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { listUniversalCapabilities, type CapabilityRisk, type UniversalCapabilityDescriptor, getCanonicalOperationDescriptor } from './universalCapabilityProtocol.js';
 
 export type InteractionPriority = 'background' | 'normal' | 'high' | 'critical';

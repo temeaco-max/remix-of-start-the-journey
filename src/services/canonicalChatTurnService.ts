@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { appendChatMessage, listChatMessages } from './chatConversationService.js';
 import { getMemoryFacts, getProfile, recordMemoryFact } from './memoryProfile.js';
 import { isOnboarding, handleOnboardingInput } from './progressiveOnboarding.js';

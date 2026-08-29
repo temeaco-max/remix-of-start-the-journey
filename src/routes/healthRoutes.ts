@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { Router } from 'express';
 import { getCanonicalPersistenceMode } from '../services/canonicalPersistence.js';
 import { getCanonicalStore } from '../services/canonicalStore.js';

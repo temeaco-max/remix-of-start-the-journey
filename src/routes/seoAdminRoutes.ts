@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * SEO Admin boundary — ChatGPT security audit extraction from index.ts §53.
  * Mounted at /api/admin/seo (via wire-security-routes).

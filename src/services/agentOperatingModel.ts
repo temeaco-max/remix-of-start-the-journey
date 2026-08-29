@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { listAgentTools, type AgentToolName } from './agentToolRegistry.js';
 import { listCapabilityRegistrations, validateCapabilityRegistry } from './capabilityRegistry.js';
 import { listUniversalCapabilities, type UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';

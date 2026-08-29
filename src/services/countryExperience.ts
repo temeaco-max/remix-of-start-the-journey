@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type CountryCode = 'ng' | 'gh' | 'gb' | 'ca' | 'us';
 
 export interface CountryExperience {

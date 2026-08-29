@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getRenderableCampaigns } from './adManager.js';
 import { matchCatalogueInventory, type CatalogueInventoryItem } from './catalogueInventoryMatcher.js';
 import { getAgentNetworkSummary } from './agentNetworkCommerce.js';

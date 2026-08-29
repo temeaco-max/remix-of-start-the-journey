@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import crypto from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';

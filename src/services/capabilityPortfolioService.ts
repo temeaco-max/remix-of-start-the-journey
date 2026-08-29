@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb } from '../database.js';
 import { getEconomicCategory, getSkillRequirements, getSkillCapabilities, getKnownSkills } from './skillFlows.js';
 import { ensureCapabilityPortfolioRegistration } from './capabilityPortfolioFoundation.js';

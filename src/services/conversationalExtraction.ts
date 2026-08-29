@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getKnownSkills } from './skillFlows.js';
 import { detectUserOutcomeVerb, type UserOutcomeVerb } from './outcomeSupport.js';
 

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { createHash } from 'node:crypto';
 
 export const EXTERNAL_AGENT_CONTRACT_VERSION = 'kurukoo.external-agent/v1' as const;

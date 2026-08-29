@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export const engagementPrompts = {
     qualifying: [
         "Is this urgent or can it wait until tomorrow?",

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getExternalIntegrationOperationalStatus } from './externalIntegrationOperationalStatus.js';
 import { stripeStatus } from './stripePayment.js';
 import { getDriveConnectionStatus } from './artifactService.js';

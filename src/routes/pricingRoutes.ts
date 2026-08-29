@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Pricing routes — extracted from index.ts (ChatGPT audit route batch).
  * Depends on existing pricingService; no parallel pricing store.

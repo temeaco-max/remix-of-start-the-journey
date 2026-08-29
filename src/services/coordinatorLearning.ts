@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import crypto from 'node:crypto';
 import { queryUnifiedAI } from './unifiedAiEngine.js';
 import { hasConfiguredSecret } from './providerCapabilities.js';

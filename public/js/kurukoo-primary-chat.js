@@ -1919,6 +1919,19 @@
 
   async function loadAgentGoal() {
     try {
+      // A notification or request deep link may point at one exact goal; load it
+      // directly so the person returns to that exact work, not a generic list.
+      if (state.canonicalContextAction?.objectType === 'agent_goal' && state.canonicalContextAction?.objectId) {
+        const goalId = String(state.canonicalContextAction.objectId).slice(0, 120);
+        const detail = await fetch(`/api/agent/goals/${encodeURIComponent(goalId)}`, { credentials: 'same-origin' });
+        if (detail.ok) {
+          const detailData = await detail.json();
+          if (detailData.goal) {
+            renderAgentGoal(detailData.goal, Array.isArray(detailData.events) ? detailData.events : []);
+            return;
+          }
+        }
+      }
       // Load the full list of active agent goals for this user to show in the
       // objective/work card. Only real, owner-scoped goals are rendered.
       const goalsResponse = await fetch('/api/agent/goals', { credentials: 'same-origin' });
@@ -2225,7 +2238,7 @@
     if (discoveryEntityId) state.discoveryContextAction = { type: 'open_discovery_entity', entityId: discoveryEntityId.slice(0, 180) };
     if (canonicalAction && objectType && objectId) {
       state.canonicalContextAction = { type: 'resume_canonical_context', contextId: contextId?.slice(0, 180), conversationId: conversationId?.slice(0, 180), canonicalAction: canonicalAction.slice(0, 120), objectType: objectType.slice(0, 80), objectId: objectId.slice(0, 180) };
-      state.resumeCanonicalContextOnLoad = ['economic_request.open', 'agent.goal.review', 'task.open', 'reminder.open', 'memory.context.open'].includes(canonicalAction);
+      state.resumeCanonicalContextOnLoad = ['economic_request.open', 'agent.goal.review', 'agent.goal.resume', 'task.open', 'reminder.open', 'memory.context.open'].includes(canonicalAction);
     }
     let contactMessageDraft = null;
     if (contactCompose && input) {

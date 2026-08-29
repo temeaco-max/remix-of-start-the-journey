@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /** Transaction orchestration for the shared Economic OS. */
 import { getDb, saveDb } from '../database.js';
 import { awardJobCompletion } from './pointsEngine.js';

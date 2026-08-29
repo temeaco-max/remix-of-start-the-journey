@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import type { AIProvider } from './unifiedAiEngine.js';
 import { classifyAiRoutingSignal } from './aiRoutingConvergence.js';
 import { isAiProviderUsable } from './aiProviderHealth.js';

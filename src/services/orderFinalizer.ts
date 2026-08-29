@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb } from '../database.js';
 import { getCommission } from './commissionService.js';
 import { processDirectPayment } from './directWallet.js';

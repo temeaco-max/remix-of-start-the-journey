@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getKnownSkills, getEconomicCategory, getSkillRequirements, getSkillCapabilities } from './skillFlows.js';
 import { getAllCatalogueSkillNames, getLocalSkillExtensions as getCatalogueLocalSkillExtensions, getSkillExtension, getSkillCategoryConverged } from './skillCatalogueConvergence.js';
 import { SKILL_BEHAVIOUR_PACKS, buildSkillBehaviourInstruction, type SkillBehaviourPack } from './skillBehaviourRegistry.js';

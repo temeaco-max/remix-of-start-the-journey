@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type AuthNavPlacement = 'primary-sidebar' | 'secondary-sidebar' | 'header' | 'account-menu' | 'settings-section' | 'context-drawer';
 export type AuthNavFrequency = 'core' | 'frequent' | 'occasional' | 'setup' | 'configuration' | 'instant';
 

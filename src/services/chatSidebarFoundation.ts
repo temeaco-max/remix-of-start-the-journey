@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type ChatSidebarPlacement = 'primary-left' | 'secondary-left' | 'header' | 'right-context' | 'drawer' | 'chat-only' | 'account-menu';
 
 export interface ChatSidebarCapability {

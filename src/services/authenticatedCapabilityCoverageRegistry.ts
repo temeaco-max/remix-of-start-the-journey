@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type CapabilitySurface = 'chat' | 'desk' | 'agents' | 'requests' | 'tasks' | 'notifications' | 'contacts' | 'memory' | 'discover' | 'topics' | 'opportunities' | 'saved' | 'cart' | 'reminders' | 'connect' | 'call' | 'contextual' | 'wallet' | 'checkout';
 export type CapabilityStatus = 'IMPLEMENTED' | 'AVAILABLE' | 'RUNTIME_VERIFIED' | 'BLOCKED_EXTERNAL' | 'UNVERIFIED' | 'DISABLED' | 'FAILED';
 

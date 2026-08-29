@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { Router } from 'express';
 import { authenticateAdmin, type AuthRequest } from '../middleware/auth.js';
 import { getDb, saveDb } from '../database.js';
@@ -10,9 +11,12 @@ router.post('/disputes/resolve', authenticateAdmin, async (req: AuthRequest, res
   const action = String(req.body?.action || '');
   if (!Number.isInteger(disputeId) || disputeId <= 0) return res.status(400).json({ success: false, error: 'A valid disputeId is required.' });
   if (!['release', 'refund'].includes(action)) return res.status(400).json({ success: false, error: 'Action must be release or refund.' });
+  const faultRaw = String(req.body?.faultParty || '').trim();
+  if (faultRaw && !['buyer', 'provider'].includes(faultRaw)) return res.status(400).json({ success: false, error: 'faultParty must be buyer or provider.' });
+  const faultParty = faultRaw ? (faultRaw as 'buyer' | 'provider') : undefined;
 
   try {
-    const result = await resolveDisputeWithEconomicLifecycle(disputeId, action as 'release' | 'refund');
+    const result = await resolveDisputeWithEconomicLifecycle(disputeId, action as 'release' | 'refund', faultParty);
     const db = await getDb();
     const dispute = db.exec('SELECT phone, order_id FROM disputes WHERE id = ? LIMIT 1', [disputeId])[0]?.values?.[0];
     if (dispute) {

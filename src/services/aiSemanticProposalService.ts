@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { queryUnifiedAI } from './unifiedAiEngine.js';
 import type { ConversationTurnContract } from './conversationTurnContractService.js';
 

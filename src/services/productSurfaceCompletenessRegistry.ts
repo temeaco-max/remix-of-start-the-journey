@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type SurfaceDomain = 'agent' | 'subscriptions' | 'providers' | 'public' | 'chat' | 'monetisation' | 'admin' | 'brand' | 'client-parity';
 
 export interface ProductSurfaceCompletenessContract {

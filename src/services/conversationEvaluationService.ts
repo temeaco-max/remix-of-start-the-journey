@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { assessConversationQuality, classifyConversationDifficulty, detectRelativeReference } from './conversationQualityService.js';
 import { buildConversationTurnContract } from './conversationTurnContractService.js';
 

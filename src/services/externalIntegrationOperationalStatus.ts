@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getFirebaseFcmReadiness, getFirebaseWebConfig } from './firebaseCloudMessaging.js';
 import { getMqttBridgeStatus } from './iotBridge.js';
 import { getWebRTCClientConfig, getWebRTCStatus } from './webrtcSignalling.js';

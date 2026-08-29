@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export interface MaskedCallResult { provider: 'twilio'; callId: string; status: string; from: string; }
 
 function configured(): boolean {

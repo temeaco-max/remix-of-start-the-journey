@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type ClientFamily = 'web' | 'pwa' | 'native' | 'admin';
 export type SurfaceState = 'represented' | 'implemented' | 'contract_tested' | 'external_activation' | 'device_verification';
 export type PrimaryNavigation = 'agent' | 'discover' | 'requests' | 'tasks' | 'connect' | 'marketing' | 'workspace' | 'admin' | 'secondary';

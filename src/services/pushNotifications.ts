@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { persistCoordinatorEvent } from './coordinatorStore.js';
 import { getProfile } from './memoryProfile.js';
 import { getFirebaseFcmReadiness, sendFirebaseFcmMessage } from './firebaseCloudMessaging.js';

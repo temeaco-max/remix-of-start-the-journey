@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 import { deriveCapabilityInteractionPolicy, deriveInteractionPolicyForCapabilityName, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 

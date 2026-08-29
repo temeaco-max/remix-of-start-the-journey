@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Subscription entitlement boundary.
  * Identity comes only from the authenticated session; payment references are

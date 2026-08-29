@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { Router } from 'express';
 import { authenticateAdmin, authenticateUser, type AuthRequest } from '../middleware/auth.js';
 import { topicMutationRateLimit, topicReportRateLimit } from '../middleware/rateLimit.js';
