@@ -39,7 +39,7 @@ export default function MoreScreen() {
             <ActionButton label="Open surface" variant="ghost" onPress={() => { if ("route" in item) { router.push(item.route as "/surface/capabilities" | "/surface/artifacts" | "/surface/requests" | "/surface/reminders" | "/surface/notifications"); } else if (item.kind) { router.push({ pathname: "/surface/[kind]", params: { kind: item.kind } }); } }} />
           </SectionCard>
         ))}
-        <SectionCard style={styles.checkoutCard}><Text style={[styles.kicker, { color: colors.primary }]}>Checkout promise</Text><Text style={[styles.title, { color: colors.foreground }]}>No hidden handoffs</Text><Text style={[styles.detail, { color: colors.muted }]}>Kurukoo shows the offer, source, price state, confirmation step and external payment boundary before anything proceeds.</Text><ActionButton label="Review a demo offer" onPress={() => router.push({ pathname: "/surface/[kind]", params: { kind: "confirmation" } })} /></SectionCard>
+        <SectionCard style={styles.checkoutCard}><Text style={[styles.kicker, { color: colors.primary }]}>Checkout promise</Text><Text style={[styles.title, { color: colors.foreground }]}>No hidden handoffs</Text><Text style={[styles.detail, { color: colors.muted }]}>Kurukoo shows the offer, source, price state, confirmation step and external payment boundary before anything proceeds. Start a real request in Chat when you are ready.</Text><ActionButton label="Start in Chat" onPress={() => router.replace("/(tabs)")} /></SectionCard>
       </ScrollView>
     </ScreenContainer>
   );
