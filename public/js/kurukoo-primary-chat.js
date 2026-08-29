@@ -1259,7 +1259,9 @@
       needs_recipient: 'Recipient, channel, and confirmation are still required. Nothing has been sent.',
       needs_message: 'Tell Kurukoo what you want to say. Nothing was prepared or sent.',
     };
-    appendOutcomeStatus(holder, card.type === 'communication_prepare' ? (communicationStatus[String(card.status || '')] || 'Not sent. Recipient, channel, and confirmation are still required.') : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.', String(card.deliveryState || '').toLowerCase() === 'accepted' ? 'neutral' : 'waiting');
+    if (!(card.type === 'monitoring_setup' && card.ownedWork)) {
+      appendOutcomeStatus(holder, card.type === 'communication_prepare' ? (communicationStatus[String(card.status || '')] || 'Not sent. Recipient, channel, and confirmation are still required.') : card.type === 'reminder_setup' ? 'Not scheduled yet. Cadence and completion condition are still required.' : 'Not monitoring yet. Kurukoo will only claim a watch after an observable target and notification path are recorded.', String(card.deliveryState || '').toLowerCase() === 'accepted' ? 'neutral' : 'waiting');
+    }
     messageEl.querySelector('.bubble')?.appendChild(holder);
   }
 

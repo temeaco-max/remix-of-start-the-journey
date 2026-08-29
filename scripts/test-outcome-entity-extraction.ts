@@ -22,6 +22,10 @@ assert.equal(printer.device, 'laptop');
 assert.match(String(printer.issue), /connect to the printer/i);
 
 assert.equal(detectUserOutcomeVerb('Keep an eye on this and tell me if anything changes'), 'monitor');
+
+const monitoringRoute = await routeIntent('Keep an eye on my Wi-Fi and tell me if anything changes', '+2348090000000');
+assert.equal(monitoringRoute.cardData?.type, 'monitoring_setup');
+assert.equal(monitoringRoute.cardData?.target, 'wi-fi', 'monitoring target must not absorb the change condition');
 assert.equal(isDirectOutcomeRequest('Something is wrong with my router'), true);
 assert.equal(isDirectOutcomeRequest('What is the weather?'), false);
 
