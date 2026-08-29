@@ -1,6 +1,7 @@
 import { getDb, saveDb } from '../database.js';
 import { freezeEscrowForOrder, refundEscrow, releaseEscrow } from './escrow.js';
 import { getAllowedEconomicTransitions, getEconomicRequest, transitionEconomicRequest } from './skillFlows.js';
+import { recordDisputeFault } from './trustScore.js';
 
 export interface DisputeOpenResult {
     disputeId: number;
@@ -105,7 +106,7 @@ export async function resolveDispute(disputeId: number, resolution: string): Pro
     saveDb();
 }
 
-export async function resolveDisputeWithEconomicLifecycle(disputeId: number, resolution: 'release' | 'refund'): Promise<DisputeResolutionResult> {
+export async function resolveDisputeWithEconomicLifecycle(disputeId: number, resolution: 'release' | 'refund', faultParty?: 'buyer' | 'provider'): Promise<DisputeResolutionResult> {
     const dispute = await getDispute(disputeId);
     if (!dispute) throw new Error('Dispute not found');
     if (!['open', 'escalated'].includes(dispute.status) && dispute.status !== 'resolved') throw new Error(`Dispute cannot be resolved from status ${dispute.status}`);
@@ -155,6 +156,31 @@ export async function resolveDisputeWithEconomicLifecycle(disputeId: number, res
         disputeId,
     ]);
     saveDb();
+
+    // Trust-score recalculation after dispute resolution (Blueprint §15.1).
+    // When the admin explicitly declares a fault party it takes priority;
+    // otherwise, release (escrow to provider) implicates the buyer, and
+    // refund (escrow to buyer) implicates the provider.
+    let effectiveFaultParty: 'buyer' | 'provider' | undefined = faultParty;
+    if (!effectiveFaultParty) {
+      effectiveFaultParty = resolution === 'release' ? 'buyer' : 'provider';
+    }
+    let faultPhone = dispute.phone;
+    if (effectiveFaultParty === 'provider' && orderId) {
+      const providerStmt = db.prepare('SELECT provider_phone FROM orders WHERE id = ? LIMIT 1');
+      providerStmt.bind([orderId]);
+      const row = providerStmt.step() ? providerStmt.getAsObject() as Record<string, unknown> : null;
+      providerStmt.free();
+      if (row) faultPhone = String((row.provider_phone as string) || dispute.phone || '');
+    }
+    if (faultPhone) {
+      try {
+        await recordDisputeFault(disputeId, effectiveFaultParty, faultPhone);
+      } catch (err) {
+        // Trust-score update is a secondary concern; dispute resolution must not fail.
+        console.error('[Dispute] trust score recalculation failed:', err);
+      }
+    }
 
     return { disputeId, resolution, escrowUpdated, economicRequestId: linkedEconomicRequestId, orderStatus };
 }
