@@ -390,6 +390,22 @@ __label__skill_route_borrowed_iou i need borrowed_iou
 __label__skill_route_borrowed_iou i need borrowed_iou around my area
 __label__skill_route_borrowed_iou please help me find borrowed iou
 __label__skill_route_borrowed_iou please help me find borrowed_iou
+__label__skill_route_buy_airtime abeg i need buy airtime
+__label__skill_route_buy_airtime abeg i need buy_airtime
+__label__skill_route_buy_airtime buy airtime
+__label__skill_route_buy_airtime buy_airtime
+__label__skill_route_buy_airtime can you help me with buy airtime
+__label__skill_route_buy_airtime can you help me with buy_airtime
+__label__skill_route_buy_airtime fit you help me with buy airtime
+__label__skill_route_buy_airtime fit you help me with buy_airtime
+__label__skill_route_buy_airtime i dey look for buy airtime
+__label__skill_route_buy_airtime i dey look for buy_airtime
+__label__skill_route_buy_airtime i need buy airtime
+__label__skill_route_buy_airtime i need buy airtime around my area
+__label__skill_route_buy_airtime i need buy_airtime
+__label__skill_route_buy_airtime i need buy_airtime around my area
+__label__skill_route_buy_airtime please help me find buy airtime
+__label__skill_route_buy_airtime please help me find buy_airtime
 __label__skill_route_buy_car abeg i need buy car
 __label__skill_route_buy_car abeg i need buy_car
 __label__skill_route_buy_car buy car
@@ -726,6 +742,22 @@ __label__skill_route_creek_guide i need creek_guide
 __label__skill_route_creek_guide i need creek_guide around my area
 __label__skill_route_creek_guide please help me find creek guide
 __label__skill_route_creek_guide please help me find creek_guide
+__label__skill_route_data_bundle abeg i need data bundle
+__label__skill_route_data_bundle abeg i need data_bundle
+__label__skill_route_data_bundle can you help me with data bundle
+__label__skill_route_data_bundle can you help me with data_bundle
+__label__skill_route_data_bundle data bundle
+__label__skill_route_data_bundle data_bundle
+__label__skill_route_data_bundle fit you help me with data bundle
+__label__skill_route_data_bundle fit you help me with data_bundle
+__label__skill_route_data_bundle i dey look for data bundle
+__label__skill_route_data_bundle i dey look for data_bundle
+__label__skill_route_data_bundle i need data bundle
+__label__skill_route_data_bundle i need data bundle around my area
+__label__skill_route_data_bundle i need data_bundle
+__label__skill_route_data_bundle i need data_bundle around my area
+__label__skill_route_data_bundle please help me find data bundle
+__label__skill_route_data_bundle please help me find data_bundle
 __label__skill_route_data_reseller abeg i need data reseller
 __label__skill_route_data_reseller abeg i need data_reseller
 __label__skill_route_data_reseller can you help me with data reseller
@@ -782,6 +814,30 @@ __label__skill_route_dentist_appointment i need dentist around my area
 __label__skill_route_dentist_appointment please help me find book dentist
 __label__skill_route_dentist_appointment please help me find dentist
 __label__skill_route_dentist_appointment please help me find dentist appointment
+__label__skill_route_device_support abeg i need device check
+__label__skill_route_device_support abeg i need device diagnostic
+__label__skill_route_device_support abeg i need device support
+__label__skill_route_device_support can you help me with device check
+__label__skill_route_device_support can you help me with device diagnostic
+__label__skill_route_device_support can you help me with device support
+__label__skill_route_device_support device check
+__label__skill_route_device_support device diagnostic
+__label__skill_route_device_support device support
+__label__skill_route_device_support fit you help me with device check
+__label__skill_route_device_support fit you help me with device diagnostic
+__label__skill_route_device_support fit you help me with device support
+__label__skill_route_device_support i dey look for device check
+__label__skill_route_device_support i dey look for device diagnostic
+__label__skill_route_device_support i dey look for device support
+__label__skill_route_device_support i need device check
+__label__skill_route_device_support i need device check around my area
+__label__skill_route_device_support i need device diagnostic
+__label__skill_route_device_support i need device diagnostic around my area
+__label__skill_route_device_support i need device support
+__label__skill_route_device_support i need device support around my area
+__label__skill_route_device_support please help me find device check
+__label__skill_route_device_support please help me find device diagnostic
+__label__skill_route_device_support please help me find device support
 __label__skill_route_digital_declutter abeg i need digital declutter
 __label__skill_route_digital_declutter abeg i need digital_declutter
 __label__skill_route_digital_declutter can you help me with digital declutter
@@ -2831,13 +2887,29 @@ __label__skill_route_rental_tracker please help me find rental_tracker
 __label__skill_route_rental_tracker rental tracker
 __label__skill_route_rental_tracker rental_tracker
 __label__skill_route_repair abeg i need repair
+__label__skill_route_repair abeg i need repair my device
+__label__skill_route_repair abeg i need repair this
 __label__skill_route_repair can you help me with repair
+__label__skill_route_repair can you help me with repair my device
+__label__skill_route_repair can you help me with repair this
 __label__skill_route_repair fit you help me with repair
+__label__skill_route_repair fit you help me with repair my device
+__label__skill_route_repair fit you help me with repair this
 __label__skill_route_repair i dey look for repair
+__label__skill_route_repair i dey look for repair my device
+__label__skill_route_repair i dey look for repair this
 __label__skill_route_repair i need repair
 __label__skill_route_repair i need repair around my area
+__label__skill_route_repair i need repair my device
+__label__skill_route_repair i need repair my device around my area
+__label__skill_route_repair i need repair this
+__label__skill_route_repair i need repair this around my area
 __label__skill_route_repair please help me find repair
+__label__skill_route_repair please help me find repair my device
+__label__skill_route_repair please help me find repair this
 __label__skill_route_repair repair
+__label__skill_route_repair repair my device
+__label__skill_route_repair repair this
 __label__skill_route_retirement_coach abeg i need retirement coach
 __label__skill_route_retirement_coach abeg i need retirement_coach
 __label__skill_route_retirement_coach can you help me with retirement coach

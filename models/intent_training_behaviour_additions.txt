@@ -248,3 +248,18 @@ __label__general_outcome_request i need you to handle something
 __label__general_outcome_request i have a problem can you deal with it
 __label__general_outcome_request i need something sorted
 __label__general_outcome_request can you take care of everything
+__label__skill_route_house_cleaner i need a cleaner in Ibadan
+__label__skill_route_house_cleaner find me a cleaner near me
+__label__skill_route_house_cleaner cleaner for my house
+__label__skill_route_house_cleaner home cleaner needed
+__label__skill_route_house_cleaner cleaning service for my apartment
+__label__skill_route_house_cleaner i need house cleaning service
+__label__skill_route_house_cleaner cleaner for saturday
+__label__skill_route_house_cleaner can you find a cleaner
+__label__skill_route_house_cleaner i want to hire a cleaner
+__label__skill_route_house_cleaner house cleaner in lagos
+__label__skill_route_house_cleaner cleaning lady for my home
+__label__skill_route_house_cleaner i need someone to clean my house
+__label__skill_route_house_cleaner cleaner needed urgently
+__label__skill_route_house_cleaner part time cleaner
+__label__skill_route_house_cleaner full time house cleaner
