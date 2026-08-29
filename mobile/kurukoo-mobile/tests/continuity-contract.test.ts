@@ -30,6 +30,10 @@ describe("Trust and Continuity visual contract", () => {
     expect(surfaceSource).toContain("<ContinuityBand");
     expect(surfaceSource).toContain("contextId={kind}");
     expect(surfaceSource).toContain("Internal acceptance never implies external payment");
+    expect(surfaceSource).toContain("No external action was accepted, queued, delivered or fulfilled.");
+    expect(surfaceSource).toContain('Canonical context');
+    expect(surfaceSource).not.toContain('Request #1842');
+    expect(surfaceSource).not.toContain('value="#1842"');
   });
 
   it("keeps channel pairing fail-safe", () => {
