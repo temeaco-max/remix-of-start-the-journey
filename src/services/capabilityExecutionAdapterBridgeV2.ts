@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getCapabilityExecutionAdapter, listCapabilityExecutionAdapters, registerCapabilityExecutionAdapter } from './capabilityExtensionService.js';
 import type { CapabilityExtensionExecutionAdapter } from './capabilityExtensionExecutionTypes.js';
 import { registerCapability, registerCapabilities, getCapabilityRegistration } from './capabilityRegistry.js';

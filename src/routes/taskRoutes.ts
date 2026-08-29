@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Work boundary: appointments + micro-tasks.
  * Identity comes from the authenticated session; task ownership is enforced

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Compound goal lifecycle: creates the parent goal, sub-goals and dependency
  * edges for a recognised compound objective. Goal creation, dependency

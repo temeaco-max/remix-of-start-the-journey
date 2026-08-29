@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import crypto from 'node:crypto';import { getDb,saveDb } from '../database.js';import { FASTTEXT_ROUTING_CONFIG } from './fastTextRoutingConfig.js';
 export type UnknownIntentDecision='accepted'|'rejected';export interface UnknownIntentSuggestion{category?:string;skill?:string;confidence?:number;provenance?:string;}
 function redact(value:string){return value.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'<email>').replace(/\+?\d[\d\s().-]{7,}\d/g,'<phone>').replace(/\b(?:api[_ -]?key|token|password|secret)\s*[:=]\s*[^\s,;]+/gi,'<credential>').replace(/https?:\/\/\S+/gi,'<url>').replace(/\s+/g,' ').trim().slice(0,FASTTEXT_ROUTING_CONFIG.feedback.maximumNormalizedPhraseLength);}function normalize(value:string){return redact(value).toLowerCase().replace(/[^a-z0-9<> ]/g,' ').replace(/\s+/g,' ').trim();}

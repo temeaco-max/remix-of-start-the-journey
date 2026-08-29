@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getFeatureFlagStatus } from './featureFlags.js';
 
 const DEFAULT_TIMEOUT_MS = 15_000;

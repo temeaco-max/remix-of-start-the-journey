@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import crypto from 'node:crypto';
 import { createEconomicRequest, getEconomicRequest } from './skillFlows.js';
 import { broadcastDispatch, type DispatchLead } from './economicDispatchCoordinator.js';

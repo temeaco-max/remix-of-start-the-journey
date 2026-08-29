@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 const DEV_TEST_OTP = '111111';
 
 function normalizePhone(phoneInput: string): string {

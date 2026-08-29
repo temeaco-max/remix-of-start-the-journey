@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { expireDueProviderInquiries, getFulfilment } from './canonicalFulfilmentService.js';
 import { sendFcmPush } from './pushNotifications.js';
 

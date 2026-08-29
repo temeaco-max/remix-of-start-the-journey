@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb } from '../database.js';
 import { freezeEscrowForOrder, refundEscrow, releaseEscrow } from './escrow.js';
 import { getAllowedEconomicTransitions, getEconomicRequest, transitionEconomicRequest } from './skillFlows.js';

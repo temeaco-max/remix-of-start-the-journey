@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { createRequire } from 'node:module';
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 import { getDb, saveDb } from '../database.js';

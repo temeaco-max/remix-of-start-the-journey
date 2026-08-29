@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getEconomicCategory, getKnownSkills } from './skillFlows.js';
 
 export type SkillMarket = 'uk' | 'ng' | 'ca' | 'global';

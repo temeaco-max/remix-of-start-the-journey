@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getCanonicalStore } from './canonicalStore.js';
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 async function ensure(sqljsSql:string,postgresSql:string){const s=await getCanonicalStore();await s.run(getCanonicalPersistenceMode()==='postgres'?postgresSql:sqljsSql);return s;}

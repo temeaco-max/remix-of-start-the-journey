@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getEconomicRequest, transitionEconomicRequest } from './skillFlows.js';
 import { lockEscrowForEconomicRequest } from './tradeEngine.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Payment-related mutations — points, wallet and verified external payment boundaries.
  * Identity comes from the authenticated session. Client-supplied payment

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type ProviderHealthState='healthy'|'degraded'|'open'|'half_open';
 export const HOSTED_AI_PROVIDERS=['mistral','gemini','groq','openrouter'] as const;export type HostedAiProviderName=typeof HOSTED_AI_PROVIDERS[number];
 interface ProviderHealthRecord{state:ProviderHealthState;consecutiveFailures:number;timeoutCount:number;recentFailures:number[];recentSuccesses:number[];lastSuccessAt?:number;lastFailureAt?:number;openedAt?:number;halfOpenProbeInFlight:boolean;}

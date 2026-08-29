@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { createAIAgent, executeAgentTask, getAIAgentById, updateAIAgent, type AIAgent } from './aiAgentService.js';
 import { createReminder, listReminders } from './reminderService.js';
 import { getProfile } from './memoryProfile.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { buildConvergedSkillInstruction, resolveConvergedSkillBehaviour } from './skillBehaviourConvergence.js';
 import { buildSkillBehaviourInstruction, type SkillBehaviourPack } from './skillBehaviourRegistry.js';
 import { getCanonicalIdentityContext } from './memoryProfile.js';

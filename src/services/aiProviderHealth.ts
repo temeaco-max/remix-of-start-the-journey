@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type AiProvider = 'mistral' | 'gemini' | 'groq' | 'openrouter' | 'poolside';
 export type AiProviderHealthState = 'healthy' | 'degraded' | 'open' | 'half_open';
 

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb } from '../database.js';
 import { decryptData, encryptData } from './memoryProfile.js';
 export const APPROVED_CREDENTIAL_PROVIDERS=['gemini','groq','mistral','openrouter','stripe','whatsapp','telegram','resend','firebase'] as const;export type ApprovedCredentialProvider=typeof APPROVED_CREDENTIAL_PROVIDERS[number];export type ProviderCredentialStatus='active'|'disabled'|'revoked';export type CredentialTestStatus='never_tested'|'verified'|'failed'|'unavailable';

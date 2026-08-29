@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { assessConversationQuality, type ConversationQualityAssessment } from './conversationQualityService.js';
 import { detectTrajectorySignals, type TrajectoryDefinition, type TrajectoryTurn } from './conversationTrajectoryService.js';
 

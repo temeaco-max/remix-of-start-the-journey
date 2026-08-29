@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Order / delivery routes — JWT identity only.
  * Mounted by wire-security-routes.mjs / index composition.

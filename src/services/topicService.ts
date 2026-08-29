@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { randomUUID } from 'crypto';
 import { getDb, saveDb } from '../database.js';
 import { ECONOMIC_CATEGORIES, getEconomicCategory, getKnownSkills } from './skillFlows.js';

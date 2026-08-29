@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type BrandMarkVariant = 'wordmark' | 'compact' | 'monogram' | 'favicon' | 'app_icon';
 export type BrandContext = 'public_header' | 'public_footer' | 'auth' | 'desk_header' | 'desk_sidebar' | 'admin_header' | 'chat' | 'pwa' | 'native';
 

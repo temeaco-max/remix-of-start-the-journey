@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getCapabilityActionContract } from './capabilityRegistry.js';
 import { getCanonicalStore } from './canonicalStore.js';
 import { recordAgentExecutionTrace } from './agentExecutionTrace.js';

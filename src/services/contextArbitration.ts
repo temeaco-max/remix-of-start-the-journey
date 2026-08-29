@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { listChatConversations, listChatMessages } from './chatConversationService.js';
 import { getProfile } from './memoryProfile.js';
 import { detectRelativeReference } from './conversationQualityService.js';

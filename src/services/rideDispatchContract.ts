@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export const RIDE_VEHICLE_OPTIONS = [
   { id: 'bike', skills: ['okada_rider', 'rider'], label: 'Bike', passengersMax: 1, notes: 'Fast local two-wheel trip where legally permitted.' },
   { id: 'keke', skills: ['keke_driver'], label: 'Keke', passengersMax: 3, notes: 'Tricycle transport.' },

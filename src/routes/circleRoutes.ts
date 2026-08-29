@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Money / safety circle boundary.
  * Identity is derived from the authenticated session and membership is checked

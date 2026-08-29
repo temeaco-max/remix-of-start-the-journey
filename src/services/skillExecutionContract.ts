@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getEconomicCategory, getSkillCapabilities, getSkillRequirements } from './skillFlows.js';
 import { getSkillExtension } from './skillCatalogueConvergence.js';
 import { getConvergedSkillBehaviour } from './skillBehaviourConvergence.js';

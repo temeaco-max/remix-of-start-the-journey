@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export const AUTHENTICATED_AD_PLACEMENTS = {
   leftRail: 'authenticated_left_rail',
   contextRail: 'authenticated_context_rail',

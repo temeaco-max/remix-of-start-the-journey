@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb } from '../database.js';
 import { queryDiscoveryEntities, getDiscoveryEntity } from './discoveryNetwork.js';
 import { getAllCatalogueSkillNames } from './skillCatalogueConvergence.js';

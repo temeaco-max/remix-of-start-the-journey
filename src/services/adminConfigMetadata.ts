@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type ConfigSensitivity = 'public_config' | 'secret' | 'credential' | 'webhook_secret' | 'internal';
 
 export interface AdminConfigDefinition {

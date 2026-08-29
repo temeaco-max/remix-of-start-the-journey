@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /** Declarative skill behaviour packs consumed by the canonical conversation generator. */
 export interface SkillBehaviourPack {
   skill: string;

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { decideConversationIntelligence, type ConversationIntelligenceDecision, type ConversationIntelligenceInput } from './conversationIntelligenceService.js';
 import { composeBehaviourInstructions, inferSkillFromText, classifyBehaviourFamily } from './behaviourInstructionService.js';
 import type { SemanticConversationInterpretation } from './semanticConversationInterpreter.js';

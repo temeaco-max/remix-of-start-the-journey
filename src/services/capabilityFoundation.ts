@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import type { UniversalCapabilityDescriptor } from './universalCapabilityProtocol.js';
 import { registerCapabilities, getCapabilityRegistration } from './capabilityRegistry.js';
 import { getEconomicCategory, getKnownCapabilitySkills, getSkillCapabilities, getSkillRequirements } from './skillFlows.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import express, { Router } from 'express';
 import { getAllBlogArticles, getBlogArticleBySlug, getAllResourceMetadata, getResourceBySlug } from '../services/contentManager.js';
 

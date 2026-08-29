@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getEconomicCategory, getKnownSkills, getSkillCapabilities, getSkillFlow, getSkillRequirements, type EconomicCapability, type SkillFlow } from './skillFlows.js';
 import { listAgentTools } from './agentToolRegistry.js';
 import { ensureCapabilityFoundation } from './capabilityFoundation.js';

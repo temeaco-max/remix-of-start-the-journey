@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { queryUnifiedAI, type AIProvider, type ConversationalContextHint } from './unifiedAiEngine.js';
 import { buildConversationContextPack } from './conversationContextPackService.js';
 import { chooseInferenceProvider } from './aiInferencePolicy.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb } from '../database.js';
 import { getEconomicRequest } from './skillFlows.js';
 import { getAgentNetworkSummary } from './agentNetworkCommerce.js';

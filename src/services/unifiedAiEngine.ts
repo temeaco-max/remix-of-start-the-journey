@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { queryGemini } from './geminiService.js';
 import { getSmolLM2RuntimeStatus, querySmolLM2 } from './smolLm2Service.js';
 import { queryGroq, streamGroq } from './groqService.js';

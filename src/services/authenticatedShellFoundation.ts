@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type AuthenticatedShellRegion = 'top-header' | 'primary-sidebar' | 'main-content' | 'context-inspector' | 'mobile-overflow';
 
 export interface AuthenticatedShellContract {

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 const DEMO_SEED_VERSION = '2026-08-21-webapp-v2';
 
 /** Development-only, idempotent demo data for the canonical operator account. */

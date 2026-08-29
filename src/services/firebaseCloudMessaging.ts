@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import { deactivateFcmToken, parseFcmTokenCollection } from './fcmDeviceRegistry.js';

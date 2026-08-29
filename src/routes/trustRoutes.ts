@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Trust boundary: disputes, scam reports, escrow.
  * Identity is derived from the authenticated session. Resource ownership is

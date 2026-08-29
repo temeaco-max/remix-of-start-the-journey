@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { PLATFORM_FEATURE_VISUAL_CONTRACTS, type PlatformFeatureVisualContract } from './platformFeatureVisualRegistry.js';
 /**
  * Canonical product-facing projection of the feature registry.

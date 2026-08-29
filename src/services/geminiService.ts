@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { GoogleGenAI } from '@google/genai';
 
 let genAIInstance: GoogleGenAI | null = null;

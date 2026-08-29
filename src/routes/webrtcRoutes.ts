@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Authenticated WebRTC signalling API. Provider communication rooms are bound
  * to the existing canonical provider-communication session participants.

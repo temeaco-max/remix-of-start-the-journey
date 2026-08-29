@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getCapabilityRegistration } from './capabilityRegistry.js';
 import { ensureCapabilityFoundation, normalizeSkillCapabilityReference } from './capabilityFoundation.js';
 

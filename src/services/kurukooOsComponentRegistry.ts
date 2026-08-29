@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type OsComponentFamily = 'shell' | 'conversation' | 'activity' | 'object' | 'progress' | 'discovery' | 'connection' | 'media';
 export type OsComponentVariant = 'default' | 'compact' | 'dense' | 'featured' | 'contextual' | 'sponsored' | 'loading' | 'empty' | 'error';
 

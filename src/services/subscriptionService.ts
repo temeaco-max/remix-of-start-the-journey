@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Subscription mutations — never trust client phone or payment references.
  * Flow: authenticated session → validated plan → verified payment → tier state.

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /** Lightweight in-process workers for single-instance launch. Shared durable job leases are available for scale transition. */
 import { runOrchestrationPass } from './tradeEngine.js';
 import { expireDeferredIntentions, getDueIntentions, incrementAttempt, resolveOpenIntention, markPartiallyMatched } from './deferredRequestService.js';

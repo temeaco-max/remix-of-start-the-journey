@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import type { ProviderCommunicationState } from './providerCommunicationService.js';
 
 const MESSAGE_READY_STATES = new Set<ProviderCommunicationState>(['connected', 'arrived', 'in_progress']);

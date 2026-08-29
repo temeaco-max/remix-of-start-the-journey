@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { deductPoints, addPoints } from './pointsEngine.js';
 import { getDb, saveDb } from '../database.js';
 import { queryUnifiedAI } from './unifiedAiEngine.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 /**
  * Authoritative progressive identity tiers for Kurukoo OS.
  * Presence → account credential → channel proof. Provisional em_* cannot pass high-trust capabilities.

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 import * as sqljs from './economicParticipantsSqljs.js';
 import * as postgres from './economicParticipantsPersistence.js';

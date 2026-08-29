@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { AUTHENTICATED_CAPABILITY_COVERAGE, type AuthenticatedCapabilityContract } from './authenticatedCapabilityCoverageRegistry.js';
 import { getExternalIntegrationReadiness, type ExternalIntegrationReadiness } from './externalIntegrationReadiness.js';
 

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb } from '../database.js';
 
 const STATUS_ORDER = ['escrow_held', 'driver_assigned', 'picked_up', 'in_transit', 'delivered', 'completed'];

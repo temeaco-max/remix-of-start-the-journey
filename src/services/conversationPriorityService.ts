@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { deriveInteractionPolicyForCapabilityName, type CapabilityInteractionPolicy } from './capabilityInteractionPolicyService.js';
 
 export interface ConversationPriorityDecision {

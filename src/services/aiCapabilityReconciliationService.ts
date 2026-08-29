@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import type { IntentRoutingResult } from '../types.js';
 import type { ConversationTurnContract } from './conversationTurnContractService.js';
 import type { AISemanticCapabilityProposal } from './aiSemanticProposalService.js';

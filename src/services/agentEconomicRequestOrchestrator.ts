@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import crypto from 'node:crypto';
 import { getEconomicRequest } from './economicRequestPersistence.js';
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { pipeline } from '@huggingface/transformers';
 import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
 import { getStudentModelRuntimeSelection } from './studentModelRegistryService.js';

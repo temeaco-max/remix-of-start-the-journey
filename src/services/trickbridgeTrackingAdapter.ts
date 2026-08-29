@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export interface TrickbridgeSession { id: string; providerSessionId: string; status: 'local' | 'connected' | 'unavailable'; externalReference?: string; }
 
 function baseUrl(): string { return String(process.env.TRICKBRIDGE_BASE_URL || '').trim().replace(/\/$/, ''); }

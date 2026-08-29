@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 export type CustodyEvidenceStage = 'handover_pending' | 'handed_over' | 'collected' | 'delivered' | 'confirmed';
 export type CustodyParticipantRole = 'seller' | 'delivery_provider' | 'service_provider' | 'external_platform' | 'agent';
 

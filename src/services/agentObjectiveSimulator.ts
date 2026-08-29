@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { checkAgentExecutionBudget, defaultAgentExecutionBudget, initialAgentExecutionUsage, recordAgentExecutionAction, type AgentExecutionBudget, type AgentExecutionUsage } from './agentExecutionControls.js';
 import { evaluateAgentWork, type AgentQualityDecision } from './agentQualityGate.js';
 

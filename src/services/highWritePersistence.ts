@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getCanonicalPersistenceMode, getCanonicalPersistenceStatus } from './canonicalPersistence.js';
 
 export type HighWriteDomain = 'messages_conversations' | 'durable_jobs' | 'commercial_ledger';
