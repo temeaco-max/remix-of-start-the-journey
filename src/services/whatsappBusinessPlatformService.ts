@@ -34,7 +34,7 @@ function graphVersion(): string {
 }
 
 export function getWhatsAppBusinessStatus(): WhatsAppBusinessStatus {
-  const featureFlag = process.env.FF_WHATSAPP_BUSINESS === 'true' || process.env.FF_WHATSAPP === 'true';
+    const featureFlag = process.env.FF_WHATSAPP === 'true';
   const phoneNumberId = String(process.env.WHATSAPP_PHONE_NUMBER_ID || '').trim() || null;
   const appSecret = process.env.WHATSAPP_APP_SECRET;
   const configuredAll = configured(phoneNumberId) && configured(accessToken()) && configured(appSecret) && configured(verifyToken());

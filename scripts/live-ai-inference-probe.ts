@@ -1,4 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
+import 'dotenv/config';
 import { getMistralStatus, testMistralConnection, queryMistral } from '../src/services/mistralService.js';
 import { queryUnifiedAI } from '../src/services/unifiedAiEngine.js';
 
