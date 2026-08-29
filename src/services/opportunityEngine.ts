@@ -117,13 +117,23 @@ export async function generateProactiveOpportunities(phone: string): Promise<Opp
     for (const intention of activeOpenIntentions) {
         const continuationId = intention.economic_request_id ? String(intention.economic_request_id) : String(intention.id);
         const prompt = `Continue with my ${String(intention.skill || intention.intent || 'request')} request`;
+        const continuationParams = new URLSearchParams({ prompt });
+        if (intention.economic_request_id) {
+            continuationParams.set('contextId', `economic_request:${continuationId}`);
+            continuationParams.set('action', 'review');
+            continuationParams.set('canonicalAction', 'economic_request.open');
+            continuationParams.set('objectType', 'economic_request');
+            continuationParams.set('objectId', continuationId);
+        } else {
+            continuationParams.set('requestId', continuationId);
+        }
         rawOpportunities.push({
             phone,
             type: 'market_intel',
             title: `Follow-up: ${intention.intent}`,
             subtitle: `Still looking for assistance with "${intention.intent}"? Continue in Chat to review the supported next step.`,
             ctaText: 'Continue in Chat',
-            ctaLink: `/chat?requestId=${encodeURIComponent(continuationId)}&prompt=${encodeURIComponent(prompt)}`,
+            ctaLink: `/chat?${continuationParams.toString()}`,
             urgency: 1.0, // Urgent follow-up
             businessValue: 0.6
         });
