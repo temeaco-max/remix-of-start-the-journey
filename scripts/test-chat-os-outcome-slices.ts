@@ -235,8 +235,11 @@ assert.equal(communication.skill, 'communication');
 assert.equal(communication.cardData?.type, 'communication_prepare');
 assert.equal(communication.cardData?.deliveryState, 'not_sent');
 
-const monitoringTurn = await processCanonicalChatTurn({ phone: makeDomainPhone(47), message: 'Keep an eye on my Wi-Fi', channel: 'web', conversationId: `${conversationId}-monitoring-turn` });
-assert.equal(monitoringTurn.cardData?.type, 'monitoring_setup');
+  const monitoringTurn = await processCanonicalChatTurn({ phone: makeDomainPhone(47), message: 'Keep an eye on my Wi-Fi', channel: 'web', conversationId: `${conversationId}-monitoring-turn` });
+  assert.equal(monitoringTurn.cardData?.type, 'monitoring_setup');
+  assert.equal(monitoringTurn.cardData?.ownedWork, true, 'monitoring must become durable owned work through the existing Agent Goal runtime');
+  assert.equal(typeof monitoringTurn.cardData?.agentGoalId, 'string', 'monitoring work must retain its canonical Agent Goal reference internally');
+  assert.ok(['active', 'waiting'].includes(String(monitoringTurn.cardData?.workStatus)), 'monitoring work must expose a truthful active or waiting status');
 
 const communicationPhone = makeDomainPhone(53);
 const johnPhone = makeDomainPhone(54);

@@ -1228,6 +1228,12 @@
     holder.setAttribute('aria-label', 'Kurukoo outcome');
     const title = card.type === 'monitoring_setup' ? 'Keep an eye on this' : card.type === 'reminder_setup' ? 'Keep this follow-up active' : 'Message prepared for review';
     holder.appendChild(makeElement('strong', '', title));
+    if (card.ownedWork && card.type === 'monitoring_setup') {
+      const workStatus = String(card.workStatus || 'active');
+      const statusCopy = workStatus === 'waiting' ? 'Saved follow-up · waiting for the next safe observation' : workStatus === 'active' ? 'Saved follow-up · ready for the next safe observation' : 'Saved follow-up · review required before Kurukoo can continue';
+      appendOutcomeStatus(holder, statusCopy, workStatus === 'waiting' ? 'neutral' : 'waiting');
+      if (card.workSummary) holder.appendChild(makeElement('p', 'storefront-offer-copy', String(card.workSummary)));
+    }
     if (card.target) appendOutcomeEvidence(holder, [{ label: 'Target', value: String(card.target) }]);
     if (card.recipient) appendOutcomeEvidence(holder, [{ label: 'Recipient', value: String(card.recipient) }]);
     if (card.body) holder.appendChild(makeElement('p', 'storefront-offer-copy', String(card.body)));
