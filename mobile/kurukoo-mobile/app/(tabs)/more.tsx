@@ -9,9 +9,9 @@ import { useColors } from "@/hooks/use-colors";
 const links = [
   { title: "Capability Portfolio", detail: "Your multi-skill identity, Pulse, agents, voice and artifacts", state: "Ready", route: "/surface/capabilities" },
   { title: "Artifact history", detail: "Play voice notes, review transcripts, and inspect storage ownership", state: "Available", route: "/surface/artifacts" },
-  { title: "Notifications", detail: "Review pending, verified and not-delivered outcomes", state: "4 updates", route: "/surface/notifications" },
-  { title: "Requests", detail: "Review active, waiting and completed work with evidence", state: "3 items", route: "/surface/requests" },
-  { title: "Reminders", detail: "Edit, pause and continue saved conversation context", state: "3 items", route: "/surface/reminders" },
+  { title: "Notifications", detail: "Review pending, verified and not-delivered outcomes", state: "Review updates", route: "/surface/notifications" },
+  { title: "Requests", detail: "Review active, waiting and completed work with evidence", state: "Review work", route: "/surface/requests" },
+  { title: "Reminders", detail: "Edit, pause and continue saved conversation context", state: "Review work", route: "/surface/reminders" },
   { title: "Connect channels", detail: "WhatsApp, Telegram, email and other access points", state: "Ready for activation", kind: "connect" },
   { title: "Memory and privacy", detail: "Review provenance-backed memories and revoke context", state: "In your control", kind: "memory" },
   { title: "Safety and check-ins", detail: "Protective interruptions, trusted contacts and check-ins", state: "Available", kind: "safety" },
