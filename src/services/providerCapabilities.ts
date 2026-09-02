@@ -13,20 +13,21 @@ export interface ProviderCapabilityStatus {
   note: string;
 }
 export interface ProviderReadiness { provider: ProviderName; configured: boolean; available: boolean; capabilities: ProviderCapabilityStatus[]; failover: 'none' | 'canonical-local' | 'canonical-template'; }
-export type HostedAIProvider = 'gemini' | 'mistral' | 'groq' | 'none';
+export type HostedAIProvider = 'gemini' | 'mistral' | 'groq' | 'openrouter' | 'poolside' | 'none';
 export function hasConfiguredSecret(value: unknown): boolean { const text=String(value??'').trim().toLowerCase(); return Boolean(text)&&!['stub','unconfigured'].includes(text)&&!text.startsWith('change_me'); }
-/** Resolve the explicitly preferred hosted provider only when it is actually configured, otherwise fail over deterministically. */
+/** Resolve one explicitly preferred hosted provider when configured; otherwise use the canonical hosted escalation order. */
 export function resolveHostedAIProvider(preferred?: string | null): HostedAIProvider {
-  const explicit=String(preferred||process.env.KURUKOO_AI_HOSTED_PROVIDER||'').trim().toLowerCase();
-  const hasGemini=hasConfiguredSecret(process.env.GEMINI_API_KEY||process.env.API_KEY);
-  const hasMistral=hasConfiguredSecret(process.env.MISTRAL_API_KEY);
-  const hasGroq=hasConfiguredSecret(process.env.GROQ_API_KEY);
-  if(explicit==='gemini'&&hasGemini)return'gemini';
-  if(explicit==='mistral'&&hasMistral)return'mistral';
-  if(explicit==='groq'&&hasGroq)return'groq';
-  if(hasGemini)return'gemini';
-  if(hasMistral)return'mistral';
-  if(hasGroq)return'groq';
-  return'none';
+  const explicit=String(preferred||'').trim().toLowerCase();
+  const candidates: HostedAIProvider[] = ['mistral', 'groq', 'gemini', 'openrouter', 'poolside'];
+  const configured = (provider: HostedAIProvider): boolean => {
+    if (provider === 'mistral') return hasConfiguredSecret(process.env.MISTRAL_API_KEY);
+    if (provider === 'groq') return hasConfiguredSecret(process.env.GROQ_API_KEY);
+    if (provider === 'gemini') return hasConfiguredSecret(process.env.GEMINI_API_KEY || process.env.API_KEY);
+    if (provider === 'openrouter') return hasConfiguredSecret(process.env.OPENROUTER_API_KEY) && Boolean(String(process.env.OPENROUTER_MODEL || '').trim());
+    if (provider === 'poolside') return hasConfiguredSecret(process.env.POOLSIDE_API_KEY);
+    return false;
+  };
+  if (candidates.includes(explicit as HostedAIProvider) && configured(explicit as HostedAIProvider)) return explicit as HostedAIProvider;
+  return candidates.find(configured) || 'none';
 }
 export function unknownLimits(note: string): ProviderCapabilityStatus['limits'] { return { status:'unknown', note }; }
