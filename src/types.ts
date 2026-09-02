@@ -47,7 +47,7 @@ export interface IntentRoutingResult {
     target_skill?: string;
     reply: string;
     cardData?: any;
-    classificationSource?: 'fasttext' | 'rules' | 'fallback';
+    classificationSource?: 'rules' | 'fallback';
     intentConfidence?: number;
     modelProvider?: string;
     model?: string;
