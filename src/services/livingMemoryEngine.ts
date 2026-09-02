@@ -35,7 +35,7 @@ export interface WorkingContextResult {
 const MAX_PER_TIER = 3;
 const DEFAULT_K = 8;
 const MMR_LAMBDA = 0.7;
-const FASTTEXT_TOKEN_BUDGET = 1024;
+const LOCAL_GENERATION_TOKEN_BUDGET = 1024;
 const GROQ_TOKEN_BUDGET = 2048;
 
 // ── Schema ──────────────────────────────────────────────────────────────
@@ -335,7 +335,7 @@ async function touchSelected(selected: MemoryItem[]): Promise<void> {
 export async function buildWorkingContext(
   phone: string,
   query: string,
-  options: { intentClass?: string; intentConfidence?: number; route?: 'fasttext' | 'groq' | 'smollm2' | string; threadId?: string } = {}
+  options: { intentClass?: string; intentConfidence?: number; generationClass?: 'smollm2' | 'groq' | 'mistral' | 'openrouter' | 'poolside' | string; threadId?: string } = {}
 ): Promise<WorkingContextResult> {
   await ensureLivingMemorySchema();
 
@@ -348,7 +348,7 @@ export async function buildWorkingContext(
 
   const available = [...stable, ...episodic, ...intentions, ...recent];
   const selected = mmrSelect(query, available, DEFAULT_K);
-  const budget = options.route === 'fasttext' || options.route === 'smollm2' ? FASTTEXT_TOKEN_BUDGET : GROQ_TOKEN_BUDGET;
+  const budget = options.generationClass === 'smollm2' ? LOCAL_GENERATION_TOKEN_BUDGET : GROQ_TOKEN_BUDGET;
   const { context, tokenEstimate } = assembleContext(selected, budget);
 
   await touchSelected(selected);
@@ -361,7 +361,7 @@ export async function buildWorkingContext(
     ownerPhone: phone.startsWith('anon_') ? undefined : phone,
     payload: {
       threadId: options.threadId,
-      route: options.route,
+      generationClass: options.generationClass,
       intentClass: options.intentClass,
       intentConfidence: options.intentConfidence,
       selectedCount: selected.length,
@@ -427,7 +427,7 @@ export async function withMemoryContext(
   phone: string | undefined,
   userPrompt: string,
   baseSystemPrompt?: string,
-  meta?: { intentClass?: string; intentConfidence?: number; route?: string; threadId?: string }
+  meta?: { intentClass?: string; intentConfidence?: number; generationClass?: string; threadId?: string }
 ): Promise<{ systemPrompt: string; working?: WorkingContextResult }> {
   if (!phone) return { systemPrompt: baseSystemPrompt || '' };
 

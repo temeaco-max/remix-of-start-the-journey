@@ -17,7 +17,7 @@ const facts = await getMemoryFacts(phone);
 if (!facts.some((fact) => fact.field === 'name' && fact.value === 'Amina' && fact.provenance === 'user_declared')) throw new Error('Explicit name fact was not persisted with user_declared provenance');
 if (!facts.some((fact) => fact.field === 'location' && fact.value === 'Ikeja' && fact.provenance === 'user_declared')) throw new Error('Explicit location fact was not persisted with user_declared provenance');
 
-const context = await buildWorkingContext(phone, 'Where do I live?', { route: 'smollm2' });
+const context = await buildWorkingContext(phone, 'Where do I live?', { generationClass: 'smollm2' });
 
 // A deployment key rotation must fail closed per field instead of crashing Chat.
 process.env.MEMORY_ENCRYPTION_KEY = 'rotated-memory-provenance-test-key';
