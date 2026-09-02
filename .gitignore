@@ -60,3 +60,7 @@ secrets/
 /artifacts/learning-cycle/
 /data/scenario-lab/teacher-evaluation*.json*
 /ml/teachers/__pycache__/
+
+# Local model binaries / runtime checkpoints — never commit (machine-specific, huge)
+/llamafile-bin/
+/models/gguf/
