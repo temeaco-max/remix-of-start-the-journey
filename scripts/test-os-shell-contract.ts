@@ -17,7 +17,7 @@ const appRoutes = readFileSync(resolve(process.cwd(), 'src/routes/appSurfaceRout
 const surfaceRegistry = readFileSync(resolve(process.cwd(), 'src/services/clientSurfaceRegistry.ts'), 'utf8');
 
 for (const required of [
-  'Search Kurukoo','Notifications','Account','/points','/cart','/chat','/requests','/tasks','/discover','/connect','/topics','/saved','/reminders','/memory','/safety','/settings'
+  'Search Kurukoo','Notifications','Account','/points','/cart','/chat','/activity','/tasks','/explore','/connect','/topics','/saved','/reminders','/memory','/safety','/settings'
 ]) assert.ok(shellRuntime.includes(required), `Desk shell missing ${required}`);
 assert.ok(shellRuntime.includes("'k-desk-search-trigger'"));
 assert.ok(shellRuntime.includes("'k-desk-header-cart'"));

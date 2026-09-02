@@ -67,15 +67,15 @@
 
   const renderProfile = (body) => {
     body.innerHTML=`<div class="k-desk-profile-card"><div class="k-desk-avatar">${accountName.slice(0,1).toUpperCase()}</div><div><strong>${accountName}</strong><span>${accountPhone}</span></div></div>`;
-    [['Settings','/settings'],['Memory','/memory'],['Notifications','/notifications'],['Open Agent','/chat']].forEach(([label,href])=>{const a=document.createElement('a');a.className='k-desk-drawer-link';a.href=href;a.textContent=label;body.appendChild(a);});
+    [['Settings','/settings'],['Memory','/memory'],['Notifications','/notifications'],['Open Chat','/chat']].forEach(([label,href])=>{const a=document.createElement('a');a.className='k-desk-drawer-link';a.href=href;a.textContent=label;body.appendChild(a);});
     const logout=document.createElement('a');logout.className='k-desk-drawer-link is-danger';logout.href='/api/auth/logout';logout.textContent='Sign out';body.appendChild(logout);
   };
 
   const renderOsWorkspace = (body) => {
-    body.innerHTML = '<p class="k-muted">Your Chat workspace follows you into Desk. Nothing important from Agent is hidden here.</p>';
+    body.innerHTML = '<p class="k-muted">Your Chat workspace follows you here. Nothing important is hidden - continue any active work from Chat.</p>';
     const groups = [
-      ['Conversation', [['New conversation','/chat'],['Recent conversations','/chat']]],
-      ['Work', [['Requests','/requests'],['Tasks','/tasks'],['Discover','/discover'],['Connect','/connect'],['Topics','/topics']]],
+      ['Conversation', [['Start with Chat','/chat'],['Recent conversations','/chat']]],
+      ['Work', [['Activity','/activity'],['Work','/tasks'],['Explore','/explore'],['Connect','/connect'],['Topics','/topics']]],
       ['Account & continuity', [['Saved & offers','/saved'],['Reminders','/reminders'],['Memory','/memory'],['Safety & check-ins','/safety'],['Settings','/settings']]],
       ['Economy', [['Top up','/top-up'],['Subscription','/subscriptions'],['Points','/points'],['Cart','/cart']]],
     ];
@@ -89,7 +89,7 @@
   };
 
   const renderContext = (body) => {
-    body.innerHTML = '<div class="k-desk-context-stack"><section><span class="k-desk-drawer-kicker">Agent context</span><h3>Current objective</h3><p>Continue the current Kurukoo relationship from this screen without losing the originating conversation.</p><a class="k-desk-drawer-primary" href="/chat">Open Agent →</a></section><section><span class="k-desk-drawer-kicker">OS status</span><div class="k-desk-status-list"><div><span>Presence</span><strong>Owner-scoped</strong></div><div><span>Memory</span><strong>Connected to profile</strong></div><div><span>Channels</span><strong>Readiness-aware</strong></div><div><span>Nearby Radar</span><strong>Open in Discover</strong></div></div></section></div>';
+    body.innerHTML = '<div class="k-desk-context-stack"><section><span class="k-desk-drawer-kicker">Chat context</span><h3>Current objective</h3><p>Continue the current Kurukoo relationship from this screen without losing the originating conversation.</p><a class="k-desk-drawer-primary" href="/chat">Open Chat →</a></section><section><span class="k-desk-drawer-kicker">OS status</span><div class="k-desk-status-list"><div><span>Presence</span><strong>Owner-scoped</strong></div><div><span>Memory</span><strong>Connected to profile</strong></div><div><span>Channels</span><strong>Readiness-aware</strong></div><div><span>Nearby Radar</span><strong>Open in Explore</strong></div></div></section></div>';
   };
 
   const makeDeskModule = (id, label, title, body, actions = []) => {
@@ -138,23 +138,23 @@
 
     const today = makeDeskModule('today-flow',"Today's flow",'What matters next','Imminent work stays visible without turning Desk into a second task or reminder authority.');
     const todayList=document.createElement('div'); todayList.className='k-desk-flow-list';
-    [['Review active requests','/requests'],['Check tasks and reminders','/tasks'],['Continue your latest conversation','/chat']].forEach(([label,href])=>{const row=document.createElement('a');row.className='k-desk-flow-item';row.href=href;row.innerHTML=`<span>${label}</span><strong>Open →</strong>`;todayList.appendChild(row);});
+    [['Review active activity','/activity'],['Check tasks and reminders','/tasks'],['Continue your latest conversation','/chat']].forEach(([label,href])=>{const row=document.createElement('a');row.className='k-desk-flow-item';row.href=href;row.innerHTML=`<span>${label}</span><strong>Open →</strong>`;todayList.appendChild(row);});
     today.appendChild(todayList);
 
     const continueCard = makeDeskModule('continue-conversation','Continue conversation','Pick up where you left off','Continue with the same Agent relationship and exact source context.',[{label:'Open Chat',href:'/chat',tone:'primary'}]);
     const agentObjectivesCard = makeDeskModule('agent-objectives','Agent objectives','What Kurukoo is doing','See active objectives, what needs your attention and the next confirmed step.',[{label:'Open Agents',href:'/agents',tone:'primary'}]);
     agentObjectivesCard.appendChild(makeDeskState('empty','No active Agent objectives','When an objective is active, waiting, blocked or needs your input, its truthful progress appears here.',{label:'Ask Agent',href:'/chat'}));
-    const requestCard = makeDeskModule('active-requests','Active requests','Work in motion','Follow requests here, then continue with the details in Requests when you are ready.',[{label:'View Requests',href:'/requests',tone:'primary'}]);
-    requestCard.appendChild(makeDeskState('empty','No active requests are surfaced here yet','Desk does not invent provider, payment or fulfilment status.',{label:'Open Requests',href:'/requests'}));
+    const requestCard = makeDeskModule('active-requests','Active requests','Work in motion','Follow requests here, then continue with the details in Activity when you are ready.',[{label:'View Activity',href:'/activity',tone:'primary'}]);
+    requestCard.appendChild(makeDeskState('empty','No active requests are surfaced here yet','Activity does not invent provider, payment or fulfilment status.',{label:'Open Activity',href:'/activity'}));
     const taskCard = makeDeskModule('tasks-reminders','Tasks & reminders','Work to finish','Keep task and reminder follow-through visible, with details available in Tasks.',[{label:'View Tasks',href:'/tasks',tone:'primary'}]);
     taskCard.appendChild(makeDeskState('empty','No task state is surfaced here yet','Desk preserves the task authority and continues to the source surface.',{label:'Open Tasks',href:'/tasks'}));
-    const opportunityCard = makeDeskModule('opportunity-radar','Opportunity radar','Useful possibilities, clearly attributed','Explore relevant opportunities in Discover, with their source and availability made clear.',[{label:'Explore Discover',href:'/discover',tone:'primary'}]);
+    const opportunityCard = makeDeskModule('opportunity-radar','Opportunity radar','Useful possibilities, clearly attributed','Explore relevant opportunities in Explore, with their source and availability made clear.',[{label:'Explore',href:'/explore',tone:'primary'}]);
     opportunityCard.appendChild(makeDeskState('unavailable','Live opportunity availability is deployment-dependent','No current provider or availability claim is inferred locally.'));
     const pointsCard = makeDeskModule('points','Points','Your closed-loop Points','Points remain distinct from cash settlement and external payment rails.',[{label:'Open Points',href:'/points',tone:'primary'}]);
     const pointsValue=document.createElement('div'); pointsValue.className='k-desk-points-value'; pointsValue.dataset.deskPointsValue='true'; pointsValue.textContent='Loading balance…'; pointsCard.appendChild(pointsValue);
     const topicsCard = makeDeskModule('topics-for-you','Topics for you','Community context worth exploring','Topics provide shared context and discovery signals without implying provider or transaction truth.',[{label:'Browse Topics',href:'/topics',tone:'primary'}]);
     const guideCard = makeDeskModule('guide-content','Guide content','Useful guidance, when available','Learning and resource content stays separate from live service guarantees.',[{label:'Open Help',href:'/help',tone:'primary'}]);
-    const sponsorCard = makeDeskModule('sponsored-provider','Sponsored provider','Promoted visibility stays disclosed','Paid placement is shown only when sponsorship and provider evidence support it.',[{label:'Explore Discover',href:'/discover',tone:'secondary'}]);
+    const sponsorCard = makeDeskModule('sponsored-provider','Sponsored provider','Promoted visibility stays disclosed','Paid placement is shown only when sponsorship and provider evidence support it.',[{label:'Explore',href:'/explore',tone:'secondary'}]);
     sponsorCard.appendChild(makeDeskState('unavailable','No sponsored placement is active in this deployment','No provider promotion is invented merely to fill the visual slot.'));
     const channelsCard = makeDeskModule('connected-channels','Connected channels','Your communication readiness','Channel connection and delivery state remain owned by Connect and external activation boundaries.',[{label:'Manage Connect',href:'/connect',tone:'primary'}]);
     channelsCard.appendChild(makeDeskState('ready','Channel readiness lives in Connect','Desk keeps this module lightweight and contextual.',{label:'Open Connect',href:'/connect'}));
@@ -165,8 +165,8 @@
     pulse.appendChild(makeDeskState('empty','No live pulse is surfaced in this static state','Current notifications and activity are available from their usual places.'));
     const safety=makeDeskModule('safety-check-in','Safety check-in','Stay in control of safety context','Safety support is explicit, consent-bound and never represented as emergency-service delivery.',[{label:'Open Safety',href:'/safety'}]);
     safety.appendChild(makeDeskState('ready','Safety controls are available','Use Safety for check-ins and trusted-contact management.',{label:'Open Safety',href:'/safety'}));
-    const activity=makeDeskModule('activity-summary','Activity summary','A compact view of your recent activity','Desk provides orientation; detailed analytics remain owned by the relevant surfaces.',[{label:'Open Tasks',href:'/tasks',tone:'secondary'},{label:'Open Requests',href:'/requests',tone:'secondary'}]);
-    const activityMetrics = document.createElement('div'); activityMetrics.className = 'k-desk-activity-metrics'; [['Tasks', '—'], ['Requests', '—'], ['Agent goals', '—']].forEach(([label, value]) => { const item = document.createElement('div'); item.innerHTML = `<span>${label}</span><strong>${value}</strong>`; activityMetrics.appendChild(item); }); activity.appendChild(activityMetrics);
+    const activity=makeDeskModule('activity-summary','Activity summary','A compact view of your recent activity','Activity provides orientation; detailed analytics remain owned by the relevant surfaces.',[{label:'Open Work',href:'/tasks',tone:'secondary'},{label:'Open Activity',href:'/activity',tone:'secondary'}]);
+    const activityMetrics = document.createElement('div'); activityMetrics.className = 'k-desk-activity-metrics'; [['Work', '—'], ['Activity', '—'], ['Agent goals', '—']].forEach(([label, value]) => { const item = document.createElement('div'); item.innerHTML = `<span>${label}</span><strong>${value}</strong>`; activityMetrics.appendChild(item); }); activity.appendChild(activityMetrics);
     [pulse,safety,activity].forEach((card)=>rail.appendChild(card));
 
     root.append(main,rail);
