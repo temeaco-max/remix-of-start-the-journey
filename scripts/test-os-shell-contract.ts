@@ -45,10 +45,10 @@ assert.ok(providerCss.includes('min-height:44px'));
 assert.ok(providerCss.includes('button[disabled]'));
 assert.ok(presenceRuntime.includes("'listening'"));
 
-for (const [label, href] of [['Desk','/desk'],['Agent','/chat'],['Requests','/requests'],['Tasks','/tasks'],['Discover','/discover']]) {
+for (const [label, href] of [['Home','/home'],['Explore','/explore'],['Chat','/chat'],['Activity','/activity'],['Work','/tasks']]) {
   assert.ok(appShellRuntime.includes(`{label:'${label}',href:'${href}'`), `mobile/app navigation must use canonical ${label} route ${href}`);
 }
-assert.ok(appShellRuntime.includes('const createSecondaryNav=()=>{}'));
+assert.ok(appShellRuntime.includes('const createSecondaryNav=()=>{'), 'mobile/app shell must define the secondary navigation builder');
 assert.ok(appShellRuntime.includes("if(path==='/chat')"), 'Agent route refinement must use the canonical Chat route');
 assert.doesNotMatch(appShellRuntime, /\/app\//, 'App shell must not retain legacy route aliases');
 assert.ok(appShellRuntime.includes("if(path==='/call')"));
@@ -56,7 +56,8 @@ assert.ok(appShellRuntime.includes("path==='/top-up'||path==='/points'"));
 
 assert.match(surfaceRegistry, /label: 'Agent'.*route: '\/chat'/s, 'surface registry Agent must be /chat');
 assert.match(surfaceRegistry, /label: 'Agents'.*route: '\/agents'/s, 'Agents directory must remain distinct from Agent');
-assert.match(appRoutes, /'\/desk': 'desk'/, 'app routes must declare Desk directly');
+assert.match(appRoutes, /'\/home': 'desk'/, 'app routes must declare the canonical Home route for the home surface');
+assert.match(appRoutes, /'\/desk': 'desk'/, 'legacy Desk alias remains available for route continuity');
 assert.doesNotMatch(appRoutes, /'\/app/, 'app routes must not retain legacy aliases');
 assert.match(appRoutes, /for \(const resource of \['requests','tasks','reminders','opportunities','agents','connections','memory','artifacts'\]/, 'canonical object/detail route families remain declared');
 
