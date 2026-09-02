@@ -132,14 +132,14 @@ export async function querySmolLM2(prompt: string, systemPrompt?: string): Promi
         const first = Array.isArray(output) ? output[0] : output;
         const text = typeof first === 'object' && first && 'generated_text' in first ? String(first.generated_text || '').trim() : '';
         if (text) {
-          const cleaned = sanitizeGeneratedText(text.replace(/<|im_end|>[\s\S]*$/g, ''));
+          const cleaned = sanitizeGeneratedText(text.replace(/<\|im_end\|>[\s\S]*$/g, ''));
           if (cleaned && !containsInternalGeneration(cleaned)) { lastInferenceSource = 'local'; if (lastInferenceFailure !== 'local_model_fallback') lastInferenceFailure = null; recordInference('local_pipeline', activeModelName || getModelName(), startedAt); return cleaned; }
         }
         const retryInput = buildPrompt(prompt, 'You are Kurukoo. Answer the user directly in one or two natural sentences. For ambiguity, ask one concise clarifying question. For failure, explain that completion is unconfirmed and offer retry, resume, or cancellation. Do not use headings, delimiters, role labels, context narration, or internal architecture language.');
         const retryOutput = await generator(retryInput, { ...getGenerationConfig(), max_new_tokens: getRetryMaxNewTokens() });
         const retryFirst = Array.isArray(retryOutput) ? retryOutput[0] : retryOutput;
         const retryText = typeof retryFirst === 'object' && retryFirst && 'generated_text' in retryFirst ? String(retryFirst.generated_text || '').trim() : '';
-        const retryCleaned = sanitizeGeneratedText(retryText.replace(/<|im_end|>[\s\S]*$/g, ''));
+        const retryCleaned = sanitizeGeneratedText(retryText.replace(/<\|im_end\|>[\s\S]*$/g, ''));
         if (retryCleaned && !containsInternalGeneration(retryCleaned)) { lastInferenceSource = 'local'; if (lastInferenceFailure !== 'local_model_fallback') lastInferenceFailure = null; recordInference('local_pipeline', activeModelName || getModelName(), startedAt); return retryCleaned; }
       } finally { releaseLocal(); }
     } catch (err: any) { lastInferenceFailure = 'local_inference_failed'; console.warn('[SmolLM2] Local inference failed:', err?.message || err); releaseLocal(); }
