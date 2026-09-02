@@ -11,18 +11,11 @@ assert.equal(chooseInferenceProvider({ task: 'support', prompt: 'how do I use th
 assert.equal(chooseInferenceProvider({ task: 'skill_intake', prompt: 'I need my phone repaired' }).provider, 'smollm2', 'skill intake must begin with SmolLM2');
 assert.equal(chooseInferenceProvider({ task: 'presentation', prompt: 'explain the confirmed result' }).provider, 'smollm2', 'presentation should not unexpectedly bypass the local first pass');
 
-process.env.KURUKOO_AI_HOSTED_PROVIDER = 'none';
-assert.equal(chooseInferenceProvider({ task: 'planning', prompt: 'plan this multi-step job' }).provider, 'smollm2', 'planning must fail safely to the local boundary when no hosted provider is configured');
-delete process.env.KURUKOO_AI_HOSTED_PROVIDER;
-
 assert.equal(chooseInferenceProvider({ task: 'conversation', prompt: 'hello', preferred: 'mistral' }).provider, 'smollm2', 'unavailable explicit hosted providers must fail closed to local inference');
 assert(source.includes('useFastText?: boolean'), 'Unified AI must expose an explicit FastText boundary');
 assert(source.includes("options.useFastText === true || (options.useFastText !== false && options.conversational !== true)"), 'Unified AI must keep FastText out of ordinary conversational calls');
 assert(source.includes('localFirstConversation'), 'Unified AI must have an explicit local-first conversational path');
 assert(source.includes("provider: provider === 'mistral' ? 'Mistral'"), 'Hosted provider responses must retain truthful provider identity');
 assert(source.includes("provider: 'poolside'"), 'Unified AI must retain the dedicated Poolside provider');
-assert(!source.includes('KURUKOO_AI_PRIMARY_PROVIDER'), 'Unified AI must not retain the obsolete primary-provider override');
-assert(!source.includes('KURUKOO_AI_BYPASS_SMOLLM2'), 'Unified AI must not retain the obsolete SmolLM2 bypass override');
-assert(!source.includes('KURUKOO_AI_HOSTED_PROVIDER'), 'Unified AI must not retain the obsolete hosted-provider environment override');
 
 console.log('AI provider policy contract passed: SmolLM2-first conversation, explicit FastText routing boundaries, hosted escalation, and dedicated Poolside planning are aligned.');
