@@ -21,5 +21,8 @@ assert(source.includes("options.useFastText === true || (options.useFastText !==
 assert(source.includes('localFirstConversation'), 'Unified AI must have an explicit local-first conversational path');
 assert(source.includes("provider: provider === 'mistral' ? 'Mistral'"), 'Hosted provider responses must retain truthful provider identity');
 assert(source.includes("provider: 'poolside'"), 'Unified AI must retain the dedicated Poolside provider');
+assert(!source.includes('KURUKOO_AI_PRIMARY_PROVIDER'), 'Unified AI must not retain the obsolete primary-provider override');
+assert(!source.includes('KURUKOO_AI_BYPASS_SMOLLM2'), 'Unified AI must not retain the obsolete SmolLM2 bypass override');
+assert(!source.includes('KURUKOO_AI_HOSTED_PROVIDER'), 'Unified AI must not retain the obsolete hosted-provider environment override');
 
 console.log('AI provider policy contract passed: SmolLM2-first conversation, explicit FastText routing boundaries, hosted escalation, and dedicated Poolside planning are aligned.');
