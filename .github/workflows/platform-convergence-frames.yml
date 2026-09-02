@@ -2,10 +2,6 @@ name: Kurukoo platform convergence frames
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/platform-convergence-frames
-      - main
 
 jobs:
   convergence:
