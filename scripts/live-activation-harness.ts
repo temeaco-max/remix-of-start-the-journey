@@ -32,9 +32,8 @@ async function run(): Promise<void> {
     console.log(JSON.stringify({
       mistral: {
         configured: Boolean(process.env.MISTRAL_API_KEY),
-        bypassEnabled: process.env.KURUKOO_AI_BYPASS_SMOLLM2 === 'true',
-        primaryProvider: process.env.KURUKOO_AI_PRIMARY_PROVIDER || process.env.KURUKOO_AI_HOSTED_PROVIDER || 'auto',
         selectedProvider: resolveConversationProvider(undefined),
+        model: process.env.MISTRAL_MODEL || 'mistral-small-latest',
       },
       googleDrive: drive,
       telegram: getTelegramLinkedDeviceStatus(),
@@ -44,9 +43,7 @@ async function run(): Promise<void> {
   }
 
   if (command === 'mistral') {
-    process.env.KURUKOO_AI_BYPASS_SMOLLM2 = 'true';
-    process.env.KURUKOO_AI_PRIMARY_PROVIDER = 'mistral';
-    const response = await queryUnifiedAI('Reply with one short sentence confirming the Mistral activation path is responding.', { provider: 'auto', conversational: true });
+    const response = await queryUnifiedAI('Reply with one short sentence confirming the Mistral activation path is responding.', { provider: 'mistral', conversational: true });
     if (response.provider !== 'Mistral') throw new Error(`Mistral smoke test did not use Mistral; actual provider: ${response.provider}`);
     console.log(JSON.stringify({ ok: true, provider: response.provider, model: response.model, text: response.text }, null, 2));
     return;
