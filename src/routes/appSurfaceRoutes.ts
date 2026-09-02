@@ -13,10 +13,10 @@ import economicDispatchRoutes from './economicDispatchRoutes.js';
 const router = express.Router();
 
 const surfaceMap = new Map([
-  ['desk', { title: 'Desk', eyebrow: 'Your Kurukoo workspace', description: 'See what is happening, what needs your attention and where to continue across conversations, requests, tasks, reminders, memory and connected work.', cta: '/chat', ctaLabel: 'Ask Agent' }],
-  ['discover', { title: 'Discover', eyebrow: 'Your opportunity and activity surface', description: 'See what is useful, interesting, available, discussable or actionable today: nearby activity, Daily Picks, Topics, Opportunities and things Kurukoo can do.', cta: '/discover', ctaLabel: 'Open Discover' }],
+  ['desk', { title: 'Home', eyebrow: 'What matters now', description: 'See what needs your attention, pick up where you left off, and start something new with Kurukoo.', cta: '/chat', ctaLabel: 'Talk to Kurukoo' }],
+  ['discover', { title: 'Explore', eyebrow: 'Find something useful', description: 'Find people, places, services, products, Topics and opportunities, then bring what matters into a conversation.', cta: '/chat', ctaLabel: 'Ask Kurukoo' }],
   ['topics', { title: 'Topics', eyebrow: 'Community context', description: 'Browse and share moderated community questions, reports and experiences without turning community content into a provider, offer or payment claim.', cta: '/topics', ctaLabel: 'Open Topics' }],
-  ['requests', { title: 'Requests', eyebrow: 'Work in motion', description: 'Follow requests, orders, sourcing and confirmations, then return to the conversation that started the work.', cta: '/requests', ctaLabel: 'Open Requests' }],
+  ['requests', { title: 'Activity', eyebrow: 'Work in motion', description: 'See what is happening, what needs you, and what has finished. Open any item to continue the work in context.', cta: '/chat?prompt=Show%20me%20what%20needs%20my%20attention', ctaLabel: 'Ask what is next' }],
   ['reminders', { title: 'Reminders', eyebrow: 'Keep life on track', description: 'Create and review scheduled help without leaving the same memory, conversation and notification relationship.', cta: '/chat?prompt=Show%20me%20my%20reminders', ctaLabel: 'Manage in Chat' }],
   ['saved', { title: 'Saved', eyebrow: 'Keep useful context close', description: 'Saved items, offers, follows and watches remain tied to your owner-scoped memory and canonical conversation.', cta: '/chat?prompt=Show%20me%20my%20saved%20items', ctaLabel: 'Open Saved' }],
   ['cart', { title: 'Cart', eyebrow: 'Prepare an economic action', description: 'Review sourced items before requesting them; cart contents remain separate from payment success and final confirmation.', cta: '/cart', ctaLabel: 'Open Cart' }],
@@ -40,12 +40,11 @@ const surfaceMap = new Map([
   ['settings', { title: 'Settings', eyebrow: 'Your Kurukoo preferences', description: 'Manage account, security, privacy, memory, notifications, connections, accessibility and product preferences in one place.', cta: '/settings', ctaLabel: 'Open Settings' }],
 ]);
 
-
 const cleanCanonicalSections: Record<string, string> = {
-  '/desk': 'desk', '/discover': 'discover', '/topics': 'topics', '/requests': 'requests', '/reminders': 'reminders', '/saved': 'saved', '/cart': 'cart', '/tasks': 'tasks', '/connect': 'connect', '/agents': 'agents', '/capabilities': 'capabilities', '/opportunities': 'opportunities', '/wallet': 'wallet', '/points': 'points', '/top-up': 'top-up', '/subscriptions': 'subscriptions', '/checkout': 'checkout', '/confirmations': 'confirmations', '/memory': 'memory', '/artifacts': 'artifacts', '/prayer': 'prayer', '/call': 'call', '/notifications': 'notifications', '/safety': 'safety', '/settings': 'settings',
+  '/home': 'desk', '/desk': 'desk', '/explore': 'discover', '/discover': 'discover', '/topics': 'topics', '/activity': 'requests', '/requests': 'requests', '/reminders': 'reminders', '/saved': 'saved', '/cart': 'cart', '/tasks': 'tasks', '/connect': 'connect', '/agents': 'agents', '/capabilities': 'capabilities', '/opportunities': 'opportunities', '/wallet': 'wallet', '/points': 'points', '/top-up': 'top-up', '/subscriptions': 'subscriptions', '/checkout': 'checkout', '/confirmations': 'confirmations', '/memory': 'memory', '/artifacts': 'artifacts', '/prayer': 'prayer', '/call': 'call', '/notifications': 'notifications', '/safety': 'safety', '/settings': 'settings',
 };
 
-const sharedPublicAuthenticated = new Set(['/discover', '/topics']);
+const sharedPublicAuthenticated = new Set(['/explore', '/discover', '/topics']);
 
 function screenAssets(section: string): string {
   if (section === 'discover') return '<link rel="stylesheet" href="/css/kurukoo-discover-convergence.css?v=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="/js/kurukoo-discover-convergence.js?v=1" defer></script><script src="/js/kurukoo-discover-map-loader.js?v=1" defer></script>';
@@ -115,6 +114,5 @@ for (const resource of ['requests','tasks','reminders','opportunities','agents',
     return res.render('app', { selected: { ...selected, description: `${selected.description} This view shows the selected item in context.` }, section, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces: getClientSurfaces('web'), readiness: getPilotReadiness(), integrations: getExternalIntegrationReadiness(), enabledIntegrations: 0, integrationCount: 0, visualFeatures: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')), resourceId: req.params.id, contentContract: getPageContentContract(section) });
   });
 }
-
 
 export default router;
