@@ -4,15 +4,20 @@ import fs from 'node:fs';
 
 const source = fs.readFileSync(new URL('../src/services/conversationalGenerationService.ts', import.meta.url), 'utf8');
 const unified = fs.readFileSync(new URL('../src/services/unifiedAiEngine.ts', import.meta.url), 'utf8');
+const policy = fs.readFileSync(new URL('../src/services/aiInferencePolicy.ts', import.meta.url), 'utf8');
 
-assert.match(source, /const conversationProvider = input\.provider && input\.provider !== 'auto' \? input\.provider : strongerProvider\(input\.provider\);/);
-assert.match(source, /provider: conversationProvider,/);
+assert.match(source, /const conversationProvider = input\.provider && input\.provider !== 'auto' \? input\.provider : decision\.provider;/);
 assert.match(source, /function strongerProvider\(preferred: AIProvider \| undefined\)/);
-assert.match(source, /return resolveConfiguredHostedProvider\(\) \|\| 'smollm2';/);
-assert.match(unified, /export function resolveConfiguredHostedProvider\(\)/);
-assert.match(unified, /requested === 'none' \|\| requested === 'smollm2' \|\| requested === 'local_intent'/);
-assert.match(unified, /mistral: hasConfiguredSecret\(process\.env\.MISTRAL_API_KEY\) && getFeatureFlag\(country, 'hosted_mistral'\)/);
-assert.match(unified, /gemini: \(hasConfiguredSecret\(process\.env\.GEMINI_API_KEY\) \|\| hasConfiguredSecret\(process\.env\.API_KEY\)\) && getFeatureFlag\(country, 'hosted_gemini'\)/);
-assert.match(unified, /groq: hasConfiguredSecret\(process\.env\.GROQ_API_KEY\) && getFeatureFlag\(country, 'hosted_groq'\)/);
+assert.match(source, /resolveHostedProviderCandidates\('auto'\)/);
+assert.match(unified, /export function resolveHostedProviderCandidates\(preferred: AIProvider \| undefined = 'auto'\)/);
+assert.match(unified, /options\.useFastText === true \|\| \(options\.useFastText !== false && options\.conversational !== true\)/);
+assert.match(unified, /const localFirstConversation = options\.conversational === true && preferred === 'auto';/);
+assert.match(unified, /provider: provider === 'mistral' \? 'Mistral'/);
+assert.match(unified, /provider: provider === 'gemini' \? 'Gemini'/);
+assert.match(unified, /provider: provider === 'groq' \? 'Groq'/);
+assert.match(unified, /provider: provider === 'openrouter' \? 'OpenRouter'/);
+assert.match(unified, /'Poolside'/);
+assert.match(policy, /return localFirst\('default conversational policy: SmolLM2 first; hosted providers are escalation only'/);
+assert.match(policy, /input\.task === 'planning' \|\| input\.task === 'agent_execution'/);
 
-console.log('Conversational provider-selection contract passed: usable hosted conversation models are resolved through one fail-closed policy, with SmolLM2 as the local fallback.');
+console.log('Conversational provider-selection contract passed: SmolLM2 is the ordinary-chat first pass, FastText is explicit/semantic routing only, hosted providers are escalation, and Poolside is reserved for complex planning.');
