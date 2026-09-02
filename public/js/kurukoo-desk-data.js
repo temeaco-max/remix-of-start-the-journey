@@ -361,8 +361,8 @@
         hierarchy.forEach((row) => todayList.appendChild(flowRow(row.label, row.href, row.detail, row.status)));
       } else {
         todayList.appendChild(flowRow('Ask Kurukoo', '/chat', 'Nothing needs attention right now'));
-        todayList.appendChild(flowRow('Open Requests', '/requests', 'No active economic requests'));
-        todayList.appendChild(flowRow('Open Tasks', '/tasks', 'No task work waiting'));
+        todayList.appendChild(flowRow('Open Activity', '/activity', 'No active requests'));
+        todayList.appendChild(flowRow('Open Work', '/tasks', 'No task work waiting'));
       }
     }
 

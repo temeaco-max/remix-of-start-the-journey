@@ -4,7 +4,8 @@
   if (window.KurukooViewState) return;
 
   const ROUTES = Object.freeze({
-    agent: '/chat', desk: '/desk', discover: '/discover', requests: '/requests', tasks: '/tasks', connect: '/connect',
+    agent: '/chat', home: '/home', explore: '/explore', activity: '/activity', tasks: '/tasks', connect: '/connect',
+    desk: '/desk', discover: '/discover', requests: '/requests',
     agents: '/agents', capabilities: '/capabilities', opportunities: '/opportunities', topics: '/topics',
     wallet: '/wallet', points: '/points', 'top-up': '/top-up', subscriptions: '/subscriptions', checkout: '/checkout',
     confirmations: '/confirmations', artifacts: '/artifacts', prayer: '/prayer', call: '/call', safety: '/safety',

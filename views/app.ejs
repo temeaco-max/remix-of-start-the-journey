@@ -116,9 +116,14 @@
         <% } else if (section === 'safety') { %>
           <section class="k-app-card"><span class="k-app-card-label">Safety</span><h2>Explicit, consent-bound safety support.</h2><p>Manage check-ins, trusted contacts and safety continuity without implying emergency-service delivery.</p><a href="/safety" class="k-app-primary">Open Safety →</a></section>
         <% } else if (section === 'discover') { %>
-          <section class="k-app-grid two k-discover-route-links"><article class="k-app-card"><span class="k-app-card-label">Nearby</span><h2>Local presence with consent and truth.</h2><p>Presence and availability are surfaced from current network information rather than guessed from stale UI state.</p><a href="/explore" class="k-app-card-action">Open Explore →</a></article><article class="k-app-card"><span class="k-app-card-label">Opportunities</span><h2>Find useful things.</h2><p>Explore products, providers, Topics and opportunities without leaving the same Kurukoo relationship.</p><a href="/explore" class="k-app-card-action">Explore opportunities →</a></article></section>
+          <section class="k-app-grid two k-discover-route-links">
+            <article class="k-app-card"><span class="k-app-card-label">Find a provider</span><h2>Get help with everyday needs.</h2><p>Describe what you need and Kurukoo sources, compares and coordinates verified people and services.</p><a href="/chat?prompt=I%20need%20help%20finding%20a%20provider" class="k-app-primary">Start a request</a></article>
+            <article class="k-app-card"><span class="k-app-card-label">Explore nearby</span><h2>Local presence with consent and truth.</h2><p>See people, places, products and opportunities near you, surfaced from current network information.</p><a href="/explore" class="k-app-card-action">Open Explore →</a></article>
+            <article class="k-app-card"><span class="k-app-card-label">Ride and delivery</span><h2>Move something from A to B.</h2><p>Coordinate a ride, a delivery or freight without leaving the same Kurukoo relationship.</p><a href="/chat?prompt=I%20need%20a%20ride" class="k-app-card-action">Ask Kurukoo →</a></article>
+            <article class="k-app-card"><span class="k-app-card-label">Browse opportunities</span><h2>Ways to participate and earn.</h2><p>Products, provider openings and network activity you can act on today.</p><a href="/opportunities" class="k-app-card-action">See opportunities →</a></article>
+          </section>
         <% } else { %>
-          <section class="k-app-card"><span class="k-app-card-label"><%= selected.eyebrow %></span><h2><%= selected.title %> remains connected to Kurukoo.</h2><p><%= selected.description %></p><a href="<%= selected.cta %>" class="k-app-primary"><%= selected.ctaLabel %></a></section>
+          <section class="k-app-card"><span class="k-app-card-label"><%= selected.eyebrow %></span><h2><%= selected.title %></h2><p><%= selected.description %></p><a href="/chat" class="k-app-primary">Ask Kurukoo →</a></section>
         <% } %>
         <section class="k-app-status-row" aria-label="Workspace guidance">
           <span class="k-status" data-state="ready">Kurukoo is ready</span>
