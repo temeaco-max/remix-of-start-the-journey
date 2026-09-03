@@ -15,6 +15,7 @@ const presenceRuntime = readFileSync(resolve(process.cwd(), 'public/js/kurukoo-a
 const icons = readFileSync(resolve(process.cwd(), 'public/icons/kurukoo-icons.svg'), 'utf8');
 const appRoutes = readFileSync(resolve(process.cwd(), 'src/routes/appSurfaceRoutes.ts'), 'utf8');
 const appTemplate = readFileSync(resolve(process.cwd(), 'views/app.ejs'), 'utf8');
+const mobileNav = readFileSync(resolve(process.cwd(), 'views/_partials/app-mobile-nav.ejs'), 'utf8');
 const appIaCss = readFileSync(resolve(process.cwd(), 'public/css/kurukoo-app-ia.css'), 'utf8');
 const surfaceRegistry = readFileSync(resolve(process.cwd(), 'src/services/clientSurfaceRegistry.ts'), 'utf8');
 
@@ -30,6 +31,7 @@ assert.match(appTemplate, /class="k-home-intent"/, 'Home must provide an assista
 assert.match(appTemplate, /Tell Kurukoo what you need\./, 'Home must clearly communicate the conversational starting point');
 assert.match(appTemplate, /form class="k-home-intent-form" action="\/chat" method="get"/, 'Home composer must hand off to the canonical Chat route');
 assert.match(appTemplate, /name="prompt"/, 'Home composer must pass the user request as a Chat prompt');
+assert.match(mobileNav, /href="\/work"[\s\S]*aria-label="Work"/, 'Rendered mobile navigation must expose canonical Work');
 assert.ok(appIaCss.includes('.k-home-intent-form'), 'Home composer must have dedicated responsive styling');
 assert.ok(componentCss.includes('.kos-conversation-card'));
 assert.ok(componentCss.includes('.kos-activity-card'));
