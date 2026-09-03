@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as AdvertisingRouteImport } from './routes/advertising'
+import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as CallsRouteImport } from './routes/calls'
+import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as DailyPicksRouteImport } from './routes/daily-picks'
 import { Route as ExploreRouteImport } from './routes/explore'
@@ -19,7 +22,9 @@ import { Route as FollowingRouteImport } from './routes/following'
 import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as TopicsRouteImport } from './routes/topics'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as WorkRouteImport } from './routes/work'
 import { Route as MessagesThreadIdRouteImport } from './routes/messages.$threadId'
 import { Route as ProfileEntityIdRouteImport } from './routes/profile.$entityId'
@@ -36,9 +41,24 @@ const ActivityRoute = ActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdvertisingRoute = AdvertisingRouteImport.update({
+  id: '/advertising',
+  path: '/advertising',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtifactsRoute = ArtifactsRouteImport.update({
+  id: '/artifacts',
+  path: '/artifacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CallsRoute = CallsRouteImport.update({
   id: '/calls',
   path: '/calls',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectRoute = ConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactsRoute = ContactsRouteImport.update({
@@ -76,9 +96,19 @@ const NotificationsRoute = NotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SubscriptionsRoute = SubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TopicsRoute = TopicsRouteImport.update({
   id: '/topics',
   path: '/topics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkRoute = WorkRouteImport.update({
@@ -110,7 +140,10 @@ const WorkRoute = WorkRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/advertising': typeof AdvertisingRoute
+  '/artifacts': typeof ArtifactsRoute
   '/calls': typeof CallsRoute
+  '/connect': typeof ConnectRoute
   '/contacts': typeof ContactsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
@@ -118,7 +151,9 @@ export interface FileRoutesByFullPath {
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
+  '/wallet': typeof WalletRoute
   '/work': typeof WorkRouteWithChildren
   '/work/': typeof WorkRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
@@ -128,7 +163,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/advertising': typeof AdvertisingRoute
+  '/artifacts': typeof ArtifactsRoute
   '/calls': typeof CallsRoute
+  '/connect': typeof ConnectRoute
   '/contacts': typeof ContactsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
@@ -136,7 +174,9 @@ export interface FileRoutesByTo {
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
+  '/wallet': typeof WalletRoute
   '/work': typeof WorkRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
@@ -146,7 +186,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/advertising': typeof AdvertisingRoute
+  '/artifacts': typeof ArtifactsRoute
   '/calls': typeof CallsRoute
+  '/connect': typeof ConnectRoute
   '/contacts': typeof ContactsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
@@ -154,7 +197,9 @@ export interface FileRoutesById {
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
+  '/wallet': typeof WalletRoute
   '/work': typeof WorkRouteWithChildren
   '/work/': typeof WorkRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
@@ -166,7 +211,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activity'
+    | '/advertising'
+    | '/artifacts'
     | '/calls'
+    | '/connect'
     | '/contacts'
     | '/daily-picks'
     | '/explore'
@@ -174,7 +222,9 @@ export interface FileRouteTypes {
     | '/memory'
     | '/messages'
     | '/notifications'
+    | '/subscriptions'
     | '/topics'
+    | '/wallet'
     | '/work'
     | '/work/'
     | '/messages/$threadId'
@@ -184,7 +234,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/activity'
+    | '/advertising'
+    | '/artifacts'
     | '/calls'
+    | '/connect'
     | '/contacts'
     | '/daily-picks'
     | '/explore'
@@ -192,7 +245,9 @@ export interface FileRouteTypes {
     | '/memory'
     | '/messages'
     | '/notifications'
+    | '/subscriptions'
     | '/topics'
+    | '/wallet'
     | '/work'
     | '/messages/$threadId'
     | '/profile/$entityId'
@@ -201,7 +256,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/activity'
+    | '/advertising'
+    | '/artifacts'
     | '/calls'
+    | '/connect'
     | '/contacts'
     | '/daily-picks'
     | '/explore'
@@ -209,7 +267,9 @@ export interface FileRouteTypes {
     | '/memory'
     | '/messages'
     | '/notifications'
+    | '/subscriptions'
     | '/topics'
+    | '/wallet'
     | '/work'
     | '/work/'
     | '/messages/$threadId'
@@ -220,7 +280,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
+  AdvertisingRoute: typeof AdvertisingRoute
+  ArtifactsRoute: typeof ArtifactsRoute
   CallsRoute: typeof CallsRoute
+  ConnectRoute: typeof ConnectRoute
   ContactsRoute: typeof ContactsRoute
   DailyPicksRoute: typeof DailyPicksRoute
   ExploreRoute: typeof ExploreRoute
@@ -228,7 +291,9 @@ export interface RootRouteChildren {
   MemoryRoute: typeof MemoryRoute
   MessagesRoute: typeof MessagesRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
+  SubscriptionsRoute: typeof SubscriptionsRoute
   TopicsRoute: typeof TopicsRouteWithChildren
+  WalletRoute: typeof WalletRoute
   WorkRoute: typeof WorkRouteWithChildren
   ProfileEntityIdRoute: typeof ProfileEntityIdRoute
 }
@@ -249,11 +314,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/advertising': {
+      id: '/advertising'
+      path: '/advertising'
+      fullPath: '/advertising'
+      preLoaderRoute: typeof AdvertisingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artifacts': {
+      id: '/artifacts'
+      path: '/artifacts'
+      fullPath: '/artifacts'
+      preLoaderRoute: typeof ArtifactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/calls': {
       id: '/calls'
       path: '/calls'
       fullPath: '/calls'
       preLoaderRoute: typeof CallsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connect': {
+      id: '/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof ConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacts': {
@@ -305,11 +391,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/subscriptions': {
+      id: '/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof SubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/topics': {
       id: '/topics'
       path: '/topics'
       fullPath: '/topics'
       preLoaderRoute: typeof TopicsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/work': {
@@ -386,7 +486,10 @@ const WorkRouteWithChildren = WorkRoute._addFileChildren(WorkRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
+  AdvertisingRoute: AdvertisingRoute,
+  ArtifactsRoute: ArtifactsRoute,
   CallsRoute: CallsRoute,
+  ConnectRoute: ConnectRoute,
   ContactsRoute: ContactsRoute,
   DailyPicksRoute: DailyPicksRoute,
   ExploreRoute: ExploreRoute,
@@ -394,7 +497,9 @@ const rootRouteChildren: RootRouteChildren = {
   MemoryRoute: MemoryRoute,
   MessagesRoute: MessagesRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
+  SubscriptionsRoute: SubscriptionsRoute,
   TopicsRoute: TopicsRouteWithChildren,
+  WalletRoute: WalletRoute,
   WorkRoute: WorkRouteWithChildren,
   ProfileEntityIdRoute: ProfileEntityIdRoute,
 }
