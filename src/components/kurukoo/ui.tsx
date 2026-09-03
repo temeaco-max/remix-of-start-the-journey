@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { Bookmark, Check, Loader2, Search, Share2, TriangleAlert } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -227,34 +226,21 @@ export function StatTile({ label, value, note }: { label: string; value: string;
 export function SettingsRow({
   title,
   description,
-  to,
   control,
 }: {
   title: string;
   description?: string;
-  to?: string;
   control?: ReactNode;
 }) {
-  const body = (
-    <div className="flex min-h-11 items-center justify-between gap-4 px-4 py-3.5">
+  return (
+    <li className="flex min-h-11 items-center justify-between gap-4 px-4 py-3.5">
       <div className="min-w-0">
         <p className="text-[15px]">{title}</p>
         {description ? (
           <p className="mt-0.5 text-[13px] text-muted-foreground">{description}</p>
         ) : null}
       </div>
-      {control ?? <span className="text-[13px] text-muted-foreground">Open</span>}
-    </div>
-  );
-  return (
-    <li>
-      {to ? (
-        <Link to={to} className="block transition-colors hover:bg-elevated">
-          {body}
-        </Link>
-      ) : (
-        body
-      )}
+      {control}
     </li>
   );
 }
