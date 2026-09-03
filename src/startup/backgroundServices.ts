@@ -13,6 +13,7 @@ import { runRecurringSubscriptionBillingPass } from '../services/commercialBilli
 import { runProviderInquiryFollowUpPass } from '../services/providerInquiryFollowUpService.js';
 import { registerGoalEventSubscribers } from '../services/goalEventSubscribers.js';
 import { registerRequestEventSubscribers } from '../services/requestEventSubscribers.js';
+import { runDurableJobCycle } from '../services/durableJobWorker.js';
 
 const backgroundTimers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
 let backgroundServicesStarted = false;
@@ -47,6 +48,10 @@ export async function startBackgroundServices(): Promise<void> {
         const runFcmCycle = async () => { await requeueDueFcmFailures(); await drainFcmQueue(); };
         backgroundTimers.push(setInterval(() => runFcmCycle().catch((error) => console.error('Error draining FCM queue:', error instanceof Error ? error.message : error)), 15_000));
     } else console.warn('[Push] FCM external delivery is not configured; internal inbox notifications only.');
+
+    const durableJobIntervalMs = Math.max(5_000, Math.min(60_000, Number(process.env.KURUKOO_DURABLE_JOB_WORKER_INTERVAL_MS || 15_000)));
+    backgroundTimers.push(setTimeout(() => runDurableJobCycle().catch((error) => console.error('Error running initial durable job cycle:', error instanceof Error ? error.message : error)), 5_000));
+    backgroundTimers.push(setInterval(() => runDurableJobCycle().catch((error) => console.error('Error running durable job cycle:', error instanceof Error ? error.message : error)), durableJobIntervalMs));
 
     if (process.env.KURUKOO_EXTERNAL_EXECUTION_ENABLED === 'true') {
         const executionIntervalMs = Math.max(5_000, Math.min(60_000, Number(process.env.KURUKOO_EXECUTION_WORKER_INTERVAL_MS || 15_000)));
