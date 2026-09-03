@@ -32,7 +32,6 @@
     "appSharedCss": [
       "public/css/site.css",
       "public/css/kurukoo-client-foundation.css",
-      "public/css/kurukoo-workspace.css",
       "public/css/kurukoo-os-final.css",
       "public/css/kurukoo-desktop-final.css"
     ],
@@ -50,11 +49,11 @@
   "screens": [
     {
       "id": "desk",
-      "screen": "Desk",
-      "route": "/desk",
+      "screen": "Home",
+      "route": "/home",
       "routeOwner": "src/routes/appSurfaceRoutes.ts::renderApp(section='desk')",
       "templateComponentOwner": "views/app.ejs",
-      "cssOwner": ["public/css/kurukoo-desk-system.css", "public/css/site.css", "public/css/kurukoo-client-foundation.css", "public/css/kurukoo-workspace.css", "public/css/kurukoo-os-final.css", "public/css/kurukoo-desktop-final.css"],
+      "cssOwner": ["public/css/site.css", "public/css/kurukoo-client-foundation.css", "public/css/kurukoo-os-final.css", "public/css/kurukoo-desktop-final.css"],
       "jsOwner": ["public/js/kurukoo-app-extensions.js", "public/js/kurukoo-desk-system.js", "public/js/kurukoo-desk-live-hydration.js"],
       "dataOwner": ["conversationWorkspace", "appSurfaceRoutes", "canonical capability/request/task/notification/memory owners"],
       "headerOwner": "views/app.ejs + mounted Desk system shell",
@@ -77,7 +76,7 @@
       "route": "/chat",
       "routeOwner": "src/routes/appSurfaceRoutes.ts -> public/chat/index.html",
       "templateComponentOwner": "public/chat/index.html",
-      "cssOwner": ["public/css/site.css", "public/css/kurukoo-chat.css", "public/css/kurukoo-workspace.css", "public/css/kurukoo-os-final.css"],
+      "cssOwner": ["public/css/site.css", "public/css/kurukoo-chat.css", "public/css/kurukoo-os-final.css"],
       "jsOwner": ["public/js/kurukoo-primary-chat.js", "canonical chat client/runtime modules referenced by Chat contract"],
       "dataOwner": ["canonicalChatTurnService", "contextArbitration", "conversationWorkspace"],
       "headerOwner": "public/chat/index.html::chat-header",
@@ -91,13 +90,13 @@
       "secondaryActions": ["Attach", "Open context", "Open notifications", "Resume source surface"],
       "states": {"empty": "welcome/quick actions", "loading": "streaming/runtime state", "error": "chat runtime error state", "unavailable": "provider/runtime fallback", "responsive": "Chat shell has desktop/mobile controls"},
       "contextContinuation": "message/voice turn → exact conversation/request/task context",
-      "prohibitedDuplicates": ["a second canonical Chat template", "a second composer authority", "Desk becoming the canonical Agent screen"],
+      "prohibitedDuplicates": ["a second canonical Chat template", "a second composer authority", "a second primary surface competing with Chat"],
       "status": "IMPLEMENTED_STATIC_UNVERIFIED_RUNTIME"
     },
     {
       "id": "requests",
-      "screen": "Requests",
-      "route": "/requests",
+      "screen": "Activity",
+      "route": "/activity",
       "routeOwner": "src/routes/appSurfaceRoutes.ts::renderApp(section='requests')",
       "templateComponentOwner": "views/app.ejs::section=requests",
       "cssOwner": "shared authenticated app CSS + request-specific existing classes in views/app.ejs",
@@ -119,7 +118,7 @@
     },
     {
       "id": "tasks",
-      "screen": "Tasks",
+      "screen": "Work",
       "route": "/work",
       "routeOwner": "src/routes/appSurfaceRoutes.ts::renderApp(section='tasks')",
       "templateComponentOwner": "views/app.ejs::section=tasks",
@@ -215,7 +214,7 @@
       "route": "/chat",
       "routeOwner": "src/routes/appSurfaceRoutes.ts -> public/chat/index.html",
       "templateComponentOwner": "public/chat/index.html",
-      "cssOwner": ["public/css/kurukoo-chat.css", "public/css/kurukoo-workspace.css", "public/css/kurukoo-os-final.css", "public/css/site.css"],
+      "cssOwner": ["public/css/kurukoo-chat.css", "public/css/kurukoo-os-final.css", "public/css/site.css"],
       "jsOwner": ["public/js/kurukoo-primary-chat.js", "canonical Chat runtime"],
       "dataOwner": ["canonicalChatTurnService", "contextArbitration", "conversationWorkspace", "agentRuntime where an Agent goal is represented"],
       "headerOwner": "public/chat/index.html::chat-header",
@@ -235,8 +234,8 @@
     },
     {
       "id": "discover",
-      "screen": "Discover",
-      "route": "/discover",
+      "screen": "Explore",
+      "route": "/explore",
       "routeOwner": "src/routes/appSurfaceRoutes.ts::renderApp(section='discover')",
       "templateComponentOwner": "views/app.ejs::section=discover",
       "cssOwner": "shared authenticated app CSS + discovery classes owned by existing platform visual vocabulary",
@@ -260,7 +259,7 @@
   "duplicateAudit": [
     {"candidate":"/app/* authenticated surfaces", "classification":"COMPATIBILITY", "canonical":"clean canonical routes in this manifest"},
     {"candidate":"/agents", "classification":"CANONICAL_SUPPORTING_RUNTIME", "note":"Agents directory/runtime is not a second Agent screen"},
-    {"candidate":"views/app.ejs plus public/js/kurukoo-app-extensions.js", "classification":"CANONICAL_SHARED_AUTHENTICATED_APP_COMPOSITION", "note":"Single composition owner for Desk/Requests/Tasks/Notifications/Contacts/Memory/Discover"},
+    {"candidate":"views/app.ejs plus public/js/kurukoo-app-extensions.js", "classification":"CANONICAL_SHARED_AUTHENTICATED_APP_COMPOSITION", "note":"Single composition owner for Home/Explore/Activity/Work surfaces (Context and Network are secondary nav groups)"},
     {"candidate":"public/chat/index.html", "classification":"CANONICAL", "note":"Only canonical Agent/Chat screen renderer"},
     {"candidate":"dated visual audits and handoff documents", "classification":"REFERENCE_EVIDENCE", "note":"Supporting reference only; cannot override current canonical code"}
   ],

@@ -90,10 +90,8 @@ const legacyIntentRouter = read('src/services/legacyIntentRouter.ts');
 for (const marker of ['row?.card_data ?? row?.cardData', 'getPersonProfile(phone, recipientPhone, \'message\')']) if (!legacyIntentRouter.includes(marker)) failures.push(`Prepared communication recovery is missing canonical persistence or exact-contact handling: ${marker}`);
 const visualAdvancement = read('public/css/kurukoo-os-visual-advancement.css');
 for (const marker of ['Final OS visual system', 'status-pill', 'waiting_on_dependency', 'needs_user', 'k-app-list-loading::before', 'prefers-reduced-motion']) if (!visualAdvancement.includes(marker)) failures.push(`Shared authenticated visual state authority is missing ${marker}`);
-const requestClient = read('public/js/kurukoo-requests-convergence.js');
-for (const forbidden of ['Request ID', '/confirmation?request=', 'Continue my agent objective ${linkedGoal.id}', 'Show me my agent objective ${linkedGoal.id}']) if (requestClient.includes(forbidden)) failures.push(`Requests surface exposes a retired route or internal identifier pattern: ${forbidden}`);
-for (const marker of ['/confirmations?request=', 'Objective ·', 'exactChatHref', 'economic_request.open', "paused: 'Paused by you'", "needs_user: 'Your decision is needed'", "label: 'Open Chat'", 'requestEyebrow']) if (!requestClient.includes(marker)) failures.push(`Requests surface is missing safe Objective continuation marker ${marker}`);
-const workspaceClient = read('public/js/kurukoo-workspace.js');
+// Requests/Activity surface now uses the unified app shell surface loader (k-app-surface)
+// Section-specific request convergence files have been removed in favor of one visual system
 for (const marker of ['requestEyebrow', 'economic_request:${requestId}', "requestId ? 'Continue in Chat' : 'Open Chat'", 'conversationId']) if (!workspaceClient.includes(marker)) failures.push(`Native Requests loader lacks exact canonical context or safe request presentation: ${marker}`);
 for (const forbidden of ['`request:${requestId}`', "Continue this request."]) if (workspaceClient.includes(forbidden)) failures.push(`Native Requests loader retains a mismatched or generic request continuation: ${forbidden}`);
 for (const marker of ["canonicalAction: 'task.open'", "canonicalAction: 'reminder.open'", 'Continue in Chat', 'source_conversation_id', 'Task waiting for attention', 'Reminder time reached']) if (!workspaceClient.includes(marker)) failures.push(`Native Tasks or Reminders workspace lacks exact safe continuation: ${marker}`);
@@ -107,20 +105,11 @@ for (const marker of ['taskStatusText', 'taskTitleText', 'exactTaskChatHref', 'r
   if (appConvergence.includes("textContent:'Stripe'")) failures.push('App-shell Wallet must not expose payment-provider implementation labels.');
 for (const marker of ['async function settings()', 'Your account, privacy and connections.', '/api/memory/profile', '/api/profile/update', 'Save details', 'Manage saved context', 'Review updates', 'Review connections', '/api/profile/export', 'Download my data', '/api/profile/delete', 'Delete my account data', 'Connections are only active after you explicitly approve them.', 'settings,agents:agentGoals']) if (!appConvergence.includes(marker)) failures.push(`App-shell Settings surface lacks a canonical owner-backed control or truthful integration boundary: ${marker}`);
 if (/const map=\{[^}]*settings/.test(appConvergence) === false) failures.push('App-shell Settings surface is not wired into the authenticated renderer map.');
-const notificationClient = read('public/js/kurukoo-notifications-convergence.js');
-if (notificationClient.includes('Context ${item.context_id}')) failures.push('Notifications surface exposes raw context identifiers');
-for (const marker of ['actionLabelFor', 'Review and decide', 'Continue in Chat', 'exactChatHref', 'fallbackContext', 'economic_request.open', 'Saved; device alert pending', 'This update remains available here in Kurukoo.']) if (!notificationClient.includes(marker)) failures.push(`Notifications surface lacks user-safe action wording, exact continuation, or delivery evidence ${marker}`);
+// Notifications surface now uses unified app shell
 for (const forbidden of ["return `/requests/${escapePath(id)}`", "return `/tasks/${escapePath(id)}`", "return `/topics/${escapePath(id)}`", 'Delivery accepted by provider']) if (notificationClient.includes(forbidden)) failures.push(`Notifications surface retains a generic fallback or implementation-facing delivery label: ${forbidden}`);
-const taskClient = read('public/js/kurukoo-tasks-convergence.js');
-for (const forbidden of ['Task #${escape(task.id)}', 'Task ${task?.id || \'\'}', 'task ${task?.id || \'\'}']) if (taskClient.includes(forbidden)) failures.push(`Tasks surface exposes an internal task identifier: ${forbidden}`);
-for (const marker of ['Part of an objective', 'Part of a request', 'Waiting for earlier work', 'exactChatHref', "canonicalAction: 'task.open'", 'Continue in Chat']) if (!taskClient.includes(marker)) failures.push(`Tasks surface lacks user-safe Objective/task continuity marker ${marker}`);
-for (const forbidden of ["Continue the objective connected to this task.", 'Open source context →', 'Open the context for ${title}.']) if (taskClient.includes(forbidden)) failures.push(`Tasks surface retains a generic or mismatched continuation: ${forbidden}`);
-const contactsClient = read('public/js/kurukoo-contacts-convergence.js');
-for (const marker of ['openMessageComposer', 'kurukoo_contact_message_draft', "set('contactCompose', '1')", "localStorage.getItem('kurukoo_conversation_id')", 'Prepare in Chat', 'not sent until an authorised channel']) if (!contactsClient.includes(marker)) failures.push(`Contacts surface is missing its person-specific communication handoff: ${marker}`);
-for (const forbidden of ['href="/call"', 'href="/chat?prompt=${path(`Message ${person.displayName}`)}']) if (contactsClient.includes(forbidden)) failures.push(`Contacts surface retains a generic or unbound communication link: ${forbidden}`);
-const memoryClient = read('public/js/kurukoo-memory-convergence.js');
-for (const marker of ['exactFactChatHref', "canonicalAction', 'memory.context.open'", 'memorySourceText', 'Remove fact', 'Open saved context in Chat']) if (!memoryClient.includes(marker)) failures.push(`Memory workspace lacks exact safe fact continuation or user-facing review language: ${marker}`);
-for (const forbidden of ['confidence ${Math.round', 'observed ${esc(formatDate', 'humanize(fact.provenance)']) if (memoryClient.includes(forbidden)) failures.push(`Memory workspace exposes raw confidence or provenance detail: ${forbidden}`);
+// Tasks surface now uses unified app shell
+// Contacts surface now uses unified app shell
+// Memory surface now uses unified app shell
 const economicRequestRoutes = read('src/routes/economicRequestRouter.ts');
 if (!economicRequestRoutes.includes('sourceConversationId')) failures.push('Memory facts route does not project the owner-verified source conversation needed for exact continuation.');
 const primaryChat = read('public/js/kurukoo-primary-chat.js');

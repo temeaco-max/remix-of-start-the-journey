@@ -22,19 +22,12 @@ const surfaceMap = new Map([
   ['cart', { title: 'Cart', eyebrow: 'Prepare an economic action', description: 'Review sourced items before requesting them; cart contents remain separate from payment success and final confirmation.', cta: '/cart', ctaLabel: 'Open Cart' }],
   ['tasks', { title: 'Work', eyebrow: 'Work to finish', description: 'Keep tasks, reminders and follow-through connected to the conversations and objectives they support.', cta: '/work', ctaLabel: 'Open Work' }],
   ['connect', { title: 'Connect', eyebrow: 'Bring your tools together', description: 'Connect user-owned storage, communication channels, devices and external sources without creating separate identities or memories.', cta: '/connect', ctaLabel: 'Open Connect' }],
-  ['agents', { title: 'Agents', eyebrow: 'Objectives at a glance', description: 'Review objectives, their progress, and what needs you. Use Chat to start or guide the work.', cta: '/chat', ctaLabel: 'Continue in Chat' }],
-  ['capabilities', { title: 'Capabilities', eyebrow: 'Capability portfolio', description: 'Use different roles and ways of participating under one identity, without creating separate accounts.', cta: '/capabilities', ctaLabel: 'Open Capabilities' }],
   ['opportunities', { title: 'Opportunities', eyebrow: 'Ways to participate', description: 'See useful participation paths, promotions and network opportunities connected to the same Kurukoo experience.', cta: '/opportunities', ctaLabel: 'Open Opportunities' }],
   ['wallet', { title: 'Wallet', eyebrow: 'Economic layer', description: 'See your balances and payment-related states without treating them as proof of an external transaction.', cta: '/wallet', ctaLabel: 'Open Wallet' }],
   ['points', { title: 'Points', eyebrow: 'Kurukoo economy', description: 'See your Kurukoo Points separately from cash payment and external settlement.', cta: '/points', ctaLabel: 'Open Points' }],
   ['top-up', { title: 'Top Up', eyebrow: 'Add funds', description: 'Add funds through the available payment path. The result is shown only after the payment provider confirms it.', cta: '/top-up', ctaLabel: 'Open Top Up' }],
   ['subscriptions', { title: 'Subscriptions', eyebrow: 'Plans and entitlements', description: 'Review plans and entitlements without showing a successful charge unless the billing provider confirms it.', cta: '/subscriptions', ctaLabel: 'Open Plans' }],
-  ['checkout', { title: 'Checkout', eyebrow: 'Confirm economic action', description: 'Review and confirm an economic action before anything irreversible happens.', cta: '/checkout', ctaLabel: 'Open Checkout' }],
-  ['confirmations', { title: 'Confirmations', eyebrow: 'Know what happened', description: 'Review confirmed outcomes, important evidence and recovery steps.', cta: '/activity', ctaLabel: 'Open Activity' }],
-  ['memory', { title: 'Memory', eyebrow: 'Your Kurukoo memory', description: 'Review the personal context Kurukoo keeps to make conversations and ongoing work more useful.', cta: '/memory', ctaLabel: 'Open Memory' }],
   ['artifacts', { title: 'Files', eyebrow: 'Your files and recordings', description: 'Review your files, recordings and transcripts in one place.', cta: '/artifacts', ctaLabel: 'Open Files' }],
-  ['prayer', { title: 'Prayer Companion', eyebrow: 'A personal way to pray', description: 'Use Kurukoo for personalized prayers, routines, reminders and supported voice experiences.', cta: '/chat?prompt=I%20would%20like%20a%20prayer', ctaLabel: 'Ask Kurukoo' }],
-  ['call', { title: 'Call', eyebrow: 'Realtime communication', description: 'Talk with Kurukoo or use supported peer calling from the same account and conversation context.', cta: '/call', ctaLabel: 'Open Call' }],
   ['notifications', { title: 'Notifications', eyebrow: 'Stay connected', description: 'See useful updates about ongoing work, reminders and things that need your attention.', cta: '/notifications', ctaLabel: 'Open Notifications' }],
   ['safety', { title: 'Safety', eyebrow: 'Safety and check-ins', description: 'Manage safety context and check-ins with clear consent and truthful status.', cta: '/safety', ctaLabel: 'Open Safety' }],
   ['settings', { title: 'Settings', eyebrow: 'Your Kurukoo preferences', description: 'Manage account, security, privacy, memory, notifications, connections, accessibility and product preferences.', cta: '/settings', ctaLabel: 'Open Settings' }],
@@ -51,10 +44,7 @@ const canonicalPathBySection: Record<string, string> = {
 const sharedPublicAuthenticated = new Set(['/explore', '/discover', '/topics']);
 
 function screenAssets(section: string): string {
-  if (section === 'discover') return '<link rel="stylesheet" href="/css/kurukoo-discover-convergence.css?v=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="/js/kurukoo-discover-convergence.js?v=1" defer></script><script src="/js/kurukoo-discover-map-loader.js?v=1" defer></script>';
-  if (section === 'notifications') return '<link rel="stylesheet" href="/css/kurukoo-notifications-convergence.css?v=1"><script src="/js/kurukoo-notifications-convergence.js?v=1" defer></script>';
-  if (section === 'connect') return '<link rel="stylesheet" href="/css/kurukoo-contacts-convergence.css?v=1"><script src="/js/kurukoo-contacts-convergence.js?v=1" defer></script>';
-  if (section === 'memory') return '<link rel="stylesheet" href="/css/kurukoo-memory-convergence.css?v=1"><script src="/js/kurukoo-memory-convergence.js?v=1" defer></script>';
+  if (section === 'discover') return '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">';
   return '';
 }
 
@@ -112,7 +102,7 @@ for (const [pathname, section] of Object.entries(cleanCanonicalSections)) {
   });
 }
 
-for (const resource of ['requests','tasks','reminders','opportunities','agents','connections','memory','artifacts']) {
+for (const resource of ['requests','tasks','reminders','opportunities','connections','artifacts']) {
   router.get(`/${resource}/:id`, optionalAuthenticateUser, (req, res) => {
     const authReq = req as AuthRequest;
     if (!authReq.user?.phone) return res.redirect(302, `/login?return=${encodeURIComponent(req.originalUrl)}`);

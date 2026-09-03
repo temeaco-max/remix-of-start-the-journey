@@ -23,10 +23,13 @@ const publicHead = read('views/_partials/head.ejs');
 const chat = read('public/chat/index.html');
 const workspace = read('views/workspace.ejs');
 
-const requiredSections = ['agent','discover','requests','tasks','connect','points','top-up','subscriptions','checkout','confirmations','memory','notifications'];
+const requiredSections = ['desk','discover','requests','tasks','connect','points','top-up','subscriptions','notifications'];
 for (const section of requiredSections) assert.ok(routes.includes(`['${section}',`), `Missing canonical surface-map section: ${section}`);
 assert.ok(routes.includes("for (const section of surfaceMap.keys()) router.get(`/app/${section}`"), 'Canonical App route loop is missing.');
 for (const marker of ['k-app-shell','k-app-sidebar','k-app-main','k-mobile-tabbar','kurukoo-client-foundation.css','/chat']) assert.ok(app.includes(marker), `App view missing: ${marker}`);
+assert.ok(app.includes('k-app-surface'), 'App view must use unified k-app-surface primitive instead of conditional blocks.');
+assert.ok(!app.includes('workspace-page'), 'App view must not leak implementation concept workspace-page.');
+assert.ok(!app.includes('data-workspace-section'), 'App view must not expose workspace section data attributes.');
 for (const token of ['--k-cream','--k-primary','--k-font-body','--k-font-heading','--k-space-4','44px']) assert.ok(foundation.includes(token), `Visual system token missing: ${token}`);
 for (const marker of ['k-app-quick-actions','k-app-quick-action','k-app-profile-link']) assert.ok(polish.includes(marker), `Polish style missing: ${marker}`);
 for (const marker of ['normalizeLinks','activeNav','discoverShortcuts','renderDiscoverHub','MutationObserver','/app/discover']) assert.ok(polishJs.includes(marker), `Polish behavior missing: ${marker}`);
@@ -39,7 +42,7 @@ assert.ok(appShell.includes('createSecondaryNav'), 'Canonical app shell must own
 assert.ok(appShell.includes('createCollapseControl'), 'Canonical app shell must expose desktop navigation collapse.');
 assert.ok(appShell.includes('wireMobileNav'), 'Canonical app shell must own mobile navigation controls.');
 assert.ok(appShell.includes('createTabBar();void createFeatureCompass();'), 'Canonical app shell must retain mobile tab and feature compass behavior.');
-assert.ok(viewState.includes("agent: '/chat'"), 'Canonical frontend view state must map Chat to the Agent view.');
+assert.ok(viewState.includes("chat: '/chat'"), 'Canonical frontend view state must map Chat as the control plane.');
 assert.ok(viewState.includes('const ROUTES'), 'Canonical frontend view state must expose route definitions.');
 assert.ok(viewState.includes('const router'), 'Canonical frontend view state must expose navigation helpers.');
 assert.ok(viewState.includes('history.pushState'), 'Frontend view state must integrate browser history.');
