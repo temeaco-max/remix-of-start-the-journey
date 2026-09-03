@@ -16,7 +16,7 @@
     if (!isAppSurface()) return;
     loadStylesheet('/css/kurukoo-platform-state-visual.css?v=1');
     if (window.location.pathname === '/chat' || window.location.pathname === '/chat/') {
-      loadStylesheet('/css/kurukoo-chat-visual-completion.css?v=3');
+      loadStylesheet('/css/kurukoo-chat-visual-completion.css?v=4');
     }
   }
 

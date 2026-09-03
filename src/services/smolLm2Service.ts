@@ -1,9 +1,31 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import fs from 'node:fs';
 import path from 'node:path';
-import { pipeline, env } from '@huggingface/transformers';
 import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
 import { getStudentModelRuntimeSelection } from './studentModelRegistryService.js';
+
+// Per AGENTS.md Rule #25 (External Dependencies): do not let a missing native
+// binding (e.g. onnxruntime-node on darwin/x64) block useful local behaviour.
+// The transformers package eagerly requires onnxruntime-node at import time,
+// so we defer the import until a local pipeline is actually requested. When
+// the local pipeline is disabled or unavailable, the service remains usable
+// via the deterministic fallback path.
+type TransformersModule = typeof import('@huggingface/transformers');
+let transformersModule: TransformersModule | null = null;
+let transformersLoadError: Error | null = null;
+async function loadTransformers(): Promise<TransformersModule | null> {
+  if (transformersModule) return transformersModule;
+  if (transformersLoadError) return null;
+  try {
+    transformersModule = await import('@huggingface/transformers');
+    return transformersModule;
+  } catch (err: any) {
+    transformersLoadError = err instanceof Error ? err : new Error(String(err));
+    lastInferenceFailure = 'local_inference_failed';
+    console.warn('[SmolLM2] transformers package unavailable, local pipeline disabled:', transformersLoadError.message);
+    return null;
+  }
+}
 
 const DEFAULT_MODEL_NAME = 'HuggingFaceTB/SmolLM2-360M-Instruct';
 const DEFAULT_FALLBACK_MODEL_NAME = DEFAULT_MODEL_NAME;
@@ -35,6 +57,11 @@ export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'f
 async function getLocalPipeline(modelName = getModelName()): Promise<any> {
   if (localPipeline && activeModelName === modelName) return localPipeline;
   if (!localPipelinePromise || activeModelName !== modelName) {
+    // Lazy-load transformers to avoid eager onnxruntime-node binding errors
+    // (e.g. missing darwin/x64 binary) blocking the entire server start.
+    const tf = await loadTransformers();
+    if (!tf) { localPipelinePromise = Promise.resolve(null); return null; }
+    const { pipeline, env } = tf;
     // Offline-first loading: when a cached copy exists (transformers .cache),
     // never reach out to the HF CDN for a version check — that network probe
     // can hang the first chat turn indefinitely. Remote fetch stays available

@@ -13,6 +13,7 @@ import economicDispatchRoutes from './economicDispatchRoutes.js';
 const router = express.Router();
 
 const surfaceMap = new Map([
+  ['agent', { title: 'Chat', eyebrow: 'Your conversation', description: 'Tell Kurukoo what you need, want, notice, or are worried about. Kurukoo will figure out who or what can help.', cta: '/chat', ctaLabel: 'Continue in Chat' }],
   ['desk', { title: 'Home', eyebrow: 'What matters now', description: 'See what needs your attention, pick up where you left off, and start something new with Kurukoo.', cta: '/chat', ctaLabel: 'Talk to Kurukoo' }],
   ['discover', { title: 'Explore', eyebrow: 'Find something useful', description: 'Find people, places, services, products, Topics and opportunities, then bring what matters into a conversation.', cta: '/chat', ctaLabel: 'Ask Kurukoo' }],
   ['topics', { title: 'Topics', eyebrow: 'Community context', description: 'Browse and share moderated community questions, reports and experiences without turning community content into a provider, offer or payment claim.', cta: '/topics', ctaLabel: 'Open Topics' }],
@@ -34,17 +35,18 @@ const surfaceMap = new Map([
 ]);
 
 const cleanCanonicalSections: Record<string, string> = {
-  '/home': 'desk', '/desk': 'desk', '/explore': 'discover', '/discover': 'discover', '/topics': 'topics', '/activity': 'requests', '/requests': 'requests', '/reminders': 'reminders', '/saved': 'saved', '/cart': 'cart', '/work': 'tasks', '/tasks': 'tasks', '/connect': 'connect', '/agents': 'agents', '/capabilities': 'capabilities', '/opportunities': 'opportunities', '/wallet': 'wallet', '/points': 'points', '/top-up': 'top-up', '/subscriptions': 'subscriptions', '/checkout': 'checkout', '/confirmations': 'confirmations', '/memory': 'memory', '/artifacts': 'artifacts', '/prayer': 'prayer', '/call': 'call', '/notifications': 'notifications', '/safety': 'safety', '/settings': 'settings',
+  '/agent': 'agent', '/chat': 'agent', '/home': 'desk', '/desk': 'desk', '/explore': 'discover', '/discover': 'discover', '/topics': 'topics', '/activity': 'requests', '/requests': 'requests', '/reminders': 'reminders', '/saved': 'saved', '/cart': 'cart', '/work': 'tasks', '/tasks': 'tasks', '/connect': 'connect', '/agents': 'agents', '/capabilities': 'capabilities', '/opportunities': 'opportunities', '/wallet': 'wallet', '/points': 'points', '/top-up': 'top-up', '/subscriptions': 'subscriptions', '/checkout': 'checkout', '/confirmations': 'confirmations', '/memory': 'memory', '/artifacts': 'artifacts', '/prayer': 'prayer', '/call': 'call', '/notifications': 'notifications', '/safety': 'safety', '/settings': 'settings',
 };
 
 const canonicalPathBySection: Record<string, string> = {
-  desk: '/home', discover: '/explore', requests: '/activity', tasks: '/work', topics: '/topics', reminders: '/reminders', saved: '/saved', cart: '/cart', connect: '/connect', agents: '/agents', capabilities: '/capabilities', opportunities: '/opportunities', wallet: '/wallet', points: '/points', 'top-up': '/top-up', subscriptions: '/subscriptions', checkout: '/checkout', confirmations: '/confirmations', memory: '/memory', artifacts: '/artifacts', prayer: '/prayer', call: '/call', notifications: '/notifications', safety: '/safety', settings: '/settings',
+  agent: '/chat', desk: '/home', discover: '/explore', requests: '/activity', tasks: '/work', topics: '/topics', reminders: '/reminders', saved: '/saved', cart: '/cart', connect: '/connect', agents: '/agents', capabilities: '/capabilities', opportunities: '/opportunities', wallet: '/wallet', points: '/points', 'top-up': '/top-up', subscriptions: '/subscriptions', checkout: '/checkout', confirmations: '/confirmations', memory: '/memory', artifacts: '/artifacts', prayer: '/prayer', call: '/call', notifications: '/notifications', safety: '/safety', settings: '/settings',
 };
 
 const sharedPublicAuthenticated = new Set(['/explore', '/discover', '/topics']);
 
 function screenAssets(section: string): string {
   if (section === 'discover') return '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">';
+  if (section === 'agent') return '<link rel="stylesheet" href="/css/kurukoo-chat.css?v=19"><link rel="stylesheet" href="/css/kurukoo-chat-base.css">';
   return '';
 }
 
@@ -87,11 +89,11 @@ router.get('/developers/api', (_req, res) => res.render('developers'));
 
 router.get('/chat/:conversationId', (req, res) => {
   res.setHeader('X-Kurukoo-Conversation-Id', String(req.params.conversationId));
-  return res.sendFile(path.join(process.cwd(), 'public', 'chat', 'index.html'));
+  return res.redirect(302, `/chat?conversationId=${encodeURIComponent(req.params.conversationId)}`);
 });
 router.get('/share/:shareId', (req, res) => {
   res.setHeader('X-Kurukoo-Share-Id', String(req.params.shareId));
-  return res.sendFile(path.join(process.cwd(), 'public', 'chat', 'index.html'));
+  return res.redirect(302, `/chat?shareId=${encodeURIComponent(req.params.shareId)}`);
 });
 
 for (const [pathname, section] of Object.entries(cleanCanonicalSections)) {

@@ -1,0 +1,297 @@
+/* ==========================================================================
+   Kurukoo Site Footer
+   Authoritative footer styles. Self-contained to avoid conflict with:
+     - site.css (legacy .footer, .footer-grid, .footer-bottom)
+     - kurukoo-public-pages.css (frontend-site-footer overrides)
+     - kurukoo-os-final.css (k-public-page !important rules)
+     - kurukoo-visual-completion.css (margin-top override)
+   All rules scope strictly to .k-site-footer descendants and use !important
+   only where required to win specificity wars from earlier stylesheets.
+   ========================================================================== */
+
+/* ---- Container ---- */
+.k-site-footer {
+  background: #ffffff !important;
+  color: #24221F;
+  border-top: 1px solid #E6DED5;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: 0;
+  padding: 56px 0 28px;
+}
+
+.k-footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---- Desktop: 5-column grid ---- */
+.k-footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
+  gap: 36px;
+  align-items: start;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #E6DED5;
+}
+
+/* Hide accordion on desktop */
+.k-footer-accordion {
+  display: none;
+}
+
+/* ---- Brand column ---- */
+.k-footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 320px;
+}
+
+.k-footer-logo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #24221F;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.k-footer-logo-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: block;
+}
+
+.k-footer-logo-text {
+  height: 22px;
+  width: auto;
+  display: block;
+}
+
+.k-footer-tagline {
+  margin: 0;
+  color: #6D665F;
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 280px;
+}
+
+.k-footer-cta {
+  align-self: flex-start;
+  margin-top: 4px;
+  min-height: 40px;
+  padding: 9px 18px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  background: #B95D3C;
+  color: #ffffff;
+  border: 1px solid #B95D3C;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.k-footer-cta:hover {
+  background: #91452E;
+  border-color: #91452E;
+}
+
+/* ---- Link columns ---- */
+.k-footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.k-footer-col-heading {
+  margin: 0;
+  color: #24221F;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.k-footer-link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.k-footer-link-list li {
+  margin: 0;
+}
+
+.k-footer-link-list a {
+  display: inline-flex;
+  align-items: center;
+  color: #6D665F;
+  font-size: 13px;
+  line-height: 1.4;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.k-footer-link-list a:hover {
+  color: #B95D3C;
+}
+
+/* ---- Bottom copyright bar ---- */
+.k-footer-bottom {
+  padding-top: 24px;
+}
+
+.k-footer-bottom p {
+  margin: 0;
+  color: #908880;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Mobile: 5-column → 5-row accordion
+   ========================================================================== */
+@media (max-width: 760px) {
+  .k-site-footer {
+    padding: 32px 0 22px;
+  }
+
+  .k-footer-container {
+    padding: 0 18px;
+  }
+
+  /* Hide desktop grid, show accordion */
+  .k-footer-grid {
+    display: none;
+  }
+
+  .k-footer-accordion {
+    display: block;
+    border-bottom: 1px solid #E6DED5;
+  }
+
+  /* Brand block at the top (always visible) */
+  .k-footer-brand {
+    padding-bottom: 20px;
+    border-bottom: 1px solid #E6DED5;
+    margin-bottom: 4px;
+  }
+
+  .k-footer-cta {
+    min-height: 44px;
+    padding: 11px 20px;
+    font-size: 14px;
+  }
+
+  /* Accordion item */
+  .k-footer-accordion-item {
+    border-bottom: 1px solid #E6DED5;
+  }
+
+  .k-footer-accordion-item:last-child {
+    border-bottom: none;
+  }
+
+  .k-footer-accordion-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    padding: 14px 0;
+    color: #24221F;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+
+  /* Remove default disclosure triangle (Safari/Chrome) */
+  .k-footer-accordion-summary::-webkit-details-marker {
+    display: none;
+  }
+  .k-footer-accordion-summary::marker {
+    display: none;
+    content: '';
+  }
+
+  .k-footer-accordion-icon {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    color: #6D665F;
+    transition: transform 0.22s ease;
+  }
+
+  .k-footer-accordion-item[open] .k-footer-accordion-icon {
+    transform: rotate(180deg);
+    color: #B95D3C;
+  }
+
+  .k-footer-accordion-item[open] .k-footer-accordion-summary {
+    color: #B95D3C;
+  }
+
+  .k-footer-accordion-item .k-footer-link-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+    padding: 0 0 16px;
+  }
+
+  .k-footer-accordion-item .k-footer-link-list li {
+    margin: 0;
+  }
+
+  .k-footer-accordion-item .k-footer-link-list a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 8px 0;
+    color: #6D665F;
+    font-size: 13px;
+  }
+
+  .k-footer-accordion-item .k-footer-link-list a:hover {
+    color: #B95D3C;
+  }
+
+  .k-footer-bottom {
+    padding-top: 22px;
+  }
+
+  .k-footer-bottom p {
+    text-align: center;
+  }
+}
+
+/* Small phone — single column inside accordion */
+@media (max-width: 420px) {
+  .k-footer-accordion-item .k-footer-link-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .k-footer-accordion-icon,
+  .k-footer-cta,
+  .k-footer-link-list a {
+    transition: none;
+  }
+}

@@ -7,7 +7,7 @@
   <title><%= selected.title %> · Kurukoo</title>
   <meta name="description" content="<%= selected.description %>">
   <link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/site.css?v=1.2.1">
+  <link rel="stylesheet" href="/css/site.css?v=1.2.2">
   <link rel="stylesheet" href="/css/kurukoo-client-foundation.css?v=2">
   <link rel="stylesheet" href="/css/kurukoo-os-final.css?v=visual4">
   <link rel="stylesheet" href="/css/kurukoo-desktop-final.css?v=1">
@@ -17,8 +17,11 @@
   <% } %>
   <script src="/js/fcm-client.js?v=routes2" defer></script>
 </head>
-<body class="k-app-page k-app-section-<%= section %>" data-app-section="<%= section %>" data-canonical-path="<%= canonicalPath %>">
+<body class="k-app-page k-app-section-<%= section %><%= section === 'agent' ? ' kurukoo-chat-page' : '' %>" data-app-section="<%= section %>" data-canonical-path="<%= canonicalPath %>">
   <div class="k-app-shell">
+    <% if (section === 'agent') { %>
+    <%- include('_partials/app-chat-shell', { selected, section, canonicalPath, displayName, phone }) %>
+    <% } else { %>
     <%- include('_partials/app-header', { selected, section, canonicalPath, displayName, phone }) %>
     <%- include('_partials/app-sidebar', { selected, section, canonicalPath, displayName, phone }) %>
     <main class="k-app-main">
@@ -126,8 +129,13 @@
         <%- include('_partials/app-footer', { selected, section, canonicalPath, displayName, phone }) %>
       </div>
     </main>
+    <% } %>
   </div>
+  <% if (section !== 'agent') { %>
   <%- include('_partials/app-mobile-nav', { selected, section, canonicalPath, displayName, phone }) %>
+  <% } %>
+  <% if (section !== 'agent') { %>
   <script src="/js/kurukoo-app-shell.js?v=4" defer></script>
+  <% } %>
 </body>
 </html>

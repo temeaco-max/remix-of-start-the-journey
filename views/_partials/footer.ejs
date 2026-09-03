@@ -1,22 +1,23 @@
-<footer class="footer frontend-site-footer">
-    <div class="container">
-        <div class="footer-grid">
-            <div class="footer-brand">
-                <a href="/" class="logo footer-logo" aria-label="Kurukoo home">
-                    <%- include('brand-mark') %>
-                    <img src="/assets/brand/logo-text.svg?v=3" alt="Kurukoo" height="30" class="footer-logo-text">
+<footer class="k-site-footer" aria-label="Site footer">
+    <div class="k-footer-container">
+        <!-- Desktop: 5-column grid -->
+        <div class="k-footer-grid">
+            <!-- Column 1: Brand -->
+            <div class="k-footer-brand">
+                <a href="/" class="k-footer-logo-link" aria-label="Kurukoo home">
+                    <img class="k-footer-logo-icon" src="/assets/brand/logo-icon.png" alt="" aria-hidden="true" width="28" height="28">
+                    <img src="/assets/brand/logo-text.svg?v=3" alt="Kurukoo" class="k-footer-logo-text" height="26">
                 </a>
-                <p class="footer-desc">
+                <p class="k-footer-tagline">
                     Tell Kurukoo what you need. Kurukoo figures out who or what can fulfil it.
                 </p>
-                <div class="footer-cta-box">
-                    <a href="/chat" class="btn btn-primary">Start chatting</a>
-                </div>
+                <a href="/chat" class="k-footer-cta btn btn-primary">Start chatting</a>
             </div>
-            
-            <div>
-                <h4>Core</h4>
-                <ul class="footer-links">
+
+            <!-- Column 2: Platform -->
+            <div class="k-footer-col">
+                <h3 class="k-footer-col-heading">Platform</h3>
+                <ul class="k-footer-link-list">
                     <li><a href="/discover">Discover</a></li>
                     <li><a href="/how-it-works">How it works</a></li>
                     <li><a href="/network">Network</a></li>
@@ -25,33 +26,99 @@
                     <li><a href="/about">About</a></li>
                 </ul>
             </div>
-            
-            <div>
-                <h4>Support</h4>
-                <ul class="footer-links">
+
+            <!-- Column 3: Support -->
+            <div class="k-footer-col">
+                <h3 class="k-footer-col-heading">Support</h3>
+                <ul class="k-footer-link-list">
                     <li><a href="/help">Help Centre</a></li>
                     <li><a href="/contact">Contact</a></li>
-                    <li><a href="/pricing">Points & Fulfillment</a></li>
+                    <li><a href="/pricing">Points &amp; Fulfillment</a></li>
                 </ul>
             </div>
-            
-            <div>
-                <h4>Legal & Connect</h4>
-                <ul class="footer-links">
-                    <li><a href="/legal/privacy">Privacy Policy</a></li>
-                    <li><a href="/legal/terms">Terms of Service</a></li>
+
+            <!-- Column 4: Community -->
+            <div class="k-footer-col">
+                <h3 class="k-footer-col-heading">Community</h3>
+                <ul class="k-footer-link-list">
                     <li><a href="/partners">Partners</a></li>
                     <li><a href="/advertise">Advertise</a></li>
                     <li><a href="/careers">Careers</a></li>
                 </ul>
             </div>
+
+            <!-- Column 5: Legal -->
+            <div class="k-footer-col">
+                <h3 class="k-footer-col-heading">Legal</h3>
+                <ul class="k-footer-link-list">
+                    <li><a href="/legal/privacy">Privacy Policy</a></li>
+                    <li><a href="/legal/terms">Terms of Service</a></li>
+                </ul>
+            </div>
         </div>
-        
-        <div class="footer-bottom">
+
+        <!-- Mobile: Accordion list -->
+        <div class="k-footer-accordion">
+            <details class="k-footer-accordion-item">
+                <summary class="k-footer-accordion-summary">
+                    <span>Platform</span>
+                    <svg class="k-footer-accordion-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </summary>
+                <ul class="k-footer-link-list">
+                    <li><a href="/discover">Discover</a></li>
+                    <li><a href="/how-it-works">How it works</a></li>
+                    <li><a href="/network">Network</a></li>
+                    <li><a href="/channels">Channels</a></li>
+                    <li><a href="/resources">Resources</a></li>
+                    <li><a href="/about">About</a></li>
+                </ul>
+            </details>
+            <details class="k-footer-accordion-item">
+                <summary class="k-footer-accordion-summary">
+                    <span>Support</span>
+                    <svg class="k-footer-accordion-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </summary>
+                <ul class="k-footer-link-list">
+                    <li><a href="/help">Help Centre</a></li>
+                    <li><a href="/contact">Contact</a></li>
+                    <li><a href="/pricing">Points &amp; Fulfillment</a></li>
+                </ul>
+            </details>
+            <details class="k-footer-accordion-item">
+                <summary class="k-footer-accordion-summary">
+                    <span>Community</span>
+                    <svg class="k-footer-accordion-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </summary>
+                <ul class="k-footer-link-list">
+                    <li><a href="/partners">Partners</a></li>
+                    <li><a href="/advertise">Advertise</a></li>
+                    <li><a href="/careers">Careers</a></li>
+                </ul>
+            </details>
+            <details class="k-footer-accordion-item">
+                <summary class="k-footer-accordion-summary">
+                    <span>Legal</span>
+                    <svg class="k-footer-accordion-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </summary>
+                <ul class="k-footer-link-list">
+                    <li><a href="/legal/privacy">Privacy Policy</a></li>
+                    <li><a href="/legal/terms">Terms of Service</a></li>
+                </ul>
+            </details>
+        </div>
+
+        <div class="k-footer-bottom">
             <p>&copy; <%= new Date().getFullYear() %> Kurukoo. One conversational fulfillment and orchestration network.</p>
         </div>
     </div>
 </footer>
-
 </body>
 </html>

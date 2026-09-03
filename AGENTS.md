@@ -1124,3 +1124,42 @@ Before introducing a new service, component, route, state store, model, script, 
 4. remove superseded duplicate machinery when safe.
 
 Prefer convergence over accumulation.
+## 40. Local development quick start
+
+Use the helper script for a one-command, repeatable server start:
+
+```
+npm run dev:start
+```
+
+`dev:start` (in `scripts/dev-start.mjs`) is the canonical way to launch the
+local dev server. On every invocation it:
+1. Wipes `dist/` (the build output) so no stale pre-unified-IA build artifacts
+   can be served. `public/` is the source static directory tracked in git and is never wiped.
+2. Forwards `NODE_ENV=development` so the server runs in dev mode
+   (`tsx` hardcodes `NODE_ENV=production` if you do not override it).
+3. Releases port `3000` if a previous listener is still bound.
+
+Override the port with `PORT=4000 npm run dev:start` if needed.
+
+Manual alternatives:
+
+| Goal | Command |
+| --- | --- |
+| Dev server | `npm run dev` |
+| Dev server, fresh | `npm run dev:fresh` |
+| Production build | `npm run build` |
+| Production build, fresh | `npm run build:fresh` |
+| Production start | `npm start` |
+| Production start, rebuild first | `npm start:fresh` |
+| Wipe artifacts | `npm run clean` |
+
+### Why this exists
+
+- `tsx` does not pre-resolve `NODE_ENV`; without an explicit override,
+  it falls back to `production`, which triggers production-only startup
+  guards that crash local dev.
+- `@huggingface/transformers` is loaded lazily inside `smolLm2Service.ts`
+  to prevent missing native bindings (e.g. `onnxruntime-node` on
+  `darwin/x64`) from blocking server startup. The deterministic fallback
+  path handles unavailability.

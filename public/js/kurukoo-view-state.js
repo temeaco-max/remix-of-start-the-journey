@@ -86,13 +86,13 @@
   window.KurukooViewState = Object.freeze({ ROUTES, store, router, parse: () => state });
   window.addEventListener('popstate', () => { state = parseLocation(new URL(window.location.href)); emit(); });
 
-  document.addEventListener('click', (event) => {
+    document.addEventListener('click', (event) => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const anchor = event.target.closest('a[href]');
     if (!anchor || !anchor.closest('.k-app-shell') || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
     try {
       const destination = new URL(anchor.href, window.location.href);
-      if (destination.origin !== window.location.origin || destination.pathname.startsWith('/admin') || destination.pathname === '/chat') return;
+      if (destination.origin !== window.location.origin || destination.pathname.startsWith('/admin')) return;
       state = parseLocation(destination);
       try { sessionStorage.setItem('kurukoo.last.view', JSON.stringify({ section: state.section, contextId: state.contextId, href: destination.href })); } catch { /* storage unavailable */ }
     } catch { /* browser handles navigation */ }
