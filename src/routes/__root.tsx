@@ -14,7 +14,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "../components/app-shell";
 import { KurukooProvider } from "../lib/kurukoo-store";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -83,7 +82,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Kurukoo" },
       { name: "description", content: "Tell Kurukoo what you need and it gets it done." },
       { property: "og:title", content: "Kurukoo" },
-      { property: "og:description", content: "A conversation-first assistant that gets things done." },
+      {
+        property: "og:description",
+        content: "A conversation-first assistant that gets things done.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -133,4 +135,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

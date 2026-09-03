@@ -7,7 +7,10 @@ export const Route = createFileRoute("/notifications")({
   head: () => ({
     meta: [
       { title: "Notifications — Kurukoo" },
-      { name: "description", content: "Updates from Kurukoo and anything waiting on your confirmation." },
+      {
+        name: "description",
+        content: "Updates from Kurukoo and anything waiting on your confirmation.",
+      },
       { property: "og:title", content: "Notifications — Kurukoo" },
       { property: "og:description", content: "Updates and confirmations from Kurukoo." },
     ],
@@ -28,7 +31,8 @@ function NotificationsPage() {
             body="Kurukoo will let you know here when something needs a decision from you."
           />
           <IntegrationGap>
-            Push and email delivery aren't wired up yet, so updates only appear while this page is open.
+            Push and email delivery aren't wired up yet, so updates only appear while this page is
+            open.
           </IntegrationGap>
         </>
       ) : (

@@ -7,9 +7,15 @@ export const Route = createFileRoute("/work")({
   head: () => ({
     meta: [
       { title: "Work — Kurukoo" },
-      { name: "description", content: "Everything Kurukoo is handling for you, and what it needs from you." },
+      {
+        name: "description",
+        content: "Everything Kurukoo is handling for you, and what it needs from you.",
+      },
       { property: "og:title", content: "Work — Kurukoo" },
-      { property: "og:description", content: "Track requests Kurukoo is carrying out on your behalf." },
+      {
+        property: "og:description",
+        content: "Track requests Kurukoo is carrying out on your behalf.",
+      },
     ],
   }),
   component: WorkPage,

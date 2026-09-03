@@ -6,7 +6,10 @@ export const Route = createFileRoute("/contacts")({
   head: () => ({
     meta: [
       { title: "Contacts — Kurukoo" },
-      { name: "description", content: "People and providers Kurukoo has been in touch with on your behalf." },
+      {
+        name: "description",
+        content: "People and providers Kurukoo has been in touch with on your behalf.",
+      },
       { property: "og:title", content: "Contacts — Kurukoo" },
       { property: "og:description", content: "People Kurukoo has dealt with for you." },
     ],

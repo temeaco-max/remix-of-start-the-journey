@@ -7,9 +7,15 @@ export const Route = createFileRoute("/explore")({
   head: () => ({
     meta: [
       { title: "Explore — Kurukoo" },
-      { name: "description", content: "Discover the kinds of things you can ask Kurukoo to take care of." },
+      {
+        name: "description",
+        content: "Discover the kinds of things you can ask Kurukoo to take care of.",
+      },
       { property: "og:title", content: "Explore — Kurukoo" },
-      { property: "og:description", content: "Ideas and starting points for what Kurukoo can do for you." },
+      {
+        property: "og:description",
+        content: "Ideas and starting points for what Kurukoo can do for you.",
+      },
     ],
   }),
   component: ExplorePage,
@@ -26,7 +32,11 @@ const groups = [
   },
   {
     title: "Repairs and devices",
-    items: ["I need someone to repair my phone.", "Fix my laptop screen.", "Find the cheapest option."],
+    items: [
+      "I need someone to repair my phone.",
+      "Fix my laptop screen.",
+      "Find the cheapest option.",
+    ],
   },
   {
     title: "Everyday",

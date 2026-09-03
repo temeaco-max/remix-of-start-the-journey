@@ -7,9 +7,15 @@ export const Route = createFileRoute("/memory")({
   head: () => ({
     meta: [
       { title: "Memory — Kurukoo" },
-      { name: "description", content: "What Kurukoo remembers about you, so you never repeat yourself." },
+      {
+        name: "description",
+        content: "What Kurukoo remembers about you, so you never repeat yourself.",
+      },
       { property: "og:title", content: "Memory — Kurukoo" },
-      { property: "og:description", content: "What Kurukoo remembers about you and your preferences." },
+      {
+        property: "og:description",
+        content: "What Kurukoo remembers about you and your preferences.",
+      },
     ],
   }),
   component: MemoryPage,

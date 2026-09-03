@@ -17,7 +17,9 @@ function ThemeToggle() {
 
   useEffect(() => {
     const stored = localStorage.getItem("kurukoo-theme");
-    const isDark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = stored
+      ? stored === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
     setDark(isDark);
     document.documentElement.classList.toggle("dark", isDark);
   }, []);
@@ -77,7 +79,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <main className="md:pl-[236px]">
-        <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-4 md:px-8 md:pb-12 md:pt-8">{children}</div>
+        <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-4 md:px-8 md:pb-12 md:pt-8">
+          {children}
+        </div>
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">

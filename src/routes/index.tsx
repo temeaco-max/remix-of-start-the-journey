@@ -73,7 +73,9 @@ function HomePage() {
               aria-label="In progress"
               className="rounded-xl border border-border bg-surface px-4 py-3"
             >
-              <p className="text-[12px] uppercase tracking-wide text-muted-foreground">In progress</p>
+              <p className="text-[12px] uppercase tracking-wide text-muted-foreground">
+                In progress
+              </p>
               <ul className="mt-2 space-y-1.5">
                 {active.map((w) => (
                   <li key={w.id} className="flex items-center justify-between gap-4 text-[14.5px]">
