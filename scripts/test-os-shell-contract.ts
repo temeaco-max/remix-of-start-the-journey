@@ -24,6 +24,23 @@ assert.ok(shellRuntime.includes("'k-desk-header-cart'"));
 assert.ok(shellRuntime.includes('renderOsWorkspace'));
 assert.ok(shellRuntime.includes('renderContext'));
 assert.doesNotMatch(shellRuntime, /\/app\//, 'Desk shell must use direct canonical routes without legacy app aliases');
+
+// Visible home-shell language must match the assistant-first product vocabulary.
+for (const forbidden of [
+  'Ask Agent',
+  'Use Agent for',
+  'Agent Presence',
+  'same Agent relationship',
+  'No active Agent objectives',
+  'Search conversations, requests, tasks',
+  'Open Agent',
+  'Open Requests',
+  'Open Discover',
+]) assert.doesNotMatch(shellRuntime, new RegExp(forbidden.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `Home shell must not expose retired user-facing wording: ${forbidden}`);
+assert.match(shellRuntime, /\['Activity',\s*'\/activity'/, 'Home shell must link to Activity using the canonical route');
+assert.match(shellRuntime, /\['Work',\s*'\/tasks'/, 'Home shell must link to Work using the canonical route');
+assert.match(shellRuntime, /\['Explore',\s*'\/explore'/, 'Home shell must link to Explore using the canonical route');
+
 assert.ok(componentCss.includes('.kos-conversation-card'));
 assert.ok(componentCss.includes('.kos-activity-card'));
 assert.ok(componentCss.includes('.kos-object-list'));
@@ -49,13 +66,13 @@ for (const [label, href] of [['Home','/home'],['Explore','/explore'],['Chat','/c
   assert.ok(appShellRuntime.includes(`{label:'${label}',href:'${href}'`), `mobile/app navigation must use canonical ${label} route ${href}`);
 }
 assert.ok(appShellRuntime.includes('const createSecondaryNav=()=>{'), 'mobile/app shell must define the secondary navigation builder');
-assert.ok(appShellRuntime.includes("if(path==='/chat')"), 'Agent route refinement must use the canonical Chat route');
+assert.ok(appShellRuntime.includes("if(path==='/chat')"), 'Chat route refinement must use the canonical Chat route');
 assert.doesNotMatch(appShellRuntime, /\/app\//, 'App shell must not retain legacy route aliases');
 assert.ok(appShellRuntime.includes("if(path==='/call')"));
 assert.ok(appShellRuntime.includes("path==='/top-up'||path==='/points'"));
 
-assert.match(surfaceRegistry, /label: 'Agent'.*route: '\/chat'/s, 'surface registry Agent must be /chat');
-assert.match(surfaceRegistry, /label: 'Agents'.*route: '\/agents'/s, 'Agents directory must remain distinct from Agent');
+assert.match(surfaceRegistry, /label: 'Chat'.*route: '\/chat'/s, 'Chat surface must be /chat');
+assert.match(surfaceRegistry, /label: 'Agents'.*route: '\/agents'/s, 'Agents directory must remain distinct from Chat');
 assert.match(appRoutes, /'\/home': 'desk'/, 'app routes must declare the canonical Home route for the home surface');
 assert.match(appRoutes, /'\/desk': 'desk'/, 'legacy Desk alias remains available for route continuity');
 assert.doesNotMatch(appRoutes, /'\/app/, 'app routes must not retain legacy aliases');
@@ -69,4 +86,4 @@ assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'conversation-continu
 assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'pulse-timeline'));
 assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'context-inspector'));
 
-console.log('OS shell contract passed: canonical authenticated route ownership, shared state/presence vocabulary, mobile IA, non-duplicated workspace navigation and canonical visual token bridges are present.');
+console.log('OS shell contract passed: canonical authenticated route ownership, assistant-first Home/Explore/Activity/Work vocabulary, shared state/presence vocabulary, mobile IA, non-duplicated workspace navigation and canonical visual token bridges are present.');
