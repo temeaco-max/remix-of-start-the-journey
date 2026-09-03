@@ -22,7 +22,7 @@ export type Message = {
   id: string;
   role: "you" | "kurukoo";
   text: string;
-  workId?: string;
+  workId?: string | undefined;
 };
 
 export type NotificationItem = {
