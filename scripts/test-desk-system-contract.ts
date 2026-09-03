@@ -12,7 +12,7 @@ const extensions = read('public/js/kurukoo-app-extensions.js');
 const bridge = read('src/middleware/apiV1Bridge.ts');
 const nativeIntent = read('mobile/kurukoo-mobile/app/+native-intent.tsx');
 
-for (const token of ["href:'/chat'", "href:'/requests'", "href:'/tasks'", "href:'/connect'"]) {
+for (const token of ["href:'/chat'", "href:'/activity'", "href:'/tasks'", "href:'/connect'"]) {
   assert.ok(desk.includes(token), `Desk direct canonical URL is missing: ${token}`);
 }
 for (const legacy of ['/app/agent', '/app/requests', '/app/tasks', '/app/connect']) {
