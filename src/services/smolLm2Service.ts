@@ -1,5 +1,7 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
-import { pipeline } from '@huggingface/transformers';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pipeline, env } from '@huggingface/transformers';
 import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
 import { getStudentModelRuntimeSelection } from './studentModelRegistryService.js';
 
@@ -32,7 +34,15 @@ export function getSmolLM2RuntimeStatus(): { model: string; source: 'local' | 'f
 
 async function getLocalPipeline(modelName = getModelName()): Promise<any> {
   if (localPipeline && activeModelName === modelName) return localPipeline;
-  if (!localPipelinePromise || activeModelName !== modelName) localPipelinePromise = pipeline('text-generation', modelName, { dtype: String(process.env.SMOLLM2_DTYPE || 'q4') as any, device: 'cpu' } as any) as Promise<any>;
+  if (!localPipelinePromise || activeModelName !== modelName) {
+    // Offline-first loading: when a cached copy exists (transformers .cache),
+    // never reach out to the HF CDN for a version check — that network probe
+    // can hang the first chat turn indefinitely. Remote fetch stays available
+    // only when no local cache has been provisioned yet.
+    const cached = (() => { try { return fs.existsSync(path.join(String(env.cacheDir || ''), ...modelName.split('/'))) && fs.readdirSync(path.join(String(env.cacheDir || ''), ...modelName.split('/'))).length > 0; } catch { return false; } })();
+    if (cached) { env.allowRemoteModels = false; env.allowLocalModels = true; }
+    localPipelinePromise = pipeline('text-generation', modelName, { dtype: String(process.env.SMOLLM2_DTYPE || 'q4') as any, device: 'cpu' } as any) as Promise<any>;
+  }
   localPipeline = await localPipelinePromise;
   activeModelName = modelName;
   return localPipeline;
