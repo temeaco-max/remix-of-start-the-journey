@@ -49,6 +49,23 @@
         <%- include('_partials/app-page-header', { selected, section, canonicalPath, displayName, phone }) %>
         <%- include('_partials/app-context-bridge', { selected, section, canonicalPath, displayName, phone }) %>
         <% if (section === 'desk') { %>
+          <section class="k-home-intent" aria-labelledby="home-intent-title" data-workspace-owned-surface="desk">
+            <div class="k-home-intent-copy">
+              <span class="k-app-card-label">Start here</span>
+              <h2 id="home-intent-title">Tell Kurukoo what you need.</h2>
+              <p>Ask a question, describe a task, or pick up an idea. Kurukoo will keep the conversation connected to any work that follows.</p>
+            </div>
+            <form class="k-home-intent-form" action="/chat" method="get">
+              <label class="sr-only" for="home-intent-prompt">What do you need?</label>
+              <input id="home-intent-prompt" name="prompt" type="text" maxlength="500" autocomplete="off" placeholder="What would you like help with?" />
+              <button class="k-app-primary" type="submit">Start in Chat</button>
+            </form>
+            <div class="k-home-intent-suggestions" aria-label="Suggested ways to start">
+              <a href="/chat?prompt=Help%20me%20find%20a%20provider">Find a provider</a>
+              <a href="/chat?prompt=Show%20me%20what%20needs%20my%20attention">Show what needs attention</a>
+              <a href="/explore">Explore nearby</a>
+            </div>
+          </section>
           <section class="k-desk-live" data-desk-root data-workspace-owned-surface="desk" aria-label="Live Home summary">
             <div class="k-desk-loading" data-desk-loading aria-live="polite">Loading what matters now…</div>
           </section>
