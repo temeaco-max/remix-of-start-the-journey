@@ -19,7 +19,10 @@ const HEALTHCARE_OUTCOME_RE = /\b(?:find|book|arrange|need|want|see|speak(?:\s+t
 const TOPIC_OUTCOME_RE = /^(?:ask|share|post)\s+(?:with|to)\s+the\s+community\b/i;
 const COMMUNICATION_CONTINUATION_RE = /^(?:resolve the recipient for this message|choose an available channel for this message|confirm(?: and)? send(?:ing)? this message|copy this message)\b/i;
 
-function shouldDelegateToCanonicalRouter(message: string, semantic: Awaited<ReturnType<typeof interpretConversationSemantics>>): boolean {
+function shouldDelegateDeterministically(message: string): boolean {
+  // Deterministic prefix of shouldDelegateToCanonicalRouter: these regex
+  // outcomes never require AI interpretation, so evaluate them before any
+  // model call (AGENTS.md §20 — cheapest sufficient mechanism first).
   if (CANONICAL_LOOKUP_RE.test(message.trim()) || TRANSPORT_OUTCOME_RE.test(message)) return true;
   if (SAFETY_RE.test(message)) return true;
   if (GUIDED_DEVICE_RE.test(message)) return true;
@@ -30,6 +33,11 @@ function shouldDelegateToCanonicalRouter(message: string, semantic: Awaited<Retu
   if (HEALTHCARE_OUTCOME_RE.test(message)) return true;
   if (TOPIC_OUTCOME_RE.test(message)) return true;
   if (COMMUNICATION_CONTINUATION_RE.test(message)) return true;
+  return false;
+}
+
+function shouldDelegateToCanonicalRouter(message: string, semantic: Awaited<ReturnType<typeof interpretConversationSemantics>>): boolean {
+  if (shouldDelegateDeterministically(message)) return true;
   if (semantic.mode === 'action' || semantic.mode === 'control' || semantic.mode === 'reference') return true;
   if (semantic.explicitAuthorization) return true;
   return false;
@@ -44,6 +52,13 @@ function progressFor(mode: string): IntentRoutingResult['progressStage'] {
 export async function routeIntent(query: string, phone?: string, provider?: AIProvider, contextHint?: ConversationalContextHint, threadId?: string): Promise<IntentRoutingResult> {
   const message = query.trim();
   if (!message) return legacyRouteIntent(query, phone, provider, contextHint, threadId);
+
+  // Deterministic gate first: route without any model call when the regex
+  // layer already resolves the turn (AGENTS.md §20/§35). AI interpretation
+  // is the exception, not the operating system.
+  if (shouldDelegateDeterministically(message)) {
+    return legacyRouteIntent(query, phone, provider, contextHint, threadId);
+  }
 
   const semantic = await interpretConversationSemantics({
     message,

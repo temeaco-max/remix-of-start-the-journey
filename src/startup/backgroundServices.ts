@@ -11,6 +11,7 @@ import { isWhatsAppLinkedDeviceConfigured, startWhatsAppLinkedDevice, stopWhatsA
 import { markAgentWorkerCycleCompleted, markAgentWorkerCycleFailed, markAgentWorkerCycleStarted, markAgentWorkerStarted, markAgentWorkerStopped, notifyGoalIfNeeded, recordAgentWorkerRun, reenterDueDeferredGoals, runDueAgentGoals } from '../services/agentRuntime.js';
 import { runRecurringSubscriptionBillingPass } from '../services/commercialBillingService.js';
 import { runProviderInquiryFollowUpPass } from '../services/providerInquiryFollowUpService.js';
+import { registerGoalEventSubscribers } from '../services/goalEventSubscribers.js';
 
 const backgroundTimers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
 let backgroundServicesStarted = false;
@@ -18,6 +19,7 @@ let backgroundServicesStarted = false;
 export async function startBackgroundServices(): Promise<void> {
     if (backgroundServicesStarted) return;
     backgroundServicesStarted = true;
+    registerGoalEventSubscribers();
     try { await seedDemoAdCampaigns(); } catch (error) { console.error('Error seeding demo ad campaigns:', error); }
     try { await ensureAuthenticatedLeftRailDemoAd(); } catch (error) { console.error('Error seeding authenticated left-rail demo ad:', error); }
     try { await startContactSyncService(); } catch (error) { console.error('Failed to start contact sync service:', error); }

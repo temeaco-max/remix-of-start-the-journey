@@ -182,7 +182,7 @@ export async function syncSubGoalStatusesWithDependencies(phone: string, parentG
   // otherwise adopt the canonical failure state without rewriting history.
   const children = await store.all<any>('SELECT status FROM agent_goals WHERE parent_goal_id=? AND phone=?', [parentGoalId, phone]);
   if (children.length > 0 && children.every(c => ['completed','cancelled','failed','expired'].includes(String(c.status)))) {
-    const parent = await store.one<any>('SELECT id,status FROM agent_goals WHERE id=? AND phone=? LIMIT 1', [parentGoalId, phone]);
+    const parent = await store.one<any>('SELECT id,status,objective FROM agent_goals WHERE id=? AND phone=? LIMIT 1', [parentGoalId, phone]);
     if (parent && !['completed','cancelled','failed','expired'].includes(String(parent.status))) {
       const allCompleted = children.every(c => String(c.status)==='completed');
       const nextStatus = allCompleted ? 'completed' : (children.some(c => String(c.status)==='cancelled') ? 'cancelled' : 'failed');
@@ -193,16 +193,10 @@ export async function syncSubGoalStatusesWithDependencies(phone: string, parentG
           : 'This outcome could not complete because one or more dependent steps did not complete.';
       await store.run('UPDATE agent_goals SET status=?,summary=?,completed_at=?,next_action_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND phone=?', [nextStatus, summary, nextStatus === 'completed' ? new Date().toISOString() : null, parentGoalId, phone]);
       try {
-        const parent = await store.one<any>('SELECT * FROM agent_goals WHERE id=? AND phone=? LIMIT 1', [parentGoalId, phone]);
-        if (parent) {
-          const runtime = await import('./agentRuntime.js');
-          const projected = await runtime.getAgentGoal(phone, parentGoalId);
-          if (projected) await runtime.notifyGoalIfNeeded(projected);
-          if (nextStatus === 'completed') {
-            const memory = await import('./memoryProfile.js');
-            await memory.recordMemoryFact(phone, 'completed_outcome', String(parent.objective || '').slice(0, 500), 'verified', { sourceRef: `agent_goal:${parentGoalId}` });
-          }
-        }
+        // Notification + memory projection are subscribers of this event, not
+        // inline dependencies of the request orchestrator (AGENTS.md §31).
+        const { emitDomainEvent, DomainEvents } = await import('./domainEvents.js');
+        emitDomainEvent(DomainEvents.GOAL_STATE_CHANGED, { phone, goalId: parentGoalId, status: nextStatus, objective: String(parent.objective || '').slice(0, 500), summary });
       } catch {
         // Delivery projections must never roll back the canonical parent state.
       }
