@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { EmptyState, PageHeader } from "@/components/app-shell";
+import { IntegrationGap } from "@/components/kurukoo/primitives";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/memory")({
@@ -36,6 +37,9 @@ function MemoryPage() {
           ))}
         </ul>
       )}
+      <IntegrationGap>
+        Memory lives in this browser session only until Kurukoo's backend is connected.
+      </IntegrationGap>
     </>
   );
 }

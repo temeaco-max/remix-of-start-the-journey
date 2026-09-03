@@ -1,3 +1,5 @@
+// PROTOTYPE ONLY: in-memory client state standing in for the Kurukoo backend.
+// Do not grow this fake logic — replace it with the real APIs.
 import {
   createContext,
   useCallback,

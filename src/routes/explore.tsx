@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
+import { IntegrationGap } from "@/components/kurukoo/primitives";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/explore")({
@@ -53,7 +54,7 @@ function ExplorePage() {
                       send(item);
                       navigate({ to: "/" });
                     }}
-                    className="w-full px-4 py-3 text-left text-[15px] transition-colors hover:bg-elevated"
+                    className="min-h-11 w-full px-4 py-3 text-left text-[15px] transition-colors hover:bg-elevated"
                   >
                     {item}
                   </button>
@@ -63,6 +64,10 @@ function ExplorePage() {
           </section>
         ))}
       </div>
+      <IntegrationGap>
+        These are starting points, not a live directory — real provider search arrives with the
+        Kurukoo backend.
+      </IntegrationGap>
     </>
   );
 }
