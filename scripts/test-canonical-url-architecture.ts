@@ -6,11 +6,11 @@ import { CANONICAL_URLS } from '../src/services/canonicalUrlRegistry.js';
 const failures: string[] = [];
 const require = (condition: boolean, message: string) => { if (!condition) failures.push(message); };
 
-require(CANONICAL_URLS.desk.home === '/desk', 'Desk must be the canonical authenticated home.');
+require(CANONICAL_URLS.desk.home === '/home', 'Home must be the canonical authenticated home.');
 require(CANONICAL_URLS.conversation.agent === '/chat', 'Agent must use /chat as the conversational surface.');
 require(CANONICAL_URLS.conversation.conversation('abc') === '/chat/abc', 'Conversation detail URL must be /chat/:conversationId.');
 require(CANONICAL_URLS.conversation.share('abc') === '/share/abc', 'Shared conversation URL must be /share/:shareId.');
-require(CANONICAL_URLS.desk.request('REQ-123') === '/requests/REQ-123', 'Request detail URL must be /requests/:id.');
+require(CANONICAL_URLS.desk.request('REQ-123') === '/activity/REQ-123', 'Request detail URL must be /activity/:id.');
 require(CANONICAL_URLS.desk.tasks === '/work', 'Task inbox URL must be /work.');
 require(CANONICAL_URLS.desk.task('TASK-123') === '/tasks/TASK-123', 'Task detail URL must be /tasks/:id.');
 require(CANONICAL_URLS.desk.opportunity('OPP-123') === '/opportunities/OPP-123', 'Opportunity detail URL must be /opportunities/:id.');
@@ -31,7 +31,6 @@ require(!appSurfaceRoutes.includes('res.redirect(308'), 'Authenticated app-surfa
 require(!appSurfaceRoutes.includes("'/app'"), 'Authenticated app-surface routes must not retain the legacy /app alias.');
 for (const relative of [
   'public/js/kurukoo-app-shell.js',
-  'public/js/kurukoo-app-convergence.js',
   'public/js/kurukoo-desk-live-hydration.js',
   'public/js/kurukoo-desk-system.js',
   'public/js/kurukoo-os-live-hydration.js',

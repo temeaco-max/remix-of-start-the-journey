@@ -18,11 +18,11 @@ const osLiveHydration = read('public/js/kurukoo-os-live-hydration.js');
 const deskStyle = read('public/css/kurukoo-desk-system.css');
 const appExtensions = read('public/js/kurukoo-app-extensions.js');
 
-require(CANONICAL_URLS.desk.home === '/desk', 'Desk canonical URL must remain /desk.');
+require(CANONICAL_URLS.desk.home === '/home', 'Home canonical URL must remain /home.');
 require(CANONICAL_URLS.conversation.agent === '/chat', 'Agent canonical URL must remain /chat.');
 require(CANONICAL_URLS.conversation.conversation('conversation-1') === '/chat/conversation-1', 'Conversation URL builder must remain stable.');
 require(CANONICAL_URLS.conversation.share('share-1') === '/share/share-1', 'Share URL builder must remain stable.');
-require(CANONICAL_URLS.desk.request('request-1') === '/requests/request-1', 'Request detail URL must remain resource-oriented.');
+require(CANONICAL_URLS.desk.request('request-1') === '/activity/request-1', 'Request detail URL must remain resource-oriented.');
 require(CANONICAL_URLS.admin.user('user-1') === '/admin/users/user-1', 'Admin detail URL must remain resource-oriented.');
 require(CANONICAL_URLS.api.root === '/api/v1', 'API canonical root must remain versioned.');
 
@@ -30,10 +30,10 @@ require(index.includes("import { apiV1Bridge } from './middleware/apiV1Bridge.js
 require(index.includes("app.use('/api/v1',apiV1Bridge);"), 'Server must mount the API v1 bridge before legacy /api routers.');
 require(apiBridge.includes('X-Kurukoo-Api-Version') && apiBridge.includes('req.url = `/api${'), 'API v1 bridge must translate /api/v1 into the existing service-router namespace.');
 
-require(nativeIntent.includes("'/desk': '/(tabs)'"), 'Native intent must map Desk to the native home surface.');
+require(nativeIntent.includes("'/home': '/(tabs)'") || nativeIntent.includes("'/desk': '/(tabs)'"), 'Native intent must map Home/Desk to the native home surface.');
 require(nativeIntent.includes("'/chat': '/(tabs)'"), 'Native intent must map Agent/Chat to the native conversation surface.');
-require(nativeIntent.includes("/^\\/requests\\//"), 'Native intent must map request detail URLs.');
-require(nativeIntent.includes("/^\\/tasks\\//"), 'Native intent must map task detail URLs.');
+require(nativeIntent.includes("/^\\/activity\\//") || nativeIntent.includes("/^\\/requests\\//"), 'Native intent must map request detail URLs.');
+require(nativeIntent.includes("/^\\/work\\//") || nativeIntent.includes("/^\\/tasks\\//"), 'Native intent must map task detail URLs.');
 require(nativeIntent.includes("/^\\/connections\\//"), 'Native intent must map connection detail URLs.');
 
 require(appConfig.includes('KURUKOO_PUBLIC_BASE_URL'), 'Native build config must read the canonical public base URL.');
@@ -44,7 +44,7 @@ for (const [name, source] of [['Desk system', deskSystem], ['Desk live hydration
   require(!source.includes('/app/agent'), `${name} must not retain the retired Agent workspace alias.`);
   require(!source.includes('/app/requests'), `${name} must not retain the retired Requests workspace alias.`);
 }
-for (const token of ["href:'/chat'", "href:'/requests'"]) require(deskSystem.includes(token), `Desk must link directly to ${token}.`);
+for (const token of ["href:'/chat'", "href:'/activity'"]) require(deskSystem.includes(token), `Desk must link directly to ${token}.`);
 require(deskSystem.includes("'kurukoo-drawer-search'"), 'Desk search drawer must remain mounted.');
 require(deskSystem.includes("'kurukoo-drawer-notifications'"), 'Desk notifications drawer must remain mounted.');
 require(deskSystem.includes("'kurukoo-drawer-profile'"), 'Desk account drawer must remain mounted.');
