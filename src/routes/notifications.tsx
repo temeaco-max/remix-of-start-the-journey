@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { EmptyState, PageHeader } from "@/components/app-shell";
+import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/notifications")({
@@ -21,10 +22,15 @@ function NotificationsPage() {
     <>
       <PageHeader title="Notifications" subtitle="Only what needs your attention." />
       {notifications.length === 0 ? (
-        <EmptyState
-          title="You're all caught up"
-          body="Kurukoo will let you know here when something needs a decision from you."
-        />
+        <>
+          <EmptyState
+            title="You're all caught up"
+            body="Kurukoo will let you know here when something needs a decision from you."
+          />
+          <IntegrationGap>
+            Push and email delivery aren't wired up yet, so updates only appear while this page is open.
+          </IntegrationGap>
+        </>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
           {notifications.map((n) => (
@@ -36,25 +42,13 @@ function NotificationsPage() {
                 </div>
                 <span className="shrink-0 text-[13px] text-muted-foreground">{n.when}</span>
               </div>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {n.needsConfirmation ? (
-                  <button
-                    type="button"
-                    onClick={() => confirm(n.id)}
-                    className="rounded-lg bg-primary px-3 py-1.5 text-[13.5px] text-primary-foreground"
-                  >
+                  <Action variant="primary" onClick={() => confirm(n.id)}>
                     Confirm
-                  </button>
+                  </Action>
                 ) : null}
-                {!n.read ? (
-                  <button
-                    type="button"
-                    onClick={() => markRead(n.id)}
-                    className="rounded-lg border border-border px-3 py-1.5 text-[13.5px] transition-colors hover:bg-elevated"
-                  >
-                    Mark as read
-                  </button>
-                ) : null}
+                {!n.read ? <Action onClick={() => markRead(n.id)}>Mark as read</Action> : null}
               </div>
             </li>
           ))}
