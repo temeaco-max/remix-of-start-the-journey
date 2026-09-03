@@ -15,6 +15,7 @@ import {
 import { persistCoordinatorEvent } from './coordinatorStore.js';
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 import { getCanonicalStore } from './canonicalStore.js';
+import { emitDomainEvent, DomainEvents } from './domainEvents.js';
 
 export interface EconomicRequest {
   id: string;
@@ -93,13 +94,23 @@ function recordLifecycleEvent(current: EconomicRequest, status: EconomicRequestS
     provenance:{source:'canonical_service',sourceId:current.id,evidenceLevel:'persisted_state'},
     policy:{autonomousAllowed:false,confirmationRequired:'none'}, schemaVersion:1,
   });
+  // In-process projection: let event subscribers react without polling the
+  // coordinator event log (AGENTS.md §31). Emitted after persistence so a
+  // subscriber failure can never affect canonical state.
+  emitDomainEvent(DomainEvents.REQUEST_STATE_CHANGED, {
+    requestId: current.id, phone: current.phone, skill: current.skill,
+    fromStatus: current.status, toStatus: status,
+    providerPhone: patch.providerPhone || current.providerPhone || undefined,
+  });
 }
 
 export function getAllowedEconomicTransitions(status: EconomicRequestStatus): EconomicRequestStatus[] { return [...(TRANSITIONS[status] || [])]; }
 
 export async function createEconomicRequest(input:{id:string;phone:string;skill:string;requirements:Record<string,unknown>;amount?:number;conversationId?:string}):Promise<EconomicRequest> {
   if (getCanonicalPersistenceMode() !== 'postgres') {
-    return createSqlJsEconomicRequest(input);
+    const created = await createSqlJsEconomicRequest(input);
+    emitDomainEvent(DomainEvents.REQUEST_CREATED, { requestId: created.id, phone: created.phone, skill: created.skill, category: created.category, status: created.status, conversationId: created.conversationId || undefined });
+    return created;
   }
   const category = getEconomicCategory(input.skill) || 'classifieds-marketplace';
   const capabilities = getSkillCapabilities(input.skill);
@@ -108,6 +119,7 @@ export async function createEconomicRequest(input:{id:string;phone:string;skill:
   const conversationId = String(input.conversationId || '').trim().slice(0, 160) || null;
   await store.run(`INSERT INTO economic_requests(id,phone,skill,category,status,requirements_json,capabilities_json,conversation_id) VALUES(?,?,?,?,?,?,?,?)`, [input.id,input.phone,input.skill,category,'requested',requirements,JSON.stringify(capabilities),conversationId]);
   await persistCoordinatorEvent({id:`economic-request:${input.id}:created`,type:'economic_request.state_changed',occurredAt:new Date().toISOString(),producer:'economicRequestPersistence',correlationId:`economic_request:${input.id}`,ownerPhone:input.phone.startsWith('anon_')?undefined:input.phone,economicRequestId:input.id,payload:{requestId:input.id,skill:input.skill,category,status:'requested',capabilities,conversationId:conversationId||undefined},sensitivity:input.phone.startsWith('anon_')?'public':'personal',provenance:{source:'canonical_service',sourceId:input.id,evidenceLevel:'persisted_state'},policy:{autonomousAllowed:false,confirmationRequired:'none'},schemaVersion:1});
+  emitDomainEvent(DomainEvents.REQUEST_CREATED,{ requestId:input.id, phone:input.phone, skill:input.skill, category, status:'requested', conversationId:conversationId||undefined });
   return (await getEconomicRequest(input.id))!;
 }
 
@@ -138,7 +150,11 @@ export async function updateEconomicRequestRequirements(id:string,ownerPhone:str
 }
 
 export async function transitionEconomicRequest(id:string,status:EconomicRequestStatus,patch:RequestPatch={}):Promise<EconomicRequest> {
-  if (getCanonicalPersistenceMode() !== 'postgres') return transitionSqlJsEconomicRequest(id,status,patch);
+  if (getCanonicalPersistenceMode() !== 'postgres') {
+    const updated = await transitionSqlJsEconomicRequest(id,status,patch);
+    emitDomainEvent(DomainEvents.REQUEST_STATE_CHANGED, { requestId: updated.id, phone: updated.phone, skill: updated.skill, fromStatus: status, toStatus: updated.status, providerPhone: patch.providerPhone || updated.providerPhone || undefined });
+    return updated;
+  }
   const current=await getEconomicRequest(id); if(!current) throw new Error('Economic request not found');
   if(status!==current.status && !getAllowedEconomicTransitions(current.status).includes(status)) throw new Error(`Invalid economic request transition: ${current.status} -> ${status}`);
   const store=await ensurePostgresSchema();
