@@ -13,10 +13,14 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as FollowingRouteImport } from './routes/following'
 import { Route as MemoryRouteImport } from './routes/memory'
+import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as WorkRouteImport } from './routes/work'
+import { Route as MessagesThreadIdRouteImport } from './routes/messages.$threadId'
+import { Route as ProfileEntityIdRouteImport } from './routes/profile.$entityId'
 import { Route as TopicsSlugRouteImport } from './routes/topics.$slug'
 import { Route as WorkRouteImport } from './routes/work.'
 
@@ -40,9 +44,19 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FollowingRoute = FollowingRouteImport.update({
+  id: '/following',
+  path: '/following',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MemoryRoute = MemoryRouteImport.update({
   id: '/memory',
   path: '/memory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -58,6 +72,16 @@ const TopicsRoute = TopicsRouteImport.update({
 const WorkRoute = WorkRouteImport.update({
   id: '/work',
   path: '/work',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesThreadIdRoute = MessagesThreadIdRouteImport.update({
+  id: '/$threadId',
+  path: '/$threadId',
+  getParentRoute: () => MessagesRoute,
+} as any)
+const ProfileEntityIdRoute = ProfileEntityIdRouteImport.update({
+  id: '/profile/$entityId',
+  path: '/profile/$entityId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TopicsSlugRoute = TopicsSlugRouteImport.update({
@@ -76,11 +100,15 @@ export interface FileRoutesByFullPath {
   '/activity': typeof ActivityRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
+  '/following': typeof FollowingRoute
   '/memory': typeof MemoryRoute
+  '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/work': typeof WorkRouteWithChildren
   '/work/': typeof WorkRoute
+  '/messages/$threadId': typeof MessagesThreadIdRoute
+  '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
 }
 export interface FileRoutesByTo {
@@ -88,10 +116,14 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
+  '/following': typeof FollowingRoute
   '/memory': typeof MemoryRoute
+  '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/work': typeof WorkRoute
+  '/messages/$threadId': typeof MessagesThreadIdRoute
+  '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
 }
 export interface FileRoutesById {
@@ -100,11 +132,15 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
+  '/following': typeof FollowingRoute
   '/memory': typeof MemoryRoute
+  '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/work': typeof WorkRouteWithChildren
   '/work/': typeof WorkRoute
+  '/messages/$threadId': typeof MessagesThreadIdRoute
+  '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
 }
 export interface FileRouteTypes {
@@ -114,11 +150,15 @@ export interface FileRouteTypes {
     | '/activity'
     | '/contacts'
     | '/explore'
+    | '/following'
     | '/memory'
+    | '/messages'
     | '/notifications'
     | '/topics'
     | '/work'
     | '/work/'
+    | '/messages/$threadId'
+    | '/profile/$entityId'
     | '/topics/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -126,10 +166,14 @@ export interface FileRouteTypes {
     | '/activity'
     | '/contacts'
     | '/explore'
+    | '/following'
     | '/memory'
+    | '/messages'
     | '/notifications'
     | '/topics'
     | '/work'
+    | '/messages/$threadId'
+    | '/profile/$entityId'
     | '/topics/$slug'
   id:
     | '__root__'
@@ -137,11 +181,15 @@ export interface FileRouteTypes {
     | '/activity'
     | '/contacts'
     | '/explore'
+    | '/following'
     | '/memory'
+    | '/messages'
     | '/notifications'
     | '/topics'
     | '/work'
     | '/work/'
+    | '/messages/$threadId'
+    | '/profile/$entityId'
     | '/topics/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -150,10 +198,13 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   ContactsRoute: typeof ContactsRoute
   ExploreRoute: typeof ExploreRoute
+  FollowingRoute: typeof FollowingRoute
   MemoryRoute: typeof MemoryRoute
+  MessagesRoute: typeof MessagesRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
   TopicsRoute: typeof TopicsRouteWithChildren
   WorkRoute: typeof WorkRouteWithChildren
+  ProfileEntityIdRoute: typeof ProfileEntityIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -186,11 +237,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/following': {
+      id: '/following'
+      path: '/following'
+      fullPath: '/following'
+      preLoaderRoute: typeof FollowingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/memory': {
       id: '/memory'
       path: '/memory'
       fullPath: '/memory'
       preLoaderRoute: typeof MemoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -214,6 +279,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/messages/$threadId': {
+      id: '/messages/$threadId'
+      path: '/$threadId'
+      fullPath: '/messages/$threadId'
+      preLoaderRoute: typeof MessagesThreadIdRouteImport
+      parentRoute: typeof MessagesRoute
+    }
+    '/profile/$entityId': {
+      id: '/profile/$entityId'
+      path: '/profile/$entityId'
+      fullPath: '/profile/$entityId'
+      preLoaderRoute: typeof ProfileEntityIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/topics/$slug': {
       id: '/topics/$slug'
       path: '/$slug'
@@ -230,6 +309,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface MessagesRouteChildren {
+  MessagesThreadIdRoute: typeof MessagesThreadIdRoute
+}
+
+const MessagesRouteChildren: MessagesRouteChildren = {
+  MessagesThreadIdRoute: MessagesThreadIdRoute,
+}
+
+const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
+  MessagesRouteChildren,
+)
 
 interface TopicsRouteChildren {
   TopicsSlugRoute: typeof TopicsSlugRoute
@@ -257,10 +348,13 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   ContactsRoute: ContactsRoute,
   ExploreRoute: ExploreRoute,
+  FollowingRoute: FollowingRoute,
   MemoryRoute: MemoryRoute,
+  MessagesRoute: MessagesRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
   TopicsRoute: TopicsRouteWithChildren,
   WorkRoute: WorkRouteWithChildren,
+  ProfileEntityIdRoute: ProfileEntityIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
