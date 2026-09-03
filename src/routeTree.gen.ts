@@ -18,14 +18,18 @@ import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as CallsRouteImport } from './routes/calls'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ContactsRouteImport } from './routes/contacts'
+import { Route as ContributorsRouteImport } from './routes/contributors'
 import { Route as CreatorsRouteImport } from './routes/creators'
 import { Route as DailyPicksRouteImport } from './routes/daily-picks'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as FollowingRouteImport } from './routes/following'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as ProvidersRouteImport } from './routes/providers'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as WalletRouteImport } from './routes/wallet'
@@ -81,6 +85,11 @@ const ContactsRoute = ContactsRouteImport.update({
   path: '/contacts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContributorsRoute = ContributorsRouteImport.update({
+  id: '/contributors',
+  path: '/contributors',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreatorsRoute = CreatorsRouteImport.update({
   id: '/creators',
   path: '/creators',
@@ -101,6 +110,11 @@ const FollowingRoute = FollowingRouteImport.update({
   path: '/following',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MemoryRoute = MemoryRouteImport.update({
   id: '/memory',
   path: '/memory',
@@ -116,9 +130,19 @@ const NotificationsRoute = NotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PartnersRoute = PartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProvidersRoute = ProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubscriptionsRoute = SubscriptionsRouteImport.update({
@@ -177,14 +201,18 @@ export interface FileRoutesByFullPath {
   '/calls': typeof CallsRoute
   '/connect': typeof ConnectRoute
   '/contacts': typeof ContactsRoute
+  '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
+  '/help': typeof HelpRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
+  '/partners': typeof PartnersRoute
   '/providers': typeof ProvidersRoute
+  '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -205,14 +233,18 @@ export interface FileRoutesByTo {
   '/calls': typeof CallsRoute
   '/connect': typeof ConnectRoute
   '/contacts': typeof ContactsRoute
+  '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
+  '/help': typeof HelpRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
+  '/partners': typeof PartnersRoute
   '/providers': typeof ProvidersRoute
+  '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -233,14 +265,18 @@ export interface FileRoutesById {
   '/calls': typeof CallsRoute
   '/connect': typeof ConnectRoute
   '/contacts': typeof ContactsRoute
+  '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
+  '/help': typeof HelpRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
+  '/partners': typeof PartnersRoute
   '/providers': typeof ProvidersRoute
+  '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -263,14 +299,18 @@ export interface FileRouteTypes {
     | '/calls'
     | '/connect'
     | '/contacts'
+    | '/contributors'
     | '/creators'
     | '/daily-picks'
     | '/explore'
     | '/following'
+    | '/help'
     | '/memory'
     | '/messages'
     | '/notifications'
+    | '/partners'
     | '/providers'
+    | '/settings'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
@@ -291,14 +331,18 @@ export interface FileRouteTypes {
     | '/calls'
     | '/connect'
     | '/contacts'
+    | '/contributors'
     | '/creators'
     | '/daily-picks'
     | '/explore'
     | '/following'
+    | '/help'
     | '/memory'
     | '/messages'
     | '/notifications'
+    | '/partners'
     | '/providers'
+    | '/settings'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
@@ -318,14 +362,18 @@ export interface FileRouteTypes {
     | '/calls'
     | '/connect'
     | '/contacts'
+    | '/contributors'
     | '/creators'
     | '/daily-picks'
     | '/explore'
     | '/following'
+    | '/help'
     | '/memory'
     | '/messages'
     | '/notifications'
+    | '/partners'
     | '/providers'
+    | '/settings'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
@@ -347,14 +395,18 @@ export interface RootRouteChildren {
   CallsRoute: typeof CallsRoute
   ConnectRoute: typeof ConnectRoute
   ContactsRoute: typeof ContactsRoute
+  ContributorsRoute: typeof ContributorsRoute
   CreatorsRoute: typeof CreatorsRoute
   DailyPicksRoute: typeof DailyPicksRoute
   ExploreRoute: typeof ExploreRoute
   FollowingRoute: typeof FollowingRoute
+  HelpRoute: typeof HelpRoute
   MemoryRoute: typeof MemoryRoute
   MessagesRoute: typeof MessagesRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
+  PartnersRoute: typeof PartnersRoute
   ProvidersRoute: typeof ProvidersRoute
+  SettingsRoute: typeof SettingsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   TopicsRoute: typeof TopicsRouteWithChildren
   WalletRoute: typeof WalletRoute
@@ -428,6 +480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contributors': {
+      id: '/contributors'
+      path: '/contributors'
+      fullPath: '/contributors'
+      preLoaderRoute: typeof ContributorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/creators': {
       id: '/creators'
       path: '/creators'
@@ -456,6 +515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FollowingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/memory': {
       id: '/memory'
       path: '/memory'
@@ -477,11 +543,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/partners': {
+      id: '/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof PartnersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/providers': {
       id: '/providers'
       path: '/providers'
       fullPath: '/providers'
       preLoaderRoute: typeof ProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/subscriptions': {
@@ -593,14 +673,18 @@ const rootRouteChildren: RootRouteChildren = {
   CallsRoute: CallsRoute,
   ConnectRoute: ConnectRoute,
   ContactsRoute: ContactsRoute,
+  ContributorsRoute: ContributorsRoute,
   CreatorsRoute: CreatorsRoute,
   DailyPicksRoute: DailyPicksRoute,
   ExploreRoute: ExploreRoute,
   FollowingRoute: FollowingRoute,
+  HelpRoute: HelpRoute,
   MemoryRoute: MemoryRoute,
   MessagesRoute: MessagesRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
+  PartnersRoute: PartnersRoute,
   ProvidersRoute: ProvidersRoute,
+  SettingsRoute: SettingsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   TopicsRoute: TopicsRouteWithChildren,
   WalletRoute: WalletRoute,
