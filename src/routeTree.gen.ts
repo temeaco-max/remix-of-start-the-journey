@@ -10,15 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as WorkRouteImport } from './routes/work'
+import { Route as TopicsSlugRouteImport } from './routes/topics.$slug'
+import { Route as WorkRouteImport } from './routes/work.'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivityRoute = ActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactsRoute = ContactsRouteImport.update({
@@ -41,60 +50,110 @@ const NotificationsRoute = NotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TopicsRoute = TopicsRouteImport.update({
+  id: '/topics',
+  path: '/topics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkRoute = WorkRouteImport.update({
   id: '/work',
   path: '/work',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TopicsSlugRoute = TopicsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => TopicsRoute,
+} as any)
+const WorkRoute = WorkRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
   '/memory': typeof MemoryRoute
   '/notifications': typeof NotificationsRoute
-  '/work': typeof WorkRoute
+  '/topics': typeof TopicsRouteWithChildren
+  '/work': typeof WorkRouteWithChildren
+  '/work/': typeof WorkRoute
+  '/topics/$slug': typeof TopicsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
   '/memory': typeof MemoryRoute
   '/notifications': typeof NotificationsRoute
+  '/topics': typeof TopicsRouteWithChildren
   '/work': typeof WorkRoute
+  '/topics/$slug': typeof TopicsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
   '/memory': typeof MemoryRoute
   '/notifications': typeof NotificationsRoute
-  '/work': typeof WorkRoute
+  '/topics': typeof TopicsRouteWithChildren
+  '/work': typeof WorkRouteWithChildren
+  '/work/': typeof WorkRoute
+  '/topics/$slug': typeof TopicsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/contacts' | '/explore' | '/memory' | '/notifications' | '/work'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/contacts' | '/explore' | '/memory' | '/notifications' | '/work'
-  id:
-    | '__root__'
     | '/'
+    | '/activity'
     | '/contacts'
     | '/explore'
     | '/memory'
     | '/notifications'
+    | '/topics'
     | '/work'
+    | '/work/'
+    | '/topics/$slug'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/activity'
+    | '/contacts'
+    | '/explore'
+    | '/memory'
+    | '/notifications'
+    | '/topics'
+    | '/work'
+    | '/topics/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/activity'
+    | '/contacts'
+    | '/explore'
+    | '/memory'
+    | '/notifications'
+    | '/topics'
+    | '/work'
+    | '/work/'
+    | '/topics/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ActivityRoute: typeof ActivityRoute
   ContactsRoute: typeof ContactsRoute
   ExploreRoute: typeof ExploreRoute
   MemoryRoute: typeof MemoryRoute
   NotificationsRoute: typeof NotificationsRoute
-  WorkRoute: typeof WorkRoute
+  TopicsRoute: typeof TopicsRouteWithChildren
+  WorkRoute: typeof WorkRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -104,6 +163,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activity': {
+      id: '/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacts': {
@@ -134,6 +200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/topics': {
+      id: '/topics'
+      path: '/topics'
+      fullPath: '/topics'
+      preLoaderRoute: typeof TopicsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/work': {
       id: '/work'
       path: '/work'
@@ -141,16 +214,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/topics/$slug': {
+      id: '/topics/$slug'
+      path: '/$slug'
+      fullPath: '/topics/$slug'
+      preLoaderRoute: typeof TopicsSlugRouteImport
+      parentRoute: typeof TopicsRoute
+    }
+    '/work/': {
+      id: '/work/'
+      path: '/'
+      fullPath: '/work/'
+      preLoaderRoute: typeof WorkRouteImport
+      parentRoute: typeof WorkRoute
+    }
   }
 }
 
+interface TopicsRouteChildren {
+  TopicsSlugRoute: typeof TopicsSlugRoute
+}
+
+const TopicsRouteChildren: TopicsRouteChildren = {
+  TopicsSlugRoute: TopicsSlugRoute,
+}
+
+const TopicsRouteWithChildren =
+  TopicsRoute._addFileChildren(TopicsRouteChildren)
+
+interface WorkRouteChildren {
+  WorkRoute: typeof WorkRoute
+}
+
+const WorkRouteChildren: WorkRouteChildren = {
+  WorkRoute: WorkRoute,
+}
+
+const WorkRouteWithChildren = WorkRoute._addFileChildren(WorkRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ActivityRoute: ActivityRoute,
   ContactsRoute: ContactsRoute,
   ExploreRoute: ExploreRoute,
   MemoryRoute: MemoryRoute,
   NotificationsRoute: NotificationsRoute,
-  WorkRoute: WorkRoute,
+  TopicsRoute: TopicsRouteWithChildren,
+  WorkRoute: WorkRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
