@@ -8,6 +8,7 @@ import { KURUKOO_OS_COMPONENTS } from '../src/services/kurukooOsComponentRegistr
 const shellRuntime = readFileSync(resolve(process.cwd(), 'public/js/kurukoo-desk-system.js'), 'utf8');
 const appShellRuntime = readFileSync(resolve(process.cwd(), 'public/js/kurukoo-app-shell.js'), 'utf8');
 const componentCss = readFileSync(resolve(process.cwd(), 'public/css/kurukoo-os-components.css'), 'utf8');
+const appIaCss = readFileSync(resolve(process.cwd(), 'public/css/kurukoo-app-ia.css'), 'utf8');
 const finalCss = readFileSync(resolve(process.cwd(), 'public/css/kurukoo-os-final.css'), 'utf8');
 const pixelCss = readFileSync(resolve(process.cwd(), 'public/css/kurukoo-webapp-pixel-refinement.css'), 'utf8');
 const providerCss = readFileSync(resolve(process.cwd(), 'public/css/provider-communication.css'), 'utf8');
@@ -48,6 +49,9 @@ assert.ok(componentCss.includes('.kos-opportunity-card'));
 assert.ok(componentCss.includes('.kos-context-drawer'));
 assert.ok(componentCss.includes('data-ko-state="approval-required"'));
 assert.ok(componentCss.includes('data-agent-presence="listening"'));
+assert.ok(appIaCss.includes('.k-app-surface{'), 'Shared authenticated app surface primitive must exist');
+assert.ok(appIaCss.includes('.k-app-surface .workspace-data-card'), 'Shared surface must own the common data-card boundary');
+assert.ok(appShellRuntime.includes('establishSurface'), 'App shell must establish the shared surface hook');
 assert.ok(finalCss.includes('.k-app-page .k-app-nav'));
 assert.ok(finalCss.includes('.ko-communication-actions'));
 assert.ok(finalCss.includes('[data-state="approval-required"]'));
@@ -86,4 +90,4 @@ assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'conversation-continu
 assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'pulse-timeline'));
 assert.ok(KURUKOO_OS_COMPONENTS.some((item) => item.id === 'context-inspector'));
 
-console.log('OS shell contract passed: canonical authenticated route ownership, assistant-first Home/Explore/Activity/Work vocabulary, shared state/presence vocabulary, mobile IA, non-duplicated workspace navigation and canonical visual token bridges are present.');
+console.log('OS shell contract passed: canonical authenticated route ownership, assistant-first Home/Explore/Activity/Work vocabulary, shared surface primitive, shared state/presence vocabulary, mobile IA, non-duplicated workspace navigation and canonical visual token bridges are present.');
