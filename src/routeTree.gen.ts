@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as WorkRouteImport } from './routes/work'
 
@@ -30,6 +31,11 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MemoryRoute = MemoryRouteImport.update({
+  id: '/memory',
+  path: '/memory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
+  '/memory': typeof MemoryRoute
   '/notifications': typeof NotificationsRoute
   '/work': typeof WorkRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
+  '/memory': typeof MemoryRoute
   '/notifications': typeof NotificationsRoute
   '/work': typeof WorkRoute
 }
@@ -60,21 +68,31 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/contacts': typeof ContactsRoute
   '/explore': typeof ExploreRoute
+  '/memory': typeof MemoryRoute
   '/notifications': typeof NotificationsRoute
   '/work': typeof WorkRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/contacts' | '/explore' | '/notifications' | '/work'
+  fullPaths:
+    '/' | '/contacts' | '/explore' | '/memory' | '/notifications' | '/work'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/contacts' | '/explore' | '/notifications' | '/work'
-  id: '__root__' | '/' | '/contacts' | '/explore' | '/notifications' | '/work'
+  to: '/' | '/contacts' | '/explore' | '/memory' | '/notifications' | '/work'
+  id:
+    | '__root__'
+    | '/'
+    | '/contacts'
+    | '/explore'
+    | '/memory'
+    | '/notifications'
+    | '/work'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContactsRoute: typeof ContactsRoute
   ExploreRoute: typeof ExploreRoute
+  MemoryRoute: typeof MemoryRoute
   NotificationsRoute: typeof NotificationsRoute
   WorkRoute: typeof WorkRoute
 }
@@ -102,6 +120,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/memory': {
+      id: '/memory'
+      path: '/memory'
+      fullPath: '/memory'
+      preLoaderRoute: typeof MemoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
@@ -123,6 +148,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContactsRoute: ContactsRoute,
   ExploreRoute: ExploreRoute,
+  MemoryRoute: MemoryRoute,
   NotificationsRoute: NotificationsRoute,
   WorkRoute: WorkRoute,
 }
