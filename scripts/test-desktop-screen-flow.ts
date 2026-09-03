@@ -14,14 +14,14 @@ for (const route of ['/explore','/channels','/about','/help','/chat']) require(p
 
 const app = read('views/app.ejs');
 const appRoutes = read('src/routes/appSurfaceRoutes.ts');
-const directSections: Record<string, string> = { agent: 'chat', discover: 'discover', requests: 'requests', tasks: 'tasks', connect: 'connect', reminders: 'reminders', saved: 'saved', cart: 'cart', agents: 'agents', capabilities: 'capabilities', opportunities: 'opportunities', topics: 'topics', wallet: 'wallet', points: 'points', 'top-up': 'top-up', subscriptions: 'subscriptions', checkout: 'checkout', confirmations: 'confirmations', memory: 'memory', artifacts: 'artifacts', prayer: 'prayer', call: 'call', notifications: 'notifications', safety: 'safety' };
+const directSections: Record<string, string> = { agent: 'chat', discover: 'discover', requests: 'requests', work: 'tasks', connect: 'connect', reminders: 'reminders', saved: 'saved', cart: 'cart', agents: 'agents', capabilities: 'capabilities', opportunities: 'opportunities', topics: 'topics', wallet: 'wallet', points: 'points', 'top-up': 'top-up', subscriptions: 'subscriptions', checkout: 'checkout', confirmations: 'confirmations', memory: 'memory', artifacts: 'artifacts', prayer: 'prayer', call: 'call', notifications: 'notifications', safety: 'safety' };
 for (const [section, route] of Object.entries(directSections)) require(appRoutes.includes(`'/${route}'`), `Authenticated canonical route missing /${route} for ${section}`);
-for (const route of ['desk','discover','requests','tasks','connect']) require(app.includes(`href="/${route}"`), `Authenticated desktop primary navigation does not expose /${route}`);
+for (const route of ['home','explore','activity','work']) require(appRoutes.includes(`'/${route}'`), `Authenticated primary route does not expose /${route}`);
 require(app.includes('href="/chat"'), 'Authenticated Web App missing Chat recovery');
 require(!app.includes('/app/'), 'Authenticated Web App must not retain legacy app aliases');
 require(!app.includes('/daily-picks'), 'Authenticated Web App must not retain a Daily Picks alias');
-require(app.includes('class="k-app-sidebar"'), 'Authenticated desktop sidebar missing');
-require(app.includes('class="k-mobile-tabbar"'), 'Authenticated responsive navigation contract missing');
+require(read('views/_partials/app-sidebar.ejs').includes('class="k-app-sidebar"'), 'Authenticated desktop sidebar missing');
+require(read('views/_partials/app-mobile-nav.ejs').includes('class="k-mobile-tabbar"'), 'Authenticated responsive navigation contract missing');
 
 const appShell = read('public/js/kurukoo-app-shell.js');
 require(!appShell.includes('/app/'), 'Authenticated runtime must use direct canonical routes without legacy normalizers');
@@ -36,6 +36,7 @@ for (const [href, label] of [
 ] as const) require(adminAuth.includes(`['${href}', '${label}']`), `Admin navigation missing ${label}`);
 require(adminAuth.includes('href="/" target="_blank"'), 'Admin navigation missing public-site bridge');
 require(adminAuth.includes('href="/chat"'), 'Admin navigation missing canonical Agent bridge');
+require(adminAuth.includes('Open Web App'), 'Admin navigation missing Open Web App bridge');
 require(!adminAuth.includes('/app/agent'), 'Admin navigation must not retain a legacy Agent alias');
 require(adminAuth.includes('/admin/login.html'), 'Admin navigation missing auth recovery');
 
