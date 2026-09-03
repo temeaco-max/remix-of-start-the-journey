@@ -120,7 +120,7 @@
     {
       "id": "tasks",
       "screen": "Tasks",
-      "route": "/tasks",
+      "route": "/work",
       "routeOwner": "src/routes/appSurfaceRoutes.ts::renderApp(section='tasks')",
       "templateComponentOwner": "views/app.ejs::section=tasks",
       "cssOwner": "shared authenticated app CSS + task-specific existing classes in views/app.ejs",

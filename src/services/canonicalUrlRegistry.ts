@@ -41,7 +41,7 @@ export const CANONICAL_URLS = {
     reminder: (reminderId: string) => `/reminders/${encodeURIComponent(reminderId)}`,
     saved: '/saved',
     cart: '/cart',
-    tasks: '/tasks',
+    tasks: '/work',
     task: (taskId: string) => `/tasks/${encodeURIComponent(taskId)}`,
     connect: '/connect',
     connection: (connectionId: string) => `/connections/${encodeURIComponent(connectionId)}`,
