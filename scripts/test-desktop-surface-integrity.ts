@@ -23,9 +23,13 @@ if (!publicNav.includes('/explore')) failures.push('Public navigation has no Exp
 if (!publicHead.includes('site-navigation.js')) failures.push('Public navigation runtime is not loaded by shared head');
 
 const appShell = read('views/app.ejs');
-if (!appShell.includes('k-app-sidebar')) failures.push('Authenticated desktop sidebar is missing');
-if (!appShell.includes('k-app-ask')) failures.push('Authenticated desktop Ask recovery is missing');
-if (!appShell.includes('k-mobile-tabbar')) failures.push('Authenticated responsive navigation is missing');
+const appSidebar = read('views/_partials/app-sidebar.ejs');
+const appHeader = read('views/_partials/app-header.ejs');
+const appMobileNav = read('views/_partials/app-mobile-nav.ejs');
+if (!appShell.includes("include('_partials/app-sidebar'")) failures.push('Authenticated desktop sidebar is not owned by the shared shell');
+if (!appSidebar.includes('k-app-sidebar')) failures.push('Authenticated desktop sidebar is missing');
+if (!appHeader.includes('k-app-ask')) failures.push('Authenticated desktop Ask recovery is missing');
+if (!appMobileNav.includes('k-mobile-tabbar')) failures.push('Authenticated responsive navigation is missing');
 
 const appRuntime = read('public/js/kurukoo-app-shell.js');
 for (const marker of ['normalizeAppLinks','kurukoo-webapp-pixel-refinement','kurukoo-webapp-screen-refinement']) {

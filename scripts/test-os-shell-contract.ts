@@ -52,7 +52,7 @@ assert.ok(providerCss.includes('min-height:44px'));
 assert.ok(providerCss.includes('button[disabled]'));
 assert.ok(presenceRuntime.includes("'listening'"));
 
-for (const [label, href] of [['Home','/home'],['Explore','/explore'],['Chat','/chat'],['Activity','/activity'],['Work','/tasks']]) {
+for (const [label, href] of [['Home','/home'],['Explore','/explore'],['Chat','/chat'],['Activity','/activity'],['Work','/work']]) {
   assert.ok(appShellRuntime.includes(`{label:'${label}',href:'${href}'`), `mobile/app navigation must use canonical ${label} route ${href}`);
 }
 assert.ok(appShellRuntime.includes('const createSecondaryNav=()=>{'), 'mobile/app shell must define the secondary navigation builder');
