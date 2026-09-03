@@ -19,7 +19,11 @@ type SpeechRecognitionLike = {
 
 function getRecognition(): SpeechRecognitionLike | null {
   if (typeof window === "undefined") return null;
-  const Ctor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!Ctor) return null;
   const rec: SpeechRecognitionLike = new Ctor();
   rec.lang = navigator.language || "en-GB";
