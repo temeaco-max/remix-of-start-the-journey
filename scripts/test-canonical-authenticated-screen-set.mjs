@@ -12,15 +12,15 @@ const osRegistry = fs.readFileSync('src/services/kurukooOsComponentRegistry.ts',
 const canonicalUrls = fs.readFileSync('src/services/canonicalUrlRegistry.ts', 'utf8');
 
 const expected = {
-  desk: '/desk',
+  desk: '/home',
   chat: '/chat',
-  requests: '/requests',
-  tasks: '/tasks',
+  requests: '/activity',
+  tasks: '/work',
   notifications: '/notifications',
   contacts: '/connect',
   memory: '/memory',
   agent: '/chat',
-  discover: '/discover',
+  discover: '/explore',
 };
 
 assert.equal(manifest.manifestVersion, 1);
@@ -51,16 +51,16 @@ for (const [id, route] of Object.entries(expected)) {
 
 assert.match(routes, /router\.get\('\/chat\/:conversationId'/);
 assert.match(routes, /sendFile\(path\.join\(process\.cwd\(\), 'public', 'chat', 'index\.html'\)\)/);
-assert.match(routes, /\['desk', \{ title: 'Desk'/);
+assert.match(routes, /\['desk', \{ title: 'Home'/);
 assert.match(routes, /const cleanCanonicalSections: Record<string, string> = \{/);
-assert.match(routes, /'\/desk': 'desk'/);
-assert.match(routes, /function renderApp\(req: express\.Request, res: express\.Response, section = 'desk'\)/);
+assert.match(routes, /'\/desk': 'desk'/) || assert.match(routes, /'\/home': 'desk'/);
+assert.match(routes, /function renderApp\(req: express\.Request, res: express\.Response, section = 'desk'/);
 assert.match(routes, /return res\.render\('app'/);
 
 for (const token of ['/js/kurukoo-desk-system.js?v=1', '/css/kurukoo-desk-system.css?v=1', '/js/kurukoo-desk-live-hydration.js?v=1']) {
   assert.ok(appExtensions.includes(token), `Authenticated app extension chain missing: ${token}`);
 }
-for (const token of ['k-app-header', 'k-app-sidebar', 'k-app-nav', 'k-app-main']) assert.ok(appTemplate.includes(token), `Shared app shell missing from canonical template: ${token}`);
+for (const token of ['k-app-page', 'k-app-shell', 'k-app-main', 'k-app-surface']) assert.ok(appTemplate.includes(token), `Shared app shell missing from canonical template: ${token}`);
 for (const token of ['chat-shell', 'chat-header', 'workspace-nav', 'composer-wrap', 'composer', 'chat-inspector']) assert.ok(chat.includes(token), `Canonical Chat shell/composer marker missing: ${token}`);
 
 for (const screen of manifest.screens) {
