@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "../components/app-shell";
-import { KurukooProvider } from "../lib/kurukoo-store";
+import { KurukooProvider } from "@/lib/kurukoo-store";
 
 function NotFoundComponent() {
   return (
