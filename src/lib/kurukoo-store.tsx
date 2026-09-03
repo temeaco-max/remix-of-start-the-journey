@@ -1,11 +1,6 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+// PROTOTYPE ONLY: in-memory client state standing in for the Kurukoo backend.
+// Do not grow this fake logic — replace it with the real APIs.
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 export type WorkStage = "understanding" | "working" | "needs_you" | "done";
 
@@ -87,7 +82,8 @@ function reply(text: string): { answer: string; work?: WorkItem } {
       ],
     };
     return {
-      answer: "On it. I'll reach out and come back to you with options before anything is committed.",
+      answer:
+        "On it. I'll reach out and come back to you with options before anything is committed.",
       work,
     };
   }
@@ -116,7 +112,12 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
     if (newWork) {
       setWork((w) => [newWork, ...w]);
       setMemory((m) => [
-        { id: uid(), label: "Recent request", value: newWork.title, source: "From your conversation" },
+        {
+          id: uid(),
+          label: "Recent request",
+          value: newWork.title,
+          source: "From your conversation",
+        },
         ...m,
       ]);
     }
@@ -149,7 +150,9 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const confirm = useCallback((id: string) => {
-    setNotifications((n) => n.map((item) => (item.id === id ? { ...item, needsConfirmation: false, read: true } : item)));
+    setNotifications((n) =>
+      n.map((item) => (item.id === id ? { ...item, needsConfirmation: false, read: true } : item)),
+    );
   }, []);
 
   const markRead = useCallback((id: string) => {

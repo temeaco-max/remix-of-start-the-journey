@@ -2,21 +2,28 @@ import { ArrowUp, Mic, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
+type SpeechResultEvent = {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+};
+
 type SpeechRecognitionLike = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
   start: () => void;
   stop: () => void;
-  onresult: ((event: any) => void) | null;
+  onresult: ((event: SpeechResultEvent) => void) | null;
   onend: (() => void) | null;
   onerror: (() => void) | null;
 };
 
 function getRecognition(): SpeechRecognitionLike | null {
   if (typeof window === "undefined") return null;
-  const Ctor =
-    (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!Ctor) return null;
   const rec: SpeechRecognitionLike = new Ctor();
   rec.lang = navigator.language || "en-GB";
@@ -65,9 +72,9 @@ export function Composer({
     const rec = getRecognition();
     if (!rec) return;
     recRef.current = rec;
-    rec.onresult = (event: any) => {
+    rec.onresult = (event) => {
       const text = Array.from(event.results)
-        .map((r: any) => r[0].transcript)
+        .map((r) => r[0]?.transcript ?? "")
         .join(" ");
       setDraft(text);
     };

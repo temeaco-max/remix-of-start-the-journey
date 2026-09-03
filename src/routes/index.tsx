@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowUp } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { Composer } from "@/components/kurukoo/composer";
+import { Message } from "@/components/kurukoo/primitives";
 import { useKurukoo } from "@/lib/kurukoo-store";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,17 +32,11 @@ const suggestions = [
 
 function HomePage() {
   const { messages, send, work } = useKurukoo();
-  const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length]);
-
-  const submit = (text: string) => {
-    send(text);
-    setDraft("");
-  };
 
   const active = work.filter((w) => w.stage !== "done");
 
@@ -61,8 +55,8 @@ function HomePage() {
               <button
                 key={s}
                 type="button"
-                onClick={() => submit(s)}
-                className="rounded-full border border-border bg-surface px-3.5 py-2 text-[13.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                onClick={() => send(s)}
+                className="min-h-9 rounded-full border border-border bg-surface px-3.5 py-2 text-[13.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
               >
                 {s}
               </button>
@@ -72,25 +66,16 @@ function HomePage() {
       ) : (
         <div className="flex-1 space-y-5 py-4">
           {messages.map((m) => (
-            <div
-              key={m.id}
-              className={cn("flex", m.role === "you" ? "justify-end" : "justify-start")}
-            >
-              <div
-                className={cn(
-                  "max-w-[85%] text-[15px] leading-relaxed",
-                  m.role === "you"
-                    ? "rounded-2xl rounded-br-md bg-elevated px-4 py-2.5"
-                    : "text-foreground",
-                )}
-              >
-                {m.text}
-              </div>
-            </div>
+            <Message key={m.id} message={m} />
           ))}
           {active.length > 0 ? (
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <p className="text-[12px] uppercase tracking-wide text-muted-foreground">In progress</p>
+            <section
+              aria-label="In progress"
+              className="rounded-xl border border-border bg-surface px-4 py-3"
+            >
+              <p className="text-[12px] uppercase tracking-wide text-muted-foreground">
+                In progress
+              </p>
               <ul className="mt-2 space-y-1.5">
                 {active.map((w) => (
                   <li key={w.id} className="flex items-center justify-between gap-4 text-[14.5px]">
@@ -99,39 +84,13 @@ function HomePage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </section>
           ) : null}
           <div ref={endRef} />
         </div>
       )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit(draft);
-        }}
-        className="sticky bottom-20 mt-4 flex items-end gap-2 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-lift)] md:bottom-6"
-      >
-        <label htmlFor="ask" className="sr-only">
-          Ask Kurukoo
-        </label>
-        <input
-          id="ask"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Ask Kurukoo…"
-          autoComplete="off"
-          className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[15px] outline-none placeholder:text-muted-foreground"
-        />
-        <button
-          type="submit"
-          disabled={!draft.trim()}
-          aria-label="Send"
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-35"
-        >
-          <ArrowUp className="size-[18px]" />
-        </button>
-      </form>
+      <Composer onSend={send} />
     </div>
   );
 }
