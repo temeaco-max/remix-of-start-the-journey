@@ -156,7 +156,7 @@
     body.innerHTML = '<p class="k-muted">Your Chat workspace follows you here. Nothing important is hidden - continue any active work from Chat.</p>';
     const groups = [
       ['Conversation', [['Start with Chat', '/chat'], ['Recent conversations', '/chat']]],
-      ['Work', [['Activity', '/activity'], ['Work', '/tasks'], ['Explore', '/explore'], ['Connect', '/connect'], ['Topics', '/topics']]],
+      ['Work', [['Activity', '/activity'], ['Work', '/work'], ['Explore', '/explore'], ['Connect', '/connect'], ['Topics', '/topics']]],
       ['Account & continuity', [['Saved & offers', '/saved'], ['Reminders', '/reminders'], ['Memory', '/memory'], ['Safety & check-ins', '/safety'], ['Settings', '/settings']]],
       ['Economy', [['Top up', '/top-up'], ['Subscription', '/subscriptions'], ['Points', '/points'], ['Cart', '/cart']]],
     ];

@@ -17,7 +17,6 @@ const icons = readFileSync(resolve(process.cwd(), 'public/icons/kurukoo-icons.sv
 const appRoutes = readFileSync(resolve(process.cwd(), 'src/routes/appSurfaceRoutes.ts'), 'utf8');
 const appTemplate = readFileSync(resolve(process.cwd(), 'views/app.ejs'), 'utf8');
 const mobileNav = readFileSync(resolve(process.cwd(), 'views/_partials/app-mobile-nav.ejs'), 'utf8');
-const appIaCss = readFileSync(resolve(process.cwd(), 'public/css/kurukoo-app-ia.css'), 'utf8');
 const surfaceRegistry = readFileSync(resolve(process.cwd(), 'src/services/clientSurfaceRegistry.ts'), 'utf8');
 
 for (const required of [
@@ -35,7 +34,7 @@ assert.match(appTemplate, /name="prompt"/, 'Home composer must pass the user req
 assert.match(mobileNav, /href="\/work"[\s\S]*aria-label="Work"/, 'Rendered mobile navigation must expose canonical Work');
 assert.ok(appIaCss.includes('.k-home-intent-form'), 'Home composer must have dedicated responsive styling');
 assert.ok(appIaCss.includes('.k-app-surface'), 'Authenticated app IA must establish the shared k-app-surface primitive');
-assert.ok(shellRuntime.includes('establishSurface'), 'App shell runtime must establish the shared k-app-surface primitive');
+assert.ok(appShellRuntime.includes('establishSurface'), 'App shell runtime must establish the shared k-app-surface primitive');
 
 // Visible home-shell language must match the assistant-first product vocabulary.
 for (const forbidden of [

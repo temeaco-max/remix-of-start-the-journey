@@ -41,7 +41,7 @@ export const CLIENT_SURFACES: readonly ClientSurface[] = [
 
   // Authenticated browser OS — clean URLs
   { id: 'web-desk', label: 'Desk', family: 'web', route: '/desk', primaryNavigation: 'workspace', semanticOwners: ['appSurfaceRoutes', 'pageContentContracts', 'conversationWorkspace'], states: ['represented', 'implemented', 'contract_tested'], responsive: true },
-  { id: 'web-chat', label: 'Agent', family: 'web', route: '/chat', primaryNavigation: 'agent', semanticOwners: ['canonicalChatTurnService', 'contextArbitration', 'conversationWorkspace'], states: ['represented', 'implemented', 'contract_tested'], responsive: true },
+  { id: 'web-chat', label: 'Chat', family: 'web', route: '/chat', primaryNavigation: 'agent', semanticOwners: ['canonicalChatTurnService', 'contextArbitration', 'conversationWorkspace'], states: ['represented', 'implemented', 'contract_tested'], responsive: true },
   { id: 'web-chat-conversation', label: 'Conversation', family: 'web', route: '/chat/:conversationId', primaryNavigation: 'agent', semanticOwners: ['canonicalChatTurnService', 'conversationWorkspace'], states: ['represented', 'implemented', 'contract_tested'], responsive: true },
   { id: 'web-discover', label: 'Discover', family: 'web', route: '/discover', primaryNavigation: 'discover', semanticOwners: ['discoveryRoutes', 'nearbyPulse', 'opportunityEngine'], states: ['represented', 'implemented'], responsive: true },
   { id: 'web-topics', label: 'Topics', family: 'web', route: '/topics', primaryNavigation: 'secondary', semanticOwners: ['topicRoutes', 'topicService', 'community-context'], states: ['represented', 'implemented'], responsive: true },
