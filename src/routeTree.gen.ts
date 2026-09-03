@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as CallsRouteImport } from './routes/calls'
 import { Route as ContactsRouteImport } from './routes/contacts'
+import { Route as DailyPicksRouteImport } from './routes/daily-picks'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as FollowingRouteImport } from './routes/following'
 import { Route as MemoryRouteImport } from './routes/memory'
@@ -34,9 +36,19 @@ const ActivityRoute = ActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CallsRoute = CallsRouteImport.update({
+  id: '/calls',
+  path: '/calls',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactsRoute = ContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DailyPicksRoute = DailyPicksRouteImport.update({
+  id: '/daily-picks',
+  path: '/daily-picks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -98,7 +110,9 @@ const WorkRoute = WorkRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/calls': typeof CallsRoute
   '/contacts': typeof ContactsRoute
+  '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/memory': typeof MemoryRoute
@@ -114,7 +128,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/calls': typeof CallsRoute
   '/contacts': typeof ContactsRoute
+  '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/memory': typeof MemoryRoute
@@ -130,7 +146,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/calls': typeof CallsRoute
   '/contacts': typeof ContactsRoute
+  '/daily-picks': typeof DailyPicksRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/memory': typeof MemoryRoute
@@ -148,7 +166,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activity'
+    | '/calls'
     | '/contacts'
+    | '/daily-picks'
     | '/explore'
     | '/following'
     | '/memory'
@@ -164,7 +184,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/activity'
+    | '/calls'
     | '/contacts'
+    | '/daily-picks'
     | '/explore'
     | '/following'
     | '/memory'
@@ -179,7 +201,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/activity'
+    | '/calls'
     | '/contacts'
+    | '/daily-picks'
     | '/explore'
     | '/following'
     | '/memory'
@@ -196,7 +220,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
+  CallsRoute: typeof CallsRoute
   ContactsRoute: typeof ContactsRoute
+  DailyPicksRoute: typeof DailyPicksRoute
   ExploreRoute: typeof ExploreRoute
   FollowingRoute: typeof FollowingRoute
   MemoryRoute: typeof MemoryRoute
@@ -223,11 +249,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/calls': {
+      id: '/calls'
+      path: '/calls'
+      fullPath: '/calls'
+      preLoaderRoute: typeof CallsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contacts': {
       id: '/contacts'
       path: '/contacts'
       fullPath: '/contacts'
       preLoaderRoute: typeof ContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daily-picks': {
+      id: '/daily-picks'
+      path: '/daily-picks'
+      fullPath: '/daily-picks'
+      preLoaderRoute: typeof DailyPicksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -346,7 +386,9 @@ const WorkRouteWithChildren = WorkRoute._addFileChildren(WorkRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
+  CallsRoute: CallsRoute,
   ContactsRoute: ContactsRoute,
+  DailyPicksRoute: DailyPicksRoute,
   ExploreRoute: ExploreRoute,
   FollowingRoute: FollowingRoute,
   MemoryRoute: MemoryRoute,
