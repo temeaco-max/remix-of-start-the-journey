@@ -36,6 +36,7 @@ import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as WalletRouteImport } from './routes/wallet'
@@ -182,6 +183,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SubscriptionsRoute = SubscriptionsRouteImport.update({
   id: '/subscriptions',
   path: '/subscriptions',
@@ -261,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -300,6 +307,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -381,6 +390,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/providers'
     | '/settings'
+    | '/signup'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
@@ -420,6 +430,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/providers'
     | '/settings'
+    | '/signup'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/providers'
     | '/settings'
+    | '/signup'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
@@ -499,6 +511,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   ProvidersRoute: typeof ProvidersRoute
   SettingsRoute: typeof SettingsRoute
+  SignupRoute: typeof SignupRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   TopicsRoute: typeof TopicsRouteWithChildren
   WalletRoute: typeof WalletRoute
@@ -699,6 +712,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/subscriptions': {
       id: '/subscriptions'
       path: '/subscriptions'
@@ -833,6 +853,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   ProvidersRoute: ProvidersRoute,
   SettingsRoute: SettingsRoute,
+  SignupRoute: SignupRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   TopicsRoute: TopicsRouteWithChildren,
   WalletRoute: WalletRoute,
