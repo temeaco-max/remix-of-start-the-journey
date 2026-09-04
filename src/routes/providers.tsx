@@ -10,9 +10,16 @@ export const Route = createFileRoute("/providers")({
   head: () => ({
     meta: [
       { title: "Providers — Kurukoo" },
-      { name: "description", content: "Find a provider, or run your own provider account: requests, work, messages and earnings." },
+      {
+        name: "description",
+        content:
+          "Find a provider, or run your own provider account: requests, work, messages and earnings.",
+      },
       { property: "og:title", content: "Providers — Kurukoo" },
-      { property: "og:description", content: "Where tradespeople and specialists meet real requests." },
+      {
+        property: "og:description",
+        content: "Where tradespeople and specialists meet real requests.",
+      },
     ],
   }),
   component: ProvidersPage,

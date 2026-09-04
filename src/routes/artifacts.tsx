@@ -10,9 +10,15 @@ export const Route = createFileRoute("/artifacts")({
   head: () => ({
     meta: [
       { title: "Artifacts — Kurukoo" },
-      { name: "description", content: "Files you shared and things Kurukoo produced, stored where you choose." },
+      {
+        name: "description",
+        content: "Files you shared and things Kurukoo produced, stored where you choose.",
+      },
       { property: "og:title", content: "Artifacts — Kurukoo" },
-      { property: "og:description", content: "Your file layer, attached to conversation and work." },
+      {
+        property: "og:description",
+        content: "Your file layer, attached to conversation and work.",
+      },
     ],
   }),
   component: ArtifactsPage,

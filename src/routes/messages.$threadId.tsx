@@ -11,7 +11,10 @@ export const Route = createFileRoute("/messages/$threadId")({
   head: () => ({
     meta: [
       { title: "Conversation — Kurukoo" },
-      { name: "description", content: "A direct thread with a provider or business, with the work in context." },
+      {
+        name: "description",
+        content: "A direct thread with a provider or business, with the work in context.",
+      },
       { property: "og:title", content: "Conversation — Kurukoo" },
       { property: "og:description", content: "Message, call and approve in one thread." },
     ],
@@ -60,7 +63,10 @@ function ThreadPage() {
 
       <div className="flex-1 space-y-4">
         {thread.messages.map((m) => (
-          <div key={m.id} className={cn("flex", m.from === "you" ? "justify-end" : "justify-start")}>
+          <div
+            key={m.id}
+            className={cn("flex", m.from === "you" ? "justify-end" : "justify-start")}
+          >
             <div
               className={cn(
                 "max-w-[85%] rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed",

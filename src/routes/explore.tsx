@@ -12,7 +12,10 @@ export const Route = createFileRoute("/explore")({
   head: () => ({
     meta: [
       { title: "Explore — Kurukoo" },
-      { name: "description", content: "Discover providers, businesses, services, creators, topics and content." },
+      {
+        name: "description",
+        content: "Discover providers, businesses, services, creators, topics and content.",
+      },
       { property: "og:title", content: "Explore — Kurukoo" },
       { property: "og:description", content: "The discovery layer of Kurukoo." },
     ],
@@ -49,11 +52,15 @@ function ExplorePage() {
     });
   }, [q, cat]);
 
-  const showEntities = cat === "All" || cat === "Providers" || cat === "Businesses" || cat === "Creators";
+  const showEntities =
+    cat === "All" || cat === "Providers" || cat === "Businesses" || cat === "Creators";
 
   return (
     <>
-      <PageHeader title="Explore" subtitle="Find people, businesses and ideas — then hand it to Kurukoo." />
+      <PageHeader
+        title="Explore"
+        subtitle="Find people, businesses and ideas — then hand it to Kurukoo."
+      />
 
       <div className="space-y-3">
         <SearchField
@@ -102,7 +109,10 @@ function ExplorePage() {
 
       {showEntities ? (
         <section className="mt-8">
-          <SectionHeader title={cat === "All" ? "People and places" : cat} subtitle={`${results.length} results`} />
+          <SectionHeader
+            title={cat === "All" ? "People and places" : cat}
+            subtitle={`${results.length} results`}
+          />
           <div className="grid gap-3">
             {results.map((e) => (
               <EntityCard key={e.id} entity={e} />

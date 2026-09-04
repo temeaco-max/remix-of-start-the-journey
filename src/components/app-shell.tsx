@@ -1,15 +1,37 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun } from "lucide-react";
+import {
+  Home,
+  Compass,
+  ListChecks,
+  Bell,
+  Users,
+  Brain,
+  Moon,
+  Sun,
+  MessageSquare,
+  FolderClosed,
+  Plug,
+  Wallet,
+  Settings,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/", label: "Home", icon: Home },
   { to: "/explore", label: "Explore", icon: Compass },
+  { to: "/activity", label: "Activity", icon: Bell },
   { to: "/work", label: "Work", icon: ListChecks },
-  { to: "/notifications", label: "Notifications", icon: Bell },
+] as const;
+
+const more = [
+  { to: "/messages", label: "Messages", icon: MessageSquare },
   { to: "/contacts", label: "Contacts", icon: Users },
+  { to: "/artifacts", label: "Files", icon: FolderClosed },
+  { to: "/connect", label: "Connect", icon: Plug },
+  { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/memory", label: "Memory", icon: Brain },
+  { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 function ThemeToggle() {
@@ -71,11 +93,52 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+
+        <p className="px-3 pb-1 pt-6 text-[11px] uppercase tracking-wide text-muted-foreground">
+          More
+        </p>
+        <nav className="flex flex-col gap-0.5">
+          {more.map(({ to, label, icon: Icon }) => {
+            const active = pathname === to;
+            return (
+              <Link
+                key={to}
+                to={to}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-colors",
+                  active
+                    ? "bg-elevated font-medium text-foreground"
+                    : "text-muted-foreground hover:bg-elevated/70 hover:text-foreground",
+                )}
+              >
+                <Icon className="size-[17px]" strokeWidth={active ? 2.2 : 1.8} />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
       </aside>
 
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:hidden">
-        <span className="text-[15px] font-semibold tracking-tight">Kurukoo</span>
-        <ThemeToggle />
+      <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur md:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-[15px] font-semibold tracking-tight">Kurukoo</span>
+          <ThemeToggle />
+        </div>
+        <nav
+          aria-label="More Kurukoo surfaces"
+          className="-mx-0 flex gap-2 overflow-x-auto px-4 pb-2.5"
+        >
+          {more.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              className="min-h-8 shrink-0 rounded-full border border-border px-3 py-1.5 text-[12.5px] text-muted-foreground"
+              activeProps={{ className: "border-transparent bg-elevated text-foreground" }}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
       </header>
 
       <main className="md:pl-[236px]">
@@ -84,7 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {nav.map(({ to, label, icon: Icon }) => {
           const active = pathname === to;
           return (

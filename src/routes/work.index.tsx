@@ -3,7 +3,7 @@ import { EmptyState, PageHeader } from "@/components/app-shell";
 import { WorkItemCard } from "@/components/kurukoo/primitives";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
-export const Route = createFileRoute("/work")({
+export const Route = createFileRoute("/work/")({
   head: () => ({
     meta: [
       { title: "Work — Kurukoo" },

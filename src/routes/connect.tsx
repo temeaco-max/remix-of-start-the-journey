@@ -8,7 +8,11 @@ export const Route = createFileRoute("/connect")({
   head: () => ({
     meta: [
       { title: "Connect — Kurukoo" },
-      { name: "description", content: "Connect storage, messaging, email and calendar so Kurukoo can act with your approval." },
+      {
+        name: "description",
+        content:
+          "Connect storage, messaging, email and calendar so Kurukoo can act with your approval.",
+      },
       { property: "og:title", content: "Connect — Kurukoo" },
       { property: "og:description", content: "The integration layer of Kurukoo." },
     ],
@@ -32,7 +36,11 @@ function ConnectionCard({ c }: { c: Connection }) {
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{c.description}</p>
         </div>
         <Badge tone={c.state === "connected" ? "success" : "quiet"}>
-          {c.state === "connected" ? "Connected" : c.state === "available" ? "Not connected" : "Coming soon"}
+          {c.state === "connected"
+            ? "Connected"
+            : c.state === "available"
+              ? "Not connected"
+              : "Coming soon"}
         </Badge>
       </div>
       <p className="mt-2 text-[12.5px] text-muted-foreground">{c.permissions}</p>

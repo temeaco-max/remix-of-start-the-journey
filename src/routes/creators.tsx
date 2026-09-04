@@ -10,7 +10,10 @@ export const Route = createFileRoute("/creators")({
   head: () => ({
     meta: [
       { title: "Creators — Kurukoo" },
-      { name: "description", content: "Watch practical content from Kurukoo creators, or publish your own." },
+      {
+        name: "description",
+        content: "Watch practical content from Kurukoo creators, or publish your own.",
+      },
       { property: "og:title", content: "Creators — Kurukoo" },
       { property: "og:description", content: "Creator channels, videos and publishing tools." },
     ],
@@ -26,7 +29,10 @@ function CreatorsPage() {
 
   return (
     <>
-      <PageHeader title="Creators" subtitle="People explaining the things you're about to ask for." />
+      <PageHeader
+        title="Creators"
+        subtitle="People explaining the things you're about to ask for."
+      />
       <Tabs items={tabs} value={tab} onChange={setTab} />
 
       {tab === "Watch" ? (
@@ -53,7 +59,10 @@ function CreatorsPage() {
             <StatTile label="Earnings" value="—" note="Not connected" />
           </div>
           <section>
-            <SectionHeader title="Publishing" subtitle="Upload, describe, place in topics, publish." />
+            <SectionHeader
+              title="Publishing"
+              subtitle="Upload, describe, place in topics, publish."
+            />
             <Rows>
               {[
                 ["New video", "Upload and add a thumbnail"],

@@ -9,9 +9,15 @@ export const Route = createFileRoute("/daily-picks")({
   head: () => ({
     meta: [
       { title: "Daily Picks — Kurukoo" },
-      { name: "description", content: "A short, useful set of providers, businesses, creators and topics for today." },
+      {
+        name: "description",
+        content: "A short, useful set of providers, businesses, creators and topics for today.",
+      },
       { property: "og:title", content: "Daily Picks — Kurukoo" },
-      { property: "og:description", content: "Today's short list, chosen around what you've asked for." },
+      {
+        property: "og:description",
+        content: "Today's short list, chosen around what you've asked for.",
+      },
     ],
   }),
   component: DailyPicksPage,

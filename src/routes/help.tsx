@@ -9,7 +9,10 @@ export const Route = createFileRoute("/help")({
   head: () => ({
     meta: [
       { title: "Help — Kurukoo" },
-      { name: "description", content: "Getting started, chat, work, payments, providers, integrations and safety." },
+      {
+        name: "description",
+        content: "Getting started, chat, work, payments, providers, integrations and safety.",
+      },
       { property: "og:title", content: "Help — Kurukoo" },
       { property: "og:description", content: "Find an answer, or just ask Kurukoo." },
     ],
@@ -17,7 +20,7 @@ export const Route = createFileRoute("/help")({
   component: HelpPage,
 });
 
-const sections = [
+const sections: [string, string][] = [
   ["Getting started", "What Kurukoo does and how to ask for things"],
   ["Chat", "Conversation, voice input and approvals"],
   ["Work", "Following a request from start to finish"],

@@ -10,7 +10,10 @@ export const Route = createFileRoute("/activity")({
   head: () => ({
     meta: [
       { title: "Activity — Kurukoo" },
-      { name: "description", content: "Replies, approvals, follows and system updates in one place." },
+      {
+        name: "description",
+        content: "Replies, approvals, follows and system updates in one place.",
+      },
       { property: "og:title", content: "Activity — Kurukoo" },
       { property: "og:description", content: "Everything that happened around your requests." },
     ],
@@ -62,7 +65,11 @@ function ActivityPage() {
               const who = entities.find((e) => e.id === t.withId);
               return (
                 <li key={t.id} className="px-4 py-3.5">
-                  <Link to="/messages/$threadId" params={{ threadId: t.id }} className="flex items-center gap-3">
+                  <Link
+                    to="/messages/$threadId"
+                    params={{ threadId: t.id }}
+                    className="flex items-center gap-3"
+                  >
                     <Avatar name={who?.name ?? "?"} size={36} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px]">{who?.name}</span>

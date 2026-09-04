@@ -9,9 +9,15 @@ export const Route = createFileRoute("/calls")({
   head: () => ({
     meta: [
       { title: "Voice and calls — Kurukoo" },
-      { name: "description", content: "Voice sessions and call states for talking to Kurukoo, providers and businesses." },
+      {
+        name: "description",
+        content: "Voice sessions and call states for talking to Kurukoo, providers and businesses.",
+      },
       { property: "og:title", content: "Voice and calls — Kurukoo" },
-      { property: "og:description", content: "The voice modality of the same Kurukoo conversation." },
+      {
+        property: "og:description",
+        content: "The voice modality of the same Kurukoo conversation.",
+      },
     ],
   }),
   component: CallsPage,
@@ -29,7 +35,10 @@ const states = [
 function CallsPage() {
   return (
     <>
-      <PageHeader title="Voice and calls" subtitle="Speaking is another way into the same conversation." />
+      <PageHeader
+        title="Voice and calls"
+        subtitle="Speaking is another way into the same conversation."
+      />
 
       <Panel className="p-4">
         <div className="flex items-center gap-3">
@@ -48,7 +57,10 @@ function CallsPage() {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {["Retry", "Cancel", "Send transcript"].map((a) => (
-            <span key={a} className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-[13.5px]">
+            <span
+              key={a}
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-[13.5px]"
+            >
               {a}
             </span>
           ))}
@@ -56,7 +68,10 @@ function CallsPage() {
       </Panel>
 
       <section className="mt-8">
-        <SectionHeader title="Call states" subtitle="UI contracts ready for a real WebRTC session." />
+        <SectionHeader
+          title="Call states"
+          subtitle="UI contracts ready for a real WebRTC session."
+        />
         <div className="grid gap-3 sm:grid-cols-2">
           {states.map((s) => (
             <Panel key={s.label} className="p-4">

@@ -2,7 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { VideoCard, VideoFrame } from "@/components/kurukoo/cards";
 import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
-import { Avatar, FollowButton, Rows, SaveButton, SectionHeader, ShareButton } from "@/components/kurukoo/ui";
+import {
+  Avatar,
+  FollowButton,
+  Rows,
+  SaveButton,
+  SectionHeader,
+  ShareButton,
+} from "@/components/kurukoo/ui";
 import { entityById, videoById, videos } from "@/lib/kurukoo-demo";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
@@ -10,7 +17,10 @@ export const Route = createFileRoute("/videos/$videoId")({
   head: () => ({
     meta: [
       { title: "Watch — Kurukoo" },
-      { name: "description", content: "Watch practical Kurukoo content and turn it into a request." },
+      {
+        name: "description",
+        content: "Watch practical Kurukoo content and turn it into a request.",
+      },
       { property: "og:title", content: "Watch — Kurukoo" },
       { property: "og:description", content: "From watching to getting it done." },
     ],
@@ -59,7 +69,10 @@ function WatchPage() {
         <SaveButton />
         <ShareButton />
         <Link to="/">
-          <Action variant="primary" onClick={() => send(`I watched "${video.title}" — can you sort this for me?`)}>
+          <Action
+            variant="primary"
+            onClick={() => send(`I watched "${video.title}" — can you sort this for me?`)}
+          >
             Ask Kurukoo to do this
           </Action>
         </Link>

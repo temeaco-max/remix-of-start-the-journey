@@ -10,9 +10,16 @@ export const Route = createFileRoute("/businesses")({
   head: () => ({
     meta: [
       { title: "Businesses — Kurukoo" },
-      { name: "description", content: "Discover businesses, or run yours on Kurukoo: requests, customers, advertising and analytics." },
+      {
+        name: "description",
+        content:
+          "Discover businesses, or run yours on Kurukoo: requests, customers, advertising and analytics.",
+      },
       { property: "og:title", content: "Businesses — Kurukoo" },
-      { property: "og:description", content: "Where businesses meet people who are already asking." },
+      {
+        property: "og:description",
+        content: "Where businesses meet people who are already asking.",
+      },
     ],
   }),
   component: BusinessesPage,
@@ -26,7 +33,10 @@ function BusinessesPage() {
 
   return (
     <>
-      <PageHeader title="Businesses" subtitle="Services, products and teams people can reach through Kurukoo." />
+      <PageHeader
+        title="Businesses"
+        subtitle="Services, products and teams people can reach through Kurukoo."
+      />
       <Tabs items={tabs} value={tab} onChange={setTab} />
 
       {tab === "Discover" ? (

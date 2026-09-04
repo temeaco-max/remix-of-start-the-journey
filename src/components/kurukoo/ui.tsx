@@ -296,7 +296,13 @@ export function ErrorState({ title, body }: { title: string; body: string }) {
   );
 }
 
-export function Badge({ children, tone = "quiet" }: { children: ReactNode; tone?: "quiet" | "accent" | "success" }) {
+export function Badge({
+  children,
+  tone = "quiet",
+}: {
+  children: ReactNode;
+  tone?: "quiet" | "accent" | "success";
+}) {
   return (
     <span
       className={cn(

@@ -9,9 +9,15 @@ export const Route = createFileRoute("/wallet")({
   head: () => ({
     meta: [
       { title: "Wallet and points — Kurukoo" },
-      { name: "description", content: "Kurukoo points, money, top-ups and transaction history, kept separate." },
+      {
+        name: "description",
+        content: "Kurukoo points, money, top-ups and transaction history, kept separate.",
+      },
       { property: "og:title", content: "Wallet and points — Kurukoo" },
-      { property: "og:description", content: "The value layer: points for work, money for payments." },
+      {
+        property: "og:description",
+        content: "The value layer: points for work, money for payments.",
+      },
     ],
   }),
   component: WalletPage,
