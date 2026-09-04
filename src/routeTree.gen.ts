@@ -33,12 +33,12 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as WalletRouteImport } from './routes/wallet'
-import { Route as WorkRouteImport } from './routes/work'
 import { Route as MessagesThreadIdRouteImport } from './routes/messages.$threadId'
 import { Route as ProfileEntityIdRouteImport } from './routes/profile.$entityId'
 import { Route as TopicsSlugRouteImport } from './routes/topics.$slug'
 import { Route as VideosVideoIdRouteImport } from './routes/videos.$videoId'
-import { Route as WorkRouteImport } from './routes/work.'
+import { Route as WorkIndexRouteImport } from './routes/work.index'
+import { Route as WorkWorkIdRouteImport } from './routes/work.$workId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -160,11 +160,6 @@ const WalletRoute = WalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WorkRoute = WorkRouteImport.update({
-  id: '/work',
-  path: '/work',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MessagesThreadIdRoute = MessagesThreadIdRouteImport.update({
   id: '/$threadId',
   path: '/$threadId',
@@ -185,10 +180,15 @@ const VideosVideoIdRoute = VideosVideoIdRouteImport.update({
   path: '/videos/$videoId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WorkRoute = WorkRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => WorkRoute,
+const WorkIndexRoute = WorkIndexRouteImport.update({
+  id: '/work/',
+  path: '/work/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkWorkIdRoute = WorkWorkIdRouteImport.update({
+  id: '/work/$workId',
+  path: '/work/$workId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -216,12 +216,12 @@ export interface FileRoutesByFullPath {
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
-  '/work': typeof WorkRouteWithChildren
-  '/work/': typeof WorkRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
+  '/work/$workId': typeof WorkWorkIdRoute
+  '/work/': typeof WorkIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -248,11 +248,12 @@ export interface FileRoutesByTo {
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
-  '/work': typeof WorkRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
+  '/work/$workId': typeof WorkWorkIdRoute
+  '/work': typeof WorkIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -280,12 +281,12 @@ export interface FileRoutesById {
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
-  '/work': typeof WorkRouteWithChildren
-  '/work/': typeof WorkRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
+  '/work/$workId': typeof WorkWorkIdRoute
+  '/work/': typeof WorkIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -314,12 +315,12 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/topics'
     | '/wallet'
-    | '/work'
-    | '/work/'
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
     | '/videos/$videoId'
+    | '/work/$workId'
+    | '/work/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -346,11 +347,12 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/topics'
     | '/wallet'
-    | '/work'
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
     | '/videos/$videoId'
+    | '/work/$workId'
+    | '/work'
   id:
     | '__root__'
     | '/'
@@ -377,12 +379,12 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/topics'
     | '/wallet'
-    | '/work'
-    | '/work/'
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
     | '/videos/$videoId'
+    | '/work/$workId'
+    | '/work/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -410,9 +412,10 @@ export interface RootRouteChildren {
   SubscriptionsRoute: typeof SubscriptionsRoute
   TopicsRoute: typeof TopicsRouteWithChildren
   WalletRoute: typeof WalletRoute
-  WorkRoute: typeof WorkRouteWithChildren
   ProfileEntityIdRoute: typeof ProfileEntityIdRoute
   VideosVideoIdRoute: typeof VideosVideoIdRoute
+  WorkWorkIdRoute: typeof WorkWorkIdRoute
+  WorkIndexRoute: typeof WorkIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -585,13 +588,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/work': {
-      id: '/work'
-      path: '/work'
-      fullPath: '/work'
-      preLoaderRoute: typeof WorkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/messages/$threadId': {
       id: '/messages/$threadId'
       path: '/$threadId'
@@ -622,10 +618,17 @@ declare module '@tanstack/react-router' {
     }
     '/work/': {
       id: '/work/'
-      path: '/'
+      path: '/work'
       fullPath: '/work/'
-      preLoaderRoute: typeof WorkRouteImport
-      parentRoute: typeof WorkRoute
+      preLoaderRoute: typeof WorkIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/work/$workId': {
+      id: '/work/$workId'
+      path: '/work/$workId'
+      fullPath: '/work/$workId'
+      preLoaderRoute: typeof WorkWorkIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -653,16 +656,6 @@ const TopicsRouteChildren: TopicsRouteChildren = {
 const TopicsRouteWithChildren =
   TopicsRoute._addFileChildren(TopicsRouteChildren)
 
-interface WorkRouteChildren {
-  WorkRoute: typeof WorkRoute
-}
-
-const WorkRouteChildren: WorkRouteChildren = {
-  WorkRoute: WorkRoute,
-}
-
-const WorkRouteWithChildren = WorkRoute._addFileChildren(WorkRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
@@ -688,9 +681,10 @@ const rootRouteChildren: RootRouteChildren = {
   SubscriptionsRoute: SubscriptionsRoute,
   TopicsRoute: TopicsRouteWithChildren,
   WalletRoute: WalletRoute,
-  WorkRoute: WorkRouteWithChildren,
   ProfileEntityIdRoute: ProfileEntityIdRoute,
   VideosVideoIdRoute: VideosVideoIdRoute,
+  WorkWorkIdRoute: WorkWorkIdRoute,
+  WorkIndexRoute: WorkIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
