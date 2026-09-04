@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Check, CirclePlay, Gift, MessageCircle, Mic2, Plus, Sparkles, Users, SunMedium, Building2, Phone } from "lucide-react";
+import { ArrowUpRight, CirclePlay, Gift, MessageCircle, Mic2, Plus, Sparkles, Users, SunMedium, Building2, Phone } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { Panel, ContextIconTile, StatusPill, FlowEvent, ActiveRequestRow } from "@/components/kurukoo/ui";
@@ -15,10 +15,9 @@ function HomeHorizonIllustration() { return <div aria-hidden className="pointer-
 function TrustedPerson({ name, status, tone, icon: Icon }: { name: string; status: string; tone: string; icon: typeof Users }) { return <div className="flex min-w-[64px] flex-col items-center gap-1.5"><span className={cn("relative grid size-11 place-items-center rounded-full", tone)}><Icon className="size-5" /><span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-surface bg-[var(--color-success)]" /></span><span className="text-[12px] font-medium">{name}</span><span className="text-[10.5px] text-muted-foreground">{status}</span></div>; }
 
 function HomePage() {
-  const { messages, work, send } = useKurukoo();
+  const { work, send } = useKurukoo();
   const [showAllFlow, setShowAllFlow] = useState(false);
   const active = work.filter((w) => w.stage !== "done").slice(0, 3);
-  const recentMessage = messages.filter((m) => m.role === "kurukoo").at(-1);
   return <div className="space-y-5">
     <header className="flex min-h-12 items-center justify-between gap-4 border-b border-border/70 pb-3">
       <div><p className="text-[12px] font-medium text-muted-foreground">Good afternoon, Ada</p><p className="mt-0.5 text-[11.5px] text-muted-foreground">Your useful part of the day</p></div>
