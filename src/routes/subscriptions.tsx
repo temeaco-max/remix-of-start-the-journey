@@ -12,7 +12,7 @@ export const Route = createFileRoute("/subscriptions")({
       { title: "Subscriptions — Kurukoo" },
       {
         name: "description",
-        content: "Plans for people, providers, businesses and creators on Kurukoo.",
+        content: "Plans for people, network members, businesses and creators on Kurukoo.",
       },
       { property: "og:title", content: "Subscriptions — Kurukoo" },
       { property: "og:description", content: "Manage your Kurukoo plan and billing." },
@@ -21,14 +21,14 @@ export const Route = createFileRoute("/subscriptions")({
   component: SubscriptionsPage,
 });
 
-const tabs = ["You", "Providers", "Businesses", "Creators"] as const;
+const tabs = ["You", "Network", "Businesses", "Creators"] as const;
 
 function SubscriptionsPage() {
   const [tab, setTab] = useState<string>(tabs[0]);
   const audience =
     tab === "You"
       ? "user"
-      : tab === "Providers"
+      : tab === "Network"
         ? "provider"
         : tab === "Businesses"
           ? "business"
@@ -59,7 +59,7 @@ function SubscriptionsPage() {
       </Panel>
 
       <IntegrationGap>
-        No billing provider is connected — plan changes do nothing yet.
+        Billing is ready for the interface; plan changes become live when your payment connection is enabled.
       </IntegrationGap>
     </>
   );
