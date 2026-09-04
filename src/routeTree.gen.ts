@@ -28,6 +28,7 @@ import { Route as DailyPicksRouteImport } from './routes/daily-picks'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as FollowingRouteImport } from './routes/following'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -141,6 +142,11 @@ const HelpRoute = HelpRouteImport.update({
   path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MemoryRoute = MemoryRouteImport.update({
   id: '/memory',
   path: '/memory',
@@ -247,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
@@ -364,6 +373,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/following'
     | '/help'
+    | '/login'
     | '/memory'
     | '/messages'
     | '/notifications'
@@ -402,6 +412,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/following'
     | '/help'
+    | '/login'
     | '/memory'
     | '/messages'
     | '/notifications'
@@ -440,6 +451,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/following'
     | '/help'
+    | '/login'
     | '/memory'
     | '/messages'
     | '/notifications'
@@ -479,6 +491,7 @@ export interface RootRouteChildren {
   ExploreRoute: typeof ExploreRoute
   FollowingRoute: typeof FollowingRoute
   HelpRoute: typeof HelpRoute
+  LoginRoute: typeof LoginRoute
   MemoryRoute: typeof MemoryRoute
   MessagesRoute: typeof MessagesRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
@@ -628,6 +641,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/memory': {
@@ -805,6 +825,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreRoute: ExploreRoute,
   FollowingRoute: FollowingRoute,
   HelpRoute: HelpRoute,
+  LoginRoute: LoginRoute,
   MemoryRoute: MemoryRoute,
   MessagesRoute: MessagesRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
