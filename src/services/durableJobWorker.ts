@@ -11,9 +11,10 @@
 import { claimDurableJob, completeDurableJob, failDurableJob, releaseExpiredDurableJobLeases } from './durableJobQueue.js';
 import { sendFcmPush } from './pushNotifications.js';
 import { processProviderInquiryDeadline } from './providerInquiryFollowUpService.js';
+import { dispatchExecutionRequest } from './executionConnector.js';
 
 const WORKER_ID = 'durable-job-worker';
-const WORKER_KINDS = ['request.lifecycle_reaction', 'provider_inquiry.deadline'];
+const WORKER_KINDS = ['request.lifecycle_reaction', 'provider_inquiry.deadline', 'execution.dispatch'];
 const JOB_LEASE_MS = 2 * 60 * 1000; // 2 minutes per job
 
 interface RequestLifecycleReactionPayload {
@@ -71,9 +72,21 @@ async function handleProviderInquiryDeadline(job: { payload: Record<string, unkn
   await processProviderInquiryDeadline(ownerPhone, inquiryId);
 }
 
+async function handleExecutionDispatch(job: { payload: Record<string, unknown> }): Promise<void> {
+  const executionId = String((job.payload || {}).executionId || '').trim();
+  if (!executionId) return; // missing target → nothing to dispatch
+  // Idempotent: already-advanced executions return unchanged, so a scheduled
+  // dispatch is a no-op when a synchronous caller already dispatched inline.
+  await dispatchExecutionRequest(executionId);
+}
+
 async function handleJob(job: { kind: string; payload: Record<string, unknown> }): Promise<void> {
   if (job.kind === 'provider_inquiry.deadline') {
     await handleProviderInquiryDeadline(job);
+    return;
+  }
+  if (job.kind === 'execution.dispatch') {
+    await handleExecutionDispatch(job);
     return;
   }
   await handleRequestLifecycleReaction(job);

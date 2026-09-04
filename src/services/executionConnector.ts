@@ -2,6 +2,7 @@
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 import * as sqljs from './executionConnectorSqljs.js';
 import * as postgres from './executionPersistence.js';
+import { emitDomainEvent, DomainEvents } from './domainEvents.js';
 export type { ConnectorAdapter, ExecutionEvidence, ExecutionRequestRecord, ExecutionStatus, EvidenceSource, EvidenceVerificationState } from './executionConnectorSqljs.js';
 export { ExecutionAuthorizationError, ExecutionConflictError } from './executionConnectorSqljs.js';
 export const EXECUTION_STATUSES = sqljs.EXECUTION_STATUSES;
@@ -16,7 +17,7 @@ export const revokeProviderConnector=(i:Parameters<typeof sqljs.revokeProviderCo
 export const authorizeProviderExecution=(i:Parameters<typeof sqljs.authorizeProviderExecution>[0])=>impl('authorizeProviderExecution')(i);
 export const getExecutionRequest=(id:string)=>impl('getExecutionRequest')(id);
 export const getExecutionRequestsForRequest=(id:string)=>impl('getExecutionRequestsForRequest')(id);
-export const createExecutionRequest=(i:Parameters<typeof sqljs.createExecutionRequest>[0])=>impl('createExecutionRequest')(i);
+export const createExecutionRequest=async(i:Parameters<typeof sqljs.createExecutionRequest>[0])=> { const created = await impl('createExecutionRequest')(i); emitDomainEvent(DomainEvents.EXECUTION_REQUEST_CREATED, { executionId: created.id, requestId: created.requestId, providerPhone: created.providerPhone, actionRequested: created.actionRequested, connectorId: created.connectorId, status: created.status }); return created; };
 export const completeDevelopmentExecution=(id:string)=>impl('completeDevelopmentExecution')(id);
 export const dispatchExecutionRequest=(id:string)=>impl('dispatchExecutionRequest')(id);
 export const drainPendingExecutionRequests=(limit?:number)=>impl('drainPendingExecutionRequests')(limit);

@@ -57,4 +57,19 @@ export function registerRequestEventSubscribers(): void {
       console.error('[requestEventSubscribers] enqueue failed for provider_inquiry.created:', error instanceof Error ? error.message : error);
     });
   });
+
+  subscribeToDomainEvent(DomainEvents.EXECUTION_REQUEST_CREATED, (event) => {
+    const { executionId } = event.payload as { executionId?: string };
+    if (!executionId) return;
+    // Small delay lets any synchronous caller that dispatches inline run first,
+    // so this scheduled dispatch becomes a no-op when it already happened.
+    enqueueDurableJob({
+      kind: 'execution.dispatch',
+      payload: { executionId },
+      delayMs: 50,
+      maxAttempts: 5,
+    }).catch(error => {
+      console.error('[requestEventSubscribers] enqueue failed for execution.request_created:', error instanceof Error ? error.message : error);
+    });
+  });
 }

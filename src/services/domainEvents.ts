@@ -29,6 +29,7 @@ export const DomainEvents = Object.freeze({
   PROVIDERS_MATCHED: 'request.providers_matched',
   NOTIFICATION_REQUESTED: 'notification.requested',
   PROVIDER_INQUIRY_CREATED: 'provider_inquiry.created',
+  EXECUTION_REQUEST_CREATED: 'execution.request_created',
 });
 
 export function emitDomainEvent(type: string, payload: Record<string, unknown> = {}): void {
