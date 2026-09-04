@@ -8,10 +8,10 @@ import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/chat")({
   head: () => ({ meta: [
-    { title: "Chat — Kurukoo" },
+    { title: "Conversation — Kurukoo" },
     { name: "description", content: "Tell Kurukoo what you need and keep the whole request in one conversation." },
-    { property: "og:title", content: "Chat — Kurukoo" },
-    { property: "og:description", content: "A conversation-first assistant that handles requests end to end." },
+    { property: "og:title", content: "Conversation — Kurukoo" },
+    { property: "og:description", content: "A conversation-first assistant that helps carry requests forward." },
     { name: "robots", content: "noindex" },
   ] }),
   component: ChatPage,
