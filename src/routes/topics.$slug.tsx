@@ -12,10 +12,10 @@ export const Route = createFileRoute("/topics/$slug")({
       { title: "Topic — Kurukoo" },
       {
         name: "description",
-        content: "Discussions, people and providers gathered around one topic.",
+        content: "Discussions, people and useful services gathered around one topic.",
       },
       { property: "og:title", content: "Topic — Kurukoo" },
-      { property: "og:description", content: "Follow a topic and see who works in it." },
+      { property: "og:description", content: "Follow a topic and see who and what is useful in it." },
     ],
   }),
   component: TopicPage,
@@ -49,9 +49,9 @@ function TopicPage() {
         <span className="text-[13px] text-muted-foreground">
           {topic.followers.toLocaleString()} following
         </span>
-        <Link to="/">
+        <Link to="/chat">
           <Action onClick={() => send(`Tell me about ${topic.name.toLowerCase()}.`)}>
-            Open in chat
+            Continue conversation
           </Action>
         </Link>
       </div>
@@ -75,7 +75,7 @@ function TopicPage() {
 
       {related.length > 0 ? (
         <section className="mt-8">
-          <SectionHeader title="People and providers" subtitle="Working in this topic." />
+          <SectionHeader title="People and services" subtitle="Useful in this topic." />
           <div className="grid gap-3">
             {related.slice(0, 3).map((e) => (
               <EntityCard key={e.id} entity={e} />
@@ -99,13 +99,13 @@ function TopicPage() {
         <AdSlot
           placement="Topic feed"
           headline="Local boiler servicing, booked this week"
-          body="A sponsored placement slot. Real campaigns will fill this from the advertising backend."
+          body="A sponsored placement slot, clearly separated from community discussion."
           advertiser="Example advertiser"
         />
       </div>
 
       <IntegrationGap>
-        Following, posting and moderation are visual only in this prototype.
+        Following, posting and moderation are ready for the interface; live community activity will appear as it becomes available.
       </IntegrationGap>
     </>
   );
