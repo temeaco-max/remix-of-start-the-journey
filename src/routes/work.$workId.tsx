@@ -10,7 +10,10 @@ export const Route = createFileRoute("/work/$workId")({
   head: () => ({
     meta: [
       { title: "Request — Kurukoo" },
-      { name: "description", content: "The full trail of one request: steps, people, files and outcome." },
+      {
+        name: "description",
+        content: "The full trail of one request: steps, people, files and outcome.",
+      },
       { property: "og:title", content: "Request — Kurukoo" },
       { property: "og:description", content: "Steps, people and results for a single request." },
     ],

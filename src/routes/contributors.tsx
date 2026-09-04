@@ -9,7 +9,10 @@ export const Route = createFileRoute("/contributors")({
   head: () => ({
     meta: [
       { title: "Contributors — Kurukoo" },
-      { name: "description", content: "The people shaping Kurukoo: research, accessibility, moderation and curation." },
+      {
+        name: "description",
+        content: "The people shaping Kurukoo: research, accessibility, moderation and curation.",
+      },
       { property: "og:title", content: "Contributors — Kurukoo" },
       { property: "og:description", content: "People contributing to how Kurukoo works." },
     ],

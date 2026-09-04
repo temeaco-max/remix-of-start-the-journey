@@ -220,7 +220,12 @@ export const threads: Thread[] = [
     when: "12m",
     unread: 1,
     messages: [
-      { id: "m1", from: "you", text: "Kurukoo shared the details — can you look this week?", when: "1h" },
+      {
+        id: "m1",
+        from: "you",
+        text: "Kurukoo shared the details — can you look this week?",
+        when: "1h",
+      },
       { id: "m2", from: "them", text: "Thursday morning works. Is 9am alright?", when: "12m" },
     ],
   },
@@ -231,7 +236,12 @@ export const threads: Thread[] = [
     when: "2d",
     unread: 0,
     messages: [
-      { id: "m3", from: "them", text: "We have a cancellation slot on Friday at 3:20pm.", when: "2d" },
+      {
+        id: "m3",
+        from: "them",
+        text: "We have a cancellation slot on Friday at 3:20pm.",
+        when: "2d",
+      },
     ],
   },
 ];
@@ -347,9 +357,30 @@ export type Transaction = {
 };
 
 export const transactions: Transaction[] = [
-  { id: "x1", label: "Request coordination", when: "Yesterday", kind: "points", amount: "20 pts", direction: "out" },
-  { id: "x2", label: "Monthly points allowance", when: "1 Sep", kind: "points", amount: "500 pts", direction: "in" },
-  { id: "x3", label: "Kurukoo Plus subscription", when: "1 Sep", kind: "money", amount: "£8.00", direction: "out" },
+  {
+    id: "x1",
+    label: "Request coordination",
+    when: "Yesterday",
+    kind: "points",
+    amount: "20 pts",
+    direction: "out",
+  },
+  {
+    id: "x2",
+    label: "Monthly points allowance",
+    when: "1 Sep",
+    kind: "points",
+    amount: "500 pts",
+    direction: "in",
+  },
+  {
+    id: "x3",
+    label: "Kurukoo Plus subscription",
+    when: "1 Sep",
+    kind: "money",
+    amount: "£8.00",
+    direction: "out",
+  },
 ];
 
 export type Plan = {
@@ -446,11 +477,38 @@ export type Agent = {
 };
 
 export const agents: Agent[] = [
-  { id: "coordinator", name: "Coordinator", purpose: "Understands your request and plans the work.", status: "available", verified: true },
-  { id: "outreach", name: "Outreach", purpose: "Contacts providers and chases replies.", status: "busy", verified: true },
-  { id: "scheduler", name: "Scheduler", purpose: "Finds times that fit your calendar.", status: "available" },
-  { id: "researcher", name: "Researcher", purpose: "Compares options, prices and reviews.", status: "available" },
-  { id: "handoff", name: "Human handoff", purpose: "Brings in a person when judgement is needed.", status: "handoff" },
+  {
+    id: "coordinator",
+    name: "Coordinator",
+    purpose: "Understands your request and plans the work.",
+    status: "available",
+    verified: true,
+  },
+  {
+    id: "outreach",
+    name: "Outreach",
+    purpose: "Contacts providers and chases replies.",
+    status: "busy",
+    verified: true,
+  },
+  {
+    id: "scheduler",
+    name: "Scheduler",
+    purpose: "Finds times that fit your calendar.",
+    status: "available",
+  },
+  {
+    id: "researcher",
+    name: "Researcher",
+    purpose: "Compares options, prices and reviews.",
+    status: "available",
+  },
+  {
+    id: "handoff",
+    name: "Human handoff",
+    purpose: "Brings in a person when judgement is needed.",
+    status: "handoff",
+  },
 ];
 
 export type Article = {
@@ -465,7 +523,8 @@ export const articles: Article[] = [
   {
     slug: "what-kurukoo-is-for",
     title: "What Kurukoo is for",
-    excerpt: "Most tools give you somewhere to type. Kurukoo gives you somewhere to hand things over.",
+    excerpt:
+      "Most tools give you somewhere to type. Kurukoo gives you somewhere to hand things over.",
     date: "12 August 2026",
     body: [
       "Most software asks you to do the work in a nicer interface. Kurukoo starts from a different place: you say what you need, and the work happens around you.",

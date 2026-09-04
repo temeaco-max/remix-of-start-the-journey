@@ -10,7 +10,10 @@ export const Route = createFileRoute("/following")({
   head: () => ({
     meta: [
       { title: "Following — Kurukoo" },
-      { name: "description", content: "People, providers, businesses, creators and topics you follow." },
+      {
+        name: "description",
+        content: "People, providers, businesses, creators and topics you follow.",
+      },
       { property: "og:title", content: "Following — Kurukoo" },
       { property: "og:description", content: "Your Kurukoo network in one place." },
     ],
@@ -23,7 +26,13 @@ const tabs = ["People", "Providers", "Businesses", "Creators", "Topics"] as cons
 function FollowingPage() {
   const [tab, setTab] = useState<string>(tabs[0]);
   const kind =
-    tab === "People" ? "person" : tab === "Providers" ? "provider" : tab === "Businesses" ? "business" : "creator";
+    tab === "People"
+      ? "person"
+      : tab === "Providers"
+        ? "provider"
+        : tab === "Businesses"
+          ? "business"
+          : "creator";
   const list = entities.filter((e) => e.kind === kind);
 
   return (
@@ -39,7 +48,11 @@ function FollowingPage() {
           </div>
         ) : list.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border px-6 py-10 text-center text-[14px] text-muted-foreground">
-            Nothing followed here yet. <Link to="/explore" className="underline">Explore</Link> to find people.
+            Nothing followed here yet.{" "}
+            <Link to="/explore" className="underline">
+              Explore
+            </Link>{" "}
+            to find people.
           </p>
         ) : (
           <Rows>
@@ -49,9 +62,7 @@ function FollowingPage() {
           </Rows>
         )}
       </div>
-      <IntegrationGap>
-        Follows are not persisted yet — they reset when you reload.
-      </IntegrationGap>
+      <IntegrationGap>Follows are not persisted yet — they reset when you reload.</IntegrationGap>
     </>
   );
 }

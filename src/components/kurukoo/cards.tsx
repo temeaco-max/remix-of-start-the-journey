@@ -149,7 +149,9 @@ export function RecommendationCard({
       )}
     >
       {sponsored ? (
-        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">Sponsored</p>
+        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+          Sponsored
+        </p>
       ) : null}
       <p className="text-[15.5px] font-medium">{title}</p>
       <p className="mt-1 text-[13.5px] text-muted-foreground">{reason}</p>
@@ -186,7 +188,9 @@ export function AgentCard({ agent }: { agent: Agent }) {
       <div className="flex items-center justify-between gap-3">
         <p className="flex items-center gap-1.5 text-[15.5px] font-medium">
           {agent.name}
-          {agent.verified ? <BadgeCheck className="size-4 text-primary" aria-label="Verified" /> : null}
+          {agent.verified ? (
+            <BadgeCheck className="size-4 text-primary" aria-label="Verified" />
+          ) : null}
         </p>
         <Badge tone={agent.status === "available" ? "success" : "quiet"}>
           {agent.status === "available"

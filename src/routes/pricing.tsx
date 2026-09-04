@@ -12,7 +12,8 @@ export const Route = createFileRoute("/pricing")({
       { title: "Pricing — Kurukoo" },
       {
         name: "description",
-        content: "Plans for people, providers, businesses and creators, plus how Kurukoo points work.",
+        content:
+          "Plans for people, providers, businesses and creators, plus how Kurukoo points work.",
       },
       { property: "og:title", content: "Pricing — Kurukoo" },
       { property: "og:description", content: "Simple plans, and points for the work itself." },

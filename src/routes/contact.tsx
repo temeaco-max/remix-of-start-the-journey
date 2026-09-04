@@ -8,7 +8,10 @@ export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
       { title: "Contact — Kurukoo" },
-      { name: "description", content: "Reach the Kurukoo team about support, partnerships or press." },
+      {
+        name: "description",
+        content: "Reach the Kurukoo team about support, partnerships or press.",
+      },
       { property: "og:title", content: "Contact — Kurukoo" },
       { property: "og:description", content: "Support, partnerships and press enquiries." },
     ],
@@ -25,7 +28,10 @@ const routes = [
 function ContactPage() {
   return (
     <MarketingPage>
-      <PageHeader title="Contact" subtitle="Tell us what you need and we'll point it the right way." />
+      <PageHeader
+        title="Contact"
+        subtitle="Tell us what you need and we'll point it the right way."
+      />
 
       <Panel className="p-4">
         <p className="text-[15px] font-medium">The quickest route is the conversation</p>

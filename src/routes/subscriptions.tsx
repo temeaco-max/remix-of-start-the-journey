@@ -10,7 +10,10 @@ export const Route = createFileRoute("/subscriptions")({
   head: () => ({
     meta: [
       { title: "Subscriptions — Kurukoo" },
-      { name: "description", content: "Plans for people, providers, businesses and creators on Kurukoo." },
+      {
+        name: "description",
+        content: "Plans for people, providers, businesses and creators on Kurukoo.",
+      },
       { property: "og:title", content: "Subscriptions — Kurukoo" },
       { property: "og:description", content: "Manage your Kurukoo plan and billing." },
     ],
@@ -23,7 +26,13 @@ const tabs = ["You", "Providers", "Businesses", "Creators"] as const;
 function SubscriptionsPage() {
   const [tab, setTab] = useState<string>(tabs[0]);
   const audience =
-    tab === "You" ? "user" : tab === "Providers" ? "provider" : tab === "Businesses" ? "business" : "creator";
+    tab === "You"
+      ? "user"
+      : tab === "Providers"
+        ? "provider"
+        : tab === "Businesses"
+          ? "business"
+          : "creator";
 
   return (
     <>
@@ -49,7 +58,9 @@ function SubscriptionsPage() {
         </div>
       </Panel>
 
-      <IntegrationGap>No billing provider is connected — plan changes do nothing yet.</IntegrationGap>
+      <IntegrationGap>
+        No billing provider is connected — plan changes do nothing yet.
+      </IntegrationGap>
     </>
   );
 }

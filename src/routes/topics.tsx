@@ -8,7 +8,10 @@ export const Route = createFileRoute("/topics")({
   head: () => ({
     meta: [
       { title: "Topics — Kurukoo" },
-      { name: "description", content: "Follow topics to see discussions, people and providers around them." },
+      {
+        name: "description",
+        content: "Follow topics to see discussions, people and providers around them.",
+      },
       { property: "og:title", content: "Topics — Kurukoo" },
       { property: "og:description", content: "Discussions and providers grouped by subject." },
     ],
@@ -19,7 +22,10 @@ export const Route = createFileRoute("/topics")({
 function TopicsPage() {
   return (
     <>
-      <PageHeader title="Topics" subtitle="Follow a subject to see discussions and who works in it." />
+      <PageHeader
+        title="Topics"
+        subtitle="Follow a subject to see discussions and who works in it."
+      />
       <div className="grid gap-3 sm:grid-cols-2">
         {topics.map((t) => (
           <TopicCard key={t.slug} topic={t} />

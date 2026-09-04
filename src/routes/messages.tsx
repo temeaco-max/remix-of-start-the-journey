@@ -8,7 +8,10 @@ export const Route = createFileRoute("/messages")({
   head: () => ({
     meta: [
       { title: "Messages — Kurukoo" },
-      { name: "description", content: "Direct conversations with providers and businesses, tied to your work." },
+      {
+        name: "description",
+        content: "Direct conversations with providers and businesses, tied to your work.",
+      },
       { property: "og:title", content: "Messages — Kurukoo" },
       { property: "og:description", content: "Talk directly to the people doing the work." },
     ],

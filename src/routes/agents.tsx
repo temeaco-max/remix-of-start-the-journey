@@ -9,9 +9,16 @@ export const Route = createFileRoute("/agents")({
   head: () => ({
     meta: [
       { title: "Agent network — Kurukoo" },
-      { name: "description", content: "The specialised capabilities that carry out your requests, and when a human steps in." },
+      {
+        name: "description",
+        content:
+          "The specialised capabilities that carry out your requests, and when a human steps in.",
+      },
       { property: "og:title", content: "Agent network — Kurukoo" },
-      { property: "og:description", content: "How Kurukoo coordinates work behind one conversation." },
+      {
+        property: "og:description",
+        content: "How Kurukoo coordinates work behind one conversation.",
+      },
     ],
   }),
   component: AgentsPage,
@@ -20,7 +27,10 @@ export const Route = createFileRoute("/agents")({
 function AgentsPage() {
   return (
     <>
-      <PageHeader title="Agent network" subtitle="One conversation, several specialists behind it." />
+      <PageHeader
+        title="Agent network"
+        subtitle="One conversation, several specialists behind it."
+      />
       <div className="grid gap-3 sm:grid-cols-2">
         {agents.map((a) => (
           <AgentCard key={a.id} agent={a} />

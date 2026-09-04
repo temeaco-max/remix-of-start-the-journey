@@ -9,7 +9,10 @@ export const Route = createFileRoute("/partners")({
   head: () => ({
     meta: [
       { title: "Partners — Kurukoo" },
-      { name: "description", content: "Organisations working with Kurukoo to deliver services at scale." },
+      {
+        name: "description",
+        content: "Organisations working with Kurukoo to deliver services at scale.",
+      },
       { property: "og:title", content: "Partners — Kurukoo" },
       { property: "og:description", content: "Partner organisations in the Kurukoo ecosystem." },
     ],

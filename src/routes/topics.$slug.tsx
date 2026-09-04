@@ -10,7 +10,10 @@ export const Route = createFileRoute("/topics/$slug")({
   head: () => ({
     meta: [
       { title: "Topic — Kurukoo" },
-      { name: "description", content: "Discussions, people and providers gathered around one topic." },
+      {
+        name: "description",
+        content: "Discussions, people and providers gathered around one topic.",
+      },
       { property: "og:title", content: "Topic — Kurukoo" },
       { property: "og:description", content: "Follow a topic and see who works in it." },
     ],

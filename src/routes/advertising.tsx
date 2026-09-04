@@ -9,9 +9,15 @@ export const Route = createFileRoute("/advertising")({
   head: () => ({
     meta: [
       { title: "Advertising — Kurukoo" },
-      { name: "description", content: "Campaigns, budgets, placements and performance for businesses on Kurukoo." },
+      {
+        name: "description",
+        content: "Campaigns, budgets, placements and performance for businesses on Kurukoo.",
+      },
       { property: "og:title", content: "Advertising — Kurukoo" },
-      { property: "og:description", content: "Run clearly-labelled sponsored placements across Kurukoo." },
+      {
+        property: "og:description",
+        content: "Run clearly-labelled sponsored placements across Kurukoo.",
+      },
     ],
   }),
   component: AdvertisingPage,
@@ -24,7 +30,10 @@ function AdvertisingPage() {
 
   return (
     <>
-      <PageHeader title="Advertising" subtitle="Reach people at the moment they ask for something." />
+      <PageHeader
+        title="Advertising"
+        subtitle="Reach people at the moment they ask for something."
+      />
       <Tabs items={tabs} value={tab} onChange={setTab} />
 
       {tab === "Campaigns" ? (
@@ -68,7 +77,10 @@ function AdvertisingPage() {
               "Placement — Explore, Daily Picks, topics, discovery",
               "Daily budget and schedule",
             ].map((f) => (
-              <li key={f} className="rounded-lg border border-border px-3 py-2.5 text-muted-foreground">
+              <li
+                key={f}
+                className="rounded-lg border border-border px-3 py-2.5 text-muted-foreground"
+              >
                 {f}
               </li>
             ))}
@@ -84,15 +96,17 @@ function AdvertisingPage() {
           <p className="text-[13.5px] text-muted-foreground">
             Sponsored content always looks different from organic recommendations.
           </p>
-          {["Explore feed", "Daily Picks", "Search results", "Topic feed", "Creator discovery"].map((p) => (
-            <AdSlot
-              key={p}
-              placement={p}
-              headline="Your placement here"
-              body="Reusable AdSlot primitive — the advertising backend will populate it."
-              advertiser="Example advertiser"
-            />
-          ))}
+          {["Explore feed", "Daily Picks", "Search results", "Topic feed", "Creator discovery"].map(
+            (p) => (
+              <AdSlot
+                key={p}
+                placement={p}
+                headline="Your placement here"
+                body="Reusable AdSlot primitive — the advertising backend will populate it."
+                advertiser="Example advertiser"
+              />
+            ),
+          )}
         </div>
       ) : null}
 
