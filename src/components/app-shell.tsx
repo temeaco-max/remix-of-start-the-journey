@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, MapPin, ShieldCheck, CalendarDays, Target, MoreHorizontal, X, CircleDot } from "lucide-react";
+import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, MapPin, ShieldCheck, CalendarDays, Target, MoreHorizontal, X, CircleDot, Network as NetworkIcon, Tags, Sparkles } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { isKurukooApiConfigured } from "@/lib/kurukoo-api";
@@ -14,6 +14,9 @@ const nav = [
 ] as const;
 
 const more = [
+  { to: "/network", label: "Network", icon: NetworkIcon },
+  { to: "/topics", label: "Topics", icon: Tags },
+  { to: "/capabilities", label: "Capabilities", icon: Sparkles },
   { to: "/messages", label: "Messages", icon: MessageSquare },
   { to: "/contacts", label: "Contacts", icon: Users },
   { to: "/artifacts", label: "Files", icon: FolderClosed },
@@ -111,7 +114,7 @@ function TrustedContextRail() {
             <p className="text-[15px] font-semibold tracking-tight">Your context</p>
             <p className="mt-1 text-[12.5px] text-muted-foreground">Useful things Kurukoo is keeping in view.</p>
           </div>
-          <span className="grid size-8 place-items-center rounded-full bg-elevated text-muted-foreground" title={isKurukooApiConfigured() ? "Connected to Kurukoo" : "Local preview mode"}>
+          <span className="grid size-8 place-items-center rounded-full bg-elevated text-muted-foreground" title={isKurukooApiConfigured() ? "Connected to Kurukoo" : "Preview mode"}>
             <CircleDot className={cn("size-4", isKurukooApiConfigured() && "text-[var(--color-success)]")} />
           </span>
         </div>
@@ -170,7 +173,7 @@ function NavLinks({ pathname, collapsed = false, onNavigate }: { pathname: strin
         })}
       </nav>
       {!collapsed && <p className="px-3 pb-1 pt-7 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">More</p>}
-      <nav aria-label="Secondary OS navigation" className="space-y-1">
+      <nav aria-label="Secondary OS navigation" className="space-y-1 overflow-y-auto pb-2">
         {more.map(({ to, label, icon: Icon }) => {
           const active = pathname === to || pathname.startsWith(`${to}/`);
           return <Link key={to} to={to} onClick={onNavigate} title={collapsed ? label : undefined} className={cn("flex items-center rounded-xl py-2 transition-colors", collapsed ? "justify-center px-2" : "gap-3 px-3", active ? "bg-[#f4e6dc] font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")}><Icon className="size-[17px]" strokeWidth={active ? 2.1 : 1.7} />{!collapsed && label}</Link>;
@@ -225,4 +228,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       })}
     </nav>
   </div>;
+}
+
+export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+  return <header className="mb-7 flex items-start justify-between gap-4 border-b border-border/70 pb-5"><div className="min-w-0"><h1 className="text-[30px] font-semibold tracking-[-0.035em] md:text-[34px]">{title}</h1>{subtitle ? <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">{subtitle}</p> : null}</div>{action ? <div className="shrink-0">{action}</div> : null}</header>;
 }
