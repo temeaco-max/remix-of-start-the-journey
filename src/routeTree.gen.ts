@@ -10,13 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as AdvertisingRouteImport } from './routes/advertising'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as ArtifactsRouteImport } from './routes/artifacts'
+import { Route as BlogRouteImport } from './routes/blog'
 import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as CallsRouteImport } from './routes/calls'
 import { Route as ConnectRouteImport } from './routes/connect'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as ContributorsRouteImport } from './routes/contributors'
 import { Route as CreatorsRouteImport } from './routes/creators'
@@ -28,11 +31,13 @@ import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as PartnersRouteImport } from './routes/partners'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as MessagesThreadIdRouteImport } from './routes/messages.$threadId'
 import { Route as ProfileEntityIdRouteImport } from './routes/profile.$entityId'
 import { Route as TopicsSlugRouteImport } from './routes/topics.$slug'
@@ -43,6 +48,11 @@ import { Route as WorkWorkIdRouteImport } from './routes/work.$workId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivityRoute = ActivityRouteImport.update({
@@ -65,6 +75,11 @@ const ArtifactsRoute = ArtifactsRouteImport.update({
   path: '/artifacts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BusinessesRoute = BusinessesRouteImport.update({
   id: '/businesses',
   path: '/businesses',
@@ -78,6 +93,11 @@ const CallsRoute = CallsRouteImport.update({
 const ConnectRoute = ConnectRouteImport.update({
   id: '/connect',
   path: '/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactsRoute = ContactsRouteImport.update({
@@ -135,6 +155,11 @@ const PartnersRoute = PartnersRouteImport.update({
   path: '/partners',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProvidersRoute = ProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
@@ -159,6 +184,11 @@ const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
   getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BlogRoute,
 } as any)
 const MessagesThreadIdRoute = MessagesThreadIdRouteImport.update({
   id: '/$threadId',
@@ -193,13 +223,16 @@ const WorkWorkIdRoute = WorkWorkIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/activity': typeof ActivityRoute
   '/advertising': typeof AdvertisingRoute
   '/agents': typeof AgentsRoute
   '/artifacts': typeof ArtifactsRoute
+  '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
   '/connect': typeof ConnectRoute
+  '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
   '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
@@ -211,11 +244,13 @@ export interface FileRoutesByFullPath {
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/partners': typeof PartnersRoute
+  '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
@@ -225,13 +260,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/activity': typeof ActivityRoute
   '/advertising': typeof AdvertisingRoute
   '/agents': typeof AgentsRoute
   '/artifacts': typeof ArtifactsRoute
+  '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
   '/connect': typeof ConnectRoute
+  '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
   '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
@@ -243,11 +281,13 @@ export interface FileRoutesByTo {
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/partners': typeof PartnersRoute
+  '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
@@ -258,13 +298,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/activity': typeof ActivityRoute
   '/advertising': typeof AdvertisingRoute
   '/agents': typeof AgentsRoute
   '/artifacts': typeof ArtifactsRoute
+  '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
   '/connect': typeof ConnectRoute
+  '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
   '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
@@ -276,11 +319,13 @@ export interface FileRoutesById {
   '/messages': typeof MessagesRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/partners': typeof PartnersRoute
+  '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
   '/wallet': typeof WalletRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
@@ -292,13 +337,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/activity'
     | '/advertising'
     | '/agents'
     | '/artifacts'
+    | '/blog'
     | '/businesses'
     | '/calls'
     | '/connect'
+    | '/contact'
     | '/contacts'
     | '/contributors'
     | '/creators'
@@ -310,11 +358,13 @@ export interface FileRouteTypes {
     | '/messages'
     | '/notifications'
     | '/partners'
+    | '/pricing'
     | '/providers'
     | '/settings'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
+    | '/blog/$slug'
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
@@ -324,13 +374,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/activity'
     | '/advertising'
     | '/agents'
     | '/artifacts'
+    | '/blog'
     | '/businesses'
     | '/calls'
     | '/connect'
+    | '/contact'
     | '/contacts'
     | '/contributors'
     | '/creators'
@@ -342,11 +395,13 @@ export interface FileRouteTypes {
     | '/messages'
     | '/notifications'
     | '/partners'
+    | '/pricing'
     | '/providers'
     | '/settings'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
+    | '/blog/$slug'
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
@@ -356,13 +411,16 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/activity'
     | '/advertising'
     | '/agents'
     | '/artifacts'
+    | '/blog'
     | '/businesses'
     | '/calls'
     | '/connect'
+    | '/contact'
     | '/contacts'
     | '/contributors'
     | '/creators'
@@ -374,11 +432,13 @@ export interface FileRouteTypes {
     | '/messages'
     | '/notifications'
     | '/partners'
+    | '/pricing'
     | '/providers'
     | '/settings'
     | '/subscriptions'
     | '/topics'
     | '/wallet'
+    | '/blog/$slug'
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
@@ -389,13 +449,16 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   ActivityRoute: typeof ActivityRoute
   AdvertisingRoute: typeof AdvertisingRoute
   AgentsRoute: typeof AgentsRoute
   ArtifactsRoute: typeof ArtifactsRoute
+  BlogRoute: typeof BlogRouteWithChildren
   BusinessesRoute: typeof BusinessesRoute
   CallsRoute: typeof CallsRoute
   ConnectRoute: typeof ConnectRoute
+  ContactRoute: typeof ContactRoute
   ContactsRoute: typeof ContactsRoute
   ContributorsRoute: typeof ContributorsRoute
   CreatorsRoute: typeof CreatorsRoute
@@ -407,6 +470,7 @@ export interface RootRouteChildren {
   MessagesRoute: typeof MessagesRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
   PartnersRoute: typeof PartnersRoute
+  PricingRoute: typeof PricingRoute
   ProvidersRoute: typeof ProvidersRoute
   SettingsRoute: typeof SettingsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
@@ -425,6 +489,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activity': {
@@ -455,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtifactsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/businesses': {
       id: '/businesses'
       path: '/businesses'
@@ -474,6 +552,13 @@ declare module '@tanstack/react-router' {
       path: '/connect'
       fullPath: '/connect'
       preLoaderRoute: typeof ConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacts': {
@@ -553,6 +638,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartnersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/providers': {
       id: '/providers'
       path: '/providers'
@@ -587,6 +679,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/wallet'
       preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
     }
     '/messages/$threadId': {
       id: '/messages/$threadId'
@@ -633,6 +732,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface BlogRouteChildren {
+  BlogSlugRoute: typeof BlogSlugRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogSlugRoute: BlogSlugRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
 interface MessagesRouteChildren {
   MessagesThreadIdRoute: typeof MessagesThreadIdRoute
 }
@@ -658,13 +767,16 @@ const TopicsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   ActivityRoute: ActivityRoute,
   AdvertisingRoute: AdvertisingRoute,
   AgentsRoute: AgentsRoute,
   ArtifactsRoute: ArtifactsRoute,
+  BlogRoute: BlogRouteWithChildren,
   BusinessesRoute: BusinessesRoute,
   CallsRoute: CallsRoute,
   ConnectRoute: ConnectRoute,
+  ContactRoute: ContactRoute,
   ContactsRoute: ContactsRoute,
   ContributorsRoute: ContributorsRoute,
   CreatorsRoute: CreatorsRoute,
@@ -676,6 +788,7 @@ const rootRouteChildren: RootRouteChildren = {
   MessagesRoute: MessagesRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
   PartnersRoute: PartnersRoute,
+  PricingRoute: PricingRoute,
   ProvidersRoute: ProvidersRoute,
   SettingsRoute: SettingsRoute,
   SubscriptionsRoute: SubscriptionsRoute,

@@ -17,7 +17,7 @@ export const Route = createFileRoute("/help")({
   component: HelpPage,
 });
 
-const sections = [
+const sections: [string, string][] = [
   ["Getting started", "What Kurukoo does and how to ask for things"],
   ["Chat", "Conversation, voice input and approvals"],
   ["Work", "Following a request from start to finish"],
