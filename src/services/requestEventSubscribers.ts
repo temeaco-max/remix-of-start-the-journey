@@ -58,6 +58,21 @@ export function registerRequestEventSubscribers(): void {
     });
   });
 
+  subscribeToDomainEvent(DomainEvents.PROVIDER_INQUIRY_RESPONDED, (event) => {
+    const payload = event.payload as {
+      inquiryId?: string; ownerPhone?: string; requestId?: string | null; fulfilmentId?: string;
+      providerLabel?: string; offerTitle?: string | null; priceMinor?: number | null; currency?: string | null; responseKey?: string;
+    };
+    if (!payload.inquiryId || !payload.ownerPhone) return;
+    enqueueDurableJob({
+      kind: 'provider_inquiry.response_notification',
+      payload: event.payload,
+      maxAttempts: 5,
+    }).catch(error => {
+      console.error('[requestEventSubscribers] enqueue failed for provider_inquiry.responded:', error instanceof Error ? error.message : error);
+    });
+  });
+
   subscribeToDomainEvent(DomainEvents.EXECUTION_REQUEST_CREATED, (event) => {
     const { executionId } = event.payload as { executionId?: string };
     if (!executionId) return;

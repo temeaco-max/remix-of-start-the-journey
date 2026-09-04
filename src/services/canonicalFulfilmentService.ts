@@ -3,9 +3,8 @@ import crypto from 'node:crypto';
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 import { getCanonicalStore } from './canonicalStore.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
-import { sendFcmPush } from './pushNotifications.js';
-import { getFulfilmentSkillBinding, resolveMissingFulfilmentInputs } from './fulfilmentSkillBindings.js';
 import { emitDomainEvent, DomainEvents } from './domainEvents.js';
+import { getFulfilmentSkillBinding, resolveMissingFulfilmentInputs } from './fulfilmentSkillBindings.js';
 
 export type FulfilmentStatus =
   | 'draft'
@@ -574,18 +573,19 @@ export async function recordProviderInquiryResponse(input: { ownerPhone: string;
   await lifecycleEvent(fulfilment, 'provider_response_recorded', { inquiryId:input.inquiryId, evidenceLevel:responseEvidence, offerId:offer?.id, idempotencyKey:key });
   const requestId = fulfilment.economicRequestId;
   const providerLabel = inquiry.providerName || 'Your provider';
-  const responseSummary = offer?.title
-    ? `${providerLabel} replied with a recorded option: ${offer.title}${offer.priceMinor != null ? ` (${offer.currency || ''} ${offer.priceMinor})` : ''}. Review the same request in Kurukoo before approving anything.`
-    : `${providerLabel} replied. The response is recorded against your request and needs your review before any booking, payment, or fulfilment is claimed.`;
-  await sendFcmPush(input.ownerPhone, `${providerLabel} replied`, responseSummary, requestId ? `/app/requests?request=${encodeURIComponent(requestId)}` : '/app/requests', {
-    contextId: requestId ? `request:${requestId}` : `fulfilment:${fulfilment.id}`,
-    canonicalAction: requestId ? 'economic_request.open' : 'fulfilment.open',
-    objectType: requestId ? 'economic_request' : 'fulfilment',
-    objectId: requestId || fulfilment.id,
-    ownerScope: input.ownerPhone,
-    idempotencyKey: `provider-response-attention:${input.inquiryId}:${key}`,
-    surface: 'requests',
-  }).catch(() => false);
+  // Downstream notification is a subscriber reaction to the event, not inline
+  // work on the canonical record path (AGENTS.md §31).
+  emitDomainEvent(DomainEvents.PROVIDER_INQUIRY_RESPONDED, {
+    inquiryId: input.inquiryId,
+    ownerPhone: input.ownerPhone,
+    requestId: requestId || null,
+    fulfilmentId: fulfilment.id,
+    providerLabel,
+    offerTitle: offer?.title || null,
+    priceMinor: offer?.priceMinor ?? null,
+    currency: offer?.currency || null,
+    responseKey: key,
+  });
   return { inquiry, offer };
 }
 

@@ -14,7 +14,7 @@ import { processProviderInquiryDeadline } from './providerInquiryFollowUpService
 import { dispatchExecutionRequest } from './executionConnector.js';
 
 const WORKER_ID = 'durable-job-worker';
-const WORKER_KINDS = ['request.lifecycle_reaction', 'provider_inquiry.deadline', 'execution.dispatch'];
+const WORKER_KINDS = ['request.lifecycle_reaction', 'provider_inquiry.deadline', 'provider_inquiry.response_notification', 'execution.dispatch'];
 const JOB_LEASE_MS = 2 * 60 * 1000; // 2 minutes per job
 
 interface RequestLifecycleReactionPayload {
@@ -80,9 +80,39 @@ async function handleExecutionDispatch(job: { payload: Record<string, unknown> }
   await dispatchExecutionRequest(executionId);
 }
 
+async function handleProviderInquiryResponseNotification(job: { payload: Record<string, unknown> }): Promise<void> {
+  const payload = (job.payload || {}) as {
+    inquiryId?: string; ownerPhone?: string; requestId?: string | null; fulfilmentId?: string;
+    providerLabel?: string; offerTitle?: string | null; priceMinor?: number | null; currency?: string | null; responseKey?: string;
+  };
+  const inquiryId = String(payload.inquiryId || '').trim();
+  const ownerPhone = String(payload.ownerPhone || '').trim();
+  if (!inquiryId || !ownerPhone) return; // missing target → nothing to notify
+  const providerLabel = String(payload.providerLabel || 'Your provider');
+  const requestId = String(payload.requestId || '');
+  const offerTitle = payload.offerTitle ? String(payload.offerTitle) : '';
+  const price = payload.priceMinor != null ? ` (${String(payload.currency || '')} ${payload.priceMinor})` : '';
+  const body = offerTitle
+    ? `${providerLabel} replied with a recorded option: ${offerTitle}${price}. Review the same request in Kurukoo before approving anything.`
+    : `${providerLabel} replied. The response is recorded against your request and needs your review before any booking, payment, or fulfilment is claimed.`;
+  await sendFcmPush(ownerPhone, `${providerLabel} replied`, body, requestId ? `/app/requests?request=${encodeURIComponent(requestId)}` : '/app/requests', {
+    contextId: requestId ? `request:${requestId}` : `fulfilment:${String(payload.fulfilmentId || '')}`,
+    canonicalAction: requestId ? 'economic_request.open' : 'fulfilment.open',
+    objectType: requestId ? 'economic_request' : 'fulfilment',
+    objectId: requestId || String(payload.fulfilmentId || ''),
+    ownerScope: ownerPhone,
+    idempotencyKey: `provider-response-attention:${inquiryId}:${String(payload.responseKey || '')}`,
+    surface: 'requests',
+  });
+}
+
 async function handleJob(job: { kind: string; payload: Record<string, unknown> }): Promise<void> {
   if (job.kind === 'provider_inquiry.deadline') {
     await handleProviderInquiryDeadline(job);
+    return;
+  }
+  if (job.kind === 'provider_inquiry.response_notification') {
+    await handleProviderInquiryResponseNotification(job);
     return;
   }
   if (job.kind === 'execution.dispatch') {
