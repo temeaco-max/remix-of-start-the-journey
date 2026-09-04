@@ -26,7 +26,7 @@ const capabilities = [
 ];
 
 function ChatPage() {
-  const { messages, send, work } = useKurukoo();
+  const { messages, send, work, isSending, lastError } = useKurukoo();
   const endRef = useRef<HTMLDivElement>(null);
   const active = work.filter((w) => w.stage !== "done");
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages.length]);
@@ -39,19 +39,20 @@ function ChatPage() {
 
     {messages.length === 0 ? <div className="flex flex-1 flex-col justify-center py-10">
       <div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-[#f4e6dc] text-[#765443]"><Sparkles className="size-5" /></div>
-      <p className="text-[12px] font-medium text-muted-foreground">Ready when you are</p>
+      <p className="text-[12px] font-medium text-muted-foreground">{isSending ? "Working" : "Ready when you are"}</p>
       <h1 className="mt-1 text-[30px] font-semibold leading-tight tracking-[-0.035em] md:text-[38px]">What do you need done?</h1>
       <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">Say it plainly. Kurukoo works out the useful next step, keeps you informed and asks before anything important is committed.</p>
-      <div className="mt-7 flex flex-wrap gap-2">{suggestions.map((s) => <button key={s} type="button" onClick={() => send(s)} className="min-h-9 rounded-full border border-border bg-surface px-3.5 py-2 text-[13.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-elevated hover:text-foreground">{s}</button>)}</div>
+      <div className="mt-7 flex flex-wrap gap-2">{suggestions.map((s) => <button key={s} type="button" disabled={isSending} onClick={() => send(s)} className="min-h-9 rounded-full border border-border bg-surface px-3.5 py-2 text-[13.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-elevated hover:text-foreground disabled:opacity-40">{s}</button>)}</div>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">{capabilities.map(([title, body]) => <Panel key={title} className="p-4"><p className="text-[14.5px] font-medium">{title}</p><p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{body}</p></Panel>)}</div>
       <p className="mt-5 flex items-center gap-1.5 text-[12px] text-muted-foreground"><CircleHelp className="size-3.5" />Not sure where to start? <Link to="/explore" className="font-medium text-foreground underline underline-offset-2">Explore what is around you</Link>.</p>
     </div> : <div className="flex-1 space-y-5 py-6">
-      <div className="mx-auto flex max-w-xl items-center justify-center gap-2 text-[11.5px] text-muted-foreground"><span className="size-1.5 rounded-full bg-[var(--color-success)]" />Conversation active</div>
+      <div className="mx-auto flex max-w-xl items-center justify-center gap-2 text-[11.5px] text-muted-foreground"><span className="size-1.5 rounded-full bg-[var(--color-success)]" />{isSending ? "Kurukoo is working" : "Conversation active"}</div>
       {messages.map((m) => <Message key={m.id} message={m} />)}
       {active.length > 0 ? <section aria-label="In progress" className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-[var(--shadow-soft)]"><div className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[var(--color-success)]" /><p className="text-[12px] font-medium">Kurukoo is working</p></div><ul className="mt-3 space-y-2">{active.map((w) => <li key={w.id} className="flex items-center justify-between gap-4 text-[13.5px]"><Link to="/work/$workId" params={{ workId: w.id }} className="truncate font-medium hover:underline">{w.title}</Link><span className="shrink-0 text-[12px] text-muted-foreground">{w.updated}</span></li>)}</ul></section> : null}
       <div ref={endRef} />
     </div>}
 
-    <div className="sticky bottom-0 bg-background pb-3 pt-3"><Composer onSend={send} /><p className="mt-2 text-center text-[10.5px] text-muted-foreground">Kurukoo will ask for your approval before commitments, payments or important actions.</p></div>
+    {lastError ? <p role="alert" className="pb-1 text-center text-[12px] text-destructive">{lastError}</p> : null}
+    <div className="sticky bottom-0 bg-background pb-3 pt-3"><Composer onSend={send} disabled={isSending} /><p className="mt-2 text-center text-[10.5px] text-muted-foreground">Kurukoo will ask for your approval before commitments, payments or important actions.</p></div>
   </div>;
 }
