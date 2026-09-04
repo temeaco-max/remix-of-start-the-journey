@@ -26,7 +26,7 @@ export const Route = createFileRoute("/providers")({
 
 const tabs = ["Find help", "Offer your capability"] as const;
 
-function ProvidersPage() {
+export function ProvidersPage() {
   const [tab, setTab] = useState<string>(tabs[0]);
   const providers = entities.filter((e) => e.kind === "provider");
 
@@ -34,7 +34,7 @@ function ProvidersPage() {
     <>
       <PageHeader title="Network" subtitle="People and organisations who can help with real requests." />
       <div className="mt-1 rounded-2xl border border-border bg-elevated/60 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-        Kurukoo brings network members into the right request when their capability and availability are relevant. It does not promise availability until it is verified.
+        Find useful people and organisations, or offer what you can do. Kurukoo only presents availability as confirmed when it can verify it.
       </div>
       <Tabs items={tabs} value={tab} onChange={setTab} />
 
@@ -43,7 +43,7 @@ function ProvidersPage() {
           {providers.map((p) => (
             <EntityCard key={p.id} entity={p} />
           ))}
-          <IntegrationGap>These are demonstration network members. Live availability requires the provider presence and verification services.</IntegrationGap>
+          <IntegrationGap>These are demonstration network members. Confirmed availability appears when a member is active and verified.</IntegrationGap>
         </div>
       ) : (
         <div className="mt-4 space-y-6">
@@ -53,7 +53,7 @@ function ProvidersPage() {
               <Badge tone="quiet">Not verified</Badge>
             </div>
             <p className="mt-1 text-[13.5px] text-muted-foreground">
-              Tell Kurukoo what you can do, where you work and when you can accept requests. Verification is required before customers can rely on your profile.
+              Tell Kurukoo what you can do, where you work and when you can accept requests. Verification helps people know when they can rely on your profile.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Action variant="primary">Start onboarding</Action>
@@ -62,9 +62,9 @@ function ProvidersPage() {
           </Panel>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <StatTile label="Open requests" value="0" note="Not connected" />
-            <StatTile label="Active work" value="0" note="Not connected" />
-            <StatTile label="Earnings" value="£0.00" note="No payouts connected" />
+            <StatTile label="Open requests" value="0" note="Waiting for connection" />
+            <StatTile label="Active work" value="0" note="Waiting for connection" />
+            <StatTile label="Earnings" value="£0.00" note="Payouts not connected" />
           </div>
 
           <section>
@@ -85,7 +85,7 @@ function ProvidersPage() {
                     <span className="block text-[15px]">{title}</span>
                     <span className="block text-[13px] text-muted-foreground">{note}</span>
                   </span>
-                  <span className="shrink-0 text-[13px] text-muted-foreground">Not connected</span>
+                  <span className="shrink-0 text-[13px] text-muted-foreground">Coming next</span>
                 </li>
               ))}
             </Rows>
