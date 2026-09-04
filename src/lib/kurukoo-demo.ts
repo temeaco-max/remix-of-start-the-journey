@@ -1,5 +1,5 @@
-// PROTOTYPE DATA ONLY.
-// Every value below is illustrative demo content used to establish UI contracts.
+// DEMO CONTENT ONLY.
+// Every value below is illustrative content used to establish UI contracts.
 // Nothing here reflects real providers, balances, campaigns, followers or connections.
 // Replace with real API reads when the Kurukoo backend exists — do not grow this file
 // into business logic.
@@ -262,7 +262,7 @@ export const connections: Connection[] = [
     id: "google-drive",
     name: "Google Drive",
     category: "storage",
-    description: "Store artifacts Kurukoo creates or you upload.",
+    description: "Store files Kurukoo creates or you upload.",
     state: "available",
     permissions: "Would read and write only files Kurukoo creates.",
   },
@@ -286,7 +286,7 @@ export const connections: Connection[] = [
     id: "whatsapp",
     name: "WhatsApp",
     category: "messaging",
-    description: "Let Kurukoo reach providers where they already reply.",
+    description: "Let Kurukoo reach people where they already reply.",
     state: "available",
     permissions: "Would send messages you approve first.",
   },
@@ -479,34 +479,34 @@ export type Agent = {
 export const agents: Agent[] = [
   {
     id: "coordinator",
-    name: "Coordinator",
-    purpose: "Understands your request and plans the work.",
+    name: "Getting things sorted",
+    purpose: "Turns what you say into a clear next step and keeps the request moving.",
     status: "available",
     verified: true,
   },
   {
     id: "outreach",
-    name: "Outreach",
-    purpose: "Contacts providers and chases replies.",
+    name: "Making contact",
+    purpose: "Reaches the right people and keeps replies moving when you ask.",
     status: "busy",
     verified: true,
   },
   {
     id: "scheduler",
-    name: "Scheduler",
-    purpose: "Finds times that fit your calendar.",
+    name: "Finding a time",
+    purpose: "Finds times that fit your calendar before anything is arranged.",
     status: "available",
   },
   {
     id: "researcher",
-    name: "Researcher",
-    purpose: "Compares options, prices and reviews.",
+    name: "Comparing options",
+    purpose: "Brings together useful choices, prices and reviews so you can decide.",
     status: "available",
   },
   {
     id: "handoff",
-    name: "Human handoff",
-    purpose: "Brings in a person when judgement is needed.",
+    name: "Human support",
+    purpose: "Brings in a person when a situation needs human judgement.",
     status: "handoff",
   },
 ];
