@@ -1,124 +1,57 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeft, ArrowUpRight, CheckCircle2, CircleHelp, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { Message } from "@/components/kurukoo/primitives";
+import { Panel } from "@/components/kurukoo/ui";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/chat")({
-  head: () => ({
-    meta: [
-      { title: "Kurukoo — Ask, and it gets done" },
-      {
-        name: "description",
-        content:
-          "Tell Kurukoo what you need. It understands, takes care of the work, and comes back to you with progress and results.",
-      },
-      { property: "og:title", content: "Kurukoo — Ask, and it gets done" },
-      {
-        property: "og:description",
-        content: "A conversation-first assistant that handles requests end to end.",
-      },
-      { property: "og:url", content: "/chat" },
-      { name: "robots", content: "noindex" },
-    ],
-    links: [{ rel: "canonical", href: "/chat" }],
-  }),
+  head: () => ({ meta: [
+    { title: "Chat — Kurukoo" },
+    { name: "description", content: "Tell Kurukoo what you need and keep the whole request in one conversation." },
+    { property: "og:title", content: "Chat — Kurukoo" },
+    { property: "og:description", content: "A conversation-first assistant that handles requests end to end." },
+    { name: "robots", content: "noindex" },
+  ] }),
   component: ChatPage,
 });
 
-const suggestions = [
-  "Find me a plumber.",
-  "Book me a dentist.",
-  "I need someone to repair my phone.",
-  "What am I waiting for?",
-];
-
+const suggestions = ["Find me a plumber.", "Book me a dentist.", "I need someone to repair my phone.", "What am I waiting for?"];
 const capabilities = [
-  ["Find someone", "Tradespeople, clinics, specialists, local businesses."],
-  ["Arrange something", "Times, quotes, bookings — checked with you first."],
-  ["Chase and follow up", "Kurukoo keeps track so you don't have to."],
+  ["Find someone", "Tradespeople, clinics, specialists and local businesses."],
+  ["Arrange something", "Times, quotes and bookings — checked with you first."],
+  ["Chase and follow up", "Kurukoo keeps track so you do not have to."],
   ["Keep the thread", "Every request stays readable in Work."],
 ];
 
 function ChatPage() {
   const { messages, send, work } = useKurukoo();
   const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length]);
-
   const active = work.filter((w) => w.stage !== "done");
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages.length]);
 
-  return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col">
-      {messages.length === 0 ? (
-        <div className="flex flex-1 flex-col justify-center py-10">
-          <h1 className="text-[30px] font-semibold leading-tight md:text-[38px]">
-            What do you need done?
-          </h1>
-          <p className="mt-2 max-w-md text-[15px] text-muted-foreground">
-            Say it plainly. Kurukoo works it out, does the running around, and comes back to you.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-2">
-            {suggestions.map((s: string) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => send(s)}
-                className="min-h-9 rounded-full border border-border bg-surface px-3.5 py-2 text-[13.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+  return <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-[820px] flex-col">
+    <header className="flex items-center justify-between border-b border-border py-3">
+      <div className="flex items-center gap-3"><Link to="/" aria-label="Back to Home" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><ArrowLeft className="size-[18px]" /></Link><div><p className="text-[14px] font-semibold">Kurukoo</p><p className="text-[11.5px] text-muted-foreground">Your conversation</p></div></div>
+      <div className="flex items-center gap-2"><span className="hidden rounded-full bg-elevated px-2.5 py-1 text-[11px] text-muted-foreground sm:inline-flex"><ShieldCheck className="mr-1.5 size-3.5" />In control</span><Link to="/work" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">Work <ArrowUpRight className="size-3.5" /></Link></div>
+    </header>
 
-          <div className="mt-10 grid gap-3 sm:grid-cols-2">
-            {capabilities.map(([title, body]) => (
-              <div key={title} className="rounded-xl border border-border bg-surface px-4 py-3.5">
-                <p className="text-[14.5px] font-medium">{title}</p>
-                <p className="mt-0.5 text-[13.5px] text-muted-foreground">{body}</p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-[13px] text-muted-foreground">
-            Not sure where to start?{" "}
-            <Link to="/explore" className="underline">
-              Explore what's around you
-            </Link>
-            .
-          </p>
-        </div>
-      ) : (
-        <div className="flex-1 space-y-5 py-4">
-          {messages.map((m) => (
-            <Message key={m.id} message={m} />
-          ))}
-          {active.length > 0 ? (
-            <section
-              aria-label="In progress"
-              className="rounded-xl border border-border bg-surface px-4 py-3"
-            >
-              <p className="text-[12px] uppercase tracking-wide text-muted-foreground">
-                In progress
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                {active.map((w) => (
-                  <li key={w.id} className="flex items-center justify-between gap-4 text-[14.5px]">
-                    <Link to="/work/$workId" params={{ workId: w.id }} className="truncate">
-                      {w.title}
-                    </Link>
-                    <span className="shrink-0 text-[13px] text-muted-foreground">{w.updated}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          <div ref={endRef} />
-        </div>
-      )}
+    {messages.length === 0 ? <div className="flex flex-1 flex-col justify-center py-10">
+      <div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-[#f4e6dc] text-[#765443]"><Sparkles className="size-5" /></div>
+      <p className="text-[12px] font-medium text-muted-foreground">Ready when you are</p>
+      <h1 className="mt-1 text-[30px] font-semibold leading-tight tracking-[-0.035em] md:text-[38px]">What do you need done?</h1>
+      <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">Say it plainly. Kurukoo works out the useful next step, keeps you informed and asks before anything important is committed.</p>
+      <div className="mt-7 flex flex-wrap gap-2">{suggestions.map((s) => <button key={s} type="button" onClick={() => send(s)} className="min-h-9 rounded-full border border-border bg-surface px-3.5 py-2 text-[13.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-elevated hover:text-foreground">{s}</button>)}</div>
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">{capabilities.map(([title, body]) => <Panel key={title} className="p-4"><p className="text-[14.5px] font-medium">{title}</p><p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{body}</p></Panel>)}</div>
+      <p className="mt-5 flex items-center gap-1.5 text-[12px] text-muted-foreground"><CircleHelp className="size-3.5" />Not sure where to start? <Link to="/explore" className="font-medium text-foreground underline underline-offset-2">Explore what is around you</Link>.</p>
+    </div> : <div className="flex-1 space-y-5 py-6">
+      <div className="mx-auto flex max-w-xl items-center justify-center gap-2 text-[11.5px] text-muted-foreground"><span className="size-1.5 rounded-full bg-[var(--color-success)]" />Conversation active</div>
+      {messages.map((m) => <Message key={m.id} message={m} />)}
+      {active.length > 0 ? <section aria-label="In progress" className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-[var(--shadow-soft)]"><div className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[var(--color-success)]" /><p className="text-[12px] font-medium">Kurukoo is working</p></div><ul className="mt-3 space-y-2">{active.map((w) => <li key={w.id} className="flex items-center justify-between gap-4 text-[13.5px]"><Link to="/work/$workId" params={{ workId: w.id }} className="truncate font-medium hover:underline">{w.title}</Link><span className="shrink-0 text-[12px] text-muted-foreground">{w.updated}</span></li>)}</ul></section> : null}
+      <div ref={endRef} />
+    </div>}
 
-      <Composer onSend={send} />
-    </div>
-  );
+    <div className="sticky bottom-0 bg-background pb-3 pt-3"><Composer onSend={send} /><p className="mt-2 text-center text-[10.5px] text-muted-foreground">Kurukoo will ask for your approval before commitments, payments or important actions.</p></div>
+  </div>;
 }
