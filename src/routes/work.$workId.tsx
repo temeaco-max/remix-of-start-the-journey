@@ -6,7 +6,7 @@ import { artifacts, entities } from "@/lib/kurukoo-demo";
 import { ArtifactRow, ContactRow } from "@/components/kurukoo/cards";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
-export const Route = createFileRoute("/work/")({
+export const Route = createFileRoute("/work/$workId")({
   head: () => ({
     meta: [
       { title: "Request — Kurukoo" },
