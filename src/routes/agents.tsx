@@ -23,7 +23,7 @@ export const Route = createFileRoute("/agents")({
   component: AgentsPage,
 });
 
-function AgentsPage() {
+export function AgentsPage() {
   return (
     <>
       <PageHeader
@@ -31,7 +31,7 @@ function AgentsPage() {
         subtitle="Useful things Kurukoo can help you accomplish through one conversation."
       />
       <div className="mb-5 max-w-2xl rounded-2xl border border-border bg-elevated/60 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-        You do not need to know which capability is involved. Just describe the outcome you want and Kurukoo will work out the next useful step.
+        You do not need to choose a capability first. Describe the outcome you want and Kurukoo will work out the next useful step.
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {agents.map((a) => (
@@ -40,12 +40,12 @@ function AgentsPage() {
       </div>
 
       <section className="mt-8">
-        <SectionHeader title="What happens next" subtitle="You stay in control of the outcome." />
+        <SectionHeader title="How Kurukoo helps" subtitle="You stay in control of the outcome." />
         <Panel className="p-4">
           <ol className="space-y-3 text-[14px]">
             {[
               ["Tell Kurukoo", "Describe what you need in your own words."],
-              ["See useful options", "Kurukoo brings back relevant people, services or next steps when it can verify them."],
+              ["See useful options", "Kurukoo brings back relevant people, services or next steps when they can be confirmed."],
               ["Choose", "You decide which option to continue with."],
               ["Keep control", "Nothing is committed without your approval."],
             ].map(([title, detail], index) => (
@@ -56,13 +56,13 @@ function AgentsPage() {
             ))}
           </ol>
           <div className="mt-4">
-            <Link to="/chat"><Action variant="primary">Start chatting</Action></Link>
+            <Link to="/chat"><Action variant="primary">Start a conversation</Action></Link>
           </div>
         </Panel>
       </section>
 
       <IntegrationGap>
-        Some capability cards are illustrative until the corresponding Kurukoo services are connected. No unavailable capability is presented as a live guarantee.
+        A few capabilities are shown as ready-to-explore examples while their live services are being connected.
       </IntegrationGap>
     </>
   );
