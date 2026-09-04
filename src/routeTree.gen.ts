@@ -18,6 +18,7 @@ import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as CallsRouteImport } from './routes/calls'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ContactsRouteImport } from './routes/contacts'
@@ -88,6 +89,11 @@ const BusinessesRoute = BusinessesRouteImport.update({
 const CallsRoute = CallsRouteImport.update({
   id: '/calls',
   path: '/calls',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConnectRoute = ConnectRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
+  '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
+  '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
+  '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
@@ -345,6 +354,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/businesses'
     | '/calls'
+    | '/chat'
     | '/connect'
     | '/contact'
     | '/contacts'
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/businesses'
     | '/calls'
+    | '/chat'
     | '/connect'
     | '/contact'
     | '/contacts'
@@ -419,6 +430,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/businesses'
     | '/calls'
+    | '/chat'
     | '/connect'
     | '/contact'
     | '/contacts'
@@ -457,6 +469,7 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRouteWithChildren
   BusinessesRoute: typeof BusinessesRoute
   CallsRoute: typeof CallsRoute
+  ChatRoute: typeof ChatRoute
   ConnectRoute: typeof ConnectRoute
   ContactRoute: typeof ContactRoute
   ContactsRoute: typeof ContactsRoute
@@ -545,6 +558,13 @@ declare module '@tanstack/react-router' {
       path: '/calls'
       fullPath: '/calls'
       preLoaderRoute: typeof CallsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/connect': {
@@ -775,6 +795,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRouteWithChildren,
   BusinessesRoute: BusinessesRoute,
   CallsRoute: CallsRoute,
+  ChatRoute: ChatRoute,
   ConnectRoute: ConnectRoute,
   ContactRoute: ContactRoute,
   ContactsRoute: ContactsRoute,
