@@ -26,8 +26,6 @@ export const DomainEvents = Object.freeze({
   GOAL_STATE_CHANGED: 'goal.state_changed',
   REQUEST_CREATED: 'request.created',
   REQUEST_STATE_CHANGED: 'request.state_changed',
-  PROVIDERS_MATCHED: 'request.providers_matched',
-  NOTIFICATION_REQUESTED: 'notification.requested',
   PROVIDER_INQUIRY_CREATED: 'provider_inquiry.created',
   EXECUTION_REQUEST_CREATED: 'execution.request_created',
 });
