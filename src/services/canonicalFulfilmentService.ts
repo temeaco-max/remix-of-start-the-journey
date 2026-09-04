@@ -5,6 +5,7 @@ import { getCanonicalStore } from './canonicalStore.js';
 import { persistCoordinatorEvent } from './coordinatorStore.js';
 import { sendFcmPush } from './pushNotifications.js';
 import { getFulfilmentSkillBinding, resolveMissingFulfilmentInputs } from './fulfilmentSkillBindings.js';
+import { emitDomainEvent, DomainEvents } from './domainEvents.js';
 
 export type FulfilmentStatus =
   | 'draft'
@@ -456,6 +457,12 @@ export async function createProviderInquiry(input: { fulfilmentId: string; owner
   const row = await store.one<any>('SELECT * FROM provider_inquiries WHERE id=? AND owner_phone=? LIMIT 1', [id,input.ownerPhone]);
   const inquiry = rowToInquiry(row);
   await lifecycleEvent(fulfilment, 'provider_inquiry_created', { inquiryId:id, providerId:input.providerId, requestedFields:input.requestedFields||[] });
+  emitDomainEvent(DomainEvents.PROVIDER_INQUIRY_CREATED, {
+    inquiryId: inquiry.id,
+    fulfilmentId: inquiry.fulfilmentId,
+    ownerPhone: inquiry.ownerPhone,
+    expiresAt: inquiry.expiresAt || null,
+  });
   return inquiry;
 }
 
@@ -501,6 +508,22 @@ export async function supersedeProviderInquiryForRetry(input: { ownerPhone: stri
   return updated;
 }
 
+export async function expireProviderInquiryById(ownerPhone: string, inquiryId: string, observedAt?: string): Promise<ProviderInquiry | null> {
+  await ensureCanonicalFulfilmentSchema();
+  const store = await getCanonicalStore();
+  const ts = observedAt || now();
+  const row = await store.one<any>('SELECT * FROM provider_inquiries WHERE id=? AND owner_phone=? AND status IN (?,?) LIMIT 1', [inquiryId, ownerPhone, 'pending', 'sent']);
+  if (!row) return null;
+  const inquiry = rowToInquiry(row);
+  await store.run("UPDATE provider_inquiries SET status='no_response',response_json=?,evidence_level='none',evidence_ref=?,responded_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND owner_phone=? AND status IN ('pending','sent')", [json({ outcome: 'no_response', observedAt: ts, source: 'provider_inquiry_expiry_worker' }), `timeout:${inquiryId}:${ts}`, ts, inquiryId, ownerPhone]);
+  const updatedRow = await store.one<any>('SELECT * FROM provider_inquiries WHERE id=? AND owner_phone=? LIMIT 1', [inquiryId, ownerPhone]);
+  const updated = updatedRow ? rowToInquiry(updatedRow) : null;
+  if (!updated || updated.status !== 'no_response') return null;
+  const fulfilment = await getFulfilment(updated.ownerPhone, updated.fulfilmentId);
+  if (fulfilment) await lifecycleEvent(fulfilment, 'provider_inquiry_no_response', { inquiryId: updated.id, expiresAt: updated.expiresAt, observedAt: ts });
+  return updated;
+}
+
 export async function expireDueProviderInquiries(input: { now?: string; limit?: number } = {}): Promise<ProviderInquiry[]> {
   await ensureCanonicalFulfilmentSchema();
   const store = await getCanonicalStore();
@@ -510,15 +533,8 @@ export async function expireDueProviderInquiries(input: { now?: string; limit?: 
   const expired: ProviderInquiry[] = [];
   for (const row of rows) {
     const inquiry = rowToInquiry(row);
-    const mutation = await store.run("UPDATE provider_inquiries SET status='no_response',response_json=?,evidence_level='none',evidence_ref=?,responded_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND owner_phone=? AND status IN ('pending','sent')", [json({ outcome: 'no_response', observedAt, source: 'provider_inquiry_expiry_worker' }), `timeout:${inquiry.id}:${observedAt}`, observedAt, inquiry.id, inquiry.ownerPhone]);
-    if (!mutation.rowCount) continue;
-    const updatedRow = await store.one<any>('SELECT * FROM provider_inquiries WHERE id=? AND owner_phone=? LIMIT 1', [inquiry.id, inquiry.ownerPhone]);
-    if (!updatedRow) continue;
-    const updated = rowToInquiry(updatedRow);
-    if (updated.status !== 'no_response') continue;
-    const fulfilment = await getFulfilment(updated.ownerPhone, updated.fulfilmentId);
-    if (fulfilment) await lifecycleEvent(fulfilment, 'provider_inquiry_no_response', { inquiryId: updated.id, expiresAt: updated.expiresAt, observedAt });
-    expired.push(updated);
+    const updated = await expireProviderInquiryById(inquiry.ownerPhone, inquiry.id, observedAt);
+    if (updated) expired.push(updated);
   }
   return expired;
 }

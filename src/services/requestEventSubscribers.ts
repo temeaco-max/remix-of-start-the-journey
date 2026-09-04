@@ -41,4 +41,20 @@ export function registerRequestEventSubscribers(): void {
       console.error('[requestEventSubscribers] enqueue failed for request.state_changed:', error instanceof Error ? error.message : error);
     });
   });
+
+  subscribeToDomainEvent(DomainEvents.PROVIDER_INQUIRY_CREATED, (event) => {
+    const { inquiryId, ownerPhone, expiresAt } = event.payload as { inquiryId?: string; ownerPhone?: string; expiresAt?: string | null };
+    if (!inquiryId || !ownerPhone) return;
+    const deadline = expiresAt ? Date.parse(String(expiresAt)) : NaN;
+    // No deadline → nothing to schedule; the polling pass remains the safety net for both cases.
+    if (!Number.isFinite(deadline)) return;
+    enqueueDurableJob({
+      kind: 'provider_inquiry.deadline',
+      payload: { inquiryId, ownerPhone, expiresAt },
+      delayMs: Math.max(0, deadline - Date.now()),
+      maxAttempts: 5,
+    }).catch(error => {
+      console.error('[requestEventSubscribers] enqueue failed for provider_inquiry.created:', error instanceof Error ? error.message : error);
+    });
+  });
 }

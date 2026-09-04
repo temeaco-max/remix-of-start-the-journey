@@ -10,9 +10,10 @@
  */
 import { claimDurableJob, completeDurableJob, failDurableJob, releaseExpiredDurableJobLeases } from './durableJobQueue.js';
 import { sendFcmPush } from './pushNotifications.js';
+import { processProviderInquiryDeadline } from './providerInquiryFollowUpService.js';
 
 const WORKER_ID = 'durable-job-worker';
-const WORKER_KINDS = ['request.lifecycle_reaction'];
+const WORKER_KINDS = ['request.lifecycle_reaction', 'provider_inquiry.deadline'];
 const JOB_LEASE_MS = 2 * 60 * 1000; // 2 minutes per job
 
 interface RequestLifecycleReactionPayload {
@@ -62,6 +63,22 @@ async function handleRequestLifecycleReaction(job: { payload: Record<string, unk
   );
 }
 
+async function handleProviderInquiryDeadline(job: { payload: Record<string, unknown> }): Promise<void> {
+  const payload = (job.payload || {}) as { inquiryId?: string; ownerPhone?: string; expiresAt?: string };
+  const inquiryId = String(payload.inquiryId || '').trim();
+  const ownerPhone = String(payload.ownerPhone || '').trim();
+  if (!inquiryId || !ownerPhone) return; // missing target → nothing to react with
+  await processProviderInquiryDeadline(ownerPhone, inquiryId);
+}
+
+async function handleJob(job: { kind: string; payload: Record<string, unknown> }): Promise<void> {
+  if (job.kind === 'provider_inquiry.deadline') {
+    await handleProviderInquiryDeadline(job);
+    return;
+  }
+  await handleRequestLifecycleReaction(job);
+}
+
 /**
  * Run one worker cycle: release expired leases, then claim and process up to
  * `batch` of the worker's job kinds. Returns the number of jobs processed.
@@ -77,7 +94,7 @@ export async function runDurableJobCycle(batch = 20): Promise<number> {
     if (!job) break;
     processed += 1;
     try {
-      await handleRequestLifecycleReaction(job);
+      await handleJob(job);
       await completeDurableJob(job.id, WORKER_ID);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
