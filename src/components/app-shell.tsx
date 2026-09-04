@@ -93,11 +93,52 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+
+        <p className="px-3 pb-1 pt-6 text-[11px] uppercase tracking-wide text-muted-foreground">
+          More
+        </p>
+        <nav className="flex flex-col gap-0.5">
+          {more.map(({ to, label, icon: Icon }) => {
+            const active = pathname === to;
+            return (
+              <Link
+                key={to}
+                to={to}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-colors",
+                  active
+                    ? "bg-elevated font-medium text-foreground"
+                    : "text-muted-foreground hover:bg-elevated/70 hover:text-foreground",
+                )}
+              >
+                <Icon className="size-[17px]" strokeWidth={active ? 2.2 : 1.8} />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
       </aside>
 
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:hidden">
-        <span className="text-[15px] font-semibold tracking-tight">Kurukoo</span>
-        <ThemeToggle />
+      <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur md:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-[15px] font-semibold tracking-tight">Kurukoo</span>
+          <ThemeToggle />
+        </div>
+        <nav
+          aria-label="More Kurukoo surfaces"
+          className="-mx-0 flex gap-2 overflow-x-auto px-4 pb-2.5"
+        >
+          {more.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              className="min-h-8 shrink-0 rounded-full border border-border px-3 py-1.5 text-[12.5px] text-muted-foreground"
+              activeProps={{ className: "border-transparent bg-elevated text-foreground" }}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
       </header>
 
       <main className="md:pl-[236px]">
