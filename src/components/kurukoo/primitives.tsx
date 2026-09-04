@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 import type { Message as MessageModel, WorkItem, WorkStage } from "@/lib/kurukoo-store";
 
 export const stageLabel: Record<WorkStage, string> = {
-  understanding: "Understanding",
-  working: "Working",
+  understanding: "Getting started",
+  working: "In progress",
   needs_you: "Needs you",
   done: "Done",
 };
@@ -39,10 +39,10 @@ export function WorkItemCard({ item, onAdvance }: { item: WorkItem; onAdvance?: 
     <Progress steps={item.steps} />
     <div className="mt-4 flex flex-wrap items-center gap-2">
       {item.stage !== "done" && onAdvance ? <Action variant={item.stage === "needs_you" ? "primary" : "quiet"} onClick={() => onAdvance(item.id)}>{item.stage === "needs_you" ? "Confirm and finish" : "Continue"}</Action> : null}
-      <Link to="/chat" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13.5px] text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"><MessageCircle className="size-3.5" />Continue in Chat</Link>
+      <Link to="/chat" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13.5px] text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"><MessageCircle className="size-3.5" />Continue conversation</Link>
     </div>
   </div>;
 }
 
 export function Result({ title, body }: { title: string; body: string }) { return <div className="rounded-xl border border-border bg-surface p-4"><p className="text-[15.5px] font-medium">{title}</p><p className="mt-1 text-[14px] text-muted-foreground">{body}</p></div>; }
-export function IntegrationGap({ children }: { children: ReactNode }) { return <p className="mt-4 text-[12.5px] leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Not connected yet · </span>{children}</p>; }
+export function IntegrationGap({ children }: { children: ReactNode }) { return <p className="mt-4 text-[12.5px] leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Not available yet · </span>{children}</p>; }
