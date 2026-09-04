@@ -1,4 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
+import { Channel } from '../services/channelIdentifiers.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import makeWASocket, { DisconnectReason, useMultiFileAuthState, type WASocket } from '@whiskeysockets/baileys';
@@ -90,16 +91,16 @@ export async function processWhatsAppLinkedDeviceMessage(message: any, reply?: (
   const { recordChannelEvidence } = await import('./progressiveTrustService.js');
   await recordChannelEvidence({
     phone,
-    channel: 'whatsapp',
+    channel: Channel.WHATSAPP,
     evidenceType: 'verified_personal_linked_session_inbound',
     externalSubject: jid,
     sourceRef: String(message?.key?.id || '').slice(0, 256) || undefined,
     consented: true,
   });
-  const turn = await processCanonicalChatTurn({ phone, message: text, channel: 'whatsapp' });
+  const turn = await processCanonicalChatTurn({ phone, message: text, channel: Channel.WHATSAPP });
   const sendReply = reply || (async (targetJid: string, responseText: string) => { if (socket) await socket.sendMessage(targetJid, { text: responseText }); });
   await sendReply(jid, turn.reply);
-  return { accepted: true, phone, text, reply: turn.reply, channel: 'whatsapp' };
+  return { accepted: true, phone, text, reply: turn.reply, channel: Channel.WHATSAPP };
 }
 
 async function handleInboundMessage(message: any): Promise<void> {

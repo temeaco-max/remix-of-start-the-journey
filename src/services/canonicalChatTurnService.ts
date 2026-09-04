@@ -27,6 +27,7 @@ import { resolveConversationPriority, type ConversationPriorityDecision } from '
 import { isFoodOrderExpression } from './conversationalExtraction.js';
 import { migrateGuestSessionToAccount } from './guestSessionMigration.js';
 import { getPersonProfile } from './identityContactService.js';
+import { normalizeChannel } from './channelIdentifiers.js';
 
 function parseCardData(row: any): any | null {
   if (!row?.card_data) return null;
@@ -183,6 +184,9 @@ function shouldUseUniversalConversationOwner(routing: IntentRoutingResult): bool
 
 export async function processCanonicalChatTurn(input: CanonicalChatTurnInput): Promise<CanonicalChatTurnResult> {
   const phone = String(input.phone || '').trim(); const message = String(input.message || '').trim(); if (!phone || !message) throw new Error('Phone and message are required');
+  const channel = normalizeChannel(input.channel);
+  if (!channel) throw new Error(`Unsupported channel`);
+  input = { ...input, channel }; // canonical normalization at the single turn boundary
   const userMessage = await appendChatMessage({ phone, sender: 'user', content: message, channel: input.channel, conversationId: input.conversationId, metadata: input.attachment || input.contextAction ? { attachment: input.attachment, contextAction: input.contextAction } : undefined });
   let reply = ''; let cardData: any = undefined; let authSuccess: { phone: string; token: string } | undefined; let agentGoal: any = null; let capabilityOrchestration: AICapabilityOrchestrationDecision | undefined; let classificationSource: 'fasttext' | 'rules' | 'fallback' | undefined; let intentConfidence: number | undefined; let modelProvider: string | undefined; let model: string | undefined; let extractionSource: 'deterministic' | 'generative' | 'none' | undefined; let extractedEntities: Record<string, unknown> | undefined; let canonicalAction: string | undefined; let progressStage: any; let conversationQualityScore: number | undefined; let conversationQualityIssues: string[] | undefined; let conversationGenerationEscalated: boolean | undefined; let conversationGenerationAttempts: number | undefined; let conversationContextTurns: number | undefined; const startedAt = Date.now();
   const isGuest = phone.startsWith('anon_'); const interactionPolicy = resolveConversationPriority(message); const emergency = await handleEmergencyTurn(phone, message); const normalizedTurnMessage = message.trim().replace(/[.!?]+$/, ''); const asksToDealWithFirst = !isGuest && /^(?:deal with|take care of|handle|start with) (?:the )?first (?:one|item)$/i.test(normalizedTurnMessage); const asksForBrief = !isGuest && !asksToDealWithFirst && isAgentBriefQuestion(message); const authState = isGuest ? await getAuthState(phone) : { state: 'none' as const, data: {} };   const standaloneNameAuth = isGuest && authState.state === 'none' && isStandaloneName(message); const inlineIdentityName = isGuest && authState.state === 'none' ? extractInlineIdentityName(message) : undefined; const profile = await getProfile(phone, 'canonical_chat_turn'); const prefs: any = profile?.preferences && typeof profile.preferences === 'object' ? profile.preferences : {}; const safetyState = prefs.safety_capture_state || 'none';

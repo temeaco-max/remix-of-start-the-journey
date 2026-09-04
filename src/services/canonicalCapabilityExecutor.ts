@@ -1,4 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
+import { Channel } from '../services/channelIdentifiers.js';
 import crypto from 'node:crypto';
 import { getCanonicalPersistenceMode } from './canonicalPersistence.js';
 import { getCanonicalStore } from './canonicalStore.js';
@@ -284,7 +285,7 @@ async function dispatchCanonicalAction(input: CanonicalCapabilityExecutionInput,
     const whatsappBusiness = getWhatsAppBusinessStatus();
     const whatsappLinked = getWhatsAppLinkedDeviceStatus();
     const channelState = requested === 'whatsapp' ? {
-      channel: 'whatsapp',
+      channel: Channel.WHATSAPP,
       nativeChatAvailable: true,
       externalDelivery: Boolean(whatsappBusiness.liveVerified || whatsappLinked.connected),
       preparationAvailable: true,

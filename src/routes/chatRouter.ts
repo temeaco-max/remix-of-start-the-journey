@@ -13,6 +13,7 @@ import { getAuthState, setAuthState } from '../services/conversationalAuthServic
 import { inspectAttachmentSecurity } from '../services/attachmentSecurityBoundary.js';
 import economicRequestRouter from './economicRequestRouter.js';
 import { listUniversalCapabilities } from '../services/universalCapabilityProtocol.js';
+import { normalizeChannel, Channel } from '../services/channelIdentifiers.js';
 import { executeCanonicalCapabilityProposal } from '../services/canonicalCapabilityExecutor.js';
 
 const router = Router();
@@ -103,7 +104,9 @@ function chunkText(text: string): string[] { const chunks: string[] = []; const 
 router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) => {
   const phone = userPhone(req, res);
   const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
-  const channel = typeof req.body?.channel === 'string' ? req.body.channel.slice(0, 30) : 'web';
+  const channelInput = typeof req.body?.channel === 'string' ? req.body.channel.slice(0, 30) : '';
+  const channel = normalizeChannel(channelInput);
+  if (channel === null) return res.status(400).json({ error: 'Unsupported channel' });
   const conversationId = typeof req.body?.conversationId === 'string' ? req.body.conversationId : undefined;
   const attachment = req.body?.attachment;
   const contextAction = req.body?.contextAction && typeof req.body.contextAction === 'object' ? {
@@ -184,7 +187,7 @@ router.get('/history', optionalAuthenticateUser, async (req: AuthRequest, res) =
 router.post('/conversation', optionalAuthenticateUser, async (req: AuthRequest, res) => {
   const phone = userPhone(req, res);
   if (!phone) return res.status(401).json({ error: 'Phone is required' });
-  const channel = typeof req.body?.channel === 'string' ? req.body.channel.slice(0, 30) : 'web';
+  const channel = normalizeChannel(typeof req.body?.channel === 'string' ? req.body.channel.slice(0, 30) : '') ?? Channel.WEB;
   const title = typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : undefined;
   try {
     const id = await ensureConversation(phone, undefined, channel, title, true);

@@ -1,4 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
+import { Channel } from '../services/channelIdentifiers.js';
 import { getEconomicRequest } from './skillFlows.js';
 import crypto from 'node:crypto';
 import { buildWorkingContext } from './livingMemoryEngine.js';
@@ -116,7 +117,7 @@ async function executeAgentToolInternal(name: AgentToolName, args: Record<string
     const confirmationRequired = actionContract.confirmationRequired || actionContract.risk === 'high_risk';
     if (!readOnly && (!autonomousLowRiskEnabled() || confirmationRequired) && args.confirmationGranted !== true) return { ok: false, tool: name, permission: 'coordination', message: confirmationRequired ? 'This capability action requires explicit user confirmation.' : 'Autonomous low-risk capability execution is disabled for this deployment.' };
     const { executeCanonicalCapabilityProposal } = await import('./canonicalCapabilityExecutor.js');
-    const result = await executeCanonicalCapabilityProposal({ capability, action, contextId: typeof args.contextId === 'string' ? args.contextId : context.goalId, canonicalObjectId: typeof args.canonicalObjectId === 'string' ? args.canonicalObjectId : undefined, arguments: parsedArguments, confirmationGranted: args.confirmationGranted === true, phone: context.phone, conversationId: context.conversationId, channel: 'agent' });
+    const result = await executeCanonicalCapabilityProposal({ capability, action, contextId: typeof args.contextId === 'string' ? args.contextId : context.goalId, canonicalObjectId: typeof args.canonicalObjectId === 'string' ? args.canonicalObjectId : undefined, arguments: parsedArguments, confirmationGranted: args.confirmationGranted === true, phone: context.phone, conversationId: context.conversationId, channel: Channel.AGENT });
     await syncAgentGoalFromCapabilityResult({ phone: context.phone, goalId: context.goalId, capability, action, idempotencyKey: result.idempotencyKey, outcome: { status: result.status, capability: result.capability, action: result.action, canonicalObjectId: result.canonicalObjectId, continuationContext: result.continuationContext, nextActions: result.nextActions, canonicalFacts: result.canonicalFacts, message: result.message, evidence: `canonical_capability:${capability}:${action}:${result.status}`, executablePlan: result.executablePlan } });
     return { ok: result.status !== 'failed' && result.status !== 'blocked' && result.status !== 'unauthorized' && result.status !== 'invalid', tool: name, permission: 'coordination', data: { status: result.status, capability: result.capability, action: result.action, canonicalObjectId: result.canonicalObjectId, nextActions: result.nextActions, canonicalFacts: result.canonicalFacts, continuationContext: result.continuationContext, executablePlan: result.executablePlan }, evidence: `canonical_capability:${capability}:${action}:${result.status}`, message: result.message };
   }

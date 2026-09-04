@@ -1,4 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
+import { Channel } from '../services/channelIdentifiers.js';
 import crypto from 'node:crypto';
 import { processCanonicalChatTurn } from './canonicalChatTurnService.js';
 
@@ -92,7 +93,7 @@ export async function processWhatsAppBusinessWebhook(payload: any): Promise<{ ac
   let accepted = 0;
   for (const message of inbound) {
     try {
-      const turn = await processCanonicalChatTurn({ phone: message.from, message: message.text, channel: 'whatsapp' });
+      const turn = await processCanonicalChatTurn({ phone: message.from, message: message.text, channel: Channel.WHATSAPP });
       replies.push({ phone: message.from, text: turn.reply });
       accepted += 1;
     } catch {

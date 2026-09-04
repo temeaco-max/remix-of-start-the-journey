@@ -1,4 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
+import { Channel } from '../services/channelIdentifiers.js';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -159,13 +160,13 @@ async function installInboundHandler(client: any, configuredOwner: string): Prom
       const syntheticPhone = `tg_${senderId || chatId}`;
       await recordChannelEvidence({
         phone: configuredOwner,
-        channel: 'telegram',
+        channel: Channel.TELEGRAM,
         evidenceType: 'verified_personal_linked_session_inbound',
         externalSubject: `telegram-linked:${senderId || chatId}`,
         sourceRef: `telegram-message:${String(message.id || '').slice(0, 80)}`,
         consented: true,
       });
-      const turn = await processCanonicalChatTurn({ phone: syntheticPhone, message: text, channel: 'telegram' });
+      const turn = await processCanonicalChatTurn({ phone: syntheticPhone, message: text, channel: Channel.TELEGRAM });
       if (chatId) await client.sendMessage(chatId, { message: turn.reply });
     } catch (error) {
       if (runtime) runtime.lastError = error instanceof Error ? error.message.slice(0, 180) : 'Telegram linked message failed.';
@@ -256,8 +257,8 @@ export async function processTelegramLinkedDeviceMessageForTest(input: { ownerPh
   if (!text) return { accepted: false, reason: 'empty_message' };
   const phone = `tg_${String(input.senderId || '').trim()}`;
   if (phone === 'tg_') return { accepted: false, reason: 'sender_identity_missing' };
-  await recordChannelEvidence({ phone: input.ownerPhone, channel: 'telegram', evidenceType: 'verified_personal_linked_session_inbound', externalSubject: `telegram-linked:${input.senderId}`, sourceRef: 'telegram-test-message', consented: true });
-  const turn = await processCanonicalChatTurn({ phone, message: text, channel: 'telegram' });
+  await recordChannelEvidence({ phone: input.ownerPhone, channel: Channel.TELEGRAM, evidenceType: 'verified_personal_linked_session_inbound', externalSubject: `telegram-linked:${input.senderId}`, sourceRef: 'telegram-test-message', consented: true });
+  const turn = await processCanonicalChatTurn({ phone, message: text, channel: Channel.TELEGRAM });
   if (input.chatId) await reply(input.chatId, turn.reply);
   return { accepted: true, phone, reply: turn.reply };
 }

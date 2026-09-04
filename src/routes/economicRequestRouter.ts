@@ -1,4 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
+import { Channel } from '../services/channelIdentifiers.js';
 import { Router } from 'express';
 import crypto from 'crypto';
 import { authenticateAdmin, authenticateUser, type AuthRequest } from '../middleware/auth.js';
@@ -147,7 +148,7 @@ router.post('/storefront/:id/advance', authenticateUser, async (req: AuthRequest
       phone,
       sender: 'assistant',
       content: card.message || 'Request state updated.',
-      channel: 'web',
+      channel: Channel.WEB,
       conversationId,
       cardData: card,
       metadata: { source: 'storefront_advance', requestId },

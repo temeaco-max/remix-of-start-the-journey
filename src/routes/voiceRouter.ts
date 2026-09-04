@@ -1,4 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
+import { Channel } from '../services/channelIdentifiers.js';
 import crypto from 'node:crypto';
 import { Router } from 'express';
 import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';
@@ -82,7 +83,7 @@ router.post('/transcribe', optionalAuthenticateUser, sessionRateLimit, async (re
     artifact = await createArtifact({ phone, filename, mimeType, data, kind: 'voice', transcriptStatus: 'pending' });
     const transcript = await transcribeMistralAudio({ data, mimeType, filename, language: typeof req.body?.language === 'string' ? req.body.language : undefined });
     artifact = (await setArtifactTranscript(phone, artifact.id, transcript.text, 'available')) || artifact;
-    const turn = await processCanonicalChatTurn({ phone, message: transcript.text, channel: 'web_voice', conversationId: session.conversationId });
+    const turn = await processCanonicalChatTurn({ phone, message: transcript.text, channel: Channel.WEB_VOICE, conversationId: session.conversationId });
     res.json({ transcript: transcript.text, transcriptStatus: 'available', provider: 'mistral', model: transcript.model, language: transcript.language, conversationId: turn.conversationId, artifact, turn });
   } catch (error: any) {
     const code = error?.code || 'MISTRAL_REQUEST_FAILED';
@@ -119,7 +120,7 @@ router.post('/transcript', optionalAuthenticateUser, async (req: AuthRequest, re
   if (!session || !role || !content) return res.status(400).json({ error: 'Invalid voice transcript.' });
   try {
     const voiceStatus = getVoiceStatus();
-    const message = await appendChatMessage({ phone, sender: role, content, channel: 'web_voice', conversationId: session.conversationId, metadata: { voice: true, provider: voiceStatus.provider, capability: voiceStatus.capability, model: voiceStatus.model, session_id: sessionId } });
+    const message = await appendChatMessage({ phone, sender: role, content, channel: Channel.WEB_VOICE, conversationId: session.conversationId, metadata: { voice: true, provider: voiceStatus.provider, capability: voiceStatus.capability, model: voiceStatus.model, session_id: sessionId } });
     res.json({ messageId: message.id, conversationId: message.conversationId });
   } catch {
     res.status(500).json({ error: 'Transcript could not be saved.' });
