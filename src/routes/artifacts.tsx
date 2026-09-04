@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, Image, PlaySquare, Sparkles } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { ArtifactRow } from "@/components/kurukoo/cards";
@@ -18,7 +18,6 @@ export const Route = createFileRoute("/artifacts")({
 });
 
 const filters = ["All", "Documents", "Images", "Video", "Generated"] as const;
-const filterIcons = { Documents: FileText, Images: Image, Video: PlaySquare, Generated: Sparkles };
 
 function ArtifactsPage() {
   const [filter, setFilter] = useState<string>(filters[0]);
