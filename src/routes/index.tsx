@@ -51,7 +51,7 @@ function HomePage() {
             Say it plainly. Kurukoo works it out, does the running around, and comes back to you.
           </p>
           <div className="mt-7 flex flex-wrap gap-2">
-            {suggestions.map((s) => (
+            {suggestions.map((s: string) => (
               <button
                 key={s}
                 type="button"
