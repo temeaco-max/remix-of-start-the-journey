@@ -8,16 +8,15 @@ import { agents } from "@/lib/kurukoo-demo";
 export const Route = createFileRoute("/agents")({
   head: () => ({
     meta: [
-      { title: "Agent network — Kurukoo" },
+      { title: "Capabilities — Kurukoo" },
       {
         name: "description",
-        content:
-          "The specialised capabilities that carry out your requests, and when a human steps in.",
+        content: "See the kinds of things Kurukoo can help you accomplish through conversation.",
       },
-      { property: "og:title", content: "Agent network — Kurukoo" },
+      { property: "og:title", content: "Capabilities — Kurukoo" },
       {
         property: "og:description",
-        content: "How Kurukoo coordinates work behind one conversation.",
+        content: "Useful capabilities that can help move your request forward.",
       },
     ],
   }),
@@ -28,9 +27,12 @@ function AgentsPage() {
   return (
     <>
       <PageHeader
-        title="Agent network"
-        subtitle="One conversation, several specialists behind it."
+        title="Capabilities"
+        subtitle="Useful things Kurukoo can help you accomplish through one conversation."
       />
+      <div className="mb-5 max-w-2xl rounded-2xl border border-border bg-elevated/60 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
+        You do not need to know which capability is involved. Just describe the outcome you want and Kurukoo will work out the next useful step.
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {agents.map((a) => (
           <AgentCard key={a.id} agent={a} />
@@ -38,25 +40,29 @@ function AgentsPage() {
       </div>
 
       <section className="mt-8">
-        <SectionHeader title="How a request moves" subtitle="Orchestration you can follow." />
+        <SectionHeader title="What happens next" subtitle="You stay in control of the outcome." />
         <Panel className="p-4">
-          <ol className="space-y-2 text-[14.5px] text-muted-foreground">
-            <li>1 · You say what you need</li>
-            <li>2 · Coordinator plans the work</li>
-            <li>3 · Outreach and Scheduler contact people</li>
-            <li>4 · Kurukoo returns options for your approval</li>
-            <li>5 · A person steps in whenever judgement is needed</li>
+          <ol className="space-y-3 text-[14px]">
+            {[
+              ["Tell Kurukoo", "Describe what you need in your own words."],
+              ["See useful options", "Kurukoo brings back relevant people, services or next steps when it can verify them."],
+              ["Choose", "You decide which option to continue with."],
+              ["Keep control", "Nothing is committed without your approval."],
+            ].map(([title, detail], index) => (
+              <li key={title} className="flex gap-3">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-elevated text-[11px] font-medium">{index + 1}</span>
+                <span><span className="font-medium">{title}</span><span className="mt-0.5 block text-[13px] text-muted-foreground">{detail}</span></span>
+              </li>
+            ))}
           </ol>
           <div className="mt-4">
-            <Link to="/work">
-              <Action variant="primary">See it on your work</Action>
-            </Link>
+            <Link to="/chat"><Action variant="primary">Start chatting</Action></Link>
           </div>
         </Panel>
       </section>
 
       <IntegrationGap>
-        Agent status is illustrative — no orchestration service is running yet.
+        Some capability cards are illustrative until the corresponding Kurukoo services are connected. No unavailable capability is presented as a live guarantee.
       </IntegrationGap>
     </>
   );
