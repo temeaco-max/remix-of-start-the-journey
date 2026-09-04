@@ -1,9 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowUpRight, CalendarDays, Check, CirclePlay, Clock3, Compass, FileText,
-  Gift, MessageCircle, Mic2, MoreHorizontal, Play, Plus, Sparkles, Users,
-} from "lucide-react";
-import { useState } from "react";
+import { ArrowUpRight, Check, CirclePlay, Compass, Gift, MessageCircle, Mic2, Plus, Sparkles, Users } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { Panel } from "@/components/kurukoo/ui";
 import { useKurukoo } from "@/lib/kurukoo-store";
@@ -26,8 +23,8 @@ export const Route = createFileRoute("/")({
 function SectionTitle({ title, action }: { title: string; action?: string }) {
   return <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-[14px] font-semibold tracking-tight">{title}</h2>{action && <button className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground">{action}<ArrowUpRight className="size-3.5" /></button>}</div>;
 }
-function IconTile({ children, className }: { children: React.ReactNode; className?: string }) { return <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl bg-elevated text-muted-foreground", className)}>{children}</span>; }
-function StatusPill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "green" | "peach" }) { return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium", tone === "green" ? "bg-[color-mix(in_oklab,var(--color-success)_13%,transparent)] text-[var(--color-success)]" : tone === "peach" ? "bg-[#f4e6dc] text-[#765443]" : "bg-elevated text-muted-foreground")}>{children}</span>; }
+function IconTile({ children, className }: { children: ReactNode; className?: string }) { return <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl bg-elevated text-muted-foreground", className)}>{children}</span>; }
+function StatusPill({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "green" | "peach" }) { return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium", tone === "green" ? "bg-[color-mix(in_oklab,var(--color-success)_13%,transparent)] text-[var(--color-success)]" : tone === "peach" ? "bg-[#f4e6dc] text-[#765443]" : "bg-elevated text-muted-foreground")}>{children}</span>; }
 
 function HomePage() {
   const { messages, work, send } = useKurukoo();
@@ -47,9 +44,7 @@ function HomePage() {
     </section>
 
     <div className="grid gap-4 lg:grid-cols-[1.25fr_.9fr]">
-      <section><SectionTitle title="Today’s flow" action="View full day" /><Panel className="overflow-hidden p-0"><div className="divide-y divide-border">
-        {[['09:00','Focus time','Design system review','Focus'],['11:00','Delivery window','Market items to Osu','Request'],['13:00','Lunch break','Keep the afternoon light','Personal'],['15:00','Design review','Share updated mockups','Work'],['18:30','Call Mum','Personal time','People']].slice(0, showAllFlow ? 5 : 4).map(([time,title,detail,kind]) => <div key={time} className="flex items-start gap-3 px-4 py-3.5"><span className="w-11 shrink-0 pt-0.5 text-[11px] tabular-nums text-muted-foreground">{time}</span><span className="mt-1 size-2 shrink-0 rounded-full border-2 border-primary/50 bg-background" /><div className="min-w-0 flex-1"><p className="text-[13.5px] font-medium">{title}</p><p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{detail}</p></div><span className="hidden rounded-full bg-elevated px-2 py-1 text-[10px] text-muted-foreground sm:inline">{kind}</span></div>)}
-      </div><button onClick={() => setShowAllFlow(v => !v)} className="w-full border-t border-border px-4 py-2.5 text-[12px] text-muted-foreground hover:bg-elevated/60">{showAllFlow ? "Show less" : "Show later"}</button></Panel></section>
+      <section><SectionTitle title="Today’s flow" action="View full day" /><Panel className="overflow-hidden p-0"><div className="divide-y divide-border">{[['09:00','Focus time','Design system review','Focus'],['11:00','Delivery window','Market items to Osu','Request'],['13:00','Lunch break','Keep the afternoon light','Personal'],['15:00','Design review','Share updated mockups','Work'],['18:30','Call Mum','Personal time','People']].slice(0, showAllFlow ? 5 : 4).map(([time,title,detail,kind]) => <div key={time} className="flex items-start gap-3 px-4 py-3.5"><span className="w-11 shrink-0 pt-0.5 text-[11px] tabular-nums text-muted-foreground">{time}</span><span className="mt-1 size-2 shrink-0 rounded-full border-2 border-primary/50 bg-background" /><div className="min-w-0 flex-1"><p className="text-[13.5px] font-medium">{title}</p><p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{detail}</p></div><span className="hidden rounded-full bg-elevated px-2 py-1 text-[10px] text-muted-foreground sm:inline">{kind}</span></div>)}</div><button onClick={() => setShowAllFlow(v => !v)} className="w-full border-t border-border px-4 py-2.5 text-[12px] text-muted-foreground hover:bg-elevated/60">{showAllFlow ? "Show less" : "Show later"}</button></Panel></section>
 
       <section><SectionTitle title="Continue conversation" action="Open chat" /><Panel className="h-full p-5"><div className="flex items-start gap-3"><IconTile className="bg-[#f4e6dc] text-[#765443]"><MessageCircle className="size-4" /></IconTile><div className="min-w-0 flex-1"><p className="text-[14px] font-medium">Kurukoo</p><p className="mt-1 line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">{recentMessage?.text ?? "Your conversations and requests will stay together here, ready when you return."}</p></div></div><button className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[12.5px] font-medium text-primary-foreground hover:opacity-90">Continue <ArrowUpRight className="size-3.5" /></button></Panel></section>
     </div>
