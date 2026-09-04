@@ -1,15 +1,37 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun } from "lucide-react";
+import {
+  Home,
+  Compass,
+  ListChecks,
+  Bell,
+  Users,
+  Brain,
+  Moon,
+  Sun,
+  MessageSquare,
+  FolderClosed,
+  Plug,
+  Wallet,
+  Settings,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/", label: "Home", icon: Home },
   { to: "/explore", label: "Explore", icon: Compass },
+  { to: "/activity", label: "Activity", icon: Bell },
   { to: "/work", label: "Work", icon: ListChecks },
-  { to: "/notifications", label: "Notifications", icon: Bell },
+] as const;
+
+const more = [
+  { to: "/messages", label: "Messages", icon: MessageSquare },
   { to: "/contacts", label: "Contacts", icon: Users },
+  { to: "/artifacts", label: "Files", icon: FolderClosed },
+  { to: "/connect", label: "Connect", icon: Plug },
+  { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/memory", label: "Memory", icon: Brain },
+  { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 function ThemeToggle() {
