@@ -5,6 +5,12 @@ import { cn } from "@/lib/utils";
 import { Avatar, Badge, FollowButton, SaveButton, ShareButton } from "@/components/kurukoo/ui";
 import type { Agent, Artifact, Entity, Plan, Topic, Transaction, Video } from "@/lib/kurukoo-demo";
 
+const entityKindLabel: Record<Entity["kind"], string> = {
+  provider: "Network",
+  business: "Business",
+  creator: "Creator",
+};
+
 export function EntityCard({ entity, footer }: { entity: Entity; footer?: ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
@@ -25,7 +31,7 @@ export function EntityCard({ entity, footer }: { entity: Entity; footer?: ReactN
           </div>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{entity.tagline}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-muted-foreground">
-            <span className="capitalize">{entity.kind}</span>
+            <span>{entityKindLabel[entity.kind]}</span>
             {entity.location ? <span>· {entity.location}</span> : null}
             {entity.rating ? (
               <span className="inline-flex items-center gap-1">
@@ -197,7 +203,7 @@ export function AgentCard({ agent }: { agent: Agent }) {
             ? "Available"
             : agent.status === "busy"
               ? "Working"
-              : "Human handoff"}
+              : "Human support"}
         </Badge>
       </div>
       <p className="mt-1 text-[13.5px] text-muted-foreground">{agent.purpose}</p>
