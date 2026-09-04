@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, ChevronRight, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Check, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/settings")({
       { title: "Settings — Kurukoo" },
       { name: "description", content: "Control how Kurukoo behaves, remembers, communicates and works for you." },
       { property: "og:title", content: "Settings — Kurukoo" },
-      { property: "og:description", content: "The control layer of Kurukoo." },
+      { property: "og:description", content: "Your personal controls for Kurukoo." },
     ],
   }),
   component: SettingsPage,
@@ -47,22 +47,22 @@ function SettingsPage() {
 
         {tab === "Privacy" && <><SettingIntro icon={ShieldCheck} eyebrow="Your control" title="Kurukoo asks before it acts" description="Choose what Kurukoo can use and when it needs your approval. Your choices stay visible and understandable." /><Rows><SettingsRow title="Ask before contacting anyone" description="Nothing is sent without approval" control={<Toggle label="Ask before contacting" defaultOn />} /><SettingsRow title="Share location for discovery" description="Allow nearby recommendations to use your location" control={<Toggle label="Share location" />} /><SettingsRow title="Personalised recommendations" description="Use your activity and interests to improve suggestions" control={<Toggle label="Personalised recommendations" defaultOn />} /><SettingsRow title="Download your data" description="Request a copy of your Kurukoo data" control={<Action>Request</Action>} /></Rows></>}
 
-        {tab === "Notifications" && <><SettingIntro icon={Sparkles} eyebrow="Stay informed" title="Only hear when it matters" description="Keep approvals, replies and important activity close without turning Kurukoo into a noisy notification feed." /><Rows><SettingsRow title="Approvals" description="When Kurukoo needs a decision" control={<Toggle label="Approvals" defaultOn />} /><SettingsRow title="Provider replies" description="When someone responds to a request" control={<Toggle label="Provider replies" defaultOn />} /><SettingsRow title="Followed topics and people" description="Updates from things you follow" control={<Toggle label="Following activity" />} /><SettingsRow title="Product updates" description="New Kurukoo features and improvements" control={<Toggle label="Product updates" />} /></Rows></>}
+        {tab === "Notifications" && <><SettingIntro icon={Sparkles} eyebrow="Stay informed" title="Only hear when it matters" description="Keep approvals, replies and important activity close without turning Kurukoo into a noisy notification feed." /><Rows><SettingsRow title="Approvals" description="When Kurukoo needs a decision" control={<Toggle label="Approvals" defaultOn />} /><SettingsRow title="Network replies" description="When someone responds to a request" control={<Toggle label="Network replies" defaultOn />} /><SettingsRow title="Followed topics and people" description="Updates from things you follow" control={<Toggle label="Following activity" />} /><SettingsRow title="Product updates" description="New Kurukoo features and improvements" control={<Toggle label="Product updates" />} /></Rows></>}
 
-        {tab === "Services" && <><SettingIntro icon={Check} eyebrow="Connected services" title="Choose what Kurukoo can work with" description="Connected services extend what Kurukoo can do for you. Review permissions and connection state in one place." /><Rows><SettingsRow title="Connected services" description="Storage, messaging, email and calendar" control={<Link to="/connect"><Action>Open Connect</Action></Link>} /><SettingsRow title="Storage destination" description="Where artifacts are kept" control={<Link to="/artifacts"><Action>Files</Action></Link>} /></Rows></>}
+        {tab === "Services" && <><SettingIntro icon={Check} eyebrow="Connected services" title="Choose what Kurukoo can work with" description="Connected services extend what Kurukoo can do for you. Review permissions and connection state in one place." /><Rows><SettingsRow title="Connected services" description="Storage, messaging, email and calendar" control={<Link to="/connect"><Action>Open Connect</Action></Link>} /><SettingsRow title="Storage destination" description="Where files are kept" control={<Link to="/artifacts"><Action>Files</Action></Link>} /></Rows></>}
 
-        {tab === "Voice" && <><SettingIntro icon={Sparkles} eyebrow="Voice" title="Talk to Kurukoo naturally" description="Control voice input and how Kurukoo responds when you prefer speaking over typing." /><Rows><SettingsRow title="Voice input" description="Speak instead of typing" control={<Toggle label="Voice input" defaultOn />} /><SettingsRow title="Read replies aloud" description="Hear Kurukoo responses" control={<Toggle label="Read replies aloud" />} /><SettingsRow title="Calls" description="Voice sessions with providers" control={<Link to="/calls"><Action>Open</Action></Link>} /></Rows></>}
+        {tab === "Voice" && <><SettingIntro icon={Sparkles} eyebrow="Voice" title="Talk to Kurukoo naturally" description="Control voice input and how Kurukoo responds when you prefer speaking over typing." /><Rows><SettingsRow title="Voice input" description="Speak instead of typing" control={<Toggle label="Voice input" defaultOn />} /><SettingsRow title="Read replies aloud" description="Hear Kurukoo responses" control={<Toggle label="Read replies aloud" />} /><SettingsRow title="Calls" description="Voice sessions with people in your requests" control={<Link to="/calls"><Action>Open</Action></Link>} /></Rows></>}
 
-        {tab === "Money" && <><SettingIntro icon={Sparkles} eyebrow="Money" title="Keep value and payments clear" description="Manage the places where points, wallet balance, subscriptions and payment methods meet." /><Rows><SettingsRow title="Wallet and points" description="Your Kurukoo value balance" control={<Link to="/wallet"><Action>Open</Action></Link>} /><SettingsRow title="Subscription" description="Plan and billing" control={<Link to="/subscriptions"><Action>Manage</Action></Link>} /><SettingsRow title="Payment methods" description="None added" control={<Action>Add</Action>} /><SettingsRow title="Provider, business and creator accounts" description="Account types connected to Kurukoo" control={<Link to="/providers"><Action>Open</Action></Link>} /></Rows></>}
+        {tab === "Money" && <><SettingIntro icon={Sparkles} eyebrow="Money" title="Keep value and payments clear" description="Manage the places where points, wallet balance, subscriptions and payment methods meet." /><Rows><SettingsRow title="Wallet and points" description="Your Kurukoo value balance" control={<Link to="/wallet"><Action>Open</Action></Link>} /><SettingsRow title="Subscription" description="Plan and billing" control={<Link to="/subscriptions"><Action>Manage</Action></Link>} /><SettingsRow title="Payment methods" description="None added" control={<Action>Add</Action>} /><SettingsRow title="Network, business and creator accounts" description="Account types connected to Kurukoo" control={<Link to="/network"><Action>Open</Action></Link>} /></Rows></>}
 
         {tab === "Appearance" && <><SettingIntro icon={Sparkles} eyebrow="Appearance" title="Make Kurukoo comfortable everywhere" description="Kurukoo follows your device preferences while keeping the OS shell consistent across surfaces." /><Rows><SettingsRow title="Theme" description="Use the appearance control in the shell" control={<span className="text-[12px] text-muted-foreground">System / Light / Dark</span>} /><SettingsRow title="Reduce motion" description="Follows your system setting" control={<span className="text-[12px] text-muted-foreground">System</span>} /><SettingsRow title="Text size" description="Follows your browser setting" control={<span className="text-[12px] text-muted-foreground">Default</span>} /></Rows></>}
       </div>
 
       <div className="mt-4 flex items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-[12px] text-muted-foreground shadow-[var(--shadow-soft)]">
-        <span>Settings are currently local to this prototype.</span>
+        <span>Settings are saved locally in this preview.</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-[var(--color-success)]" /> Ready</span>
       </div>
-      <IntegrationGap>Account-backed persistence will replace these local controls when the account backend is connected.</IntegrationGap>
+      <IntegrationGap>Account-backed persistence will be available when your account connection is enabled.</IntegrationGap>
     </>
   );
 }
