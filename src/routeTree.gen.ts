@@ -39,6 +39,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as TopicsRouteImport } from './routes/topics'
+import { Route as UseCasesRouteImport } from './routes/use-cases'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as MessagesThreadIdRouteImport } from './routes/messages.$threadId'
@@ -198,6 +199,11 @@ const TopicsRoute = TopicsRouteImport.update({
   path: '/topics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UseCasesRoute = UseCasesRouteImport.update({
+  id: '/use-cases',
+  path: '/use-cases',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
+  '/use-cases': typeof UseCasesRoute
   '/wallet': typeof WalletRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
@@ -310,6 +317,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
+  '/use-cases': typeof UseCasesRoute
   '/wallet': typeof WalletRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
@@ -351,6 +359,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/topics': typeof TopicsRouteWithChildren
+  '/use-cases': typeof UseCasesRoute
   '/wallet': typeof WalletRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
@@ -393,6 +402,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/subscriptions'
     | '/topics'
+    | '/use-cases'
     | '/wallet'
     | '/blog/$slug'
     | '/messages/$threadId'
@@ -433,6 +443,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/subscriptions'
     | '/topics'
+    | '/use-cases'
     | '/wallet'
     | '/blog/$slug'
     | '/messages/$threadId'
@@ -473,6 +484,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/subscriptions'
     | '/topics'
+    | '/use-cases'
     | '/wallet'
     | '/blog/$slug'
     | '/messages/$threadId'
@@ -514,6 +526,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   TopicsRoute: typeof TopicsRouteWithChildren
+  UseCasesRoute: typeof UseCasesRoute
   WalletRoute: typeof WalletRoute
   ProfileEntityIdRoute: typeof ProfileEntityIdRoute
   VideosVideoIdRoute: typeof VideosVideoIdRoute
@@ -733,6 +746,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TopicsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/use-cases': {
+      id: '/use-cases'
+      path: '/use-cases'
+      fullPath: '/use-cases'
+      preLoaderRoute: typeof UseCasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wallet': {
       id: '/wallet'
       path: '/wallet'
@@ -856,6 +876,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   TopicsRoute: TopicsRouteWithChildren,
+  UseCasesRoute: UseCasesRoute,
   WalletRoute: WalletRoute,
   ProfileEntityIdRoute: ProfileEntityIdRoute,
   VideosVideoIdRoute: VideosVideoIdRoute,
