@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -13,6 +14,18 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "../components/app-shell";
 import { KurukooProvider } from "@/lib/kurukoo-store";
+
+const publicSurfacePrefixes = [
+  "/about",
+  "/blog",
+  "/contributors",
+  "/help",
+  "/login",
+  "/partners",
+  "/pricing",
+  "/signup",
+  "/use-cases",
+];
 
 function NotFoundComponent() {
   return (
@@ -123,14 +136,15 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isPublicSurface = publicSurfacePrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
       <KurukooProvider>
-        <AppShell>
-          {/* Required: nested routes render here. */}
-          <Outlet />
-        </AppShell>
+        {isPublicSurface ? <Outlet /> : <AppShell><Outlet /></AppShell>}
       </KurukooProvider>
     </QueryClientProvider>
   );
