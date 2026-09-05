@@ -88,7 +88,7 @@ function ContactsPage() {
         )}
       </section>
 
-      <IntegrationGap>Contacts shown here include prototype relationships. Real contacts will come from verified interactions and connected address books.</IntegrationGap>
+      <IntegrationGap>Contacts shown here are illustrative. Your real contacts will come from verified interactions and connected address books.</IntegrationGap>
     </div>
   );
 }

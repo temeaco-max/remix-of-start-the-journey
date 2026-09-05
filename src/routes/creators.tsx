@@ -54,8 +54,8 @@ function CreatorsPage() {
       {tab === "Creator studio" ? (
         <div className="mt-4 space-y-6">
           <div className="grid gap-3 sm:grid-cols-3">
-            <StatTile label="Subscribers" value="0" note="Prototype" />
-            <StatTile label="Views (30 days)" value="0" note="Prototype" />
+            <StatTile label="Subscribers" value="0" note="Not connected yet" />
+            <StatTile label="Views (30 days)" value="0" note="Not connected yet" />
             <StatTile label="Earnings" value="—" note="Not connected" />
           </div>
           <section>
@@ -76,7 +76,7 @@ function CreatorsPage() {
                     <span className="block text-[15px]">{title}</span>
                     <span className="block text-[13px] text-muted-foreground">{note}</span>
                   </span>
-                  <span className="shrink-0 text-[13px] text-muted-foreground">Prototype</span>
+                  <span className="shrink-0 text-[13px] text-muted-foreground">Coming soon</span>
                 </li>
               ))}
             </Rows>
@@ -91,7 +91,7 @@ function CreatorsPage() {
       ) : null}
 
       <IntegrationGap>
-        Uploading, subscriptions and earnings need the creator backend. Videos are placeholders.
+        Uploading, subscriptions and earnings aren't available yet. Videos shown are illustrative.
       </IntegrationGap>
     </>
   );

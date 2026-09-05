@@ -209,8 +209,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => { setMobileNavOpen(false); }, [pathname]);
 
   return <div className="min-h-screen bg-background">
-    <aside aria-label="OS navigational rail" className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-surface/80 px-3 py-5 backdrop-blur transition-[width] duration-200 md:flex", collapsed ? "w-[76px]" : "w-[244px]")}>
-      <div className={cn("flex items-center pb-7", collapsed ? "justify-center" : "justify-between px-2")}>
+    <aside aria-label="OS navigational rail" className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-surface/80 px-3 py-6 backdrop-blur transition-[width] duration-200 md:flex", collapsed ? "w-[76px]" : "w-[244px]")}>
+      <div className={cn("flex items-center pb-6", collapsed ? "justify-center" : "justify-between px-2")}>
         <Link to="/" aria-label="Kurukoo Home" className={cn("flex items-center", collapsed ? "justify-center" : "gap-2")}>
           <KurukooMark />
           {!collapsed && <span className="text-[16px] font-semibold tracking-[-0.025em]">Kurukoo</span>}

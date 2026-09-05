@@ -121,7 +121,7 @@ function ActivityPage() {
         {tab === "System" ? <EmptyState title="No system events" body="Account, security and billing events will be listed here." /> : null}
       </section>
 
-      <IntegrationGap>Activity is currently backed by the prototype session. Push, email and provider webhooks will feed this surface when connected.</IntegrationGap>
+      <IntegrationGap>Activity reflects this device for now. Notifications from connected services will appear here once they're linked.</IntegrationGap>
     </div>
   );
 }

@@ -98,7 +98,7 @@ function ThreadPage() {
       </div>
       <Composer onSend={() => undefined} placeholder="Write a message…" />
       <IntegrationGap>
-        Sending is disabled in the prototype — messages are not delivered anywhere.
+        Sending isn't available yet — messages you write here won't be delivered.
       </IntegrationGap>
     </div>
   );
