@@ -60,7 +60,7 @@ function AssistantCard({ assistant, connected, onConnect }: { assistant: Assista
       </div>
       <div className="mt-3 flex items-center justify-between gap-3">
         <p className="text-[11.5px] text-muted-foreground">{connected ? "Access can be revoked." : "Authorization is user-controlled."}</p>
-        <Action variant={connected ? "default" : "primary"} onClick={onConnect}>{connected ? "Disconnect" : "Connect"}</Action>
+        <Action variant={connected ? "quiet" : "primary"} onClick={onConnect}>{connected ? "Disconnect" : "Connect"}</Action>
       </div>
     </Panel>
   );
