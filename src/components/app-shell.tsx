@@ -107,12 +107,12 @@ function TrustedContextRail() {
   const focus = activeWork[0];
 
   return (
-    <aside aria-label="Trusted context rail" className="hidden w-[292px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-background/55 px-4 py-5 xl:flex">
-      <div className="px-1 pb-1">
+    <aside aria-label="Trusted context rail" className="sticky top-0 hidden h-screen w-[316px] shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-border bg-surface/45 px-5 py-6 xl:flex">
+      <div className="sticky -top-6 z-10 -mx-5 -mt-6 border-b border-border/70 bg-surface/85 px-5 pb-4 pt-6 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[15px] font-semibold tracking-tight">Your context</p>
-            <p className="mt-1 text-[12.5px] text-muted-foreground">Useful things Kurukoo is keeping in view.</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Your context</p>
+            <p className="mt-1.5 text-[14.5px] font-semibold tracking-[-0.02em]">Kept in view for you</p>
           </div>
           <span className="grid size-8 place-items-center rounded-full bg-elevated text-muted-foreground" title={isKurukooApiConfigured() ? "Connected to Kurukoo" : "Preview mode"}>
             <CircleDot className={cn("size-4", isKurukooApiConfigured() && "text-[var(--color-success)]")} />
