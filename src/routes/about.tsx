@@ -1,65 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageHeader } from "@/components/app-shell";
+import { ArrowUpRight, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { Action } from "@/components/kurukoo/primitives";
-import { MarketingPage } from "@/components/kurukoo/marketing";
-import { Panel, SectionHeader } from "@/components/kurukoo/ui";
+import { Panel } from "@/components/kurukoo/ui";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "How Kurukoo works — Kurukoo" },
-      {
-        name: "description",
-        content:
-          "Kurukoo turns a plain request into coordinated work: understanding, contacting people, checking with you, and reporting back.",
-      },
-      { property: "og:title", content: "How Kurukoo works — Kurukoo" },
-      {
-        property: "og:description",
-        content: "Conversation, understanding, coordination, action, result, continuity.",
-      },
-    ],
-  }),
+  head: () => ({ meta: [
+    { title: "About — Kurukoo" },
+    { name: "description", content: "Why Kurukoo exists: a conversation-first operating layer for getting useful things done." },
+  ]}),
   component: AboutPage,
 });
 
-const steps = [
-  ["You say what you need", "Plain words. No forms, no categories to pick from."],
-  ["Kurukoo works out the detail", "It asks only what it genuinely needs to know."],
-  ["It does the running around", "Finding people, comparing options, arranging times."],
-  ["It checks before committing", "Nothing is booked or paid for without your say-so."],
-  ["It comes back with a result", "And the whole trail stays readable afterwards."],
-];
-
 function AboutPage() {
-  return (
-    <MarketingPage>
-      <PageHeader
-        title="How Kurukoo works"
-        subtitle="One conversation, and everything else arranges itself around it."
-      />
-      <ol className="space-y-3">
-        {steps.map(([title, body], i) => (
-          <li key={title}>
-            <Panel className="flex gap-4 p-4">
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-elevated text-[13px] font-medium">
-                {i + 1}
-              </span>
-              <div>
-                <p className="text-[15px] font-medium">{title}</p>
-                <p className="mt-0.5 text-[13.5px] text-muted-foreground">{body}</p>
-              </div>
-            </Panel>
-          </li>
-        ))}
-      </ol>
-
-      <section className="mt-10">
-        <SectionHeader title="Try it" subtitle="The fastest way to understand it is to ask." />
-        <Link to="/">
-          <Action variant="primary">Start a conversation</Action>
-        </Link>
-      </section>
-    </MarketingPage>
-  );
+  return <div className="mx-auto w-full max-w-4xl px-5 py-10 md:px-8 md:py-14">
+    <section className="max-w-3xl">
+      <p className="text-[12px] font-medium text-muted-foreground">About Kurukoo</p>
+      <h1 className="mt-2 font-serif text-[42px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">A calmer way to get life moving.</h1>
+      <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-muted-foreground">Kurukoo is a conversation-first coordination layer. You describe what needs doing; Kurukoo helps understand it, find the useful people or options, coordinate the work and keep the trail readable.</p>
+      <div className="mt-6 flex flex-wrap gap-2"><Link to="/how-it-works"><Action variant="primary">How it works</Action></Link><Link to="/"><Action>Try Kurukoo</Action></Link></div>
+    </section>
+    <section className="mt-12 grid gap-3 md:grid-cols-3">
+      <Panel className="p-5"><Sparkles className="size-5 text-muted-foreground" /><h2 className="mt-4 text-[15px] font-semibold">Conversation first</h2><p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">People should not have to learn an app's categories before they can ask for help.</p></Panel>
+      <Panel className="p-5"><ShieldCheck className="size-5 text-muted-foreground" /><h2 className="mt-4 text-[15px] font-semibold">Truth before convenience</h2><p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">Availability, pricing and provider claims should be grounded in evidence, not invented to make a flow look complete.</p></Panel>
+      <Panel className="p-5"><Users className="size-5 text-muted-foreground" /><h2 className="mt-4 text-[15px] font-semibold">People stay in control</h2><p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">Kurukoo can coordinate, but meaningful commitments remain visible and approval-led.</p></Panel>
+    </section>
+    <section className="mt-12 border-t border-border pt-8"><p className="text-[12px] font-medium uppercase tracking-[0.12em] text-muted-foreground">What we are building</p><div className="mt-4 space-y-4 text-[14px] leading-relaxed text-muted-foreground"><p>Kurukoo connects requests, people, businesses, creators, topics, opportunities and useful context around a single principle: reduce the work between deciding what you need and getting a useful result.</p><p>The public experience explains the system. The OS experience is where that system becomes personal, persistent and actionable.</p></div><Link to="/capabilities" className="mt-5 inline-flex items-center gap-1 text-[12.5px] font-medium">See capabilities <ArrowUpRight className="size-3.5" /></Link></section>
+  </div>;
 }
