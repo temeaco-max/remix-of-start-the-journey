@@ -1,12 +1,19 @@
 import { Link } from "@tanstack/react-router";
-import { Play, ShieldCheck, Zap } from "lucide-react";
+import { Pause, Play, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const videos = [
-  ["How people use Kurukoo", "Kurukoo · 1:12"],
-  ["From ask to action", "Creator · 0:48"],
-  ["A day moving with Kurukoo", "Community · 1:36"],
-  ["Building a useful request", "Kurukoo · 0:57"],
+const scenes = [
+  { label: "1 · Say it plainly", prompt: "I need someone to fix my phone.", answer: "Kurukoo understands the job." },
+  { label: "2 · Kurukoo works", prompt: "Repair · iPhone 15 · Southampton", answer: "Checking useful, verified options…" },
+  { label: "3 · You stay in control", prompt: "PhoneCare · £79 · Tomorrow 14:00", answer: "Ready to review — nothing booked." },
+  { label: "4 · The useful result", prompt: "Repair confirmed with your approval.", answer: "The request trail stays with you." },
+] as const;
+
+const activities = [
+  ["Request", "Someone found a verified plumber", "just now"],
+  ["Explore", "A creator shared a useful local guide", "2m"],
+  ["Opportunity", "A new collaboration opportunity opened", "5m"],
+  ["Work", "A task moved into coordination", "8m"],
 ] as const;
 
 function PublicAdvert() {
@@ -14,135 +21,85 @@ function PublicAdvert() {
     <div className="relative overflow-hidden rounded-2xl bg-[#e9e0d6] p-3.5 dark:bg-elevated">
       <div className="absolute -right-8 -top-8 size-24 rounded-full bg-[#f7efe8] blur-2xl dark:bg-background" />
       <div className="relative">
-        <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Kurukoo Advertising
-        </p>
-        <p className="mt-1.5 text-[12px] font-semibold tracking-tight">
-          Useful discovery, not noise.
-        </p>
-        <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">
-          Relevant services, offers and ideas can appear in context.
-        </p>
-        <Link
-          to="/advertising"
-          className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-medium"
-        >
-          Learn more <span aria-hidden>→</span>
-        </Link>
+        <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Kurukoo Advertising</p>
+        <p className="mt-1.5 text-[12px] font-semibold tracking-tight">Useful discovery, not noise.</p>
+        <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">Relevant services, offers and ideas can appear in context.</p>
+        <Link to="/advertising" className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-medium">Learn more <span aria-hidden>→</span></Link>
+      </div>
+    </div>
+  );
+}
+
+function KurukooUsageReel() {
+  const [scene, setScene] = useState(0);
+  const [playing, setPlaying] = useState(true);
+
+  useEffect(() => {
+    if (!playing) return;
+    const timer = window.setInterval(() => setScene((value) => (value + 1) % scenes.length), 4200);
+    return () => window.clearInterval(timer);
+  }, [playing]);
+
+  const current = scenes[scene];
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-[var(--shadow-soft)]">
+      <div className="relative aspect-video overflow-hidden bg-[#eee8e0] dark:bg-elevated">
+        <div className="absolute -left-12 -top-16 size-36 rounded-full bg-[#f4d8c3] blur-3xl" />
+        <div className="absolute -bottom-20 -right-10 size-44 rounded-full bg-[#d8e2dc] blur-3xl" />
+        <div className="relative flex h-full flex-col justify-between p-3.5">
+          <div className="flex items-center justify-between text-[9px] font-medium uppercase tracking-[0.13em] text-muted-foreground">
+            <span>Kurukoo in action</span><span>Illustrative demo · 0:28</span>
+          </div>
+          <div className="mx-auto w-[88%] rounded-[14px] border border-white/70 bg-background/90 p-2.5 shadow-sm backdrop-blur">
+            <p className="text-[9px] font-medium text-muted-foreground">You</p>
+            <p className="mt-1 text-[11px] font-medium leading-snug">{current.prompt}</p>
+            <div className="my-2 h-px bg-border/70" />
+            <p className="text-[9px] font-medium text-muted-foreground">Kurukoo</p>
+            <p className="mt-1 text-[11px] leading-snug text-foreground/80">{current.answer}</p>
+          </div>
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-semibold">{current.label}</span>
+              <button type="button" onClick={() => setPlaying((value) => !value)} aria-label={playing ? "Pause video" : "Play video"} className="grid size-6 place-items-center rounded-full bg-background/85 shadow-sm">
+                {playing ? <Pause className="size-3" /> : <Play className="ml-0.5 size-3" />}
+              </button>
+            </div>
+            <div className="flex gap-1">
+              {scenes.map((_, index) => <button type="button" key={index} onClick={() => setScene(index)} aria-label={`Show scene ${index + 1}`} className="h-1 flex-1 rounded-full bg-border"><span className={index === scene ? "block h-full rounded-full bg-foreground" : "block h-full"} /></button>)}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 export function PublicContextRail() {
-  const [videoIndex, setVideoIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => setVideoIndex((value) => (value + 1) % videos.length),
-      5000,
-    );
-
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const activities = [
-    ["Request", "Someone found a verified plumber", "just now"],
-    ["Explore", "A creator shared a useful local guide", "2m"],
-    ["Opportunity", "A new collaboration opportunity opened", "5m"],
-    ["Work", "A task moved into coordination", "8m"],
-  ] as const;
-
   return (
-    <aside
-      aria-label="Kurukoo public context rail"
-      className="hidden w-[224px] shrink-0 flex-col overflow-y-auto border-l border-[#e7e0d7] bg-[#f5f1eb] px-3 py-4 lg:flex dark:border-border dark:bg-background"
-    >
+    <aside aria-label="Kurukoo public context rail" className="hidden w-[224px] shrink-0 flex-col overflow-y-auto bg-background/70 px-3 py-4 lg:flex">
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Play className="size-[14px] text-muted-foreground" />
-            <h2 className="text-[13px] font-semibold">Recent videos</h2>
-          </div>
-          <span className="text-[9px] text-muted-foreground">
-            {videoIndex + 1}/{videos.length}
-          </span>
+          <div className="flex items-center gap-2"><Play className="size-[14px] text-muted-foreground" /><h2 className="text-[13px] font-semibold">Recent videos</h2></div>
+          <span className="text-[9px] text-muted-foreground">Watch</span>
         </div>
-
-        <div className="relative aspect-video overflow-hidden rounded-2xl bg-[#d9cec2]">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#f3e9df] via-[#cfc2b5] to-[#a99b8d]" />
-          <div className="absolute inset-0 grid place-items-center">
-            <span className="grid size-9 place-items-center rounded-full bg-background/85 shadow-sm">
-              <Play className="ml-0.5 size-4 fill-current" />
-            </span>
-          </div>
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/70 to-transparent p-3 pt-8 text-background">
-            <p className="text-[11px] font-semibold leading-snug">
-              {videos[videoIndex][0]}
-            </p>
-            <p className="mt-0.5 text-[9px] opacity-80">
-              {videos[videoIndex][1]}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-2 flex gap-1">
-          {videos.map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              aria-label={`Show video ${index + 1}`}
-              aria-current={index === videoIndex ? "true" : undefined}
-              onClick={() => setVideoIndex(index)}
-              className={`h-1 flex-1 rounded-full ${index === videoIndex ? "bg-foreground" : "bg-border"}`}
-            />
-          ))}
-        </div>
+        <KurukooUsageReel />
+        <p className="mt-2 px-0.5 text-[10.5px] leading-relaxed text-muted-foreground">See how a plain request becomes useful, coordinated action — while you stay in control.</p>
       </section>
 
-      <section className="mt-4 rounded-2xl bg-[#fbfaf7] p-3 dark:bg-surface">
-        <div className="flex items-center gap-2">
-          <Zap className="size-[15px] text-muted-foreground" />
-          <h2 className="text-[13px] font-semibold">Activity</h2>
-        </div>
-        <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">
-          A glimpse of what people are doing — and what Kurukoo can proactively
-          open up.
-        </p>
+      <section className="mt-4 rounded-2xl bg-surface/75 p-3">
+        <div className="flex items-center gap-2"><Zap className="size-[15px] text-muted-foreground" /><h2 className="text-[13px] font-semibold">Activity</h2></div>
+        <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">A glimpse of what people are doing — and what Kurukoo can proactively open up.</p>
         <div className="mt-2.5 space-y-2">
-          {activities.map(([type, text, time]) => (
-            <div key={text} className="flex gap-2">
-              <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-primary" />
-              <div className="min-w-0">
-                <p className="text-[10.5px] leading-snug">
-                  <span className="font-medium">{type}</span> · {text}
-                </p>
-                <p className="mt-0.5 text-[9px] text-muted-foreground">{time}</p>
-              </div>
-            </div>
-          ))}
+          {activities.map(([type, text, time]) => <div key={text} className="flex gap-2"><span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-primary" /><div className="min-w-0"><p className="text-[10.5px] leading-snug"><span className="font-medium">{type}</span> · {text}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{time}</p></div></div>)}
         </div>
       </section>
 
-      <section className="mt-4">
-        <PublicAdvert />
-      </section>
+      <section className="mt-4"><PublicAdvert /></section>
 
       <section className="mt-auto pt-5">
-        <div className="rounded-2xl border border-[#e8e1d8] bg-[#fbfaf7] p-3 dark:border-border dark:bg-surface">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="size-[15px] text-muted-foreground" />
-            <h2 className="text-[13px] font-semibold">Trusted by design</h2>
-          </div>
-          <div className="mt-3 space-y-2">
-            <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-              No invented availability or pricing. Useful provider information is
-              grounded in evidence.
-            </p>
-            <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-              Kurukoo asks before making commitments on your behalf.
-            </p>
-          </div>
+        <div className="rounded-2xl border border-border/80 bg-surface/70 p-3">
+          <div className="flex items-center gap-2"><ShieldCheck className="size-[15px] text-muted-foreground" /><h2 className="text-[13px] font-semibold">Trusted by design</h2></div>
+          <div className="mt-3 space-y-2"><p className="text-[11.5px] leading-relaxed text-muted-foreground">No invented availability or pricing. Useful provider information is grounded in evidence.</p><p className="text-[11.5px] leading-relaxed text-muted-foreground">Kurukoo asks before making commitments on your behalf.</p></div>
         </div>
       </section>
     </aside>
