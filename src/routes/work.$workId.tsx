@@ -32,7 +32,7 @@ function WorkDetail() {
         <PageHeader title="Request" />
         <EmptyState
           title="This request isn't in your session"
-          body="Prototype work only lives in the current browser session. Start a request on Home."
+          description="This request is no longer in view. Start a new request from Home."
         />
         <div className="mt-4">
           <Link to="/work" className="text-[14px] underline">
@@ -49,7 +49,7 @@ function WorkDetail() {
       <WorkItemCard item={item} onAdvance={advance} />
 
       <section className="mt-8">
-        <SectionHeader title="People involved" subtitle="Who Kurukoo contacted for this." />
+        <SectionHeader title="People involved" subtitle="People connected to this request." />
         <Rows>
           {entities.slice(0, 2).map((e) => (
             <ContactRow
@@ -66,7 +66,7 @@ function WorkDetail() {
       </section>
 
       <section className="mt-8">
-        <SectionHeader title="Files" subtitle="Artifacts attached to this request." />
+        <SectionHeader title="Files" subtitle="Files attached to this request." />
         <Rows>
           {artifacts.map((a) => (
             <ArtifactRow key={a.id} artifact={a} />
@@ -79,12 +79,12 @@ function WorkDetail() {
           <Action variant="primary">Resume conversation</Action>
         </Link>
         <Link to="/artifacts">
-          <Action>Open artifacts</Action>
+          <Action>Open files</Action>
         </Link>
       </div>
 
       <IntegrationGap>
-        People and files shown here are demo content until the backend records real coordination.
+        People and files shown here are illustrative for now. Live coordination will appear here when connected.
       </IntegrationGap>
     </>
   );
