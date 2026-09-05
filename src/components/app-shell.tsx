@@ -89,7 +89,7 @@ function ContextCard({ title, icon: Icon, children, action, to }: { title: strin
       : <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] text-muted-foreground">{action}</span>
     : null;
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-soft)]">
+    <section className="rounded-2xl border border-border/80 bg-background p-4 shadow-[var(--shadow-soft)]">
       <div className="flex items-center gap-2">
         <span className="grid size-8 place-items-center rounded-xl bg-elevated text-muted-foreground"><Icon className="size-4" /></span>
         <h2 className="text-[13px] font-medium">{title}</h2>
@@ -217,7 +217,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <MobileNavigation pathname={pathname} open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
     <div className={cn("flex min-h-screen transition-[padding] duration-200", collapsed ? "md:pl-[76px]" : "md:pl-[244px]")}>
-      <main className="min-w-0 flex-1"><div className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-4 md:px-8 md:pb-12 md:pt-5">{children}</div></main>
+      <main className="min-w-0 flex-1 bg-background"><div className="mx-auto w-full max-w-[1160px] px-4 pb-28 pt-4 md:px-10 md:pb-14 md:pt-7">{children}</div></main>
       <TrustedContextRail />
     </div>
 
