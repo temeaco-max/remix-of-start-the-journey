@@ -33,12 +33,11 @@ function ChatPage() {
 
   return <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-[820px] flex-col">
     <header className="flex items-center justify-between border-b border-border py-3">
-      <div className="flex items-center gap-3"><Link to="/" aria-label="Back to Home" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><ArrowLeft className="size-[18px]" /></Link><div><p className="text-[14px] font-semibold">Kurukoo</p><p className="text-[11.5px] text-muted-foreground">Your conversation</p></div></div>
+      <div className="flex items-center gap-3"><Link to="/" aria-label="Back to Home" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><ArrowLeft className="size-[18px]" /></Link><div className="flex items-center gap-2"><div><p className="text-[14px] font-semibold">Kurukoo</p><p className="text-[11.5px] text-muted-foreground">Your conversation</p></div><Sparkles className="size-[17px] shrink-0 text-muted-foreground" aria-hidden /></div></div>
       <div className="flex items-center gap-2"><span className="hidden rounded-full bg-elevated px-2.5 py-1 text-[11px] text-muted-foreground sm:inline-flex"><ShieldCheck className="mr-1.5 size-3.5" />In control</span><Link to="/work" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">Work <ArrowUpRight className="size-3.5" /></Link></div>
     </header>
 
     {messages.length === 0 ? <div className="flex flex-1 flex-col justify-center py-10">
-      <div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-[#f4e6dc] text-[#765443]"><Sparkles className="size-5" /></div>
       <p className="text-[12px] font-medium text-muted-foreground">{isSending ? "Working" : "Ready when you are"}</p>
       <h1 className="mt-1 text-[30px] font-semibold leading-tight tracking-[-0.035em] md:text-[38px]">What do you need done?</h1>
       <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">Say it plainly. Kurukoo works out the useful next step, keeps you informed and asks before anything important is committed.</p>
