@@ -85,7 +85,7 @@ function TrustedContextRail() {
   const focus = activeWork[0];
 
   return (
-    <aside aria-label="Trusted context rail" className="hidden w-[280px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-background/55 px-4 py-5 lg:flex">
+    <aside aria-label="Trusted context rail" className="hidden w-[224px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-background/55 px-4 py-5 lg:flex">
       <div className="px-1 pb-1"><div className="flex items-center justify-between gap-3"><div><p className="text-[15px] font-semibold tracking-tight">Your context</p><p className="mt-1 text-[12.5px] text-muted-foreground">Useful things Kurukoo is keeping in view.</p></div><span className="grid size-8 place-items-center rounded-full bg-elevated text-muted-foreground" title={isKurukooApiConfigured() ? "Connected to Kurukoo" : "Preview mode"}><CircleDot className={cn("size-4", isKurukooApiConfigured() && "text-[var(--color-success)]")} /></span></div></div>
       <ContextCard title="Current work" icon={Target} action="Open work" to="/work">
         {focus ? <div><p className="text-[13.5px] font-medium">{focus.title}</p><p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{focus.detail}</p><div className="mt-3 flex items-center gap-2"><span className="size-1.5 rounded-full bg-[var(--color-success)]" /><span className="text-[11px] text-muted-foreground">{focus.stage === "needs_you" ? "Needs your attention" : "In progress"}</span></div></div> : <p className="text-[13px] leading-relaxed text-muted-foreground">Nothing is currently in progress.</p>}
@@ -114,14 +114,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => { setMobileNavOpen(false); }, [pathname]);
 
   return <div className="min-h-screen bg-background">
-    <aside aria-label="OS navigational rail" className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-surface/80 px-3 py-5 backdrop-blur transition-[width] duration-200 md:flex", collapsed ? "w-[76px]" : "w-[244px]")}>
+    <aside aria-label="OS navigational rail" className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-surface/80 px-3 py-5 backdrop-blur transition-[width] duration-200 md:flex", collapsed ? "w-[76px]" : "w-[224px]")}>
       <div className={cn("flex items-center pb-7", collapsed ? "justify-center" : "justify-between px-2")}><Link to="/" aria-label="Kurukoo Home" className={cn("flex items-center", collapsed ? "justify-center" : "gap-2")}><img src="/favicon.ico" alt="Kurukoo" className="size-7 rounded-lg object-contain" />{!collapsed && <span className="text-[16px] font-semibold tracking-[-0.025em]">Kurukoo</span>}</Link><button type="button" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} onClick={() => setCollapsed((v) => !v)} className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground">{collapsed ? <PanelLeftOpen className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />}</button></div>
       <NavLinks pathname={pathname} collapsed={collapsed} />
       <PersonalIdentityDock collapsed={collapsed} />
     </aside>
     <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur md:hidden"><div className="flex items-center justify-between px-4 py-3"><Link to="/" className="flex items-center gap-2"><img src="/favicon.ico" alt="" className="size-7 rounded-lg" /><span className="text-[16px] font-semibold tracking-tight">Kurukoo</span></Link><div className="flex items-center gap-1"><ThemeToggle /><button type="button" onClick={() => setMobileNavOpen(true)} className="grid size-9 place-items-center rounded-full hover:bg-elevated" aria-label="Open navigation"><PanelLeftOpen className="size-[18px]" /></button></div></div></header>
     <MobileNavigation pathname={pathname} open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
-    <div className={cn("flex min-h-screen transition-[padding] duration-200", collapsed ? "md:pl-[76px]" : "md:pl-[244px]")}>
+    <div className={cn("flex min-h-screen transition-[padding] duration-200", collapsed ? "md:pl-[76px]" : "md:pl-[224px]")}>
       <main className="min-w-0 flex-1"><div className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-4 md:px-8 md:pb-12 md:pt-5">{children}</div></main>
       <TrustedContextRail />
     </div>
