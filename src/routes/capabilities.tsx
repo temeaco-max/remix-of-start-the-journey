@@ -1,9 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AgentsPage } from "@/routes/agents";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowUpRight, CalendarCheck, Compass, FileText, MessageCircle, Search, ShieldCheck, WalletCards } from "lucide-react";
+import { Action } from "@/components/kurukoo/primitives";
+import { Panel } from "@/components/kurukoo/ui";
 
-export const Route = createFileRoute("/capabilities")({
-  head: () => ({
-    meta: [{ title: "Capabilities — Kurukoo" }],
-  }),
-  component: AgentsPage,
-});
+export const Route = createFileRoute("/capabilities")({ head: () => ({ meta: [{ title: "Capabilities — Kurukoo" }, { name: "description", content: "Explore the capabilities that make Kurukoo a conversation-first coordination layer." }] }), component: CapabilitiesPage });
+
+const capabilities = [
+  [MessageCircle, "Conversation", "Ask in natural language, keep context across a request and return to the same thread when the work changes."],
+  [Search, "Discovery", "Find people, businesses, creators, topics and useful options without forcing the person asking to understand the underlying catalogue."],
+  [CalendarCheck, "Coordination", "Turn a request into steps, timing, handovers and approvals so the useful work can actually move."],
+  [ShieldCheck, "Trust", "Keep provider claims, availability and commitments evidence-led. Make the boundary between suggestion and confirmed action visible."],
+  [WalletCards, "Money", "Keep prices, points, payments and approvals understandable so financial actions are explicit rather than hidden in automation."],
+  [FileText, "Memory & artifacts", "Keep useful outputs, receipts, documents and request history available as part of the person's working context."],
+  [Compass, "Topics & opportunities", "Connect discussion, useful people and emerging opportunities without turning discovery into an undifferentiated feed."],
+] as const;
+
+function CapabilitiesPage() { return <div className="mx-auto w-full max-w-4xl px-5 py-10 md:px-8 md:py-14"><section className="max-w-3xl"><p className="text-[12px] font-medium text-muted-foreground">What Kurukoo can become</p><h1 className="mt-2 font-serif text-[42px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">Capabilities arranged around getting things done.</h1><p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">Kurukoo is not one feature. It is a set of connected capabilities that turn a conversation into useful, inspectable progress.</p></section><div className="mt-10 grid gap-3 sm:grid-cols-2">{capabilities.map(([Icon, title, body]) => <Panel key={title} className="p-5"><span className="grid size-9 place-items-center rounded-xl bg-elevated"><Icon className="size-4" /></span><h2 className="mt-4 text-[15px] font-semibold">{title}</h2><p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{body}</p></Panel>)}</div><section className="mt-10 rounded-[24px] bg-foreground p-6 text-background"><p className="text-[12px] font-medium text-background/65">The product principle</p><p className="mt-2 max-w-2xl text-[20px] font-medium tracking-tight">Automation should remove coordination effort, not remove the person from the decision.</p><div className="mt-5 flex flex-wrap gap-2"><Link to="/how-it-works"><Action>See how it works</Action></Link><Link to="/"><Action variant="primary">Start with a request</Action></Link></div></section><div className="mt-6 flex justify-end"><Link to="/explore" className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground">Explore the network <ArrowUpRight className="size-3.5" /></Link></div></div>; }
