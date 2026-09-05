@@ -89,7 +89,7 @@ function MemoryPage() {
         )}
       </section>
 
-      <IntegrationGap>This prototype keeps memory in the browser session. Persistent memory, editing and deletion will use the canonical Kurukoo account backend.</IntegrationGap>
+      <IntegrationGap>Memory is kept on this device for now. Saving it to your account, with editing and deletion, is coming.</IntegrationGap>
     </div>
   );
 }

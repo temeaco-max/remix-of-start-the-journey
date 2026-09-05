@@ -49,7 +49,7 @@ function CallsPage() {
               Speak your request, review the transcript, then send.
             </p>
           </div>
-          <Badge tone="accent">Prototype</Badge>
+          <Badge tone="accent">Preview</Badge>
         </div>
         <div className="mt-4 rounded-lg border border-border bg-elevated/60 p-3 text-[14.5px]">
           <p className="text-[12px] uppercase tracking-wide text-muted-foreground">Transcript</p>

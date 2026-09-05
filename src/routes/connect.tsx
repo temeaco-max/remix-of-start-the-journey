@@ -58,7 +58,7 @@ function ConnectPage() {
       })}
 
       <IntegrationGap>
-        No integration is live in this prototype. Connect buttons are visual contracts for the eventual OAuth and provider-authorisation flows.
+        These services can't be connected yet. When they are, you'll always be asked to approve exactly what Kurukoo can access.
       </IntegrationGap>
     </>
   );

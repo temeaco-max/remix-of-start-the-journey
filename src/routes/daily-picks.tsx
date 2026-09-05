@@ -79,7 +79,7 @@ function DailyPicksPage() {
       </div>
 
       <IntegrationGap>
-        Picks are demo content. Personalisation and ranking need the recommendation backend.
+        Picks are illustrative for now. Personalised recommendations arrive once your account is connected.
       </IntegrationGap>
     </>
   );

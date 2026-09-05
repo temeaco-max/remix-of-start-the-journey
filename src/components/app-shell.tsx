@@ -51,6 +51,14 @@ function ThemeToggle() {
   );
 }
 
+function KurukooMark({ className }: { className?: string }) {
+  return (
+    <span aria-hidden className={cn("grid size-7 shrink-0 place-items-center rounded-lg bg-[#f4e6dc] text-[13px] font-semibold tracking-[-0.02em] text-[#765443]", className)}>
+      K
+    </span>
+  );
+}
+
 function PersonalIdentityDock({ collapsed }: { collapsed: boolean }) {
   return (
     <div className={cn("mt-auto border-t border-border pt-4", collapsed ? "px-1" : "px-2")}>
@@ -107,7 +115,7 @@ function TrustedContextRail() {
   const focus = activeWork[0];
 
   return (
-    <aside aria-label="Trusted context rail" className="sticky top-0 hidden h-screen w-[316px] shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-border bg-surface/45 px-5 py-6 xl:flex">
+    <aside aria-label="Trusted context rail" className="sticky top-0 hidden h-screen w-[300px] shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-border bg-surface/45 px-5 py-6 lg:flex xl:w-[316px]">
       <div className="sticky -top-6 z-10 -mx-5 -mt-6 border-b border-border/70 bg-surface/85 px-5 pb-4 pt-6 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -191,7 +199,7 @@ function MobileNavigation({ pathname, open, onClose }: { pathname: string; open:
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
   if (!open) return null;
-  return <><button type="button" aria-label="Close navigation" onClick={onClose} className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-[2px] md:hidden" /><aside aria-label="Mobile OS navigation" className="fixed inset-y-0 left-0 z-50 flex w-[284px] flex-col border-r border-border bg-surface px-4 py-5 shadow-2xl md:hidden"><div className="flex items-center justify-between px-1 pb-7"><div className="flex items-center gap-2"><img src="/favicon.ico" alt="" className="size-7 rounded-lg" /><span className="text-[17px] font-semibold tracking-[-0.025em]">Kurukoo</span></div><button type="button" onClick={onClose} aria-label="Close navigation" className="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-elevated hover:text-foreground"><X className="size-[18px]" /></button></div><NavLinks pathname={pathname} onNavigate={onClose} /><PersonalIdentityDock collapsed={false} /></aside></>;
+  return <><button type="button" aria-label="Close navigation" onClick={onClose} className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-[2px] md:hidden" /><aside aria-label="Mobile OS navigation" className="fixed inset-y-0 left-0 z-50 flex w-[284px] flex-col border-r border-border bg-surface px-4 py-5 shadow-2xl md:hidden"><div className="flex items-center justify-between px-1 pb-7"><div className="flex items-center gap-2"><KurukooMark /><span className="text-[17px] font-semibold tracking-[-0.025em]">Kurukoo</span></div><button type="button" onClick={onClose} aria-label="Close navigation" className="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-elevated hover:text-foreground"><X className="size-[18px]" /></button></div><NavLinks pathname={pathname} onNavigate={onClose} /><PersonalIdentityDock collapsed={false} /></aside></>;
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -201,10 +209,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => { setMobileNavOpen(false); }, [pathname]);
 
   return <div className="min-h-screen bg-background">
-    <aside aria-label="OS navigational rail" className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-surface/80 px-3 py-5 backdrop-blur transition-[width] duration-200 md:flex", collapsed ? "w-[76px]" : "w-[244px]")}>
-      <div className={cn("flex items-center pb-7", collapsed ? "justify-center" : "justify-between px-2")}>
+    <aside aria-label="OS navigational rail" className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-surface/80 px-3 py-6 backdrop-blur transition-[width] duration-200 md:flex", collapsed ? "w-[76px]" : "w-[244px]")}>
+      <div className={cn("flex items-center pb-6", collapsed ? "justify-center" : "justify-between px-2")}>
         <Link to="/" aria-label="Kurukoo Home" className={cn("flex items-center", collapsed ? "justify-center" : "gap-2")}>
-          <img src="/favicon.ico" alt="Kurukoo" className="size-7 rounded-lg object-contain" />
+          <KurukooMark />
           {!collapsed && <span className="text-[16px] font-semibold tracking-[-0.025em]">Kurukoo</span>}
         </Link>
         <button type="button" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} onClick={() => setCollapsed((v) => !v)} className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground">{collapsed ? <PanelLeftOpen className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />}</button>
@@ -213,7 +221,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <PersonalIdentityDock collapsed={collapsed} />
     </aside>
 
-    <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur md:hidden"><div className="flex items-center justify-between px-4 py-3"><Link to="/" className="flex items-center gap-2"><img src="/favicon.ico" alt="" className="size-7 rounded-lg" /><span className="text-[16px] font-semibold tracking-tight">Kurukoo</span></Link><div className="flex items-center gap-1"><ThemeToggle /><button type="button" onClick={() => setMobileNavOpen(true)} className="grid size-9 place-items-center rounded-full hover:bg-elevated" aria-label="Open navigation"><PanelLeftOpen className="size-[18px]" /></button></div></div></header>
+    <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur md:hidden"><div className="flex items-center justify-between px-4 py-3"><Link to="/" className="flex items-center gap-2"><KurukooMark /><span className="text-[16px] font-semibold tracking-tight">Kurukoo</span></Link><div className="flex items-center gap-1"><ThemeToggle /><button type="button" onClick={() => setMobileNavOpen(true)} className="grid size-9 place-items-center rounded-full hover:bg-elevated" aria-label="Open navigation"><PanelLeftOpen className="size-[18px]" /></button></div></div></header>
     <MobileNavigation pathname={pathname} open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
     <div className={cn("flex min-h-screen transition-[padding] duration-200", collapsed ? "md:pl-[76px]" : "md:pl-[244px]")}>

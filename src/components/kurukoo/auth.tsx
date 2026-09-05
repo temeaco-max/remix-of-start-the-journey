@@ -46,7 +46,7 @@ export function AuthPanel({
             role="status"
             className="mt-4 rounded-lg border border-dashed border-border px-3 py-2.5 text-[13.5px] text-muted-foreground"
           >
-            Accounts aren't switched on in this prototype yet, so nothing was saved. You can still{" "}
+            Accounts aren't switched on yet, so nothing was saved. You can still{" "}
             <Link to="/chat" className="underline">
               open Kurukoo
             </Link>{" "}

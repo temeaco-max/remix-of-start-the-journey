@@ -48,9 +48,9 @@ function BusinessesPage() {
       ) : (
         <div className="mt-4 space-y-6">
           <div className="grid gap-3 sm:grid-cols-3">
-            <StatTile label="Incoming requests" value="0" note="Prototype" />
-            <StatTile label="Customers" value="0" note="Prototype" />
-            <StatTile label="Ad spend" value="£0.00" note="Prototype" />
+            <StatTile label="Incoming requests" value="0" note="Not connected yet" />
+            <StatTile label="Customers" value="0" note="Not connected yet" />
+            <StatTile label="Ad spend" value="£0.00" note="Not connected yet" />
           </div>
           <section>
             <SectionHeader title="Business tools" />
@@ -71,7 +71,7 @@ function BusinessesPage() {
                     <span className="block text-[15px]">{title}</span>
                     <span className="block text-[13px] text-muted-foreground">{note}</span>
                   </span>
-                  <span className="shrink-0 text-[13px] text-muted-foreground">Prototype</span>
+                  <span className="shrink-0 text-[13px] text-muted-foreground">Coming soon</span>
                 </li>
               ))}
             </Rows>
@@ -90,7 +90,7 @@ function BusinessesPage() {
         </div>
       )}
 
-      <IntegrationGap>Business accounts are visual only in this prototype.</IntegrationGap>
+      <IntegrationGap>Business accounts aren't open yet — what's shown here is a preview of what's coming.</IntegrationGap>
     </>
   );
 }
