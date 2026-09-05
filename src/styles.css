@@ -131,3 +131,10 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
 }
+
+@media (width >= 80rem) {
+  section[aria-labelledby="home-hero-title"] + div {
+    grid-template-columns: minmax(0, 0.65fr) minmax(0, .9fr) minmax(0, 1.08fr);
+    column-gap: 0.75rem;
+  }
+}
