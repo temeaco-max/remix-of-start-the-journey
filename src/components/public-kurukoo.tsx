@@ -1,0 +1,10 @@
+import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import { PublicRail } from "@/components/public-kurukoo-rail";
+import { PublicContextRail } from "@/components/public-kurukoo-context";
+
+export { PublicHome } from "@/components/public-kurukoo-home";
+
+export function PublicKurukooShell({ children }: { children: ReactNode }) {
+  return <div className="min-h-screen bg-background"><PublicRail /><div className="flex min-h-screen pl-0 md:pl-[200px]"><main className="min-w-0 flex-1"><header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur"><div className="mx-auto flex h-12 w-full items-center justify-between px-5 lg:px-7"><Link to="/" className="flex items-center gap-2 font-semibold tracking-[-0.025em] md:hidden"><img src="/favicon.ico" alt="Kurukoo" className="size-6 rounded-md" />Kurukoo</Link><nav className="hidden flex-1 items-center justify-center gap-8 text-[12.5px] text-muted-foreground md:flex"><Link to="/explore" className="hover:text-foreground">Explore</Link><Link to="/about" className="hover:text-foreground">How it works</Link><Link to="/capabilities" className="hover:text-foreground">Capabilities</Link></nav><div className="ml-auto flex items-center gap-2"><Link to="/login" className="rounded-full px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground">Sign in</Link><Link to="/signup" className="rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-medium text-background">Get started</Link></div></div></header><div className="flex min-h-[calc(100vh-49px)]"><div className="min-w-0 flex-1">{children}</div><PublicContextRail /></div></main></div></div>;
+}
