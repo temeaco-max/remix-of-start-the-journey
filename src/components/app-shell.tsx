@@ -89,7 +89,7 @@ function ContextCard({ title, icon: Icon, children, action, to }: { title: strin
       : <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] text-muted-foreground">{action}</span>
     : null;
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-soft)]">
+    <section className="rounded-2xl border border-border/80 bg-background p-4 shadow-[var(--shadow-soft)]">
       <div className="flex items-center gap-2">
         <span className="grid size-8 place-items-center rounded-xl bg-elevated text-muted-foreground"><Icon className="size-4" /></span>
         <h2 className="text-[13px] font-medium">{title}</h2>
@@ -107,12 +107,12 @@ function TrustedContextRail() {
   const focus = activeWork[0];
 
   return (
-    <aside aria-label="Trusted context rail" className="hidden w-[292px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-background/55 px-4 py-5 xl:flex">
-      <div className="px-1 pb-1">
+    <aside aria-label="Trusted context rail" className="sticky top-0 hidden h-screen w-[316px] shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-border bg-surface/45 px-5 py-6 xl:flex">
+      <div className="sticky -top-6 z-10 -mx-5 -mt-6 border-b border-border/70 bg-surface/85 px-5 pb-4 pt-6 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[15px] font-semibold tracking-tight">Your context</p>
-            <p className="mt-1 text-[12.5px] text-muted-foreground">Useful things Kurukoo is keeping in view.</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Your context</p>
+            <p className="mt-1.5 text-[14.5px] font-semibold tracking-[-0.02em]">Kept in view for you</p>
           </div>
           <span className="grid size-8 place-items-center rounded-full bg-elevated text-muted-foreground" title={isKurukooApiConfigured() ? "Connected to Kurukoo" : "Preview mode"}>
             <CircleDot className={cn("size-4", isKurukooApiConfigured() && "text-[var(--color-success)]")} />
@@ -217,7 +217,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <MobileNavigation pathname={pathname} open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
     <div className={cn("flex min-h-screen transition-[padding] duration-200", collapsed ? "md:pl-[76px]" : "md:pl-[244px]")}>
-      <main className="min-w-0 flex-1"><div className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-4 md:px-8 md:pb-12 md:pt-5">{children}</div></main>
+      <main className="min-w-0 flex-1 bg-background"><div className="mx-auto w-full max-w-[1160px] px-4 pb-28 pt-4 md:px-10 md:pb-14 md:pt-7">{children}</div></main>
       <TrustedContextRail />
     </div>
 
