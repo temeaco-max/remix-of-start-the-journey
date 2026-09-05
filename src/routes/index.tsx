@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Bell, CirclePlay, Gift, MessageCircle, Mic2, Plus, Sparkles, Users, SunMedium, Building2, Phone } from "lucide-react";
+import { ArrowUpRight, Bell, ShoppingCart, CirclePlay, Gift, MessageCircle, Mic2, Plus, Sparkles, Users, SunMedium, Building2, Phone } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { Panel, ContextIconTile, StatusPill, FlowEvent, ActiveRequestRow } from "@/components/kurukoo/ui";
@@ -30,7 +30,7 @@ function HomePage() {
   return <div className="space-y-5 min-w-0">
     <header className="flex min-h-12 items-center justify-between gap-4 border-b border-border/70 pb-3">
       <div className="flex min-w-0 items-center gap-2 text-[12px] text-muted-foreground"><p className="shrink-0 font-medium text-foreground">{greeting}, {profileName}</p><span aria-hidden className="h-4 w-px shrink-0 bg-border" /><span className="inline-flex min-w-0 items-center gap-1.5 truncate"><SunMedium className="size-4 shrink-0 text-[#c58d62]" />{weather.temperature}°C · {weather.place}</span></div>
-      <div className="flex shrink-0 items-center gap-3"><span className="hidden text-[12px] text-muted-foreground sm:inline">{date}</span><Link to="/activity" aria-label="Open activity" className="relative grid size-9 place-items-center rounded-full hover:bg-elevated"><Bell className="size-[17px] text-muted-foreground" />{unread > 0 ? <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-background" /> : null}</Link></div>
+      <div className="flex shrink-0 items-center gap-2"><span className="hidden text-[12px] text-muted-foreground sm:inline">{date}</span><Link to="/cart" aria-label="Open cart" title="Cart" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><ShoppingCart className="size-[17px] text-muted-foreground" /></Link><Link to="/activity" aria-label="Open activity" className="relative grid size-9 place-items-center rounded-full hover:bg-elevated"><Bell className="size-[17px] text-muted-foreground" />{unread > 0 ? <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-background" /> : null}</Link></div>
     </header>
     <section aria-labelledby="home-hero-title" className="relative overflow-hidden pb-2 pt-4 md:pt-6">
       <HomeHorizonIllustration />
