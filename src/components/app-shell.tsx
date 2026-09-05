@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Bookmark, Radio, ShieldCheck, MoreHorizontal, X, Network as NetworkIcon, Tags, Sparkles, Car, CloudSun, Wind, Check, Circle, Briefcase, HeartPulse, MapPin, Target } from "lucide-react";
+import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Bookmark, Radio, ShieldCheck, MoreHorizontal, X, Network as NetworkIcon, Tags, Sparkles, Car, CloudSun, Wind, Check, Briefcase, HeartPulse, MapPin, Target } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useKurukoo } from "@/lib/kurukoo-store";
