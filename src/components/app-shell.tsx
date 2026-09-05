@@ -51,6 +51,14 @@ function ThemeToggle() {
   );
 }
 
+function KurukooMark({ className }: { className?: string }) {
+  return (
+    <span aria-hidden className={cn("grid size-7 shrink-0 place-items-center rounded-lg bg-[#f4e6dc] text-[13px] font-semibold tracking-[-0.02em] text-[#765443]", className)}>
+      K
+    </span>
+  );
+}
+
 function PersonalIdentityDock({ collapsed }: { collapsed: boolean }) {
   return (
     <div className={cn("mt-auto border-t border-border pt-4", collapsed ? "px-1" : "px-2")}>
@@ -107,7 +115,7 @@ function TrustedContextRail() {
   const focus = activeWork[0];
 
   return (
-    <aside aria-label="Trusted context rail" className="sticky top-0 hidden h-screen w-[316px] shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-border bg-surface/45 px-5 py-6 xl:flex">
+    <aside aria-label="Trusted context rail" className="sticky top-0 hidden h-screen w-[300px] shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-border bg-surface/45 px-5 py-6 lg:flex xl:w-[316px]">
       <div className="sticky -top-6 z-10 -mx-5 -mt-6 border-b border-border/70 bg-surface/85 px-5 pb-4 pt-6 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div>
