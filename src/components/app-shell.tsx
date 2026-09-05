@@ -1,8 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, MapPin, ShieldCheck, CalendarDays, Target, MoreHorizontal, X, CircleDot, Network as NetworkIcon, Tags, Sparkles } from "lucide-react";
+import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Bookmark, Radio, ShieldCheck, Target, MoreHorizontal, X, CircleDot, Network as NetworkIcon, Tags, Sparkles, Car, CloudSun, Wind, Check, Circle } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { isKurukooApiConfigured } from "@/lib/kurukoo-api";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 const nav = [
@@ -64,16 +63,14 @@ function PersonalIdentityDock({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function ContextCard({ title, icon: Icon, children, action, to }: { title: string; icon: typeof MapPin; children: ReactNode; action?: string; to?: string }) {
-  const actionNode = action ? to
-    ? <Link to={to as never} className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground">{action}<span aria-hidden>→</span></Link>
-    : <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] text-muted-foreground">{action}</span>
-    : null;
+function ContextSection({ title, action, to, children }: { title: string; action?: string; to?: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-soft)]">
-      <div className="flex items-center gap-2"><span className="grid size-8 place-items-center rounded-xl bg-elevated text-muted-foreground"><Icon className="size-4" /></span><h2 className="text-[13px] font-medium">{title}</h2></div>
+    <section className="rounded-2xl border border-[#e8e1d8] bg-[#fbfaf7] p-4 shadow-[0_2px_12px_rgba(80,60,40,0.035)] dark:border-border dark:bg-surface">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[13px] font-semibold tracking-tight">{title}</h2>
+        {action && to ? <Link to={to as never} className="text-muted-foreground hover:text-foreground" aria-label={action}><span className="sr-only">{action}</span><MoreHorizontal className="size-4" /></Link> : null}
+      </div>
       <div className="mt-3">{children}</div>
-      {actionNode}
     </section>
   );
 }
@@ -83,19 +80,37 @@ function TrustedContextRail() {
   const activeWork = work.filter((item) => item.stage !== "done").slice(0, 2);
   const unread = notifications.filter((item) => !item.read).length;
   const focus = activeWork[0];
+  const savedCount = memory.length;
 
   return (
-    <aside aria-label="Trusted context rail" className="hidden w-[224px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-background/55 px-4 py-5 lg:flex">
-      <div className="px-1 pb-1"><div className="flex items-center justify-between gap-3"><div><p className="text-[15px] font-semibold tracking-tight">Your context</p><p className="mt-1 text-[12.5px] text-muted-foreground">Useful things Kurukoo is keeping in view.</p></div><span className="grid size-8 place-items-center rounded-full bg-elevated text-muted-foreground" title={isKurukooApiConfigured() ? "Connected to Kurukoo" : "Preview mode"}><CircleDot className={cn("size-4", isKurukooApiConfigured() && "text-[var(--color-success)]")} /></span></div></div>
-      <ContextCard title="Current work" icon={Target} action="Open work" to="/work">
-        {focus ? <div><p className="text-[13.5px] font-medium">{focus.title}</p><p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{focus.detail}</p><div className="mt-3 flex items-center gap-2"><span className="size-1.5 rounded-full bg-[var(--color-success)]" /><span className="text-[11px] text-muted-foreground">{focus.stage === "needs_you" ? "Needs your attention" : "In progress"}</span></div></div> : <p className="text-[13px] leading-relaxed text-muted-foreground">Nothing is currently in progress.</p>}
-      </ContextCard>
-      <ContextCard title="Places & memory" icon={MapPin} action="View memory" to="/memory"><div className="space-y-3 text-[13px]"><div><p className="font-medium">Personal context</p><p className="text-muted-foreground">{memory.length ? `${memory.length} saved item${memory.length === 1 ? "" : "s"}` : "Nothing saved yet"}</p></div><div><p className="font-medium">Location</p><p className="text-muted-foreground">Available when you choose to share it</p></div></div></ContextCard>
-      <ContextCard title="Attention" icon={CalendarDays} action="View activity" to="/activity"><div className="space-y-3">{activeWork.length ? activeWork.map((item) => <div key={item.id} className="flex gap-3"><span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" /><div><p className="text-[13px] font-medium">{item.title}</p><p className="text-[12px] text-muted-foreground">{item.updated}</p></div></div>) : <p className="text-[13px] text-muted-foreground">No active items need attention.</p>}</div></ContextCard>
-      <ContextCard title="Safety" icon={ShieldCheck}><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-[color-mix(in_oklab,var(--color-success)_14%,transparent)] text-[var(--color-success)]"><ShieldCheck className="size-5" /></span><div><p className="text-[13.5px] font-medium">All good</p><p className="text-[12px] text-muted-foreground">{unread ? `${unread} item${unread === 1 ? "" : "s"} waiting for you.` : "Nothing needs your attention."}</p></div></div></ContextCard>
+    <aside aria-label="Trusted context rail" className="hidden w-[224px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-[#e7e0d7] bg-[#f5f1eb] px-3 py-5 lg:flex dark:border-border dark:bg-background">
+      <ContextSection title="Trusted context" action="Open trusted context" to="/memory">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 rounded-xl px-2 py-2.5"><span className="grid size-8 place-items-center rounded-full bg-[#eaf2fa] text-[#4d88b8]"><Home className="size-4" /></span><div className="min-w-0"><p className="text-[12.5px] font-medium">Home</p><p className="text-[11px] text-muted-foreground">Osu, Accra</p></div></div>
+          <div className="flex items-center gap-3 rounded-xl px-2 py-2.5"><span className="grid size-8 place-items-center rounded-full bg-[#f9eadf] text-[#c56d32]"><BriefcaseIcon className="size-4" /></span><div className="min-w-0"><p className="text-[12.5px] font-medium">Work</p><p className="text-[11px] text-muted-foreground">Design lead</p></div></div>
+          <div className="flex items-center gap-3 rounded-xl px-2 py-2.5"><span className="grid size-8 place-items-center rounded-full bg-[#fae8e6] text-[#d76d61]"><Circle className="size-4 fill-current" /></span><div className="min-w-0"><p className="text-[12.5px] font-medium">Health</p><p className="text-[11px] text-muted-foreground">7h sleep · Good</p></div></div>
+        </div>
+        <Link to="/memory" className="mt-2 flex items-center text-[12px] font-medium text-primary hover:opacity-80">View memory <span className="ml-auto text-lg leading-none">›</span></Link>
+      </ContextSection>
+      <ContextSection title="Nearby pulse" action="See nearby" to="/explore">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 px-2 py-2"><span className="grid size-7 place-items-center rounded-full bg-[#e8f3e8] text-[#4d8c58]"><Car className="size-3.5" /></span><span className="flex-1 text-[12.5px]">Traffic</span><span className="text-[11px] text-[#4d8c58]">Light <span className="ml-0.5">•</span></span></div>
+          <div className="flex items-center gap-3 px-2 py-2"><span className="grid size-7 place-items-center rounded-full bg-[#fbf2df] text-[#b38a36]"><CloudSun className="size-3.5" /></span><span className="flex-1 text-[12.5px]">Weather</span><span className="text-[11px] text-muted-foreground">23°C · Partly cloudy</span></div>
+          <div className="flex items-center gap-3 px-2 py-2"><span className="grid size-7 place-items-center rounded-full bg-[#e8f1e8] text-[#5d8960]"><Wind className="size-3.5" /></span><span className="flex-1 text-[12.5px]">Air quality</span><span className="text-[11px] text-[#4d8c58]">Good <span className="ml-0.5">•</span></span></div>
+        </div>
+        <Link to="/explore" className="mt-2 flex items-center text-[12px] font-medium text-primary hover:opacity-80">See nearby <span className="ml-auto text-lg leading-none">›</span></Link>
+      </ContextSection>
+      <ContextSection title="Safety state">
+        <div className="flex items-center justify-between gap-3"><div><p className="text-[13px] font-medium text-[#5c9464]">All good</p><p className="mt-0.5 text-[11.5px] text-muted-foreground">{unread ? `${unread} item${unread === 1 ? "" : "s"} waiting for you.` : "We've got you"}</p></div><span className="grid size-11 place-items-center rounded-full border-2 border-dashed border-[#9bc29f] p-1"><span className="grid size-full place-items-center rounded-full bg-[#78ae7d] text-white shadow-sm"><Check className="size-5" /></span></span></div>
+      </ContextSection>
+      <ContextSection title="Task focus" action="Open work" to="/work">
+        {focus ? <div className="flex items-start gap-3"><span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border border-border bg-background"><span className="size-1.5 rounded-full bg-primary" /></span><div className="min-w-0"><p className="text-[12.5px] font-medium">{focus.title}</p><p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{focus.detail}</p><p className="mt-2 text-[11.5px] font-medium text-primary">Today, 15:00</p></div></div> : <p className="text-[12px] text-muted-foreground">Nothing needs your attention.</p>}
+      </ContextSection>
     </aside>
   );
 }
+
+function BriefcaseIcon({ className }: { className?: string }) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18" /></svg>; }
 
 function NavLinks({ pathname, collapsed = false, onNavigate }: { pathname: string; collapsed?: boolean; onNavigate?: () => void }) {
   return <><nav aria-label="Primary OS navigation" className="space-y-1">{nav.map(({ to, label, icon: Icon }) => { const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`); return <Link key={to} to={to} onClick={onNavigate} title={collapsed ? label : undefined} className={cn("flex items-center rounded-xl py-2.5 text-[13.5px] transition-colors", collapsed ? "justify-center px-2" : "gap-3 px-3", active ? "bg-[#f4e6dc] font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")}><Icon className="size-[18px]" strokeWidth={active ? 2.2 : 1.8} />{!collapsed && label}</Link>; })}</nav>{!collapsed && <p className="px-3 pb-1 pt-7 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">More</p>}<nav aria-label="Secondary OS navigation" className="space-y-1 overflow-y-auto pb-2">{more.map(({ to, label, icon: Icon }) => { const active = pathname === to || pathname.startsWith(`${to}/`); return <Link key={to} to={to} onClick={onNavigate} title={collapsed ? label : undefined} className={cn("flex items-center rounded-xl py-2 transition-colors", collapsed ? "justify-center px-2" : "gap-3 px-3", active ? "bg-[#f4e6dc] font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")}><Icon className="size-[17px]" strokeWidth={active ? 2.1 : 1.7} />{!collapsed && label}</Link>; })}</nav></>;
@@ -114,15 +129,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => { setMobileNavOpen(false); }, [pathname]);
 
   return <div className="min-h-screen bg-background">
-    <aside aria-label="OS navigational rail" className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-surface/80 px-3 py-5 backdrop-blur transition-[width] duration-200 md:flex", collapsed ? "w-[76px]" : "w-[224px]")}>
+    <aside aria-label="OS navigational rail" className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-surface/80 px-3 py-5 backdrop-blur transition-[width] duration-200 md:flex", collapsed ? "w-[76px]" : "w-[200px]")}>
       <div className={cn("flex items-center pb-7", collapsed ? "justify-center" : "justify-between px-2")}><Link to="/" aria-label="Kurukoo Home" className={cn("flex items-center", collapsed ? "justify-center" : "gap-2")}><img src="/favicon.ico" alt="Kurukoo" className="size-7 rounded-lg object-contain" />{!collapsed && <span className="text-[16px] font-semibold tracking-[-0.025em]">Kurukoo</span>}</Link><button type="button" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} onClick={() => setCollapsed((v) => !v)} className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground">{collapsed ? <PanelLeftOpen className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />}</button></div>
       <NavLinks pathname={pathname} collapsed={collapsed} />
       <PersonalIdentityDock collapsed={collapsed} />
     </aside>
     <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur md:hidden"><div className="flex items-center justify-between px-4 py-3"><Link to="/" className="flex items-center gap-2"><img src="/favicon.ico" alt="" className="size-7 rounded-lg" /><span className="text-[16px] font-semibold tracking-tight">Kurukoo</span></Link><div className="flex items-center gap-1"><ThemeToggle /><button type="button" onClick={() => setMobileNavOpen(true)} className="grid size-9 place-items-center rounded-full hover:bg-elevated" aria-label="Open navigation"><PanelLeftOpen className="size-[18px]" /></button></div></div></header>
     <MobileNavigation pathname={pathname} open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
-    <div className={cn("flex min-h-screen transition-[padding] duration-200", collapsed ? "md:pl-[76px]" : "md:pl-[224px]")}>
-      <main className="min-w-0 flex-1"><div className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-4 md:px-8 md:pb-12 md:pt-5">{children}</div></main>
+    <div className={cn("flex min-h-screen transition-[padding] duration-200", collapsed ? "md:pl-[76px]" : "md:pl-[200px]")}>
+      <main className="min-w-0 flex-1"><div className="w-full px-4 pb-28 pt-4 md:px-8 md:pb-12 md:pt-5">{children}</div></main>
       <TrustedContextRail />
     </div>
     <nav aria-label="Mobile primary navigation" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 px-2 py-2 backdrop-blur md:hidden">{nav.map(({ to, label, icon: Icon }) => { const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`); return <Link key={to} to={to} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px]", active ? "bg-[#f4e6dc] font-medium text-foreground" : "text-muted-foreground")}><Icon className="size-[18px]" strokeWidth={active ? 2.2 : 1.8} /><span>{label}</span></Link>; })}</nav>
