@@ -1,32 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, MessageCircle, ShieldCheck, Users } from "lucide-react";
-import { PageHeader } from "@/components/app-shell";
 import { TopicCard } from "@/components/kurukoo/cards";
-import { IntegrationGap } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
 import { topics } from "@/lib/kurukoo-demo";
 
-export const Route = createFileRoute("/topics")({
-  head: () => ({ meta: [
-    { title: "Topics — Kurukoo" },
-    { name: "description", content: "Follow topics to see discussions, people and useful services around them." },
-    { property: "og:title", content: "Topics — Kurukoo" },
-    { property: "og:description", content: "Discussions, people and useful services grouped by subject." },
-  ]}),
-  component: TopicsPage,
-});
+export const Route = createFileRoute("/topics")({ head: () => ({ meta: [{ title: "Topics — Kurukoo" }, { name: "description", content: "Follow subjects to find conversations, people and useful services around them." }] }), component: TopicsPage });
 
-function TopicsPage() {
-  return <>
-    <PageHeader title="Topics" subtitle="Follow a subject to see discussions, people and useful things around it." />
-    <Panel className="mb-5 p-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="text-[14px] font-medium">A calmer way to discover what matters</p><p className="mt-1 text-[12.5px] text-muted-foreground">Topics bring conversations, useful people and services together without turning Kurukoo into a noisy feed.</p></div>
-        <div className="flex shrink-0 gap-4 text-[11.5px] text-muted-foreground"><span className="inline-flex items-center gap-1.5"><MessageCircle className="size-3.5" />Discussions</span><span className="inline-flex items-center gap-1.5"><Users className="size-3.5" />People</span><span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" />Quality</span></div>
-      </div>
-    </Panel>
-    <div className="grid gap-3 sm:grid-cols-2">{topics.map((t) => <TopicCard key={t.slug} topic={t} />)}</div>
-    <div className="mt-4 flex justify-end"><Link to="/explore" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground">Discover more <ArrowUpRight className="size-3.5" /></Link></div>
-    <IntegrationGap>Topic discussions and follows are ready for the interface; live community activity will appear as it becomes available.</IntegrationGap>
-  </>;
-}
+function TopicsPage() { return <div className="mx-auto w-full max-w-4xl px-5 py-10 md:px-8 md:py-14"><section className="max-w-3xl"><p className="text-[12px] font-medium text-muted-foreground">Topics</p><h1 className="mt-2 font-serif text-[42px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">Follow the subjects behind the things people are doing.</h1><p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">Topics connect conversation, useful people, services and ideas around a subject — with quality and context kept visible.</p></section><Panel className="mt-8 p-4"><div className="flex flex-wrap gap-x-5 gap-y-2 text-[11.5px] text-muted-foreground"><span className="inline-flex items-center gap-1.5"><MessageCircle className="size-3.5" />Discussions</span><span className="inline-flex items-center gap-1.5"><Users className="size-3.5" />People</span><span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" />Quality gates</span></div></Panel><div className="mt-5 grid gap-3 sm:grid-cols-2">{topics.map((topic) => <TopicCard key={topic.slug} topic={topic} />)}</div><section className="mt-10 rounded-[24px] border border-border bg-surface p-6"><p className="text-[12px] font-medium text-muted-foreground">A topic is more than a tag</p><p className="mt-2 max-w-2xl text-[15px] leading-relaxed">As Kurukoo develops, a topic can become a living context: discussion and opinion, trusted contributors, relevant businesses, useful artifacts and requests people are actually trying to complete.</p><Link to="/explore" className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-medium">Explore everything <ArrowUpRight className="size-3.5" /></Link></section></div>; }
