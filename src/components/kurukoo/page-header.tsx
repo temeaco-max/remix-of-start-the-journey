@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, SunMedium } from "lucide-react";
+import { Bell, MessageSquare, SunMedium } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useKurukoo } from "@/lib/kurukoo-store";
 import { useProfileName } from "@/components/app-shell";
@@ -87,10 +87,17 @@ export function PageHeader() {
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="hidden text-[12px] text-muted-foreground sm:inline">{date}</span>
+        <span className="hidden items-center gap-2 text-[12px] text-muted-foreground sm:inline-flex">
+          <span>{date}</span>
+          <span aria-hidden className="h-4 w-px bg-border" />
+          <span><strong className="font-semibold text-foreground">480</strong> pts</span>
+        </span>
         <Link to="/activity" aria-label="Open activity" className="relative grid size-9 place-items-center rounded-full hover:bg-elevated">
           <Bell className="size-[17px] text-muted-foreground" />
           {unread > 0 ? <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-background" /> : null}
+        </Link>
+        <Link to="/chat" aria-label="Open conversation" className="grid size-9 place-items-center rounded-full hover:bg-elevated">
+          <MessageSquare className="size-[17px] text-muted-foreground" />
         </Link>
       </div>
     </header>
