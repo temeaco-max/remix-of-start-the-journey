@@ -6,11 +6,11 @@ export function SectionHeader({ title, subtitle, action }: { title: string; subt
   return <div className="flex items-end justify-between gap-4 pb-3"><div><h2 className="text-[17px] font-semibold">{title}</h2>{subtitle ? <p className="mt-0.5 text-[13.5px] text-muted-foreground">{subtitle}</p> : null}</div>{action}</div>;
 }
 
-export function Panel({ children, className }: { children: ReactNode; className?: string }) {
+export function Panel({ children, className }: { children: ReactNode; className?: string | undefined }) {
   return <div className={cn("rounded-2xl border border-border bg-surface shadow-[var(--shadow-soft)]", className)}>{children}</div>;
 }
 
-export function SoftSurface({ children, className }: { children: ReactNode; className?: string }) {
+export function SoftSurface({ children, className }: { children: ReactNode; className?: string | undefined }) {
   return <div className={cn("rounded-[28px] bg-background", className)}>{children}</div>;
 }
 
@@ -56,8 +56,8 @@ export function StatusPill({ children, tone = "neutral" }: { children: ReactNode
   return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium", tone === "green" ? "bg-[color-mix(in_oklab,var(--color-success)_13%,transparent)] text-[var(--color-success)]" : tone === "peach" ? "bg-[#f4e6dc] text-[#765443]" : "bg-elevated text-muted-foreground")}>{children}</span>;
 }
 
-export function ContextIconTile({ children, className }: { children: ReactNode; className?: string }) { return <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl bg-elevated text-muted-foreground", className)}>{children}</span>; }
-export function ContextualSectionAction({ children, className }: { children: ReactNode; className?: string }) { return <span className={cn("inline-flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground", className)}>{children}</span>; }
+export function ContextIconTile({ children, className }: { children: ReactNode; className?: string | undefined }) { return <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl bg-elevated text-muted-foreground", className)}>{children}</span>; }
+export function ContextualSectionAction({ children, className }: { children: ReactNode; className?: string | undefined }) { return <span className={cn("inline-flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground", className)}>{children}</span>; }
 
 export function SafetyStateIndicator({ state = "good" }: { state?: "good" | "attention" | "action" | "blocked" }) {
   const labels = { good: "Good", attention: "Attention", action: "Action required", blocked: "Blocked" };
@@ -68,7 +68,7 @@ export function ActiveRequestRow({ title, detail, timing, status }: { title: str
   return <div className="flex items-center gap-3 px-4 py-3.5"><ContextIconTile><span className="size-2 rounded-full bg-primary" /></ContextIconTile><div className="min-w-0 flex-1"><p className="truncate text-[13.5px] font-medium">{title}</p><p className="truncate text-[12px] text-muted-foreground">{detail}</p></div>{timing ? <span className="hidden shrink-0 text-[11.5px] text-muted-foreground sm:block">{timing}</span> : null}{status}</div>;
 }
 
-export function FlowEvent({ time, title, detail, kind }: { time: string; title: string; detail: string; kind?: string }) {
+export function FlowEvent({ time, title, detail, kind }: { time: string; title: string; detail: string; kind?: string | undefined }) {
   return <div className="flex items-start gap-3 px-4 py-3.5"><span className="w-11 shrink-0 pt-0.5 text-[11px] tabular-nums text-muted-foreground">{time}</span><span className="mt-1 size-2 shrink-0 rounded-full border-2 border-primary/50 bg-background" /><div className="min-w-0 flex-1"><p className="text-[13.5px] font-medium">{title}</p><p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{detail}</p></div>{kind ? <span className="hidden rounded-full bg-elevated px-2 py-1 text-[10px] text-muted-foreground sm:inline">{kind}</span> : null}</div>;
 }
 

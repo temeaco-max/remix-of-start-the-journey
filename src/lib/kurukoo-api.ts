@@ -1,13 +1,13 @@
 export type ChatStreamEvent = {
   type: string;
-  conversationId?: string;
-  content?: string;
+  conversationId?: string | undefined;
+  content?: string | undefined;
   text?: string;
   fullReply?: string;
   error?: string;
 };
 
-const API_BASE = (import.meta.env.VITE_KURUKOO_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE = (import.meta.env['VITE_KURUKOO_API_BASE_URL'] ?? "").replace(/\/$/, "");
 
 function apiUrl(path: string) {
   return `${API_BASE}${path}`;
@@ -19,9 +19,9 @@ export function isKurukooApiConfigured() {
 
 export async function streamKurukooChat(input: {
   message: string;
-  conversationId?: string;
+  conversationId?: string | undefined;
   onEvent: (event: ChatStreamEvent) => void;
-}): Promise<{ conversationId?: string; reply: string }> {
+}): Promise<{ conversationId?: string | undefined; reply: string }> {
   const response = await fetch(apiUrl("/api/chat/stream"), {
     method: "POST",
     credentials: "include",
