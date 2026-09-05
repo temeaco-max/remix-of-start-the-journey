@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Bookmark, Radio, ShieldCheck, MoreHorizontal, X, Network as NetworkIcon, Tags, Sparkles, Car, CloudSun, Wind, Check, Briefcase, HeartPulse, MapPin, Target } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Bookmark, Radio, ShieldCheck, MoreHorizontal, X, Network as NetworkIcon, Tags, Sparkles, Car, CloudSun, Wind, Check, Briefcase, HeartPulse, MapPin, Target, Search, ShoppingCart, CircleHelp } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
@@ -55,7 +55,7 @@ function ThemeToggle() {
 function PersonalIdentityDock({ collapsed }: { collapsed: boolean }) {
   const profileName = useProfileName();
   const initial = profileName.charAt(0).toUpperCase() || "A";
-  return <div className={cn("mt-auto border-t border-border pt-4", collapsed ? "px-1" : "px-2")}><div className={cn("mb-2 flex items-center", collapsed ? "justify-center" : "justify-end")}>{!collapsed && <ThemeToggle />}</div><Link to="/settings" className={cn("flex w-full items-center rounded-xl p-2 text-left transition-colors hover:bg-elevated", collapsed ? "justify-center" : "gap-3")} aria-label="Open personal identity" title={collapsed ? "Personal identity" : undefined}><span className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#ead7c7] text-[12px] font-semibold text-[#684f3e]">{initial}<span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-surface bg-[var(--color-success)]" /></span>{!collapsed && <span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-medium">{profileName}</span><span className="block truncate text-[11.5px] text-muted-foreground">Identity & preferences</span></span>}{!collapsed && <MoreHorizontal className="size-4 text-muted-foreground" />}</Link></div>;
+  return <div className={cn("mt-auto border-t border-border pt-4", collapsed ? "px-1" : "px-2")}><div className={cn("mb-2 flex items-center", collapsed ? "justify-center" : "justify-end")}>{!collapsed && <div className="flex items-center gap-1"><Link to="/about" aria-label="Help" title="Help" className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"><CircleHelp className="size-[18px]" /></Link><ThemeToggle /></div>}</div><Link to="/settings" className={cn("flex w-full items-center rounded-xl p-2 text-left transition-colors hover:bg-elevated", collapsed ? "justify-center" : "gap-3")} aria-label="Open personal identity" title={collapsed ? "Personal identity" : undefined}><span className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#ead7c7] text-[12px] font-semibold text-[#684f3e]">{initial}<span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-surface bg-[var(--color-success)]" /></span>{!collapsed && <span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-medium">{profileName}</span><span className="block truncate text-[11.5px] text-muted-foreground">Identity & preferences</span></span>}{!collapsed && <MoreHorizontal className="size-4 text-muted-foreground" />}</Link></div>;
 }
 
 type ContextIcon = typeof Bookmark;
@@ -65,12 +65,44 @@ function ContextSection({ title, icon: Icon, action, to, children }: { title: st
 function ContextRow({ icon: Icon, title, detail, tone = "bg-elevated text-muted-foreground", className }: { icon: ContextIcon; title: string; detail: string; tone?: string; className?: string }) {
   return <div className={cn("flex min-w-0 items-center gap-2.5 rounded-xl px-1.5 py-1.5", className)}><span className={cn("grid size-7 shrink-0 place-items-center rounded-full", tone)}><Icon className="size-3.5" /></span><div className="min-w-0"><p className="truncate text-[12px] font-medium">{title}</p><p className="truncate text-[10.5px] text-muted-foreground">{detail}</p></div></div>;
 }
+const railSearchItems = [
+  { title: "Home", detail: "Osu, Accra", icon: Home, to: "/" },
+  { title: "Work", detail: "Design lead", icon: Briefcase, to: "/work" },
+  { title: "Places & memory", detail: "Saved places and memories", icon: MapPin, to: "/memory" },
+  { title: "Explore", detail: "People, places and ideas", icon: Compass, to: "/explore" },
+  { title: "Wallet & cart", detail: "Orders, cart and points", icon: ShoppingCart, to: "/cart" },
+  { title: "Safety", detail: "Trusted and protected", icon: ShieldCheck, to: "/settings" },
+];
+function TrustedContextSearch({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [query, setQuery] = useState("");
+  const [submitted, setSubmitted] = useState("");
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); onOpenChange(true); window.setTimeout(() => document.getElementById("trusted-context-search")?.focus(), 0); }
+      if (event.key === "Escape") { setQuery(""); setSubmitted(""); onOpenChange(false); }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onOpenChange]);
+  const results = useMemo(() => { const term = submitted.trim().toLowerCase(); return term ? railSearchItems.filter((item) => `${item.title} ${item.detail}`.toLowerCase().includes(term)) : []; }, [submitted]);
+  return <div className="shrink-0">
+    {!open ? <button type="button" onClick={() => onOpenChange(true)} aria-label="Search trusted context" title="Search trusted context (⌘K)" className="mb-0.5 flex w-full items-center justify-between rounded-xl border border-transparent px-2 py-1.5 text-muted-foreground transition-colors hover:border-[#e8e1d8] hover:bg-[#fbfaf7] hover:text-foreground"><span className="flex items-center gap-2"><Search className="size-4" /><span className="text-[11.5px]">Search context</span></span><kbd className="rounded-md border border-[#e5ded5] bg-[#fbfaf7] px-1.5 py-0.5 text-[9px] font-medium">⌘K</kbd></button> : <div className="mb-0.5 rounded-xl border border-[#e8e1d8] bg-[#fbfaf7] p-2 shadow-[0_2px_12px_rgba(80,60,40,0.035)]"><div className="flex items-center gap-2"><Search className="size-4 shrink-0 text-muted-foreground" /><input id="trusted-context-search" autoFocus value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") setSubmitted(query); }} placeholder="Search trusted context" className="min-w-0 flex-1 bg-transparent text-[11.5px] outline-none placeholder:text-muted-foreground" /><kbd className="shrink-0 rounded-md border border-[#e5ded5] bg-background px-1.5 py-0.5 text-[9px] font-medium">⌘K</kbd></div></div>}
+    {submitted ? <ContextSection title={`Search · ${submitted}`} icon={Search}><div className="space-y-0.5">{results.length ? results.map((item) => <Link key={item.title} to={item.to as never} onClick={() => { setQuery(""); setSubmitted(""); onOpenChange(false); }} className="block rounded-xl px-1.5 py-1.5 hover:bg-elevated"><ContextRow icon={item.icon} title={item.title} detail={item.detail} /></Link>) : <p className="px-1.5 py-2 text-[10.5px] text-muted-foreground">No trusted context found.</p>}</div></ContextSection> : null}
+  </div>;
+}
 function TrustedContextRail() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { work, memory, notifications } = useKurukoo();
+  const [searchOpen, setSearchOpen] = useState(false);
   const activeWork = work.filter((item) => item.stage !== "done").slice(0, 2);
   const unread = notifications.filter((item) => !item.read).length;
   const focus = activeWork[0];
+  const isWork = pathname === "/work" || pathname.startsWith("/work/");
+  const isMemory = pathname === "/memory" || pathname.startsWith("/memory/");
+  const isExplore = pathname === "/explore" || pathname.startsWith("/explore/");
+  const isWallet = pathname === "/wallet" || pathname.startsWith("/wallet/") || pathname === "/cart" || pathname.startsWith("/cart/");
   return <aside aria-label="Trusted context rail" className="hidden w-[224px] shrink-0 flex-col gap-2.5 overflow-y-auto border-l border-[#e7e0d7] bg-[#f5f1eb] px-3 py-4 lg:flex dark:border-border dark:bg-background">
+    <TrustedContextSearch open={searchOpen} onOpenChange={setSearchOpen} />
     <ContextSection title="Trusted context" icon={Bookmark} action="Open trusted context" to="/memory">
       <div className="space-y-0.5">
         <ContextRow icon={Home} title="Home" detail="Osu, Accra" tone="bg-[#eaf2fa] text-[#4d88b8]" />
@@ -79,22 +111,19 @@ function TrustedContextRail() {
       </div>
       <div className="mt-1.5 flex items-center justify-between gap-2 rounded-xl bg-[#f4eee6] px-2.5 py-2 dark:bg-elevated"><div className="flex min-w-0 items-center gap-2"><MapPin className="size-3.5 shrink-0 text-muted-foreground" /><div className="min-w-0"><p className="text-[11.5px] font-medium">Places & memory</p><p className="text-[10px] text-muted-foreground">{memory.length ? `${memory.length} saved item${memory.length === 1 ? "" : "s"}` : "Nothing saved yet"}</p></div></div><Link to="/memory" className="shrink-0 text-[10.5px] font-medium text-primary hover:opacity-80">View</Link></div>
     </ContextSection>
+    {isWork ? <ContextSection title="Current work" icon={Briefcase} action="Open work" to="/work"><ContextRow icon={Target} title={focus?.title ?? "Nothing in progress"} detail={focus?.detail ?? "Start a request to create work."} tone="bg-[#f9eadf] text-[#c56d32]" /></ContextSection> : null}
+    {isMemory ? <ContextSection title="Places & memory" icon={MapPin} action="Open memory" to="/memory"><ContextRow icon={MapPin} title={`${memory.length} saved item${memory.length === 1 ? "" : "s"}`} detail="Your saved places and remembered details." tone="bg-[#f4eee6] text-[#765443]" /></ContextSection> : null}
+    {isExplore ? <ContextSection title="Discovery" icon={Compass} action="Explore" to="/explore"><ContextRow icon={Compass} title="People, places & ideas" detail="Useful context for what you're exploring." tone="bg-[#eaf2fa] text-[#4d88b8]" /><div className="mt-1.5 rounded-xl bg-[#f4eee6] px-2.5 py-2"><p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Advertising</p><p className="mt-0.5 text-[11px] text-muted-foreground">Sponsored discovery will appear here when connected to Kurukoo Advertising.</p></div></ContextSection> : null}
+    {isWallet ? <ContextSection title="Wallet & cart" icon={ShoppingCart} action="Open cart" to="/cart"><ContextRow icon={ShoppingCart} title="Cart and purchases" detail="Review items before committing." tone="bg-[#eaf1e9] text-[#55705a]" /></ContextSection> : null}
     <ContextSection title="Nearby pulse" icon={Radio} action="See nearby" to="/explore">
-      <div className="space-y-0.5">
-        <ContextRow icon={Car} title="Traffic" detail="Light" tone="bg-[#e8f3e8] text-[#4d8c58]" />
-        <ContextRow icon={CloudSun} title="Weather" detail="23°C · Partly cloudy" tone="bg-[#fbf2df] text-[#b38a36]" />
-        <ContextRow icon={Wind} title="Air quality" detail="Good" tone="bg-[#e8f1e8] text-[#5d8960]" />
-      </div>
+      <div className="space-y-0.5"><ContextRow icon={Car} title="Traffic" detail="Light" tone="bg-[#e8f3e8] text-[#4d8c58]" /><ContextRow icon={CloudSun} title="Weather" detail="23°C · Partly cloudy" tone="bg-[#fbf2df] text-[#b38a36]" /><ContextRow icon={Wind} title="Air quality" detail="Good" tone="bg-[#e8f1e8] text-[#5d8960]" /></div>
       <Link to="/explore" className="mt-1.5 flex items-center text-[11.5px] font-medium text-primary hover:opacity-80">See nearby <span className="ml-auto text-base leading-none">›</span></Link>
     </ContextSection>
     <ContextSection title="Safety state" icon={ShieldCheck}>
       <div className="flex items-center gap-2.5"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#e7f2e8] text-[#5c9464]"><Check className="size-4" /></span><div className="min-w-0"><p className="text-[12.5px] font-medium text-[#5c9464]">All good</p><p className="truncate text-[10.5px] text-muted-foreground">{unread ? `${unread} item${unread === 1 ? "" : "s"} waiting for you.` : "We've got you"}</p></div></div>
     </ContextSection>
     <ContextSection title="Task focus" icon={Target} action="Open work" to="/work">
-      <div className="space-y-2">
-        <div className="rounded-xl bg-[#f4eee6] px-2.5 py-2 dark:bg-elevated"><div className="flex items-center gap-2"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-background text-muted-foreground"><Target className="size-3.5" /></span><div className="min-w-0"><p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Current work</p>{focus ? <p className="mt-0.5 truncate text-[12px] font-medium">{focus.title}</p> : <p className="mt-0.5 text-[12px] text-muted-foreground">Nothing in progress</p>}</div></div>{focus ? <p className="mt-1.5 pl-8 text-[10.5px] leading-relaxed text-muted-foreground">{focus.detail}</p> : null}</div>
-        <div className="rounded-xl bg-[#f4eee6] px-2.5 py-2 dark:bg-elevated"><div className="flex items-center gap-2"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-background text-muted-foreground"><Bell className="size-3.5" /></span><p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Attention</p></div>{activeWork.length ? <div className="mt-1.5 space-y-1">{activeWork.map((item) => <div key={item.id} className="flex min-w-0 items-center gap-1.5"><span className="size-1.5 shrink-0 rounded-full bg-primary" /><p className="truncate text-[11px]">{item.title}</p><span className="ml-auto shrink-0 text-[9.5px] text-muted-foreground">{item.updated}</span></div>)}{unread ? <div className="flex items-center gap-1.5"><span className="size-1.5 shrink-0 rounded-full bg-[#d08a58]" /><p className="text-[10.5px] text-muted-foreground">{unread} unread notification{unread === 1 ? "" : "s"}</p></div> : null}</div> : <p className="mt-1 text-[10.5px] text-muted-foreground">Nothing needs your attention.</p>}</div>
-      </div>
+      <div className="space-y-2"><div className="rounded-xl bg-[#f4eee6] px-2.5 py-2 dark:bg-elevated"><div className="flex items-center gap-2"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-background text-muted-foreground"><Target className="size-3.5" /></span><div className="min-w-0"><p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Current work</p>{focus ? <p className="mt-0.5 truncate text-[12px] font-medium">{focus.title}</p> : <p className="mt-0.5 text-[12px] text-muted-foreground">Nothing in progress</p>}</div></div>{focus ? <p className="mt-1.5 pl-8 text-[10.5px] leading-relaxed text-muted-foreground">{focus.detail}</p> : null}</div><div className="rounded-xl bg-[#f4eee6] px-2.5 py-2 dark:bg-elevated"><div className="flex items-center gap-2"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-background text-muted-foreground"><Bell className="size-3.5" /></span><p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Attention</p></div>{activeWork.length ? <div className="mt-1.5 space-y-1">{activeWork.map((item) => <div key={item.id} className="flex min-w-0 items-center gap-1.5"><span className="size-1.5 shrink-0 rounded-full bg-primary" /><p className="truncate text-[11px]">{item.title}</p><span className="ml-auto shrink-0 text-[9.5px] text-muted-foreground">{item.updated}</span></div>)}{unread ? <div className="flex items-center gap-1.5"><span className="size-1.5 shrink-0 rounded-full bg-[#d08a58]" /><p className="text-[10.5px] text-muted-foreground">{unread} unread notification{unread === 1 ? "" : "s"}</p></div> : null}</div> : <p className="mt-1 text-[10.5px] text-muted-foreground">Nothing needs your attention.</p>}</div></div>
     </ContextSection>
   </aside>;
 }
