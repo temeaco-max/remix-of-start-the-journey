@@ -1,79 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowUpRight, BookOpen, MessageCircle, Search, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { PageHeader } from "@/components/app-shell";
-import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
-import { Panel, Rows, SearchField, SectionHeader } from "@/components/kurukoo/ui";
+import { Action } from "@/components/kurukoo/primitives";
+import { Panel, SearchField } from "@/components/kurukoo/ui";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
-export const Route = createFileRoute("/help")({
-  head: () => ({
-    meta: [
-      { title: "Help — Kurukoo" },
-      {
-        name: "description",
-        content: "Getting started, chat, work, payments, providers, integrations and safety.",
-      },
-      { property: "og:title", content: "Help — Kurukoo" },
-      { property: "og:description", content: "Find an answer, or just ask Kurukoo." },
-    ],
-  }),
-  component: HelpPage,
-});
+export const Route = createFileRoute("/help")({ head: () => ({ meta: [{ title: "Help — Kurukoo" }, { name: "description", content: "Learn how Kurukoo works, get help with requests and understand trust, payments and accounts." }] }), component: HelpPage });
 
-const sections: [string, string][] = [
-  ["Getting started", "What Kurukoo does and how to ask for things"],
-  ["Chat", "Conversation, voice input and approvals"],
-  ["Work", "Following a request from start to finish"],
-  ["Account", "Profile, privacy and security"],
-  ["Payments", "Points, money, refunds and subscriptions"],
-  ["Providers and businesses", "Getting listed and receiving requests"],
-  ["Integrations", "Storage, messaging, email and calendar"],
-  ["Safety", "What Kurukoo will never do without approval"],
-  ["Troubleshooting", "When something doesn't look right"],
+const sections: [string, string, string][] = [
+  ["Getting started", "What Kurukoo does and how to ask for things", "Start with a plain-language request. You do not need to choose the right category first."],
+  ["Chat and requests", "Conversation, voice input and approvals", "Understand how a request becomes work and where Kurukoo asks for your decision."],
+  ["Work and activity", "Following a request from start to finish", "See current work, timing, handovers and the trail that remains afterwards."],
+  ["Money and payments", "Points, money, refunds and subscriptions", "Understand prices and payment decisions before anything financial is committed."],
+  ["Providers and businesses", "Getting listed and receiving requests", "Learn how provider information, verification and incoming work fit together."],
+  ["Safety and trust", "What Kurukoo will and will not do", "Availability and pricing are not invented, and meaningful commitments stay approval-led."],
 ];
 
-function HelpPage() {
-  const [q, setQ] = useState("");
-  const { send } = useKurukoo();
-  const list = sections.filter(([t, d]) => (t + d).toLowerCase().includes(q.trim().toLowerCase()));
-
-  return (
-    <>
-      <PageHeader title="Help" subtitle="Answers, and a way straight back to the conversation." />
-      <SearchField label="Search help" placeholder="Search help…" value={q} onChange={setQ} />
-
-      <Panel className="mt-4 p-4">
-        <p className="text-[15px] font-medium">Just ask Kurukoo</p>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          Describe the problem in your own words and Kurukoo will take it from there.
-        </p>
-        <Link to="/" className="mt-3 inline-block">
-          <Action variant="primary" onClick={() => send("I need help with Kurukoo.")}>
-            Ask Kurukoo
-          </Action>
-        </Link>
-      </Panel>
-
-      <section className="mt-8">
-        <SectionHeader title="Topics" subtitle={`${list.length} sections`} />
-        <Rows>
-          {list.map(([title, note]) => (
-            <li key={title} className="px-4 py-3.5">
-              <p className="text-[15px]">{title}</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">{note}</p>
-            </li>
-          ))}
-        </Rows>
-      </section>
-
-      <section className="mt-8">
-        <SectionHeader title="Still stuck?" />
-        <Link to="/contact">
-          <Action>Contact support</Action>
-        </Link>
-      </section>
-
-      <IntegrationGap>Article content and support ticketing are not connected yet.</IntegrationGap>
-    </>
-  );
-}
+function HelpPage() { const [q, setQ] = useState(""); const { send } = useKurukoo(); const list = sections.filter(([t, d, b]) => (t + d + b).toLowerCase().includes(q.trim().toLowerCase())); return <div className="mx-auto w-full max-w-4xl px-5 py-10 md:px-8 md:py-14"><section className="max-w-3xl"><p className="text-[12px] font-medium text-muted-foreground">Help centre</p><h1 className="mt-2 font-serif text-[42px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">Find the answer, or just ask.</h1><p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">Learn the product, understand its boundaries and get back to the conversation when you are ready.</p></section><div className="mt-8"><SearchField label="Search help" placeholder="Search help…" value={q} onChange={setQ} /></div><Panel className="mt-4 p-5"><div className="flex gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-elevated"><MessageCircle className="size-4" /></span><div><p className="text-[15px] font-semibold">Ask Kurukoo directly</p><p className="mt-1 text-[13px] text-muted-foreground">Describe what is confusing you in your own words and start from there.</p><button type="button" onClick={() => send("I need help understanding Kurukoo.")} className="mt-3"><Action variant="primary">Ask Kurukoo</Action></button></div></div></Panel><div className="mt-10 grid gap-3 sm:grid-cols-2">{list.map(([title, note, body]) => <Panel key={title} className="p-5"><span className="grid size-9 place-items-center rounded-xl bg-elevated"><BookOpen className="size-4" /></span><h2 className="mt-4 text-[15px] font-semibold">{title}</h2><p className="mt-1 text-[12px] text-muted-foreground">{note}</p><p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{body}</p></Panel>)}</div><section className="mt-10 rounded-[24px] border border-border bg-surface p-6"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 size-5 text-muted-foreground" /><div><p className="text-[15px] font-semibold">Still stuck?</p><p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">For account or support issues, use the contact path. For understanding the product, the conversation is the shortest route.</p><div className="mt-4 flex flex-wrap gap-2"><Link to="/contact"><Action>Contact support</Action></Link><Link to="/how-it-works"><Action>How it works <ArrowUpRight className="size-3.5" /></Action></Link></div></div></div></section></div>; }
