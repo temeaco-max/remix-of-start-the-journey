@@ -36,11 +36,9 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div
-      className={`min-h-screen bg-background md:grid ${railCollapsed
-        ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_224px]"
-        : "md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)_224px]"`}
-    >
+    <div className={`min-h-screen bg-background md:grid ${railCollapsed
+      ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_224px]"
+      : "md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)_224px]"}`}>
       <PublicRail collapsed={railCollapsed} onToggle={() => setRailCollapsed((value) => !value)} onAuth={openAuth} />
       <main className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-border/70 bg-background/92 backdrop-blur">
@@ -56,10 +54,10 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <div className="min-h-[calc(100vh-49px)]">
-          <div className="w-full px-6 py-9 sm:px-7 md:px-8 lg:px-10 xl:px-12 md:py-12">
+          <div className="mx-auto w-full max-w-4xl px-5 py-10 md:px-8 md:py-14 public-os-content">
             {children}
           </div>
-          <footer className="flex w-full flex-wrap items-center justify-between gap-3 border-t border-border/60 px-6 py-7 text-[11px] text-muted-foreground sm:px-7 md:px-8 lg:px-10 xl:px-12">
+          <footer className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 border-t border-border/60 px-5 py-7 text-[11px] text-muted-foreground md:px-8">
             <p>Kurukoo · conversation-first coordination</p>
             <nav aria-label="Information">
               <div className="flex flex-wrap gap-x-4 gap-y-2">
