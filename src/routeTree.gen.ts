@@ -18,6 +18,7 @@ import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as CallsRouteImport } from './routes/calls'
+import { Route as CapabilitiesRouteImport } from './routes/capabilities'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -31,6 +32,7 @@ import { Route as HelpRouteImport } from './routes/help'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as NetworkRouteImport } from './routes/network'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -92,6 +94,11 @@ const BusinessesRoute = BusinessesRouteImport.update({
 const CallsRoute = CallsRouteImport.update({
   id: '/calls',
   path: '/calls',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CapabilitiesRoute = CapabilitiesRouteImport.update({
+  id: '/capabilities',
+  path: '/capabilities',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -157,6 +164,11 @@ const MemoryRoute = MemoryRouteImport.update({
 const MessagesRoute = MessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NetworkRoute = NetworkRouteImport.update({
+  id: '/network',
+  path: '/network',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -255,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
+  '/capabilities': typeof CapabilitiesRoute
   '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
@@ -268,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
+  '/network': typeof NetworkRoute
   '/notifications': typeof NotificationsRoute
   '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
@@ -296,6 +310,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
+  '/capabilities': typeof CapabilitiesRoute
   '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
@@ -309,6 +324,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
+  '/network': typeof NetworkRoute
   '/notifications': typeof NotificationsRoute
   '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
@@ -338,6 +354,7 @@ export interface FileRoutesById {
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
+  '/capabilities': typeof CapabilitiesRoute
   '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
@@ -351,6 +368,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
+  '/network': typeof NetworkRoute
   '/notifications': typeof NotificationsRoute
   '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
@@ -381,6 +399,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/businesses'
     | '/calls'
+    | '/capabilities'
     | '/chat'
     | '/connect'
     | '/contact'
@@ -394,6 +413,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/memory'
     | '/messages'
+    | '/network'
     | '/notifications'
     | '/partners'
     | '/pricing'
@@ -422,6 +442,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/businesses'
     | '/calls'
+    | '/capabilities'
     | '/chat'
     | '/connect'
     | '/contact'
@@ -435,6 +456,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/memory'
     | '/messages'
+    | '/network'
     | '/notifications'
     | '/partners'
     | '/pricing'
@@ -463,6 +485,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/businesses'
     | '/calls'
+    | '/capabilities'
     | '/chat'
     | '/connect'
     | '/contact'
@@ -476,6 +499,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/memory'
     | '/messages'
+    | '/network'
     | '/notifications'
     | '/partners'
     | '/pricing'
@@ -505,6 +529,7 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRouteWithChildren
   BusinessesRoute: typeof BusinessesRoute
   CallsRoute: typeof CallsRoute
+  CapabilitiesRoute: typeof CapabilitiesRoute
   ChatRoute: typeof ChatRoute
   ConnectRoute: typeof ConnectRoute
   ContactRoute: typeof ContactRoute
@@ -518,6 +543,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MemoryRoute: typeof MemoryRoute
   MessagesRoute: typeof MessagesRouteWithChildren
+  NetworkRoute: typeof NetworkRoute
   NotificationsRoute: typeof NotificationsRoute
   PartnersRoute: typeof PartnersRoute
   PricingRoute: typeof PricingRoute
@@ -597,6 +623,13 @@ declare module '@tanstack/react-router' {
       path: '/calls'
       fullPath: '/calls'
       preLoaderRoute: typeof CallsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/capabilities': {
+      id: '/capabilities'
+      path: '/capabilities'
+      fullPath: '/capabilities'
+      preLoaderRoute: typeof CapabilitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -688,6 +721,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/network': {
+      id: '/network'
+      path: '/network'
+      fullPath: '/network'
+      preLoaderRoute: typeof NetworkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -855,6 +895,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRouteWithChildren,
   BusinessesRoute: BusinessesRoute,
   CallsRoute: CallsRoute,
+  CapabilitiesRoute: CapabilitiesRoute,
   ChatRoute: ChatRoute,
   ConnectRoute: ConnectRoute,
   ContactRoute: ContactRoute,
@@ -868,6 +909,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MemoryRoute: MemoryRoute,
   MessagesRoute: MessagesRouteWithChildren,
+  NetworkRoute: NetworkRoute,
   NotificationsRoute: NotificationsRoute,
   PartnersRoute: PartnersRoute,
   PricingRoute: PricingRoute,
