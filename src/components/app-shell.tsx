@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Bookmark, Radio, ShieldCheck, MoreHorizontal, X, Network as NetworkIcon, Tags, Sparkles, Car, CloudSun, Wind, Check, Briefcase, HeartPulse, MapPin, Target, Search, CircleHelp } from "lucide-react";
+import { Home, Compass, ListChecks, Bell, Users, Brain, Moon, Sun, MessageSquare, FolderClosed, Plug, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Bookmark, Radio, ShieldCheck, MoreHorizontal, X, Network as NetworkIcon, Tags, Sparkles, Car, CloudSun, Wind, Check, Briefcase, HeartPulse, MapPin, Target, Search, CircleHelp, Zap } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useKurukoo } from "@/lib/kurukoo-store";
@@ -19,6 +19,12 @@ const more = [
   { to: "/contacts", label: "Contacts", icon: Users },
   { to: "/artifacts", label: "Files", icon: FolderClosed },
   { to: "/connect", label: "Connect", icon: Plug },
+  { to: "/providers", label: "Providers", icon: NetworkIcon },
+  { to: "/businesses", label: "Businesses", icon: Briefcase },
+  { to: "/creators", label: "Creators", icon: Sparkles },
+  { to: "/advertising", label: "Advertising", icon: Zap },
+  { to: "/pricing", label: "Plans", icon: Wallet },
+  { to: "/subscriptions", label: "Subscriptions", icon: Wallet },
   { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/memory", label: "Memory", icon: Brain },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -74,7 +80,7 @@ function PersonalIdentityDock({ collapsed }: { collapsed: boolean }) {
     setMenuOpen(false);
   };
   return <div className={cn("relative mt-auto border-t border-border pt-4", collapsed ? "px-1" : "px-2")}>
-    <div className={cn("mb-2 flex items-center", collapsed ? "justify-center" : "justify-end")}>{!collapsed && <div className="flex items-center gap-1.5"><a href="/advertising" aria-label="Advertise" title="Advertise" className="px-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">Advertise</a><Link to="/help" aria-label="Help" title="Help" className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"><CircleHelp className="size-[18px]" /></Link><ThemeToggle /></div>}</div>
+    <div className={cn("mb-2 flex items-center", collapsed ? "justify-center" : "justify-end")}>{!collapsed && <div className="flex items-center gap-1.5"><Link to="/advertising" aria-label="Advertise" title="Advertise" className="px-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">Advertise</Link><Link to="/help" aria-label="Help" title="Help" className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"><CircleHelp className="size-[18px]" /></Link><ThemeToggle /></div>}</div>
     {!collapsed && menuOpen ? <div role="menu" aria-label="Account menu" className="absolute bottom-[76px] right-2 z-50 w-48 rounded-2xl border border-border bg-surface p-1.5 shadow-[var(--shadow-lift)]">
       <Link role="menuitem" to="/profile/$entityId" params={{ entityId: "me" }} onClick={closeMenu} className="block rounded-xl px-3 py-2 text-[12.5px] hover:bg-elevated">Profile</Link>
       <Link role="menuitem" to="/memory" onClick={closeMenu} className="block rounded-xl px-3 py-2 text-[12.5px] hover:bg-elevated">Memory</Link>
@@ -161,7 +167,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <button type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} title={collapsed ? "Expand navigation" : "Collapse navigation"} className={cn("grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-elevated hover:text-foreground", collapsed ? "absolute right-0 top-5 translate-x-1/2 bg-surface opacity-0 hover:opacity-100" : "")}>{collapsed ? <PanelLeftOpen className="size-[17px]" /> : <PanelLeftClose className="size-[17px]" />}</button>
     </div>
     <nav aria-label="Primary navigation" className="space-y-1">{nav.map(({ to, label, icon: Icon }) => <Link key={to} to={to} className={cn("flex items-center rounded-xl py-2.5 text-[13.5px] transition-colors", collapsed ? "justify-center px-2" : "gap-3 px-3", pathname === to || (to !== "/" && pathname.startsWith(`${to}/`)) ? "bg-elevated font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")} title={collapsed ? label : undefined}><Icon className="size-[18px]" strokeWidth={1.8} />{!collapsed && label}</Link>)}</nav>
-    {!collapsed && <><p className="px-3 pb-1 pt-6 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">More</p><nav aria-label="More navigation" className="space-y-1">{more.map(({ to, label, icon: Icon }) => to === "/network" ? <a key={to} href={to} className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition-colors", pathname.startsWith("/network") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")}><Icon className="size-[18px]" strokeWidth={1.8} />{label}</a> : <Link key={to} to={to} className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition-colors", pathname.startsWith(to) ? "bg-elevated font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")}><Icon className="size-[18px]" strokeWidth={1.8} />{label}</Link>)}</nav></>}
+    {!collapsed && <><p className="px-3 pb-1 pt-6 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">More</p><nav aria-label="More navigation" className="space-y-1 overflow-y-auto">{more.map(({ to, label, icon: Icon }) => to === "/network" ? <a key={to} href={to} className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition-colors", pathname.startsWith("/network") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")}><Icon className="size-[18px]" strokeWidth={1.8} />{label}</a> : <Link key={to} to={to} className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition-colors", pathname.startsWith(to) ? "bg-elevated font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")}><Icon className="size-[18px]" strokeWidth={1.8} />{label}</Link>)}</nav></>}
     <PersonalIdentityDock collapsed={collapsed} />
   </aside><main className="min-w-0 flex-1 bg-background md:pl-[200px]"><div className="mx-auto w-full max-w-[1160px] px-4 pb-28 pt-4 md:px-10 md:pb-14 md:pt-7">{children}</div></main><TrustedContextRail open={trustedOpen} onOpenChange={setTrustedOpen} /><div className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 backdrop-blur"><div className="mx-auto flex max-w-lg items-center justify-around px-2 py-2">{nav.slice(0, 4).map(({ to, label, icon: Icon }) => <Link key={to} to={to} className={cn("grid place-items-center rounded-xl px-3 py-2 text-[10px]", pathname === to ? "bg-elevated font-medium text-foreground" : "text-muted-foreground")}><Icon className="size-[17px]" />{label}</Link>)}</div></div></div>;
 }
