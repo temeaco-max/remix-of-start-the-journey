@@ -102,6 +102,7 @@
   html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
   body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); letter-spacing: -0.011em; }
   h1, h2, h3 { letter-spacing: -0.025em; }
+  h1 { font-family: var(--font-sans); }
 }
 
 @utility hairline { border: 1px solid var(--color-border); }
@@ -109,7 +110,9 @@
 
 /* Kurukoo product orange for primary controls and all navigation/context icons. */
 .bg-primary,
-.bg-primary\/10 { background-color: #ce4712 !important; }
+.bg-primary\/10,
+.bg-foreground,
+.bg-foreground\/10 { background-color: #ce4712 !important; }
 aside[aria-label="OS navigation"] svg,
 aside[aria-label="Public Kurukoo navigation"] svg,
 aside[aria-label="Trusted context rail"] svg,
