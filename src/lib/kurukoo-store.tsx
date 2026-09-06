@@ -2,8 +2,8 @@
 // When VITE_KURUKOO_API_BASE_URL is configured, chat goes to the real Kurukoo
 // /api/chat/stream endpoint. Keep local fallback behaviour temporary and do not
 // grow it into a second backend.
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { isKurukooApiConfigured, streamKurukooChat } from "@/lib/kurukoo-api";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { fetchChatHistory, isKurukooApiConfigured, streamKurukooChat } from "@/lib/kurukoo-api";
 
 export type WorkStage = "understanding" | "working" | "needs_you" | "done";
 
@@ -53,6 +53,7 @@ type State = {
   contacts: Contact[];
   memory: MemoryNote[];
   isSending: boolean;
+  isLoadingHistory: boolean;
   lastError: string | null;
   send: (text: string) => void;
   advance: (id: string) => void;
@@ -86,6 +87,20 @@ function reply(text: string): { answer: string; work?: WorkItem } {
   return { answer: "Got it. Tell me what you'd like done and I'll take it from there." };
 }
 
+function mapHistoryMessages(input: Array<{ id: number; sender: string; content: string }>): Message[] {
+  return input
+    .filter((item) => item.sender === "user" || item.sender === "assistant")
+    .map((item) => ({
+      id: String(item.id),
+      role: item.sender === "user" ? "you" : "kurukoo",
+      text: item.content,
+    }));
+}
+
+function messageKey(messages: Message[]) {
+  return messages.map((message) => `${message.id}:${message.role}:${message.text}`).join("|");
+}
+
 export function KurukooProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [work, setWork] = useState<WorkItem[]>([]);
@@ -94,7 +109,29 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
   const [memory, setMemory] = useState<MemoryNote[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [isSending, setIsSending] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isKurukooApiConfigured()) return undefined;
+    setIsLoadingHistory(true);
+    void fetchChatHistory(undefined, 50)
+      .then((history) => {
+        if (cancelled) return;
+        const hydrated = mapHistoryMessages(history.messages ?? []);
+        setMessages(hydrated);
+        const latestConversation = history.conversations?.[0]?.id ?? history.messages?.[history.messages.length - 1]?.conversationId ?? undefined;
+        if (latestConversation) setConversationId(latestConversation);
+      })
+      .catch((error) => {
+        if (!cancelled) setLastError(error instanceof Error ? error.message : "Unable to load conversation history.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingHistory(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const send = useCallback(async (text: string) => {
     const clean = text.trim();
@@ -153,7 +190,7 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
   const confirm = useCallback((id: string) => setNotifications((n) => n.map((item) => item.id === id ? { ...item, needsConfirmation: false, read: true } : item)), []);
   const markRead = useCallback((id: string) => setNotifications((n) => n.map((item) => item.id === id ? { ...item, read: true } : item)), []);
 
-  const value = useMemo(() => ({ messages, work, notifications, contacts, memory, isSending, lastError, send, advance, confirm, markRead }), [messages, work, notifications, contacts, memory, isSending, lastError, send, advance, confirm, markRead]);
+  const value = useMemo(() => ({ messages, work, notifications, contacts, memory, isSending, isLoadingHistory, lastError, send, advance, confirm, markRead }), [messages, work, notifications, contacts, memory, isSending, isLoadingHistory, lastError, send, advance, confirm, markRead]);
   return <KurukooContext.Provider value={value}>{children}</KurukooContext.Provider>;
 }
 
