@@ -8,7 +8,7 @@ export { PublicHome } from "@/components/public-kurukoo-home";
 
 const nav = [["/explore", "Explore"], ["/how-it-works", "How it works"], ["/capabilities", "Capabilities"], ["/topics", "Topics"]] as const;
 const footer = [["/about", "About"], ["/blog", "Blog"], ["/help", "Help"], ["/legal", "Legal"]] as const;
-const routerDestinations = new Set(["/explore", "/capabilities", "/topics", "/about", "/blog", "/help", "/login", "/signup"]);
+const routerDestinations = new Set(["/explore", "/capabilities", "/topics", "/about", "/blog", "/help", "/how-it-works", "/contributors", "/partners", "/pricing", "/signup", "/login", "/contact", "/use-cases", "/opportunities", "/advertising"]);
 
 function KurukooMark({ className = "size-6" }: { className?: string }) {
   return <span aria-hidden className={`grid shrink-0 place-items-center rounded-[10px] bg-[#f4e6dc] font-semibold leading-none text-[#765443] ${className}`}>K</span>;
