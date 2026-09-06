@@ -107,14 +107,14 @@
 @utility hairline { border: 1px solid var(--color-border); }
 @utility panel { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-soft); }
 
+/* Kurukoo product orange for primary controls and all navigation/context icons. */
+.bg-primary,
+.bg-primary\/10 { background-color: #ce4712 !important; }
+aside[aria-label="OS navigation"] svg,
+aside[aria-label="Public Kurukoo navigation"] svg,
+aside[aria-label="Trusted context rail"] svg,
+aside[aria-label="Kurukoo public context rail"] svg { color: #ce4712; }
+
 @media (width >= 80rem) {
   section[aria-labelledby="home-hero-title"] + div { grid-template-columns: minmax(0, 0.65fr) minmax(0, .9fr) minmax(0, 1.08fr); column-gap: 0.75rem; }
-}
-
-/* Authenticated OS mobile navigation order: Explore, Conversation, Home, Activity. */
-@media (width < 48rem) {
-  .min-h-screen.bg-background:has(> aside[aria-label="OS navigation"]) > div.fixed.inset-x-0.bottom-0 > div > a[href="/explore"] { order: 1; }
-  .min-h-screen.bg-background:has(> aside[aria-label="OS navigation"]) > div.fixed.inset-x-0.bottom-0 > div > a[href="/chat"] { order: 2; }
-  .min-h-screen.bg-background:has(> aside[aria-label="OS navigation"]) > div.fixed.inset-x-0.bottom-0 > div > a[href="/"] { order: 3; }
-  .min-h-screen.bg-background:has(> aside[aria-label="OS navigation"]) > div.fixed.inset-x-0.bottom-0 > div > a[href="/activity"] { order: 4; }
 }
