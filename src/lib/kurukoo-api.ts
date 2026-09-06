@@ -7,6 +7,21 @@ export type ChatStreamEvent = {
   error?: string;
 };
 
+export type CanonicalTopicReply = {
+  id: string;
+  topicId: string;
+  body: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  authorLabel: string;
+};
+
+export type CanonicalTopicResource = {
+  slug: string;
+  title: string;
+};
+
 export type CanonicalTopic = {
   id: string;
   slug: string;
@@ -23,6 +38,15 @@ export type CanonicalTopic = {
   publishedAt: string | null;
   replyCount: number;
   authorLabel: string;
+  replies?: CanonicalTopicReply[];
+  relatedResources?: CanonicalTopicResource[];
+  provenance?: string;
+};
+
+export type TopicTaxonomy = {
+  types: string[];
+  categories: string[];
+  skillsByCategory: Record<string, string[]>;
 };
 
 export type ProactiveOpportunity = {
@@ -48,13 +72,63 @@ export function isKurukooApiConfigured() {
 
 async function readJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(path), { credentials: "include", ...init });
-  if (!response.ok) throw new Error(`Kurukoo request failed (${response.status})`);
-  return response.json() as Promise<T>;
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = typeof payload?.error === "string" ? payload.error : `Kurukoo request failed (${response.status})`;
+    throw new Error(message);
+  }
+  return payload as T;
 }
 
-export async function fetchCanonicalTopics(limit = 5) {
-  const payload = await readJson<{ topics?: CanonicalTopic[] }>(`/api/v1/topics?limit=${Math.min(20, Math.max(1, limit))}`);
+export async function fetchCanonicalTopics(limit = 5, filters?: { type?: string; category?: string }) {
+  const params = new URLSearchParams();
+  params.set("limit", String(Math.min(20, Math.max(1, limit))));
+  if (filters?.type) params.set("type", filters.type);
+  if (filters?.category) params.set("category", filters.category);
+  const query = params.toString();
+  const payload = await readJson<{ topics?: CanonicalTopic[] }>(`/api/topics${query ? `?${query}` : ""}`);
   return Array.isArray(payload.topics) ? payload.topics : [];
+}
+
+export async function fetchCanonicalTopic(slug: string) {
+  const payload = await readJson<{ topic?: CanonicalTopic }>(`/api/topics/${encodeURIComponent(slug)}`);
+  if (!payload.topic) throw new Error("Topic not found");
+  return payload.topic;
+}
+
+export async function fetchTopicTaxonomy() {
+  return readJson<TopicTaxonomy>("/api/topics/taxonomy");
+}
+
+export async function submitCanonicalReply(topicId: string, body: string) {
+  const payload = await readJson<{ reply?: CanonicalTopicReply }>(`/api/topics/${encodeURIComponent(topicId)}/replies`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ body }),
+  });
+  if (!payload.reply) throw new Error("Reply could not be submitted");
+  return payload.reply;
+}
+
+export async function submitCanonicalTopic(input: {
+  title: string;
+  body: string;
+  type: string;
+  category?: string;
+  skills?: string[];
+  city?: string;
+  lga?: string;
+}) {
+  const payload = await readJson<{ topic?: CanonicalTopic }>("/api/topics", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Idempotency-Key": crypto.randomUUID().replace(/-/g, ""),
+    },
+    body: JSON.stringify(input),
+  });
+  if (!payload.topic) throw new Error("Topic could not be submitted");
+  return payload.topic;
 }
 
 export async function fetchProactiveFeed() {
