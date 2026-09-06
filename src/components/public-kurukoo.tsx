@@ -13,9 +13,23 @@ const routerDestinations = new Set(["/explore", "/capabilities", "/topics", "/ab
 function KurukooMark({ className = "size-6" }: { className?: string }) {
   return <span aria-hidden className={`grid shrink-0 place-items-center rounded-[10px] bg-[#f4e6dc] font-semibold leading-none text-[#765443] ${className}`}>K</span>;
 }
-function PublicDestinationLink({ to, children, className, active = false }: { to: string; children: ReactNode; className?: string; active?: boolean }) {
-  if (routerDestinations.has(to)) return <Link to={to as never} activeProps={active ? { className: "text-foreground" } : undefined} className={className}>{children}</Link>;
-  return <a href={to} className={className}>{children}</a>;
+
+function PublicDestinationLink({
+  to,
+  children,
+  className,
+  active = false,
+}: {
+  to: string;
+  children: ReactNode;
+  className: string;
+  active?: boolean;
+}) {
+  if (!routerDestinations.has(to)) return <a href={to} className={className}>{children}</a>;
+  if (active) {
+    return <Link to={to as never} activeProps={{ className: "text-foreground" }} className={className}>{children}</Link>;
+  }
+  return <Link to={to as never} className={className}>{children}</Link>;
 }
 
 export function PublicKurukooShell({ children }: { children: ReactNode }) {
