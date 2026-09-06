@@ -110,6 +110,15 @@ export async function submitCanonicalReply(topicId: string, body: string) {
   return payload.reply;
 }
 
+export async function reportCanonicalTopic(topicId: string, reason: string) {
+  const payload = await readJson<{ report?: { id: string } }>(`/api/topics/${encodeURIComponent(topicId)}/report`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+  return payload.report;
+}
+
 export async function submitCanonicalTopic(input: {
   title: string;
   body: string;
