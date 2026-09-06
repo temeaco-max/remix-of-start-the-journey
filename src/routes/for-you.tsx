@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { HomePage } from "./index";
+import { ForYouHomePage } from "@/components/kurukoo/for-you-home";
 
 export const Route = createFileRoute("/for-you")({
   head: () => ({
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/for-you")({
       { name: "description", content: "Your personal workspace for getting useful things done with Kurukoo." },
     ],
   }),
-  component: HomePage,
+  component: ForYouHomePage,
 });
