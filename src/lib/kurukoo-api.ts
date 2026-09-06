@@ -59,12 +59,7 @@ export type ChatHistoryMessage = {
 
 export type ChatHistoryResponse = {
   success?: boolean;
-  conversations?: Array<{
-    id: string;
-    title?: string | null;
-    channel?: string;
-    updated_at?: string;
-  }>;
+  conversations?: Array<{ id: string; title?: string | null; channel?: string; updated_at?: string }>;
   messages?: ChatHistoryMessage[];
   nextBeforeId?: number | null;
 };
@@ -118,22 +113,16 @@ export async function fetchTopicRelationship(topicId: string) {
 
 export async function followCanonicalTopic(topicId: string) {
   const payload = await readJson<{ relationship?: CanonicalTopicRelationship }>("/api/relationships", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ targetType: "topic", targetId: topicId, relationshipType: "follow" }),
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetType: "topic", targetId: topicId, relationshipType: "follow" }),
   });
   return payload.relationship ?? null;
 }
 
-export async function unfollowCanonicalTopic(topicId: string) {
-  await readJson(`/api/relationships/topic/${encodeURIComponent(topicId)}`, { method: "DELETE" });
-}
+export async function unfollowCanonicalTopic(topicId: string) { await readJson(`/api/relationships/topic/${encodeURIComponent(topicId)}`, { method: "DELETE" }); }
 
 export async function setTopicNotificationPreference(topicId: string, preference: "all" | "muted") {
   const payload = await readJson<{ relationship?: CanonicalTopicRelationship }>(`/api/relationships/topic/${encodeURIComponent(topicId)}/preferences`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ relationshipType: "follow", notificationPreference: preference }),
+    method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ relationshipType: "follow", notificationPreference: preference }),
   });
   return payload.relationship ?? null;
 }
@@ -155,9 +144,7 @@ export async function reportCanonicalTopic(topicId: string, reason: string) {
 
 export async function submitCanonicalTopic(input: { title: string; body: string; type: string; category?: string; skills?: string[]; city?: string; lga?: string }) {
   const payload = await readJson<{ topic?: CanonicalTopic }>("/api/topics", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID().replace(/-/g, "") },
-    body: JSON.stringify(input),
+    method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID().replace(/-/g, "") }, body: JSON.stringify(input),
   });
   if (!payload.topic) throw new Error("Topic could not be submitted");
   return payload.topic;
@@ -166,7 +153,13 @@ export async function submitCanonicalTopic(input: { title: string; body: string;
 export async function fetchChatHistory(conversationId?: string, limit = 50) {
   const params = new URLSearchParams({ limit: String(Math.min(100, Math.max(1, limit))) });
   if (conversationId) params.set("conversationId", conversationId);
-  return readJson<ChatHistoryResponse>(`/api/v1/chat/history?${params.toString()}`);
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 8000);
+  try {
+    return await readJson<ChatHistoryResponse>(`/api/v1/chat/history?${params.toString()}`, { signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 export async function fetchProactiveFeed() {
@@ -200,9 +193,7 @@ export async function streamKurukooChat(input: { message: string; conversationId
         if (parsed.type === "text" && typeof parsed.content === "string") reply += parsed.content;
         if (parsed.type === "delta" && typeof parsed.text === "string") reply += parsed.text;
         if (parsed.type === "done" && typeof parsed.fullReply === "string") reply = parsed.fullReply;
-      } catch {
-        input.onEvent({ type: "error", error: "Kurukoo returned an unreadable response." });
-      }
+      } catch { input.onEvent({ type: "error", error: "Kurukoo returned an unreadable response." }); }
     }
   };
   while (true) { const { value, done } = await reader.read(); if (done) break; consume(decoder.decode(value, { stream: true })); }
