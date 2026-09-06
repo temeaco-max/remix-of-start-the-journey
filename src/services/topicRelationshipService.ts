@@ -1,4 +1,4 @@
-import { getDb } from './database.js';
+import { getDb } from '../database.js';
 import type { Relationship } from './relationshipService.js';
 
 function parseJsonObject(value: unknown): Record<string, unknown> {
