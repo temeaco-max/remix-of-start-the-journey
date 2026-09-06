@@ -36,11 +36,12 @@ function pretty(value: string) {
 function TopicShare({ topic, compact = false }: { topic: CanonicalTopic; compact?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
-  const url = `${window.location.origin}/topics/${topic.slug}`;
+  const path = `/topics/${topic.slug}`;
   const publicReady = topic.publishedAt !== null || ["published", "active"].includes(topic.status.toLowerCase());
 
   async function copyLink() {
     try {
+      const url = typeof window === "undefined" ? path : `${window.location.origin}${path}`;
       await navigator.clipboard.writeText(url);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
@@ -51,6 +52,7 @@ function TopicShare({ topic, compact = false }: { topic: CanonicalTopic; compact
 
   async function share() {
     if (!publicReady) return;
+    const url = typeof window === "undefined" ? path : `${window.location.origin}${path}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: topic.title, text: topic.body, url });
