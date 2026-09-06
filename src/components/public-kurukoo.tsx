@@ -30,33 +30,26 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
   const openAuth = (mode: AuthMode) => setAuthMode(mode);
   const closeAuth = () => { setAuthMode(null); if (routeMode) navigate({ to: "/" }); };
 
-  return <div className={`min-h-screen bg-background md:grid ${railCollapsed ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_224px]" : "md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)_224px]"}`}>
-    <PublicRail collapsed={railCollapsed} onToggle={() => setRailCollapsed((value) => !value)} onAuth={openAuth} />
-    <main className="min-w-0">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/92 backdrop-blur">
-        <div className="relative flex h-12 w-full items-center px-5 lg:px-7">
-          <Link to="/" className="absolute left-14 flex items-center gap-2 font-semibold tracking-[-0.025em] md:hidden"><KurukooMark />Kurukoo</Link>
-          <nav aria-label="Kurukoo" className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 text-[12.5px] text-muted-foreground md:flex lg:left-[calc(50%-112px)]">
-            {nav.map(([to, label]) => <PublicDestinationLink key={to} to={to} active className="transition-colors hover:text-foreground">{label}</PublicDestinationLink>)}
-          </nav>
-          <div className="absolute right-5 flex items-center gap-2">
-            <button type="button" onClick={() => openAuth("login")} className="rounded-full px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground">Log In</button>
-            <button type="button" onClick={() => openAuth("signup")} className="rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-medium text-background">Try for free</button>
-          </div>
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 border-b border-border/70 bg-background/95 backdrop-blur">
+        <div className="relative flex h-[72px] items-center px-5 md:px-7 lg:px-8">
+          <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="Kurukoo home"><KurukooMark className="size-8" /><span className="text-[17px] font-semibold tracking-[-0.025em]">Kurukoo</span></Link>
+          <nav aria-label="Kurukoo" className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 text-[12.5px] text-muted-foreground md:flex"><>{nav.map(([to, label]) => <PublicDestinationLink key={to} to={to} active className="transition-colors hover:text-foreground">{label}</PublicDestinationLink>)}</></nav>
+          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => openAuth("login")} className="rounded-full px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground">Log In</button><button type="button" onClick={() => openAuth("signup")} className="rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-medium text-background">Try for free</button></div>
         </div>
       </header>
-      <div className="min-h-[calc(100vh-49px)]">
-        <div className="mx-auto w-full max-w-5xl px-5 py-9 md:px-8 md:py-12">
-          {children}
-        </div>
-        <footer className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 border-t border-border/60 px-5 py-7 text-[11px] text-muted-foreground md:px-8">
-          <p>Kurukoo · conversation-first coordination</p>
-          <nav aria-label="Information"><div className="flex flex-wrap gap-x-4 gap-y-2">{footer.map(([to, label]) => <PublicDestinationLink key={to} to={to} className="hover:text-foreground">{label}</PublicDestinationLink>)}</div></nav>
-        </footer>
+
+      <div className={`md:grid ${railCollapsed ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_224px]" : "md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)_224px]"}`}>
+        <PublicRail collapsed={railCollapsed} onToggle={() => setRailCollapsed((value) => !value)} onAuth={openAuth} />
+        <main className="min-w-0">
+          <div className="mx-auto w-full max-w-[1120px] px-5 py-9 md:px-8 md:py-12">{children}</div>
+          <footer className="mx-auto flex w-full max-w-[1120px] flex-wrap items-center justify-between gap-3 border-t border-border/60 px-5 py-7 text-[11px] text-muted-foreground md:px-8"><p>Kurukoo · conversation-first coordination</p><nav aria-label="Information"><div className="flex flex-wrap gap-x-4 gap-y-2">{footer.map(([to, label]) => <PublicDestinationLink key={to} to={to} className="hover:text-foreground">{label}</PublicDestinationLink>)}</div></nav></footer>
+        </main>
+        <div className="hidden min-w-0 border-l border-border/45 lg:block"><PublicContextRail /></div>
       </div>
-    </main>
-    <div className="hidden min-w-0 border-l border-border/45 lg:block"><PublicContextRail /></div>
-    <PublicMobileNavigation onAuth={openAuth} />
-    {authMode ? <AuthModal mode={authMode} onClose={closeAuth} onModeChange={setAuthMode} /> : null}
-  </div>;
+      <PublicMobileNavigation onAuth={openAuth} />
+      {authMode ? <AuthModal mode={authMode} onClose={closeAuth} onModeChange={setAuthMode} /> : null}
+    </div>
+  );
 }
