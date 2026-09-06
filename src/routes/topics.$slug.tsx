@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowUpRight, Flag, MessageCircle, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, Copy, Flag, MessageCircle, RefreshCw, Share2, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { EmptyState, PageHeader } from "@/components/app-shell";
 import { AdSlot } from "@/components/kurukoo/ui";
@@ -31,6 +31,42 @@ export const Route = createFileRoute("/topics/$slug")({
 
 function pretty(value: string) {
   return value.replace(/[_-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function TopicShare({ topic, compact = false }: { topic: CanonicalTopic; compact?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
+  const url = `${window.location.origin}/topics/${topic.slug}`;
+  const publicReady = topic.publishedAt !== null || ["published", "active"].includes(topic.status.toLowerCase());
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function share() {
+    if (!publicReady) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: topic.title, text: topic.body, url });
+        setShared(true);
+        window.setTimeout(() => setShared(false), 1800);
+      } catch {
+        return;
+      }
+    } else {
+      await copyLink();
+    }
+  }
+
+  if (!publicReady) return null;
+  if (compact) return <button type="button" onClick={() => void share()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[12px] font-medium hover:bg-elevated"><Share2 className="size-3.5" />{shared ? "Shared" : "Share"}</button>;
+  return <div className="mt-4 flex flex-wrap items-center gap-2"><button type="button" onClick={() => void share()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3.5 text-[12.5px] font-medium hover:bg-elevated"><Share2 className="size-3.5" />{shared ? "Shared" : "Share Topic"}</button><button type="button" onClick={() => void copyLink()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3.5 text-[12.5px] text-muted-foreground hover:bg-elevated"><Copy className="size-3.5" />{copied ? "Link copied" : "Copy link"}</button>{copied ? <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><Check className="size-3.5" />Ready to share</span> : null}</div>;
 }
 
 function TopicPage() {
@@ -158,6 +194,7 @@ function TopicPage() {
           {relationshipAvailable ? <button type="button" onClick={() => void handleFollow()} disabled={relationshipBusy} className="inline-flex min-h-9 items-center rounded-lg border border-border px-3.5 text-[12.5px] font-medium hover:bg-elevated disabled:opacity-50">{following ? "Following" : "Follow Topic"}</button> : null}
           {following ? <button type="button" onClick={() => void handleMute()} disabled={relationshipBusy} className="inline-flex min-h-9 items-center rounded-lg border border-border px-3.5 text-[12.5px] text-muted-foreground hover:bg-elevated disabled:opacity-50">{muted ? "Unmute updates" : "Mute updates"}</button> : null}
           <span className="text-[11.5px] text-muted-foreground">{topic.replyCount} {topic.replyCount === 1 ? "moderated reply" : "moderated replies"}</span>
+          <TopicShare topic={topic} compact />
         </div>
       </section>
 
@@ -178,6 +215,7 @@ function TopicPage() {
         <div className="flex items-start gap-3"><MessageCircle className="mt-0.5 size-4 text-muted-foreground" /><div><p className="text-[13px] font-medium">Add useful context</p><p className="mt-1 text-[12px] text-muted-foreground">Replies are reviewed before they become public. Do not post private contact details, precise addresses or unsupported claims.</p></div></div>
         <form onSubmit={handleReply} className="mt-4"><textarea value={reply} onChange={(event) => setReply(event.target.value)} rows={4} maxLength={4000} placeholder="What have you learned, experienced or discovered?" className="w-full resize-y rounded-xl border border-border bg-background p-3 text-[13px] outline-none ring-primary/30 placeholder:text-muted-foreground focus:ring-2" aria-label="Add useful context" /><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><span className="text-[11.5px] text-muted-foreground" aria-live="polite">{replyStatus}</span><button type="submit" disabled={!reply.trim()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3.5 text-[12.5px] font-medium hover:bg-elevated disabled:cursor-not-allowed disabled:opacity-50">Submit reply for review <ArrowUpRight className="size-3.5" /></button></div></form>
         <button type="button" onClick={() => void handleReport()} className="mt-4 inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground"><Flag className="size-3.5" /> Report something that needs review</button>
+        <TopicShare topic={topic} />
       </section>
 
       {topic.relatedResources?.length ? <section className="mt-8"><div className="mb-3"><p className="text-[12px] font-medium text-muted-foreground">Editorial context</p><h2 className="mt-1 text-[20px] font-semibold tracking-tight">Related Kurukoo resources</h2></div><div className="grid gap-3 sm:grid-cols-2">{topic.relatedResources.map((resource) => <Link key={resource.slug} to="/explore" className="group rounded-[18px] border border-border bg-surface p-4 hover:bg-elevated/50"><p className="text-[14px] font-medium">{resource.title}</p><p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">Linked by Kurukoo editorial review. Explore Kurukoo for the relevant discovery context.</p></Link>)}</div></section> : null}
