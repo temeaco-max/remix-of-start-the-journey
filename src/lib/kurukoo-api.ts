@@ -47,6 +47,28 @@ export type TopicTaxonomy = {
   skillsByCategory: Record<string, string[]>;
 };
 
+export type ChatHistoryMessage = {
+  id: number;
+  sender: "user" | "assistant" | "system" | string;
+  content: string;
+  conversation_id?: string | null;
+  conversationId?: string | null;
+  created_at?: string;
+  createdAt?: string;
+};
+
+export type ChatHistoryResponse = {
+  success?: boolean;
+  conversations?: Array<{
+    id: string;
+    title?: string | null;
+    channel?: string;
+    updated_at?: string;
+  }>;
+  messages?: ChatHistoryMessage[];
+  nextBeforeId?: number | null;
+};
+
 export type ProactiveOpportunity = {
   id: string;
   type: string;
@@ -141,6 +163,12 @@ export async function submitCanonicalTopic(input: { title: string; body: string;
   return payload.topic;
 }
 
+export async function fetchChatHistory(conversationId?: string, limit = 50) {
+  const params = new URLSearchParams({ limit: String(Math.min(100, Math.max(1, limit))) });
+  if (conversationId) params.set("conversationId", conversationId);
+  return readJson<ChatHistoryResponse>(`/api/v1/chat/history?${params.toString()}`);
+}
+
 export async function fetchProactiveFeed() {
   const payload = await readJson<{ opportunities?: ProactiveOpportunity[] }>("/api/v1/proactive/feed");
   return Array.isArray(payload.opportunities) ? payload.opportunities : [];
@@ -163,14 +191,18 @@ export async function streamKurukooChat(input: { message: string; conversationId
     const frames = buffer.split("\n\n"); buffer = frames.pop() ?? "";
     for (const frame of frames) {
       const data = frame.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trim()).join("\n");
-      if (!data || data === "[DONE]") continue;
+      if (!data) continue;
       try {
-        const event = JSON.parse(data) as ChatStreamEvent; input.onEvent(event);
-        if (typeof event.conversationId === "string") conversationId = event.conversationId;
-        if (event.type === "text" && typeof event.content === "string") reply += event.content;
-        if (event.type === "delta" && typeof event.text === "string") reply += event.text;
-        if (event.type === "done" && typeof event.fullReply === "string") reply = event.fullReply;
-      } catch { input.onEvent({ type: "error", error: "Kurukoo returned an unreadable response." }); }
+        const parsed = JSON.parse(data) as ChatStreamEvent | "[DONE]";
+        if (parsed === "[DONE]") continue;
+        input.onEvent(parsed);
+        if (typeof parsed.conversationId === "string") conversationId = parsed.conversationId;
+        if (parsed.type === "text" && typeof parsed.content === "string") reply += parsed.content;
+        if (parsed.type === "delta" && typeof parsed.text === "string") reply += parsed.text;
+        if (parsed.type === "done" && typeof parsed.fullReply === "string") reply = parsed.fullReply;
+      } catch {
+        input.onEvent({ type: "error", error: "Kurukoo returned an unreadable response." });
+      }
     }
   };
   while (true) { const { value, done } = await reader.read(); if (done) break; consume(decoder.decode(value, { stream: true })); }
