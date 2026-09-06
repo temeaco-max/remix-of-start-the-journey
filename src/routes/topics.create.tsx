@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, Check, Copy, MessageCircle, Share2, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/kurukoo/ui";
@@ -23,11 +23,12 @@ function pretty(value: string) {
 function ShareTopic({ topic }: { topic: CanonicalTopic }) {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
-  const url = `${window.location.origin}/topics/${topic.slug}`;
+  const path = `/topics/${topic.slug}`;
   const canShare = topic.publishedAt !== null || topic.status.toLowerCase() === "published" || topic.status.toLowerCase() === "active";
 
   async function copyLink() {
     try {
+      const url = typeof window === "undefined" ? path : `${window.location.origin}${path}`;
       await navigator.clipboard.writeText(url);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
@@ -38,6 +39,7 @@ function ShareTopic({ topic }: { topic: CanonicalTopic }) {
 
   async function share() {
     if (!canShare) return;
+    const url = typeof window === "undefined" ? path : `${window.location.origin}${path}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: topic.title, text: topic.body, url });
@@ -62,7 +64,6 @@ function ShareTopic({ topic }: { topic: CanonicalTopic }) {
 }
 
 function CreateTopicPage() {
-  const navigate = useNavigate();
   const [taxonomy, setTaxonomy] = useState<TopicTaxonomy>({ types: [], categories: [], skillsByCategory: {} });
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
