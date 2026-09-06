@@ -53,21 +53,21 @@ async function readJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function fetchCanonicalTopics(limit = 5) {
-  const payload = await readJson<{ topics?: CanonicalTopic[] }>(`/api/topics?limit=${Math.min(20, Math.max(1, limit))}`);
+  const payload = await readJson<{ topics?: CanonicalTopic[] }>(`/api/v1/topics?limit=${Math.min(20, Math.max(1, limit))}`);
   return Array.isArray(payload.topics) ? payload.topics : [];
 }
 
 export async function fetchProactiveFeed() {
-  const payload = await readJson<{ opportunities?: ProactiveOpportunity[] }>("/api/proactive/feed");
+  const payload = await readJson<{ opportunities?: ProactiveOpportunity[] }>("/api/v1/proactive/feed");
   return Array.isArray(payload.opportunities) ? payload.opportunities : [];
 }
 
 export async function streamKurukooChat(input: {
   message: string;
-  conversationId?: string;
+  conversationId?: string | undefined;
   onEvent: (event: ChatStreamEvent) => void;
-}): Promise<{ conversationId?: string; reply: string }> {
-  const response = await fetch(apiUrl("/api/chat/stream"), {
+}): Promise<{ conversationId?: string | undefined; reply: string }> {
+  const response = await fetch(apiUrl("/api/v1/chat/stream"), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
