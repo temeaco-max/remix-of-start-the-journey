@@ -1,12 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ForYouHomePage } from "@/components/kurukoo/for-you-home";
+import { HomePage } from "./index";
 
 export const Route = createFileRoute("/for-you")({
-  head: () => ({
-    meta: [
-      { title: "For You — Kurukoo" },
-      { name: "description", content: "Your personal workspace for getting useful things done with Kurukoo." },
-    ],
-  }),
-  component: ForYouHomePage,
+  head: () => ({ meta: [{ title: "For You — Kurukoo" }, { name: "description", content: "Your personal workspace for getting useful things done with Kurukoo." }] }),
+  component: HomePage,
 });
