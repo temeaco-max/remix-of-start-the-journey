@@ -1,13 +1,25 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Home, Compass, Tags, Wallet, Target, Search } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { ChevronLeft, ChevronRight, Home, Compass, Tags, Wallet, Target } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
 
 const publicNav = [["/", "Home", Home], ["/explore", "Explore", Compass], ["/topics", "Topics", Tags], ["/opportunities", "Opportunities", Target], ["/pricing", "Plans", Wallet]] as const;
 function PublicAdvert() { return <div className="relative overflow-hidden rounded-2xl bg-[#e9e0d6] p-3.5 dark:bg-elevated"><div className="absolute -right-8 -top-8 size-24 rounded-full bg-[#f7efe8] blur-2xl dark:bg-background" /><div className="relative"><p className="text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Kurukoo Advertising</p><p className="mt-1.5 text-[12px] font-semibold tracking-tight">Useful discovery, not noise.</p><p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">Relevant services, offers and ideas can appear in context.</p><Link to="/advertising" className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-medium">Advertise with Kurukoo <ChevronRight className="size-3" /></Link></div></div>; }
 export function PublicRail({ collapsed, onToggle, onAuth }: { collapsed: boolean; onToggle: () => void; onAuth: (mode: AuthMode) => void }) {
- const [query, setQuery] = useState("");
- const submitSearch = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const value = query.trim(); window.location.href = value ? `/explore?query=${encodeURIComponent(value)}` : "/explore"; };
+ const rotatingPrompts = ["Get a Ride", "Order Food", "Set Reminders", "Get Suya", "Find Work", "Promote Items", "See Nearby", "Get Price Alerts"];
+ const [promptIndex, setPromptIndex] = useState(0);
+ const [promptVisible, setPromptVisible] = useState(true);
+ useEffect(() => {
+   const timer = window.setInterval(() => {
+     setPromptVisible(false);
+     window.setTimeout(() => {
+       setPromptIndex((value) => (value + 1) % rotatingPrompts.length);
+       setPromptVisible(true);
+     }, 260);
+   }, 2200);
+   return () => window.clearInterval(timer);
+ }, []);
+ const prompt = rotatingPrompts[promptIndex];
  return <aside aria-label="Public Kurukoo navigation" className={`relative z-40 hidden h-full min-h-[calc(100vh-50px)] flex-col border-r border-border bg-surface/90 px-3 py-0 backdrop-blur md:flex ${collapsed ? "w-[76px]" : "w-[200px]"}`}>
   <button type="button" onClick={onToggle} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} title={collapsed ? "Expand navigation" : "Collapse navigation"} className="absolute right-0 top-5 z-10 grid size-9 translate-x-1/2 place-items-center rounded-full border border-border bg-surface text-muted-foreground shadow-[var(--shadow-soft)] hover:bg-elevated hover:text-foreground">{collapsed ? <ChevronRight className="size-[17px]" strokeWidth={1.8} /> : <ChevronLeft className="size-[17px]" strokeWidth={1.8} />}</button>
   {!collapsed && <form onSubmit={submitSearch} className="mb-3"><label className="sr-only" htmlFor="public-rail-search">Search Kurukoo</label><div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-background px-3"><Search className="size-4 shrink-0 text-muted-foreground" /><input id="public-rail-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Kurukoo" className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-muted-foreground" /></div></form>}
