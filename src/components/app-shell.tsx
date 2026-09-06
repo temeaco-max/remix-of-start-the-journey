@@ -175,3 +175,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 export function PageHeader({ title, description, subtitle, eyebrow, action }: { title?: string; description?: string; subtitle?: string; eyebrow?: string; action?: ReactNode }) {
   return <header className="mb-6 flex items-start justify-between gap-4 border-b border-border/70 pb-5"><div className="min-w-0"><p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{eyebrow ?? "Kurukoo OS"}</p>{title ? <h1 className="mt-1 text-[28px] font-semibold tracking-[-0.03em]">{title}</h1> : null}{(description ?? subtitle) ? <p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground">{description ?? subtitle}</p> : null}</div>{action ? <div className="shrink-0">{action}</div> : null}</header>;
 }
+
+export function EmptyState({ title, body, description }: { title: string; body?: string; description?: string }) {
+  const message = body ?? description;
+  return <div className="rounded-2xl border border-dashed border-border bg-elevated/30 px-5 py-8 text-center"><h2 className="text-[15px] font-semibold">{title}</h2>{message ? <p className="mx-auto mt-1.5 max-w-xl text-[13px] leading-relaxed text-muted-foreground">{message}</p> : null}</div>;
+}
