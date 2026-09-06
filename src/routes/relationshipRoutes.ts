@@ -8,6 +8,7 @@ import {
   revokeRelationship,
   setRelationshipNotificationPreference,
 } from '../services/relationshipService.js';
+import { listFollowedTopicsForActor } from '../services/topicRelationshipService.js';
 
 const router = Router();
 
@@ -27,6 +28,16 @@ router.get('/relationships', authenticateUser, async (req: AuthRequest, res) => 
     return res.json({ relationships });
   } catch (error) {
     return res.status(422).json({ error: error instanceof Error ? error.message : 'Unable to list relationships' });
+  }
+});
+
+router.get('/relationships/topics', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = actor(req);
+  if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  try {
+    return res.json({ topics: await listFollowedTopicsForActor(phone, Number(req.query.limit || 100)) });
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : 'Unable to list followed Topics' });
   }
 });
 
