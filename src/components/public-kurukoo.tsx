@@ -56,10 +56,10 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <div className="min-h-[calc(100vh-49px)]">
-          <div className="mx-auto w-full max-w-[1120px] px-5 py-9 md:px-8 md:py-12">
+          <div className="w-full px-6 py-9 sm:px-7 md:px-8 lg:px-10 xl:px-12 md:py-12">
             {children}
           </div>
-          <footer className="mx-auto flex w-full max-w-[1120px] flex-wrap items-center justify-between gap-3 border-t border-border/60 px-5 py-7 text-[11px] text-muted-foreground md:px-8">
+          <footer className="flex w-full flex-wrap items-center justify-between gap-3 border-t border-border/60 px-6 py-7 text-[11px] text-muted-foreground sm:px-7 md:px-8 lg:px-10 xl:px-12">
             <p>Kurukoo · conversation-first coordination</p>
             <nav aria-label="Information">
               <div className="flex flex-wrap gap-x-4 gap-y-2">
