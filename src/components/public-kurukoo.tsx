@@ -37,9 +37,9 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className={`min-h-screen bg-background lg:grid ${railCollapsed
-        ? "lg:grid-cols-[76px_minmax(0,1fr)_224px]"
-        : "lg:grid-cols-[200px_minmax(0,1fr)_224px]"`}
+      className={`min-h-screen bg-background md:grid ${railCollapsed
+        ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_224px]"
+        : "md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)_224px]"`}
     >
       <PublicRail collapsed={railCollapsed} onToggle={() => setRailCollapsed((value) => !value)} onAuth={openAuth} />
       <main className="min-w-0">
