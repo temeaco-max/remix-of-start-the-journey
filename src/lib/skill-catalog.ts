@@ -1,4 +1,4 @@
-export type CapabilitySurface = "Conversation" | "Explore" | "Requests & Work" | "Nearby & Map" | "Shop & Checkout" | "Providers" | "Opportunities" | "Topics & Community" | "Wallet" | "Memory & Reminders" | "Connect & Devices" | "Voice" | "Safety" | "Creators" | "Events & Travel";
+export type CapabilitySurface = "Conversation" | "Explore" | "Requests & Work" | "Nearby & Map" | "Shop & Checkout" | "Providers" | "Opportunities" | "Topics & Community" | "Wallet" | "Memory & Reminders" | "Connect & Devices" | "Voice" | "Safety" | "Creators" | "Events & Travel" | "Activity" | "Health" | "People";
 
 export type SkillEntry = { id: string; category: string; label: string; surfaces: CapabilitySurface[] };
 export type SkillCategory = { name: string; skills: SkillEntry[]; surfaces: CapabilitySurface[] };
@@ -53,68 +53,56 @@ const labelOverrides: Record<string, string> = {
 };
 
 const makeLabel = (id: string) => labelOverrides[id] ?? id.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
-
 const groups: Array<[string, string[], CapabilitySurface[]]> = [
-  ["Transport & mobility", ["rider","okada_rider","keke_driver","informal_taxi","shuttle_driver","wheelbarrow_boy","truck_pusher","school_run","pet_taxi","ev_charging","taxi_quick","train_check","ride_request"], ["Conversation","Explore","Requests & Work","Nearby & Map"]],
-  ["Food & drink", ["suya_vendor","orange_hawker","street_food_cart","caterer","bakery","zobo_seller","kunu_seller","food_nearby","grocery_reminder","order_food"], ["Conversation","Explore","Requests & Work","Nearby & Map","Shop & Checkout"]],
-  ["Digital services", ["device_support","wifi_installer","warranty_tracker","digital_executor","digital_declutter","inbox_zero"], ["Conversation","Requests & Work","Connect & Devices"]],
-  ["Repairs & maintenance", ["phone_repair","phone_repairer","shoe_cobbler","generator_repairer","plumber","electrician","mechanic","vulcaniser","boiler_service","repair"], ["Conversation","Explore","Requests & Work","Providers","Shop & Checkout"]],
-  ["Personal care", ["mobile_barber","home_hairdresser","manicurist","laundry_man","house_cleaner"], ["Conversation","Explore","Requests & Work","Providers"]],
-  ["Emergency dispatch", ["emergency","ambulance_finder","towing_service","fire_service_contact","security_patrol","flood_line","swep_alert"], ["Conversation","Safety","Requests & Work","Activity"]],
-  ["Health & medical", ["medicine_delivery","nursery_nurse","herbal_practitioner","doctor_appointment","sleep_tracker","energy_logger","sad_lamp","carer_break"], ["Conversation","Requests & Work","Health","Memory & Reminders"]],
-  ["Education & learning", ["home_tutor","jamb_form_assistant","language_tutor","word_of_day"], ["Explore","Topics & Community","Conversation"]],
-  ["Events & entertainment", ["event_mc","dj","live_band","comedian","verified_artist","museum_quiet","vinyl_wantlist","event_finder","buy_ticket"], ["Explore","Events & Travel","Topics & Community","Shop & Checkout"]],
-  ["Accommodation & lodging", ["room_to_rent","short_let_host","house_agent","moving_house","first_flat","hotel_deals"], ["Explore","Requests & Work","Memory & Reminders","Nearby & Map"]],
-  ["Agriculture & produce", ["poultry_farmer","fish_seller","fresh_veg_hawker","allotment_sitter"], ["Explore","Shop & Checkout","Nearby & Map","Topics & Community"]],
-  ["Professional services", ["accounting_clerk","legal_draftsman","tax_assistant","job_tracker"], ["Requests & Work","Providers","Opportunities","Conversation"]],
-  ["Spiritual & religious", ["prayer_partner","counselor","religious_book_seller"], ["Conversation","Topics & Community","Explore","People"]],
-  ["Freelance services", ["graphic_designer","copywriter","social_media_manager","side_hustle"], ["Requests & Work","Providers","Opportunities"]],
-  ["Gigs & microtasks", ["flyer_distributor","queue_stander","survey_taker","find_worker"], ["Requests & Work","Opportunities","Conversation"]],
-  ["Errands & delivery", ["dispatch_rider","grocery_shopper","bill_payment_runner","document_courier","find_worker"], ["Requests & Work","Explore","Nearby & Map"]],
-  ["Communication & telecom", ["recharge_card_seller","buy_airtime","data_reseller","phone_accessory_hawker","data_bundle"], ["Conversation","Shop & Checkout","Wallet"]],
-  ["Logistics & freight", ["haulage_driver","cold_chain_operator","boat_operator"], ["Requests & Work","Providers","Opportunities"]],
-  ["Tourism & travel", ["creek_guide","city_tour_guide","right_to_roam","urban_explorer","flight_alert"], ["Explore","Events & Travel","Nearby & Map","Activity"]],
-  ["Creative arts", ["bead_maker","tailor_fashion_designer","photographer","sketch_prompt","creative_block"], ["Creators","Explore","Topics & Community","Conversation"]],
-  ["Security & safety", ["night_guard","event_bouncer","night_walk","security_personnel"], ["Safety","Providers","Requests & Work"]],
-  ["Fitness & coaching", ["fitness_trainer","running_beacon","couch_to_5k","walking_group"], ["Topics & Community","Memory & Reminders","Explore"]],
-  ["Nightlife & lounges", ["bar_triage","lounge_promoter"], ["Explore","Events & Travel","Opportunities"]],
-  ["Sports & viewing", ["football_viewing_center","sports_analyst"], ["Explore","Topics & Community"]],
-  ["Money circle", ["thrift_collector_ajo","group_savings_organiser"], ["Wallet","Topics & Community","Conversation"]],
-  ["Classifieds & marketplace", ["second_hand_phones","clothes_bend_down","car_boot","charity_shop","farm_shop","gift_finder","buy_car","product_sourcing"], ["Explore","Shop & Checkout","Wallet","Opportunities"]],
-  ["Price checking", ["wholesale_rice_tracker","cement_price_checker"], ["Explore","Conversation","Topics & Community"]],
-  ["Government & civic", ["nin_passport_guidance","bin_day","council_tax","parking_appeal","accessibility"], ["Conversation","Memory & Reminders","Explore"]],
-  ["Community & neighbourhood", ["neighbourhood_watch","skill_swap","funeral_wishes","bereavement_admin","street_party","borrowed_iou","micro_volunteer","pride_events","genealogy"], ["Topics & Community","Memory & Reminders","Explore","Activity"]],
-  ["Cravings & street food", ["akara_hot_seller","puff_puff_hawker","roasted_corn_vendor"], ["Nearby & Map","Explore","Conversation"]],
-  ["Reach & reference", ["lga_office_directory","artisan_registry"], ["Explore","Providers"]],
-  ["Language services", ["pidgin_interpreter","hausa_translator","yoruba_transcriber","igbo_tutor","ijaw_voice"], ["Conversation","Voice","Connect & Devices"]],
-  ["Automotive mechanics", ["roadside_mechanic","car_washer","mot_reminder"], ["Requests & Work","Providers","Memory & Reminders"]],
-  ["Finance & tax", ["micro_bookkeeper","insurance_renewal","energy_tariff","retirement_coach"], ["Wallet","Conversation","Memory & Reminders"]],
-  ["Pet & animal care", ["dog_breeder","vet_assistant","lost_pet","pet_weight"], ["Explore","Requests & Work","Memory & Reminders"]],
-  ["Property & real estate", ["land_surveyor","rental_tracker"], ["Requests & Work","Memory & Reminders","Explore"]],
-  ["Childcare & nanny", ["daycare_operator","babysitter"], ["Providers","Requests & Work","Explore"]],
-  ["Beauty & wellness", ["spa_masseuse","makeup_artist"], ["Explore","Providers","Requests & Work"]],
-  ["Cleaning & sanitation", ["fumigation_agent","waste_collector"], ["Explore","Providers","Requests & Work","Nearby & Map"]],
-  ["Home automation", ["smart_tv_bridge","ac_remote_bridge"], ["Connect & Devices","Conversation"]],
-  ["Legal & compliance", ["contract_reviewer","affidavit_assistant"], ["Conversation","Memory & Reminders","Connect & Devices"]],
-  ["Fashion & apparel", ["ankara_seamstress","suit_tailor"], ["Explore","Providers","Shop & Checkout","Requests & Work"]],
-  ["Solar & energy", ["inverter_installer","solar_panel_technician"], ["Providers","Requests & Work","Explore"]],
-  ["Event rentals", ["canopy_rental","public_address_system"], ["Events & Travel","Providers","Shop & Checkout"]],
-  ["Water & beverage", ["sachet_water_distributor","tanker_water_supplier"], ["Nearby & Map","Shop & Checkout","Requests & Work"]],
-  ["Sports & recreation", ["football_player","basketball_player","tennis_partner","sports_coach","football_club_founder","match_organizer","team_captain","league_admin","pitch_manager","sports_event_host"], ["Topics & Community","Explore","Events & Travel","Opportunities"]]
+["Transport & mobility", ["rider","okada_rider","keke_driver","informal_taxi","shuttle_driver","wheelbarrow_boy","truck_pusher","school_run","pet_taxi","ev_charging","taxi_quick","train_check","ride_request"], ["Conversation","Explore","Requests & Work","Nearby & Map"]],
+["Food & drink", ["suya_vendor","orange_hawker","street_food_cart","caterer","bakery","zobo_seller","kunu_seller","food_nearby","grocery_reminder","order_food"], ["Conversation","Explore","Requests & Work","Nearby & Map","Shop & Checkout"]],
+["Digital services", ["device_support","wifi_installer","warranty_tracker","digital_executor","digital_declutter","inbox_zero"], ["Conversation","Requests & Work","Connect & Devices"]],
+["Repairs & maintenance", ["phone_repair","phone_repairer","shoe_cobbler","generator_repairer","plumber","electrician","mechanic","vulcaniser","boiler_service","repair"], ["Conversation","Explore","Requests & Work","Providers","Shop & Checkout"]],
+["Personal care", ["mobile_barber","home_hairdresser","manicurist","laundry_man","house_cleaner"], ["Conversation","Explore","Requests & Work","Providers"]],
+["Emergency dispatch", ["emergency","ambulance_finder","towing_service","fire_service_contact","security_patrol","flood_line","swep_alert"], ["Conversation","Safety","Requests & Work","Activity"]],
+["Health & medical", ["medicine_delivery","nursery_nurse","herbal_practitioner","doctor_appointment","sleep_tracker","energy_logger","sad_lamp","carer_break"], ["Conversation","Requests & Work","Health","Memory & Reminders"]],
+["Education & learning", ["home_tutor","jamb_form_assistant","language_tutor","word_of_day"], ["Explore","Topics & Community","Conversation"]],
+["Events & entertainment", ["event_mc","dj","live_band","comedian","verified_artist","museum_quiet","vinyl_wantlist","event_finder","buy_ticket"], ["Explore","Events & Travel","Topics & Community","Shop & Checkout"]],
+["Accommodation & lodging", ["room_to_rent","short_let_host","house_agent","moving_house","first_flat","hotel_deals"], ["Explore","Requests & Work","Memory & Reminders","Nearby & Map"]],
+["Agriculture & produce", ["poultry_farmer","fish_seller","fresh_veg_hawker","allotment_sitter"], ["Explore","Shop & Checkout","Nearby & Map","Topics & Community"]],
+["Professional services", ["accounting_clerk","legal_draftsman","tax_assistant","job_tracker"], ["Requests & Work","Providers","Opportunities","Conversation"]],
+["Spiritual & religious", ["prayer_partner","counselor","religious_book_seller"], ["Conversation","Topics & Community","Explore","People"]],
+["Freelance services", ["graphic_designer","copywriter","social_media_manager","side_hustle"], ["Requests & Work","Providers","Opportunities"]],
+["Gigs & microtasks", ["flyer_distributor","queue_stander","survey_taker","find_worker"], ["Requests & Work","Opportunities","Conversation"]],
+["Errands & delivery", ["dispatch_rider","grocery_shopper","bill_payment_runner","document_courier","find_worker"], ["Requests & Work","Explore","Nearby & Map"]],
+["Communication & telecom", ["recharge_card_seller","buy_airtime","data_reseller","phone_accessory_hawker","data_bundle"], ["Conversation","Shop & Checkout","Wallet"]],
+["Logistics & freight", ["haulage_driver","cold_chain_operator","boat_operator"], ["Requests & Work","Providers","Opportunities"]],
+["Tourism & travel", ["creek_guide","city_tour_guide","right_to_roam","urban_explorer","flight_alert"], ["Explore","Events & Travel","Nearby & Map","Activity"]],
+["Creative arts", ["bead_maker","tailor_fashion_designer","photographer","sketch_prompt","creative_block"], ["Creators","Explore","Topics & Community","Conversation"]],
+["Security & safety", ["night_guard","event_bouncer","night_walk","security_personnel"], ["Safety","Providers","Requests & Work"]],
+["Fitness & coaching", ["fitness_trainer","running_beacon","couch_to_5k","walking_group"], ["Health","Topics & Community","Memory & Reminders","Explore"]],
+["Nightlife & lounges", ["bar_triage","lounge_promoter"], ["Explore","Events & Travel","Opportunities"]],
+["Sports & viewing", ["football_viewing_center","sports_analyst"], ["Explore","Topics & Community"]],
+["Money circle", ["thrift_collector_ajo","group_savings_organiser"], ["Wallet","Topics & Community","Conversation"]],
+["Classifieds & marketplace", ["second_hand_phones","clothes_bend_down","car_boot","charity_shop","farm_shop","gift_finder","buy_car","product_sourcing"], ["Explore","Shop & Checkout","Wallet","Opportunities"]],
+["Price checking", ["wholesale_rice_tracker","cement_price_checker"], ["Explore","Conversation","Topics & Community"]],
+["Government & civic", ["nin_passport_guidance","bin_day","council_tax","parking_appeal","accessibility"], ["Conversation","Memory & Reminders","Explore"]],
+["Community & neighbourhood", ["neighbourhood_watch","skill_swap","funeral_wishes","bereavement_admin","street_party","borrowed_iou","micro_volunteer","pride_events","genealogy"], ["Topics & Community","Memory & Reminders","Explore","Activity"]],
+["Cravings & street food", ["akara_hot_seller","puff_puff_hawker","roasted_corn_vendor"], ["Nearby & Map","Explore","Conversation"]],
+["Reach & reference", ["lga_office_directory","artisan_registry"], ["Explore","Providers"]],
+["Language services", ["pidgin_interpreter","hausa_translator","yoruba_transcriber","igbo_tutor","ijaw_voice"], ["Conversation","Voice","Connect & Devices"]],
+["Automotive mechanics", ["roadside_mechanic","car_washer","mot_reminder"], ["Requests & Work","Providers","Memory & Reminders"]],
+["Finance & tax", ["micro_bookkeeper","insurance_renewal","energy_tariff","retirement_coach"], ["Wallet","Conversation","Memory & Reminders"]],
+["Pet & animal care", ["dog_breeder","vet_assistant","lost_pet","pet_weight"], ["Explore","Requests & Work","Memory & Reminders"]],
+["Property & real estate", ["land_surveyor","rental_tracker"], ["Requests & Work","Memory & Reminders","Explore"]],
+["Childcare & nanny", ["daycare_operator","babysitter"], ["Providers","Requests & Work","Explore"]],
+["Beauty & wellness", ["spa_masseuse","makeup_artist"], ["Explore","Providers","Requests & Work"]],
+["Cleaning & sanitation", ["fumigation_agent","waste_collector"], ["Explore","Providers","Requests & Work","Nearby & Map"]],
+["Home automation", ["smart_tv_bridge","ac_remote_bridge"], ["Connect & Devices","Conversation"]],
+["Legal & compliance", ["contract_reviewer","affidavit_assistant"], ["Conversation","Memory & Reminders","Connect & Devices"]],
+["Fashion & apparel", ["ankara_seamstress","suit_tailor"], ["Explore","Providers","Shop & Checkout","Requests & Work"]],
+["Solar & energy", ["inverter_installer","solar_panel_technician"], ["Providers","Requests & Work","Explore"]],
+["Event rentals", ["canopy_rental","public_address_system"], ["Events & Travel","Providers","Shop & Checkout"]],
+["Water & beverage", ["sachet_water_distributor","tanker_water_supplier"], ["Nearby & Map","Shop & Checkout","Requests & Work"]],
+["Sports & recreation", ["football_player","basketball_player","tennis_partner","sports_coach","football_club_founder","match_organizer","team_captain","league_admin","pitch_manager","sports_event_host"], ["Topics & Community","Explore","Events & Travel","Opportunities"]]
 ];
-
 export const skillCategories: SkillCategory[] = groups.map(([name, ids, surfaces]) => ({ name, surfaces, skills: ids.map((id) => ({ id, category: name, label: makeLabel(id), surfaces })) }));
 export const skillFlows: SkillEntry[] = skillCategories.flatMap((category) => category.skills);
 export const capabilityCount = skillFlows.length;
-
-export const userJobs = [
-  "Get a Ride", "Order Food", "Book Repair", "Find Work", "Buy an Item", "Sell an Item", "Offer Delivery", "Get Prayers", "Set a Reminder", "Find Nearby", "Get Price Alerts", "Emergency Call", "Find a Tutor", "Book a Doctor", "Find a Room", "Find a Cleaner", "Find a Tennis Partner", "Find a Photographer", "Buy a Car", "Source a Product", "Buy Airtime", "Buy Data", "Get Roadside Help"
-] as const;
-
-export const canonicalRequestExamples = [
-  { prompt: "Get me a ride to the airport at 7 tomorrow.", label: "Get a Ride", skill: "ride_request" },
-  { prompt: "Find someone to repair my phone screen today.", label: "Book Repair", skill: "repair" },
-  { prompt: "Can you find me a job delivering food?", label: "Find Work", skill: "find_worker" },
-  { prompt: "I need suya near me.", label: "Get Suya", skill: "suya_vendor" },
-  { prompt: "Please get me prayers for today.", label: "Get Prayers", skill: "prayer_partner" },
-];
+export const userJobs = ["Get a Ride", "Order Food", "Book Repair", "Find Work", "Buy an Item", "Sell an Item", "Offer Delivery", "Get Prayers", "Set a Reminder", "Find Nearby", "Get Price Alerts", "Emergency Call", "Find a Tutor", "Book a Doctor", "Find a Room", "Find a Cleaner", "Find a Tennis Partner", "Find a Photographer", "Buy a Car", "Source a Product", "Buy Airtime", "Buy Data", "Get Roadside Help"] as const;
+export const canonicalRequestExamples = [{ prompt: "Get me a ride to the airport at 7 tomorrow.", label: "Get a Ride", skill: "ride_request" }, { prompt: "Find someone to repair my phone screen today.", label: "Book Repair", skill: "repair" }, { prompt: "Can you find me a job delivering food?", label: "Find Work", skill: "find_worker" }, { prompt: "I need suya near me.", label: "Get Suya", skill: "suya_vendor" }, { prompt: "Please get me prayers for today.", label: "Get Prayers", skill: "prayer_partner" }] as const;
