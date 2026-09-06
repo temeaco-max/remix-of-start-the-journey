@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, X, Home, Compass, Sparkles, Bell, MoreHorizontal } from "lucide-react";
+import { Menu, X, Home, Compass, Sparkles, Bell } from "lucide-react";
 import { useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
 
@@ -8,20 +8,9 @@ const moreItems = [["/work", "Work"], ["/topics", "Topics"], ["/capabilities", "
 function KurukooMark() { return <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-[10px] bg-[#f4e6dc] text-[13px] font-semibold leading-none text-[#765443]">K</span>; }
 
 export function PublicMobileNavigation({ onAuth }: { onAuth: (mode: AuthMode) => void }) {
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
+  const [open, setOpen] = useState(false); const close = () => setOpen(false);
   return <>
-    <button type="button" onClick={() => setOpen(true)} aria-label="Open navigation" title="Open navigation" className="fixed left-3 top-2 z-50 grid size-9 place-items-center rounded-full bg-background/80 text-foreground backdrop-blur md:hidden">
-      <Menu className="size-[18px]" strokeWidth={1.8} />
-    </button>
-    {open ? <>
-      <button type="button" aria-label="Close navigation" onClick={close} className="fixed inset-0 z-[60] bg-foreground/20 backdrop-blur-[2px] md:hidden" />
-      <aside aria-label="Mobile public navigation" className="fixed inset-y-0 left-0 z-[70] flex w-[284px] flex-col border-r border-border bg-surface px-4 py-5 shadow-2xl md:hidden">
-        <div className="flex items-center justify-between px-1 pb-7"><Link to="/" onClick={close} className="flex items-center gap-2"><KurukooMark /><span className="text-[17px] font-semibold tracking-[-0.025em]">Kurukoo</span></Link><button type="button" onClick={close} aria-label="Close navigation" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><X className="size-[18px]" strokeWidth={1.8} /></button></div>
-        <nav className="space-y-1">{items.map(([to,label,Icon], index) => <Link key={to} to={to} onClick={close} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] leading-5 transition-colors ${index === 0 ? "bg-elevated font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground"}`}><Icon className="size-[18px] shrink-0" strokeWidth={1.8} />{label}</Link>)}</nav>
-        <div className="mt-6 rounded-2xl bg-elevated/60 p-3"><p className="text-[11px] font-medium">Your workspace awaits.</p><p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">Sign in to unlock your personal Kurukoo context.</p></div>
-        <div className="mt-auto"><button type="button" onClick={() => { close(); onAuth("login"); }} className="flex w-full items-center justify-center rounded-xl border border-border px-3 py-2 text-[12px] font-medium">Log In</button><button type="button" onClick={() => { close(); onAuth("signup"); }} className="mt-2 flex w-full items-center justify-center rounded-xl bg-foreground px-3 py-2 text-[12px] font-medium text-background">Try for free</button></div>
-      </aside>
-    </> : null}
+    <button type="button" onClick={() => setOpen(true)} aria-label="Open navigation" title="Open navigation" className="fixed left-3 top-2 z-50 grid size-9 place-items-center rounded-full bg-background/80 text-foreground backdrop-blur md:hidden"><Menu className="size-[18px]" strokeWidth={1.8} /></button>
+    {open ? <><button type="button" aria-label="Close navigation" onClick={close} className="fixed inset-0 z-[60] bg-foreground/20 backdrop-blur-[2px] md:hidden" /><aside aria-label="Mobile public navigation" className="fixed inset-y-0 left-0 z-[70] flex w-[284px] flex-col border-r border-border bg-surface px-4 py-5 shadow-2xl md:hidden"><div className="flex items-center justify-between px-1 pb-7"><Link to="/" onClick={close} className="flex items-center gap-2"><KurukooMark /><span className="text-[17px] font-semibold tracking-[-0.025em]">Kurukoo</span></Link><button type="button" onClick={close} aria-label="Close navigation" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><X className="size-[18px]" strokeWidth={1.8} /></button></div><nav className="space-y-1">{items.map(([to,label,Icon], index) => <Link key={to} to={to} onClick={close} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] leading-5 transition-colors ${index === 0 ? "bg-elevated font-medium text-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground"}`}><Icon className="size-[18px] shrink-0" strokeWidth={1.8} />{label}</Link>)}</nav><div className="mt-6 rounded-2xl bg-elevated/60 p-3"><p className="text-[11px] font-medium leading-4">Your workspace awaits.</p><p className="mt-1 text-[10.5px] leading-5 text-muted-foreground">Sign in to unlock your personal Kurukoo context.</p></div><nav aria-label="More navigation" className="mt-5 space-y-1 overflow-y-auto">{moreItems.map(([to,label]) => to === "/advertising" ? <button key={to} type="button" onClick={() => { close(); onAuth("login"); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-[13.5px] leading-5 text-muted-foreground hover:bg-elevated hover:text-foreground">{label}</button> : <Link key={to} to={to} onClick={close} className="flex items-center rounded-xl px-3 py-2.5 text-[13.5px] leading-5 text-muted-foreground hover:bg-elevated hover:text-foreground">{label}</Link>)}</nav><div className="mt-auto pt-4"><button type="button" onClick={() => { close(); onAuth("login"); }} className="flex w-full items-center justify-center rounded-xl border border-border px-3 py-2 text-[12px] font-medium">Log In</button><button type="button" onClick={() => { close(); onAuth("signup"); }} className="mt-2 flex w-full items-center justify-center rounded-xl bg-foreground px-3 py-2 text-[12px] font-medium text-background">Try for free</button></div></aside></> : null}
   </>;
 }
