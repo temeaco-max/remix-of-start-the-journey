@@ -33,7 +33,7 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border/70 bg-background/95 backdrop-blur">
-        <div className="relative flex h-[72px] items-center px-5 md:px-7 lg:px-8">
+        <div className="relative flex h-[50px] items-center px-5 md:px-7 lg:px-8">
           <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="Kurukoo home"><KurukooMark className="size-8" /><span className="text-[17px] font-semibold tracking-[-0.025em]">Kurukoo</span></Link>
           <nav aria-label="Kurukoo" className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 text-[12.5px] text-muted-foreground md:flex"><>{nav.map(([to, label]) => <PublicDestinationLink key={to} to={to} active className="transition-colors hover:text-foreground">{label}</PublicDestinationLink>)}</></nav>
           <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => openAuth("login")} className="rounded-full px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground">Log In</button><button type="button" onClick={() => openAuth("signup")} className="rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-medium text-background">Try for free</button></div>
