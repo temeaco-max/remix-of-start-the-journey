@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, useRouter, useRouterState, HeadContent, Scripts } from "@tanstack/react-router";
-import { Bell, MoreHorizontal } from "lucide-react";
+import { Bell, MoreHorizontal, Home, Compass, Sparkles } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -33,7 +33,7 @@ function AuthenticatedHeader() {
     setDateLabel(new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(now));
   }, []);
   return <header className="-mx-5 -mt-6 mb-6 flex h-12 items-center justify-between border-b border-border/70 bg-background/92 px-5 backdrop-blur md:-mx-8 md:-mt-8 md:px-8">
-    <div className="min-w-0"><p className="truncate text-[12px] font-medium text-muted-foreground">{dateLabel}</p><p className="truncate text-[14px] font-semibold tracking-tight text-foreground">{greeting}, {profileName}</p></div>
+    <div className="min-w-0"><p className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{dateLabel}</p><p className="truncate text-[14px] font-semibold leading-5 tracking-tight text-foreground">{greeting}, {profileName}</p></div>
     <Link to="/activity" aria-label={unread ? `${unread} unread notifications` : "Activity"} title="Activity" className="relative grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"><Bell className="size-[18px]" strokeWidth={1.8} />{unread ? <span className="absolute right-1 top-1 grid min-w-3.5 place-items-center rounded-full bg-primary px-1 text-[8px] font-semibold leading-3 text-primary-foreground">{unread > 9 ? "9+" : unread}</span> : null}</Link>
   </header>;
 }
@@ -44,14 +44,14 @@ function AuthenticatedMobileBar() {
   useEffect(() => { setMoreOpen(false); }, [pathname]);
   return <>
     {moreOpen ? <button type="button" aria-label="Close more navigation" onClick={() => setMoreOpen(false)} className="fixed inset-0 z-[49] bg-foreground/10 backdrop-blur-[1px] md:hidden" /> : null}
-    {moreOpen ? <div className="fixed inset-x-3 bottom-[68px] z-[51] max-h-[60vh] overflow-y-auto rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-lift)] md:hidden"><nav aria-label="More navigation" className="grid grid-cols-2 gap-1">{authenticatedMoreItems.map(([to,label]) => <Link key={to} to={to} className="rounded-xl px-3 py-2.5 text-[12.5px] text-muted-foreground hover:bg-elevated hover:text-foreground">{label}</Link>)}</nav></div> : null}
-    <div className="fixed inset-x-0 bottom-0 z-[50] border-t border-border bg-surface/98 backdrop-blur md:hidden"><div className="mx-auto grid max-w-lg grid-cols-5 px-2 py-2">
-      <Link to="/" className={`grid place-items-center rounded-xl px-1 py-2 text-[10px] leading-4 ${pathname === "/" ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><span className="text-[17px] leading-4">⌂</span>Home</Link>
-      <Link to="/chat" className={`grid place-items-center rounded-xl px-1 py-2 text-[10px] leading-4 ${pathname === "/chat" ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><span className="text-[17px] leading-4">✦</span>Conversation</Link>
-      <Link to="/explore" className={`grid place-items-center rounded-xl px-1 py-2 text-[10px] leading-4 ${pathname.startsWith("/explore") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><span className="text-[17px] leading-4">⌕</span>Explore</Link>
-      <Link to="/activity" className={`grid place-items-center rounded-xl px-1 py-2 text-[10px] leading-4 ${pathname.startsWith("/activity") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><Bell className="size-[17px]" strokeWidth={1.8} />Activity</Link>
-      <button type="button" onClick={() => setMoreOpen((value) => !value)} aria-expanded={moreOpen} className={`grid place-items-center rounded-xl px-1 py-2 text-[10px] leading-4 ${moreOpen ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><MoreHorizontal className="size-[17px]" strokeWidth={1.8} />More</button>
-    </div></div>
+    {moreOpen ? <div className="fixed inset-x-3 bottom-[68px] z-[51] max-h-[60vh] overflow-y-auto rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-lift)] md:hidden"><nav aria-label="More navigation" className="grid grid-cols-2 gap-1">{authenticatedMoreItems.map(([to,label]) => <Link key={to} to={to} className="rounded-xl px-3 py-2.5 text-[12.5px] leading-5 text-muted-foreground hover:bg-elevated hover:text-foreground">{label}</Link>)}</nav></div> : null}
+    <div className="fixed inset-x-0 bottom-0 z-[50] border-t border-border bg-surface/98 backdrop-blur md:hidden"><nav aria-label="Mobile navigation" className="mx-auto grid max-w-lg grid-cols-5 px-2 py-2">
+      <Link to="/" className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] leading-4 ${pathname === "/" ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><Home className="size-[17px]" strokeWidth={1.8} />Home</Link>
+      <Link to="/chat" className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] leading-4 ${pathname === "/chat" ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><Sparkles className="size-[17px]" strokeWidth={1.8} />Conversation</Link>
+      <Link to="/explore" className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] leading-4 ${pathname.startsWith("/explore") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><Compass className="size-[17px]" strokeWidth={1.8} />Explore</Link>
+      <Link to="/activity" className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] leading-4 ${pathname.startsWith("/activity") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><Bell className="size-[17px]" strokeWidth={1.8} />Activity</Link>
+      <button type="button" onClick={() => setMoreOpen((value) => !value)} aria-expanded={moreOpen} className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] leading-4 ${moreOpen ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}><MoreHorizontal className="size-[17px]" strokeWidth={1.8} />More</button>
+    </nav></div>
   </>;
 }
 
