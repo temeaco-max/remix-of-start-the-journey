@@ -1,4 +1,4 @@
-import type { CanonicalTopic, CanonicalTopicRelationship, TopicTaxonomy, CanonicalTopicReply } from "@/lib/kurukoo-api";
+import type { CanonicalTopic, CanonicalTopicRelationship } from "@/lib/kurukoo-api";
 
 const API_BASE = (import.meta.env.VITE_KURUKOO_API_BASE_URL ?? "").replace(/\/$/, "");
 export const topicApiConfigured = () => Boolean(API_BASE);
@@ -19,7 +19,6 @@ export type OwnerTopic = CanonicalTopic & { authorPhone: string; moderationNote:
 export type TopicSuggestion = { id: string; slug: string; title: string; body: string; type: string; category: string | null; city: string | null; lga: string | null; replyCount: number };
 export type TopicChatContext = CanonicalTopic;
 export type FollowedTopic = { topic: CanonicalTopic; relationship: CanonicalTopicRelationship };
-
 export type TopicInput = { title: string; body: string; type: string; category?: string; skills?: string[]; city?: string; lga?: string; idempotencyKey?: string };
 
 export async function fetchMyTopics(limit = 50) {
@@ -84,17 +83,8 @@ export async function fetchTopicChatContext(slug: string) {
 }
 
 export async function fetchFollowedTopics() {
-  const payload = await request<{ relationships?: Array<CanonicalTopicRelationship & { targetId?: string; target_id?: string; targetType?: string; target_type?: string; status?: string }> }>("/api/relationships?relationshipType=follow");
-  const relationships = Array.isArray(payload.relationships) ? payload.relationships : [];
-  const topicRels = relationships.filter((item) => (item.targetType ?? item.target_type) === "topic" && (item.status ?? "active") !== "revoked");
-  if (!topicRels.length) return [];
-  const topics = await Promise.all(topicRels.map(async (relationship) => {
-    const id = relationship.targetId ?? relationship.target_id;
-    if (!id) return null;
-    try { return { topic: await request<{ topic: CanonicalTopic }>(`/api/topics/id/${encodeURIComponent(id)}`).then((p) => p.topic), relationship }; }
-    catch { return null; }
-  }));
-  return topics.filter((item): item is FollowedTopic => Boolean(item?.topic));
+  const payload = await request<{ topics?: FollowedTopic[] }>("/api/relationships/topics?limit=100");
+  return Array.isArray(payload.topics) ? payload.topics : [];
 }
 
 export function topicStatusLabel(status: string) {
@@ -121,7 +111,7 @@ export function typeGuidance(type: string) {
     price_report: "Describe the price you saw, when you saw it and the broad context. Treat it as reported, not independently verified.",
     recommendation: "Explain what you recommend and why; other people can add their own experiences.",
     meme: "Keep it light and avoid private information, harassment or misleading claims presented as fact.",
-    poll: "Describe the question and options clearly. Voting is not yet available from the canonical Topic service.",
+    poll: "Describe the question and options clearly. Voting is not available yet because the canonical service has no vote operation.",
     event: "Include the date/time and broad location in the body. Avoid precise private addresses.",
     alert: "Use this for potentially important local information. Distinguish what you know from what you have not verified.",
     opportunity: "Describe the opportunity and useful context. Kurukoo can help people explore a verified next step separately.",
@@ -135,9 +125,3 @@ function randomKey() {
   if (cryptoApi?.randomUUID) return cryptoApi.randomUUID().replace(/-/g, "");
   return `topic-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
 }
-
-export function sameRelationshipTopic(topic: CanonicalTopic, relationship: CanonicalTopicRelationship) {
-  return relationship && topic.id === (relationship as CanonicalTopicRelationship & { targetId?: string }).targetId;
-}
-
-export type { CanonicalTopic, CanonicalTopicReply, CanonicalTopicRelationship, TopicTaxonomy };
