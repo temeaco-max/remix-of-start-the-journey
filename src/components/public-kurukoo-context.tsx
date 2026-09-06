@@ -40,7 +40,7 @@ function KurukooUsageReel() {
     return () => window.clearInterval(timer);
   }, [playing]);
 
-  const current = scenes[scene];
+  const current = scenes[scene] ?? scenes[0]!;
   return (
     <div className="overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-[var(--shadow-soft)]">
       <div className="relative aspect-video overflow-hidden bg-[#eee8e0] dark:bg-elevated">
