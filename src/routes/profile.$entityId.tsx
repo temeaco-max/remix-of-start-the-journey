@@ -58,8 +58,8 @@ function ProfilePage() {
 
       <div className="flex flex-wrap items-center gap-2">
         <FollowButton />
-        <Link to="/messages"><Action>Message</Action></Link>
-        <Link to="/calls"><Action><span className="inline-flex items-center gap-1.5"><Phone className="size-4" /> Voice</span></Action></Link>
+        <Link to="/messages" className={actionClass()}>Message</Link>
+        <Link to="/calls" className={actionClass()}><span className="inline-flex items-center gap-1.5"><Phone className="size-4" /> Voice</span></Link>
         <Link to="/"><Action variant="primary" onClick={() => send(`I need help from ${entity.name}.`)}>Start a request</Action></Link>
         <SaveButton />
         <ShareButton />
