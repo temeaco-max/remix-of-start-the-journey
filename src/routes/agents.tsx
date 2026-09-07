@@ -62,7 +62,7 @@ export function AgentsPage() {
       <section className="rounded-[24px] border border-border bg-surface p-5 md:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-3xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#ce4712]">What can an agent actually do?</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">What can an agent actually do?</p>
             <h2 className="mt-1.5 text-[24px] font-bold tracking-tight">Not just answer questions. Help carry the job.</h2>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">Kurukoo's agent layer can combine discovery, verification, communication, scheduling, memory, coordination and execution around the outcome you describe. You do not have to learn agent names or internal skills first.</p>
           </div>

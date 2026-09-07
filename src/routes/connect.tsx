@@ -95,7 +95,7 @@ function ConnectPage() {
 
       <Panel className="mb-7 overflow-hidden">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#f4e6dc] text-foreground"><ShieldCheck className="size-5" /></span><div><p className="text-[16px] font-medium">You stay in control</p><p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">A connected assistant can be a voice or chat doorway into Kurukoo. It should only receive Kurukoo information you allow, and requests that perform external actions still pass through Kurukoo's permission and approval rules.</p></div></div>
+          <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand-tint text-foreground"><ShieldCheck className="size-5" /></span><div><p className="text-[16px] font-medium">You stay in control</p><p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">A connected assistant can be a voice or chat doorway into Kurukoo. It should only receive Kurukoo information you allow, and requests that perform external actions still pass through Kurukoo's permission and approval rules.</p></div></div>
           <div className="shrink-0 text-sm"><span className="font-medium">{connectedCount}</span><span className="ml-1 text-muted-foreground">connected</span></div>
         </div>
       </Panel>

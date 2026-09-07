@@ -66,7 +66,7 @@ export function AuthModal({ mode, onClose, onModeChange }: { mode: AuthMode; onC
         </button>
         <div className="px-6 pb-6 pt-8 sm:px-8 sm:pb-8 sm:pt-10">
           <div className="text-center">
-            <span aria-hidden className="mx-auto grid size-10 place-items-center rounded-xl bg-[#f4e6dc] text-[17px] font-semibold text-[#765443]">K</span>
+            <span aria-hidden className="mx-auto grid size-10 place-items-center rounded-xl bg-brand-tint text-[17px] font-semibold text-brand-ink">K</span>
             <h2 id="kurukoo-auth-title" className="mt-4 text-[21px] font-semibold tracking-tight">{title}</h2>
             <p className="mt-1.5 text-[12.5px] text-muted-foreground">{mode === "login" ? "Continue with the method you prefer." : "Create your account and start getting useful things moving."}</p>
           </div>

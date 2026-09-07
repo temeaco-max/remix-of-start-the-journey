@@ -55,20 +55,22 @@
   --card-foreground: oklch(0.21 0.012 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.21 0.012 260);
-  --primary: oklch(0.52 0.13 168);
-  --primary-foreground: oklch(0.99 0.005 168);
+  --primary: oklch(0.552 0.181 39);
+  --primary-foreground: oklch(0.99 0.01 60);
+  --brand-tint: oklch(0.925 0.028 55);
+  --brand-ink: oklch(0.46 0.052 47);
   --secondary: oklch(0.955 0.006 106);
   --secondary-foreground: oklch(0.3 0.012 260);
   --muted: oklch(0.958 0.004 106);
   --muted-foreground: oklch(0.53 0.012 260);
-  --accent: oklch(0.945 0.02 168);
-  --accent-foreground: oklch(0.36 0.09 168);
+  --accent: oklch(0.95 0.022 55);
+  --accent-foreground: oklch(0.44 0.12 42);
   --destructive: oklch(0.58 0.19 25);
   --destructive-foreground: oklch(0.99 0.004 25);
   --success: oklch(0.62 0.13 155);
   --border: oklch(0.905 0.005 106);
   --input: oklch(0.905 0.005 106);
-  --ring: oklch(0.52 0.13 168);
+  --ring: oklch(0.552 0.181 39);
   --shadow-soft: 0 1px 2px oklch(0.21 0.012 260 / 0.05), 0 1px 1px oklch(0.21 0.012 260 / 0.03);
   --shadow-lift: 0 8px 30px oklch(0.21 0.012 260 / 0.08);
 }
@@ -83,20 +85,22 @@
   --card-foreground: oklch(0.95 0.004 106);
   --popover: oklch(0.213 0.009 260);
   --popover-foreground: oklch(0.95 0.004 106);
-  --primary: oklch(0.74 0.12 168);
-  --primary-foreground: oklch(0.19 0.03 168);
+  --primary: oklch(0.66 0.165 40);
+  --primary-foreground: oklch(0.99 0.01 60);
+  --brand-tint: oklch(0.33 0.045 45);
+  --brand-ink: oklch(0.88 0.04 55);
   --secondary: oklch(0.26 0.01 260);
   --secondary-foreground: oklch(0.93 0.004 106);
   --muted: oklch(0.26 0.01 260);
   --muted-foreground: oklch(0.68 0.01 260);
-  --accent: oklch(0.3 0.04 168);
-  --accent-foreground: oklch(0.86 0.09 168);
+  --accent: oklch(0.32 0.05 45);
+  --accent-foreground: oklch(0.88 0.08 55);
   --destructive: oklch(0.65 0.17 25);
   --destructive-foreground: oklch(0.15 0.02 25);
   --success: oklch(0.72 0.12 155);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.74 0.12 168);
+  --ring: oklch(0.66 0.165 40);
   --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.4);
   --shadow-lift: 0 10px 34px oklch(0 0 0 / 0.45);
 }
@@ -106,21 +110,17 @@
   html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
   body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); letter-spacing: -0.011em; }
   h1, h2, h3 { letter-spacing: -0.025em; }
-  h1 { font-family: var(--font-sans); }
+  h1, h2, h3 { text-wrap: balance; }
 }
 
 @utility hairline { border: 1px solid var(--color-border); }
 @utility panel { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-soft); }
 
-/* Kurukoo product orange for primary controls and all navigation/context icons. */
-.bg-primary,
-.bg-primary\/10,
-.bg-foreground,
-.bg-foreground\/10 { background-color: #ce4712 !important; }
+/* Navigation and context rails use the Kurukoo brand colour for their icons. */
 aside[aria-label="OS navigation"] svg,
 aside[aria-label="Public Kurukoo navigation"] svg,
 aside[aria-label="Trusted context rail"] svg,
-aside[aria-label="Kurukoo public context rail"] svg { color: #ce4712; }
+aside[aria-label="Kurukoo public context rail"] svg { color: var(--primary); }
 
 @media (width >= 80rem) {
   section[aria-labelledby="home-hero-title"] + div { grid-template-columns: minmax(0, 0.65fr) minmax(0, .9fr) minmax(0, 1.08fr); column-gap: 0.75rem; }

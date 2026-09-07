@@ -11,7 +11,7 @@ const footer = [["/about", "About"], ["/blog", "Blog"], ["/help", "Help"], ["/le
 const routerDestinations = new Set(["/explore", "/capabilities", "/topics", "/about", "/blog", "/help", "/login", "/signup", "/how-it-works", "/contributors", "/partners", "/pricing", "/contact", "/use-cases", "/opportunities", "/advertising"]);
 
 function KurukooMark({ className = "size-6" }: { className?: string }) {
-  return <span aria-hidden className={`grid shrink-0 place-items-center rounded-[10px] bg-[#f4e6dc] font-semibold leading-none text-[#765443] ${className}`}>K</span>;
+  return <span aria-hidden className={`grid shrink-0 place-items-center rounded-[10px] bg-brand-tint font-semibold leading-none text-brand-ink ${className}`}>K</span>;
 }
 
 function PublicDestinationLink({ to, children, className, active = false }: { to: string; children: ReactNode; className: string; active?: boolean }) {
