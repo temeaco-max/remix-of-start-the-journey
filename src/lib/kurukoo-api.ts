@@ -90,6 +90,88 @@ async function readJson<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+
+
+export type DiscoveryEntity = {
+  id: string;
+  name: string;
+  kind: string;
+  category?: string | null;
+  description?: string | null;
+  lat?: number;
+  lng?: number;
+  location?: string | null;
+  source?: string | null;
+  freshness?: string | null;
+  evidence?: string | null;
+  lifecycle?: string | null;
+  available?: boolean | null;
+  liveNow?: boolean | null;
+  skills?: string[];
+  chatAction?: { type?: string; entityId?: string; conversationId?: string | null } | null;
+};
+
+export type PulseProvider = {
+  id: string;
+  skill: string;
+  name: string;
+  location?: string;
+  subscription_tier?: string;
+  source: "mobile" | "stationary";
+  lat: number;
+  lng: number;
+  location_radius_m: number;
+  verified: true;
+  live_now: true;
+};
+
+export type PulseReadiness = {
+  radarDefaultOn: boolean;
+  active: boolean;
+  eligibleToBroadcast: boolean;
+  role: "provider" | "user";
+  nudge?: string;
+};
+
+export async function fetchDiscoveryEntities(input?: { lat?: number; lng?: number; radius?: number; layers?: string[]; q?: string }) {
+  const params = new URLSearchParams();
+  if (input?.lat !== undefined) params.set("lat", String(input.lat));
+  if (input?.lng !== undefined) params.set("lng", String(input.lng));
+  params.set("radius", String(input?.radius ?? 5000));
+  params.set("layers", (input?.layers ?? ["mobile", "stationary", "agents", "emergency", "deals", "events"]).join(","));
+  if (input?.q) params.set("q", input.q);
+  const payload = await readJson<{ entities?: DiscoveryEntity[] }>(`/api/discover/entities?${params.toString()}`);
+  return Array.isArray(payload.entities) ? payload.entities : [];
+}
+
+export async function fetchDiscoveryMap(input?: { lat?: number; lng?: number; radius?: number; layers?: string[] }) {
+  const params = new URLSearchParams();
+  if (input?.lat !== undefined) params.set("lat", String(input.lat));
+  if (input?.lng !== undefined) params.set("lng", String(input.lng));
+  params.set("radius", String(input?.radius ?? 5000));
+  params.set("layers", (input?.layers ?? ["mobile", "stationary", "agents", "emergency", "deals", "events"]).join(","));
+  return readJson<{ type: "FeatureCollection"; features?: Array<{ id?: string; type?: string; geometry?: { coordinates?: [number, number] }; properties?: Record<string, unknown> }>; meta?: Record<string, unknown> }>(`/api/discover/map?${params.toString()}`);
+}
+
+export async function fetchPublicPulseProviders() {
+  const payload = await readJson<{ providers?: PulseProvider[] }>("/api/pulse/providers");
+  return Array.isArray(payload.providers) ? payload.providers : [];
+}
+
+export async function fetchPulseReadiness() {
+  return readJson<PulseReadiness>("/api/pulse/readiness");
+}
+
+export async function activatePulse(skill: string, lat: number, lng: number) {
+  return readJson<{ success: boolean; message: string }>("/api/pulse/live", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ skill, lat, lng }),
+  });
+}
+
+export async function deactivatePulse() {
+  return readJson<{ success: boolean; message: string }>("/api/pulse/deactivate", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+}
+
 export async function fetchCanonicalTopics(limit = 5, filters?: { type?: string; category?: string }) {
   const params = new URLSearchParams({ limit: String(Math.min(20, Math.max(1, limit))) });
   if (filters?.type) params.set("type", filters.type);
