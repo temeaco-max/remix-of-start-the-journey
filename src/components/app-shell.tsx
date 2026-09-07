@@ -5,6 +5,8 @@ import {
   Brain,
   Briefcase,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Compass,
   FolderClosed,
   HeartPulse,
