@@ -1,9 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, X, Home, Compass, Sparkles, Bell, Tags } from "lucide-react";
+import { Menu, X, Home, Compass, Sparkles, Bell, Tags, MapPin } from "lucide-react";
 import { useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
 
-const items = [["/", "Home", Home], ["/chat", "Conversation", Sparkles], ["/explore", "Explore", Compass], ["/topics", "Topics", Tags], ["/activity", "Activity", Bell]] as const;
+const items = [["/", "Home", Home], ["/chat", "Conversation", Sparkles], ["/explore", "Explore", Compass], ["/discover", "Nearby", MapPin], ["/topics", "Topics", Tags]] as const;
 const moreItems = [["/work", "Work"], ["/capabilities", "Capabilities"], ["/providers", "Providers"], ["/businesses", "Businesses"], ["/creators", "Creators"], ["/advertising", "Advertising"], ["/opportunities", "Opportunities"], ["/pricing", "Plans"], ["/subscriptions", "Subscriptions"], ["/wallet", "Wallet"], ["/memory", "Memory"], ["/messages", "Messages"], ["/contacts", "Contacts"], ["/connect", "Connect"], ["/settings", "Settings"]] as const;
 function KurukooMark() { return <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-[10px] bg-brand-tint text-[13px] font-semibold leading-none text-brand-ink">K</span>; }
 
