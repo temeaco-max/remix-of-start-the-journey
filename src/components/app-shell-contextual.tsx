@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Bell, Brain, Briefcase, ChevronDown, ChevronLeft, ChevronRight, Compass, ExternalLink, FolderClosed, Home, ListChecks, MapPin, MessageSquare, Moon, Plug, Search, Settings, Sparkles, Sun, Tags, Users, Wallet, Zap } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
