@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, CirclePlay, Gift, MessageCircle, Mic2, Plus, Sparkles, Users, Building2, Phone, Focus, PackageCheck, Utensils, PhoneCall, ShoppingBag, CarFront } from "lucide-react";
+import { ArrowUpRight, Bell, CirclePlay, Gift, MessageCircle, Mic2, Plus, Sparkles, Users, Building2, Phone, Focus, PackageCheck, Utensils, PhoneCall, ShoppingBag, CarFront } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { Panel, ContextIconTile } from "@/components/kurukoo/ui";
