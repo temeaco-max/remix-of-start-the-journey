@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BadgeCheck, Phone } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { VideoCard } from "@/components/kurukoo/cards";
-import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
+import { Action, IntegrationGap, actionClass } from "@/components/kurukoo/primitives";
 import { Avatar, FollowButton, Rows, SaveButton, SectionHeader, ShareButton, StatTile } from "@/components/kurukoo/ui";
 import { entityById, videos } from "@/lib/kurukoo-demo";
 import { useKurukoo } from "@/lib/kurukoo-store";

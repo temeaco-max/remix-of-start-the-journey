@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, BookOpen, MessageCircle, Search, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { Action } from "@/components/kurukoo/primitives";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { Panel, SearchField } from "@/components/kurukoo/ui";
 import { useKurukoo } from "@/lib/kurukoo-store";
 

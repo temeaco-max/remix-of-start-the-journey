@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, Brain, CalendarClock, CheckCircle2, Compass, CreditCard, FileText, HeartPulse, MessageCircle, Mic2, PackageSearch, ShieldCheck, Wrench, Zap } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { AgentCard } from "@/components/kurukoo/cards";
-import { Action } from "@/components/kurukoo/primitives";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { Panel, SectionHeader } from "@/components/kurukoo/ui";
 import { agents } from "@/lib/kurukoo-demo";
 import { capabilityCount, skillCategories } from "@/lib/skill-catalog";

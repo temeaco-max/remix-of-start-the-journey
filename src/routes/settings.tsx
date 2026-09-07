@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
+import { Action, IntegrationGap, actionClass } from "@/components/kurukoo/primitives";
 import { Panel, Rows, SettingsRow, Tabs, Toggle } from "@/components/kurukoo/ui";
 
 export const Route = createFileRoute("/settings")({

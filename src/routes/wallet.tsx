@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, CreditCard, Coins, WalletCards } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { TransactionRow } from "@/components/kurukoo/cards";
-import { Action } from "@/components/kurukoo/primitives";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { Panel, Rows, SectionHeader } from "@/components/kurukoo/ui";
 import { transactions } from "@/lib/kurukoo-demo";
 

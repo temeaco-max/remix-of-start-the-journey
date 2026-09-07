@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
-import { Action } from "@/components/kurukoo/primitives";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { MarketingPage } from "@/components/kurukoo/marketing";
 import { PlanCard } from "@/components/kurukoo/cards";
 import { SectionHeader } from "@/components/kurukoo/ui";

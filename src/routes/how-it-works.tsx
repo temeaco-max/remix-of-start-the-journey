@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Check, MessageCircle, Search, ShieldCheck } from "lucide-react";
-import { Action } from "@/components/kurukoo/primitives";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
 
 export const Route = createFileRoute("/how-it-works")({

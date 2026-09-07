@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { EntityCard, VideoCard } from "@/components/kurukoo/cards";
-import { Action } from "@/components/kurukoo/primitives";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { Rows, SectionHeader, StatTile, Tabs } from "@/components/kurukoo/ui";
 import { entities, entityById, videos } from "@/lib/kurukoo-demo";
 export const Route=createFileRoute("/creators")({head:()=>({meta:[{title:"Creators — Kurukoo"},{name:"description",content:"Watch useful content, discover creators, or build a channel with publishing, subscribers and revenue tools."}]}),component:CreatorsPage});

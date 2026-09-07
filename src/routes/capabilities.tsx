@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, Compass, MessageCircle, Search, ShieldCheck, Sparkles, WalletCards, Zap } from "lucide-react";
-import { Action } from "@/components/kurukoo/primitives";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
 import { capabilityCount, canonicalRequestExamples, skillCategories, userJobs } from "@/lib/skill-catalog";
 export const Route = createFileRoute("/capabilities")({ head: () => ({ meta: [{ title: "Capabilities — Kurukoo" }, { name: "description", content: "Explore what Kurukoo can help you do, with the full capability catalogue underneath." }] }), component: CapabilitiesPage });
