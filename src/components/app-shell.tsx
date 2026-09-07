@@ -38,11 +38,12 @@ const nav = [
   { to: "/desk", label: "For You", icon: Home },
   { to: "/chat", label: "Conversation", icon: Sparkles },
   { to: "/explore", label: "Explore", icon: Compass },
+  { to: "/discover", label: "Nearby", icon: MapPin },
   { to: "/activity", label: "Activity", icon: Bell },
-  { to: "/work", label: "Work", icon: ListChecks },
 ] as const;
 
 const more = [
+  { to: "/work", label: "Work", icon: ListChecks },
   { to: "/network", label: "Network", icon: Users },
   { to: "/topics", label: "Topics", icon: Tags },
   { to: "/capabilities", label: "Capabilities", icon: Sparkles },
