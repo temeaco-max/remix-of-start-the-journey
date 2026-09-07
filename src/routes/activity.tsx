@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, CheckCircle2, MessageCircle, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeader, EmptyState } from "@/components/app-shell";
-import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
+import { Action } from "@/components/kurukoo/primitives";
 import { Avatar, ContextIconTile, Panel, Rows, StatusPill, Tabs } from "@/components/kurukoo/ui";
 import { entities, threads } from "@/lib/kurukoo-demo";
 import { fetchFollowedTopics, topicApiConfigured, type FollowedTopic } from "@/lib/topic-lifecycle";
