@@ -282,3 +282,23 @@ export async function streamKurukooChat(input: { message: string; conversationId
   consume(decoder.decode());
   return { conversationId, reply: reply.trim() };
 }
+
+export type CanonicalMemoryFact = {
+  id: number;
+  field: string;
+  value: string;
+  provenance?: string;
+  confidence?: number;
+  sourceConversationId?: string | null;
+  observedAt?: string | null;
+  expiresAt?: string | null;
+};
+
+export async function fetchCanonicalMemoryFacts() {
+  const payload = await readJson<{ facts?: CanonicalMemoryFact[] }>("/api/memory/facts");
+  return Array.isArray(payload.facts) ? payload.facts : [];
+}
+
+export async function revokeCanonicalMemoryFact(id: number) {
+  return readJson<{ success: boolean; revoked?: boolean }>(`/api/memory/facts/${encodeURIComponent(String(id))}`, { method: "DELETE" });
+}
