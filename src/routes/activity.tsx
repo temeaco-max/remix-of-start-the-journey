@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, CheckCircle2, MessageCircle, UserRound } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
 import { Avatar, ContextIconTile, Panel, Rows, StatusPill, Tabs } from "@/components/kurukoo/ui";
-import { entities, threads, topics } from "@/lib/kurukoo-demo";
+import { entities, threads } from "@/lib/kurukoo-demo";
+import { fetchFollowedTopics, topicApiConfigured, type FollowedTopic } from "@/lib/topic-lifecycle";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/activity")({
@@ -24,6 +25,16 @@ const tabs = ["Needs you", "Replies", "Following", "System"] as const;
 function ActivityPage() {
   const { notifications, confirm, markRead } = useKurukoo();
   const [tab, setTab] = useState<string>(tabs[0]);
+  const [followedTopics, setFollowedTopics] = useState<FollowedTopic[]>([]);
+  const [topicFollowingError, setTopicFollowingError] = useState("");
+  useEffect(() => {
+    if (tab !== "Following") return;
+    if (!topicApiConfigured()) { setFollowedTopics([]); setTopicFollowingError("Topic updates require the canonical service connection."); return; }
+    void fetchFollowedTopics().then((items) => { setFollowedTopics(items); setTopicFollowingError(""); }).catch((error) => {
+      setFollowedTopics([]);
+      setTopicFollowingError(error instanceof Error ? error.message : "Unable to load Topic updates.");
+    });
+  }, [tab]);
   const pending = notifications.filter((n) => n.needsConfirmation);
   const unread = notifications.filter((n) => !n.read).length;
 
@@ -103,25 +114,25 @@ function ActivityPage() {
         ) : null}
 
         {tab === "Following" ? (
-          <Rows>
-            {topics.map((t) => (
-              <li key={t.slug}>
-                <Link to="/topics/$slug" params={{ slug: t.slug }} className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5">
-                  <ContextIconTile><MessageCircle className="size-[17px]" /></ContextIconTile>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-medium">New discussion in {t.name}</span>
-                    <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{t.posts[0]?.author}: {t.posts[0]?.text}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </Rows>
+          topicFollowingError ? <EmptyState title="Topic updates unavailable" body={topicFollowingError} /> :
+          followedTopics.length ? <Rows>{followedTopics.map((item) => (
+            <li key={item.topic.id}>
+              <Link to="/topics/$slug" params={{ slug: item.topic.slug }} className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5">
+                <ContextIconTile><MessageCircle className="size-[17px]" /></ContextIconTile>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-medium">{item.topic.title}</span>
+                  <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{item.topic.replyCount} moderated {item.topic.replyCount === 1 ? "reply" : "replies"} · Updates {item.relationship.notificationPreference === "muted" ? "off" : "on"}</span>
+                </span>
+              </Link>
+            </li>
+          ))}</Rows> :
+          <EmptyState title="No Topic follows yet" body="Follow a Topic to keep its updates attached to your Activity surface." />
         ) : null}
 
         {tab === "System" ? <EmptyState title="No system events" body="Account, security and billing events will be listed here." /> : null}
       </section>
 
-      <IntegrationGap>Activity is currently backed by the prototype session. Push, email and provider webhooks will feed this surface when connected.</IntegrationGap>
+      <p className="text-[11px] text-muted-foreground">Topic Following is backed by the canonical relationship service. Other Activity categories still depend on their connected event sources.</p>
     </div>
   );
 }
