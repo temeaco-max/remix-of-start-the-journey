@@ -1,5 +1,5 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';
 import { getRenderableCampaigns, recordAdImpression } from '../services/adManager.js';
 import { optimizeCampaignImage } from '../services/assetOptimization.js';
@@ -7,7 +7,7 @@ import { optimizeCampaignImage } from '../services/assetOptimization.js';
 const router = Router();
 const allowedPlacements = new Set(['authenticated_left_rail', 'authenticated_context_rail', 'authenticated_desk_content']);
 
-async function renderPlacement(req: AuthRequest, res: any, placement: string) {
+async function renderPlacement(req: AuthRequest, res: Response, placement: string) {
   if (!req.user?.phone) return res.status(401).json({ error: 'Authentication required' });
   if (!allowedPlacements.has(placement)) return res.status(404).json({ error: 'Placement unavailable' });
   const campaigns = await getRenderableCampaigns({ firstParty: false, placements: [placement], limit: 1, now: Date.now() });
