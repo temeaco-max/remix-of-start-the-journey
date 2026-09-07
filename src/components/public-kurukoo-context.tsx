@@ -77,10 +77,10 @@ function PublicActivityFeed() {
   const items = Array.from({ length: 4 }, (_, index) => activityItems[(offset + index) % activityItems.length] ?? activityItems[0]);
   return <section className="rounded-2xl border border-border bg-surface p-3">
     <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2"><Zap className="size-[15px] text-primary" /><h2 className="text-[13px] font-semibold">What Kurukoo can surface</h2></div>
-      <span className="text-[9px] text-muted-foreground">Examples</span>
+      <div className="flex items-center gap-2"><Zap className="size-[15px] text-primary" /><h2 className="text-[13px] font-semibold">Activity</h2></div>
+      <span className="text-[9px] text-muted-foreground">My Activity</span>
     </div>
-    <div className="mt-2.5 space-y-2.5 overflow-hidden">{items.map(([type, text, time]) => <div key={`${type}-${text}`} className="flex gap-2 transition-all duration-500"><span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" /><div className="min-w-0"><p className="text-[10.5px] leading-snug"><span className="font-semibold">{type}</span> · {text}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{time}</p></div></div>)}</div>
+    <div className="mt-2.5 space-y-2.5 overflow-hidden">{items.map(([type, text, time]) => <div key={`${type}-${text}`} className="flex gap-2 transition-all duration-500"><span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" /><div className="min-w-0"><p className="text-[10.5px] leading-snug"><span className="font-semibold">{type}</span> · {text} <span className="text-muted-foreground">· {time}</span></p></div></div>)}</div>
   </section>;
 }
 
