@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Home, Compass, Tags, Wallet, Target } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, Compass, Tags, Wallet, Target, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
 import { userJobs } from "@/lib/skill-catalog";
 
-const publicNav = [["/", "Home", Home], ["/explore", "Explore", Compass], ["/topics", "Topics", Tags], ["/opportunities", "Opportunities", Target], ["/pricing", "Plans", Wallet]] as const;
+const publicNav = [["/", "Home", Home], ["/explore", "Explore", Compass], ["/discover", "Nearby", MapPin], ["/topics", "Topics", Tags], ["/opportunities", "Opportunities", Target], ["/pricing", "Plans", Wallet]] as const;
 
 function PublicAdvert() {
   return <div className="relative overflow-hidden rounded-2xl border border-border bg-brand-tint/40 p-3.5 shadow-[var(--shadow-soft)]">
