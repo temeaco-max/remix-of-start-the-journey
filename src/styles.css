@@ -66,6 +66,26 @@ aside[aria-label="Kurukoo public context rail"] svg { color: var(--primary); }
 /* Public context is part of the same scroll plane as the public main surface. */
 aside[aria-label="Kurukoo public context rail"] { height: auto !important; min-height: 100%; overflow: visible !important; }
 
+/* Restore transparent scrollbars on the authenticated OS shell only. */
+body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigation"],
+body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="Trusted context rail"],
+body:has(aside[aria-label="Trusted context rail"]) main { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigation"]::-webkit-scrollbar,
+body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="Trusted context rail"]::-webkit-scrollbar,
+body:has(aside[aria-label="Trusted context rail"]) main::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
+body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigation"]::-webkit-scrollbar-track,
+body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="Trusted context rail"]::-webkit-scrollbar-track,
+body:has(aside[aria-label="Trusted context rail"]) main::-webkit-scrollbar-track { background: transparent; }
+body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigation"]::-webkit-scrollbar-thumb,
+body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="Trusted context rail"]::-webkit-scrollbar-thumb,
+body:has(aside[aria-label="Trusted context rail"]) main::-webkit-scrollbar-thumb { background: transparent; border: 2px solid transparent; background-clip: padding-box; }
+
+/* Primary OS navigation uses the same compact link geometry as the links below More. */
+aside[aria-label="OS navigation"] nav a { display: flex; min-height: 40px; align-items: center; border-radius: 0.75rem; padding: 0.625rem 0.75rem; font-size: 0.8125rem; line-height: 1.25rem; font-weight: 400; gap: 0.75rem; color: var(--muted-foreground); text-decoration: none; }
+aside[aria-label="OS navigation"] nav a:hover { background: var(--elevated); color: var(--foreground); }
+aside[aria-label="OS navigation"] nav a[aria-current="page"] { background: var(--elevated); color: var(--foreground); font-weight: 500; }
+aside[aria-label="OS navigation"] nav a svg { flex: 0 0 auto; color: var(--primary); }
+
 @media (width >= 80rem) {
   section[aria-labelledby="home-hero-title"] + div { grid-template-columns: minmax(0, 0.65fr) minmax(0, .9fr) minmax(0, 1.08fr); column-gap: 0.75rem; }
 }
