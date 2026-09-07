@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, X, Home, Compass, Sparkles, Bell, Tags, MapPin, Users, Store, Radio, Zap } from "lucide-react";
+import { Menu, X, Home, Compass, Sparkles, Tags, MapPin, Users, Store, Radio, Zap, Wallet, Brain, MessageCircle, Settings } from "lucide-react";
 import { useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
 
