@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, ChevronLeft, ChevronRight, MessageCircle, Pause, Play, Plus, Search, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { AuthMode } from "@/components/kurukoo/auth";
 import { fetchCanonicalTopics, type CanonicalTopic } from "@/lib/kurukoo-api";
 
 const videoScenes = [
@@ -68,7 +69,7 @@ function PublicVideoCarousel() {
   </div>;
 }
 
-function PublicActivityFeed() {
+function PublicActivityFeed({ onAuth }: { onAuth?: (mode: AuthMode) => void }) {
   const [offset, setOffset] = useState(0);
   useEffect(() => {
     const timer = window.setInterval(() => setOffset((value) => (value + 1) % activityItems.length), 3200);
@@ -78,7 +79,7 @@ function PublicActivityFeed() {
   return <section className="rounded-2xl border border-border bg-surface p-3">
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2"><Zap className="size-[15px] text-primary" /><h2 className="text-[13px] font-semibold">Activity</h2></div>
-      <span className="text-[9px] text-muted-foreground">My Activity</span>
+      <button type="button" onClick={() => onAuth?.("login")} className="text-[9px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">My Activity</button>
     </div>
     <div className="mt-2.5 space-y-2.5 overflow-hidden">{items.map(([type, text, time]) => <div key={`${type}-${text}`} className="flex gap-2 transition-all duration-500"><span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" /><div className="min-w-0"><p className="text-[10.5px] leading-snug"><span className="font-semibold">{type}</span> · {text} <span className="text-muted-foreground">· {time}</span></p></div></div>)}</div>
   </section>;
@@ -100,14 +101,14 @@ function TopicsPeek() {
   </section>;
 }
 
-export function PublicContextRail() {
+export function PublicContextRail({ onAuth }: { onAuth?: (mode: AuthMode) => void }) {
   return <aside aria-label="Kurukoo public context rail" className="flex h-full min-w-0 flex-col overflow-y-auto bg-background/70 px-3 py-4">
     <SearchBox />
     <section className="mt-3">
       <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><Play className="size-[14px] text-primary" /><h2 className="text-[13px] font-semibold">Recent videos</h2></div><span className="text-[9px] text-muted-foreground">Watch</span></div>
       <PublicVideoCarousel />
     </section>
-    <div className="mt-3"><PublicActivityFeed /></div>
+    <div className="mt-3"><PublicActivityFeed onAuth={onAuth} /></div>
     <div className="mt-3"><TopicsPeek /></div>
   </aside>;
 }
