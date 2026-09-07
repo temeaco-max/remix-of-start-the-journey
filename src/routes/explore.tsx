@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight, BriefcaseBusiness, Compass, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, Compass, MapPin, RefreshCw, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { EntityCard, VideoCard } from "@/components/kurukoo/cards";
@@ -57,6 +57,29 @@ function ExplorePage() {
 
   return <div className="space-y-8"><PageHeader title="Explore" subtitle="Find people, places, ideas and opportunities — then hand the useful part to Kurukoo." />
     <section className="relative overflow-hidden rounded-[24px] border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-6"><div className="pointer-events-none absolute -right-10 -top-16 size-52 rounded-full bg-brand-tint/60 blur-3xl" /><div className="relative flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Compass className="size-[18px]" /></span><div><p className="text-[12px] font-medium text-muted-foreground">Discovery</p><h2 className="mt-1 text-[20px] font-semibold tracking-tight">What are you looking for?</h2><p className="mt-1 text-[13px] text-muted-foreground">Search first, or tell Kurukoo what you want and let it coordinate the next step.</p></div></div><div className="relative mt-5"><SearchField label="Search Kurukoo" placeholder="Search people, places, topics…" value={q} onChange={setQ} /></div><div className="relative mt-3"><Chips items={categories} value={cat} onChange={setCat} label="Discovery categories" /></div></section>
+    <section>
+      <SectionHeader title="Three ways to discover" subtitle="These surfaces do different jobs. Explore is deliberate search; Nearby is the local world; Radar is what Kurukoo thinks is worth noticing." />
+      <div className="grid gap-3 md:grid-cols-3">
+        <Link to="/explore" className="group rounded-[20px] border border-primary/20 bg-brand-tint/25 p-5">
+          <Compass className="size-5 text-primary" />
+          <h3 className="mt-3 text-[15px] font-semibold">Explore</h3>
+          <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">Search the wider Kurukoo network: people, providers, businesses, creators, Topics, opportunities and useful content.</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-[11.5px] font-medium">Search the network <ArrowUpRight className="size-3.5" /></span>
+        </Link>
+        <Link to="/discover" className="group rounded-[20px] border border-border bg-surface p-5 hover:bg-elevated/50">
+          <MapPin className="size-5 text-muted-foreground" />
+          <h3 className="mt-3 text-[15px] font-semibold">Nearby</h3>
+          <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">See the local world around you: moving providers, shops, offers, events and other useful nearby activity.</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-[11.5px] font-medium">Open Nearby <ArrowUpRight className="size-3.5" /></span>
+        </Link>
+        <Link to="/discover" className="group rounded-[20px] border border-border bg-elevated/40 p-5 hover:bg-elevated/65">
+          <Zap className="size-5 text-primary" />
+          <h3 className="mt-3 text-[15px] font-semibold">Radar</h3>
+          <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">Your attention layer. Radar can surface a nearby live signal, useful opportunity or timely change that matches your context.</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-[11.5px] font-medium">See local attention <ArrowUpRight className="size-3.5" /></span>
+        </Link>
+      </div>
+    </section>
     <section><SectionHeader title="Daily Picks" subtitle="A quick starting point for today." action={<Link to="/daily-picks" className="inline-flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground">See all <ArrowUpRight className="size-3.5" /></Link>} /><DailyPicksGrid /></section>
     <section><SectionHeader title="Start a request" subtitle="Hand a useful task straight to Kurukoo." /><div className="flex flex-wrap gap-2">{starters.map((s) => <button key={s} type="button" onClick={() => { send(s); navigate({ to: "/" }); }} className="min-h-9 rounded-full border border-border bg-surface px-3.5 text-[13px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-elevated hover:text-foreground">{s}</button>)}</div></section>
     {showEntities ? <section><SectionHeader title={cat === "All" ? "People, places and opportunities" : cat} subtitle={`${results.length} results`} /><div className="grid gap-3 md:grid-cols-2">{results.map((e) => <EntityCard key={e.id} entity={e} />)}</div><div className="mt-3 grid gap-3 sm:grid-cols-2"><AdSlot placement="Explore feed" headline="Sponsored result" body="Sponsored results are clearly separated from organic discovery." advertiser="Example advertiser" /><AdSlot placement="Explore feed" headline="Sponsored result" body="Sponsored results are clearly separated from organic discovery." advertiser="Example advertiser" /></div></section> : null}
