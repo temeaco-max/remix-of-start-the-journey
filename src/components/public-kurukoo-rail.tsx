@@ -1,48 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Home, Compass, Tags, Wallet, Target, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, Compass, Home, MapPin, Tags, Target, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
 import { userJobs } from "@/lib/skill-catalog";
-
 const publicNav = [["/", "Home", Home], ["/explore", "Explore", Compass], ["/discover", "Nearby", MapPin], ["/topics", "Topics", Tags], ["/opportunities", "Opportunities", Target], ["/pricing", "Plans", Wallet]] as const;
-
-function PublicAdvert() {
-  return <div className="relative overflow-hidden rounded-2xl border border-border bg-brand-tint/40 p-3.5 shadow-[var(--shadow-soft)]">
-    <div className="absolute -right-8 -top-8 size-24 rounded-full bg-brand-tint blur-2xl" />
-    <div className="relative">
-      <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Kurukoo Advertising</p>
-      <p className="mt-1.5 text-[12px] font-semibold tracking-tight">Useful discovery, not noise.</p>
-      <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">Relevant services, offers and ideas can appear in context.</p>
-      <Link to="/advertising" className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-medium text-brand-ink hover:opacity-80">Advertise with Kurukoo <ChevronRight className="size-3" /></Link>
-    </div>
-  </div>;
-}
-
-export function PublicRail({ collapsed, onToggle, onAuth }: { collapsed: boolean; onToggle: () => void; onAuth: (mode: AuthMode) => void }) {
-  const rotatingPrompts = userJobs.filter((job) => ["Get a Ride", "Order Food", "Set Reminders", "Get Suya", "Find Work", "Promote Items", "Find Nearby", "Get Price Alerts", "Book Repair", "Get Prayers"].includes(job));
-  const [promptIndex, setPromptIndex] = useState(0);
-  const [promptVisible, setPromptVisible] = useState(true);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setPromptVisible(false);
-      const next = window.setTimeout(() => {
-        setPromptIndex((value) => (value + 1) % Math.max(1, rotatingPrompts.length));
-        setPromptVisible(true);
-      }, 220);
-      return () => window.clearTimeout(next);
-    }, 2200);
-    return () => window.clearInterval(timer);
-  }, [rotatingPrompts.length]);
-
-  const prompt = rotatingPrompts[promptIndex] ?? "Get a Ride";
-  return <aside aria-label="Public Kurukoo navigation" className={`relative z-40 hidden h-full min-h-[calc(100vh-50px)] flex-col border-r border-border bg-surface/95 px-3 py-0 backdrop-blur md:flex ${collapsed ? "w-[76px]" : "w-[200px]"}`}>
-    <button type="button" onClick={onToggle} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} title={collapsed ? "Expand navigation" : "Collapse navigation"} className="absolute right-0 top-5 z-10 grid size-9 translate-x-1/2 place-items-center rounded-full border border-border bg-surface text-muted-foreground shadow-[var(--shadow-soft)] hover:bg-elevated hover:text-foreground">{collapsed ? <ChevronRight className="size-[17px]" strokeWidth={1.8} /> : <ChevronLeft className="size-[17px]" strokeWidth={1.8} />}</button>
-    <div className="mb-3 pt-1">
-      <Link to="/explore" aria-label={`Try ${prompt}`} title={prompt} className={`${collapsed ? "mx-auto flex size-10 items-center justify-center px-2 text-[9px]" : "flex h-10 items-center justify-center px-3 text-[11px]"} overflow-hidden rounded-full border border-border bg-background font-medium shadow-[var(--shadow-soft)] transition-colors hover:border-primary/30 hover:bg-brand-tint/40`}><span className={`truncate transition-opacity duration-200 ${promptVisible ? "opacity-100" : "opacity-0"}`}>{collapsed ? "Try" : prompt}</span></Link>
-    </div>
-    <nav aria-label="Public primary navigation" className="space-y-1">{publicNav.map(([to,label,Icon]) => <Link key={to} to={to as never} activeProps={{ className: "bg-elevated font-medium text-foreground" }} className={`flex items-center rounded-xl py-2.5 text-[13.5px] leading-5 transition-colors ${collapsed ? "justify-center px-2" : "gap-3 px-3"} text-muted-foreground hover:bg-elevated hover:text-foreground`} title={collapsed ? label : undefined}><Icon className="size-[18px] shrink-0" strokeWidth={1.8}/>{!collapsed&&label}</Link>)}</nav>
-    {!collapsed && <><div className="mt-5"><PublicAdvert /></div><p className="px-3 pb-1 pt-6 text-[10px] font-medium uppercase tracking-[0.14em] leading-4 text-muted-foreground">More</p><div className="rounded-xl bg-elevated/60 px-3 py-2.5"><p className="text-[11px] font-medium leading-4">Your workspace awaits.</p><p className="mt-1 text-[10.5px] leading-5 text-muted-foreground">Sign in to unlock your requests, work, memory and personal context.</p></div></>}
-    <div className="mt-auto px-1 pt-4">{collapsed ? <button type="button" onClick={() => onAuth("login")} className="flex w-full items-center justify-center rounded-xl border border-border px-2 py-2 text-[10px] font-medium leading-4 text-muted-foreground hover:bg-elevated" title="Log In">Log In</button> : <><button type="button" onClick={() => onAuth("login")} className="flex w-full items-center justify-center rounded-xl border border-border bg-background px-3 py-2 text-[12px] font-medium leading-4">Log In</button><button type="button" onClick={() => onAuth("signup")} className="mt-2 flex w-full items-center justify-center rounded-xl bg-foreground px-3 py-2 text-[12px] font-medium leading-4 text-background">Try for free</button></>}</div>
-  </aside>;
-}
+function PublicAdvert(){return <div className="relative overflow-hidden rounded-2xl border border-border bg-brand-tint/40 p-3.5 shadow-[var(--shadow-soft)]"><div className="absolute -right-8 -top-8 size-24 rounded-full bg-brand-tint blur-2xl"/><div className="relative"><p className="text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Kurukoo Advertising</p><p className="mt-1.5 text-[12px] font-semibold tracking-tight">Useful discovery, not noise.</p><p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">Relevant services, offers and ideas can appear in context.</p><Link to="/advertising" className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-medium text-brand-ink hover:opacity-80">Advertise with Kurukoo <ChevronRight className="size-3"/></Link></div></div>}
+export function PublicRail({collapsed,onToggle,onAuth}:{collapsed:boolean;onToggle:()=>void;onAuth:(mode:AuthMode)=>void}){const rotatingPrompts=userJobs.filter(job=>["Get a Ride","Order Food","Set Reminders","Get Suya","Find Work","Promote Items","Find Nearby","Get Price Alerts","Book Repair","Get Prayers"].includes(job));const[promptIndex,setPromptIndex]=useState(0);const[promptVisible,setPromptVisible]=useState(true);useEffect(()=>{const timer=window.setInterval(()=>{setPromptVisible(false);const next=window.setTimeout(()=>{setPromptIndex(value=>(value+1)%Math.max(1,rotatingPrompts.length));setPromptVisible(true)},220);return()=>window.clearTimeout(next)},2200);return()=>window.clearInterval(timer)},[rotatingPrompts.length]);const prompt=rotatingPrompts[promptIndex]??"Get a Ride";return <aside aria-label="Public Kurukoo navigation" className={`relative z-40 hidden h-full min-h-0 overflow-y-auto overscroll-contain flex-col border-r border-border bg-surface/95 px-3 py-0 backdrop-blur md:flex ${collapsed?"w-[76px]":"w-[200px]"}`}><button type="button" onClick={onToggle} aria-label={collapsed?"Expand navigation":"Collapse navigation"} title={collapsed?"Expand navigation":"Collapse navigation"} className="sticky right-0 top-5 z-10 ml-auto grid size-9 shrink-0 translate-x-1/2 place-items-center rounded-full border border-border bg-surface text-muted-foreground shadow-[var(--shadow-soft)] hover:bg-elevated hover:text-foreground">{collapsed?<ChevronRight className="size-[17px]" strokeWidth={1.8}/>:<ChevronLeft className="size-[17px]" strokeWidth={1.8}/>}</button><div className="mb-3 pt-1"><Link to="/explore" aria-label={`Try ${prompt}`} title={prompt} className={`${collapsed?"mx-auto flex size-10 items-center justify-center px-2 text-[9px]":"flex h-10 items-center justify-center px-3 text-[11px]"} overflow-hidden rounded-full border border-border bg-background font-medium shadow-[var(--shadow-soft)] transition-colors hover:border-primary/30 hover:bg-brand-tint/40`}><span className={`truncate transition-opacity duration-200 ${promptVisible?"opacity-100":"opacity-0"}`}>{collapsed?"Try":prompt}</span></Link></div><nav aria-label="Public primary navigation" className="space-y-1">{publicNav.map(([to,label,Icon])=><Link key={to} to={to as never} activeProps={{className:"bg-elevated font-medium text-foreground"}} className={`flex items-center rounded-xl py-2.5 text-[13.5px] leading-5 transition-colors ${collapsed?"justify-center px-2":"gap-3 px-3"} text-muted-foreground hover:bg-elevated hover:text-foreground`} title={collapsed?label:undefined}><Icon className="size-[18px] shrink-0" strokeWidth={1.8}/>{!collapsed&&label}</Link>)}</nav>{!collapsed&&<div className="pb-4"><div className="mt-5"><PublicAdvert/></div><p className="px-3 pb-1 pt-6 text-[10px] font-medium uppercase tracking-[0.14em] leading-4 text-muted-foreground">More</p><div className="rounded-xl bg-elevated/60 px-3 py-2.5"><p className="text-[11px] font-medium leading-4">Your workspace awaits.</p><p className="mt-1 text-[10.5px] leading-5 text-muted-foreground">Sign in to unlock your requests, work, memory and personal context.</p></div></div>}<div className="mt-auto shrink-0 px-1 pb-4 pt-4">{collapsed?<button type="button" onClick={()=>onAuth("login")} className="flex w-full items-center justify-center rounded-xl border border-border px-2 py-2 text-[10px] font-medium leading-4 text-muted-foreground hover:bg-elevated" title="Log In">Log In</button>:<><button type="button" onClick={()=>onAuth("login")} className="flex w-full items-center justify-center rounded-xl border border-border bg-background px-3 py-2 text-[12px] font-medium leading-4">Log In</button><button type="button" onClick={()=>onAuth("signup")} className="mt-2 flex w-full items-center justify-center rounded-xl bg-foreground px-3 py-2 text-[12px] font-medium leading-4 text-background">Try for free</button></>}</div></aside>}
