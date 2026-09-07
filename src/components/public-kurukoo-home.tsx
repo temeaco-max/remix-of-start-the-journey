@@ -20,7 +20,7 @@ const whoServes = [
   [Users, "Contributors", "Help add useful information, local context, curation or onboarding through scoped workflows.", "/contributors", "Become a contributor"],
   [Network, "Partners", "Connect organisations and services to Kurukoo through defined capabilities and authorised integrations.", "/partners", "For partners"],
   [Megaphone, "Advertisers", "Reach relevant Kurukoo audiences through clearly labelled sponsored discovery, offers and campaigns.", "/advertising", "Advertise on Kurukoo"],
-  [Zap, "Agents", "Physical and local agent-network participants who help people reach services, information and opportunities in the real world.", "/chat?prompt=I%20want%20to%20join%20the%20Kurukoo%20agent%20network", "Join the agent network"],
+  [Zap, "Agents", "Physical and local agent-participants who help people reach services, information and opportunities.", "/chat?prompt=I%20want%20to%20join%20the%20Kurukoo%20agent%20network", "Join the agent network"],
 ];
 const capabilities = [
   [Sparkles, "Conversation", "Start with what you need. Kurukoo turns plain language into useful next steps."],
