@@ -8,7 +8,7 @@ import { AppShell } from "../components/app-shell";
 import { PublicHome, PublicKurukooShell } from "../components/public-kurukoo";
 import { KurukooProvider } from "@/lib/kurukoo-store";
 
-const publicSurfacePrefixes = ["/about", "/blog", "/capabilities", "/contributors", "/contact", "/explore", "/help", "/how-it-works", "/legal", "/login", "/partners", "/pricing", "/providers", "/businesses", "/creators", "/advertising", "/signup", "/topics", "/use-cases", "/opportunities", "/safety"] as const;
+const publicSurfacePrefixes = ["/about", "/blog", "/capabilities", "/contributors", "/contact", "/explore", "/discover", "/help", "/how-it-works", "/legal", "/login", "/partners", "/pricing", "/providers", "/businesses", "/creators", "/advertising", "/signup", "/topics", "/use-cases", "/opportunities", "/safety"] as const;
 const authenticatedMoreItems = [["/work", "Work"], ["/topics", "Topics"], ["/capabilities", "Capabilities"], ["/providers", "Providers"], ["/businesses", "Businesses"], ["/creators", "Creators"], ["/advertising", "Advertising"], ["/pricing", "Plans"], ["/subscriptions", "Subscriptions"], ["/wallet", "Wallet"], ["/memory", "Memory"], ["/messages", "Messages"], ["/contacts", "Contacts"], ["/connect", "Connect"], ["/safety", "Safety"], ["/settings", "Settings"]] as const;
 
 function NotFoundComponent() {
