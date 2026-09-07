@@ -26,17 +26,22 @@ import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as ContributorsRouteImport } from './routes/contributors'
 import { Route as CreatorsRouteImport } from './routes/creators'
 import { Route as DailyPicksRouteImport } from './routes/daily-picks'
+import { Route as DeskRouteImport } from './routes/desk'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as FollowingRouteImport } from './routes/following'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as OpportunitiesRouteImport } from './routes/opportunities'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ProvidersRouteImport } from './routes/providers'
+import { Route as SafetyRouteImport } from './routes/safety'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
@@ -47,9 +52,12 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as MessagesThreadIdRouteImport } from './routes/messages.$threadId'
 import { Route as ProfileEntityIdRouteImport } from './routes/profile.$entityId'
 import { Route as TopicsSlugRouteImport } from './routes/topics.$slug'
+import { Route as TopicsCreateRouteImport } from './routes/topics.create'
+import { Route as TopicsMineRouteImport } from './routes/topics.mine'
 import { Route as VideosVideoIdRouteImport } from './routes/videos.$videoId'
 import { Route as WorkIndexRouteImport } from './routes/work.index'
 import { Route as WorkWorkIdRouteImport } from './routes/work.$workId'
+import { Route as TopicsEditIdRouteImport } from './routes/topics.edit.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -136,6 +144,11 @@ const DailyPicksRoute = DailyPicksRouteImport.update({
   path: '/daily-picks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeskRoute = DeskRouteImport.update({
+  id: '/desk',
+  path: '/desk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExploreRoute = ExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
@@ -149,6 +162,16 @@ const FollowingRoute = FollowingRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -176,6 +199,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpportunitiesRoute = OpportunitiesRouteImport.update({
+  id: '/opportunities',
+  path: '/opportunities',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PartnersRoute = PartnersRouteImport.update({
   id: '/partners',
   path: '/partners',
@@ -189,6 +217,11 @@ const PricingRoute = PricingRouteImport.update({
 const ProvidersRoute = ProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SafetyRoute = SafetyRouteImport.update({
+  id: '/safety',
+  path: '/safety',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -241,6 +274,16 @@ const TopicsSlugRoute = TopicsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => TopicsRoute,
 } as any)
+const TopicsCreateRoute = TopicsCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TopicsRoute,
+} as any)
+const TopicsMineRoute = TopicsMineRouteImport.update({
+  id: '/mine',
+  path: '/mine',
+  getParentRoute: () => TopicsRoute,
+} as any)
 const VideosVideoIdRoute = VideosVideoIdRouteImport.update({
   id: '/videos/$videoId',
   path: '/videos/$videoId',
@@ -255,6 +298,11 @@ const WorkWorkIdRoute = WorkWorkIdRouteImport.update({
   id: '/work/$workId',
   path: '/work/$workId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TopicsEditIdRoute = TopicsEditIdRouteImport.update({
+  id: '/edit/$id',
+  path: '/edit/$id',
+  getParentRoute: () => TopicsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -275,17 +323,22 @@ export interface FileRoutesByFullPath {
   '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
   '/daily-picks': typeof DailyPicksRoute
+  '/desk': typeof DeskRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/network': typeof NetworkRoute
   '/notifications': typeof NotificationsRoute
+  '/opportunities': typeof OpportunitiesRoute
   '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
+  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
@@ -296,9 +349,12 @@ export interface FileRoutesByFullPath {
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
+  '/topics/create': typeof TopicsCreateRoute
+  '/topics/mine': typeof TopicsMineRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
   '/work/$workId': typeof WorkWorkIdRoute
   '/work/': typeof WorkIndexRoute
+  '/topics/edit/$id': typeof TopicsEditIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -318,17 +374,22 @@ export interface FileRoutesByTo {
   '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
   '/daily-picks': typeof DailyPicksRoute
+  '/desk': typeof DeskRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/network': typeof NetworkRoute
   '/notifications': typeof NotificationsRoute
+  '/opportunities': typeof OpportunitiesRoute
   '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
+  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
@@ -339,9 +400,12 @@ export interface FileRoutesByTo {
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
+  '/topics/create': typeof TopicsCreateRoute
+  '/topics/mine': typeof TopicsMineRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
   '/work/$workId': typeof WorkWorkIdRoute
   '/work': typeof WorkIndexRoute
+  '/topics/edit/$id': typeof TopicsEditIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -362,17 +426,22 @@ export interface FileRoutesById {
   '/contributors': typeof ContributorsRoute
   '/creators': typeof CreatorsRoute
   '/daily-picks': typeof DailyPicksRoute
+  '/desk': typeof DeskRoute
   '/explore': typeof ExploreRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
   '/network': typeof NetworkRoute
   '/notifications': typeof NotificationsRoute
+  '/opportunities': typeof OpportunitiesRoute
   '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
   '/providers': typeof ProvidersRoute
+  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
@@ -383,9 +452,12 @@ export interface FileRoutesById {
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
   '/topics/$slug': typeof TopicsSlugRoute
+  '/topics/create': typeof TopicsCreateRoute
+  '/topics/mine': typeof TopicsMineRoute
   '/videos/$videoId': typeof VideosVideoIdRoute
   '/work/$workId': typeof WorkWorkIdRoute
   '/work/': typeof WorkIndexRoute
+  '/topics/edit/$id': typeof TopicsEditIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -407,17 +479,22 @@ export interface FileRouteTypes {
     | '/contributors'
     | '/creators'
     | '/daily-picks'
+    | '/desk'
     | '/explore'
     | '/following'
     | '/help'
+    | '/how-it-works'
+    | '/legal'
     | '/login'
     | '/memory'
     | '/messages'
     | '/network'
     | '/notifications'
+    | '/opportunities'
     | '/partners'
     | '/pricing'
     | '/providers'
+    | '/safety'
     | '/settings'
     | '/signup'
     | '/subscriptions'
@@ -428,9 +505,12 @@ export interface FileRouteTypes {
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
+    | '/topics/create'
+    | '/topics/mine'
     | '/videos/$videoId'
     | '/work/$workId'
     | '/work/'
+    | '/topics/edit/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -450,17 +530,22 @@ export interface FileRouteTypes {
     | '/contributors'
     | '/creators'
     | '/daily-picks'
+    | '/desk'
     | '/explore'
     | '/following'
     | '/help'
+    | '/how-it-works'
+    | '/legal'
     | '/login'
     | '/memory'
     | '/messages'
     | '/network'
     | '/notifications'
+    | '/opportunities'
     | '/partners'
     | '/pricing'
     | '/providers'
+    | '/safety'
     | '/settings'
     | '/signup'
     | '/subscriptions'
@@ -471,9 +556,12 @@ export interface FileRouteTypes {
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
+    | '/topics/create'
+    | '/topics/mine'
     | '/videos/$videoId'
     | '/work/$workId'
     | '/work'
+    | '/topics/edit/$id'
   id:
     | '__root__'
     | '/'
@@ -493,17 +581,22 @@ export interface FileRouteTypes {
     | '/contributors'
     | '/creators'
     | '/daily-picks'
+    | '/desk'
     | '/explore'
     | '/following'
     | '/help'
+    | '/how-it-works'
+    | '/legal'
     | '/login'
     | '/memory'
     | '/messages'
     | '/network'
     | '/notifications'
+    | '/opportunities'
     | '/partners'
     | '/pricing'
     | '/providers'
+    | '/safety'
     | '/settings'
     | '/signup'
     | '/subscriptions'
@@ -514,9 +607,12 @@ export interface FileRouteTypes {
     | '/messages/$threadId'
     | '/profile/$entityId'
     | '/topics/$slug'
+    | '/topics/create'
+    | '/topics/mine'
     | '/videos/$videoId'
     | '/work/$workId'
     | '/work/'
+    | '/topics/edit/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -537,17 +633,22 @@ export interface RootRouteChildren {
   ContributorsRoute: typeof ContributorsRoute
   CreatorsRoute: typeof CreatorsRoute
   DailyPicksRoute: typeof DailyPicksRoute
+  DeskRoute: typeof DeskRoute
   ExploreRoute: typeof ExploreRoute
   FollowingRoute: typeof FollowingRoute
   HelpRoute: typeof HelpRoute
+  HowItWorksRoute: typeof HowItWorksRoute
+  LegalRoute: typeof LegalRoute
   LoginRoute: typeof LoginRoute
   MemoryRoute: typeof MemoryRoute
   MessagesRoute: typeof MessagesRouteWithChildren
   NetworkRoute: typeof NetworkRoute
   NotificationsRoute: typeof NotificationsRoute
+  OpportunitiesRoute: typeof OpportunitiesRoute
   PartnersRoute: typeof PartnersRoute
   PricingRoute: typeof PricingRoute
   ProvidersRoute: typeof ProvidersRoute
+  SafetyRoute: typeof SafetyRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
@@ -681,6 +782,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DailyPicksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/desk': {
+      id: '/desk'
+      path: '/desk'
+      fullPath: '/desk'
+      preLoaderRoute: typeof DeskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/explore': {
       id: '/explore'
       path: '/explore'
@@ -700,6 +808,20 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -737,6 +859,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/opportunities': {
+      id: '/opportunities'
+      path: '/opportunities'
+      fullPath: '/opportunities'
+      preLoaderRoute: typeof OpportunitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/partners': {
       id: '/partners'
       path: '/partners'
@@ -756,6 +885,13 @@ declare module '@tanstack/react-router' {
       path: '/providers'
       fullPath: '/providers'
       preLoaderRoute: typeof ProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/safety': {
+      id: '/safety'
+      path: '/safety'
+      fullPath: '/safety'
+      preLoaderRoute: typeof SafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -828,6 +964,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TopicsSlugRouteImport
       parentRoute: typeof TopicsRoute
     }
+    '/topics/create': {
+      id: '/topics/create'
+      path: '/create'
+      fullPath: '/topics/create'
+      preLoaderRoute: typeof TopicsCreateRouteImport
+      parentRoute: typeof TopicsRoute
+    }
+    '/topics/mine': {
+      id: '/topics/mine'
+      path: '/mine'
+      fullPath: '/topics/mine'
+      preLoaderRoute: typeof TopicsMineRouteImport
+      parentRoute: typeof TopicsRoute
+    }
     '/videos/$videoId': {
       id: '/videos/$videoId'
       path: '/videos/$videoId'
@@ -848,6 +998,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/work/$workId'
       preLoaderRoute: typeof WorkWorkIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/topics/edit/$id': {
+      id: '/topics/edit/$id'
+      path: '/edit/$id'
+      fullPath: '/topics/edit/$id'
+      preLoaderRoute: typeof TopicsEditIdRouteImport
+      parentRoute: typeof TopicsRoute
     }
   }
 }
@@ -876,10 +1033,16 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 
 interface TopicsRouteChildren {
   TopicsSlugRoute: typeof TopicsSlugRoute
+  TopicsCreateRoute: typeof TopicsCreateRoute
+  TopicsMineRoute: typeof TopicsMineRoute
+  TopicsEditIdRoute: typeof TopicsEditIdRoute
 }
 
 const TopicsRouteChildren: TopicsRouteChildren = {
   TopicsSlugRoute: TopicsSlugRoute,
+  TopicsCreateRoute: TopicsCreateRoute,
+  TopicsMineRoute: TopicsMineRoute,
+  TopicsEditIdRoute: TopicsEditIdRoute,
 }
 
 const TopicsRouteWithChildren =
@@ -903,17 +1066,22 @@ const rootRouteChildren: RootRouteChildren = {
   ContributorsRoute: ContributorsRoute,
   CreatorsRoute: CreatorsRoute,
   DailyPicksRoute: DailyPicksRoute,
+  DeskRoute: DeskRoute,
   ExploreRoute: ExploreRoute,
   FollowingRoute: FollowingRoute,
   HelpRoute: HelpRoute,
+  HowItWorksRoute: HowItWorksRoute,
+  LegalRoute: LegalRoute,
   LoginRoute: LoginRoute,
   MemoryRoute: MemoryRoute,
   MessagesRoute: MessagesRouteWithChildren,
   NetworkRoute: NetworkRoute,
   NotificationsRoute: NotificationsRoute,
+  OpportunitiesRoute: OpportunitiesRoute,
   PartnersRoute: PartnersRoute,
   PricingRoute: PricingRoute,
   ProvidersRoute: ProvidersRoute,
+  SafetyRoute: SafetyRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   SubscriptionsRoute: SubscriptionsRoute,
