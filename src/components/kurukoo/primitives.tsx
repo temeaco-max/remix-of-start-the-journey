@@ -25,9 +25,14 @@ export function Message({ message }: { message: MessageModel }) {
   return <div className={cn("flex", you ? "justify-end" : "justify-start")}><div className={cn("max-w-[85%] text-[15px] leading-relaxed", you ? "rounded-2xl rounded-br-md bg-elevated px-4 py-2.5" : "text-foreground")}>{message.text}</div></div>;
 }
 
-export function Action({ children, onClick, variant = "quiet", type = "button" }: { children: ReactNode; onClick?: () => void; variant?: "quiet" | "primary"; type?: "button" | "submit" }) {
-  return <button type={type} onClick={onClick} className={cn("min-h-9 rounded-lg px-3 py-1.5 text-[13.5px] transition-colors", variant === "primary" ? "bg-primary text-primary-foreground hover:opacity-90" : "border border-border hover:bg-elevated")}>{children}</button>;
+export function actionClass(variant: "quiet" | "primary" = "quiet") {
+  return cn("inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors", variant === "primary" ? "bg-primary text-primary-foreground hover:opacity-90" : "border border-border hover:bg-elevated");
 }
+
+export function Action({ children, onClick, variant = "quiet", type = "button" }: { children: ReactNode; onClick?: () => void; variant?: "quiet" | "primary"; type?: "button" | "submit" }) {
+  return <button type={type} onClick={onClick} className={actionClass(variant)}>{children}</button>;
+}
+
 
 export function Progress({ steps }: { steps: WorkItem["steps"] }) {
   return <ol className="mt-4 space-y-2">{steps.map((s) => <li key={s.label} className="flex items-center gap-2.5 text-[14px]"><span className={cn("grid size-[18px] shrink-0 place-items-center rounded-full border", s.done ? "border-transparent bg-primary text-primary-foreground" : "border-border")}>{s.done ? <Check className="size-3" strokeWidth={3} /> : null}</span><span className={cn(s.done && "text-muted-foreground")}>{s.label}</span></li>)}</ol>;
