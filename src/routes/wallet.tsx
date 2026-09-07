@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, CreditCard, Coins, WalletCards } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { TransactionRow } from "@/components/kurukoo/cards";
-import { Action } from "@/components/kurukoo/primitives";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { Panel, Rows, SectionHeader } from "@/components/kurukoo/ui";
 import { transactions } from "@/lib/kurukoo-demo";
 
@@ -31,7 +31,7 @@ function WalletPage() {
     <Panel className="mt-4 overflow-hidden p-0">
       <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div><p className="text-[15px] font-medium">Choose what the value is for</p><p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">Points can cover Kurukoo's coordination work. Provider and business payments remain separate and require your approval.</p></div>
-        <div className="flex flex-wrap gap-2"><Action variant="primary">Top up points</Action><Action>Add payment method</Action><Link to="/subscriptions"><Action>Subscription</Action></Link></div>
+        <div className="flex flex-wrap gap-2"><Action variant="primary">Top up points</Action><Action>Add payment method</Action><Link to="/subscriptions" className={actionClass()}>Subscription</Link></div>
       </div>
       <div className="grid border-t border-border sm:grid-cols-2">
         <div className="p-4 sm:border-r sm:border-border"><p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Points</p><p className="mt-2 text-[13.5px] leading-relaxed">Used for Kurukoo's coordination work, such as moving a request forward.</p></div>

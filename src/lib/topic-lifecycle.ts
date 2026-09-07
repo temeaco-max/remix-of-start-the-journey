@@ -1,6 +1,6 @@
 import type { CanonicalTopic, CanonicalTopicRelationship } from "@/lib/kurukoo-api";
 
-const API_BASE = (import.meta.env.VITE_KURUKOO_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE = (import.meta.env['VITE_KURUKOO_API_BASE_URL'] ?? "").replace(/\/$/, "");
 export const topicApiConfigured = () => Boolean(API_BASE);
 
 function url(path: string) { return `${API_BASE}${path}`; }

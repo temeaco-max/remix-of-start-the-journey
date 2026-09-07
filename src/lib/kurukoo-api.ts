@@ -75,7 +75,7 @@ export type ProactiveOpportunity = {
   createdAt: string;
 };
 
-const API_BASE = (import.meta.env.VITE_KURUKOO_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE = (import.meta.env['VITE_KURUKOO_API_BASE_URL'] ?? "").replace(/\/$/, "");
 
 function apiUrl(path: string) { return `${API_BASE}${path}`; }
 export function isKurukooApiConfigured() { return Boolean(API_BASE); }
@@ -167,7 +167,7 @@ export async function fetchProactiveFeed() {
   return Array.isArray(payload.opportunities) ? payload.opportunities : [];
 }
 
-export async function streamKurukooChat(input: { message: string; conversationId?: string; onEvent: (event: ChatStreamEvent) => void }): Promise<{ conversationId?: string; reply: string }> {
+export async function streamKurukooChat(input: { message: string; conversationId?: string | undefined; onEvent: (event: ChatStreamEvent) => void }): Promise<{ conversationId?: string | undefined; reply: string }> {
   const response = await fetch(apiUrl("/api/v1/chat/stream"), {
     method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message: input.message.trim(), conversationId: input.conversationId, channel: "web" }),

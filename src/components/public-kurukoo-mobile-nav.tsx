@@ -5,7 +5,7 @@ import type { AuthMode } from "@/components/kurukoo/auth";
 
 const items = [["/", "Home", Home], ["/chat", "Conversation", Sparkles], ["/explore", "Explore", Compass], ["/activity", "Activity", Bell]] as const;
 const moreItems = [["/work", "Work"], ["/topics", "Topics"], ["/capabilities", "Capabilities"], ["/providers", "Providers"], ["/businesses", "Businesses"], ["/creators", "Creators"], ["/advertising", "Advertising"], ["/pricing", "Plans"], ["/subscriptions", "Subscriptions"], ["/wallet", "Wallet"], ["/memory", "Memory"], ["/messages", "Messages"], ["/contacts", "Contacts"], ["/connect", "Connect"], ["/settings", "Settings"]] as const;
-function KurukooMark() { return <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-[10px] bg-[#f4e6dc] text-[13px] font-semibold leading-none text-[#765443]">K</span>; }
+function KurukooMark() { return <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-[10px] bg-brand-tint text-[13px] font-semibold leading-none text-brand-ink">K</span>; }
 
 export function PublicMobileNavigation({ onAuth }: { onAuth: (mode: AuthMode) => void }) {
   const [open, setOpen] = useState(false); const close = () => setOpen(false);

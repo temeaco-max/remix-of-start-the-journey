@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { ArtifactRow } from "@/components/kurukoo/cards";
-import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
+import { Action, IntegrationGap, actionClass } from "@/components/kurukoo/primitives";
 import { Chips, Panel, Rows, SearchField, SectionHeader } from "@/components/kurukoo/ui";
 import { artifacts } from "@/lib/kurukoo-demo";
 
@@ -43,7 +44,7 @@ function ArtifactsPage() {
     <Panel className="mt-8 p-4">
       <p className="text-[15px] font-medium">Storage destination</p>
       <p className="mt-1 text-[13.5px] text-muted-foreground">Files currently sit in temporary Kurukoo storage. Connect a provider when you want a persistent destination.</p>
-      <Link to="/connect" className="mt-3 inline-block"><Action variant="primary">Open Connect</Action></Link>
+      <Link to="/connect" className={cn("mt-3 inline-block", actionClass("primary"))}>Open Connect</Link>
     </Panel>
     <IntegrationGap>Uploads, downloads and external storage sync are not implemented yet.</IntegrationGap>
   </>;

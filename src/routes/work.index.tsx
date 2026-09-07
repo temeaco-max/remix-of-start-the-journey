@@ -27,8 +27,8 @@ function WorkPage() {
     <PageHeader title="Work" subtitle="What Kurukoo is taking care of right now." />
 
     <section className="relative overflow-hidden rounded-[24px] border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-6">
-      <div className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-[#f4e6dc]/60 blur-3xl" />
-      <div className="relative flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#f4e6dc] text-[#765443]"><Sparkles className="size-[18px]" /></span><div><p className="text-[13px] font-medium text-muted-foreground">Kurukoo at work</p><h2 className="mt-1 text-[20px] font-semibold tracking-tight">You stay in control. Kurukoo carries the work.</h2><p className="mt-1 max-w-2xl text-[13px] text-muted-foreground">Requests move here as they are understood, coordinated and completed. Anything requiring your approval is clearly marked.</p></div></div>
+      <div className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-brand-tint/60 blur-3xl" />
+      <div className="relative flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Sparkles className="size-[18px]" /></span><div><p className="text-[13px] font-medium text-muted-foreground">Kurukoo at work</p><h2 className="mt-1 text-[20px] font-semibold tracking-tight">You stay in control. Kurukoo carries the work.</h2><p className="mt-1 max-w-2xl text-[13px] text-muted-foreground">Requests move here as they are understood, coordinated and completed. Anything requiring your approval is clearly marked.</p></div></div>
     </section>
 
     <div className="grid gap-3 sm:grid-cols-3">
