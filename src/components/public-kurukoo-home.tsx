@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
+import { KURUKOO_PUBLIC_ROLES } from "@/lib/kurukoo-personas";
 
 const examples = [
   [
@@ -63,64 +64,23 @@ const prompts = [
   "Order Food",
   "Sell Item",
 ];
-const whoServes = [
-  [
-    Users,
-    "People",
-    "Ask for help, discover useful things and keep everyday life moving through one conversation.",
-    "/chat",
-    "For people",
-  ],
-  [
-    Target,
-    "Providers",
-    "Offer a genuine skill, become discoverable when eligible and coordinate work with customers.",
-    "/providers",
-    "Become a Provider",
-  ],
-  [
-    Network,
-    "Businesses",
-    "Make products and services discoverable, respond to demand and grow customer relationships.",
-    "/businesses",
-    "For businesses",
-  ],
-  [
-    Sparkles,
-    "Creators",
-    "Share useful ideas, build an audience and create value around content and Topics.",
-    "/creators",
-    "For creators",
-  ],
-  [
-    Users,
-    "Contributors",
-    "Help add useful information, local context, curation or onboarding through scoped workflows.",
-    "/contributors",
-    "Become a contributor",
-  ],
-  [
-    Network,
-    "Partners",
-    "Connect organisations and services to Kurukoo through defined capabilities and authorised integrations.",
-    "/partners",
-    "For partners",
-  ],
-  [
-    Megaphone,
-    "Advertisers",
-    "Reach relevant Kurukoo audiences through clearly labelled sponsored discovery, offers and campaigns.",
-    "/advertising",
-    "Advertise on Kurukoo",
-  ],
-  [
-    Zap,
-    "Agents",
-    "Physical and local agent-participants who help people reach services, information and opportunities.",
-    "/chat?prompt=I%20want%20to%20join%20the%20Kurukoo%20agent%20network",
-    "Join the agent network",
-  ],
-];
+const publicRoleIcons = {
+  seeker: Users,
+  provider: Target,
+  business: Network,
+  creator: Sparkles,
+  contributor: Users,
+  partner: Network,
+  advertiser: Megaphone,
+  "local-agent": Zap,
+} as const;
+const whoServes = KURUKOO_PUBLIC_ROLES.map((role) => [
+  publicRoleIcons[role.id],
+  role.title,
+  role.description,
+  role.to,
+  role.cta,
+] as const);
 const capabilities = [
   [
     Sparkles,
