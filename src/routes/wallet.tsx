@@ -44,7 +44,7 @@ function Metric({
           <Icon className="size-4" />
         </span>
         <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-          Balance
+          Preview
         </span>
       </div>
       <p className="mt-5 text-[11.5px] text-muted-foreground">{label}</p>
@@ -61,18 +61,29 @@ function WalletPage() {
         title="Wallet"
         subtitle="Points support Kurukoo's coordination work. Money stays separate for approved services and purchases."
       />
+      <Panel className="mb-4 border-dashed p-3.5">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <p className="text-[12.5px] leading-relaxed">
+            <span className="font-medium">Preview state.</span> The balances and transaction examples below
+            are illustrative so you can see how the wallet will look when payment and wallet services are connected.
+          </p>
+          <span className="shrink-0 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            Not connected
+          </span>
+        </div>
+      </Panel>
       <div className="grid gap-3 sm:grid-cols-3">
         <Metric
           icon={Coins}
           label="Kurukoo points"
           value="480 pts"
-          note="Available for coordination"
+          note="Illustrative balance"
         />
         <Metric
           icon={WalletCards}
           label="Wallet balance"
           value="£0.00"
-          note="Add a payment method when you are ready"
+          note="Illustrative until payments connect"
         />
         <Metric
           icon={CreditCard}
@@ -120,7 +131,7 @@ function WalletPage() {
       <section className="mt-8">
         <SectionHeader
           title="Transaction history"
-          subtitle="Points and money remain clearly separated."
+          subtitle="Preview transactions show the intended experience; live ledger data will replace them when connected."
         />
         <Rows>
           {transactions.map((t) => (
@@ -134,14 +145,14 @@ function WalletPage() {
           <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
             Top up points, review refunds and keep a clear record of what happened to your balance.
           </p>
-          <p className="mt-3 text-[11.5px] text-muted-foreground">Coming soon</p>
+          <p className="mt-3 text-[11.5px] text-muted-foreground">Preview — service not connected</p>
         </Panel>
         <Panel className="p-4">
           <p className="text-[14px] font-medium">Provider payouts</p>
           <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
             Providers can receive completed-work payouts here once payment connections are active.
           </p>
-          <p className="mt-3 text-[11.5px] text-muted-foreground">Coming soon</p>
+          <p className="mt-3 text-[11.5px] text-muted-foreground">Preview — service not connected</p>
         </Panel>
       </section>
       <div className="mt-4 flex justify-end">
