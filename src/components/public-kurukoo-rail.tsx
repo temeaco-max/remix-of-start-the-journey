@@ -7,7 +7,6 @@ import {
   MapPin,
   Tags,
   Target,
-  Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
@@ -77,6 +76,7 @@ function PublicAdvert() {
     </div>
   );
 }
+
 export function PublicRail({
   collapsed,
   onToggle,
@@ -92,7 +92,6 @@ export function PublicRail({
     ["/discover", "Nearby", MapPin],
     ["/topics", "Topics", Tags],
     ["/opportunities", "Opportunities", Target],
-    ["/pricing", "Plans", Wallet],
   ] as const;
   return (
     <aside
