@@ -4,8 +4,10 @@ import {
   ArrowUpRight,
   CheckCircle2,
   CircleHelp,
+  History,
   ShieldCheck,
   Sparkles,
+  X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
