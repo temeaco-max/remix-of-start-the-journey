@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { AIProviderDirectory } from "@/components/kurukoo/ai-provider-directory";
 import { HomeForYou } from "@/components/kurukoo/home-for-you";
+import { HomePromotionCarousel } from "@/components/kurukoo/home-promotion-carousel";
 import { Panel, ContextIconTile } from "@/components/kurukoo/ui";
 import { PulseControl } from "@/components/kurukoo/pulse-control";
 import { fetchAuthenticatedAd, fetchProactiveFeed, type AuthenticatedAd, type ProactiveOpportunity } from "@/lib/kurukoo-api";
@@ -48,10 +49,11 @@ export function HomePage() {
       <Panel className="overflow-hidden p-0"><CardHeader title="Radar" count={opportunities.slice(0, 2).length} />{opportunities.slice(0, 2).length ? opportunities.slice(0, 2).map((item) => <OpportunityCard key={item.id} item={item} />) : <div className="px-4 py-5 text-[12px] text-muted-foreground">Radar is quiet.</div>}<div className="px-4 py-3"><SectionAction to="/discover">Open Nearby</SectionAction></div></Panel>
     </div>
 
-    <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
       <div className="min-w-0"><PulseControl /></div>
-      <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Topics</h2><SectionAction to="/topics">Open</SectionAction></div><p className="text-[12px] text-muted-foreground">Community discussion.</p></Panel>
-      <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Wallet</h2><SectionAction to="/wallet">Open</SectionAction></div><p className="text-[12px] text-muted-foreground">Points and money.</p></Panel>
+      <HomePromotionCarousel />
+      <Panel className="min-h-[116px] p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Topics</h2><SectionAction to="/topics">Open</SectionAction></div><p className="text-[12px] text-muted-foreground">Community discussion.</p></Panel>
+      <Panel className="min-h-[116px] p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Wallet</h2><SectionAction to="/wallet">Open</SectionAction></div><p className="text-[12px] text-muted-foreground">Points and money.</p></Panel>
     </div>
 
     <div className="grid gap-4 lg:grid-cols-3">
