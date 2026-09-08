@@ -28,6 +28,7 @@ import {
   type PulseReadiness,
 } from "@/lib/kurukoo-api";
 import { PulseControl } from "@/components/kurukoo/pulse-control";
+import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/discover")({
   head: () => ({
@@ -71,11 +72,39 @@ const iconFor = (kind: string, live = false) =>
               : Users;
 const pretty = (value: string) =>
   value.replace(/[_-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+function discoveryContext(entity: DiscoveryEntity) {
+  const evidence = entity.evidence ? pretty(entity.evidence) : "source-attributed";
+  const availability = entity.liveNow
+    ? "live now"
+    : entity.available === true
+      ? "available"
+      : "availability not confirmed";
+  return [
+    `I found this through Kurukoo Nearby: ${entity.name}.`,
+    `Type: ${pretty(entity.category ?? entity.kind)}.`,
+    entity.location ? `Approximate area: ${entity.location}.` : "",
+    `Evidence: ${evidence}. Availability: ${availability}.`,
+    entity.freshness ? `Freshness: ${entity.freshness}.` : "",
+    entity.source ? `Source: ${entity.source}.` : "",
+    entity.description ? `Description: ${entity.description}` : "",
+    "Treat community or claimed information as context, not fulfilment proof. Help me decide whether this is relevant and, if appropriate, move me into a verified request without inventing availability, price or capability.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 function SignalCard({ entity, pulse }: { entity?: DiscoveryEntity; pulse?: PulseProvider }) {
+  const { send } = useKurukoo();
   const live = Boolean(pulse);
   const name = pulse?.name ?? entity?.name ?? "Nearby item";
   const skill = pulse?.skill ?? entity?.category ?? entity?.kind ?? "Local discovery";
   const Icon = iconFor(String(skill).toLowerCase(), live);
+  const evidence = entity?.evidence ? pretty(entity.evidence) : live ? "Verified live signal" : "Source attributed";
+  const freshness = entity?.freshness;
+  const available = live || entity?.available === true;
+  const context = entity
+    ? discoveryContext(entity)
+    : `I found ${name} through Kurukoo Pulse as a verified live provider signal. Skill: ${skill}. Location is approximate. Help me understand whether I should use this provider and, if appropriate, move into a verified request. Do not invent price or availability beyond this live signal.`;
+  const ask = () => send(context);
   return (
     <article className="rounded-[18px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/45">
       <div className="flex items-start gap-3">
@@ -85,11 +114,7 @@ function SignalCard({ entity, pulse }: { entity?: DiscoveryEntity; pulse?: Pulse
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <p className="truncate text-[14px] font-semibold">{name}</p>
-            {live ? (
-              <Badge tone="success">Live now</Badge>
-            ) : entity?.available ? (
-              <Badge tone="success">Available</Badge>
-            ) : null}
+            {live ? <Badge tone="success">Live now</Badge> : available ? <Badge tone="success">Available</Badge> : <Badge>Not confirmed</Badge>}
           </div>
           <p className="mt-1 text-[11.5px] text-muted-foreground">
             {pretty(String(skill))}
@@ -97,28 +122,29 @@ function SignalCard({ entity, pulse }: { entity?: DiscoveryEntity; pulse?: Pulse
               ? ` · ${pulse?.location ?? entity?.location}`
               : ""}
           </p>
-          {entity?.freshness || entity?.evidence ? (
-            <p className="mt-1 text-[10.5px] text-muted-foreground">
-              {entity?.freshness ? `${entity.freshness} · ` : ""}
-              {entity?.evidence ? pretty(entity.evidence) : "Source attributed"}
-            </p>
-          ) : null}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] text-muted-foreground">
+            <span>{evidence}</span>
+            {freshness ? <span>· {freshness}</span> : null}
+            {entity?.lifecycle ? <span>· {pretty(entity.lifecycle)}</span> : null}
+          </div>
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link
-          to="/chat"
+        <button
+          type="button"
+          onClick={ask}
           className="inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-[11.5px] font-medium text-primary-foreground"
         >
-          Ask Kurukoo <ArrowUpRight className="size-3.5" />
-        </Link>
+          Ask Kurukoo about this <ArrowUpRight className="size-3.5" />
+        </button>
         {live ? (
-          <Link
-            to="/chat"
+          <button
+            type="button"
+            onClick={ask}
             className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-border px-3 text-[11.5px] font-medium hover:bg-elevated"
           >
-            Ask them to stop by
-          </Link>
+            Check the next step
+          </button>
         ) : null}
       </div>
     </article>
@@ -439,7 +465,7 @@ function NearbyPage() {
                 <p className="text-[12.5px] font-medium">Turn discovery into action</p>
                 <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
                   Open something useful, then ask Kurukoo to order, compare, negotiate, contact or
-                  coordinate it.
+                  coordinate it. Evidence and availability stay separate from community opinion.
                 </p>
                 <Link
                   to="/chat"
