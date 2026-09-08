@@ -24,17 +24,18 @@ const groupIcons: Record<string, typeof ShoppingBag> = {
 const goalRoutes: Record<string, string> = {
   food: "/explore/food",
   groceries: "/explore/groceries",
-  mobility: "/explore/mobility",
-  repairs: "/explore/repairs",
+  ride: "/explore/mobility",
+  travel: "/explore/mobility",
+  repair: "/explore/repairs",
   "money-circle": "/explore/money-circle",
   work: "/explore/work",
-  selling: "/explore/selling",
+  sell: "/explore/selling",
   health: "/explore/health",
-  community: "/explore/community",
   events: "/explore/events",
-  prayer: "/explore/prayer",
-  safety: "/explore/safety",
-  government: "/explore/government",
+  spiritual: "/explore/prayer",
+  connect: "/explore/community",
+  emergency: "/explore/safety",
+  security: "/explore/safety",
 };
 
 function CapabilitiesPage() {
