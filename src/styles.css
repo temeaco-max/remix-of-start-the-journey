@@ -51,7 +51,8 @@
   *::-webkit-scrollbar, html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
   html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
   body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); letter-spacing: -0.011em; }
-  h1, h2, h3 { letter-spacing: -0.025em; text-wrap: balance; }
+  h1 { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.045em; line-height: 1.02; }
+  h2, h3 { letter-spacing: -0.025em; text-wrap: balance; }
 }
 
 @utility hairline { border: 1px solid var(--color-border); }
