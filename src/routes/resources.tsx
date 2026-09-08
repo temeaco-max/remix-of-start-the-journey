@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, BookOpen, MessageCircle } from "lucide-react";
+import { ArrowUpRight, BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
 
@@ -8,7 +8,7 @@ type Resource = {
   title: string;
   category: string;
   excerpt: string;
-  updated_at?: string;
+  updated_at?: string | null;
 };
 
 export const Route = createFileRoute("/resources")({
@@ -28,7 +28,7 @@ function ResourcesPage() {
         return response.json() as Promise<{ resources?: Resource[] }>;
       })
       .then((payload) => {
-        if (!cancelled) setResources(payload.resources ?? []);
+        if (!cancelled) setResources(Array.isArray(payload.resources) ? payload.resources : []);
       })
       .catch(() => {
         if (!cancelled) setResources([]);
@@ -73,7 +73,7 @@ function ResourcesPage() {
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-elevated text-muted-foreground">
                   <BookOpen className="size-4" />
                 </span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{resource.category}</p>
                   <h2 className="mt-1 text-[14px] font-semibold leading-snug">{resource.title}</h2>
                   <p className="mt-1.5 line-clamp-3 text-[11.5px] leading-relaxed text-muted-foreground">{resource.excerpt}</p>
@@ -91,11 +91,6 @@ function ResourcesPage() {
           <AskKurukoo prompt="Show me how to use Kurukoo." className="mt-4" />
         </div>
       )}
-
-      <Link to="/videos" className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-primary">
-        <MessageCircle className="size-3.5" />
-        Browse visual guides
-      </Link>
     </div>
   );
 }
