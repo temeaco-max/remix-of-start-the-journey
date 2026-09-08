@@ -48,6 +48,16 @@ export function LiveVoice({
   const sessionRef = useRef<{ sessionId: string; conversationId?: string } | null>(null);
 
   useEffect(() => {
+    const onPrefs = (event: Event) => {
+      const detail = (event as CustomEvent<{ style?: string; language?: string }>).detail || {};
+      if (detail.style === "calm" || detail.style === "clear" || detail.style === "warm") setStyle(detail.style);
+      if (typeof detail.language === "string" && detail.language) setLanguage(detail.language);
+    };
+    window.addEventListener("kurukoo-voice-preferences", onPrefs);
+    return () => window.removeEventListener("kurukoo-voice-preferences", onPrefs);
+  }, []);
+
+  useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(VOICE_PREFS_KEY) || "{}");
       if (stored.style === "calm" || stored.style === "clear" || stored.style === "warm") setStyle(stored.style);
