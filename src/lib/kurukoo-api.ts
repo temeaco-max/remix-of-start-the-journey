@@ -415,3 +415,14 @@ export async function streamKurukooChat(input: {
   consume(decoder.decode());
   return { conversationId, reply: reply.trim() };
 }
+
+export type VoiceSession = { sessionId: string; conversationId?: string; provider?: string; model?: string; capability?: string; expiresAt?: string };
+
+export async function createVoiceSession(conversationId?: string) {
+  const payload = await readJson<{ voice?: VoiceSession }>('/api/voice/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conversationId ? { conversationId } : {}) });
+  if (!payload.voice) throw new Error('Voice session could not be started.');
+  return payload.voice;
+}
+export async function endVoiceSession(sessionId: string, reason = 'client_disconnect') {
+  return readJson<{ ended: boolean }>('/api/voice/end', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, reason }) });
+}
