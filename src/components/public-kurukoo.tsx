@@ -238,16 +238,19 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
                   <img src={canonicalLogo} alt="Kurukoo" className="size-4 object-contain" width="16" height="16" />
                   <span>© 2026 Kurukoo OS · Everyday AI OS for real life.</span>
                 </p>
-                <nav aria-label="Information and legal" className="ml-auto">
-                  <div className="flex flex-wrap justify-end gap-x-4 gap-y-2">
-                    <PublicDestinationLink to="/about" className="hover:text-foreground">About</PublicDestinationLink>
-                    <PublicDestinationLink to="/help" className="hover:text-foreground">Help</PublicDestinationLink>
-                    <PublicDestinationLink to="/legal" className="font-medium text-foreground hover:opacity-80">Legal & policies</PublicDestinationLink>
-                    <PublicDestinationLink to="/legal/privacy" className="hover:text-foreground">Privacy</PublicDestinationLink>
-                    <PublicDestinationLink to="/legal/terms" className="hover:text-foreground">Terms</PublicDestinationLink>
-                    <PublicDestinationLink to="/legal/cookies" className="hover:text-foreground">Cookies</PublicDestinationLink>
-                  </div>
-                </nav>
+                <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/80">Prototype build</span>
+                  <nav aria-label="Information and legal">
+                    <div className="flex flex-wrap justify-end gap-x-4 gap-y-2">
+                      <PublicDestinationLink to="/about" className="hover:text-foreground">About</PublicDestinationLink>
+                      <PublicDestinationLink to="/help" className="hover:text-foreground">Help</PublicDestinationLink>
+                      <PublicDestinationLink to="/legal" className="font-medium text-foreground hover:opacity-80">Legal & policies</PublicDestinationLink>
+                      <PublicDestinationLink to="/legal/privacy" className="hover:text-foreground">Privacy</PublicDestinationLink>
+                      <PublicDestinationLink to="/legal/terms" className="hover:text-foreground">Terms</PublicDestinationLink>
+                      <PublicDestinationLink to="/legal/cookies" className="hover:text-foreground">Cookies</PublicDestinationLink>
+                    </div>
+                  </nav>
+                </div>
               </footer>
             </main>
             <aside className="hidden min-w-0 border-l border-border/45 lg:block">
