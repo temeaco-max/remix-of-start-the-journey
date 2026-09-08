@@ -65,10 +65,10 @@ const quickActions = [
 ] as const;
 
 const coreWorkflow = [
-  [MessageCircle, "Conversation", "Start naturally. Tell Kurukoo what you need, ask a question, continue a thread or bring context into the conversation.", "conversation"],
-  [ClipboardList, "Requests", "Turn the outcome into a clear request. Kurukoo keeps the details, options, evidence and decisions together before anything important moves.", "requests"],
-  [BriefcaseBusiness, "Work", "Once a request moves forward, Work keeps progress, requirements, messages, commercial steps and the outcome connected.", "work"],
-  [Mic, "Voice", "When voice is available, speak naturally and let the same Kurukoo conversation become the starting point for the work.", "voice"],
+  [MessageCircle, "Conversation", "Start naturally. Tell Kurukoo what you need, ask a question, continue a thread or bring context into the conversation."],
+  [ClipboardList, "Requests", "Turn the outcome into a clear request. Kurukoo keeps the details, options, evidence and decisions together before anything important moves."],
+  [BriefcaseBusiness, "Work", "Once a request moves forward, Work keeps progress, requirements, messages, commercial steps and the outcome connected."],
+  [Mic, "Voice", "When voice is available, speak naturally and let the same Kurukoo conversation become the starting point for the work."],
 ] as const;
 
 export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
@@ -157,8 +157,8 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
           <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">These are the core parts of Kurukoo. Each one has its own surface, but they are designed to carry the same piece of work forward.</p>
         </div>
         <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {coreWorkflow.map(([Icon, title, body, hash], index) => (
-            <Link key={title} to="/how-it-works" hash={hash} className="group relative rounded-[20px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/55">
+          {coreWorkflow.map(([Icon, title, body], index) => (
+            <Link key={title} to="/how-it-works" className="group relative rounded-[20px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/55">
               <div className="flex items-center justify-between gap-3"><span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Icon className="size-4" strokeWidth={1.8} /></span><span className="text-[10px] font-semibold text-muted-foreground">0{index + 1}</span></div>
               <h3 className="mt-4 text-[14px] font-semibold">{title}</h3>
               <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{body}</p>
