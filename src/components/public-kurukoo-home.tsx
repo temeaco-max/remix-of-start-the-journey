@@ -81,6 +81,22 @@ const whoServes = KURUKOO_PUBLIC_ROLES.map((role) => [
   role.to,
   role.cta,
 ] as const);
+const supportedChannels = [
+  ["WhatsApp", "whatsapp"],
+  ["Telegram", "telegram"],
+  ["Google Drive", "googledrive"],
+  ["Google Sheets", "googlesheets"],
+  ["Notion", "notion"],
+  ["ChatGPT", "openai"],
+  ["Claude", "anthropic"],
+  ["Gemini", "googlegemini"],
+  ["Grok", "grok"],
+  ["Copilot", "microsoftcopilot"],
+  ["Dola", "dola"],
+  ["Outlook", "microsoftoutlook"],
+  ["OneDrive", "onedrive"],
+  ["Google Calendar", "googlecalendar"],
+] as const;
 const capabilities = [
   [
     Sparkles,
@@ -245,6 +261,39 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
                   </Link>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="border-t border-border/70 py-5 md:py-6" aria-labelledby="supported-channels-title">
+        <div className="grid min-h-[88px] min-w-0 items-center gap-4 rounded-2xl border border-border bg-surface/70 px-4 py-3.5 md:grid-cols-[170px_minmax(0,1fr)] md:px-5">
+          <div className="min-w-0">
+            <p id="supported-channels-title" className="text-[12px] font-semibold tracking-tight text-foreground">
+              Supported channels
+            </p>
+            <p className="mt-0.5 text-[10.5px] text-muted-foreground">Bring the tools you already use.</p>
+          </div>
+          <div className="relative min-w-0 overflow-hidden" aria-label="Supported channels and integrations">
+            <div className="kurukoo-channel-marquee flex w-max items-center gap-2.5 hover:[animation-play-state:paused]">
+              {[...supportedChannels, ...supportedChannels].map(([name, slug], index) => (
+                <span
+                  key={`${slug}-${index}`}
+                  className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full border border-border bg-background px-3.5 text-[12px] font-medium text-foreground shadow-[var(--shadow-soft)]"
+                >
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-elevated">
+                    <img
+                      src={`https://cdn.simpleicons.org/${slug}`}
+                      alt=""
+                      aria-hidden="true"
+                      width="17"
+                      height="17"
+                      loading="lazy"
+                      className="size-[17px] object-contain opacity-80"
+                    />
+                  </span>
+                  {name}
+                </span>
+              ))}
             </div>
           </div>
         </div>
