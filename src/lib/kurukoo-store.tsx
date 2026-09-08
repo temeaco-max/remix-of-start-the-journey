@@ -106,15 +106,30 @@ function reply(text: string): { answer: string; work?: WorkItem } {
 }
 
 function mapHistoryMessages(
-  input: Array<{ id: number; sender: string; content: string }>,
+  input: Array<{
+    id: number;
+    sender: string;
+    content: string;
+    card_data?: Record<string, unknown> | null;
+    cardData?: Record<string, unknown> | null;
+    metadata?: string | Record<string, unknown> | null;
+  }>,
 ): Message[] {
   return input
     .filter((item) => item.sender === "user" || item.sender === "assistant")
-    .map((item) => ({
-      id: String(item.id),
-      role: item.sender === "user" ? "you" : "kurukoo",
-      text: item.content,
-    }));
+    .map((item) => {
+      let metadata: Record<string, unknown> | null = null;
+      if (item.metadata && typeof item.metadata === "object") metadata = item.metadata;
+      if (typeof item.metadata === "string") {
+        try { const parsed = JSON.parse(item.metadata); if (parsed && typeof parsed === "object") metadata = parsed; } catch {}
+      }
+      return {
+        id: String(item.id),
+        role: item.sender === "user" ? "you" : "kurukoo",
+        text: item.content,
+        cardData: item.card_data ?? item.cardData ?? (metadata?.["cardData"] as Record<string, unknown> | undefined) ?? null,
+      };
+    });
 }
 
 function messageKey(messages: Message[]) {
@@ -186,15 +201,17 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
     if (!isKurukooApiConfigured()) return undefined;
     setIsLoadingHistory(true);
     void fetchChatHistory(undefined, 50)
-      .then((history) => {
+      .then(async (history) => {
         if (cancelled) return;
-        const hydrated = mapHistoryMessages(history.messages ?? []);
-        setMessages(hydrated);
-        const latestConversation =
-          history.conversations?.[0]?.id ??
-          history.messages?.[history.messages.length - 1]?.conversationId ??
-          undefined;
-        if (latestConversation) setConversationId(latestConversation);
+        const latestConversation = history.conversations?.[0]?.id ?? history.messages?.[history.messages.length - 1]?.conversationId ?? undefined;
+        if (!latestConversation) {
+          setMessages(mapHistoryMessages(history.messages ?? []));
+          return;
+        }
+        const latest = await fetchChatHistory(latestConversation, 100);
+        if (cancelled) return;
+        setConversationId(latestConversation);
+        setMessages(mapHistoryMessages(latest.messages ?? []));
       })
       .catch((error) => {
         if (!cancelled)
