@@ -86,6 +86,10 @@ aside[aria-label="OS navigation"] nav a:hover { background: var(--elevated); col
 aside[aria-label="OS navigation"] nav a[aria-current="page"] { background: var(--elevated); color: var(--foreground); font-weight: 500; }
 aside[aria-label="OS navigation"] nav a svg { flex: 0 0 auto; color: var(--primary); }
 
+.kurukoo-channel-marquee { animation: kurukoo-channel-scroll 34s linear infinite; will-change: transform; }
+@keyframes kurukoo-channel-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .kurukoo-channel-marquee { animation: none; } }
+
 @media (width >= 80rem) {
   section[aria-labelledby="home-hero-title"] + div { grid-template-columns: minmax(0, 0.65fr) minmax(0, .9fr) minmax(0, 1.08fr); column-gap: 0.75rem; }
 }
