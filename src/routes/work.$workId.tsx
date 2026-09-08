@@ -84,7 +84,8 @@ function WorkDetail() {
       </div>
 
       <IntegrationGap>
-        People and files shown here are illustrative for now. Live coordination will appear here when connected.
+        People and files shown here are illustrative for now. Live coordination will appear here
+        when connected.
       </IntegrationGap>
     </>
   );
