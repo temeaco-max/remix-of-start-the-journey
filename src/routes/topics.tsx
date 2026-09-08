@@ -1,134 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, MessageCircle, Plus, RefreshCw, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { AgentIntelligence } from "@/components/kurukoo/agent-intelligence";
 import { Panel } from "@/components/kurukoo/ui";
-import {
-  fetchCanonicalTopics,
-  fetchTopicTaxonomy,
-  type CanonicalTopic,
-  type TopicTaxonomy,
-} from "@/lib/kurukoo-api";
+import { fetchCanonicalTopics, fetchTopicTaxonomy, type CanonicalTopic, type TopicTaxonomy } from "@/lib/kurukoo-api";
 import { topics as demoTopics } from "@/lib/kurukoo-demo";
 
-export const Route = createFileRoute("/topics")({
-  head: () => ({
-    meta: [
-      { title: "Topics — Kurukoo" },
-      {
-        name: "description",
-        content:
-          "Public community context: questions, experiences, reports and useful discussion that can inform Kurukoo.",
-      },
-    ],
-  }),
-  component: TopicsPage,
-});
-function pretty(value: string) {
-  return value.replace(/[_-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-function TopicPreview({ topic }: { topic: CanonicalTopic }) {
-  const locality = [topic.city, topic.lga].filter(Boolean).join(" · ");
-  return (
-    <Link
-      to="/topics/$slug"
-      params={{ slug: topic.slug }}
-      className="group rounded-[18px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/50"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
-          <span className="rounded-full bg-elevated px-2 py-1 font-medium text-foreground/80">{pretty(topic.type)}</span>
-          {topic.category ? <span className="rounded-full bg-elevated px-2 py-1">{pretty(topic.category)}</span> : null}
-          {locality ? <span className="rounded-full bg-elevated px-2 py-1">{locality}</span> : null}
-        </div>
-        <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-      </div>
-      <h2 className="mt-4 text-[15.5px] font-medium leading-snug">{topic.title}</h2>
-      <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">{topic.body}</p>
-      <div className="mt-4 flex items-center gap-2 text-[11.5px] text-muted-foreground">
-        <span>{topic.replyCount} {topic.replyCount === 1 ? "moderated reply" : "moderated replies"}</span>
-        <span>·</span>
-        <span>{topic.authorLabel}</span>
-      </div>
-    </Link>
-  );
-}
-function DemoTopicPreview({ topic }: { topic: (typeof demoTopics)[number] }) {
-  return (
-    <Link
-      to="/topics/$slug"
-      params={{ slug: topic.slug }}
-      className="group rounded-[18px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/50"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
-          <span className="rounded-full bg-elevated px-2 py-1 font-medium text-foreground/80">Community topic</span>
-          <span className="rounded-full bg-elevated px-2 py-1">Preview</span>
-        </div>
-        <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
-      </div>
-      <h2 className="mt-4 text-[15.5px] font-medium leading-snug">{topic.name}</h2>
-      <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">{topic.blurb}</p>
-      <div className="mt-4 flex items-center gap-2 text-[11.5px] text-muted-foreground">
-        <span>{topic.posts.length} example replies</span><span>·</span><span>{topic.followers.toLocaleString()} followers</span>
-      </div>
-    </Link>
-  );
-}
+export const Route = createFileRoute("/topics")({ head: () => ({ meta: [
+  { title: "Topics — Kurukoo" },
+  { name: "description", content: "Public community context: questions, experiences, reports and useful discussion that can inform Kurukoo." },
+] }), component: TopicsPage });
+function pretty(value: string) { return value.replace(/[_-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
+function TopicPreview({ topic }: { topic: CanonicalTopic }) { const locality = [topic.city, topic.lga].filter(Boolean).join(" · "); return <Link to="/topics/$slug" params={{ slug: topic.slug }} className="group rounded-[18px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/50"><div className="flex items-start justify-between gap-3"><div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground"><span className="rounded-full bg-elevated px-2 py-1 font-medium text-foreground/80">{pretty(topic.type)}</span>{topic.category ? <span className="rounded-full bg-elevated px-2 py-1">{pretty(topic.category)}</span> : null}{locality ? <span className="rounded-full bg-elevated px-2 py-1">{locality}</span> : null}</div><ArrowUpRight className="size-4 shrink-0 text-muted-foreground" /></div><h2 className="mt-4 text-[15.5px] font-medium leading-snug">{topic.title}</h2><p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">{topic.body}</p><div className="mt-4 flex items-center gap-2 text-[11.5px] text-muted-foreground"><span>{topic.replyCount} {topic.replyCount === 1 ? "moderated reply" : "moderated replies"}</span><span>·</span><span>{topic.authorLabel}</span></div></Link>; }
+function DemoTopicPreview({ topic }: { topic: (typeof demoTopics)[number] }) { return <Link to="/topics/$slug" params={{ slug: topic.slug }} className="group rounded-[18px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/50"><div className="flex items-start justify-between gap-3"><div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground"><span className="rounded-full bg-elevated px-2 py-1 font-medium text-foreground/80">Community topic</span><span className="rounded-full bg-elevated px-2 py-1">Preview</span></div><ArrowUpRight className="size-4 shrink-0 text-muted-foreground" /></div><h2 className="mt-4 text-[15.5px] font-medium leading-snug">{topic.name}</h2><p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">{topic.blurb}</p><div className="mt-4 flex items-center gap-2 text-[11.5px] text-muted-foreground"><span>{topic.posts.length} example replies</span><span>·</span><span>{topic.followers.toLocaleString()} followers</span></div></Link>; }
 function TopicsPage() {
-  const [topics, setTopics] = useState<CanonicalTopic[]>([]);
-  const [taxonomy, setTaxonomy] = useState<TopicTaxonomy>({ types: [], categories: [], skillsByCategory: {} });
-  const [type, setType] = useState("");
-  const [category, setCategory] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
-  async function loadTopics(refresh = false) {
-    if (refresh) setRefreshing(true); else setLoading(true);
-    setError("");
-    try {
-      setTopics(await fetchCanonicalTopics(20, { type, category }));
-    } catch (nextError) {
-      setTopics([]);
-      setError(nextError instanceof Error ? nextError.message : "Public Topics are unavailable right now.");
-    } finally {
-      setLoading(false); setRefreshing(false);
-    }
-  }
-  useEffect(() => { void fetchTopicTaxonomy().then(setTaxonomy).catch(() => undefined); }, []);
-  useEffect(() => { void loadTopics(); }, [type, category]);
+  const [topics, setTopics] = useState<CanonicalTopic[]>([]); const [taxonomy, setTaxonomy] = useState<TopicTaxonomy>({ types: [], categories: [], skillsByCategory: {} }); const [type, setType] = useState(""); const [category, setCategory] = useState(""); const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [error, setError] = useState("");
+  async function loadTopics(refresh = false) { if (refresh) setRefreshing(true); else setLoading(true); setError(""); try { setTopics(await fetchCanonicalTopics(20, { type, category })); } catch (nextError) { setTopics([]); setError(nextError instanceof Error ? nextError.message : "Public Topics are unavailable right now."); } finally { setLoading(false); setRefreshing(false); } }
+  useEffect(() => { void fetchTopicTaxonomy().then(setTaxonomy).catch(() => undefined); }, []); useEffect(() => { void loadTopics(); }, [type, category]);
   const topicSummary = useMemo(() => loading ? "Loading community context…" : error || (!topics.length ? "Showing the product preview while the live Topic feed is unavailable." : `${topics.length} public ${topics.length === 1 ? "Topic" : "Topics"} in this view`), [error, loading, topics.length]);
-  return (
-    <div className="w-full max-w-5xl space-y-0">
-      <section className="max-w-3xl">
-        <p className="text-[12px] font-medium text-muted-foreground">Topics</p>
-        <h1 className="mt-2 font-serif text-[42px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">The conversations behind what people are doing.</h1>
-        <p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">Questions, experiences, local reports and opinions become shared context. Kurukoo can use that context to help you think and act, but community posts never become proof of a provider, price or availability.</p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link to="/topics/create" className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-4 text-[12.5px] font-medium text-primary-foreground hover:opacity-90"><Plus className="size-4" />Create a Topic</Link>
-          <Link to="/topics/mine" className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-border px-4 text-[12px] hover:bg-elevated">Your Topics</Link>
-        </div>
-      </section>
-      <Panel className="mt-8 p-4">
-        <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11.5px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5"><MessageCircle className="size-3.5" />Discussions & replies</span>
-          <span className="inline-flex items-center gap-1.5"><Users className="size-3.5" />Community contributors</span>
-          <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" />Moderated before public</span>
-        </div>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-[12px] font-medium text-foreground">Browse context</span>
-          <select aria-label="Filter Topics by type" value={type} onChange={(event) => setType(event.target.value)} className="min-h-9 rounded-lg border border-border bg-background px-3 text-[12.5px]"><option value="">All types</option>{taxonomy.types.map((item) => <option key={item} value={item}>{pretty(item)}</option>)}</select>
-          <select aria-label="Filter Topics by category" value={category} onChange={(event) => setCategory(event.target.value)} className="min-h-9 rounded-lg border border-border bg-background px-3 text-[12.5px]"><option value="">All categories</option>{taxonomy.categories.map((item) => <option key={item} value={item}>{pretty(item)}</option>)}</select>
-          <button type="button" onClick={() => void loadTopics(true)} disabled={refreshing} className="ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[12.5px] text-muted-foreground hover:bg-elevated disabled:opacity-50"><RefreshCw className={refreshing ? "size-3.5 animate-spin" : "size-3.5"} /> Refresh</button>
-        </div>
-      </Panel>
-      <section className="mt-6" aria-live="polite">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div><p className="text-[12px] font-medium text-muted-foreground">Public community context</p><p className="mt-1 text-[12.5px] text-muted-foreground">{topicSummary}</p></div>
-          <Link to="/explore" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-primary hover:opacity-80">Explore everything <ArrowUpRight className="size-3.5" /></Link>
-        </div>
-        {loading ? <div className="grid gap-3 sm:grid-cols-2">{[0, 1, 2, 3].map((item) => <div key={item} className="h-44 animate-pulse rounded-[18px] border border-border bg-surface" />)}</div> : topics.length ? <div className="grid gap-3 sm:grid-cols-2">{topics.map((topic) => <TopicPreview key={topic.id} topic={topic} />)}</div> : <div className="grid gap-3 sm:grid-cols-2">{demoTopics.map((topic) => <DemoTopicPreview key={topic.slug} topic={topic} />)}</div>}
-      </section>
-      <Panel className="mt-6 border-dashed p-4"><p className="text-[11.5px] leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Preview continuity:</span> these example Topics remain visible so you can experience the intended community → context → Ask Kurukoo → verified request journey. They are illustrative and are not live reports.</p></Panel>
-    </div>
-  );
+  return <div className="w-full max-w-5xl space-y-0"><section className="max-w-3xl"><p className="text-[12px] font-medium text-muted-foreground">Topics</p><h1 className="mt-2 font-serif text-[42px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">The conversations behind what people are doing.</h1><p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">Questions, experiences, local reports and opinions become shared context. Kurukoo can use that context to help you think and act, but community posts never become proof of a provider, price or availability.</p><div className="mt-5 flex flex-wrap gap-2"><Link to="/topics/create" className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-4 text-[12.5px] font-medium text-primary-foreground hover:opacity-90"><Plus className="size-4" />Create a Topic</Link><Link to="/topics/mine" className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-border px-4 text-[12px] hover:bg-elevated">Your Topics</Link></div></section><AgentIntelligence compact title="Agent-curated community intelligence" maxItems={4} /><Panel className="mt-8 p-4"><div className="flex flex-wrap gap-x-5 gap-y-2 text-[11.5px] text-muted-foreground"><span className="inline-flex items-center gap-1.5"><MessageCircle className="size-3.5" />Discussions & replies</span><span className="inline-flex items-center gap-1.5"><Users className="size-3.5" />Community contributors</span><span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" />Moderated before public</span></div><div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-[12px] font-medium text-foreground">Browse context</span><select aria-label="Filter Topics by type" value={type} onChange={(event) => setType(event.target.value)} className="min-h-9 rounded-lg border border-border bg-background px-3 text-[12.5px]"><option value="">All types</option>{taxonomy.types.map((item) => <option key={item} value={item}>{pretty(item)}</option>)}</select><select aria-label="Filter Topics by category" value={category} onChange={(event) => setCategory(event.target.value)} className="min-h-9 rounded-lg border border-border bg-background px-3 text-[12.5px]"><option value="">All categories</option>{taxonomy.categories.map((item) => <option key={item} value={item}>{pretty(item)}</option>)}</select><button type="button" onClick={() => void loadTopics(true)} disabled={refreshing} className="ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[12.5px] text-muted-foreground hover:bg-elevated disabled:opacity-50"><RefreshCw className={refreshing ? "size-3.5 animate-spin" : "size-3.5"} /> Refresh</button></div></Panel><section className="mt-6" aria-live="polite"><div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-[12px] font-medium text-muted-foreground">Public community context</p><p className="mt-1 text-[12.5px] text-muted-foreground">{topicSummary}</p></div><Link to="/explore" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-primary hover:opacity-80">Explore everything <ArrowUpRight className="size-3.5" /></Link></div>{loading ? <div className="grid gap-3 sm:grid-cols-2">{[0,1,2,3].map((item) => <div key={item} className="h-44 animate-pulse rounded-[18px] border border-border bg-surface" />)}</div> : topics.length ? <div className="grid gap-3 sm:grid-cols-2">{topics.map((topic) => <TopicPreview key={topic.id} topic={topic} />)}</div> : <div className="grid gap-3 sm:grid-cols-2">{demoTopics.map((topic) => <DemoTopicPreview key={topic.slug} topic={topic} />)}</div>}</section><Panel className="mt-6 border-dashed p-4"><p className="text-[11.5px] leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Preview continuity:</span> these example Topics remain visible so you can experience the intended community → context → Ask Kurukoo → verified request journey. They are illustrative and are not live reports. Agent-generated context is surfaced separately when the canonical agent runtime provides it.</p></Panel></div>;
 }
