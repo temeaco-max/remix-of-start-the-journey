@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Bell, Building2, CirclePlay, ExternalLink, Focus, MessageCircle, ShoppingBag } from "lucide-react";
+import { ArrowUpRight, Bell, Building2, BookOpen, ExternalLink, Focus, ShoppingBag } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { AIProviderDirectory } from "@/components/kurukoo/ai-provider-directory";
@@ -55,7 +55,7 @@ export function HomePage() {
       <div className="lg:col-span-2"><AIProviderDirectory compact /></div>
       <div className="space-y-4">
         <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Explore</h2><SectionAction to="/explore">Open</SectionAction></div><p className="text-[12px] text-muted-foreground">People, places, services and opportunities.</p></Panel>
-        <Link to="/videos" className="group block rounded-[18px] border border-border bg-surface p-4 hover:bg-elevated"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-elevated"><CirclePlay className="size-4" /></span><div><h2 className="text-[14px] font-semibold">How-to videos</h2><p className="text-[11.5px] text-muted-foreground">Watch when you want a visual guide.</p></div><ArrowUpRight className="ml-auto size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" /></div></Link>
+        <Link to="/resources" className="group block rounded-[18px] border border-border bg-surface p-4 hover:bg-elevated"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-elevated"><BookOpen className="size-4" /></span><div><h2 className="text-[14px] font-semibold">Resources</h2><p className="text-[11.5px] text-muted-foreground">Guides for getting more from Kurukoo.</p></div><ArrowUpRight className="ml-auto size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" /></div></Link>
       </div>
     </div>
   </div>;
