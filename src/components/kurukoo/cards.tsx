@@ -51,7 +51,7 @@ export function EntityCard({ entity, footer }: { entity: Entity; footer?: ReactN
         <AskKurukoo prompt={askPrompt} />
         <Link
           to="/messages"
-          className="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-[12.5px] transition-colors hover:bg-elevated"
+          className="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-[13.5px] transition-colors hover:bg-elevated"
         >
           Message
         </Link>
@@ -177,10 +177,10 @@ export function ContactRow({ entity, right }: { entity: Entity; right?: ReactNod
         params={{ entityId: entity.id }}
         className="flex min-w-0 items-center gap-3"
       >
-        <Avatar name={entity.name} />
+        <Avatar name={entity.name} size={36} />
         <span className="min-w-0">
-          <span className="block truncate text-[13.5px] font-medium">{entity.name}</span>
-          <span className="block truncate text-[12px] text-muted-foreground">{entity.tagline}</span>
+          <span className="block truncate text-[15px]">{entity.name}</span>
+          <span className="block truncate text-[13px] text-muted-foreground">{entity.tagline}</span>
         </span>
       </Link>
       {right}
@@ -191,17 +191,93 @@ export function ContactRow({ entity, right }: { entity: Entity; right?: ReactNod
 export function AgentCard({ agent }: { agent: Agent }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[15px] font-medium">{agent.name}</p>
-          <p className="mt-0.5 text-[12.5px] text-muted-foreground">{agent.description}</p>
-        </div>
-        <Badge>{agent.status}</Badge>
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex items-center gap-1.5 text-[15.5px] font-medium">
+          {agent.name}
+          {agent.verified ? (
+            <BadgeCheck className="size-4 text-primary" aria-label="Verified" />
+          ) : null}
+        </p>
+        <Badge tone={agent.status === "available" ? "success" : "quiet"}>
+          {agent.status === "available"
+            ? "Available"
+            : agent.status === "busy"
+              ? "Working"
+              : "Human support"}
+        </Badge>
       </div>
-      <div className="mt-3 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-        <span>{agent.runs} runs</span>
-        {agent.lastRun ? <span>· {agent.lastRun}</span> : null}
+      <p className="mt-1 text-[13.5px] text-muted-foreground">{agent.purpose}</p>
+    </div>
+  );
+}
+
+export function ArtifactRow({ artifact }: { artifact: Artifact }) {
+  return (
+    <li className="flex items-center justify-between gap-4 px-4 py-3.5">
+      <div className="min-w-0">
+        <p className="truncate text-[15px]">{artifact.name}</p>
+        <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
+          {artifact.size} · {artifact.when} · {artifact.storage}
+          {artifact.workTitle ? ` · ${artifact.workTitle}` : ""}
+        </p>
       </div>
+      <span className="shrink-0 text-[13px] text-muted-foreground capitalize">{artifact.type}</span>
+    </li>
+  );
+}
+
+export function TransactionRow({ tx }: { tx: Transaction }) {
+  return (
+    <li className="flex items-center justify-between gap-4 px-4 py-3.5">
+      <div className="min-w-0">
+        <p className="truncate text-[15px]">{tx.label}</p>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
+          {tx.when} · {tx.kind === "points" ? "Points" : "Money"}
+        </p>
+      </div>
+      <span
+        className={cn(
+          "shrink-0 text-[14px]",
+          tx.direction === "in" ? "text-primary" : "text-muted-foreground",
+        )}
+      >
+        {tx.direction === "in" ? "+" : "−"}
+        {tx.amount}
+      </span>
+    </li>
+  );
+}
+
+export function PlanCard({ plan }: { plan: Plan }) {
+  const audienceLabel =
+    plan.audience === "provider"
+      ? "Network"
+      : plan.audience === "business"
+        ? "Business"
+        : plan.audience === "creator"
+          ? "Creator"
+          : "Personal";
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border bg-surface p-4",
+        plan.current ? "border-primary" : "border-border",
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[15.5px] font-medium">
+          {plan.name === "Provider" ? "Network" : plan.name}
+        </p>
+        {plan.current ? <Badge tone="accent">Current plan</Badge> : null}
+      </div>
+      <p className="mt-1 text-[14px] text-muted-foreground">{plan.price}</p>
+      <ul className="mt-3 space-y-1.5 text-[13.5px] text-muted-foreground">
+        <li className="text-[12px] text-muted-foreground">{audienceLabel}</li>
+        {plan.benefits.map((b) => (
+          <li key={b}>· {b}</li>
+        ))}
+      </ul>
     </div>
   );
 }
