@@ -65,7 +65,7 @@ aside[aria-label="Trusted context rail"] svg,
 aside[aria-label="Kurukoo public context rail"] svg { color: var(--primary); }
 
 /* Public marketing typography: every public page uses the same 40px hero title treatment as the homepage. */
-body:has(aside[aria-label="Public Kurukoo navigation"]) h1.font-serif {
+body:has(aside[aria-label="Public Kurukoo navigation"]) h1 {
   font-family: var(--font-serif) !important;
   font-size: 40px !important;
   line-height: 1.02 !important;
