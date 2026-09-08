@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, ArrowUpRight, MessageCircle } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
 
 export type GoalAction = {
   title: string;
@@ -43,15 +44,13 @@ export function GoalActionSurface({
 
       <section className="grid gap-3 sm:grid-cols-2" aria-label={title}>
         {actions.map((action) => (
-          <Link
+          <div
             key={action.title}
-            to="/chat"
-            search={{ query: action.prompt } as never}
-            className="group flex min-h-[132px] flex-col rounded-[18px] border border-border bg-surface p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-elevated/45"
+            className="group flex min-h-[126px] flex-col rounded-[18px] border border-border bg-surface p-4 transition-colors hover:border-primary/25 hover:bg-elevated/45"
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-[15px] font-semibold leading-snug">{action.title}</h2>
-              <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
             </div>
             <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-muted-foreground">
               {action.description}
@@ -59,11 +58,18 @@ export function GoalActionSurface({
             {action.detail ? (
               <p className="mt-2 text-[10.5px] font-medium text-foreground/70">{action.detail}</p>
             ) : null}
-            <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-[11px] font-medium text-primary">
-              <MessageCircle className="size-3.5" />
-              Start in Chat
-            </span>
-          </Link>
+            <div className="mt-auto flex items-center gap-2 pt-4">
+              <AskKurukoo prompt={action.prompt} className="min-h-8 px-2.5 text-[11px]" />
+              <Link
+                to="/chat"
+                search={{ query: action.prompt } as never}
+                aria-label={`Open ${action.title} in Chat`}
+                className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-elevated hover:text-foreground"
+              >
+                <ArrowUpRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
         ))}
       </section>
     </div>
