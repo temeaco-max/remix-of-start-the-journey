@@ -91,7 +91,7 @@ function ChatCard({ data, onAction }: { data: Record<string, unknown>; onAction?
   if (type === "emergency") {
     const status = readableLabel(data["status"]) || "Emergency mode";
     const service = data["service"] && typeof data["service"] === "object" ? data["service"] as Record<string, unknown> : null;
-    const number = service && typeof service.number === "string" ? service.number : null;
+    const number = service && typeof service["number"] === "string" ? String(service["number"]) : null;
     return <div className="mt-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
       <div className="flex items-center gap-2"><ShieldCheck className="size-4 text-destructive" /><p className="text-[12px] font-semibold">{status}</p></div>
       <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">Kurukoo will not claim that emergency responders were contacted unless the canonical connection provides evidence.</p>
@@ -102,7 +102,7 @@ function ChatCard({ data, onAction }: { data: Record<string, unknown>; onAction?
   if (type === "quick_replies" || type === "welcome") {
     const options = Array.isArray(data["options"]) ? data["options"].filter((value): value is string => typeof value === "string").slice(0, 6) : [];
     return <div className="mt-3 rounded-2xl border border-border bg-surface p-4">
-      <div className="flex items-center gap-2"><MessageCircle className="size-4 text-primary" /><p className="text-[12px] font-semibold">{type === "welcome" ? String(data.title ?? "What would you like to do?") : "Choose a starting point"}</p></div>
+      <div className="flex items-center gap-2"><MessageCircle className="size-4 text-primary" /><p className="text-[12px] font-semibold">{type === "welcome" ? String(data["title"] ?? "What would you like to do?") : "Choose a starting point"}</p></div>
       <div className="mt-3 flex flex-wrap gap-2">{options.map((option) => <CardAction key={option} label={option} onClick={() => onAction?.(option)} />)}</div>
     </div>;
   }
