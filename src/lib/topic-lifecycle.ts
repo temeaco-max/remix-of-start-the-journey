@@ -125,6 +125,20 @@ export async function fetchTopicChatContext(slug: string) {
     `/api/topics/${encodeURIComponent(slug)}/chat-context`,
   );
   if (!payload.topic) throw new Error("Topic context not found");
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(
+      "kurukoo-topic-context",
+      JSON.stringify({
+        id: payload.topic.id,
+        slug: payload.topic.slug,
+        title: payload.topic.title,
+        type: payload.topic.type,
+        category: payload.topic.category ?? null,
+        city: payload.topic.city ?? null,
+        lga: payload.topic.lga ?? null,
+      }),
+    );
+  }
   return payload.topic;
 }
 
