@@ -31,8 +31,9 @@ export function ProvidersPage() {
         subtitle="Find useful people and organisations, or offer what you can do."
       />
       <div className="rounded-2xl border border-border bg-elevated/60 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-        Kurukoo keeps provider information useful and evidence-led. Availability and commitments
-        should only appear confirmed when they can be verified.
+        Kurukoo keeps provider information useful and evidence-led. The profiles below are a
+        product preview; availability and commitments are only confirmed when connected evidence
+        is available.
       </div>
       <Tabs items={tabs} value={tab} onChange={setTab} />
       {tab === "Find help" ? (
@@ -41,8 +42,9 @@ export function ProvidersPage() {
             <EntityCard key={p.id} entity={p} />
           ))}
           <div className="rounded-2xl border border-border bg-elevated/50 px-4 py-3 text-[12px] text-muted-foreground">
-            Provider availability and live request handling become active when the provider
-            connection is enabled.
+            <span className="font-medium text-foreground">Preview data.</span> These provider
+            examples show how discovery is intended to look. Live availability, request handling
+            and provider evidence become active when the provider connection is enabled.
           </div>
         </div>
       ) : (
@@ -51,7 +53,7 @@ export function ProvidersPage() {
           <Panel className="p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[15.5px] font-medium">Build your provider profile</p>
-              <Badge tone="quiet">Verification required</Badge>
+              <Badge tone="quiet">Preview flow</Badge>
             </div>
             <p className="mt-1 text-[13.5px] text-muted-foreground">
               Tell Kurukoo what you can do, where you work and when you can accept requests.
