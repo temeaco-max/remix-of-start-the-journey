@@ -69,7 +69,7 @@ function TopicShare({ topic }: { topic: CanonicalTopic }) {
       );
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
-    } catch {}
+    } catch { /* ignore */ }
   }
   async function share() {
     if (!isPublic(topic)) return;
@@ -79,7 +79,7 @@ function TopicShare({ topic }: { topic: CanonicalTopic }) {
         await navigator.share({ title: topic.title, text: topic.body, url });
         setShared(true);
         window.setTimeout(() => setShared(false), 1600);
-      } catch {}
+      } catch { /* ignore */ }
     } else await copyLink();
   }
   if (!isPublic(topic)) return null;
