@@ -24,11 +24,15 @@ export type WorkItem = {
   steps: { label: string; done: boolean }[];
 };
 
+export type MessageCardData = Record<string, unknown>;
 export type Message = {
   id: string;
   role: "you" | "kurukoo";
   text: string;
   workId?: string | undefined;
+  cardData?: MessageCardData | null;
+  canonicalAction?: string;
+  progressStage?: string;
 };
 
 export type NotificationItem = {
