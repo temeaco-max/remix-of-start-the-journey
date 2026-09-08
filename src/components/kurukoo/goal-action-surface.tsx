@@ -8,7 +8,6 @@ import {
   Car,
   CircleDollarSign,
   HeartPulse,
-  Home,
   MapPin,
   MessageCircle,
   Search,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
+import { FAQSection } from "@/components/kurukoo/faq-section";
 
 export type GoalAction = {
   title: string;
@@ -64,9 +64,23 @@ export function GoalActionSurface({
 }: GoalActionSurfaceProps) {
   const GoalIcon = getGoalIcon(eyebrow, title);
   const primaryPrompt = askPrompt ?? actions[0]?.prompt ?? `Help me with ${title.toLowerCase()}.`;
+  const faqItems = [
+    {
+      question: `What can I ask Kurukoo about ${title.toLowerCase()}?`,
+      answer: `Start with the outcome you want. You can describe the job in your own words and include useful details such as location, timing, budget or preferences when they matter.`,
+    },
+    {
+      question: "Will Kurukoo make the decision for me?",
+      answer: "No. Kurukoo can help find and organise relevant options, but important choices, commitments and approvals stay with you.",
+    },
+    {
+      question: "What happens after I choose an option?",
+      answer: "When a supported request can move forward, Kurukoo keeps the conversation, request and resulting work connected so you can follow what happens next.",
+    },
+  ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 pb-4">
+    <div className="mx-auto w-full max-w-6xl space-y-7 pb-4">
       <Link
         to="/explore"
         className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -75,7 +89,7 @@ export function GoalActionSurface({
         {backLabel}
       </Link>
 
-      <section className="relative overflow-hidden rounded-[24px] border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-6">
+      <section className="relative overflow-hidden rounded-[24px] border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-7">
         <div className="absolute -right-16 -top-20 size-48 rounded-full bg-brand-tint/35 blur-3xl" aria-hidden="true" />
         <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
@@ -85,8 +99,8 @@ export function GoalActionSurface({
               </span>
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{eyebrow}</p>
             </div>
-            <h1 className="mt-4 text-[29px] font-semibold tracking-tight md:text-[36px]">{title}</h1>
-            <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+            <h1 className="mt-4 font-serif text-[38px] leading-[1.02] tracking-[-0.045em] md:text-[46px]">{title}</h1>
+            <p className="mt-3 max-w-xl text-[13.5px] leading-relaxed text-muted-foreground">{description}</p>
           </div>
           <AskKurukoo prompt={primaryPrompt} className="min-h-9 shrink-0 px-3.5 text-[11.5px]" />
         </div>
@@ -96,7 +110,7 @@ export function GoalActionSurface({
         <div className="mb-3 flex items-end justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Start here</p>
-            <h2 id="goal-start-here" className="mt-1 text-[18px] font-semibold tracking-tight">What do you need?</h2>
+            <h2 id="goal-start-here" className="mt-1 font-serif text-[25px] leading-[1.05] tracking-[-0.035em]">What do you need?</h2>
           </div>
           <Link
             to="/chat"
@@ -162,6 +176,8 @@ export function GoalActionSurface({
           </Link>
         </div>
       </section>
+
+      <FAQSection items={faqItems} />
     </div>
   );
 }
