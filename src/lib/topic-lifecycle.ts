@@ -120,26 +120,44 @@ export async function reportTopicReply(id: string, reason: string, detail?: stri
   return payload.report;
 }
 
-export async function fetchTopicChatContext(slug: string) {
-  const payload = await request<{ topic?: TopicChatContext }>(
-    `/api/topics/${encodeURIComponent(slug)}/chat-context`,
+function persistTopicChatContext(topic: CanonicalTopic) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    "kurukoo-topic-context",
+    JSON.stringify({
+      id: topic.id,
+      slug: topic.slug,
+      title: topic.title,
+      type: topic.type,
+      category: topic.category ?? null,
+      city: topic.city ?? null,
+      lga: topic.lga ?? null,
+    }),
   );
-  if (!payload.topic) throw new Error("Topic context not found");
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(
-      "kurukoo-topic-context",
-      JSON.stringify({
-        id: payload.topic.id,
-        slug: payload.topic.slug,
-        title: payload.topic.title,
-        type: payload.topic.type,
-        category: payload.topic.category ?? null,
-        city: payload.topic.city ?? null,
-        lga: payload.topic.lga ?? null,
-      }),
+}
+
+export async function fetchTopicChatContext(slug: string) {
+  try {
+    const payload = await request<{ topic?: TopicChatContext }>(
+      `/api/topics/${encodeURIComponent(slug)}/chat-context`,
     );
+    if (!payload.topic) throw new Error("Topic context not found");
+    persistTopicChatContext(payload.topic);
+    return payload.topic;
+  } catch (contextError) {
+    // The dedicated chat-context endpoint is an optimisation, not a reason to
+    // lose the Topic → Chat bridge. Fall back to the canonical Topic resource.
+    try {
+      const payload = await request<{ topic?: TopicChatContext }>(
+        `/api/topics/${encodeURIComponent(slug)}`,
+      );
+      if (!payload.topic) throw contextError;
+      persistTopicChatContext(payload.topic);
+      return payload.topic;
+    } catch {
+      throw contextError;
+    }
   }
-  return payload.topic;
 }
 
 export async function fetchFollowedTopics() {
