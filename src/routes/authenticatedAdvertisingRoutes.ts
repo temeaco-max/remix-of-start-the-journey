@@ -1,7 +1,12 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { Router, type Response } from 'express';
 import { optionalAuthenticateUser, type AuthRequest } from '../middleware/auth.js';
-import { getRenderableCampaigns, recordAdImpression } from '../services/adManager.js';
+import {
+  createAdCampaign,
+  getAdCampaigns,
+  getRenderableCampaigns,
+  recordAdImpression,
+} from '../services/adManager.js';
 import { optimizeCampaignImage } from '../services/assetOptimization.js';
 
 const router = Router();
@@ -11,6 +16,50 @@ const allowedPlacements = new Set([
   'authenticated_desk_content',
   'authenticated_home_promotions',
 ]);
+
+const HOME_PROMOTIONS = [
+  ['Get a Ride', 'Book a taxi, okada or keke locally.', 'ride', 'Get a ride', '/chat?prompt=Get%20me%20a%20ride', '/assets/chat/campaign-rider-delivery.webp'],
+  ['Broken device?', 'Let Kurukoo diagnose the problem and help arrange the repair.', 'repair', 'Fix it', '/chat?prompt=My%20device%20is%20broken%20and%20I%20need%20help%20diagnosing%20and%20repairing%20it', '/assets/chat/sponsored-home-repair.webp'],
+  ['Need health help?', 'Ask Kurukoo what to do next or find the right care option.', 'health', 'Get health help', '/chat?prompt=I%20need%20help%20with%20a%20health%20issue', '/assets/chat/campaign-digital-worker.webp'],
+  ['Get food', 'Find food nearby or ask Kurukoo to help you order.', 'food', 'Get food', '/chat?prompt=Help%20me%20get%20food', '/assets/chat/campaign-food-vendor.webp'],
+  ['Get groceries', 'Build your list, find options and get the shopping moving.', 'groceries', 'Get groceries', '/chat?prompt=Help%20me%20get%20my%20groceries', '/assets/chat/sponsored-fresh-market.webp'],
+  ['Send something', 'Arrange a local rider or get help moving something where it needs to go.', 'delivery', 'Arrange delivery', '/chat?prompt=I%20need%20to%20send%20something', '/assets/chat/campaign-rider-delivery.webp'],
+  ['Get home help', 'Find help with cleaning, plumbing, electrical work and more.', 'home help', 'Find home help', '/chat?prompt=I%20need%20help%20at%20home', '/assets/chat/sponsored-home-repair.webp'],
+  ['Start a Money Circle', 'Set up or manage a group savings circle with Kurukoo.', 'money circle', 'Start a Money Circle', '/explore/money-circle', '/assets/chat/campaign-digital-worker.webp'],
+  ['Sell something', 'Get help listing an item and finding interested people.', 'sell', 'Sell something', '/chat?prompt=Help%20me%20sell%20something', '/assets/chat/campaign-beauty.webp'],
+  ['Find work', 'Explore gigs, tasks and opportunities you can act on.', 'work', 'Find work', '/chat?prompt=Help%20me%20find%20work', '/assets/chat/campaign-tailor.webp'],
+  ['Join as a driver', 'Offer rides locally and let people discover when you are available.', 'driver', 'Join as a driver', '/chat?prompt=I%20want%20to%20join%20as%20a%20driver', '/assets/chat/campaign-rider-delivery.webp'],
+  ['Get an errand done', 'Ask Kurukoo to help coordinate a practical task from start to finish.', 'errand', 'Get it done', '/chat?prompt=I%20need%20an%20errand%20done', '/assets/chat/campaign-digital-worker.webp'],
+] as const;
+
+async function ensureHomePromotions() {
+  const campaigns = await getAdCampaigns();
+  for (const [title, desc, keyword, ctaText, destination, imageUrl] of HOME_PROMOTIONS) {
+    if (campaigns.some((campaign) => campaign.firstParty === 1 && campaign.title === title)) continue;
+    await createAdCampaign({
+      title,
+      desc,
+      imageUrl,
+      targetKeyword: keyword,
+      creditsBudget: 0,
+      campaignType: 'first_party',
+      disclosure: 'Kurukoo',
+      advertiserName: 'Kurukoo',
+      firstParty: 1,
+      ctaText,
+      destination,
+      priority: 120 - HOME_PROMOTIONS.findIndex((item) => item[0] === title),
+      targeting: JSON.stringify({ scope: 'authenticated_home', safetyExcluded: true }),
+      placement: 'authenticated_home_promotions',
+      category: 'everyday',
+      country: 'NG',
+      region: '',
+      frequencyCap: 5,
+      assetStatus: 'approved',
+      approvedBy: 'Kurukoo',
+    });
+  }
+}
 
 async function renderPlacement(
   req: AuthRequest,
@@ -69,6 +118,7 @@ router.get('/desk-content', optionalAuthenticateUser, async (req: AuthRequest, r
 
 router.get('/home-promotions', optionalAuthenticateUser, async (req: AuthRequest, res, next) => {
   try {
+    await ensureHomePromotions();
     await renderPlacement(req, res, 'authenticated_home_promotions', { firstPartyOnly: true, limit: 12 });
   } catch (error) {
     next(error);
