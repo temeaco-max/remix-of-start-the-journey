@@ -8,7 +8,6 @@ import {
   Focus,
   MessageCircle,
   Mic2,
-  Plus,
   ShoppingBag,
   Sparkles,
   Wallet,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
+import { AgentIntelligence } from "@/components/kurukoo/agent-intelligence";
 import { Panel, ContextIconTile } from "@/components/kurukoo/ui";
 import { PulseControl } from "@/components/kurukoo/pulse-control";
 import {
@@ -41,10 +41,7 @@ export const Route = createFileRoute("/")({
 });
 function SectionAction({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <Link
-      to={to as never}
-      className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80"
-    >
+    <Link to={to as never} className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80">
       {children}
       <ArrowUpRight className="size-3.5" />
     </Link>
@@ -54,11 +51,7 @@ function CardHeader({ title, count }: { title: string; count?: number }) {
   return (
     <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4">
       <h2 className="min-w-0 text-[14px] font-semibold tracking-tight">{title}</h2>
-      {count !== undefined ? (
-        <span className="grid min-w-6 place-items-center rounded-full bg-elevated px-1.5 py-1 text-[10.5px] text-muted-foreground">
-          {count}
-        </span>
-      ) : null}
+      {count !== undefined ? <span className="grid min-w-6 place-items-center rounded-full bg-elevated px-1.5 py-1 text-[10.5px] text-muted-foreground">{count}</span> : null}
     </div>
   );
 }
@@ -67,27 +60,14 @@ function IconTile({ children, className }: { children: ReactNode; className?: st
 }
 function HomeHorizonIllustration() {
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-40 overflow-hidden opacity-35"
-    >
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-40 overflow-hidden opacity-35">
       <div className="absolute right-[13%] top-2 size-11 rounded-full bg-[var(--primary)]/60 blur-[1px]" />
       <div className="absolute bottom-3 left-[47%] h-16 w-40 rounded-[50%] border border-[var(--brand-ink)]/40" />
       <Building2 className="absolute bottom-4 right-[32%] size-9 text-muted-foreground/40" />
     </div>
   );
 }
-function ActiveHomeRequest({
-  title,
-  detail,
-  timing,
-  needsYou = false,
-}: {
-  title: string;
-  detail: string;
-  timing: string;
-  needsYou?: boolean;
-}) {
+function ActiveHomeRequest({ title, detail, timing, needsYou = false }: { title: string; detail: string; timing: string; needsYou?: boolean }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5 px-3.5 py-2.5">
       <span className="grid size-7 shrink-0 place-items-center rounded-[10px] bg-brand-tint text-brand-ink">
@@ -103,53 +83,29 @@ function ActiveHomeRequest({
 }
 function OpportunityCard({ item }: { item: ProactiveOpportunity }) {
   return (
-    <Link
-      to={item.ctaLink as never}
-      className="flex items-center gap-3 px-4 py-3.5 hover:bg-elevated"
-    >
-      <IconTile className="bg-elevated text-muted-foreground">
-        <Sparkles className="size-4" />
-      </IconTile>
+    <Link to={item.ctaLink as never} className="flex items-center gap-3 px-4 py-3.5 hover:bg-elevated">
+      <IconTile className="bg-elevated text-muted-foreground"><Sparkles className="size-4" /></IconTile>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13.5px] font-medium">{item.title}</p>
         <p className="truncate text-[11.5px] text-muted-foreground">{item.subtitle}</p>
       </div>
-      <span className="shrink-0 rounded-full border border-border px-3 py-1.5 text-[10.5px]">
-        {item.ctaText}
-      </span>
+      <span className="shrink-0 rounded-full border border-border px-3 py-1.5 text-[10.5px]">{item.ctaText}</span>
     </Link>
   );
 }
 function SponsoredDeskCard({ campaign }: { campaign: AuthenticatedAd | null }) {
   if (!campaign) return null;
   return (
-    <a
-      href={campaign.clickUrl}
-      rel="nofollow"
-      className="block rounded-[18px] border border-border bg-elevated/45 p-4 hover:bg-elevated"
-    >
+    <a href={campaign.clickUrl} rel="nofollow" className="block rounded-[18px] border border-border bg-elevated/45 p-4 hover:bg-elevated">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {campaign.disclosure}
-        </p>
+        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{campaign.disclosure}</p>
         <ExternalLink className="size-3 text-muted-foreground" />
       </div>
       <div className="mt-3 flex items-start gap-3">
-        {campaign.image ? (
-          <img
-            src={campaign.image}
-            alt=""
-            loading="lazy"
-            width="88"
-            height="60"
-            className="size-[88px] shrink-0 rounded-xl object-cover"
-          />
-        ) : null}
+        {campaign.image ? <img src={campaign.image} alt="" loading="lazy" width="88" height="60" className="size-[88px] shrink-0 rounded-xl object-cover" /> : null}
         <div className="min-w-0">
           <p className="text-[13.5px] font-semibold">{campaign.title}</p>
-          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-            {campaign.desc}
-          </p>
+          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">{campaign.desc}</p>
           <span className="mt-2 inline-flex text-[10.5px] font-medium">{campaign.ctaText}</span>
         </div>
       </div>
@@ -172,9 +128,7 @@ function WhoKurukooServes() {
       <div className="mb-4">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Who Kurukoo serves</p>
         <h2 className="mt-1.5 text-[22px] font-semibold tracking-tight">One network, different roles.</h2>
-        <p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground">
-          Kurukoo keeps one identity and one coordination layer underneath, while the experience changes around what each participant needs to do.
-        </p>
+        <p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground">Kurukoo keeps one identity and one coordination layer underneath, while the experience changes around what each participant needs to do.</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {servedCards.map(({ title, body, to, Icon }) => (
@@ -182,9 +136,7 @@ function WhoKurukooServes() {
             <Icon className="size-4.5 text-primary" strokeWidth={1.8} />
             <h3 className="mt-3 text-[14px] font-semibold">{title}</h3>
             <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{body}</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium text-muted-foreground group-hover:text-foreground">
-              Open {title.toLowerCase()} <ArrowUpRight className="size-3.5" />
-            </span>
+            <span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium text-muted-foreground group-hover:text-foreground">Open {title.toLowerCase()} <ArrowUpRight className="size-3.5" /></span>
           </Link>
         ))}
       </div>
@@ -222,37 +174,17 @@ export function HomePage() {
       <div className="grid min-w-0 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,.65fr)_minmax(0,.9fr)_minmax(0,1.08fr)]">
         <Panel className="overflow-hidden p-0">
           <CardHeader title="What needs your attention" count={attention.length} />
-          {attention.length ? (
-            <div className="divide-y divide-border/70">
-              {attention.map((item) => <ActiveHomeRequest key={item.id} title={item.title} detail={item.detail} timing={item.updated} needsYou />)}
-            </div>
-          ) : (
-            <div className="px-4 py-5 text-[12px] leading-relaxed text-muted-foreground">
-              Nothing needs a decision from you right now. Kurukoo will surface an item here when your input is genuinely needed.
-            </div>
-          )}
+          {attention.length ? <div className="divide-y divide-border/70">{attention.map((item) => <ActiveHomeRequest key={item.id} title={item.title} detail={item.detail} timing={item.updated} needsYou />)}</div> : <div className="px-4 py-5 text-[12px] leading-relaxed text-muted-foreground">Nothing needs a decision from you right now. Kurukoo will surface an item here when your input is genuinely needed.</div>}
           <div className="border-t border-border/60 px-4 py-3"><SectionAction to="/activity">Open Activity</SectionAction></div>
         </Panel>
         <Panel className="overflow-hidden p-0">
           <CardHeader title="What’s moving" count={moving.length} />
-          <div className="pb-1">
-            {moving.length ? moving.map((item) => (
-              <div key={item.id} className="flex items-start gap-2.5 px-4 py-2.5">
-                <span className="grid size-7 place-items-center rounded-full bg-elevated"><Focus className="size-3.5" /></span>
-                <div className="min-w-0 flex-1"><p className="text-[13px] font-medium">{item.title}</p><p className="text-[11.5px] text-muted-foreground">{item.detail}</p></div>
-                <span className="ml-auto text-[10.5px] text-muted-foreground">{item.updated}</span>
-              </div>
-            )) : (
-              <div className="px-4 py-5 text-[12px] leading-relaxed text-muted-foreground">Nothing is currently moving. Start a request and Kurukoo will keep its live state here.</div>
-            )}
-          </div>
+          <div className="pb-1">{moving.length ? moving.map((item) => <div key={item.id} className="flex items-start gap-2.5 px-4 py-2.5"><span className="grid size-7 place-items-center rounded-full bg-elevated"><Focus className="size-3.5" /></span><div className="min-w-0 flex-1"><p className="text-[13px] font-medium">{item.title}</p><p className="text-[11.5px] text-muted-foreground">{item.detail}</p></div><span className="ml-auto text-[10.5px] text-muted-foreground">{item.updated}</span></div>) : <div className="px-4 py-5 text-[12px] leading-relaxed text-muted-foreground">Nothing is currently moving. Start a request and Kurukoo will keep its live state here.</div>}</div>
           <div className="px-4 py-3"><SectionAction to="/work">Open Work</SectionAction></div>
         </Panel>
         <Panel className="overflow-hidden p-0">
           <CardHeader title="Radar" count={opportunities.slice(0, 2).length} />
-          {opportunities.slice(0, 2).length ? opportunities.slice(0, 2).map((item) => <OpportunityCard key={item.id} item={item} />) : (
-            <div className="px-4 py-5 text-[12px] leading-relaxed text-muted-foreground">Radar is quiet until Kurukoo has a supported signal worth bringing to your attention.</div>
-          )}
+          {opportunities.slice(0, 2).length ? opportunities.slice(0, 2).map((item) => <OpportunityCard key={item.id} item={item} />) : <div className="px-4 py-5 text-[12px] leading-relaxed text-muted-foreground">Radar is quiet until Kurukoo has a supported signal worth bringing to your attention.</div>}
           <div className="px-4 py-3"><SectionAction to="/discover">Open Nearby</SectionAction></div>
         </Panel>
       </div>
@@ -262,9 +194,12 @@ export function HomePage() {
         <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Wallet</h2><SectionAction to="/wallet">Open</SectionAction></div><p className="text-[12px] leading-relaxed text-muted-foreground">Points and money remain separate, with balances shown from canonical account state when connected.</p></Panel>
         <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Connected channels</h2><SectionAction to="/connect">Manage</SectionAction></div><div className="space-y-2 text-[11.5px] text-muted-foreground"><div className="flex items-center gap-2"><MessageCircle className="size-3.5" />Web chat · Ready</div><div className="flex items-center gap-2"><Mic2 className="size-3.5" />WhatsApp · Provider setup required</div><div className="flex items-center gap-2"><Wallet className="size-3.5" />Account services · Readiness-aware</div></div></Panel>
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Useful context</h2><SectionAction to="/explore">Explore</SectionAction></div><p className="text-[12px] leading-relaxed text-muted-foreground">Explore the wider network when you want to look deliberately. Nearby is the local world. Radar is the attention layer.</p></Panel>
-        <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Guide videos</h2><SectionAction to="/explore">Browse</SectionAction></div><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-elevated"><CirclePlay className="size-4" /></span><p className="text-[12px] text-muted-foreground">Learn how conversation, discovery, trust and fulfilment fit together.</p></div></Panel>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Panel className="p-0 lg:col-span-2"><AgentIntelligence title="Agent brief" maxItems={4} /></Panel>
+        <div className="space-y-4">
+          <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Useful context</h2><SectionAction to="/explore">Explore</SectionAction></div><p className="text-[12px] leading-relaxed text-muted-foreground">Explore the wider network when you want to look deliberately. Nearby is the local world. Radar is the attention layer.</p></Panel>
+          <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Guide videos</h2><SectionAction to="/explore">Browse</SectionAction></div><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-elevated"><CirclePlay className="size-4" /></span><p className="text-[12px] text-muted-foreground">Learn how conversation, discovery, trust and fulfilment fit together.</p></div></Panel>
+        </div>
       </div>
       <p className="pb-4 text-center text-[11px] text-muted-foreground">Kurukoo keeps you in control. Nothing is committed without your approval.</p>
     </div>
