@@ -28,7 +28,7 @@ The network serves eight participation roles. These are roles in one network, no
 7. **Advertisers** — present relevant commercial offers to useful audiences with clear sponsorship disclosure.
 8. **Local agents** — represent and coordinate local needs, places and opportunities.
 
-The canonical role definitions live in `src/lib/kurukoo-personas.ts`. Home/For You uses them for role-aware presentation until a canonical backend profile/role signal is available.
+The canonical role definitions live in `src/lib/kurukoo-personas.ts`. Home/For You uses them for role-aware presentation until a canonical backend profile/role signal is available. Public-shell participation cards derive from the same role registry so the eight-role network story cannot drift from the authenticated experience.
 
 ## UX language
 
@@ -52,3 +52,19 @@ Home should combine:
 6. contextual learning through Resources/guides rather than explanatory blocks.
 
 The eight-role network explainer should remain compact. The role cards should be horizontally scrollable without a visible scrollbar so the network can be understood without consuming vertical space.
+
+## Public-shell Home role layout
+
+On the public Home page (not the authenticated Home/For You workspace), keep the network introduction as the left-hand block at desktop widths, using exactly:
+
+**Who Kurukoo serves**
+
+## One network, many ways to participate.
+
+Kurukoo brings together people who need something, people who provide it, businesses and creators, contributors and partners, advertisers and local agents.
+
+The eight participation cards sit to the right in a single horizontal row. They retain their existing typography, font sizing, spacing, card design and copy. The row is horizontally scrollable with no visible scrollbar to conserve vertical space. On smaller screens the introduction may stack above the row.
+
+## Contextual guide rule
+
+The public context rail should use the existing compact visual-demo/video-card language for a contextual **How to** guide. The guide should change with the current page and, where useful, the selected participation role, and should link to the canonical `/resources` guide rather than creating a separate video silo. Do not replace the rail with explanatory documentation.
