@@ -20,6 +20,7 @@ import { AgentCard } from "@/components/kurukoo/cards";
 import { Action, actionClass } from "@/components/kurukoo/primitives";
 import { Panel, SectionHeader } from "@/components/kurukoo/ui";
 import { agents } from "@/lib/kurukoo-demo";
+import { controlAgentGoal, fetchAgentGoals, type AgentGoal } from "@/lib/kurukoo-api";
 import { capabilityCount, skillCategories } from "@/lib/skill-catalog";
 
 export const Route = createFileRoute("/agents")({
@@ -221,7 +222,31 @@ const specialAgentPowers = [
   ],
 ] as const;
 
+function GoalCard({ goal, onChange }: { goal: AgentGoal; onChange: (goal: AgentGoal | null) => void }) {
+  const [busy, setBusy] = useState(false);
+  const status = String(goal.status || "").toLowerCase();
+  const action = status === "paused" ? "resume" : status === "cancelled" || status === "completed" ? null : "pause";
+  async function run(next: "pause" | "resume" | "cancel") {
+    if (next === "cancel" && !window.confirm("Cancel this work item? This stops further automatic progress.")) return;
+    setBusy(true);
+    try {
+      const result = await controlAgentGoal(goal.id, next);
+      onChange(result.goal ?? { ...goal, status: next === "pause" ? "paused" : next === "cancel" ? "cancelled" : "active" });
+    } catch {
+      /* preserve canonical state when control is unavailable */
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <article className="rounded-2xl border border-border bg-surface p-4">
+    <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-elevated"><Zap className="size-4"/></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-[13.5px] font-semibold">{goal.objective || goal.skill || "Kurukoo objective"}</p><span className="rounded-full bg-elevated px-2 py-0.5 text-[9.5px]">{status.replace(/[_-]/g," ")}</span></div><p className="mt-1 text-[10.5px] text-muted-foreground">{goal.nextRunAt ? `Next check · ${new Date(goal.nextRunAt).toLocaleString()}` : "Bounded runtime objective"}</p></div></div>
+    <div className="mt-3 flex flex-wrap gap-2">{action ? <Action onClick={() => void run(action)} disabled={busy}>{busy ? "Updating…" : action === "pause" ? "Pause" : "Resume"}</Action> : null}{status !== "cancelled" && status !== "completed" ? <Action onClick={() => void run("cancel")} disabled={busy}>Stop follow-up</Action> : null}{goal.conversationId ? <Link to="/chat" className={actionClass()}>Open conversation</Link> : null}</div>
+  </article>;
+}
+
 export function AgentsPage() {
+  const [goals, setGoals] = useState<AgentGoal[]>([]);
+  useEffect(() => { void fetchAgentGoals().then(setGoals).catch(() => setGoals([])); }, []);
   return (
     <div className="space-y-9">
       <PageHeader
@@ -229,6 +254,7 @@ export function AgentsPage() {
         subtitle="Tell Kurukoo the outcome you want. Its agents can combine skills, context and trusted services to help move it forward."
       />
 
+      {goals.length ? <section><SectionHeader title="Current objectives" subtitle="Only owner-scoped Agent goals appear here. Pause, resume or stop follow-up without leaving the Agent surface." /><div className="grid gap-3 md:grid-cols-2">{goals.slice(0,6).map((goal)=><GoalCard key={goal.id} goal={goal} onChange={(next)=>setGoals((items)=>next?items.map((item)=>item.id===next.id?next:item):items.filter((item)=>item.id!==goal.id))}/>)}</div></section> : null}
       <section className="rounded-[24px] border border-border bg-surface p-5 md:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-3xl">
