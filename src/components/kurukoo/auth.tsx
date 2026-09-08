@@ -1,341 +1,88 @@
-import { Link } from "@tanstack/react-router";
+import { ArrowLeft, Mail, Phone, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { X } from "lucide-react";
 import { Panel } from "@/components/kurukoo/ui";
+import { requestMagicLink, requestPhoneOtp, verifyPhoneOtp } from "@/lib/kurukoo-auth";
 
 export type AuthMode = "login" | "signup";
-type AuthMethod = "options" | "phone" | "qr";
+type Method = "phone" | "email";
 
-function SocialMark({ label }: { label: string }) {
-  return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-full border border-border bg-background text-[14px] font-semibold">
-      {label}
-    </span>
-  );
-}
+type AuthFlowProps = { mode: AuthMode; compact?: boolean; onClose?: () => void };
 
-function QrCode() {
-  const rows = [
-    "1111111001011111111",
-    "1000001010011000001",
-    "1011101001111011101",
-    "1011101010101011101",
-    "1011101000101011101",
-    "1000001011101000001",
-    "1111111010101111111",
-    "0000000001010000000",
-    "1101011110111011011",
-    "0011100101010010110",
-    "1010111110101110101",
-    "0111010001110001110",
-    "1100101110011110011",
-    "0000000010101000000",
-    "1111111001111010111",
-    "1000001010010010100",
-    "1011101011111110111",
-    "1011101001000010101",
-    "1011101010111010111",
-    "1000001001101000001",
-    "1111111011011111111",
-  ];
-  return (
-    <div
-      className="mx-auto grid size-44 grid-cols-[repeat(21,minmax(0,1fr))] overflow-hidden rounded-lg border border-border bg-white p-2 shadow-sm"
-      aria-label="Kurukoo QR sign-in code"
-      role="img"
-    >
-      {rows
-        .join("")
-        .split("")
-        .map((cell, index) => (
-          <span key={index} className={cell === "1" ? "bg-black" : "bg-white"} />
-        ))}
-    </div>
-  );
-}
-
-export function AuthModal({
-  mode,
-  onClose,
-  onModeChange,
-}: {
-  mode: AuthMode;
-  onClose: () => void;
-  onModeChange?: (mode: AuthMode) => void;
-}) {
-  const [method, setMethod] = useState<AuthMethod>("options");
-  const [submitted, setSubmitted] = useState(false);
+function AuthFlow({ mode, compact = false, onClose }: AuthFlowProps) {
+  const [method, setMethod] = useState<Method>("phone");
+  const [name, setName] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"identifier" | "code" | "sent">("identifier");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setMethod("options");
-    setSubmitted(false);
+    setMethod("phone"); setStep("identifier"); setIdentifier(""); setCode(""); setMessage(null);
   }, [mode]);
 
-  const title = mode === "login" ? "Log in to Kurukoo" : "Join Kurukoo";
+  async function sendCode() {
+    if (!identifier.trim()) return setMessage(method === "phone" ? "Enter your phone number." : "Enter your email address.");
+    setBusy(true); setMessage(null);
+    try {
+      if (method === "phone") {
+        await requestPhoneOtp(identifier);
+        setStep("code"); setMessage("Verification code sent. Check your phone and enter it here.");
+      } else {
+        await requestMagicLink({ email: identifier, name: name || undefined, returnPath: "/" });
+        setStep("sent"); setMessage("Sign-in link sent. Open it to finish securely.");
+      }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "We could not start sign-in."); }
+    finally { setBusy(false); }
+  }
+
+  async function verify() {
+    if (!code.trim()) return setMessage("Enter the verification code.");
+    setBusy(true); setMessage(null);
+    try {
+      await verifyPhoneOtp({ phone: identifier, code, name: name || undefined });
+      window.localStorage.setItem("kurukoo-authenticated", "true");
+      window.dispatchEvent(new Event("kurukoo-auth-updated"));
+      window.location.assign("/");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "That verification code could not be accepted."); }
+    finally { setBusy(false); }
+  }
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-[3px]"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="kurukoo-auth-title"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="relative max-h-[min(760px,calc(100vh-32px))] w-full max-w-[420px] overflow-y-auto rounded-[24px] bg-background shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-elevated hover:text-foreground"
-        >
-          <X className="size-[18px]" />
-        </button>
-        <div className="px-6 pb-6 pt-8 sm:px-8 sm:pb-8 sm:pt-10">
-          <div className="text-center">
-            <span
-              aria-hidden
-              className="mx-auto grid size-10 place-items-center rounded-xl bg-brand-tint text-[17px] font-semibold text-brand-ink"
-            >
-              K
-            </span>
-            <h2 id="kurukoo-auth-title" className="mt-4 text-[21px] font-semibold tracking-tight">
-              {title}
-            </h2>
-            <p className="mt-1.5 text-[12.5px] text-muted-foreground">
-              {mode === "login"
-                ? "Continue with the method you prefer."
-                : "Create your account and start getting useful things moving."}
-            </p>
-          </div>
-
-          <div className="mt-6 space-y-2.5">
-            <button
-              type="button"
-              onClick={() => setMethod("qr")}
-              className={`flex min-h-12 w-full items-center gap-3 rounded-xl border px-3.5 text-left text-[13px] font-medium transition-colors ${method === "qr" ? "border-foreground/30 bg-elevated" : "border-border hover:bg-elevated"}`}
-            >
-              <span className="grid size-9 place-items-center rounded-lg border border-border bg-background text-[11px] font-semibold">
-                QR
-              </span>
-              <span className="flex-1">Use QR code</span>
-              <span className="text-muted-foreground">›</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMethod("phone")}
-              className={`flex min-h-12 w-full items-center gap-3 rounded-xl border px-3.5 text-left text-[13px] font-medium transition-colors ${method === "phone" ? "border-foreground/30 bg-elevated" : "border-border hover:bg-elevated"}`}
-            >
-              <span className="grid size-9 place-items-center rounded-lg border border-border bg-background text-[13px]">
-                @
-              </span>
-              <span className="flex-1">Use phone or email</span>
-              <span className="text-muted-foreground">›</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSubmitted(true)}
-              className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border px-3.5 text-left text-[13px] font-medium hover:bg-elevated"
-            >
-              <SocialMark label="f" />
-              <span className="flex-1">Continue with Facebook</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSubmitted(true)}
-              className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border px-3.5 text-left text-[13px] font-medium hover:bg-elevated"
-            >
-              <SocialMark label="G" />
-              <span className="flex-1">Continue with Google</span>
-            </button>
-          </div>
-
-          {method === "qr" ? (
-            <div className="mt-5 rounded-2xl border border-border bg-surface p-5 text-center">
-              <QrCode />
-              <p className="mt-4 text-[13px] font-medium">Scan with your phone</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                Open your camera, scan the code and confirm on your mobile device.
-              </p>
-              <button
-                type="button"
-                onClick={() => setMethod("options")}
-                className="mt-4 text-[11px] font-medium underline underline-offset-2"
-              >
-                Use another method
-              </button>
-            </div>
-          ) : null}
-
-          {method === "phone" ? (
-            <form
-              className="mt-5 rounded-2xl border border-border bg-surface p-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                setSubmitted(true);
-              }}
-            >
-              <label
-                htmlFor="auth-phone-email"
-                className="text-[11px] font-medium text-muted-foreground"
-              >
-                Phone or email
-              </label>
-              <input
-                id="auth-phone-email"
-                name="identifier"
-                type="text"
-                autoComplete="username"
-                placeholder="Enter phone or email"
-                required
-                className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-              <button
-                type="submit"
-                className="mt-3 min-h-11 w-full rounded-xl bg-foreground text-[13px] font-medium text-background hover:opacity-90"
-              >
-                Continue
-              </button>
-              <button
-                type="button"
-                onClick={() => setMethod("options")}
-                className="mt-3 w-full text-[11px] font-medium text-muted-foreground"
-              >
-                Back to sign-in options
-              </button>
-            </form>
-          ) : null}
-
-          {submitted ? (
-            <p className="mt-4 rounded-xl bg-elevated px-3.5 py-3 text-center text-[11.5px] leading-relaxed text-muted-foreground">
-              Continue to complete your Kurukoo account access.
-            </p>
-          ) : null}
-
-          <p className="mt-5 text-center text-[10.5px] leading-relaxed text-muted-foreground">
-            By continuing, you agree to Kurukoo’s terms and privacy policy.
-          </p>
-          <div className="mt-5 border-t border-border pt-5 text-center text-[12px] text-muted-foreground">
-            {mode === "login" ? (
-              <>
-                Don’t have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => onModeChange?.("signup")}
-                  className="font-medium text-foreground underline underline-offset-2"
-                >
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => onModeChange?.("login")}
-                  className="font-medium text-foreground underline underline-offset-2"
-                >
-                  Log in
-                </button>
-              </>
-            )}
-          </div>
+    <div className={compact ? "space-y-4" : "space-y-5"}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Kurukoo access</p>
+          <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.025em]">{mode === "login" ? "Welcome back" : "Join Kurukoo"}</h2>
+          <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">Use a real verification path so your account, work and connected resources stay tied to the same identity.</p>
         </div>
+        {onClose ? <button type="button" onClick={onClose} aria-label="Close" className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-elevated"><X className="size-[18px]" /></button> : null}
       </div>
+      {step === "identifier" ? <>
+        {mode === "signup" ? <label className="block text-[11px] font-medium">Your name<input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label> : null}
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-elevated/60 p-1">
+          <button type="button" onClick={() => { setMethod("phone"); setMessage(null); }} className={`flex min-h-9 items-center justify-center gap-1.5 rounded-lg text-[11px] font-medium ${method === "phone" ? "bg-surface shadow-sm" : "text-muted-foreground"}`}><Phone className="size-3.5" /> Phone</button>
+          <button type="button" onClick={() => { setMethod("email"); setMessage(null); }} className={`flex min-h-9 items-center justify-center gap-1.5 rounded-lg text-[11px] font-medium ${method === "email" ? "bg-surface shadow-sm" : "text-muted-foreground"}`}><Mail className="size-3.5" /> Email</button>
+        </div>
+        <label className="block text-[11px] font-medium">{method === "phone" ? "Phone number" : "Email address"}<input value={identifier} onChange={(event) => setIdentifier(event.target.value)} type={method === "email" ? "email" : "tel"} autoComplete={method === "email" ? "email" : "tel"} placeholder={method === "phone" ? "+44 7700 900000" : "you@example.com"} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
+        <button type="button" disabled={busy} onClick={() => void sendCode()} className="min-h-11 w-full rounded-xl bg-primary px-4 text-[13px] font-medium text-primary-foreground disabled:opacity-50">{busy ? "Working…" : method === "phone" ? "Send verification code" : "Send sign-in link"}</button>
+      </> : null}
+      {step === "code" ? <div className="space-y-3">
+        <button type="button" onClick={() => { setStep("identifier"); setMessage(null); }} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Change number</button>
+        <label className="block text-[11px] font-medium">Verification code<input value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 8))} inputMode="numeric" autoComplete="one-time-code" placeholder="Enter the code" className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-center font-mono text-[18px] tracking-[0.18em] outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
+        <button type="button" disabled={busy} onClick={() => void verify()} className="min-h-11 w-full rounded-xl bg-primary px-4 text-[13px] font-medium text-primary-foreground disabled:opacity-50">{busy ? "Verifying…" : "Verify and continue"}</button>
+      </div> : null}
+      {step === "sent" ? <div className="rounded-2xl border border-border bg-surface p-4"><p className="text-[13px] font-medium">Check your email</p><p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">Open the secure Kurukoo sign-in link in your email. You can close this window and return when it is complete.</p><button type="button" onClick={() => { setStep("identifier"); setMessage(null); }} className="mt-3 text-[11px] font-medium underline underline-offset-2">Use another method</button></div> : null}
+      {message ? <p role="status" className="rounded-xl bg-elevated px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">{message}</p> : null}
+      <p className="text-[10.5px] leading-relaxed text-muted-foreground">By continuing, you agree to Kurukoo’s terms and privacy policy.</p>
     </div>
   );
 }
 
-function establishPreviewSession() {
-  localStorage.setItem("kurukoo-authenticated", "true");
-  window.dispatchEvent(new Event("kurukoo-auth-updated"));
-  window.location.assign("/");
-}
-export function AuthPanel({
-  title,
-  subtitle,
-  cta,
-  footer,
-  showName = false,
-}: {
-  title: string;
-  subtitle: string;
-  cta: string;
-  footer: ReactNode;
-  showName?: boolean;
-}) {
-  const [submitted, setSubmitted] = useState(false);
-  return (
-    <div className="mx-auto max-w-md py-6">
-      <h1 className="text-[28px] font-semibold tracking-tight">{title}</h1>
-      <p className="mt-1.5 text-[15px] text-muted-foreground">{subtitle}</p>
-      <Panel className="mt-6 p-5">
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSubmitted(true);
-            establishPreviewSession();
-          }}
-        >
-          {showName ? <Field label="Your name" type="text" autoComplete="name" /> : null}
-          <Field label="Email" type="email" autoComplete="email" />
-          <Field label="Password" type="password" autoComplete="current-password" />
-          <button
-            type="submit"
-            className="min-h-11 w-full rounded-xl bg-primary text-[15px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            {cta}
-          </button>
-        </form>
-        {submitted ? (
-          <p
-            role="status"
-            className="mt-4 rounded-lg border border-dashed border-border px-3 py-2.5 text-[13.5px] text-muted-foreground"
-          >
-            Accounts aren't switched on yet, so nothing was saved. You can still{" "}
-            <Link to="/chat" className="underline">
-              open Kurukoo
-            </Link>{" "}
-            and try it out.
-          </p>
-        ) : null}
-      </Panel>
-      <p className="mt-4 text-[13.5px] text-muted-foreground">{footer}</p>
-      <p className="mt-2 text-[13.5px] text-muted-foreground">
-        Or{" "}
-        <Link to="/chat" className="underline">
-          try Kurukoo without an account
-        </Link>
-        .
-      </p>
-    </div>
-  );
+export function AuthModal({ mode, onClose, onModeChange }: { mode: AuthMode; onClose: () => void; onModeChange?: (mode: AuthMode) => void }) {
+  return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-[3px]" role="dialog" aria-modal="true" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="relative max-h-[min(760px,calc(100vh-32px))] w-full max-w-[430px] overflow-y-auto rounded-[24px] bg-background p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:p-8"><AuthFlow mode={mode} onClose={onClose} /><div className="mt-5 border-t border-border pt-5 text-center text-[12px] text-muted-foreground">{mode === "login" ? <>New here? <button type="button" onClick={() => onModeChange?.("signup")} className="font-medium text-foreground underline underline-offset-2">Create an account</button></> : <>Already have an account? <button type="button" onClick={() => onModeChange?.("login")} className="font-medium text-foreground underline underline-offset-2">Log in</button></>}</div></div></div>;
 }
 
-function Field({
-  label,
-  type,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  autoComplete: string;
-}) {
-  const id = `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  return (
-    <div>
-      <label htmlFor={id} className="text-[13.5px] text-muted-foreground">
-        {label}
-      </label>
-      <input
-        id={id}
-        type={type}
-        autoComplete={autoComplete}
-        required
-        className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      />
-    </div>
-  );
+export function AuthPanel({ title, subtitle, cta, footer, showName = false }: { title: string; subtitle: string; cta: string; footer: ReactNode; showName?: boolean }) {
+  return <div className="mx-auto max-w-md py-6"><h1 className="font-serif text-[38px] leading-[1.02] tracking-[-0.045em]">{title}</h1><p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">{subtitle}</p><Panel className="mt-6 p-5"><AuthFlow mode={showName ? "signup" : "login"} /></Panel><p className="mt-4 text-[13px] text-muted-foreground">{footer}</p><p className="mt-2 text-[11.5px] text-muted-foreground">Your authenticated session is held by Kurukoo’s secure server cookie, not by the browser UI.</p></div>;
 }
