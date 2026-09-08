@@ -15,6 +15,7 @@ import {
   Target,
   Wallet,
   Zap,
+  Users,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode, type ComponentType } from "react";
 import { cn } from "@/lib/utils";
