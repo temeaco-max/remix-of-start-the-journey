@@ -1,11 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, Cookie, FileText, LockKeyhole, Scale, ShieldCheck } from "lucide-react";
 import { Panel } from "@/components/kurukoo/ui";
-import { legalPolicies } from "@/lib/legal-policies";
+import { legalPolicies, type LegalPolicy } from "@/lib/legal-policies";
 
 export const Route = createFileRoute("/legal/$section")({
   head: ({ params }) => { const policy = legalPolicies[params.section]; return { meta: [{ title: policy ? `${policy.title} — Kurukoo` : "Legal — Kurukoo" }, { name: "description", content: policy?.summary ?? "Kurukoo legal and policy centre." }] }; },
-  loader: ({ params }) => { const policy = legalPolicies[params.section]; if (!policy) throw notFound(); return policy; },
+  loader: ({ params }): LegalPolicy => { const policy = legalPolicies[params.section]; if (!policy) throw notFound(); return policy; },
   component: PolicyPage,
 });
 
@@ -13,7 +13,6 @@ function iconFor(title: string) { if (title.includes("Cookie")) return Cookie; i
 
 function PolicyPage() {
   const policy = Route.useLoaderData();
-  if (!policy) throw notFound();
   const Icon = iconFor(policy.title);
   return <div className="mx-auto w-full max-w-5xl">
     <Link to="/legal" className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> All legal & policies</Link>
