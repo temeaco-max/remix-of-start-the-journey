@@ -138,3 +138,106 @@ export function Message({ message, onAction }: { message: MessageModel; onAction
 }
 
 
+
+
+export function actionClass(variant: "quiet" | "primary" = "quiet") {
+  return cn(
+    "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13.5px] font-medium transition-colors",
+    variant === "primary"
+      ? "bg-primary text-primary-foreground hover:opacity-90"
+      : "border border-border hover:bg-elevated",
+  );
+}
+
+export function Action({
+  children,
+  onClick,
+  variant = "quiet",
+  type = "button",
+  disabled = false,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  variant?: "quiet" | "primary";
+  type?: "button" | "submit";
+  disabled?: boolean;
+}) {
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} className={actionClass(variant)}>
+      {children}
+    </button>
+  );
+}
+
+export function Progress({ steps }: { steps: WorkItem["steps"] }) {
+  return (
+    <ol className="mt-4 space-y-2">
+      {steps.map((s) => (
+        <li key={s.label} className="flex items-center gap-2.5 text-[14px]">
+          <span
+            className={cn(
+              "grid size-[18px] shrink-0 place-items-center rounded-full border",
+              s.done ? "border-transparent bg-primary text-primary-foreground" : "border-border",
+            )}
+          >
+            {s.done ? <Check className="size-3" strokeWidth={3} /> : null}
+          </span>
+          <span className={cn(s.done && "text-muted-foreground")}>{s.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export function WorkItemCard({
+  item,
+  onAdvance,
+}: {
+  item: WorkItem;
+  onAdvance?: (id: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-[15.5px] font-medium">{item.title}</p>
+          <p className="mt-1 text-[14px] text-muted-foreground">{item.detail}</p>
+        </div>
+        <Status stage={item.stage} />
+      </div>
+      <Progress steps={item.steps} />
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {item.stage !== "done" && onAdvance ? (
+          <Action variant={item.stage === "needs_you" ? "primary" : "quiet"} onClick={() => onAdvance(item.id)}>
+            {item.stage === "needs_you" ? "Confirm and finish" : "Continue"}
+          </Action>
+        ) : null}
+        <Link
+          to="/chat"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13.5px] text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
+        >
+          <MessageCircle className="size-3.5" />
+          Continue conversation
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export function Result({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-4">
+      <p className="text-[15.5px] font-medium">{title}</p>
+      <p className="mt-1 text-[14px] text-muted-foreground">{body}</p>
+    </div>
+  );
+}
+
+export function IntegrationGap({ children }: { children: ReactNode }) {
+  return (
+    <p className="mt-4 text-[12.5px] leading-relaxed text-muted-foreground">
+      <span className="font-medium text-foreground">Not available yet · </span>
+      {children}
+    </p>
+  );
+}
