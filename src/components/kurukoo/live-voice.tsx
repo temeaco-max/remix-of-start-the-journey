@@ -135,6 +135,7 @@ export function LiveVoice({
       const result = await streamKurukooChat({
         message: text,
         conversationId: session.conversationId,
+        channel: "web_voice",
         onEvent: (event) => {
           if (event.type === "conversation" && event.conversationId) {
             session.conversationId = event.conversationId;
