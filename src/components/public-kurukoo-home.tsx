@@ -3,7 +3,10 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   MessageCircle,
+  Mic,
+  BriefcaseBusiness,
   Shuffle,
   Sparkles,
   Target,
@@ -61,6 +64,13 @@ const quickActions = [
   [Users, "Take part", "Provide, create, contribute, partner or grow through the network."],
 ] as const;
 
+const coreWorkflow = [
+  [MessageCircle, "Conversation", "Start naturally. Tell Kurukoo what you need, ask a question, continue a thread or bring context into the conversation.", "conversation"],
+  [ClipboardList, "Requests", "Turn the outcome into a clear request. Kurukoo keeps the details, options, evidence and decisions together before anything important moves.", "requests"],
+  [BriefcaseBusiness, "Work", "Once a request moves forward, Work keeps progress, requirements, messages, commercial steps and the outcome connected.", "work"],
+  [Mic, "Voice", "When voice is available, speak naturally and let the same Kurukoo conversation become the starting point for the work.", "voice"],
+] as const;
+
 export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
   const [exampleIndex, setExampleIndex] = useState(0);
   const [promptIndex, setPromptIndex] = useState(0);
@@ -99,7 +109,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
         <div className="pointer-events-none absolute bottom-0 left-[30%] size-48 rounded-full bg-brand-tint/25 blur-3xl" />
         <div className="relative max-w-[900px]">
           <p className="mb-3 text-[13px] font-medium text-primary">Your everyday, moving forward.</p>
-          <h1 className="max-w-[820px] text-[40px] font-bold leading-[1.03] tracking-[-0.05em] text-foreground md:text-[52px]">
+          <h1 className="max-w-[820px] font-serif text-[40px] leading-[1.02] tracking-[-0.045em] text-foreground md:text-[52px]">
             <span className="block">Tell Kurukoo</span>
             <span className="block">what needs doing</span>
           </h1>
@@ -137,6 +147,25 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
               <Shuffle className="size-4" strokeWidth={1.9} />
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="border-t border-border/70 py-9 md:py-11" aria-labelledby="core-workflow-title">
+        <div className="max-w-2xl">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">The Kurukoo workflow</p>
+          <h2 id="core-workflow-title" className="mt-1.5 font-serif text-[28px] leading-tight tracking-[-0.035em]">Conversation → Request → Work, with Voice wherever it fits.</h2>
+          <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">These are the core parts of Kurukoo. Each one has its own surface, but they are designed to carry the same piece of work forward.</p>
+        </div>
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {coreWorkflow.map(([Icon, title, body, hash], index) => (
+            <Link key={title} to="/how-it-works" hash={hash} className="group relative rounded-[20px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/55">
+              <div className="flex items-center justify-between gap-3"><span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Icon className="size-4" strokeWidth={1.8} /></span><span className="text-[10px] font-semibold text-muted-foreground">0{index + 1}</span></div>
+              <h3 className="mt-4 text-[14px] font-semibold">{title}</h3>
+              <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{body}</p>
+              <span className="mt-4 inline-flex items-center gap-1 text-[10.5px] font-medium">Read about {title}<ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
+              {index < coreWorkflow.length - 1 ? <span aria-hidden className="pointer-events-none absolute -right-2 top-1/2 hidden h-px w-4 bg-border xl:block" /> : null}
+            </Link>
+          ))}
         </div>
       </section>
 
