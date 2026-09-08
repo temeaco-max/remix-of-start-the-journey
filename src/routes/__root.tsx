@@ -41,6 +41,24 @@ const publicPrefixes = [
   "/opportunities",
   "/safety",
 ] as const;
+const authenticatedSurfacePrefixes = [
+  "/chat",
+  "/desk",
+  "/activity",
+  "/work",
+  "/notifications",
+  "/contacts",
+  "/messages",
+  "/memory",
+  "/connect",
+  "/artifacts",
+  "/agents",
+  "/calls",
+  "/subscriptions",
+  "/wallet",
+  "/settings",
+  "/you",
+] as const;
 const moreItems = [
   ["/work", "Work"],
   ["/topics", "Topics"],
@@ -231,6 +249,7 @@ function RootComponent() {
     };
   }, []);
   const isPublic = publicPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const isAuthenticatedSurface = authenticatedSurfacePrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const anonymousHome = pathname === "/" && !authenticated;
   const savePrompt = (prompt: string) => window.localStorage.setItem("kurukoo-chat-draft", prompt);
   return (
@@ -240,7 +259,7 @@ function RootComponent() {
           <PublicKurukooShell>
             <div className="min-h-[60vh]" />
           </PublicKurukooShell>
-        ) : !authenticated && (isPublic || anonymousHome) ? (
+        ) : !authenticated && isPublic && !isAuthenticatedSurface && !anonymousHome ? (
           <PublicKurukooShell>
             {anonymousHome ? <PublicHome onSend={savePrompt} /> : <Outlet />}
           </PublicKurukooShell>
