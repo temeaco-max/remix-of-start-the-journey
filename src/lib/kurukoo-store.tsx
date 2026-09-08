@@ -68,6 +68,7 @@ type State = {
   isLoadingHistory: boolean;
   lastError: string | null;
   send: (text: string) => void;
+  loadConversation: (id: string) => Promise<void>;
   advance: (id: string) => void;
   confirm: (id: string) => void;
   markRead: (id: string) => void;
@@ -158,6 +159,21 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const loadConversation = useCallback(async (id: string) => {
+    if (!isKurukooApiConfigured()) return;
+    setIsLoadingHistory(true);
+    setLastError(null);
+    try {
+      const history = await fetchChatHistory(id, 100);
+      setConversationId(id);
+      setMessages(mapHistoryMessages(history.messages ?? []));
+    } catch (error) {
+      setLastError(error instanceof Error ? error.message : "Unable to open that conversation.");
+    } finally {
+      setIsLoadingHistory(false);
+    }
   }, []);
 
   const send = useCallback(
@@ -311,6 +327,7 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
       isLoadingHistory,
       lastError,
       send,
+      loadConversation,
       advance,
       confirm,
       markRead,
@@ -325,6 +342,7 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
       isLoadingHistory,
       lastError,
       send,
+      loadConversation,
       advance,
       confirm,
       markRead,
