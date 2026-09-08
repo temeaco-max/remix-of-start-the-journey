@@ -458,3 +458,43 @@ export async function fetchEconomicRequest(id: string) {
 export async function fetchNotifications() {
   return readJson<{ notifications?: Array<{ id: string|number; title?: string; body?: string; read?: boolean; readAt?: string|null; createdAt?: string; type?: string }> }>("/api/notifications");
 }
+
+export type AgentGoal = {
+  id: string;
+  objective?: string;
+  status: string;
+  skill?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  nextRunAt?: string | null;
+  conversationId?: string | null;
+};
+export async function fetchAgentGoals() {
+  const payload = await readJson<{ goals?: AgentGoal[] }>("/api/agent/goals");
+  return Array.isArray(payload.goals) ? payload.goals : [];
+}
+export async function controlAgentGoal(id: string, action: "pause" | "resume" | "cancel") {
+  return readJson<{ success?: boolean; goal?: AgentGoal }>(`/api/agent/goals/${encodeURIComponent(id)}/${action}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+}
+export type ConnectedResource = {
+  id: string;
+  kind: string;
+  label: string;
+  vendor?: string | null;
+  protocol?: string | null;
+  capabilities?: string[];
+  state?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+export async function fetchConnectedResources() {
+  const payload = await readJson<{ resources?: ConnectedResource[] }>("/api/connect/resources");
+  return Array.isArray(payload.resources) ? payload.resources : [];
+}
+export async function revokeConnectedResource(id: string) {
+  return readJson<{ success: boolean; status?: string }>(`/api/connect/resources/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
