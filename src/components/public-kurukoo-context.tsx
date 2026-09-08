@@ -69,7 +69,7 @@ function PublicVideoCarousel() {
   </div>;
 }
 
-function PublicActivityFeed({ signedIn, onOpenAuth }: { signedIn: boolean; onOpenAuth?: (mode: AuthMode) => void }) {
+function PublicActivityFeed({ signedIn, onOpenAuth }: { signedIn: boolean; onOpenAuth?: ((mode: AuthMode) => void) | undefined }) {
   const [offset, setOffset] = useState(0);
   useEffect(() => {
     const timer = window.setInterval(() => setOffset((value) => (value + 1) % activityItems.length), 3200);

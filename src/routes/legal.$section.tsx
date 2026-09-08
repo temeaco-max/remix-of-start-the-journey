@@ -13,6 +13,7 @@ function iconFor(title: string) { if (title.includes("Cookie")) return Cookie; i
 
 function PolicyPage() {
   const policy = Route.useLoaderData();
+  if (!policy) throw notFound();
   const Icon = iconFor(policy.title);
   return <div className="mx-auto w-full max-w-5xl">
     <Link to="/legal" className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> All legal & policies</Link>
