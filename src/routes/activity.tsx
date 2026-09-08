@@ -33,7 +33,7 @@ type ActivityMessage = {
 };
 
 function ActivityPage() {
-  const { notifications, confirm, markRead } = useKurukoo();
+  const { notifications, markRead } = useKurukoo();
   const [tab, setTab] = useState<string>(tabs[0]);
   const [followedTopics, setFollowedTopics] = useState<FollowedTopic[]>([]);
   const [topicFollowingError, setTopicFollowingError] = useState("");
@@ -99,6 +99,7 @@ function ActivityPage() {
 
   const pending = notifications.filter((n) => n.needsConfirmation);
   const unread = notifications.filter((n) => !n.read).length;
+  const systemUpdates = notifications.filter((n) => !n.needsConfirmation);
 
   return (
     <div className="space-y-7">
@@ -129,7 +130,7 @@ function ActivityPage() {
       <section>
         {tab === "Needs you" ? (
           pending.length === 0 ? (
-            <EmptyState title="Nothing waiting on you" body="Approvals appear here before Kurukoo commits to anything on your behalf." />
+            <EmptyState title="Nothing waiting on you" body="Approval or confirmation events appear here when the connected service provides them." />
           ) : (
             <Rows>
               {pending.map((n) => (
@@ -139,7 +140,8 @@ function ActivityPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2"><p className="text-[15px] font-medium">{n.title}</p><StatusPill tone="peach">Needs approval</StatusPill></div>
                       <p className="mt-1 text-[13.5px] leading-5 text-muted-foreground">{n.body}</p>
-                      <div className="mt-3 flex gap-2"><Action variant="primary" onClick={() => confirm(n.id)}>Approve</Action><Action onClick={() => markRead(n.id)}>Dismiss</Action></div>
+                      <div className="mt-3 flex gap-2"><Action onClick={() => markRead(n.id)}>Mark as seen</Action></div>
+                      <p className="mt-2 text-[10.5px] text-muted-foreground">Approval is not executed from this surface until the connected approval action is available.</p>
                     </div>
                   </div>
                 </li>
@@ -198,10 +200,33 @@ function ActivityPage() {
           ) : <EmptyState title="No Topic follows yet" body="Follow a Topic to keep its updates attached to your Activity surface." />
         ) : null}
 
-        {tab === "System" ? <EmptyState title="No system events" body="Account, security and billing events will be listed here." /> : null}
+        {tab === "System" ? (
+          systemUpdates.length ? (
+            <Rows>
+              {systemUpdates.map((n) => (
+                <li key={n.id} className="px-4 py-4 sm:px-5">
+                  <div className="flex items-start gap-3">
+                    <ContextIconTile><Bell className="size-[17px]" /></ContextIconTile>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[15px] font-medium">{n.title}</p>
+                        {!n.read ? <StatusPill tone="blue">Unread</StatusPill> : null}
+                      </div>
+                      <p className="mt-1 text-[13.5px] leading-5 text-muted-foreground">{n.body}</p>
+                      <p className="mt-1.5 text-[10.5px] text-muted-foreground">{n.when}</p>
+                      {!n.read ? <div className="mt-3"><Action onClick={() => markRead(n.id)}>Mark as read</Action></div> : null}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </Rows>
+          ) : (
+            <EmptyState title="No system updates" body="Account, security and billing events will appear here when their connected event source provides them." />
+          )
+        ) : null}
       </section>
 
-      <p className="text-[11px] text-muted-foreground">Conversation activity and Topic Following are backed by canonical services. Approval and system events still depend on their connected event sources.</p>
+      <p className="text-[11px] text-muted-foreground">Conversation activity, Topic Following and connected notifications are shown from their available canonical services. Actions that would commit a consequential change are not presented as completed when no execution endpoint is connected.</p>
     </div>
   );
 }
