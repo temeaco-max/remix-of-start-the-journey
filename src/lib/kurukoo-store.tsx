@@ -11,7 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { fetchChatHistory, isKurukooApiConfigured, streamKurukooChat } from "@/lib/kurukoo-api";
+import { fetchChatHistory, fetchEconomicRequests, fetchNotifications, isKurukooApiConfigured, streamKurukooChat, type EconomicRequest } from "@/lib/kurukoo-api";
 
 export type WorkStage = "understanding" | "working" | "needs_you" | "done";
 
@@ -121,6 +121,35 @@ function messageKey(messages: Message[]) {
   return messages.map((message) => `${message.id}:${message.role}:${message.text}`).join("|");
 }
 
+function mapEconomicRequestToWork(item: EconomicRequest): WorkItem {
+  const req = item.requirements ?? {};
+  const requestLabel = Object.values(req).filter((v) => typeof v === "string" && v.trim()).slice(0, 2).join(" · ");
+  const labels: Record<string, string> = {
+    requested: "Request received", awaiting_match: "Finding suitable options", partially_matched: "Checking available options",
+    matched: "Options found", quoting: "Getting a quote", quoted: "Quote ready", awaiting_confirmation: "Needs your confirmation",
+    reserved: "Reserved", payment_pending: "Payment needs review", paid: "Payment confirmed", in_fulfillment: "In fulfilment",
+    fulfilled: "Ready to complete", completed: "Completed", cancelled: "Cancelled", disputed: "Under review",
+    failed: "Needs attention", abandoned: "Expired",
+  };
+  const stage: WorkStage =
+    ["completed", "cancelled", "abandoned"].includes(item.status) ? "done" :
+    ["awaiting_confirmation", "payment_pending", "quoted"].includes(item.status) ? "needs_you" :
+    ["requested", "awaiting_match", "partially_matched"].includes(item.status) ? "understanding" : "working";
+  return {
+    id: item.id,
+    title: requestLabel ? item.skill.replace(/[_-]/g, " ") + " · " + requestLabel : item.skill.replace(/[_-]/g, " "),
+    stage,
+    detail: labels[item.status] ?? item.status.replace(/[_-]/g, " "),
+    updated: item.updated_at ? new Date(item.updated_at).toLocaleString() : "recently",
+    steps: [
+      { label: "Understand the request", done: item.status !== "requested" },
+      { label: "Find or coordinate suitable options", done: !["requested", "awaiting_match", "partially_matched"].includes(item.status) },
+      { label: "Review quote or next step", done: !["quoting", "matched"].includes(item.status) },
+      { label: "Confirm and complete", done: ["paid", "in_fulfillment", "fulfilled", "completed"].includes(item.status) },
+    ],
+  };
+}
+
 export function KurukooProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [work, setWork] = useState<WorkItem[]>([]);
@@ -131,6 +160,26 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isKurukooApiConfigured()) return undefined;
+    void Promise.all([fetchEconomicRequests(), fetchNotifications()])
+      .then(([requests, notificationPayload]) => {
+        if (cancelled) return;
+        setWork(requests.map(mapEconomicRequestToWork));
+        setNotifications((notificationPayload.notifications ?? []).map((item) => ({
+          id: String(item.id),
+          title: item.title ?? "Kurukoo update",
+          body: item.body ?? "",
+          when: item.createdAt ? new Date(item.createdAt).toLocaleString() : "Recently",
+          needsConfirmation: ["approval", "confirmation"].some((term) => String(item.type ?? "").includes(term)),
+          read: Boolean(item.read || item.readAt),
+        })));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
