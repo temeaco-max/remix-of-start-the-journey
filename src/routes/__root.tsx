@@ -19,7 +19,7 @@ function MobileBar() { const pathname = useRouterState({ select: (s) => s.locati
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({ head: () => ({ meta: [{ charSet: "utf-8" }, { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" }, { title: "Everyday AI OS for real life - Kurukoo" }, { name: "description", content: "Tell Kurukoo what needs doing." }, { property: "og:title", content: "Everyday AI OS for real life - Kurukoo" }, { property: "og:description", content: "A conversation-first assistant that gets things done." }], links: [{ rel: "stylesheet", href: appCss }, { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" }, { rel: "icon", href: "/favicon.ico", type: "image/x-icon" }, { rel: "apple-touch-icon", href: "/favicon.ico" }, { rel: "manifest", href: "/manifest.webmanifest" }] }), shellComponent: ({ children }: { children: ReactNode }) => <html lang="en"><head><HeadContent /></head><body>{children}<Scripts /></body></html>, component: RootComponent, notFoundComponent: NotFound, errorComponent: ErrorView });
 
-function ProtectedPrompt() { return <PublicKurukooShell><div className="mx-auto flex min-h-[60vh] w-full max-w-xl items-center justify-center py-12"><section className="w-full rounded-[24px] border border-border bg-surface p-6 text-center shadow-[var(--shadow-soft)]"><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Kurukoo</p><h1 className="mt-3 font-serif text-[38px] leading-[1.02] tracking-[-0.045em]">Log in to continue</h1><p className="mx-auto mt-3 max-w-md text-[13px] leading-relaxed text-muted-foreground">This part of Kurukoo keeps your conversations, work and account context private. Sign in to continue where you left off.</p><Link to="/login" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 text-[12px] font-medium text-primary-foreground">Log in</Link></section></div></PublicKurukooShell>; }
+function ProtectedPrompt() { return <div className="flex min-h-[60vh] items-center justify-center px-4"><div className="max-w-md text-center"><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Kurukoo</p><h1 className="mt-3 text-[38px] leading-[1.02] tracking-[-0.045em]">Log in to continue</h1><p className="mx-auto mt-3 max-w-md text-[13px] leading-relaxed text-muted-foreground">This part of Kurukoo keeps your conversations, work and account context private. Sign in to continue where you left off.</p><Link to="/login" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 text-[12px] font-medium text-primary-foreground">Log in</Link></div></div>; }
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -29,12 +29,16 @@ function RootComponent() {
   useEffect(() => {
     let cancelled = false;
     const read = async () => {
+      const uiAuth = window.localStorage.getItem("kurukoo-authenticated") === "true";
       const state = await getKurukooAuthState();
       if (cancelled) return;
-      setAuthenticated(state.authenticated);
+      // The server is authoritative when it confirms a session. During frontend
+      // development, preserve the existing UI-auth flag so the implemented OS
+      // surfaces remain reachable while the backend auth wiring is still being built.
+      const visibleAuthenticated = state.authenticated || uiAuth;
+      setAuthenticated(visibleAuthenticated);
       setHydrated(true);
       if (state.authenticated) window.localStorage.setItem("kurukoo-authenticated", "true");
-      else window.localStorage.removeItem("kurukoo-authenticated");
     };
     void read();
     const onAuth = () => void read();
