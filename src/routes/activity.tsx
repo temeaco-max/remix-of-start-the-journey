@@ -12,10 +12,7 @@ export const Route = createFileRoute("/activity")({
   head: () => ({
     meta: [
       { title: "Activity — Kurukoo" },
-      {
-        name: "description",
-        content: "Replies, approvals, follows and system updates in one place.",
-      },
+      { name: "description", content: "Replies, approvals, follows and system updates in one place." },
       { property: "og:title", content: "Activity — Kurukoo" },
       { property: "og:description", content: "Everything that happened around your requests." },
     ],
@@ -24,13 +21,7 @@ export const Route = createFileRoute("/activity")({
 });
 
 const tabs = ["Needs you", "Replies", "Following", "System"] as const;
-type ActivityConversation = {
-  id: string;
-  title?: string | null;
-  channel?: string;
-  updated_at?: string;
-};
-
+type ActivityConversation = { id: string; title?: string | null; channel?: string; updated_at?: string };
 type ActivityMessage = {
   id: number;
   sender: string;
@@ -52,7 +43,6 @@ function ActivityPage() {
   const [historyError, setHistoryError] = useState("");
 
   useEffect(() => {
-    if (tab !== "Following") return;
     if (!topicApiConfigured()) {
       setFollowedTopics([]);
       setTopicFollowingError("Topic updates require the canonical service connection.");
@@ -65,14 +55,11 @@ function ActivityPage() {
       })
       .catch((error) => {
         setFollowedTopics([]);
-        setTopicFollowingError(
-          error instanceof Error ? error.message : "Unable to load Topic updates.",
-        );
+        setTopicFollowingError(error instanceof Error ? error.message : "Unable to load Topic updates.");
       });
-  }, [tab]);
+  }, []);
 
   useEffect(() => {
-    if (tab !== "Replies") return;
     let cancelled = false;
     setHistoryLoading(true);
     setHistoryError("");
@@ -86,17 +73,13 @@ function ActivityPage() {
         if (cancelled) return;
         setConversations([]);
         setConversationMessages([]);
-        setHistoryError(
-          error instanceof Error ? error.message : "Unable to load your conversation activity.",
-        );
+        setHistoryError(error instanceof Error ? error.message : "Unable to load your conversation activity.");
       })
       .finally(() => {
         if (!cancelled) setHistoryLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [tab]);
+    return () => { cancelled = true; };
+  }, []);
 
   const replyItems = useMemo(() => {
     const latestByConversation = new Map<string, ActivityMessage>();
@@ -109,15 +92,9 @@ function ActivityPage() {
       if (!current || messageTime >= currentTime) latestByConversation.set(conversationId, message);
     }
     return conversations
-      .map((conversation) => ({
-        conversation,
-        latest: latestByConversation.get(conversation.id),
-      }))
+      .map((conversation) => ({ conversation, latest: latestByConversation.get(conversation.id) }))
       .filter(({ latest }) => Boolean(latest))
-      .sort((a, b) =>
-        new Date(b.conversation.updated_at ?? "").getTime() -
-        new Date(a.conversation.updated_at ?? "").getTime(),
-      );
+      .sort((a, b) => new Date(b.conversation.updated_at ?? "").getTime() - new Date(a.conversation.updated_at ?? "").getTime());
   }, [conversations, conversationMessages]);
 
   const pending = notifications.filter((n) => n.needsConfirmation);
@@ -125,36 +102,25 @@ function ActivityPage() {
 
   return (
     <div className="space-y-7">
-      <PageHeader
-        title="Activity"
-        subtitle="The things that need your attention, plus what changed while you were away."
-      />
+      <PageHeader title="Activity" subtitle="The things that need your attention, plus what changed while you were away." />
 
       <Panel className="overflow-hidden">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-start gap-3.5">
-            <ContextIconTile className="size-11 rounded-2xl bg-elevated/80">
-              <Bell className="size-[18px]" />
-            </ContextIconTile>
+            <ContextIconTile className="size-11 rounded-2xl bg-elevated/80"><Bell className="size-[18px]" /></ContextIconTile>
             <div>
               <p className="text-[12px] font-medium text-muted-foreground">Your attention</p>
               <h2 className="mt-1 text-[22px] font-semibold tracking-tight">
-                {pending.length
-                  ? `${pending.length} thing${pending.length === 1 ? "" : "s"} waiting for you`
-                  : "Nothing is waiting for you"}
+                {pending.length ? `${pending.length} thing${pending.length === 1 ? "" : "s"} waiting for you` : "Nothing is waiting for you"}
               </h2>
               <p className="mt-1 text-[13.5px] text-muted-foreground">
-                {unread
-                  ? `${unread} unread update${unread === 1 ? "" : "s"}.`
-                  : "You are up to date."}
+                {unread ? `${unread} unread update${unread === 1 ? "" : "s"}.` : "You are up to date."}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-            <StatusPill tone={pending.length ? "peach" : "green"}>
-              {pending.length ? "Needs you" : "All clear"}
-            </StatusPill>
-            <span>{conversations.length} conversations</span>
+            <StatusPill tone={pending.length ? "peach" : "green"}>{pending.length ? "Needs you" : "All clear"}</StatusPill>
+            <span>{historyLoading ? "Checking conversations" : `${conversations.length} conversation${conversations.length === 1 ? "" : "s"}`}</span>
           </div>
         </div>
         <Tabs items={tabs} value={tab} onChange={setTab} />
@@ -163,30 +129,17 @@ function ActivityPage() {
       <section>
         {tab === "Needs you" ? (
           pending.length === 0 ? (
-            <EmptyState
-              title="Nothing waiting on you"
-              body="Approvals appear here before Kurukoo commits to anything on your behalf."
-            />
+            <EmptyState title="Nothing waiting on you" body="Approvals appear here before Kurukoo commits to anything on your behalf." />
           ) : (
             <Rows>
               {pending.map((n) => (
                 <li key={n.id} className="px-4 py-4 sm:px-5">
                   <div className="flex items-start gap-3">
-                    <ContextIconTile>
-                      <CheckCircle2 className="size-[17px]" />
-                    </ContextIconTile>
+                    <ContextIconTile><CheckCircle2 className="size-[17px]" /></ContextIconTile>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[15px] font-medium">{n.title}</p>
-                        <StatusPill tone="peach">Needs approval</StatusPill>
-                      </div>
+                      <div className="flex flex-wrap items-center gap-2"><p className="text-[15px] font-medium">{n.title}</p><StatusPill tone="peach">Needs approval</StatusPill></div>
                       <p className="mt-1 text-[13.5px] leading-5 text-muted-foreground">{n.body}</p>
-                      <div className="mt-3 flex gap-2">
-                        <Action variant="primary" onClick={() => confirm(n.id)}>
-                          Approve
-                        </Action>
-                        <Action onClick={() => markRead(n.id)}>Dismiss</Action>
-                      </div>
+                      <div className="mt-3 flex gap-2"><Action variant="primary" onClick={() => confirm(n.id)}>Approve</Action><Action onClick={() => markRead(n.id)}>Dismiss</Action></div>
                     </div>
                   </div>
                 </li>
@@ -197,34 +150,24 @@ function ActivityPage() {
 
         {tab === "Replies" ? (
           historyLoading ? (
-            <Panel className="p-5">
-              <div className="h-4 w-36 animate-pulse rounded bg-elevated" />
-              <div className="mt-3 h-3 w-64 animate-pulse rounded bg-elevated" />
-            </Panel>
+            <Panel className="p-5"><div className="h-4 w-36 animate-pulse rounded bg-elevated" /><div className="mt-3 h-3 w-64 animate-pulse rounded bg-elevated" /></Panel>
           ) : historyError ? (
             <EmptyState title="Conversation activity unavailable" body={historyError} />
           ) : replyItems.length ? (
             <Rows>
               {replyItems.map(({ conversation, latest }) => {
-                const updated = conversation.updated_at
-                  ? new Date(conversation.updated_at).toLocaleString()
-                  : "";
+                const updated = conversation.updated_at ? new Date(conversation.updated_at).toLocaleString() : "";
                 return (
                   <li key={conversation.id}>
                     <Link
                       to="/chat"
+                      onClick={() => localStorage.setItem("kurukoo-open-conversation", conversation.id)}
                       className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5"
                     >
-                      <ContextIconTile>
-                        <MessageCircle className="size-[17px]" />
-                      </ContextIconTile>
+                      <ContextIconTile><MessageCircle className="size-[17px]" /></ContextIconTile>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[15px] font-medium">
-                          {conversation.title || "Kurukoo conversation"}
-                        </span>
-                        <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">
-                          {latest?.content}
-                        </span>
+                        <span className="block truncate text-[15px] font-medium">{conversation.title || "Kurukoo conversation"}</span>
+                        <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{latest?.content}</span>
                       </span>
                       <span className="shrink-0 text-[12px] text-muted-foreground">{updated}</span>
                     </Link>
@@ -233,62 +176,32 @@ function ActivityPage() {
               })}
             </Rows>
           ) : (
-            <EmptyState
-              title="No conversation updates yet"
-              body="Your saved Kurukoo conversations will appear here as they develop."
-            />
+            <EmptyState title="No conversation updates yet" body="Your saved Kurukoo conversations will appear here as they develop." />
           )
         ) : null}
 
         {tab === "Following" ? (
-          topicFollowingError ? (
-            <EmptyState title="Topic updates unavailable" body={topicFollowingError} />
-          ) : followedTopics.length ? (
+          topicFollowingError ? <EmptyState title="Topic updates unavailable" body={topicFollowingError} /> : followedTopics.length ? (
             <Rows>
               {followedTopics.map((item) => (
                 <li key={item.topic.id}>
-                  <Link
-                    to="/topics/$slug"
-                    params={{ slug: item.topic.slug }}
-                    className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5"
-                  >
-                    <ContextIconTile>
-                      <MessageCircle className="size-[17px]" />
-                    </ContextIconTile>
+                  <Link to="/topics/$slug" params={{ slug: item.topic.slug }} className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5">
+                    <ContextIconTile><MessageCircle className="size-[17px]" /></ContextIconTile>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-medium">
-                        {item.topic.title}
-                      </span>
-                      <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">
-                        {item.topic.replyCount} moderated{" "}
-                        {item.topic.replyCount === 1 ? "reply" : "replies"} · Updates{" "}
-                        {item.relationship.notificationPreference === "muted" ? "off" : "on"}
-                      </span>
+                      <span className="block truncate text-[15px] font-medium">{item.topic.title}</span>
+                      <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{item.topic.replyCount} moderated {item.topic.replyCount === 1 ? "reply" : "replies"} · Updates {item.relationship.notificationPreference === "muted" ? "off" : "on"}</span>
                     </span>
                   </Link>
                 </li>
               ))}
             </Rows>
-          ) : (
-            <EmptyState
-              title="No Topic follows yet"
-              body="Follow a Topic to keep its updates attached to your Activity surface."
-            />
-          )
+          ) : <EmptyState title="No Topic follows yet" body="Follow a Topic to keep its updates attached to your Activity surface." />
         ) : null}
 
-        {tab === "System" ? (
-          <EmptyState
-            title="No system events"
-            body="Account, security and billing events will be listed here."
-          />
-        ) : null}
+        {tab === "System" ? <EmptyState title="No system events" body="Account, security and billing events will be listed here." /> : null}
       </section>
 
-      <p className="text-[11px] text-muted-foreground">
-        Conversation activity and Topic Following are backed by canonical services. Approval and
-        system events still depend on their connected event sources.
-      </p>
+      <p className="text-[11px] text-muted-foreground">Conversation activity and Topic Following are backed by canonical services. Approval and system events still depend on their connected event sources.</p>
     </div>
   );
 }
