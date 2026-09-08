@@ -14,6 +14,7 @@ const meetKurukoo = [
   ["/discover", "Nearby"],
   ["/opportunities", "Opportunities"],
   ["/advertising", "Advertising"],
+  ["/resources", "Resources"],
 ] as const;
 const forYou = [
   ["/people", "People"],
@@ -46,6 +47,7 @@ const routerDestinations = new Set([
   "/people",
   "/agents",
   "/connect",
+  "/resources",
   "/legal",
   "/cookies",
 ]);
@@ -190,16 +192,10 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
             className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 text-[12.5px] text-muted-foreground md:flex"
           >
             <PublicMenu label="Meet Kurukoo" items={meetKurukoo} />
-            <PublicDestinationLink
-              to="/how-it-works"
-              className="transition-colors hover:text-foreground"
-            >
+            <PublicDestinationLink to="/how-it-works" className="transition-colors hover:text-foreground">
               How it works
             </PublicDestinationLink>
-            <PublicDestinationLink
-              to="/explore"
-              className="transition-colors hover:text-foreground"
-            >
+            <PublicDestinationLink to="/explore" className="transition-colors hover:text-foreground">
               Explore
             </PublicDestinationLink>
             <PublicMenu label="For You" items={forYou} />
@@ -230,11 +226,7 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
       <div
         className={`h-[calc(100vh-50px)] min-h-0 overflow-hidden md:grid ${railCollapsed ? "md:grid-cols-[76px_minmax(0,1fr)]" : "md:grid-cols-[200px_minmax(0,1fr)]"}`}
       >
-        <PublicRail
-          collapsed={railCollapsed}
-          onToggle={() => setRailCollapsed((v) => !v)}
-          onAuth={openAuth}
-        />
+        <PublicRail collapsed={railCollapsed} onToggle={() => setRailCollapsed((v) => !v)} onAuth={openAuth} />
         <div className="min-h-0 h-full overflow-y-auto scrollbar-none">
           <div className="grid min-h-full lg:grid-cols-[minmax(0,1fr)_224px]">
             <main className="flex min-w-0 min-h-full flex-col">
@@ -243,38 +235,17 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
               </div>
               <footer className="sticky bottom-0 z-20 mx-auto flex w-full max-w-[1120px] items-center justify-between gap-4 border-t border-border/60 bg-background/95 px-5 py-5 text-[11px] text-muted-foreground backdrop-blur md:px-8">
                 <p className="flex shrink-0 items-center gap-2">
-                  <img
-                    src={canonicalLogo}
-                    alt="Kurukoo"
-                    className="size-4 object-contain"
-                    width="16"
-                    height="16"
-                  />{" "}
+                  <img src={canonicalLogo} alt="Kurukoo" className="size-4 object-contain" width="16" height="16" />
                   <span>© 2026 Kurukoo OS · Everyday AI OS for real life.</span>
                 </p>
                 <nav aria-label="Information and legal" className="ml-auto">
                   <div className="flex flex-wrap justify-end gap-x-4 gap-y-2">
-                    <PublicDestinationLink to="/about" className="hover:text-foreground">
-                      About
-                    </PublicDestinationLink>
-                    <PublicDestinationLink to="/help" className="hover:text-foreground">
-                      Help
-                    </PublicDestinationLink>
-                    <PublicDestinationLink
-                      to="/legal"
-                      className="font-medium text-foreground hover:opacity-80"
-                    >
-                      Legal & policies
-                    </PublicDestinationLink>
-                    <PublicDestinationLink to="/legal/privacy" className="hover:text-foreground">
-                      Privacy
-                    </PublicDestinationLink>
-                    <PublicDestinationLink to="/legal/terms" className="hover:text-foreground">
-                      Terms
-                    </PublicDestinationLink>
-                    <PublicDestinationLink to="/legal/cookies" className="hover:text-foreground">
-                      Cookies
-                    </PublicDestinationLink>
+                    <PublicDestinationLink to="/about" className="hover:text-foreground">About</PublicDestinationLink>
+                    <PublicDestinationLink to="/help" className="hover:text-foreground">Help</PublicDestinationLink>
+                    <PublicDestinationLink to="/legal" className="font-medium text-foreground hover:opacity-80">Legal & policies</PublicDestinationLink>
+                    <PublicDestinationLink to="/legal/privacy" className="hover:text-foreground">Privacy</PublicDestinationLink>
+                    <PublicDestinationLink to="/legal/terms" className="hover:text-foreground">Terms</PublicDestinationLink>
+                    <PublicDestinationLink to="/legal/cookies" className="hover:text-foreground">Cookies</PublicDestinationLink>
                   </div>
                 </nav>
               </footer>
@@ -286,9 +257,7 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
         </div>
       </div>
       <PublicMobileNavigation onAuth={openAuth} />
-      {authMode ? (
-        <AuthModal mode={authMode} onClose={closeAuth} onModeChange={setAuthMode} />
-      ) : null}
+      {authMode ? <AuthModal mode={authMode} onClose={closeAuth} onModeChange={setAuthMode} /> : null}
     </div>
   );
 }
