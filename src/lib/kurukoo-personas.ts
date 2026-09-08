@@ -17,6 +17,14 @@ export type KurukooRole = {
   actions: Array<{ title: string; detail: string; to: string }>;
 };
 
+export type KurukooPublicRole = {
+  id: KurukooRoleId;
+  title: string;
+  description: string;
+  to: string;
+  cta: string;
+};
+
 /**
  * Kurukoo's eight participation roles.
  *
@@ -24,6 +32,9 @@ export type KurukooRole = {
  * can participate in more than one role; the Home/For You surface uses the
  * selected role as a presentation preference until a canonical profile/role
  * signal is available from the backend.
+ *
+ * Frontend rule: every role-aware surface must derive its role set from this
+ * registry. Do not create a second, partial list of Kurukoo participation roles.
  */
 export const KURUKOO_ROLES: KurukooRole[] = [
   {
@@ -121,6 +132,70 @@ export const KURUKOO_ROLES: KurukooRole[] = [
       { title: "Coordinate work", detail: "Keep requests moving.", to: "/work" },
       { title: "Stay connected", detail: "Keep useful relationships close.", to: "/contacts" },
     ],
+  },
+];
+
+/**
+ * Public-shell wording for the same eight roles. Keep this list in the same
+ * order as KURUKOO_ROLES so the public network story and authenticated For You
+ * experience cannot silently drift apart.
+ */
+export const KURUKOO_PUBLIC_ROLES: KurukooPublicRole[] = [
+  {
+    id: "seeker",
+    title: "People",
+    description: "Ask for help, discover useful things and keep everyday life moving through one conversation.",
+    to: "/chat",
+    cta: "For people",
+  },
+  {
+    id: "provider",
+    title: "Providers",
+    description: "Offer a genuine skill, become discoverable when eligible and coordinate work with customers.",
+    to: "/providers",
+    cta: "Become a Provider",
+  },
+  {
+    id: "business",
+    title: "Businesses",
+    description: "Make products and services discoverable, respond to demand and grow customer relationships.",
+    to: "/businesses",
+    cta: "For businesses",
+  },
+  {
+    id: "creator",
+    title: "Creators",
+    description: "Share useful ideas, build an audience and create value around content and Topics.",
+    to: "/creators",
+    cta: "For creators",
+  },
+  {
+    id: "contributor",
+    title: "Contributors",
+    description: "Help add useful information, local context, curation or onboarding through scoped workflows.",
+    to: "/contributors",
+    cta: "Become a contributor",
+  },
+  {
+    id: "partner",
+    title: "Partners",
+    description: "Connect organisations and services to Kurukoo through defined capabilities and authorised integrations.",
+    to: "/partners",
+    cta: "For partners",
+  },
+  {
+    id: "advertiser",
+    title: "Advertisers",
+    description: "Reach relevant Kurukoo audiences through clearly labelled sponsored discovery, offers and campaigns.",
+    to: "/advertising",
+    cta: "Advertise on Kurukoo",
+  },
+  {
+    id: "local-agent",
+    title: "Agents",
+    description: "Physical and local agent-participants who help people reach services, information and opportunities.",
+    to: "/chat?prompt=I%20want%20to%20join%20the%20Kurukoo%20agent%20network",
+    cta: "Join the agent network",
   },
 ];
 
