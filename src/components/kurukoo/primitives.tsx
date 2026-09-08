@@ -59,7 +59,7 @@ function CardAction({
   return <button type="button" onClick={onClick} className={className}>{label}<ChevronRight className="size-3.5" /></button>;
 }
 
-function ChatCard({ data }: { data: Record<string, unknown> }) {
+function ChatCard({ data, onAction }: { data: Record<string, unknown>; onAction?: (text: string) => void }) {
   const type = String(data.type ?? "");
   if (type === "semantic_conversation" || data.hidden) return null;
 
@@ -103,7 +103,7 @@ function ChatCard({ data }: { data: Record<string, unknown> }) {
     const options = Array.isArray(data.options) ? data.options.filter((value): value is string => typeof value === "string").slice(0, 6) : [];
     return <div className="mt-3 rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-center gap-2"><MessageCircle className="size-4 text-primary" /><p className="text-[12px] font-semibold">{type === "welcome" ? String(data.title ?? "What would you like to do?") : "Choose a starting point"}</p></div>
-      <div className="mt-3 flex flex-wrap gap-2">{options.map((option) => <CardAction key={option} label={option} href="/chat" />)}</div>
+      <div className="mt-3 flex flex-wrap gap-2">{options.map((option) => <CardAction key={option} label={option} onClick={() => onAction?.(option)} />)}</div>
     </div>;
   }
 
@@ -124,14 +124,14 @@ function ChatCard({ data }: { data: Record<string, unknown> }) {
   return null;
 }
 
-export function Message({ message }: { message: MessageModel }) {
+export function Message({ message, onAction }: { message: MessageModel; onAction?: (text: string) => void }) {
   const you = message.role === "you";
   return (
     <div className={cn("flex", you ? "justify-end" : "justify-start")}>
       <div className={cn("max-w-[88%] text-[15px] leading-relaxed", you ? "rounded-2xl rounded-br-md bg-elevated px-4 py-2.5" : "text-foreground")}>
         {message.text}
         {!you && message.progressStage && !message.text ? <div className="mt-2 flex items-center gap-2 text-[12px] text-muted-foreground"><LoaderCircle className="size-3.5 animate-spin" />{readableLabel(message.progressStage) || "Working"}</div> : null}
-        {!you && message.cardData ? <ChatCard data={message.cardData} /> : null}
+        {!you && message.cardData ? <ChatCard data={message.cardData} onAction={onAction} /> : null}
       </div>
     </div>
   );
