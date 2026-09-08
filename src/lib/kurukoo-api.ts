@@ -5,6 +5,10 @@ export type ChatStreamEvent = {
   text?: string;
   fullReply?: string;
   error?: string;
+  cardData?: Record<string, unknown> | null;
+  canonicalAction?: string;
+  progressStage?: string;
+  capabilityResult?: Record<string, unknown> | null;
 };
 
 export type CanonicalTopicReply = {
@@ -357,6 +361,7 @@ export async function fetchProactiveFeed() {
 export async function streamKurukooChat(input: {
   message: string;
   conversationId?: string | undefined;
+  channel?: string;
   onEvent: (event: ChatStreamEvent) => void;
 }): Promise<{ conversationId?: string | undefined; reply: string }> {
   const response = await fetch(apiUrl("/api/v1/chat/stream"), {
@@ -366,7 +371,7 @@ export async function streamKurukooChat(input: {
     body: JSON.stringify({
       message: input.message.trim(),
       conversationId: input.conversationId,
-      channel: "web",
+      channel: input.channel ?? "web",
     }),
   });
   if (!response.ok || !response.body) {
