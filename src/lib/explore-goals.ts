@@ -37,7 +37,7 @@ export const exploreGoalGroups: ExploreGoalGroup[] = [
     goals: [
       { id: "food", label: "Get food", prompt: "Help me get food", icon: ShoppingBag, capabilityIds: ["order_food", "food_nearby", "suya_vendor"] },
       { id: "groceries", label: "Get groceries", prompt: "Help me get groceries", icon: ShoppingBag, capabilityIds: ["grocery_shopper", "grocery_reminder"] },
-      { id: "errands", label: "Get an errand done", prompt: "Help me get an errand done", icon: ZapIcon, capabilityIds: ["find_worker", "bill_payment_runner", "document_courier"] },
+      { id: "errands", label: "Get an errand done", prompt: "Help me get an errand done", icon: Sparkles, capabilityIds: ["find_worker", "bill_payment_runner", "document_courier"] },
       { id: "delivery", label: "Send or receive something", prompt: "Help me arrange a delivery", icon: MapPin, capabilityIds: ["dispatch_rider", "haulage_driver", "cold_chain_operator"] },
     ],
   },
@@ -101,10 +101,6 @@ export const exploreGoalGroups: ExploreGoalGroup[] = [
     ],
   },
 ];
-
-function ZapIcon(props: React.ComponentProps<LucideIcon>) {
-  return <Sparkles {...props} />;
-}
 
 export const exploreGoalById = Object.fromEntries(
   exploreGoalGroups.flatMap((group) => group.goals.map((goal) => [goal.id, goal])),
