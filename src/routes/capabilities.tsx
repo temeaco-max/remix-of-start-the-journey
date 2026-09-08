@@ -45,36 +45,135 @@ const goalRoutes: Record<string, string> = {
 function CapabilitiesPage() {
   const [query, setQuery] = useState("");
   const normalized = query.trim().toLowerCase();
-  const groups = useMemo(() => exploreGoalGroups.map((group) => ({
-    ...group,
-    goals: group.goals.filter((goal) => !normalized || `${goal.label} ${goal.prompt} ${goal.capabilityIds.join(" ")}`.toLowerCase().includes(normalized)),
-  })).filter((group) => group.goals.length), [normalized]);
-  const matchingJobs = userJobs.filter((job) => !normalized || job.toLowerCase().includes(normalized)).slice(0, 16);
+  const groups = useMemo(
+    () =>
+      exploreGoalGroups
+        .map((group) => ({
+          ...group,
+          goals: group.goals.filter(
+            (goal) =>
+              !normalized ||
+              `${goal.label} ${goal.prompt} ${goal.capabilityIds.join(" ")}`.toLowerCase().includes(normalized),
+          ),
+        }))
+        .filter((group) => group.goals.length),
+    [normalized],
+  );
+  const matchingJobs = userJobs
+    .filter((job) => !normalized || job.toLowerCase().includes(normalized))
+    .slice(0, 16);
 
   return (
     <div className="space-y-8">
-      <PageHeader title="What can I get done?" subtitle="Choose the outcome you want. Kurukoo handles the capability and coordination underneath." />
+      <PageHeader title="What can I get done?" subtitle="Pick a goal, or just tell Kurukoo what you need." />
+
       <section className="rounded-[24px] border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-6">
-        <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Compass className="size-[18px]" /></span><div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Start with your goal</p><h2 className="mt-1 text-[21px] font-semibold tracking-tight">What do you need help with?</h2></div></div>
-        <div className="mt-5"><SearchField label="Find something to do" placeholder="Try: fix my phone, get a ride, start a savings circle…" value={query} onChange={setQuery} /></div>
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink">
+            <Compass className="size-[18px]" />
+          </span>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Start with a goal</p>
+            <h2 className="mt-1 text-[21px] font-semibold tracking-tight">What do you need?</h2>
+          </div>
+        </div>
+        <div className="mt-5">
+          <SearchField label="Search" placeholder="Try: fix my phone, get a ride, start a savings circle…" value={query} onChange={setQuery} />
+        </div>
       </section>
+
       {groups.map((group) => {
         const Icon = groupIcons[group.id] ?? group.icon;
-        return <section key={group.id}>
-          <div className="mb-3 flex items-center gap-2"><span className="grid size-8 place-items-center rounded-lg bg-elevated"><Icon className="size-4" /></span><h2 className="text-[17px] font-semibold">{group.label}</h2></div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {group.goals.map((goal) => {
-              const GoalIcon = goal.icon;
-              const destination = goalRoutes[goal.id] ?? "/chat";
-              const isChat = destination === "/chat";
-              return <Link key={goal.id} to={destination as never} search={isChat ? ({ query: goal.prompt } as never) : undefined} className="group rounded-[18px] border border-border bg-surface p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-elevated/45"><div className="flex items-start justify-between gap-3"><span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink"><GoalIcon className="size-4" /></span><ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" /></div><h3 className="mt-4 text-[14px] font-semibold">{goal.label}</h3><div className="mt-3 flex flex-wrap gap-1.5">{goal.capabilityIds.slice(0, 3).map((id) => <span key={id} className="rounded-full bg-elevated px-2 py-1 text-[9.5px] text-muted-foreground">{id.replace(/_/g, " ")}</span>)}</div><span className="mt-4 inline-flex items-center gap-1 text-[10.5px] font-medium text-muted-foreground">{isChat ? "Start in Chat" : "Open task"}<ArrowRight className="size-3" /></span></Link>;
-            })}
-          </div>
-        </section>;
+        return (
+          <section key={group.id}>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="grid size-8 place-items-center rounded-lg bg-elevated">
+                <Icon className="size-4" />
+              </span>
+              <h2 className="text-[17px] font-semibold">{group.label}</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {group.goals.map((goal) => {
+                const GoalIcon = goal.icon;
+                const destination = goalRoutes[goal.id] ?? "/chat";
+                const isChat = destination === "/chat";
+                return (
+                  <Link
+                    key={goal.id}
+                    to={destination as never}
+                    search={isChat ? ({ query: goal.prompt } as never) : undefined}
+                    className="group flex min-h-[112px] flex-col rounded-[18px] border border-border bg-surface p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-elevated/45"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink">
+                        <GoalIcon className="size-4" />
+                      </span>
+                      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                    <h3 className="mt-4 text-[14px] font-semibold">{goal.label}</h3>
+                    <span className="mt-auto pt-3 text-[10.5px] font-medium text-muted-foreground">
+                      {isChat ? "Start in Chat" : "Open"}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        );
       })}
-      <section className="rounded-[22px] border border-border bg-surface p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Popular</p><h2 className="mt-1 text-[18px] font-semibold">Things people ask Kurukoo to do</h2></div><Link to="/chat" className="text-[11.5px] font-medium">Tell Kurukoo <ArrowRight className="ml-1 inline size-3.5" /></Link></div><div className="mt-4 flex flex-wrap gap-2">{matchingJobs.map((job) => <Link key={job} to="/chat" search={{ query: job } as never} className="rounded-full border border-border px-3 py-2 text-[11px] hover:bg-elevated">{job}</Link>)}</div></section>
-      <details className="overflow-hidden rounded-[22px] border border-border bg-surface"><summary className="cursor-pointer list-none px-5 py-4 text-[14px] font-semibold [&::-webkit-details-marker]:hidden">All capabilities <span className="ml-2 text-[10.5px] font-normal text-muted-foreground">{capabilityCount} available paths</span></summary><div className="space-y-3 border-t border-border p-4"><p className="text-[11px] leading-relaxed text-muted-foreground">The complete capability inventory stays available here for breadth. Most people can simply choose a goal above or tell Kurukoo what they want.</p>{skillCategories.map((category) => <details key={category.name} className="rounded-xl border border-border/80"><summary className="cursor-pointer px-3 py-2.5 text-[12px] font-medium">{category.name} <span className="ml-1 text-[10px] text-muted-foreground">{category.skills.length}</span></summary><div className="grid gap-1 border-t border-border/70 p-2 sm:grid-cols-2 lg:grid-cols-3">{category.skills.map((skill) => <Link key={`${skill.category}-${skill.id}`} to="/chat" search={{ query: skill.label } as never} className="rounded-lg px-2.5 py-2 hover:bg-elevated"><p className="text-[11px] font-medium">{skill.label}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{skill.surfaces.slice(0, 2).join(" · ")}</p></Link>)}</div></details>)}</div></details>
-      <section className="rounded-[22px] bg-foreground p-5 text-background md:p-6"><div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="text-[11px] font-medium text-background/60">Don't know the right words?</p><h2 className="mt-1 text-[19px] font-semibold">Just tell Kurukoo what you are trying to achieve.</h2></div><Link to="/chat" className="inline-flex min-h-9 items-center gap-2 rounded-xl bg-background px-3.5 text-[11.5px] font-medium text-foreground">Start with a request <MessageCircle className="size-3.5" /></Link></div></section>
+
+      <section className="rounded-[22px] border border-border bg-surface p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Popular</p>
+            <h2 className="mt-1 text-[18px] font-semibold">Try asking Kurukoo</h2>
+          </div>
+          <Link to="/chat" className="text-[11.5px] font-medium">
+            Tell Kurukoo <ArrowRight className="ml-1 inline size-3.5" />
+          </Link>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {matchingJobs.map((job) => (
+            <Link key={job} to="/chat" search={{ query: job } as never} className="rounded-full border border-border px-3 py-2 text-[11px] hover:bg-elevated">
+              {job}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <details className="overflow-hidden rounded-[22px] border border-border bg-surface">
+        <summary className="cursor-pointer list-none px-5 py-4 text-[14px] font-semibold [&::-webkit-details-marker]:hidden">
+          All capabilities <span className="ml-2 text-[10.5px] font-normal text-muted-foreground">{capabilityCount}</span>
+        </summary>
+        <div className="space-y-3 border-t border-border p-4">
+          {skillCategories.map((category) => (
+            <details key={category.name} className="rounded-xl border border-border/80">
+              <summary className="cursor-pointer px-3 py-2.5 text-[12px] font-medium">
+                {category.name} <span className="ml-1 text-[10px] text-muted-foreground">{category.skills.length}</span>
+              </summary>
+              <div className="grid gap-1 border-t border-border/70 p-2 sm:grid-cols-2 lg:grid-cols-3">
+                {category.skills.map((skill) => (
+                  <Link key={`${skill.category}-${skill.id}`} to="/chat" search={{ query: skill.label } as never} className="rounded-lg px-2.5 py-2 hover:bg-elevated">
+                    <p className="text-[11px] font-medium">{skill.label}</p>
+                  </Link>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+      </details>
+
+      <section className="rounded-[22px] bg-foreground p-5 text-background md:p-6">
+        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <p className="text-[11px] font-medium text-background/60">Not sure where to start?</p>
+            <h2 className="mt-1 text-[19px] font-semibold">Tell Kurukoo in your own words.</h2>
+          </div>
+          <Link to="/chat" className="inline-flex min-h-9 items-center gap-2 rounded-xl bg-background px-3.5 text-[11.5px] font-medium text-foreground">
+            Start a request <MessageCircle className="size-3.5" />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
