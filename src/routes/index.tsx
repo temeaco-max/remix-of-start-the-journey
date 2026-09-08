@@ -8,7 +8,7 @@ import { fetchAuthenticatedAd, fetchProactiveFeed, type AuthenticatedAd, type Pr
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 const description = "Your personal workspace for getting useful things done with Kurukoo.";
-export const Route = createFileRoute("/")({ head: () => ({ meta: [{ title: "Home — Kurukoo" }, { name: "description", content: description }] }), component: HomePage });
+export const Route = createFileRoute("/")({ head: () => ({ meta: [{ title: "Everyday AI OS for real life" }, { name: "description", content: description }] }), component: HomePage });
 function SectionAction({ to, children }: { to:string; children:ReactNode }) { return <Link to={to as never} className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80">{children}<ArrowUpRight className="size-3.5"/></Link>; }
 function CardHeader({title,count}:{title:string;count?:number}){return <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4"><h2 className="min-w-0 text-[14px] font-semibold tracking-tight">{title}</h2>{count!==undefined?<span className="grid min-w-6 place-items-center rounded-full bg-elevated px-1.5 py-1 text-[10.5px] text-muted-foreground">{count}</span>:null}</div>;}
 function IconTile({children,className}:{children:ReactNode;className?:string}){return <ContextIconTile className={className}>{children}</ContextIconTile>;}
