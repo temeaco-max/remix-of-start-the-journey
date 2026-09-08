@@ -26,13 +26,15 @@ const capabilities = [
   ["Chase and follow up", "Kurukoo keeps track so you do not have to."],
   ["Keep the thread", "Every request stays readable in Work."],
 ];
+type TopicContext = { id: string; slug: string; title: string; type: string; category: string | null; city: string | null; lga: string | null };
 function ChatPage() {
   const { messages, send, loadConversation, work, isSending, isLoadingHistory, lastError } = useKurukoo();
   const endRef = useRef<HTMLDivElement>(null);
   const [initialDraft, setInitialDraft] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyItems, setHistoryItems] = useState<Array<{ id: string; title?: string | null; updated_at?: string }>>([]);
+  const [historyItems, setHistoryItems] = useState<Array<{ id: string; title?: string | null; updated_at?: string; channel?: string }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [topicContext, setTopicContext] = useState<TopicContext | null>(null);
   const active = work.filter((w) => w.stage !== "done");
 
   useEffect(() => {
@@ -46,8 +48,21 @@ function ChatPage() {
       localStorage.removeItem("kurukoo-open-conversation");
       void loadConversation(openConversation);
     }
+    const rawTopic = localStorage.getItem("kurukoo-topic-context");
+    if (rawTopic) {
+      try {
+        setTopicContext(JSON.parse(rawTopic) as TopicContext);
+      } catch {
+        localStorage.removeItem("kurukoo-topic-context");
+      }
+    }
   }, [loadConversation]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages.length]);
+
+  function clearTopicContext() {
+    localStorage.removeItem("kurukoo-topic-context");
+    setTopicContext(null);
+  }
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-[820px] flex-col">
@@ -65,6 +80,22 @@ function ChatPage() {
           <Link to="/work" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">Work <ArrowUpRight className="size-3.5" /></Link>
         </div>
       </header>
+      {topicContext ? (
+        <section className="mt-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-[var(--shadow-soft)]" aria-label="Topic context">
+          <div className="flex items-start gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-elevated"><MessageCircle className="size-3.5" /></span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[11px] font-medium text-muted-foreground">Using context from Topic</p>
+                <span className="rounded-full bg-elevated px-2 py-0.5 text-[10px] text-muted-foreground">{topicContext.type.replace(/[_-]/g, " ")}</span>
+              </div>
+              <Link to="/topics/$slug" params={{ slug: topicContext.slug }} className="mt-0.5 block truncate text-[13px] font-medium hover:underline">{topicContext.title}</Link>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">Community context only. It can inform this conversation, but it is not proof of a provider, price, stock or availability.</p>
+            </div>
+            <button type="button" onClick={clearTopicContext} aria-label="Clear Topic context" title="Clear Topic context" className="grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-elevated"><X className="size-3.5" /></button>
+          </div>
+        </section>
+      ) : null}
       {messages.length === 0 ? (
         <div className="flex flex-1 flex-col justify-start pb-10 pt-[clamp(1.5rem,8vh,5rem)]">
           <p className="text-[12px] font-medium text-muted-foreground">{isSending ? "Working" : isLoadingHistory ? "Loading your conversation" : "Ready when you are"}</p>
