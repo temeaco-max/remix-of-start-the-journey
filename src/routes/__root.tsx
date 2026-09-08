@@ -28,7 +28,14 @@ function RootComponent() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    const read = async () => { const state = await getKurukooAuthState(); if (!cancelled) { setAuthenticated(state.authenticated); setHydrated(true); } };
+    const read = async () => {
+      const state = await getKurukooAuthState();
+      if (cancelled) return;
+      setAuthenticated(state.authenticated);
+      setHydrated(true);
+      if (state.authenticated) window.localStorage.setItem("kurukoo-authenticated", "true");
+      else window.localStorage.removeItem("kurukoo-authenticated");
+    };
     void read();
     const onAuth = () => void read();
     window.addEventListener("kurukoo-auth-updated", onAuth);
