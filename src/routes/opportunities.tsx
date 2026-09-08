@@ -1,129 +1,63 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  BriefcaseBusiness,
-  HandCoins,
-  Package,
-  Sparkles,
-  Store,
-  Users,
-  Zap,
-} from "lucide-react";
-import { userJobs } from "@/lib/skill-catalog";
+import { ArrowRight, BriefcaseBusiness, HandCoins, Package, Sparkles, Store, Users, Zap } from "lucide-react";
+import { FAQSection } from "@/components/kurukoo/faq-section";
+import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
 
-export const Route = createFileRoute("/opportunities")({ component: Opportunities });
+export const Route = createFileRoute("/opportunities")({
+  head: () => ({
+    meta: [
+      { title: "Opportunities — Kurukoo" },
+      { name: "description", content: "Find work, offer services, sell, create, partner and participate through Kurukoo." },
+    ],
+  }),
+  component: Opportunities,
+});
 
-const earningPaths = [
-  ["Find Work", "Discover paid work, gigs and useful opportunities.", BriefcaseBusiness, "/chat"],
-  [
-    "Offer Delivery",
-    "Make your delivery capability discoverable and receive relevant requests.",
-    Package,
-    "/providers",
-  ],
-  ["Sell an Item", "Put something useful in front of people looking for it.", Store, "/businesses"],
-  ["Offer a Service", "Turn a capability into a trusted provider offer.", HandCoins, "/providers"],
-  [
-    "Become a Creator",
-    "Publish useful ideas and build an audience around topics.",
-    Sparkles,
-    "/creators",
-  ],
-  [
-    "Promote an Item",
-    "Use clearly labelled advertising to reach relevant discovery.",
-    Zap,
-    "/advertising",
-  ],
+const paths = [
+  ["Find work", "Discover paid work, gigs and useful opportunities.", BriefcaseBusiness, "/chat", "Tell Kurukoo what kind of work you want."],
+  ["Offer a service", "Make a real capability easier to discover and turn relevant demand into work.", HandCoins, "/providers", "I want to offer a service."],
+  ["Offer delivery", "Make delivery capability discoverable when people need something moved.", Package, "/providers", "I want to offer delivery."],
+  ["Sell something", "Put an item or offer in front of people looking for it.", Store, "/businesses", "Help me sell something."],
+  ["Create and share", "Turn useful ideas, recommendations and community knowledge into something people can use.", Sparkles, "/creators", "I want to become a creator."],
+  ["Promote a business", "Reach relevant discovery with clear commercial disclosure.", Zap, "/advertising", "Help me promote something."],
 ] as const;
 
 function Opportunities() {
   return (
-    <div className="w-full pb-12">
-      <header className="mb-8 border-b border-border/70 pb-5">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Work, earn and participate
-        </p>
-        <h1 className="mt-1 text-[34px] font-semibold tracking-[-0.035em]">Opportunities</h1>
-        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
-          Kurukoo is for the people asking for help and the people, businesses and creators able to
-          provide it.
-        </p>
+    <div className="mx-auto w-full max-w-6xl space-y-10 pb-10">
+      <header className="max-w-3xl">
+        <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary">OPPORTUNITIES</p>
+        <h1 className="mt-2 font-serif text-[40px] leading-[1.02] tracking-[-0.045em] md:text-[52px]">Find a way to take part</h1>
+        <p className="mt-4 max-w-2xl text-[15px] leading-7 text-muted-foreground">Kurukoo connects people who need something with people, businesses and creators who can help make it happen.</p>
+        <div className="mt-5 flex flex-wrap gap-2"><AskKurukoo prompt="Show me opportunities that fit what I can offer." /><Link to="/explore" className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-border px-4 text-[12px] font-medium hover:bg-elevated">Explore <ArrowRight className="size-3.5" /></Link></div>
       </header>
-      <section>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-[20px] font-semibold tracking-tight">Ways to participate</h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              The same conversation-first system can lead to demand, supply, work and earnings.
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {earningPaths.map(([title, body, Icon, to]) => (
-            <Link
-              key={title}
-              to={to as never}
-              className="rounded-2xl border border-border bg-surface p-5 hover:bg-elevated"
-            >
-              <span className="grid size-9 place-items-center rounded-full bg-brand-tint text-brand-ink">
-                <Icon className="size-4" />
-              </span>
-              <h2 className="mt-4 text-[15px] font-semibold">{title}</h2>
-              <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{body}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-[11.5px] font-medium">
-                Open path <ArrowRight className="size-3.5" />
-              </span>
-            </Link>
+
+      <section aria-labelledby="opportunity-paths">
+        <div className="mb-4"><p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary">WAYS TO PARTICIPATE</p><h2 id="opportunity-paths" className="mt-1.5 font-serif text-[28px] leading-tight tracking-[-0.035em]">Start with what you can do</h2></div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {paths.map(([title, body, Icon, to, prompt]) => (
+            <article key={title} className="rounded-[19px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/45">
+              <span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Icon className="size-4" /></span>
+              <h3 className="mt-4 text-[14.5px] font-semibold">{title}</h3>
+              <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{body}</p>
+              <div className="mt-4 flex flex-wrap gap-2"><Link to={to} className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-border px-3 text-[11px] font-medium hover:bg-background">Open <ArrowRight className="size-3.5" /></Link><Link to="/chat" search={{ query: prompt } as never} className="inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-[11px] font-medium text-primary-foreground">Ask Kurukoo</Link></div>
+            </article>
           ))}
         </div>
       </section>
-      <section className="mt-8 rounded-2xl bg-elevated/60 p-5">
-        <div className="flex items-start gap-3">
-          <Users className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-          <div>
-            <p className="text-[13px] font-semibold">
-              A useful job should stay a job, not a skill name.
-            </p>
-            <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
-              People can ask for things naturally. Kurukoo can connect that request to the right
-              provider, business, creator or opportunity underneath.
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {userJobs
-            .filter((job) =>
-              ["Find Work", "Offer Delivery", "Sell an Item", "Promote Items"].includes(job),
-            )
-            .map((job) => (
-              <Link
-                key={job}
-                to="/chat"
-                className="rounded-full border border-border bg-background px-3 py-1.5 text-[11px] hover:bg-surface"
-              >
-                {job}
-              </Link>
-            ))}
-        </div>
+
+      <section className="rounded-[22px] border border-border bg-elevated/35 p-5 md:p-6">
+        <div className="flex items-start gap-3"><Users className="mt-0.5 size-5 shrink-0 text-primary" /><div><p className="text-[14px] font-semibold">The opportunity starts with a real request</p><p className="mt-1.5 max-w-2xl text-[12px] leading-relaxed text-muted-foreground">You do not need to know Kurukoo's internal categories. Describe what you can offer or what you want to achieve; supported opportunities can then move into the same request, evidence and work flow used elsewhere in Kurukoo.</p></div></div>
       </section>
-      <div className="mt-8 rounded-2xl border border-border bg-surface p-5">
-        <div className="flex items-center gap-3">
-          <Sparkles className="size-5 text-muted-foreground" />
-          <div>
-            <p className="text-[13px] font-semibold">Have something in mind?</p>
-            <p className="mt-1 text-[11.5px] text-muted-foreground">
-              Tell Kurukoo what you want to make happen and let the conversation find the next step.
-            </p>
-          </div>
-        </div>
-        <Link
-          to="/chat"
-          className="mt-4 inline-flex rounded-full bg-foreground px-4 py-2 text-[11.5px] font-medium text-background"
-        >
-          Start a conversation
-        </Link>
-      </div>
+
+      <FAQSection
+        title="Opportunities questions"
+        items={[
+          { question: "What can I use Opportunities for?", answer: "You can discover work, offer services or delivery, sell something, create useful content, or promote a relevant business or offer." },
+          { question: "Do I need to choose a category first?", answer: "No. You can start in Chat and describe the outcome you want. Explore simply gives you useful starting points." },
+          { question: "Does appearing here guarantee a job?", answer: "No. Discovery and community context are not a guarantee of demand, availability, price or fulfilment. Supported requests still follow the appropriate verification and approval flow." },
+        ]}
+      />
     </div>
   );
 }
