@@ -72,6 +72,14 @@ body:has(aside[aria-label="Public Kurukoo navigation"]) h1 {
   letter-spacing: -0.045em !important;
 }
 
+/* Public marketing hero eyebrows use the Kurukoo orange consistently. */
+body:has(aside[aria-label="Public Kurukoo navigation"]) main > div > header > p:first-child,
+body:has(aside[aria-label="Public Kurukoo navigation"]) main > div > header > div > p:first-child,
+body:has(aside[aria-label="Public Kurukoo navigation"]) main > div > section:first-child > p:first-child,
+body:has(aside[aria-label="Public Kurukoo navigation"]) main > div > section:first-child > div:first-child > p:first-child {
+  color: var(--primary) !important;
+}
+
 /* Marketing section headings replace the older 28px serif treatment with a compact 24px bold hierarchy. */
 body:has(aside[aria-label="Public Kurukoo navigation"]) h2.font-serif,
 body:has(aside[aria-label="Public Kurukoo navigation"]) h3.font-serif {
