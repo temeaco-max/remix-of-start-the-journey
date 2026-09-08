@@ -247,6 +247,11 @@ export function AuthModal({
   );
 }
 
+function establishPreviewSession() {
+  localStorage.setItem("kurukoo-authenticated", "true");
+  window.dispatchEvent(new Event("kurukoo-auth-updated"));
+  window.location.assign("/");
+}
 export function AuthPanel({
   title,
   subtitle,
@@ -271,6 +276,7 @@ export function AuthPanel({
           onSubmit={(e) => {
             e.preventDefault();
             setSubmitted(true);
+            establishPreviewSession();
           }}
         >
           {showName ? <Field label="Your name" type="text" autoComplete="name" /> : null}
