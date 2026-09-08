@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bell, CheckCircle2, MessageCircle, UserRound } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bell, CheckCircle2, MessageCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Action } from "@/components/kurukoo/primitives";
-import { Avatar, ContextIconTile, Panel, Rows, StatusPill, Tabs } from "@/components/kurukoo/ui";
-import { entities, threads } from "@/lib/kurukoo-demo";
+import { ContextIconTile, Panel, Rows, StatusPill, Tabs } from "@/components/kurukoo/ui";
+import { fetchChatHistory } from "@/lib/kurukoo-api";
 import { fetchFollowedTopics, topicApiConfigured, type FollowedTopic } from "@/lib/topic-lifecycle";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
@@ -24,12 +24,33 @@ export const Route = createFileRoute("/activity")({
 });
 
 const tabs = ["Needs you", "Replies", "Following", "System"] as const;
+type ActivityConversation = {
+  id: string;
+  title?: string | null;
+  channel?: string;
+  updated_at?: string;
+};
+
+type ActivityMessage = {
+  id: number;
+  sender: string;
+  content: string;
+  conversation_id?: string | null;
+  conversationId?: string | null;
+  created_at?: string;
+  createdAt?: string;
+};
 
 function ActivityPage() {
   const { notifications, confirm, markRead } = useKurukoo();
   const [tab, setTab] = useState<string>(tabs[0]);
   const [followedTopics, setFollowedTopics] = useState<FollowedTopic[]>([]);
   const [topicFollowingError, setTopicFollowingError] = useState("");
+  const [conversations, setConversations] = useState<ActivityConversation[]>([]);
+  const [conversationMessages, setConversationMessages] = useState<ActivityMessage[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+
   useEffect(() => {
     if (tab !== "Following") return;
     if (!topicApiConfigured()) {
@@ -49,6 +70,56 @@ function ActivityPage() {
         );
       });
   }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "Replies") return;
+    let cancelled = false;
+    setHistoryLoading(true);
+    setHistoryError("");
+    void fetchChatHistory(undefined, 100)
+      .then((data) => {
+        if (cancelled) return;
+        setConversations((data.conversations ?? []) as ActivityConversation[]);
+        setConversationMessages((data.messages ?? []) as ActivityMessage[]);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setConversations([]);
+        setConversationMessages([]);
+        setHistoryError(
+          error instanceof Error ? error.message : "Unable to load your conversation activity.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab]);
+
+  const replyItems = useMemo(() => {
+    const latestByConversation = new Map<string, ActivityMessage>();
+    for (const message of conversationMessages) {
+      const conversationId = message.conversationId ?? message.conversation_id;
+      if (!conversationId || !message.content?.trim()) continue;
+      const current = latestByConversation.get(conversationId);
+      const currentTime = current?.createdAt ?? current?.created_at ?? "";
+      const messageTime = message.createdAt ?? message.created_at ?? "";
+      if (!current || messageTime >= currentTime) latestByConversation.set(conversationId, message);
+    }
+    return conversations
+      .map((conversation) => ({
+        conversation,
+        latest: latestByConversation.get(conversation.id),
+      }))
+      .filter(({ latest }) => Boolean(latest))
+      .sort((a, b) =>
+        new Date(b.conversation.updated_at ?? "").getTime() -
+        new Date(a.conversation.updated_at ?? "").getTime(),
+      );
+  }, [conversations, conversationMessages]);
+
   const pending = notifications.filter((n) => n.needsConfirmation);
   const unread = notifications.filter((n) => !n.read).length;
 
@@ -83,7 +154,7 @@ function ActivityPage() {
             <StatusPill tone={pending.length ? "peach" : "green"}>
               {pending.length ? "Needs you" : "All clear"}
             </StatusPill>
-            <span>{threads.length} conversations</span>
+            <span>{conversations.length} conversations</span>
           </div>
         </div>
         <Tabs items={tabs} value={tab} onChange={setTab} />
@@ -125,34 +196,48 @@ function ActivityPage() {
         ) : null}
 
         {tab === "Replies" ? (
-          <Rows>
-            {threads.map((t) => {
-              const who = entities.find((e) => e.id === t.withId);
-              return (
-                <li key={t.id}>
-                  <Link
-                    to="/messages/$threadId"
-                    params={{ threadId: t.id }}
-                    className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5"
-                  >
-                    <Avatar name={who?.name ?? "?"} size={40} />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2">
-                        <UserRound className="size-3.5 shrink-0 text-muted-foreground" />
-                        <span className="truncate text-[15px] font-medium">
-                          {who?.name ?? "Conversation"}
+          historyLoading ? (
+            <Panel className="p-5">
+              <div className="h-4 w-36 animate-pulse rounded bg-elevated" />
+              <div className="mt-3 h-3 w-64 animate-pulse rounded bg-elevated" />
+            </Panel>
+          ) : historyError ? (
+            <EmptyState title="Conversation activity unavailable" body={historyError} />
+          ) : replyItems.length ? (
+            <Rows>
+              {replyItems.map(({ conversation, latest }) => {
+                const updated = conversation.updated_at
+                  ? new Date(conversation.updated_at).toLocaleString()
+                  : "";
+                return (
+                  <li key={conversation.id}>
+                    <Link
+                      to="/chat"
+                      className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5"
+                    >
+                      <ContextIconTile>
+                        <MessageCircle className="size-[17px]" />
+                      </ContextIconTile>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] font-medium">
+                          {conversation.title || "Kurukoo conversation"}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">
+                          {latest?.content}
                         </span>
                       </span>
-                      <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">
-                        {t.messages[t.messages.length - 1]?.text}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-[12px] text-muted-foreground">{t.when}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </Rows>
+                      <span className="shrink-0 text-[12px] text-muted-foreground">{updated}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </Rows>
+          ) : (
+            <EmptyState
+              title="No conversation updates yet"
+              body="Your saved Kurukoo conversations will appear here as they develop."
+            />
+          )
         ) : null}
 
         {tab === "Following" ? (
@@ -201,8 +286,8 @@ function ActivityPage() {
       </section>
 
       <p className="text-[11px] text-muted-foreground">
-        Topic Following is backed by the canonical relationship service. Other Activity categories
-        still depend on their connected event sources.
+        Conversation activity and Topic Following are backed by canonical services. Approval and
+        system events still depend on their connected event sources.
       </p>
     </div>
   );
