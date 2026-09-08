@@ -21,6 +21,8 @@ const publicPrefixes = [
   "/capabilities",
   "/contributors",
   "/contact",
+  "/creators",
+  "/advertising",
   "/explore",
   "/discover",
   "/help",
@@ -33,8 +35,9 @@ const publicPrefixes = [
   "/pricing",
   "/providers",
   "/businesses",
-  "/creators",
-  "/advertising",
+  "/agents",
+  "/connect",
+  "/resources",
   "/signup",
   "/topics",
   "/use-cases",
@@ -89,7 +92,7 @@ function NotFound() {
           to="/"
           className="mt-6 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
-          Go to For You
+          Go to Kurukoo
         </Link>
       </div>
     </div>
@@ -104,7 +107,7 @@ function ErrorView({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold">This page didn't load</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Try again or return to For You.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Try again or return to Kurukoo.</p>
         <button
           type="button"
           onClick={() => {
