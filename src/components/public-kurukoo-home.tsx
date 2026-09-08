@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Compass,
   MessageCircle,
   Mic,
   BriefcaseBusiness,
@@ -20,13 +21,14 @@ import { Composer } from "@/components/kurukoo/composer";
 import { KURUKOO_PUBLIC_ROLES } from "@/lib/kurukoo-personas";
 
 const examples = [
-  ["I need a reliable electrician tomorrow", "Find useful options → compare → confirm → coordinate", "Find · Decide · Get it done"],
-  ["Help me prepare for my client call", "Gather the right context → prepare → keep the work together", "Ask · Organise · Work"],
-  ["Find somewhere good for dinner nearby", "Explore nearby → see useful context → choose", "Explore · Nearby · Choose"],
-  ["Remind me to follow up with the client Friday", "Capture it once → schedule it → keep the context", "Remember · Remind · Act"],
-  ["What opportunities are opening up around me?", "Surface relevant possibilities → understand them → decide", "Discover · Explore · Decide"],
-  ["Save this place and remember why I liked it", "Keep the place and the useful context together", "Save · Remember · Return"],
+  ["I need a reliable electrician tomorrow", "Find a suitable local provider for the job and timing.", "Local help"],
+  ["Help me prepare for my client call", "Bring together the context and preparation you need before the call.", "Work"],
+  ["Find somewhere good for dinner nearby", "Explore nearby places and choose one that fits.", "Nearby"],
+  ["Remind me to follow up with the client Friday", "Keep the follow-up on your radar for the right day.", "Remember"],
+  ["What opportunities are opening up around me?", "See relevant possibilities and decide which ones are worth pursuing.", "Opportunities"],
+  ["Save this place and remember why I liked it", "Keep the place and useful context together for later.", "Memory"],
 ] as const;
+
 const prompts = [
   "Find a trusted provider",
   "Help me plan my day",
@@ -38,6 +40,7 @@ const prompts = [
   "Order Food",
   "Sell an item",
 ] as const;
+
 const publicRoleIcons = {
   seeker: Users,
   provider: Target,
@@ -57,18 +60,17 @@ const whoServes = KURUKOO_PUBLIC_ROLES.map((role) => [
   role.cta,
 ] as const);
 
-const quickActions = [
-  [Sparkles, "Start with a need", "Tell Kurukoo what you want done."],
-  [Target, "Find useful options", "Explore people, places, services and opportunities."],
-  [Zap, "Keep it moving", "Follow the work, attention and next step in one place."],
-  [Users, "Take part", "Provide, create, contribute, partner or grow through the network."],
+const entryPoints = [
+  [MessageCircle, "Chat", "Ask for something, continue a request or bring useful context into the conversation.", "/chat", "Open Chat"],
+  [Compass, "Explore", "Start from a goal such as food, mobility, repairs, work, selling, health, events or safety.", "/explore", "Explore goals"],
+  [Target, "Nearby", "See useful people, places, businesses, offers, events and opportunities around you.", "/discover", "See Nearby"],
+  [Users, "Community", "Follow local discussion and context, then take useful questions back to Kurukoo when needed.", "/topics", "Open Community"],
 ] as const;
 
 const coreWorkflow = [
-  [MessageCircle, "Conversation", "Start naturally. Tell Kurukoo what you need, ask a question, continue a thread or bring context into the conversation."],
-  [ClipboardList, "Requests", "Turn the outcome into a clear request. Kurukoo keeps the details, options, evidence and decisions together before anything important moves."],
-  [BriefcaseBusiness, "Work", "Once a request moves forward, Work keeps progress, requirements, messages, commercial steps and the outcome connected."],
-  [Mic, "Voice", "When voice is available, speak naturally and let the same Kurukoo conversation become the starting point for the work."],
+  [MessageCircle, "Conversation", "Where you start: ask, continue a thread or bring context into the conversation."],
+  [ClipboardList, "Request", "The outcome becomes a clear request with the relevant details, options and decisions kept together."],
+  [BriefcaseBusiness, "Work", "Once a request moves forward, progress, requirements, messages and the outcome stay connected."],
 ] as const;
 
 export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
@@ -114,7 +116,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
             <span className="block">what needs doing</span>
           </h1>
           <p className="mt-5 max-w-[700px] text-[15px] leading-7 text-muted-foreground">
-            Say what you need in plain language. Kurukoo helps you discover, decide and get useful things moving.
+            Say what you need in plain language. Kurukoo helps you find a useful way forward.
           </p>
           <div className="mt-7 max-w-[900px]">
             <Composer onSend={onSend ?? (() => undefined)} placeholder="What needs your attention?" />
@@ -150,32 +152,13 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
         </div>
       </section>
 
-      <section className="border-t border-border/70 py-9 md:py-11" aria-labelledby="core-workflow-title">
-        <div className="max-w-2xl">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">The Kurukoo workflow</p>
-          <h2 id="core-workflow-title" className="mt-1.5 font-serif text-[28px] leading-tight tracking-[-0.035em]">Conversation → Request → Work, with Voice wherever it fits.</h2>
-          <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">These are the core parts of Kurukoo. Each one has its own surface, but they are designed to carry the same piece of work forward.</p>
-        </div>
-        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {coreWorkflow.map(([Icon, title, body], index) => (
-            <Link key={title} to="/how-it-works" className="group relative rounded-[20px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/55">
-              <div className="flex items-center justify-between gap-3"><span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Icon className="size-4" strokeWidth={1.8} /></span><span className="text-[10px] font-semibold text-muted-foreground">0{index + 1}</span></div>
-              <h3 className="mt-4 text-[14px] font-semibold">{title}</h3>
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{body}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-[10.5px] font-medium">Read about {title}<ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
-              {index < coreWorkflow.length - 1 ? <span aria-hidden className="pointer-events-none absolute -right-2 top-1/2 hidden h-px w-4 bg-border xl:block" /> : null}
-            </Link>
-          ))}
-        </div>
-      </section>
-
       <section className="border-t border-border/70 py-9 md:py-11">
         <div className="grid min-w-0 gap-7 lg:grid-cols-[minmax(245px,.72fr)_minmax(0,1.8fr)] lg:items-center lg:gap-10">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Who Kurukoo serves</p>
             <h2 className="mt-1.5 text-[24px] font-bold tracking-tight text-foreground">One network, many ways to participate.</h2>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-              Kurukoo brings together people who need something, people who provide it, businesses and creators, contributors and partners, advertisers and local agents.
+              People who need something, people who provide it, businesses and creators, contributors and partners, advertisers and local agents.
             </p>
           </div>
           <div className="min-w-0 overflow-x-auto overflow-y-hidden pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Who Kurukoo serves">
@@ -203,25 +186,25 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
         </div>
       </section>
 
-      <section className="border-t border-border/70 py-9 md:py-11" aria-labelledby="quick-actions-title">
+      <section className="border-t border-border/70 py-9 md:py-11" aria-labelledby="entry-points-title">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">What you can do</p>
-            <h2 id="quick-actions-title" className="mt-1.5 text-[24px] font-bold tracking-tight">Start anywhere. Kurukoo keeps the thread.</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Ways into Kurukoo</p>
+            <h2 id="entry-points-title" className="mt-1.5 text-[24px] font-bold tracking-tight">Start where the job makes sense.</h2>
           </div>
           <Link to="/explore" className="hidden items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground sm:inline-flex">
             Explore all <ArrowRight className="size-3.5" />
           </Link>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {quickActions.map(([Icon, title, detail]) => {
+          {entryPoints.map(([Icon, title, detail, to, label]) => {
             const C = Icon as typeof Sparkles;
             return (
-              <Link key={title as string} to="/explore" className="group rounded-2xl border border-border bg-surface p-4 transition-colors hover:bg-elevated/55">
+              <Link key={title as string} to={to as never} className="group rounded-2xl border border-border bg-surface p-4 transition-colors hover:bg-elevated/55">
                 <C className="size-5 text-primary" strokeWidth={1.7} />
                 <h3 className="mt-3 text-[13.5px] font-semibold">{title as string}</h3>
                 <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{detail as string}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-[10.5px] font-medium">Explore <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
+                <span className="mt-4 inline-flex items-center gap-1 text-[10.5px] font-medium">{label as string} <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
               </Link>
             );
           })}
@@ -231,8 +214,8 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
       <section className="border-t border-border/70 py-9 md:py-11">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">See it in motion</p>
-            <h2 className="mt-1.5 text-[24px] font-bold tracking-tight">Start with a need. Kurukoo carries it forward.</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Real examples</p>
+            <h2 className="mt-1.5 text-[24px] font-bold tracking-tight">Try Kurukoo with something real.</h2>
           </div>
           <div className="flex items-center gap-1">
             <button type="button" onClick={() => setExampleIndex((v) => (v - 1 + examples.length) % examples.length)} aria-label="Previous example" className="grid size-8 place-items-center rounded-full border border-border hover:bg-elevated"><ChevronLeft className="size-4" /></button>
@@ -248,13 +231,44 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
                   <div>
                     <p className="text-[13px] font-medium leading-snug">“{ask}”</p>
                     <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">{result}</p>
-                    <p className="mt-3 text-[9.5px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Example · {meta}</p>
+                    <p className="mt-3 text-[9.5px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{meta}</p>
                   </div>
                 </div>
               </Link>
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="border-t border-border/70 py-9 md:py-11" aria-labelledby="core-workflow-title">
+        <div className="max-w-3xl">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">The Kurukoo workflow</p>
+          <h2 id="core-workflow-title" className="mt-1.5 font-serif text-[28px] leading-tight tracking-[-0.035em]">Conversation → Request → Work, with Voice wherever it fits.</h2>
+          <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">The core surfaces are connected. You can enter at different points, but when something becomes a request, Kurukoo keeps the same piece of work moving through the right surface.</p>
+        </div>
+
+        <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)] lg:items-stretch">
+          {coreWorkflow.map(([Icon, title, body], index) => {
+            const C = Icon as typeof MessageCircle;
+            return (
+              <div key={title} className="contents">
+                <Link to="/how-it-works" className="group rounded-[20px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/55">
+                  <div className="flex items-center justify-between gap-3"><span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink"><C className="size-4" strokeWidth={1.8} /></span><span className="text-[10px] font-semibold text-muted-foreground">0{index + 1}</span></div>
+                  <h3 className="mt-4 text-[14px] font-semibold">{title}</h3>
+                  <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{body}</p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[10.5px] font-medium">Learn more <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
+                </Link>
+                {index < 2 ? <div aria-hidden className="hidden items-center justify-center lg:flex"><ArrowRight className="size-4 text-muted-foreground/60" /></div> : null}
+              </div>
+            );
+          })}
+        </div>
+
+        <Link to="/how-it-works" className="mt-3 flex items-center gap-3 rounded-[18px] border border-dashed border-border bg-elevated/30 px-4 py-3 transition-colors hover:bg-elevated/55">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Mic className="size-4" strokeWidth={1.8} /></span>
+          <div className="min-w-0 flex-1"><p className="text-[13px] font-semibold">Voice can enter the same conversation</p><p className="mt-0.5 text-[11.5px] leading-relaxed text-muted-foreground">Where voice is available, speak naturally and continue into the same Kurukoo workflow rather than starting a separate process.</p></div>
+          <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+        </Link>
       </section>
 
       <section className="border-t border-border/70 pt-9 md:pt-11">
