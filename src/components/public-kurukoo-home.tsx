@@ -247,39 +247,46 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
         </div>
       </section>
       <section className="border-t border-border/70 py-9 md:py-11">
-        <div className="max-w-2xl">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
-            Who Kurukoo serves
-          </p>
-          <h2 className="mt-1.5 text-[24px] font-bold tracking-tight text-foreground">
-            One network, many ways to participate.
-          </h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-            Kurukoo brings together people who need something, people who provide it, businesses and
-            creators, contributors and partners, advertisers and local agents.
-          </p>
-        </div>
-        <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {whoServes.map(([Icon, title, detail, to, label]) => {
-            const C = Icon as typeof Users;
-            return (
-              <Link
-                key={title as string}
-                to={to as never}
-                className="group flex min-h-[205px] flex-col rounded-2xl border border-border bg-surface p-4 transition-colors hover:bg-elevated/55"
-              >
-                <C className="size-5 text-primary" strokeWidth={1.7} />
-                <h3 className="mt-3 text-[14px] font-semibold">{title as string}</h3>
-                <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
-                  {detail as string}
-                </p>
-                <span className="mt-auto inline-flex items-center gap-1 pt-5 text-[10.5px] font-medium">
-                  {label as string}
-                  <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </Link>
-            );
-          })}
+        <div className="grid min-w-0 gap-7 lg:grid-cols-[minmax(245px,.72fr)_minmax(0,1.8fr)] lg:items-center lg:gap-10">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
+              Who Kurukoo serves
+            </p>
+            <h2 className="mt-1.5 text-[24px] font-bold tracking-tight text-foreground">
+              One network, many ways to participate.
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+              Kurukoo brings together people who need something, people who provide it, businesses and
+              creators, contributors and partners, advertisers and local agents.
+            </p>
+          </div>
+          <div
+            className="min-w-0 overflow-x-auto overflow-y-hidden pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="Who Kurukoo serves"
+          >
+            <div className="flex w-max min-w-full gap-3">
+              {whoServes.map(([Icon, title, detail, to, label]) => {
+                const C = Icon as typeof Users;
+                return (
+                  <Link
+                    key={title as string}
+                    to={to as never}
+                    className="group flex min-h-[205px] w-[205px] shrink-0 flex-col rounded-2xl border border-border bg-surface p-4 transition-colors hover:bg-elevated/55"
+                  >
+                    <C className="size-5 text-primary" strokeWidth={1.7} />
+                    <h3 className="mt-3 text-[14px] font-semibold">{title as string}</h3>
+                    <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                      {detail as string}
+                    </p>
+                    <span className="mt-auto inline-flex items-center gap-1 pt-5 text-[10.5px] font-medium">
+                      {label as string}
+                      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
       <section className="border-t border-border/70 py-9 md:py-11">
