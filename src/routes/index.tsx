@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Bell, Building2, BookOpen, ExternalLink, Focus, ShoppingBag } from "lucide-react";
+import { ArrowUpRight, Bell, BookOpen, Building2, ExternalLink, Focus, ShoppingBag } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { AIProviderDirectory } from "@/components/kurukoo/ai-provider-directory";
+import { HomeForYou } from "@/components/kurukoo/home-for-you";
 import { Panel, ContextIconTile } from "@/components/kurukoo/ui";
 import { PulseControl } from "@/components/kurukoo/pulse-control";
 import { fetchAuthenticatedAd, fetchProactiveFeed, type AuthenticatedAd, type ProactiveOpportunity } from "@/lib/kurukoo-api";
@@ -38,6 +39,8 @@ export function HomePage() {
     </section>
 
     {deskAd ? <SponsoredDeskCard campaign={deskAd} /> : null}
+
+    <HomeForYou />
 
     <div className="grid min-w-0 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,.65fr)_minmax(0,.9fr)_minmax(0,1.08fr)]">
       <Panel className="overflow-hidden p-0"><CardHeader title="What needs your attention" count={attention.length} />{attention.length ? <div className="divide-y divide-border/70">{attention.map((item) => <ActiveHomeRequest key={item.id} title={item.title} detail={item.detail} timing={item.updated} needsYou />)}</div> : <div className="px-4 py-5 text-[12px] text-muted-foreground">Nothing needs your attention.</div>}<div className="border-t border-border/60 px-4 py-3"><SectionAction to="/activity">Open Activity</SectionAction></div></Panel>
