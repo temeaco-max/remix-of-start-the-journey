@@ -259,7 +259,7 @@ function RootComponent() {
           <PublicKurukooShell>
             <div className="min-h-[60vh]" />
           </PublicKurukooShell>
-        ) : !authenticated && isPublic && !isAuthenticatedSurface && !anonymousHome ? (
+        ) : !authenticated && ((isPublic && !isAuthenticatedSurface) || anonymousHome) ? (
           <PublicKurukooShell>
             {anonymousHome ? <PublicHome onSend={savePrompt} /> : <Outlet />}
           </PublicKurukooShell>
