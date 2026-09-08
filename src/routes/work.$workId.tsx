@@ -5,7 +5,7 @@ import { Rows, SectionHeader } from "@/components/kurukoo/ui";
 import { artifacts, entities } from "@/lib/kurukoo-demo";
 import { ArtifactRow, ContactRow } from "@/components/kurukoo/cards";
 import { useEffect, useState } from "react";
-import { fetchEconomicRequest, fetchEconomicRequests, type EconomicRequest } from "@/lib/kurukoo-api";
+import { fetchEconomicRequest, type EconomicRequest } from "@/lib/kurukoo-api";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/work/$workId")({
@@ -90,7 +90,7 @@ function WorkDetail() {
         </Link>
       </div>
 
-      {request ? <section className="mt-8"><SectionHeader title="Canonical request" subtitle="Live Economic Request state from Kurukoo." /><div className="rounded-2xl border border-border bg-surface p-4"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-elevated px-2.5 py-1 text-[10.5px] font-medium">${request.status.replace(/[_-]/g, " ")}</span><span className="text-[10.5px] text-muted-foreground">${request.skill.replace(/[_-]/g, " ")}</span></div><pre className="mt-3 overflow-auto rounded-xl bg-background p-3 text-[10.5px] text-muted-foreground">${JSON.stringify(request.requirements, null, 2)}</pre><button type="button" onClick={() => send("Review the current state of this request and tell me what needs my approval.")} className="mt-3 rounded-lg bg-primary px-3 py-2 text-[11.5px] font-medium text-primary-foreground">Ask Kurukoo about this request</button></div></section> : requestError ? <p className="mt-5 text-[11px] text-muted-foreground">{requestError}</p> : null}
+      {request ? <section className="mt-8"><SectionHeader title="Canonical request" subtitle="Live Economic Request state from Kurukoo." /><div className="rounded-2xl border border-border bg-surface p-4"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-elevated px-2.5 py-1 text-[10.5px] font-medium">{request.status.replace(/[_-]/g, " ")}</span><span className="text-[10.5px] text-muted-foreground">{request.skill.replace(/[_-]/g, " ")}</span></div><pre className="mt-3 overflow-auto rounded-xl bg-background p-3 text-[10.5px] text-muted-foreground">{JSON.stringify(request.requirements, null, 2)}</pre><button type="button" onClick={() => send("Review the current state of this request and tell me what needs my approval.")} className="mt-3 rounded-lg bg-primary px-3 py-2 text-[11.5px] font-medium text-primary-foreground">Ask Kurukoo about this request</button></div></section> : requestError ? <p className="mt-5 text-[11px] text-muted-foreground">{requestError}</p> : null}
       <p className="mt-5 text-[11px] text-muted-foreground">Provider, quote, payment and fulfilment evidence is only shown when the canonical service returns it.</p>
     </>
   );
