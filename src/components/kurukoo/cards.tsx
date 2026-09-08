@@ -269,7 +269,9 @@ export function PlanCard({ plan }: { plan: Plan }) {
       )}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[15.5px] font-medium">{plan.name === "Provider" ? "Network" : plan.name}</p>
+        <p className="text-[15.5px] font-medium">
+          {plan.name === "Provider" ? "Network" : plan.name}
+        </p>
         {plan.current ? <Badge tone="accent">Current plan</Badge> : null}
       </div>
       <p className="mt-1 text-[14px] text-muted-foreground">{plan.price}</p>
