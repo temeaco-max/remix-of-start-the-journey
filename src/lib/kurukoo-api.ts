@@ -431,3 +431,27 @@ export async function createVoiceSession(conversationId?: string) {
 export async function endVoiceSession(sessionId: string, reason = 'client_disconnect') {
   return readJson<{ ended: boolean }>('/api/voice/end', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, reason }) });
 }
+export type EconomicRequest = {
+  id: string;
+  phone?: string;
+  skill: string;
+  requirements: Record<string, unknown>;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+  quote?: Record<string, unknown> | null;
+  amount?: number | null;
+  currency?: string | null;
+};
+export async function fetchEconomicRequests() {
+  const payload = await readJson<{ requests?: EconomicRequest[] }>("/api/v1/chat/economic-requests");
+  return Array.isArray(payload.requests) ? payload.requests : [];
+}
+export async function fetchEconomicRequest(id: string) {
+  const payload = await readJson<{ request?: EconomicRequest }>(`/api/v1/chat/economic-requests/${encodeURIComponent(id)}`);
+  if (!payload.request) throw new Error("Request not found");
+  return payload.request;
+}
+export async function fetchNotifications() {
+  return readJson<{ notifications?: Array<{ id: string|number; title?: string; body?: string; read?: boolean; readAt?: string|null; createdAt?: string; type?: string }> }>("/api/notifications");
+}
