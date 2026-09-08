@@ -1,96 +1,38 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Check, MessageCircle, Search, ShieldCheck } from "lucide-react";
-import { Action, actionClass } from "@/components/kurukoo/primitives";
-import { Panel } from "@/components/kurukoo/ui";
+import { VideoCard } from "@/components/kurukoo/cards";
+import { actionClass } from "@/components/kurukoo/primitives";
+import { entityById, videos } from "@/lib/kurukoo-demo";
 
 export const Route = createFileRoute("/how-it-works")({
-  head: () => ({
-    meta: [
-      { title: "How it works — Kurukoo" },
-      {
-        name: "description",
-        content: "See how Kurukoo turns a plain-language request into coordinated work.",
-      },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "How it works — Kurukoo" }, { name: "description", content: "See Kurukoo in a few simple steps." }] }),
   component: HowItWorksPage,
 });
 
 const steps = [
-  [
-    MessageCircle,
-    "Tell Kurukoo",
-    "Say what you need in your own words. A request can start as simply as “I need someone to fix my phone.”",
-  ],
-  [
-    Search,
-    "Understand and find",
-    "Kurukoo works out the useful detail, searches the right parts of its network and surfaces options that can be grounded in evidence.",
-  ],
-  [
-    ShieldCheck,
-    "Check before committing",
-    "You see the important decision points. Kurukoo does not pretend a booking, payment or contact happened when it did not.",
-  ],
-  [
-    Check,
-    "Coordinate and remember",
-    "Once you approve the next step, the work can move forward and the resulting trail stays readable in your OS.",
-  ],
+  [MessageCircle, "Tell Kurukoo", "Say what you need."],
+  [Search, "Find the next step", "Kurukoo works through the request."],
+  [ShieldCheck, "Review", "See the useful options and decisions."],
+  [Check, "Get it done", "Keep the result in your workspace."],
 ] as const;
 
 function HowItWorksPage() {
-  return (
-    <div className="mx-auto w-full max-w-4xl">
-      <section className="max-w-3xl">
-        <p className="text-[12px] font-medium text-muted-foreground">The Kurukoo loop</p>
-        <h1 className="mt-2 font-serif text-[42px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">
-          From “I need this” to a useful result.
-        </h1>
-        <p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">
-          Kurukoo is designed to remove coordination work without removing your control.
-        </p>
-      </section>
-      <div className="mt-10 space-y-3">
-        {steps.map(([Icon, title, body], index) => (
-          <Panel key={title} className="flex gap-4 p-5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-elevated">
-              <Icon className="size-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-                0{index + 1}
-              </p>
-              <h2 className="mt-1 text-[16px] font-semibold">{title}</h2>
-              <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
-                {body}
-              </p>
-            </div>
-          </Panel>
-        ))}
-      </div>
-      <section className="mt-10 rounded-[24px] border border-border bg-surface p-6">
-        <p className="text-[12px] font-medium text-muted-foreground">The important distinction</p>
-        <p className="mt-2 max-w-2xl text-[20px] font-medium tracking-tight">
-          Kurukoo coordinates the work. You remain the authority on meaningful commitments.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link to="/" className={actionClass("primary")}>
-            Try a request
-          </Link>
-          <Link to="/capabilities" className={actionClass()}>
-            See capabilities
-          </Link>
-        </div>
-      </section>
-      <div className="mt-6 flex justify-end">
-        <Link
-          to="/about"
-          className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground"
-        >
-          About Kurukoo <ArrowRight className="size-3.5" />
-        </Link>
-      </div>
-    </div>
-  );
+  const guide = videos[0];
+  const creator = entityById(guide.creatorId);
+  return <div className="mx-auto w-full max-w-4xl space-y-8">
+    <header className="max-w-2xl">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Kurukoo</p>
+      <h1 className="mt-2 font-serif text-[42px] leading-[1.02] tracking-[-0.045em] md:text-[52px]">Just tell it what you need.</h1>
+      <p className="mt-3 text-[15px] text-muted-foreground">Four simple steps from a request to a result.</p>
+    </header>
+
+    <section className="grid gap-3 sm:grid-cols-2">
+      {steps.map(([Icon, title, body], index) => <div key={title} className="rounded-[18px] border border-border bg-surface p-4"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-elevated"><Icon className="size-4" /></span><span className="text-[10px] text-muted-foreground">0{index + 1}</span></div><h2 className="mt-4 text-[15px] font-semibold">{title}</h2><p className="mt-1 text-[12px] text-muted-foreground">{body}</p></div>)}
+    </section>
+
+    <section className="grid gap-5 rounded-[22px] border border-border bg-surface p-5 md:grid-cols-[1.15fr_.85fr] md:items-center">
+      <div><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Watch</p><h2 className="mt-1.5 text-[20px] font-semibold">See it in action</h2><p className="mt-1.5 text-[12.5px] text-muted-foreground">Prefer a visual guide?</p><div className="mt-4 flex flex-wrap gap-2"><Link to="/videos" className={actionClass("primary")}>How-to videos <ArrowRight className="size-3.5" /></Link><Link to="/chat" className={actionClass()}>Try Kurukoo</Link></div></div>
+      {creator ? <VideoCard video={guide} creatorName={creator.name} /> : null}
+    </section>
+  </div>;
 }
