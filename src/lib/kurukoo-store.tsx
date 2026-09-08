@@ -203,10 +203,33 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
           onEvent: (event) => {
             if (event.type === "conversation" && event.conversationId)
               setConversationId(event.conversationId);
+            if (event.type === "progress") {
+              setMessages((current) =>
+                current.map((m) =>
+                  m.id === assistantId
+                    ? { ...m, progressStage: event.progressStage ?? (event as unknown as { stage?: string }).stage }
+                    : m,
+                ),
+              );
+            }
             if (event.type === "text" && event.content) {
               setMessages((current) =>
                 current.map((m) =>
                   m.id === assistantId ? { ...m, text: `${m.text}${event.content}` } : m,
+                ),
+              );
+            }
+            if (event.type === "done") {
+              setMessages((current) =>
+                current.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        cardData: event.cardData ?? null,
+                        canonicalAction: event.canonicalAction,
+                        progressStage: event.progressStage,
+                      }
+                    : m,
                 ),
               );
             }
