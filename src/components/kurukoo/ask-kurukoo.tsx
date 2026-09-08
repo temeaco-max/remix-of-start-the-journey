@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { MessageCircle } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type AskKurukooProps = {
   prompt: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   className?: string;
 };
 
