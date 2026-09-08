@@ -1,8 +1,21 @@
 import { cn } from "@/lib/utils";
-import { AppShell as ContextualAppShell, EmptyState, useProfileName, KurukooLogo } from "./app-shell-contextual";
+import { AppShell as ContextualAppShell, EmptyState, useProfileName, KurukooLogo, PageHeader as ContextualPageHeader } from "./app-shell-contextual";
 import type { ReactNode } from "react";
 
 export { ContextualAppShell as AppShell, EmptyState, useProfileName, KurukooLogo };
+
+const marketingPrefixes = [
+  "/about", "/blog", "/capabilities", "/contributors", "/contact", "/creators",
+  "/advertising", "/explore", "/discover", "/help", "/how-it-works", "/legal", "/cookies",
+  "/login", "/partners", "/people", "/pricing", "/providers", "/businesses", "/agents",
+  "/connect", "/resources", "/signup", "/topics", "/use-cases", "/opportunities", "/safety",
+];
+
+function isMarketingPath() {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname;
+  return marketingPrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
 
 /** Shared page heading treatment. Marketing surfaces use a meaningful page eyebrow rather than an internal product label. */
 export function PageHeader({
@@ -18,6 +31,9 @@ export function PageHeader({
   eyebrow?: string;
   action?: ReactNode;
 }) {
+  if (!isMarketingPath()) {
+    return <ContextualPageHeader title={title} description={description} subtitle={subtitle} eyebrow={eyebrow} action={action} />;
+  }
   const label = eyebrow ?? title ?? "Kurukoo";
   return (
     <header className="mb-7 flex items-start justify-between gap-4 border-b border-border/70 pb-5">
