@@ -1,14 +1,82 @@
 import { ArrowUp, ChevronDown, Mic, Plus, Sparkles, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+
 type SpeechResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
-type SpeechRecognitionLike = { lang: string; interimResults: boolean; continuous: boolean; start: () => void; stop: () => void; onresult: ((event: SpeechResultEvent) => void) | null; onend: (() => void) | null; onerror: (() => void) | null };
-function getRecognition(): SpeechRecognitionLike | null { if (typeof window === "undefined") return null; const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }; const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition; if (!Ctor) return null; const rec = new Ctor(); rec.lang = navigator.language || "en-GB"; rec.interimResults = true; rec.continuous = false; return rec; }
-function Listening() { return <span className="flex items-end gap-[3px]" aria-hidden>{[0,1,2,3].map((i) => <span key={i} className="w-[3px] rounded-full bg-primary motion-safe:animate-pulse" style={{ height: `${6 + ((i % 3) + 1) * 4}px`, animationDelay: `${i * 120}ms` }} />)}</span>; }
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: SpeechResultEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+};
+
+function getRecognition(): SpeechRecognitionLike | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  if (!Ctor) return null;
+  const rec = new Ctor();
+  rec.lang = navigator.language || "en-GB";
+  rec.interimResults = true;
+  rec.continuous = false;
+  return rec;
+}
+
+function Listening() {
+  return <span className="flex items-end gap-[3px]" aria-hidden>{[0, 1, 2, 3].map((i) => <span key={i} className="w-[3px] rounded-full bg-primary motion-safe:animate-pulse" style={{ height: `${6 + ((i % 3) + 1) * 4}px`, animationDelay: `${i * 120}ms` }} />)}</span>;
+}
+
 export function Composer({ onSend, placeholder = "Ask Kurukoo…", disabled = false, initialValue = "" }: { onSend: (text: string) => void; placeholder?: string; disabled?: boolean; initialValue?: string }) {
-  const [draft, setDraft] = useState(initialValue); const [listening, setListening] = useState(false); const [voiceAvailable, setVoiceAvailable] = useState(false); const [mode, setMode] = useState("Ask Kurukoo"); const [modeOpen, setModeOpen] = useState(false); const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const [draft, setDraft] = useState(initialValue);
+  const [listening, setListening] = useState(false);
+  const [voiceAvailable, setVoiceAvailable] = useState(false);
+  const [mode, setMode] = useState("Ask Kurukoo");
+  const [modeOpen, setModeOpen] = useState(false);
+  const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const hasText = draft.trim().length > 0;
+
   useEffect(() => { if (initialValue) setDraft(initialValue); }, [initialValue]);
   useEffect(() => { setVoiceAvailable(getRecognition() !== null); return () => recRef.current?.stop(); }, []);
-  const toggleVoice = () => { if (disabled) return; if (listening) { recRef.current?.stop(); setListening(false); return; } const rec = getRecognition(); if (!rec) return; recRef.current = rec; rec.onresult = (event) => setDraft(Array.from(event.results).map((r) => r[0]?.transcript ?? "").join(" ")); rec.onend = () => setListening(false); rec.onerror = () => setListening(false); rec.start(); setListening(true); };
-  return <form onSubmit={(e) => { e.preventDefault(); if (disabled || !draft.trim()) return; onSend(draft.trim()); setDraft(""); }} className="rounded-[22px] border border-border bg-surface/95 p-2 shadow-[var(--shadow-soft)] backdrop-blur"><div className="flex items-center gap-2"><button type="button" aria-label="Add context" title="Add context" disabled={disabled} className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-muted-foreground hover:bg-elevated hover:text-foreground disabled:opacity-40"><Plus className="size-[18px]" /></button><label htmlFor="ask" className="sr-only">Ask Kurukoo</label><input id="ask" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={disabled ? "Kurukoo is working…" : listening ? "Listening…" : placeholder} autoComplete="off" disabled={disabled} className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-[15px] outline-none placeholder:text-muted-foreground disabled:opacity-60" />{listening ? <Listening /> : null}<div className="relative hidden sm:block"><button type="button" disabled={disabled} onClick={() => setModeOpen((v) => !v)} aria-expanded={modeOpen} className="flex h-10 items-center gap-1 rounded-full border border-border bg-background px-3 text-[12px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground disabled:opacity-40"><Sparkles className="size-3.5" />{mode}<ChevronDown className="size-3.5" /></button>{modeOpen ? <div className="absolute bottom-12 right-0 z-30 w-44 rounded-2xl border border-border bg-surface p-1.5 shadow-[var(--shadow-lift)]"><button type="button" onClick={() => { setMode("Ask Kurukoo"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Ask Kurukoo</button><button type="button" onClick={() => { setMode("Plan with me"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Plan with me</button><button type="button" onClick={() => { setMode("Find for me"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Find for me</button></div> : null}</div>{voiceAvailable ? <button type="button" onClick={toggleVoice} disabled={disabled} aria-pressed={listening} aria-label={listening ? "Stop listening" : "Speak to Kurukoo"} className={cn("grid size-10 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-40", listening ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-elevated hover:text-foreground")}>{listening ? <Square className="size-4" /> : <Mic className="size-[18px]" />}</button> : null}<button type="submit" disabled={disabled || !draft.trim()} aria-label={disabled ? "Kurukoo is working" : "Send"} className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-35"><ArrowUp className="size-[18px]" /></button></div><div className="mt-1 flex items-center justify-between px-2 sm:hidden"><span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground"><Sparkles className="size-3.5" />{mode}</span><span className="text-[10.5px] text-muted-foreground">{disabled ? "Working" : "You stay in control"}</span></div></form>;
+
+  const toggleVoice = () => {
+    if (disabled || !voiceAvailable) return;
+    if (listening) { recRef.current?.stop(); setListening(false); return; }
+    const rec = getRecognition();
+    if (!rec) return;
+    recRef.current = rec;
+    rec.onresult = (event) => setDraft(Array.from(event.results).map((r) => r[0]?.transcript ?? "").join(" "));
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    rec.start();
+    setListening(true);
+  };
+
+  const submit = () => {
+    const clean = draft.trim();
+    if (disabled || !clean) return;
+    onSend(clean);
+    setDraft("");
+  };
+
+  return <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="rounded-[22px] border border-border bg-surface/95 p-2 shadow-[var(--shadow-soft)] backdrop-blur">
+    <div className="flex items-center gap-2">
+      <button type="button" aria-label="Add context" title="Add context" disabled={disabled} className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-muted-foreground hover:bg-elevated hover:text-foreground disabled:opacity-40"><Plus className="size-[18px]" /></button>
+      <label htmlFor="ask" className="sr-only">Ask Kurukoo</label>
+      <input id="ask" value={draft} onChange={(e) => { setDraft(e.target.value); if (listening) { recRef.current?.stop(); setListening(false); } }} placeholder={disabled ? "Kurukoo is working…" : listening ? "Listening…" : placeholder} autoComplete="off" disabled={disabled} className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-[15px] outline-none placeholder:text-muted-foreground disabled:opacity-60" />
+      {listening ? <Listening /> : null}
+      <div className="relative hidden sm:block">
+        <button type="button" disabled={disabled} onClick={() => setModeOpen((v) => !v)} aria-expanded={modeOpen} className="flex h-10 items-center gap-1 rounded-full border border-border bg-background px-3 text-[12px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground disabled:opacity-40"><Sparkles className="size-3.5" />{mode}<ChevronDown className="size-3.5" /></button>
+        {modeOpen ? <div className="absolute bottom-12 right-0 z-30 w-44 rounded-2xl border border-border bg-surface p-1.5 shadow-[var(--shadow-lift)]"><button type="button" onClick={() => { setMode("Ask Kurukoo"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Ask Kurukoo</button><button type="button" onClick={() => { setMode("Plan with me"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Plan with me</button><button type="button" onClick={() => { setMode("Find for me"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Find for me</button></div> : null}
+      </div>
+      <button type="button" onClick={hasText ? submit : toggleVoice} disabled={disabled || (!hasText && !voiceAvailable)} aria-pressed={!hasText && listening} aria-label={disabled ? "Kurukoo is working" : hasText ? "Send" : listening ? "Stop voice mode" : "Use voice mode"} title={disabled ? "Kurukoo is working" : hasText ? "Send" : listening ? "Stop voice mode" : "Use voice mode"} className={cn("group grid size-10 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-35", hasText || listening ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-elevated hover:text-foreground")}>{listening ? <Square className="size-4" /> : hasText ? <ArrowUp className="size-[18px]" /> : <Mic className="size-[18px]" />}</button>
+    </div>
+    <div className="mt-1 flex items-center justify-between px-2 sm:hidden"><span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground"><Sparkles className="size-3.5" />{mode}</span><span className="text-[10.5px] text-muted-foreground">{disabled ? "Working" : hasText ? "Ready to send" : voiceAvailable ? "Use voice mode or type" : "Type to send"}</span></div>
+  </form>;
 }
