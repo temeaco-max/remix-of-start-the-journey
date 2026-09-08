@@ -179,9 +179,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Kurukoo" },
+      { title: "Everyday AI OS for real life - Kurukoo" },
       { name: "description", content: "Tell Kurukoo what you need and it gets it done." },
-      { property: "og:title", content: "Kurukoo" },
+      { property: "og:title", content: "Everyday AI OS for real life - Kurukoo" },
       {
         property: "og:description",
         content: "A conversation-first assistant that gets things done.",
