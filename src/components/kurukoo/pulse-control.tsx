@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, Zap } from "lucide-react";
+import { MapPin, Navigation, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   activatePulse,
   deactivatePulse,
+  fetchPublicPulseProviders,
   fetchPulseReadiness,
+  type PulseProvider,
   type PulseReadiness,
 } from "@/lib/kurukoo-api";
 import { cn } from "@/lib/utils";
@@ -17,19 +19,19 @@ type PulseControlProps = {
 
 export function PulseControl({ compact = false, className, onChanged }: PulseControlProps) {
   const [readiness, setReadiness] = useState<PulseReadiness | null>(null);
+  const [providers, setProviders] = useState<PulseProvider[]>([]);
   const [skill, setSkill] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   useEffect(() => {
     let cancelled = false;
-    const load = () =>
-      void fetchPulseReadiness()
-        .then((value) => {
-          if (!cancelled) setReadiness(value);
-        })
-        .catch(() => {
-          if (!cancelled) setReadiness(null);
-        });
+    const load = () => {
+      void Promise.allSettled([fetchPulseReadiness(), fetchPublicPulseProviders()]).then(([ready, live]) => {
+        if (cancelled) return;
+        if (ready.status === "fulfilled") setReadiness(ready.value);
+        if (live.status === "fulfilled") setProviders(live.value);
+      });
+    };
     load();
     const onPulse = () => load();
     window.addEventListener("kurukoo-pulse-updated", onPulse);
@@ -60,13 +62,13 @@ export function PulseControl({ compact = false, className, onChanged }: PulseCon
     setBusy(true);
     setMessage("Requesting your location…");
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) =>
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: false,
           maximumAge: 30000,
           timeout: 10000,
-        }),
-      );
+        });
+      });
       await activatePulse(skill.trim(), position.coords.latitude, position.coords.longitude);
       update(await fetchPulseReadiness());
       setMessage("You are live on Nearby Pulse.");
@@ -88,6 +90,7 @@ export function PulseControl({ compact = false, className, onChanged }: PulseCon
       setBusy(false);
     }
   }
+  const liveCount = providers.length;
   if (compact)
     return (
       <div className={cn("rounded-xl bg-elevated/50 p-2.5", className)}>
@@ -106,9 +109,9 @@ export function PulseControl({ compact = false, className, onChanged }: PulseCon
             </p>
             <p className="truncate text-[10px] text-muted-foreground">
               {active
-                ? "Nearby visibility is on"
+                ? "Your signal is available to Nearby"
                 : eligible
-                  ? "Ready to Go Live"
+                  ? `${liveCount} live provider${liveCount === 1 ? "" : "s"} nearby`
                   : "Provider readiness required"}
             </p>
           </div>
@@ -172,20 +175,25 @@ export function PulseControl({ compact = false, className, onChanged }: PulseCon
             {active
               ? "Nearby people can discover your available service. Your public position remains approximate and the session expires."
               : eligible
-                ? "Choose what you are available for, then let nearby people discover you. This does not switch your role."
+                ? `${liveCount} live provider${liveCount === 1 ? "" : "s"} are currently visible through Nearby. Go Live adds your availability signal to the same local layer.`
                 : "Radar is available for local discovery. Go Live requires provider readiness and verification."}
           </p>
         </div>
       </div>
       {active ? (
-        <button
-          type="button"
-          onClick={() => void stop()}
-          disabled={busy}
-          className="mt-3 min-h-9 rounded-lg border border-border px-3 text-[11px] font-medium hover:bg-elevated disabled:opacity-50"
-        >
-          {busy ? "Stopping…" : "Stop Go Live"}
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-elevated px-2.5 py-2 text-[10.5px] text-muted-foreground">
+            <Navigation className="size-3" /> Live signal · Nearby can surface you
+          </span>
+          <button
+            type="button"
+            onClick={() => void stop()}
+            disabled={busy}
+            className="min-h-9 rounded-lg border border-border px-3 text-[11px] font-medium hover:bg-elevated disabled:opacity-50"
+          >
+            {busy ? "Stopping…" : "Stop Go Live"}
+          </button>
+        </div>
       ) : (
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <input
