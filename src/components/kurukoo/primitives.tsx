@@ -60,19 +60,19 @@ function CardAction({
 }
 
 function ChatCard({ data, onAction }: { data: Record<string, unknown>; onAction?: (text: string) => void }) {
-  const type = String(data.type ?? "");
-  if (type === "semantic_conversation" || data.hidden) return null;
+  const type = String(data["type"] ?? "");
+  if (type === "semantic_conversation" || data["hidden"]) return null;
 
   if (type === "provider_match") {
     return <div className="mt-3 rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-soft)]">
       <div className="flex items-center gap-2"><Users className="size-4 text-primary" /><p className="text-[12px] font-semibold">Provider options</p></div>
       <p className="mt-1.5 text-[12px] text-muted-foreground">Kurukoo found supported provider context for this request. Review the options before continuing.</p>
-      <div className="mt-3 flex flex-wrap gap-2"><CardAction label="Review options" href={typeof data.requestId === "string" ? `/work/${data.requestId}` : "/work"} primary /><CardAction label="Continue in Chat" href="/chat" /></div>
+      <div className="mt-3 flex flex-wrap gap-2"><CardAction label="Review options" href={typeof data["requestId"] === "string" ? `/work/${data["requestId"]}` : "/work"} primary /><CardAction label="Continue in Chat" href="/chat" /></div>
     </div>;
   }
 
   if (type === "payment") {
-    const stage = readableLabel(data.stage) || "Payment";
+    const stage = readableLabel(data["stage"]) || "Payment";
     return <div className="mt-3 rounded-2xl border border-primary/20 bg-brand-tint/15 p-4">
       <div className="flex items-center gap-2"><ShoppingBag className="size-4 text-primary" /><p className="text-[12px] font-semibold">{stage}</p></div>
       <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">A payment step is ready. Kurukoo will not commit it without your approval.</p>
@@ -89,8 +89,8 @@ function ChatCard({ data, onAction }: { data: Record<string, unknown>; onAction?
   }
 
   if (type === "emergency") {
-    const status = readableLabel(data.status) || "Emergency mode";
-    const service = data.service && typeof data.service === "object" ? data.service as Record<string, unknown> : null;
+    const status = readableLabel(data["status"]) || "Emergency mode";
+    const service = data["service"] && typeof data["service"] === "object" ? data["service"] as Record<string, unknown> : null;
     const number = service && typeof service.number === "string" ? service.number : null;
     return <div className="mt-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
       <div className="flex items-center gap-2"><ShieldCheck className="size-4 text-destructive" /><p className="text-[12px] font-semibold">{status}</p></div>
@@ -100,7 +100,7 @@ function ChatCard({ data, onAction }: { data: Record<string, unknown>; onAction?
   }
 
   if (type === "quick_replies" || type === "welcome") {
-    const options = Array.isArray(data.options) ? data.options.filter((value): value is string => typeof value === "string").slice(0, 6) : [];
+    const options = Array.isArray(data["options"]) ? data["options"].filter((value): value is string => typeof value === "string").slice(0, 6) : [];
     return <div className="mt-3 rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-center gap-2"><MessageCircle className="size-4 text-primary" /><p className="text-[12px] font-semibold">{type === "welcome" ? String(data.title ?? "What would you like to do?") : "Choose a starting point"}</p></div>
       <div className="mt-3 flex flex-wrap gap-2">{options.map((option) => <CardAction key={option} label={option} onClick={() => onAction?.(option)} />)}</div>
@@ -108,18 +108,18 @@ function ChatCard({ data, onAction }: { data: Record<string, unknown>; onAction?
   }
 
   if (type === "progress" || type === "diagnostics") {
-    return <div className="mt-3 rounded-2xl border border-border bg-elevated/35 p-4"><div className="flex items-center gap-2"><LoaderCircle className="size-4 animate-spin text-primary" /><p className="text-[12px] font-semibold">{readableLabel(data.label ?? data.stage) || "Working"}</p></div><p className="mt-1.5 text-[11.5px] text-muted-foreground">Kurukoo is checking supported state. This may take a moment.</p></div>;
+    return <div className="mt-3 rounded-2xl border border-border bg-elevated/35 p-4"><div className="flex items-center gap-2"><LoaderCircle className="size-4 animate-spin text-primary" /><p className="text-[12px] font-semibold">{readableLabel(data["label"] ?? data["stage"]) || "Working"}</p></div><p className="mt-1.5 text-[11.5px] text-muted-foreground">Kurukoo is checking supported state. This may take a moment.</p></div>;
   }
 
   if (type === "referral" || type === "memory_action" || type === "memory") {
     const title = type === "referral" ? "Referral" : "Memory";
     const label = type === "referral" ? "Open referral" : "Review saved context";
-    const href = type === "referral" && typeof data.destination === "string" ? data.destination : "/memory";
+    const href = type === "referral" && typeof data["destination"] === "string" ? data["destination"] : "/memory";
     return <div className="mt-3 rounded-2xl border border-border bg-surface p-4"><div className="flex items-center gap-2"><Zap className="size-4 text-primary" /><p className="text-[12px] font-semibold">{title}</p></div><p className="mt-1.5 text-[11.5px] text-muted-foreground">{type === "memory" ? "Your saved context remains owner-scoped and reviewable." : "Continue through the canonical referral surface."}</p><div className="mt-3"><CardAction label={label} href={href} primary /></div></div>;
   }
 
-  if (typeof data.status === "string" || typeof data.stage === "string") {
-    return <div className="mt-3 rounded-2xl border border-border bg-surface p-4"><div className="flex items-center gap-2"><Clock3 className="size-4 text-primary" /><p className="text-[12px] font-semibold">{readableLabel(data.type) || "Kurukoo update"}</p><span className="ml-auto text-[10px] text-muted-foreground">{readableLabel(data.status ?? data.stage)}</span></div><p className="mt-1.5 text-[11.5px] text-muted-foreground">This status is linked to the current conversation context.</p></div>;
+  if (typeof data["status"] === "string" || typeof data["stage"] === "string") {
+    return <div className="mt-3 rounded-2xl border border-border bg-surface p-4"><div className="flex items-center gap-2"><Clock3 className="size-4 text-primary" /><p className="text-[12px] font-semibold">{readableLabel(data["type"]) || "Kurukoo update"}</p><span className="ml-auto text-[10px] text-muted-foreground">{readableLabel(data["status"] ?? data["stage"])}</span></div><p className="mt-1.5 text-[11.5px] text-muted-foreground">This status is linked to the current conversation context.</p></div>;
   }
   return null;
 }
