@@ -64,8 +64,23 @@ aside[aria-label="Public Kurukoo navigation"] svg,
 aside[aria-label="Trusted context rail"] svg,
 aside[aria-label="Kurukoo public context rail"] svg { color: var(--primary); }
 
-/* Public context is part of the same scroll plane as the public main surface. */
-aside[aria-label="Kurukoo public context rail"] { height: auto !important; min-height: 100%; overflow: visible !important; }
+/* Public marketing typography: every public page uses the same 40px hero title treatment as the homepage. */
+body:has(aside[aria-label="Public Kurukoo navigation"]) h1.font-serif {
+  font-family: var(--font-serif) !important;
+  font-size: 40px !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.045em !important;
+}
+
+/* Marketing section headings replace the older 28px serif treatment with a compact 24px bold hierarchy. */
+body:has(aside[aria-label="Public Kurukoo navigation"]) h2.font-serif,
+body:has(aside[aria-label="Public Kurukoo navigation"]) h3.font-serif {
+  font-family: var(--font-sans) !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.03em !important;
+}
 
 /* Restore transparent scrollbars on the authenticated OS shell only. */
 body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigation"],
@@ -80,3 +95,6 @@ body:has(aside[aria-label="Trusted context rail"]) main::-webkit-scrollbar-track
 body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigation"]::-webkit-scrollbar-thumb,
 body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="Trusted context rail"]::-webkit-scrollbar-thumb,
 body:has(aside[aria-label="Trusted context rail"]) main::-webkit-scrollbar-thumb { background: transparent; }
+
+/* Public context is part of the same scroll plane as the public main surface. */
+aside[aria-label="Kurukoo public context rail"] { height: auto !important; min-height: 100%; overflow: visible !important; }
