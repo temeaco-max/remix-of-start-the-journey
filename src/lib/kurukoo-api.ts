@@ -58,6 +58,9 @@ export type ChatHistoryMessage = {
   conversationId?: string | null;
   created_at?: string;
   createdAt?: string;
+  card_data?: Record<string, unknown> | null;
+  cardData?: Record<string, unknown> | null;
+  metadata?: string | Record<string, unknown> | null;
 };
 export type ChatHistoryResponse = {
   success?: boolean;
