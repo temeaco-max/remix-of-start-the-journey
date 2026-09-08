@@ -1,183 +1,65 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  BriefcaseBusiness,
-  Car,
-  Home,
-  MapPin,
-  RefreshCw,
-  ShieldCheck,
-  ShoppingBag,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, ArrowUpRight, MapPin, Search, Sparkles, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { EntityCard, VideoCard } from "@/components/kurukoo/cards";
-import { IntegrationGap } from "@/components/kurukoo/primitives";
-import { Chips, SearchField, SectionHeader } from "@/components/kurukoo/ui";
-import {
-  fetchAuthenticatedAd,
-  fetchCanonicalTopics,
-  fetchDiscoveryEntities,
-  type AuthenticatedAd,
-  type CanonicalTopic,
-  type DiscoveryEntity,
-} from "@/lib/kurukoo-api";
-import { entities, entityById, videos } from "@/lib/kurukoo-demo";
+import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
+import { SectionHeader } from "@/components/kurukoo/ui";
+import { fetchCanonicalTopics, fetchDiscoveryEntities, type CanonicalTopic, type DiscoveryEntity } from "@/lib/kurukoo-api";
 import { exploreGoalGroups } from "@/lib/explore-goals";
-import { useKurukoo } from "@/lib/kurukoo-store";
-import { DailyPicksGrid } from "@/routes/daily-picks";
 
 export const Route = createFileRoute("/explore")({
-  head: () => ({
-    meta: [
-      { title: "Explore — Kurukoo" },
-      { name: "description", content: "Discover useful people, places, ideas, services and opportunities." },
-      { property: "og:title", content: "Explore — Kurukoo" },
-      { property: "og:description", content: "Discover useful people, places, ideas, services and opportunities." },
-    ],
-  }),
+  head: () => ({ meta: [
+    { title: "Explore — Kurukoo" },
+    { name: "description", content: "Explore ways to get everyday things done with Kurukoo, from food and mobility to work, community and safety." },
+  ] }),
   component: ExplorePage,
 });
 
-const categories = ["All", "Network", "Businesses", "Creators", "Topics", "Watch", "Opportunities"] as const;
-
 const goalRoutes: Record<string, string> = {
-  "money-circle": "/explore/money-circle",
-  food: "/explore/food",
-  groceries: "/explore/groceries",
-  ride: "/explore/mobility",
-  repair: "/explore/repairs",
-  cleaning: "/explore/home",
-  solar: "/explore/home",
-  work: "/explore/work",
-  sell: "/explore/selling",
-  health: "/explore/health",
-  education: "/explore/learning",
-  events: "/explore/events",
-  spiritual: "/explore/prayer",
-  connect: "/explore/community",
-  emergency: "/explore/safety",
-  security: "/explore/safety",
+  "money-circle": "/explore/money-circle", food: "/explore/food", groceries: "/explore/groceries", ride: "/explore/mobility", travel: "/explore/mobility", repair: "/explore/repairs", cleaning: "/explore/home", solar: "/explore/home", work: "/explore/work", sell: "/explore/selling", business: "/explore/work", health: "/explore/health", education: "/explore/learning", events: "/explore/events", spiritual: "/explore/prayer", connect: "/explore/community", emergency: "/explore/safety", security: "/explore/safety",
 };
 
-const starters = ["Find me a plumber.", "Book me a dentist.", "I need someone to repair my phone.", "Get my boiler serviced."];
-
-function pretty(value: string) {
-  return value.replace(/[_-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function evidenceLabel(value?: string | null) {
-  if (!value) return "Source attributed";
-  const normalized = value.toLowerCase();
-  if (normalized.includes("verif")) return "Verified";
-  if (normalized.includes("claim")) return "Claimed";
-  if (normalized.includes("community")) return "Community";
-  if (normalized.includes("system")) return "System sourced";
-  return pretty(value);
-}
-
-function availabilityLabel(entity: DiscoveryEntity) {
-  if (entity.liveNow) return "Live now";
-  if (entity.available === true) return "Available";
-  if (entity.available === false) return "Not confirmed available";
-  return "Availability unconfirmed";
-}
-
-function DiscoveryEntityCard({ entity }: { entity: DiscoveryEntity }) {
-  const evidence = evidenceLabel(entity.evidence);
-  const available = entity.available === true || entity.liveNow === true;
-  return (
-    <article className="rounded-[18px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/45">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><h3 className="truncate text-[14.5px] font-semibold">{entity.name}</h3><span className="rounded-full bg-elevated px-2 py-0.5 text-[9.5px] font-medium">{evidence}</span></div><p className="mt-1 text-[11.5px] text-muted-foreground">{pretty(entity.category ?? entity.kind)}{entity.location ? ` · ${entity.location}` : ""}</p></div>
-        <span className={available ? "shrink-0 rounded-full bg-brand-tint px-2 py-1 text-[9.5px] font-medium text-brand-ink" : "shrink-0 rounded-full bg-elevated px-2 py-1 text-[9.5px] font-medium text-muted-foreground"}>{availabilityLabel(entity)}</span>
-      </div>
-      {entity.description ? <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-muted-foreground">{entity.description}</p> : null}
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">{entity.freshness ? <span>{entity.freshness}</span> : null}{entity.lifecycle ? <span>· {pretty(entity.lifecycle)}</span> : null}{entity.source ? <span>· {entity.source}</span> : null}</div>
-      <div className="mt-3 flex flex-wrap gap-2"><Link to="/chat" search={{ query: entity.chatAction?.entityId ? entity.name : `Help me with ${entity.name}` } as never} className="inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-[11.5px] font-medium text-primary-foreground">Ask Kurukoo <ArrowUpRight className="size-3.5" /></Link>{entity.chatAction?.type ? <span className="inline-flex min-h-8 items-center rounded-lg border border-border px-3 text-[10.5px] text-muted-foreground">{pretty(entity.chatAction.type)}</span> : null}</div>
-    </article>
-  );
-}
-
-function ExploreTopicCard({ topic }: { topic: CanonicalTopic }) {
-  const locality = [topic.city, topic.lga].filter(Boolean).join(" · ");
-  return <Link to="/topics/$slug" params={{ slug: topic.slug }} className="group rounded-[18px] border border-border bg-surface p-4 transition-colors hover:bg-elevated/50"><div className="flex items-center justify-between gap-3"><div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground"><span className="rounded-full bg-elevated px-2 py-1 font-medium text-foreground/80">{pretty(topic.type)}</span>{topic.category ? <span className="rounded-full bg-elevated px-2 py-1">{pretty(topic.category)}</span> : null}{locality ? <span className="rounded-full bg-elevated px-2 py-1">{locality}</span> : null}</div><ArrowUpRight className="size-4 shrink-0 text-muted-foreground" /></div><h3 className="mt-4 text-[15.5px] font-medium leading-snug">{topic.title}</h3><p className="mt-1.5 line-clamp-2 text-[12.5px] leading-relaxed text-muted-foreground">{topic.body}</p><div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground"><span>{topic.replyCount} {topic.replyCount === 1 ? "moderated reply" : "moderated replies"}</span><span>·</span><span>{topic.authorLabel}</span></div></Link>;
-}
-
-function SponsoredExploreCard({ campaign }: { campaign: AuthenticatedAd }) {
-  return <a href={campaign.clickUrl} rel="nofollow" className="block rounded-[18px] border border-border bg-elevated/45 p-4 transition-colors hover:bg-elevated"><div className="flex items-center justify-between gap-2"><p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{campaign.disclosure}</p><ArrowUpRight className="size-3 text-muted-foreground" /></div><p className="mt-2 text-[13.5px] font-semibold">{campaign.title}</p><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">{campaign.desc}</p><span className="mt-2 inline-flex text-[10.5px] font-medium">{campaign.ctaText}</span></a>;
-}
+function pretty(value: string) { return value.replace(/[_-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 
 function ExplorePage() {
   const [q, setQ] = useState("");
-  const [cat, setCat] = useState<string>(categories[0]);
-  const [topicData, setTopicData] = useState<CanonicalTopic[]>([]);
-  const [topicLoading, setTopicLoading] = useState(true);
-  const [topicRefreshing, setTopicRefreshing] = useState(false);
-  const [topicError, setTopicError] = useState("");
-  const [discoveryData, setDiscoveryData] = useState<DiscoveryEntity[]>([]);
-  const [discoveryLoading, setDiscoveryLoading] = useState(true);
-  const [discoveryError, setDiscoveryError] = useState("");
-  const [exploreAd, setExploreAd] = useState<AuthenticatedAd | null>(null);
-  const { send } = useKurukoo();
-  const navigate = useNavigate();
+  const [entities, setEntities] = useState<DiscoveryEntity[]>([]);
+  const [topics, setTopics] = useState<CanonicalTopic[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  async function loadTopics(refresh = false) {
-    if (refresh) setTopicRefreshing(true); else setTopicLoading(true);
-    try { setTopicData(await fetchCanonicalTopics(6)); setTopicError(""); } catch (error) { setTopicData([]); setTopicError(error instanceof Error ? error.message : "Community context is unavailable right now."); } finally { setTopicLoading(false); setTopicRefreshing(false); }
-  }
-  async function loadDiscovery() {
-    setDiscoveryLoading(true);
-    try { setDiscoveryData(await fetchDiscoveryEntities({ radius: 5000, q: q.trim() || undefined })); setDiscoveryError(""); } catch (error) { setDiscoveryData([]); setDiscoveryError(error instanceof Error ? error.message : "Live discovery is unavailable right now."); } finally { setDiscoveryLoading(false); }
-  }
-  useEffect(() => { void loadTopics(); void loadDiscovery(); void fetchAuthenticatedAd("desk-content").then(setExploreAd).catch(() => setExploreAd(null)); }, []);
-  useEffect(() => { const timer = window.setTimeout(() => void loadDiscovery(), 250); return () => window.clearTimeout(timer); }, [q]);
-
-  const results = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    return entities.filter((e) => {
-      const kindOk = cat === "All" || (cat === "Network" && e.kind === "provider") || (cat === "Businesses" && e.kind === "business") || (cat === "Creators" && e.kind === "creator") || (cat === "Watch" && e.kind === "creator") || (cat === "Opportunities" && e.kind === "opportunity");
-      const textOk = !term || `${e.name} ${e.description} ${e.category}`.toLowerCase().includes(term);
-      return kindOk && textOk;
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([fetchDiscoveryEntities({ radius: 5000 }), fetchCanonicalTopics(6)]).then(([discovery, topic]) => {
+      if (cancelled) return;
+      if (discovery.status === "fulfilled") setEntities(discovery.value);
+      if (topic.status === "fulfilled") setTopics(topic.value);
+      setLoading(false);
     });
-  }, [cat, q]);
-  const liveResults = discoveryData;
-  const filteredTopics = useMemo(() => { const term = q.trim().toLowerCase(); return topicData.filter((topic) => !term || `${topic.title} ${topic.body} ${topic.category} ${topic.city} ${topic.lga}`.toLowerCase().includes(term)); }, [q, topicData]);
+    return () => { cancelled = true; };
+  }, []);
 
-  return (
-    <div className="space-y-8">
-      <PageHeader title="Explore" subtitle="Start with something you want to get done, then explore the people, places and community around it." />
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return entities.slice(0, 6);
+    return entities.filter((item) => `${item.name} ${item.category ?? ""} ${item.description ?? ""} ${item.location ?? ""}`.toLowerCase().includes(term)).slice(0, 8);
+  }, [entities, q]);
 
-      <section className="rounded-[24px] border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">What are you trying to do?</p><h2 className="mt-1 text-[21px] font-semibold tracking-tight">Choose a goal or just ask.</h2><p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground">These are starting points, not separate products. Kurukoo can turn the goal into a request and coordinate the next step.</p></div><Link to="/capabilities" className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-border px-3.5 text-[11.5px] font-medium hover:bg-elevated">All capabilities <ArrowUpRight className="size-3.5" /></Link></div>
-        <div className="mt-5"><SearchField label="Search the network or describe what you need" placeholder="Try: get a ride, find a plumber, start a savings circle…" value={q} onChange={setQ} /></div>
-      </section>
+  return <div className="mx-auto w-full max-w-6xl space-y-10 pb-10">
+    <PageHeader eyebrow="Explore" title="Get something done" subtitle="Start with the outcome. Choose a useful starting point or describe what you need and let Kurukoo work out the next step." />
 
-      <section>
-        <SectionHeader title="Get something done" subtitle="Useful starting points across everyday life." />
-        <div className="space-y-5">
-          {exploreGoalGroups.map((group) => { const GroupIcon = group.icon; return <div key={group.id}><div className="mb-2.5 flex items-center gap-2"><span className="grid size-7 place-items-center rounded-lg bg-elevated"><GroupIcon className="size-3.5" /></span><h3 className="text-[13px] font-semibold">{group.label}</h3></div><div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{group.goals.map((goal) => { const GoalIcon = goal.icon; const destination = goalRoutes[goal.id]; const isTask = Boolean(destination); const action = destination ?? "/chat"; return <Link key={goal.id} to={action as never} search={!isTask ? ({ query: goal.prompt } as never) : undefined} className="group flex min-h-[108px] flex-col rounded-[17px] border border-border bg-surface p-3.5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-elevated/45"><div className="flex items-start justify-between gap-2"><span className="grid size-8 place-items-center rounded-lg bg-brand-tint text-brand-ink"><GoalIcon className="size-3.5" /></span><ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" /></div><p className="mt-3 text-[12.5px] font-semibold leading-snug">{goal.label}</p><span className="mt-auto pt-2 text-[9.5px] text-muted-foreground">{isTask ? "Open task" : "Start in Chat"}</span></Link>; })}</div></div>; })}
-        </div>
-      </section>
+    <section className="rounded-[22px] border border-border bg-surface p-5 md:p-6" aria-labelledby="start-with-need">
+      <div className="max-w-3xl"><p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary">START WITH WHAT YOU NEED</p><h2 id="start-with-need" className="mt-1.5 font-serif text-[28px] leading-tight tracking-[-0.035em]">What would you like to get done?</h2><p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">Search for a goal, a local need or a service — or skip the search and simply tell Kurukoo.</p></div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/><input aria-label="Search things to get done" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Try “find a plumber” or “get a ride”" className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-3 text-[12.5px] outline-none focus:border-primary/40"/></div><AskKurukoo prompt={q.trim() ? `Help me ${q.trim()}.` : "Help me decide what I should get done next."} /></div>
+    </section>
 
-      <section><SectionHeader title="Find what is around you" subtitle="Discovery and community remain separate from fulfilment proof." /><div className="grid gap-3 md:grid-cols-3"><Link to="/discover" className="group rounded-[19px] border border-primary/20 bg-brand-tint/20 p-4"><MapPin className="size-5 text-primary" /><h3 className="mt-3 text-[14px] font-semibold">Nearby</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">See live providers, businesses, offers and events around you.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">Open Nearby <ArrowUpRight className="size-3" /></span></Link><Link to="/topics" className="group rounded-[19px] border border-border bg-surface p-4"><Users className="size-5" /><h3 className="mt-3 text-[14px] font-semibold">Topics</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">See what people are discussing and use community context when it helps.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">Browse Topics <ArrowUpRight className="size-3" /></span></Link><Link to="/agents" className="group rounded-[19px] border border-border bg-elevated/35 p-4"><Sparkles className="size-5 text-primary" /><h3 className="mt-3 text-[14px] font-semibold">Agents</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">Let your Kurukoo agents watch, plan and carry bounded tasks forward.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">Open Agents <ArrowUpRight className="size-3" /></span></Link></div></section>
+    <section aria-labelledby="goals"><SectionHeader title="Get something done" subtitle="Useful starting points across everyday life."/><div className="space-y-6">{exploreGoalGroups.map((group) => { const GroupIcon = group.icon; return <div key={group.id}><div className="mb-2.5 flex items-center gap-2"><span className="grid size-7 place-items-center rounded-lg bg-elevated"><GroupIcon className="size-3.5"/></span><h3 className="text-[13px] font-semibold">{group.label}</h3></div><div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">{group.goals.map((goal) => { const Icon = goal.icon; const destination = goalRoutes[goal.id] ?? "/chat"; return <Link key={goal.id} to={destination as never} search={destination === "/chat" ? ({ query: goal.prompt } as never) : undefined} className="group flex min-h-[112px] flex-col rounded-[17px] border border-border bg-surface p-3.5 transition-all hover:-translate-y-0.5 hover:bg-elevated/45"><div className="flex items-start justify-between"><span className="grid size-8 place-items-center rounded-lg bg-brand-tint text-brand-ink"><Icon className="size-3.5"/></span><ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-0.5"/></div><p className="mt-3 text-[12.5px] font-semibold">{goal.label}</p><span className="mt-auto pt-2 text-[9.5px] text-muted-foreground">{destination === "/chat" ? "Start in Chat" : "Open"}</span></Link>; })}</div></div>; })}</div></section>
 
-      <section><SectionHeader title="Start a request" subtitle="Hand a useful task straight to Kurukoo." /><div className="flex flex-wrap gap-2">{starters.map((s) => <button key={s} type="button" onClick={() => { send(s); navigate({ to: "/" }); }} className="min-h-9 rounded-full border border-border bg-surface px-3.5 text-[13px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-elevated hover:text-foreground">{s}</button>)}</div></section>
+    <section aria-labelledby="around-you"><SectionHeader title="Around you" subtitle="Discovery helps you see what is nearby. A discovery result is context; a fulfilment request follows its own evidence and approval flow."/><div className="grid gap-3 md:grid-cols-3"><Link to="/discover" className="rounded-[19px] border border-primary/20 bg-brand-tint/20 p-4 hover:bg-brand-tint/30"><MapPin className="size-5 text-primary"/><h3 className="mt-3 text-[14px] font-semibold">Nearby</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">Find useful people, places, businesses, offers, events and opportunities.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">Open Nearby <ArrowUpRight className="size-3"/></span></Link><Link to="/topics" className="rounded-[19px] border border-border bg-surface p-4 hover:bg-elevated"><Users className="size-5"/><h3 className="mt-3 text-[14px] font-semibold">Topics</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">Use community questions, experiences and local context when it helps.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">Browse Topics <ArrowUpRight className="size-3"/></span></Link><Link to="/agents" className="rounded-[19px] border border-border bg-surface p-4 hover:bg-elevated"><Sparkles className="size-5 text-primary"/><h3 className="mt-3 text-[14px] font-semibold">Agents</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">Let bounded agent work keep useful tasks moving when available.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">See Agents <ArrowUpRight className="size-3"/></span></Link></div></section>
 
-      {cat !== "Topics" && cat !== "Watch" ? <section><SectionHeader title="Live discovery" subtitle="Canonical signals carry evidence, freshness and availability state." action={<button type="button" onClick={() => void loadDiscovery()} className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground"><RefreshCw className="size-3.5" /> Refresh</button>} />{discoveryLoading ? <div className="grid gap-3 md:grid-cols-2"><div className="h-36 animate-pulse rounded-[18px] border border-border bg-surface" /><div className="h-36 animate-pulse rounded-[18px] border border-border bg-surface" /></div> : liveResults.length ? <div className="grid gap-3 md:grid-cols-2">{liveResults.slice(0, 8).map((entity) => <DiscoveryEntityCard key={entity.id} entity={entity} />)}</div> : <div className="rounded-[18px] border border-dashed border-border p-5 text-[13px] text-muted-foreground">{discoveryError || "No canonical discovery signals match this view yet. Kurukoo does not manufacture availability."}</div>}</section> : null}
+    {q.trim() ? <section aria-labelledby="matches"><SectionHeader title="Matches" subtitle={loading ? "Looking around…" : `${filtered.length} useful result${filtered.length === 1 ? "" : "s"} found`}/>{filtered.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{filtered.map((item) => <article key={item.id} className="rounded-[18px] border border-border bg-surface p-4"><p className="text-[14px] font-semibold">{item.name}</p><p className="mt-1 text-[11px] text-muted-foreground">{pretty(item.category ?? item.kind)}{item.location ? ` · ${item.location}` : ""}</p>{item.description ? <p className="mt-2 line-clamp-2 text-[11.5px] leading-relaxed text-muted-foreground">{item.description}</p> : null}<Link to="/chat" search={{ query: `Help me with ${item.name}` } as never} className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium">Ask Kurukoo <ArrowUpRight className="size-3.5"/></Link></article>)}</div> : <div className="rounded-[18px] border border-dashed border-border p-6 text-center text-[12px] text-muted-foreground">No matching discovery results. Tell Kurukoo what you need and it can work from the request instead.</div>}</section> : null}
 
-      {cat === "All" || cat === "Topics" ? <section><SectionHeader title="Topics" subtitle="Community conversation with context — never fulfilment proof." action={<Link to="/topics" className="inline-flex items-center gap-1 text-[13px] text-muted-foreground">All Topics <ArrowUpRight className="size-3.5" /></Link>} /><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-[11.5px] text-muted-foreground"><ShieldCheck className="size-3.5" /> Moderated public context</div><button type="button" onClick={() => void loadTopics(true)} disabled={topicRefreshing} className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground disabled:opacity-50"><RefreshCw className={topicRefreshing ? "size-3.5 animate-spin" : "size-3.5"} /> Refresh</button></div>{topicLoading ? <div className="grid gap-3 sm:grid-cols-2">{[0,1,2,3].map((item) => <div key={item} className="h-40 animate-pulse rounded-[18px] border border-border bg-surface" />)}</div> : filteredTopics.length ? <div className="grid gap-3 sm:grid-cols-2">{filteredTopics.map((topic) => <ExploreTopicCard key={topic.id} topic={topic} />)}</div> : <div className="rounded-[18px] border border-dashed border-border p-5 text-[13px] text-muted-foreground">{topicError || (q ? "No public Topics match this search." : "No public Topics are available yet.")}</div>}</section> : null}
+    {topics.length ? <section><SectionHeader title="Community context" subtitle="Recent Topics that may help you understand what is happening around a goal."/><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{topics.map((topic) => <Link key={topic.id} to="/topics/$slug" params={{ slug: topic.slug }} className="rounded-[18px] border border-border bg-surface p-4 hover:bg-elevated/45"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">TOPIC</p><h3 className="mt-2 text-[14px] font-semibold leading-snug">{topic.title}</h3><p className="mt-1.5 line-clamp-2 text-[11.5px] leading-relaxed text-muted-foreground">{topic.body}</p></Link>)}</div></section> : null}
 
-      {cat === "All" || cat === "Watch" || cat === "Creators" ? <section><SectionHeader title="Watch" subtitle="Useful knowledge from creators." action={<Link to="/creators" className="inline-flex items-center gap-1 text-[13px] text-muted-foreground">Creators <ArrowUpRight className="size-3.5" /></Link>} /><div className="grid gap-4 sm:grid-cols-2">{videos.map((v) => <VideoCard key={v.id} video={v} creatorName={entityById(v.creatorId)?.name ?? ""} />)}</div></section> : null}
-
-      {cat === "All" || cat === "Opportunities" ? <section><SectionHeader title="People, places and opportunities" subtitle={`${results.length} illustrative examples while connected discovery expands`} /><div className="grid gap-3 sm:grid-cols-2">{results.map((e) => <EntityCard key={e.id} entity={e} />)}</div>{exploreAd ? <div className="mt-3"><SponsoredExploreCard campaign={exploreAd} /></div> : null}</section> : null}
-
-      <section className="rounded-[22px] border border-border bg-surface p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Need the full map?</p><h2 className="mt-1 text-[17px] font-semibold">Browse every capability</h2><p className="mt-1 text-[11.5px] text-muted-foreground">The detailed catalogue stays available when you need a specific path.</p></div><Link to="/capabilities" className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-[11.5px] font-medium text-primary-foreground">Browse capabilities <ArrowRight className="size-3.5" /></Link></div></section>
-
-      <IntegrationGap>Availability is only shown as confirmed when Kurukoo can verify it.</IntegrationGap>
-    </div>
-  );
+    <section className="rounded-[22px] border border-border bg-elevated/35 p-5"><p className="text-[13px] font-semibold">Not sure where to start?</p><p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">You do not need to choose a category. Describe the outcome and let Kurukoo take it from there.</p><div className="mt-4"><AskKurukoo prompt="I am not sure where to start. Help me work out what I need."/></div></section>
+  </div>;
 }
