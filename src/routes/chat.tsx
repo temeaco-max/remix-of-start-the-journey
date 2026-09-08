@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { Message } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
+import { fetchChatHistory } from "@/lib/kurukoo-api";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/chat")({
@@ -47,6 +48,9 @@ function ChatPage() {
   const { messages, send, work, isSending, isLoadingHistory, lastError } = useKurukoo();
   const endRef = useRef<HTMLDivElement>(null);
   const [initialDraft, setInitialDraft] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyItems, setHistoryItems] = useState<Array<{ id: string; title?: string | null; updated_at?: string }>>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const active = work.filter((w) => w.stage !== "done");
   useEffect(() => {
     const draft = localStorage.getItem("kurukoo-chat-draft");
@@ -87,6 +91,7 @@ function ChatPage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <button type="button" onClick={async () => { setHistoryOpen(true); setHistoryLoading(true); try { const data = await fetchChatHistory(undefined, 50); setHistoryItems(data.conversations ?? []); } catch { setHistoryItems([]); } finally { setHistoryLoading(false); } }} aria-label="Open conversation history" title="Conversation history" className="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-elevated"><History className="size-4.5" /></button>
           <span className="hidden rounded-full bg-elevated px-2.5 py-1 text-[11px] text-muted-foreground sm:inline-flex">
             <ShieldCheck className="mr-1.5 size-3.5" />
             In control
@@ -187,6 +192,13 @@ function ChatPage() {
           {lastError}
         </p>
       ) : null}
+      {historyOpen ? <div className="fixed inset-0 z-[90] bg-foreground/15 backdrop-blur-[1px]" onClick={() => setHistoryOpen(false)}>
+        <aside aria-label="Conversation history" className="absolute bottom-0 left-0 top-0 w-[min(340px,90vw)] border-r border-border bg-surface p-4 shadow-[var(--shadow-lift)]" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Conversation</p><h2 className="mt-1 text-[18px] font-semibold">History</h2></div><button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close history" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><X className="size-4" /></button></div>
+          <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">Your text and voice turns stay in the same Kurukoo conversation history.</p>
+          <div className="mt-4 space-y-1.5">{historyLoading ? <div className="h-16 animate-pulse rounded-xl bg-elevated" /> : historyItems.length ? historyItems.map((item) => <button type="button" key={item.id} onClick={() => { setHistoryOpen(false); }} className="w-full rounded-xl border border-border px-3 py-3 text-left hover:bg-elevated"><p className="truncate text-[12px] font-medium">{item.title || "Untitled conversation"}</p><p className="mt-1 text-[10px] text-muted-foreground">{item.channel || "web"}{item.updated_at ? ` · ${new Date(item.updated_at).toLocaleString()}` : ""}</p></button>) : <div className="rounded-xl border border-dashed border-border px-3 py-4 text-[11.5px] leading-relaxed text-muted-foreground">No saved conversations are available yet.</div>}</div>
+        </aside>
+      </div> : null}
       <div className="sticky bottom-0 bg-background pb-3 pt-3">
         <Composer onSend={send} disabled={isSending} initialValue={initialDraft} />
         <p className="mt-2 text-center text-[10.5px] text-muted-foreground">
