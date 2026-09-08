@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -10,45 +10,134 @@ import {
   Search,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
 import { fetchCanonicalTopics, type CanonicalTopic } from "@/lib/kurukoo-api";
+import { getStoredKurukooRole, type KurukooRoleId } from "@/lib/kurukoo-personas";
 
-const videoScenes = [
-  {
-    title: "I need someone to fix my phone.",
-    answer: "Kurukoo finds useful options and keeps you in control.",
-    label: "Say it plainly",
-    creator: "Kurukoo",
-  },
-  {
-    title: "Repair · iPhone 15 · Southampton",
-    answer: "Useful, verified options are brought into view.",
-    label: "Kurukoo works",
-    creator: "Kurukoo",
-  },
-  {
-    title: "PhoneCare · £79 · Tomorrow 14:00",
-    answer: "Ready to review — nothing is booked without you.",
-    label: "You decide",
-    creator: "Kurukoo",
-  },
-  {
-    title: "Repair confirmed with your approval.",
-    answer: "The request trail stays with you after the result.",
-    label: "Useful result",
-    creator: "Kurukoo",
-  },
-] as const;
+const guideScenes = {
+  general: [
+    [
+      "I need someone to fix my phone.",
+      "Say what you need in plain language and start from there.",
+      "Start with the need",
+    ],
+    [
+      "Repair · iPhone 15 · Southampton",
+      "Kurukoo brings the relevant options and context into view.",
+      "See useful options",
+    ],
+    [
+      "PhoneCare · £79 · Tomorrow 14:00",
+      "Review what is known, then decide what you want to do.",
+      "You decide",
+    ],
+    [
+      "Repair confirmed with your approval.",
+      "The request stays connected to the work and follow-up.",
+      "Keep it moving",
+    ],
+  ],
+  provider: [
+    [
+      "I can repair iPhones this week.",
+      "Tell Kurukoo what you genuinely provide and where you can help.",
+      "Describe your service",
+    ],
+    [
+      "Phone repair · Southampton · Available",
+      "Your eligible capability can become discoverable when you are ready.",
+      "Be discoverable",
+    ],
+    [
+      "A request needs your attention.",
+      "Review the work, coordinate with the customer and keep the request moving.",
+      "Manage work",
+    ],
+    [
+      "Go Live is on.",
+      "Nearby discovery reflects your current availability rather than a permanent promise.",
+      "Stay current",
+    ],
+  ],
+  contributor: [
+    [
+      "I know a useful local place.",
+      "Share practical knowledge that helps the network become more useful.",
+      "Share knowledge",
+    ],
+    [
+      "A local Topic is gaining replies.",
+      "Community context can help people understand what is happening around them.",
+      "Add context",
+    ],
+    [
+      "A contribution task is ready.",
+      "Keep contribution work connected to the same Kurukoo relationship.",
+      "Take part",
+    ],
+    [
+      "Useful information added.",
+      "The contribution can remain connected to the relevant task or conversation.",
+      "Keep contributing",
+    ],
+  ],
+  partner: [
+    [
+      "Connect our service to Kurukoo.",
+      "Start with the capability or service you want to bring into the network.",
+      "Start a connection",
+    ],
+    [
+      "Capability · Authorised connection",
+      "Explore the supported connection path and its boundaries.",
+      "See the path",
+    ],
+    [
+      "A network demand signal appears.",
+      "Understand where the service can add useful value before acting.",
+      "Find demand",
+    ],
+    [
+      "The partnership is moving.",
+      "Keep coordination, work and authorised integrations connected.",
+      "Keep it moving",
+    ],
+  ],
+  advertiser: [
+    [
+      "Reach people who are ready for this.",
+      "Start from relevant demand rather than a generic audience.",
+      "Find relevance",
+    ],
+    [
+      "Local demand · Useful moment",
+      "Explore the contexts where people are already looking or deciding.",
+      "See the context",
+    ],
+    [
+      "Sponsored discovery",
+      "Commercial placements stay clearly labelled and separate from organic results.",
+      "Stay transparent",
+    ],
+    [
+      "A relevant offer is shown.",
+      "Measure the useful outcome without turning the experience into an uncontrolled feed.",
+      "Create value",
+    ],
+  ],
+} as const;
 
-const activityItems = [
-  ["Request", "A verified local provider was found", "now"],
-  ["Explore", "Someone discovered a useful place nearby", "2m"],
-  ["Opportunity", "A collaboration was surfaced proactively", "5m"],
-  ["Work", "A task moved into coordination", "8m"],
-  ["Topic", "A new discussion started nearby", "11m"],
-  ["Creator", "A useful local guide was published", "14m"],
-] as const;
+const roleGuide: Record<KurukooRoleId, keyof typeof guideScenes> = {
+  seeker: "general",
+  provider: "provider",
+  business: "general",
+  creator: "general",
+  contributor: "contributor",
+  partner: "partner",
+  advertiser: "advertiser",
+  "local-agent": "general",
+};
 
 function SearchBox() {
   return (
@@ -80,32 +169,42 @@ function SearchBox() {
   );
 }
 
-function PublicVideoCarousel() {
+function PublicGuideCarousel({
+  scenes,
+  resourceSlug,
+  roleLabel,
+}: {
+  scenes: readonly (readonly [string, string, string])[];
+  resourceSlug: string;
+  roleLabel?: string;
+}) {
   const [slide, setSlide] = useState(0);
   const [playing, setPlaying] = useState(true);
-
+  useEffect(() => {
+    setSlide(0);
+  }, [scenes]);
   useEffect(() => {
     if (!playing) return;
     const timer = window.setInterval(
-      () => setSlide((value) => (value + 1) % videoScenes.length),
+      () => setSlide((value) => (value + 1) % scenes.length),
       4200,
     );
     return () => window.clearInterval(timer);
-  }, [playing]);
+  }, [playing, scenes]);
 
-  const scene = videoScenes[slide] ?? videoScenes[0];
+  const scene = scenes[slide] ?? scenes[0]!;
   return (
     <div className="overflow-hidden rounded-[22px] border border-border bg-foreground text-background shadow-[var(--shadow-lift)]">
       <div className="relative aspect-[9/13] overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_74%_18%,color-mix(in_oklch,var(--brand-tint)_70%,transparent),transparent_30%),radial-gradient(circle_at_24%_78%,color-mix(in_oklch,var(--brand-ink)_24%,transparent),transparent_32%),linear-gradient(145deg,var(--foreground),color-mix(in_oklch,var(--foreground)_78%,var(--primary)))]" />
         <div className="absolute inset-x-3 top-3 flex items-center justify-between">
           <span className="rounded-full bg-background/15 px-2 py-1 text-[9px] font-semibold tracking-wide text-background/80 backdrop-blur">
-            KURUKOO · DEMO
+            KURUKOO · VISUAL GUIDE
           </span>
           <button
             type="button"
             onClick={() => setPlaying((value) => !value)}
-            aria-label={playing ? "Pause showcase" : "Play showcase"}
+            aria-label={playing ? "Pause guide" : "Play guide"}
             className="grid size-7 place-items-center rounded-full bg-background/15 backdrop-blur"
           >
             {playing ? <Pause className="size-3" /> : <Play className="ml-0.5 size-3" />}
@@ -113,21 +212,21 @@ function PublicVideoCarousel() {
         </div>
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground via-foreground/35 to-transparent px-3 pb-3 pt-24">
           <p className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-background/55">
-            {scene.creator}
+            {roleLabel ?? "Kurukoo"}
           </p>
           <p className="mt-1.5 text-[16px] font-semibold leading-tight text-background">
-            {scene.title}
+            {scene[0]}
           </p>
-          <p className="mt-1.5 text-[10.5px] leading-relaxed text-background/75">{scene.answer}</p>
+          <p className="mt-1.5 text-[10.5px] leading-relaxed text-background/75">{scene[1]}</p>
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-[9.5px] font-semibold text-background">{scene.label}</span>
+            <span className="text-[9.5px] font-semibold text-background">{scene[2]}</span>
             <div className="flex gap-1">
-              {videoScenes.map((item, dot) => (
+              {scenes.map((item, dot) => (
                 <button
                   type="button"
-                  key={item.title}
+                  key={item[0]}
                   onClick={() => setSlide(dot)}
-                  aria-label={`Show showcase scene ${dot + 1}`}
+                  aria-label={`Show guide step ${dot + 1}`}
                   className="h-1.5 w-6 overflow-hidden rounded-full bg-background/20"
                 >
                   <span
@@ -143,23 +242,27 @@ function PublicVideoCarousel() {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-between border-t border-background/10 px-3 py-2.5 text-background/65">
-        <span className="text-[9.5px] font-medium">A Kurukoo moment, shown as a visual demo</span>
-        <div className="flex gap-1">
+      <div className="flex items-center justify-between gap-2 border-t border-background/10 px-3 py-2.5 text-background/65">
+        <Link
+          to="/resources/$slug"
+          params={{ slug: resourceSlug }}
+          className="min-w-0 truncate text-[9.5px] font-medium hover:text-background"
+        >
+          Read the guide
+        </Link>
+        <div className="flex shrink-0 gap-1">
           <button
             type="button"
-            onClick={() =>
-              setSlide((value) => (value - 1 + videoScenes.length) % videoScenes.length)
-            }
-            aria-label="Previous showcase scene"
+            onClick={() => setSlide((value) => (value - 1 + scenes.length) % scenes.length)}
+            aria-label="Previous guide step"
             className="grid size-6 place-items-center rounded-full bg-background/10 hover:bg-background/15"
           >
             <ChevronLeft className="size-3.5" />
           </button>
           <button
             type="button"
-            onClick={() => setSlide((value) => (value + 1) % videoScenes.length)}
-            aria-label="Next showcase scene"
+            onClick={() => setSlide((value) => (value + 1) % scenes.length)}
+            aria-label="Next guide step"
             className="grid size-6 place-items-center rounded-full bg-background/10 hover:bg-background/15"
           >
             <ChevronRight className="size-3.5" />
@@ -225,6 +328,15 @@ function PublicActivityFeed({
     </section>
   );
 }
+
+const activityItems = [
+  ["Request", "A verified local provider was found", "now"],
+  ["Explore", "Someone discovered a useful place nearby", "2m"],
+  ["Opportunity", "A collaboration was surfaced proactively", "5m"],
+  ["Work", "A task moved into coordination", "8m"],
+  ["Topic", "A new discussion started nearby", "11m"],
+  ["Creator", "A useful local guide was published", "14m"],
+] as const;
 
 function TopicsPeek() {
   const [topics, setTopics] = useState<CanonicalTopic[]>([]);
@@ -308,6 +420,29 @@ export function PublicContextRail({
   signedIn: boolean;
   onOpenAuth?: (mode: AuthMode) => void;
 }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [role, setRole] = useState(getStoredKurukooRole());
+  useEffect(() => {
+    const read = () => setRole(getStoredKurukooRole());
+    window.addEventListener("kurukoo-role-changed", read);
+    window.addEventListener("storage", read);
+    return () => {
+      window.removeEventListener("kurukoo-role-changed", read);
+      window.removeEventListener("storage", read);
+    };
+  }, []);
+
+  const guide = useMemo(() => {
+    if (pathname.startsWith("/providers")) return { key: "provider" as const, resourceSlug: "provider-and-capability-guides" };
+    if (pathname.startsWith("/contributors")) return { key: "contributor" as const, resourceSlug: "contributors-and-tasks" };
+    if (pathname.startsWith("/partners")) return { key: "partner" as const, resourceSlug: "channels-and-connected-doors" };
+    if (pathname.startsWith("/advertising")) return { key: "advertiser" as const, resourceSlug: "how-kurukoo-works" };
+    if (pathname.startsWith("/topics")) return { key: "general" as const, resourceSlug: "how-kurukoo-works" };
+    if (pathname.startsWith("/discover")) return { key: "general" as const, resourceSlug: "how-kurukoo-works" };
+    if (pathname.startsWith("/explore")) return { key: "general" as const, resourceSlug: "how-kurukoo-works" };
+    return { key: roleGuide[role.id], resourceSlug: role.id === "provider" ? "provider-and-capability-guides" : "how-kurukoo-works" };
+  }, [pathname, role.id]);
+
   return (
     <aside
       aria-label="Kurukoo public context rail"
@@ -318,11 +453,15 @@ export function PublicContextRail({
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Play className="size-[14px] text-primary" />
-            <h2 className="text-[13px] font-semibold">Recent videos</h2>
+            <h2 className="text-[13px] font-semibold">How to</h2>
           </div>
-          <span className="text-[9px] text-muted-foreground">Watch</span>
+          <span className="text-[9px] text-muted-foreground">Visual guide</span>
         </div>
-        <PublicVideoCarousel />
+        <PublicGuideCarousel
+          scenes={guideScenes[guide.key]}
+          resourceSlug={guide.resourceSlug}
+          roleLabel={role.title}
+        />
       </section>
       <div className="mt-3">
         <PublicActivityFeed signedIn={signedIn} onOpenAuth={onOpenAuth} />
