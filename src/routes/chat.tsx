@@ -152,7 +152,7 @@ function ChatPage() {
         <div className="flex-1 space-y-5 py-4">
           <div className="mx-auto h-0 max-w-xl" />
           {messages.map((m) => (
-            <Message key={m.id} message={m} />
+            <Message key={m.id} message={m} onAction={(action) => { void send(action); }} />
           ))}
           {active.length > 0 ? (
             <section
