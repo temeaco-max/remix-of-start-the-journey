@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CalendarDays,
   Check,
@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/app-shell";
 import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
 import { Badge, Panel, SectionHeader } from "@/components/kurukoo/ui";
 import { connections, type Connection } from "@/lib/kurukoo-demo";
+import { fetchConnectedResources, revokeConnectedResource, type ConnectedResource } from "@/lib/kurukoo-api";
 
 export const Route = createFileRoute("/connect")({
   head: () => ({
@@ -208,8 +209,20 @@ function ConnectionCard({ c }: { c: Connection }) {
   );
 }
 
+function ResourceCard({ resource, onRevoke }: { resource: ConnectedResource; onRevoke: (id: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  async function revoke() {
+    if (!window.confirm(`Disconnect ${resource.label} from Kurukoo?`)) return;
+    setBusy(true);
+    try { await revokeConnectedResource(resource.id); onRevoke(resource.id); } catch { /* keep state */ } finally { setBusy(false); }
+  }
+  return <article className="rounded-2xl border border-border bg-surface p-4"><div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-elevated"><Plug className="size-[18px]"/></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-[14px] font-semibold">{resource.label}</p><Badge tone="success">{resource.state || "Connected"}</Badge></div><p className="mt-1 text-[11.5px] text-muted-foreground">{resource.kind}{resource.vendor ? ` · ${resource.vendor}` : ""}{resource.protocol ? ` · ${resource.protocol}` : ""}</p><p className="mt-2 text-[10.5px] text-muted-foreground">{resource.capabilities?.length ? resource.capabilities.join(" · ") : "No additional capabilities declared."}</p></div></div><div className="mt-3"><Action disabled={busy} onClick={() => void revoke()}>{busy ? "Disconnecting…" : "Disconnect"}</Action></div></article>;
+}
 function ConnectPage() {
   const [connectedAssistants, setConnectedAssistants] = useState<string[]>([]);
+  const [resources, setResources] = useState<ConnectedResource[]>([]);
+  const [resourceLoading, setResourceLoading] = useState(true);
+  useEffect(() => { void fetchConnectedResources().then(setResources).catch(() => setResources([])).finally(() => setResourceLoading(false)); }, []);
   const connectedCount =
     connections.filter((c) => c.state === "connected").length + connectedAssistants.length;
 
@@ -248,6 +261,10 @@ function ConnectPage() {
         </div>
       </Panel>
 
+      <section className="mb-8">
+        <SectionHeader title="Connected resources" subtitle="Devices and services already authorised for this account." />
+        {resourceLoading ? <div className="h-24 animate-pulse rounded-2xl border border-border bg-surface" /> : resources.length ? <div className="grid gap-3 md:grid-cols-2">{resources.map((resource)=><ResourceCard key={resource.id} resource={resource} onRevoke={(id)=>setResources((items)=>items.filter((item)=>item.id!==id))}/>)}</div> : <Panel className="p-4"><p className="text-[13px] font-medium">No connected devices yet</p><p className="mt-1 text-[11.5px] text-muted-foreground">Connect a phone, vehicle, TV or other supported resource when you are ready.</p></Panel>}
+      </section>
       <section>
         <SectionHeader
           title="AI assistants"
