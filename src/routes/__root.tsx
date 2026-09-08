@@ -53,7 +53,6 @@ const authenticatedSurfacePrefixes = [
   "/contacts",
   "/messages",
   "/memory",
-  "/connect",
   "/artifacts",
   "/agents",
   "/calls",
