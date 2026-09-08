@@ -1,102 +1,64 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageHeader, EmptyState } from "@/components/app-shell";
+import { ArrowLeft } from "lucide-react";
 import { VideoCard, VideoFrame } from "@/components/kurukoo/cards";
-import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
-import {
-  Avatar,
-  FollowButton,
-  Rows,
-  SaveButton,
-  SectionHeader,
-  ShareButton,
-} from "@/components/kurukoo/ui";
+import { Avatar } from "@/components/kurukoo/ui";
 import { entityById, videoById, videos } from "@/lib/kurukoo-demo";
-import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/videos/$videoId")({
-  head: () => ({
-    meta: [
-      { title: "Watch — Kurukoo" },
-      {
-        name: "description",
-        content: "Watch practical Kurukoo content and turn it into a request.",
-      },
-      { property: "og:title", content: "Watch — Kurukoo" },
-      { property: "og:description", content: "From watching to getting it done." },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Watch — Kurukoo" }] }),
   component: WatchPage,
 });
 
 function WatchPage() {
   const { videoId } = Route.useParams();
   const video = videoById(videoId);
-  const { send } = useKurukoo();
 
   if (!video) {
     return (
-      <>
-        <PageHeader title="Watch" />
-        <EmptyState title="Video not found" body="Browse creators to find something else." />
-        <Link to="/creators" className="mt-4 inline-block text-[14px] underline">
-          Creators
+      <div className="space-y-4">
+        <Link to="/videos" className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+          <ArrowLeft className="size-3.5" /> Videos
         </Link>
-      </>
+        <h1 className="text-xl font-semibold">Video not found</h1>
+      </div>
     );
   }
 
   const creator = entityById(video.creatorId);
-  const related = videos.filter((v) => v.id !== video.id);
+  const related = videos.filter((item) => item.id !== video.id);
 
   return (
-    <>
-      <VideoFrame label={video.title} large className="mt-2" />
-      <h1 className="mt-4 text-[22px] font-semibold">{video.title}</h1>
-      <p className="mt-1 text-[13.5px] text-muted-foreground">
-        {video.views} views · {video.duration}
-      </p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Link
-          to="/profile/$entityId"
-          params={{ entityId: video.creatorId }}
-          className="flex items-center gap-2.5"
-        >
-          <Avatar name={creator?.name ?? "?"} size={38} />
-          <span className="text-[15px]">{creator?.name}</span>
-        </Link>
-        <FollowButton label="Subscribe" small />
-        <SaveButton />
-        <ShareButton />
-        <Link to="/">
-          <Action
-            variant="primary"
-            onClick={() => send(`I watched "${video.title}" — can you sort this for me?`)}
-          >
-            Ask Kurukoo to do this
-          </Action>
-        </Link>
-      </div>
-
-      <section className="mt-8">
-        <SectionHeader title="Discussion" />
-        <Rows>
-          <li className="px-4 py-3.5 text-[14px] text-muted-foreground">
-            Comments open when the creator backend is connected.
-          </li>
-        </Rows>
-      </section>
-
-      <section className="mt-8">
-        <SectionHeader title="Related" />
+    <div className="mx-auto max-w-4xl space-y-5">
+      <Link to="/videos" className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-3.5" /> How-to videos
+      </Link>
+      <VideoFrame label={video.title} large className="rounded-[20px]" />
+      <header>
+        <h1 className="text-[24px] font-semibold tracking-tight">{video.title}</h1>
+        <div className="mt-2 flex items-center gap-2.5 text-[12px] text-muted-foreground">
+          <Avatar name={creator?.name ?? "Kurukoo"} size={28} />
+          <span>{creator?.name ?? "Kurukoo"}</span>
+          <span>·</span>
+          <span>{video.duration}</span>
+          <span>·</span>
+          <span>{video.views} views</span>
+        </div>
+      </header>
+      <Link
+        to="/chat"
+        search={{ query: `Help me with ${video.title}` } as never}
+        className="inline-flex min-h-9 items-center rounded-xl bg-primary px-3.5 text-[11.5px] font-medium text-primary-foreground"
+      >
+        Ask Kurukoo about this
+      </Link>
+      <section className="pt-3">
+        <h2 className="mb-3 text-[15px] font-semibold">More to watch</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          {related.map((v) => (
-            <VideoCard key={v.id} video={v} creatorName={entityById(v.creatorId)?.name ?? ""} />
+          {related.map((item) => (
+            <VideoCard key={item.id} video={item} creatorName={entityById(item.creatorId)?.name ?? ""} />
           ))}
         </div>
       </section>
-
-      <IntegrationGap>Playback, comments and subscriptions are placeholders.</IntegrationGap>
-    </>
+    </div>
   );
 }
