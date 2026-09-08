@@ -21,6 +21,22 @@ const groupIcons: Record<string, typeof ShoppingBag> = {
   safety: ShieldCheck,
 };
 
+const goalRoutes: Record<string, string> = {
+  food: "/explore/food",
+  groceries: "/explore/groceries",
+  mobility: "/explore/mobility",
+  repairs: "/explore/repairs",
+  "money-circle": "/explore/money-circle",
+  work: "/explore/work",
+  selling: "/explore/selling",
+  health: "/explore/health",
+  community: "/explore/community",
+  events: "/explore/events",
+  prayer: "/explore/prayer",
+  safety: "/explore/safety",
+  government: "/explore/government",
+};
+
 function CapabilitiesPage() {
   const [query, setQuery] = useState("");
   const normalized = query.trim().toLowerCase();
@@ -42,7 +58,12 @@ function CapabilitiesPage() {
         return <section key={group.id}>
           <div className="mb-3 flex items-center gap-2"><span className="grid size-8 place-items-center rounded-lg bg-elevated"><Icon className="size-4" /></span><h2 className="text-[17px] font-semibold">{group.label}</h2></div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {group.goals.map((goal) => { const GoalIcon = goal.icon; const destination = goal.id === "money-circle" ? "/explore/money-circle" : "/chat"; return <Link key={goal.id} to={destination as never} search={destination === "/chat" ? ({ query: goal.prompt } as never) : undefined} className="group rounded-[18px] border border-border bg-surface p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-elevated/45"><div className="flex items-start justify-between gap-3"><span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink"><GoalIcon className="size-4" /></span><ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" /></div><h3 className="mt-4 text-[14px] font-semibold">{goal.label}</h3><div className="mt-3 flex flex-wrap gap-1.5">{goal.capabilityIds.slice(0, 3).map((id) => <span key={id} className="rounded-full bg-elevated px-2 py-1 text-[9.5px] text-muted-foreground">{id.replace(/_/g, " ")}</span>)}</div></Link>; })}
+            {group.goals.map((goal) => {
+              const GoalIcon = goal.icon;
+              const destination = goalRoutes[goal.id] ?? "/chat";
+              const isChat = destination === "/chat";
+              return <Link key={goal.id} to={destination as never} search={isChat ? ({ query: goal.prompt } as never) : undefined} className="group rounded-[18px] border border-border bg-surface p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-elevated/45"><div className="flex items-start justify-between gap-3"><span className="grid size-9 place-items-center rounded-xl bg-brand-tint text-brand-ink"><GoalIcon className="size-4" /></span><ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" /></div><h3 className="mt-4 text-[14px] font-semibold">{goal.label}</h3><div className="mt-3 flex flex-wrap gap-1.5">{goal.capabilityIds.slice(0, 3).map((id) => <span key={id} className="rounded-full bg-elevated px-2 py-1 text-[9.5px] text-muted-foreground">{id.replace(/_/g, " ")}</span>)}</div><span className="mt-4 inline-flex items-center gap-1 text-[10.5px] font-medium text-muted-foreground">{isChat ? "Start in Chat" : "Open task"}<ArrowRight className="size-3" /></span></Link>;
+            })}
           </div>
         </section>;
       })}
