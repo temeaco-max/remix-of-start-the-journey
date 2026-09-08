@@ -249,6 +249,9 @@ export function ContextualTrustedRail({
   const { work, memory, notifications } = useKurukoo();
   const [readiness, setReadiness] = useState<PulseReadiness | null>(null);
   const [ad, setAd] = useState<AuthenticatedAd | null>(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceStyle, setVoiceStyle] = useState<"calm" | "clear" | "warm">("calm");
+  const [voiceLanguage, setVoiceLanguage] = useState("en-GB");
   const focus = work.find((item) => item.stage !== "done");
   const unread = notifications.filter((item) => !item.read).length;
   useEffect(() => {
@@ -271,6 +274,30 @@ export function ContextualTrustedRail({
       window.clearInterval(id);
     };
   }, []);
+  useEffect(() => {
+    const onVoice = (event: Event) => {
+      const detail = (event as CustomEvent<{ open?: boolean; style?: string; language?: string }>).detail || {};
+      setVoiceOpen(Boolean(detail.open));
+      if (detail.style === "calm" || detail.style === "clear" || detail.style === "warm") setVoiceStyle(detail.style);
+      if (typeof detail.language === "string" && detail.language) setVoiceLanguage(detail.language);
+    };
+    window.addEventListener("kurukoo-voice-state", onVoice);
+    const stored = localStorage.getItem("kurukoo-voice-preferences");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.style === "calm" || parsed.style === "clear" || parsed.style === "warm") setVoiceStyle(parsed.style);
+        if (typeof parsed.language === "string" && parsed.language) setVoiceLanguage(parsed.language);
+      } catch { /* keep defaults */ }
+    }
+    setVoiceOpen(localStorage.getItem("kurukoo-voice-open") === "1");
+    return () => window.removeEventListener("kurukoo-voice-state", onVoice);
+  }, []);
+
+  function saveVoicePreferences(nextStyle = voiceStyle, nextLanguage = voiceLanguage) {
+    localStorage.setItem("kurukoo-voice-preferences", JSON.stringify({ style: nextStyle, language: nextLanguage }));
+    window.dispatchEvent(new CustomEvent("kurukoo-voice-preferences", { detail: { style: nextStyle, language: nextLanguage } }));
+  }
   useEffect(() => {
     if (!open) return;
     void fetchAuthenticatedAd("context-rail")
@@ -427,6 +454,30 @@ export function ContextualTrustedRail({
       </button>
       {open ? (
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-2">
+          <nav aria-label="Quick context links" className="grid grid-cols-4 gap-1.5 rounded-2xl border border-border bg-background/60 p-1.5">
+            <Link to="/messages" aria-label="Messages" title="Messages" className="grid h-9 place-items-center rounded-xl text-muted-foreground hover:bg-elevated hover:text-foreground"><MessageSquare className="size-4" /></Link>
+            <Link to="/contacts" aria-label="Contacts" title="Contacts" className="grid h-9 place-items-center rounded-xl text-muted-foreground hover:bg-elevated hover:text-foreground"><Users className="size-4" /></Link>
+            <Link to="/connect" aria-label="Connect" title="Connect" className="grid h-9 place-items-center rounded-xl text-muted-foreground hover:bg-elevated hover:text-foreground"><Plug className="size-4" /></Link>
+            <Link to="/artifacts" aria-label="Files" title="Files" className="grid h-9 place-items-center rounded-xl text-muted-foreground hover:bg-elevated hover:text-foreground"><FolderClosed className="size-4" /></Link>
+          </nav>
+          {voiceOpen ? (
+            <Section title="Voice conversation" icon={Sparkles} to="/chat">
+              <div className="rounded-xl bg-brand-tint/25 p-2.5">
+                <p className="text-[10px] leading-4 text-muted-foreground">These choices control how the current browser voice session listens and speaks.</p>
+                <label className="mt-2 block text-[9.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Voice style
+                  <select value={voiceStyle} onChange={(e) => { const next=e.target.value as "calm"|"clear"|"warm"; setVoiceStyle(next); saveVoicePreferences(next, voiceLanguage); }} className="mt-1 min-h-8 w-full rounded-lg border border-border bg-background px-2 text-[10.5px] font-medium outline-none">
+                    <option value="calm">Calm</option><option value="clear">Clear</option><option value="warm">Warm</option>
+                  </select>
+                </label>
+                <label className="mt-2 block text-[9.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Conversation language
+                  <select value={voiceLanguage} onChange={(e) => { const next=e.target.value; setVoiceLanguage(next); saveVoicePreferences(voiceStyle, next); }} className="mt-1 min-h-8 w-full rounded-lg border border-border bg-background px-2 text-[10.5px] font-medium outline-none">
+                    <option value="en-GB">English (UK)</option><option value="en-NG">English (Nigeria)</option><option value="en-US">English (US)</option><option value="ha-NG">Hausa</option><option value="yo-NG">Yorùbá</option><option value="ig-NG">Igbo</option><option value="pcm-NG">Nigerian Pidgin</option>
+                  </select>
+                </label>
+                <p className="mt-2 text-[9px] leading-4 text-muted-foreground">Voice sessions stay on the same Kurukoo conversation. Close voice to return to Chat.</p>
+              </div>
+            </Section>
+          ) : null}
           {content}
         </div>
       ) : (
@@ -434,6 +485,12 @@ export function ContextualTrustedRail({
           aria-label="Trusted context shortcuts"
           className="mt-10 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto overscroll-contain py-1"
         >
+          <div className="mb-2 grid grid-cols-2 gap-1">
+            <Link to="/messages" aria-label="Messages" title="Messages" className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-elevated"><MessageSquare className="size-4" /></Link>
+            <Link to="/contacts" aria-label="Contacts" title="Contacts" className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-elevated"><Users className="size-4" /></Link>
+            <Link to="/connect" aria-label="Connect" title="Connect" className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-elevated"><Plug className="size-4" /></Link>
+            <Link to="/artifacts" aria-label="Files" title="Files" className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-elevated"><FolderClosed className="size-4" /></Link>
+          </div>
           {compact.map(({ label, to, Icon }) => (
             <Link
               key={label}
