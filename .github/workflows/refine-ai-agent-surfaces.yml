@@ -1,0 +1,62 @@
+name: Refine AI agent surfaces
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Update surfaces
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          menu = Path('src/components/public-kurukoo.tsx')
+          s = menu.read_text()
+          s = s.replace('["/kurukoo-ai", "Multi-AI Intelligence"]', '["/kurukoo-ai", "Frontier AI Intelligence"]', 1)
+          s = s.replace('["/provider", "Agentic AI Providers"]]', '["/provider", "Agentic AI Providers"], ["/businesses", "Agentic Storefront"]]', 1)
+          menu.write_text(s)
+
+          context = Path('src/components/public-kurukoo-context.tsx')
+          s = context.read_text()
+          pattern = r'function PublicAgentAdvert\(\) \{.*?\n\}\n\nfunction TopicCommunityStats'
+          replacement = '''function PublicAgentAdvert() {
+            return <section className="relative overflow-hidden rounded-2xl border border-border bg-foreground p-3 text-background shadow-[var(--shadow-soft)]">
+              <div className="absolute -right-8 -top-8 size-24 rounded-full bg-primary/20 blur-2xl" aria-hidden="true" />
+              <div className="relative">
+                <p className="text-[8.5px] font-semibold uppercase tracking-[0.12em] text-background/55">Kurukoo AI Agent</p>
+                <h2 className="mt-1 text-[15px] font-semibold">Meet Teme</h2>
+                <div className="mt-3 flex justify-center">
+                  <span className="grid size-14 place-items-center rounded-full bg-background/10 ring-1 ring-background/15"><Bot className="size-7" /></span>
+                </div>
+                <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[9.5px] font-medium text-background/80"><span className="size-1.5 rounded-full bg-emerald-400" />Available</div>
+                <p className="mt-2 text-center text-[10px] leading-relaxed text-background/70">A customer service adviser that can help answer questions, guide customers and keep conversations moving on your Kurukoo profile.</p>
+                <Link to="/profile/teme-ai" className="mt-3 inline-flex w-full items-center justify-between rounded-lg bg-background px-2.5 py-2 text-[9.5px] font-semibold text-foreground hover:bg-background/90"><span>View Teme profile</span><ArrowUpRight className="size-3" /></Link>
+              </div>
+            </section>;
+          }
+
+          function TopicCommunityStats'''
+          if not re.search(pattern, s, flags=re.S):
+              raise SystemExit('PublicAgentAdvert block not found')
+          s = re.sub(pattern, replacement, s, count=1, flags=re.S)
+          context.write_text(s)
+          PY
+      - name: Commit and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/public-kurukoo.tsx src/components/public-kurukoo-context.tsx .github/workflows/refine-ai-agent-surfaces.yml
+          git rm .github/workflows/refine-ai-agent-surfaces.yml
+          git commit -m "Refine AI agent surfaces and Meet Kurukoo menu"
+          git push origin main
