@@ -1,5 +1,6 @@
 const API_BASE = (import.meta.env["VITE_KURUKOO_API_BASE_URL"] ?? "").replace(/\/$/, "");
 
+/** Temporary frontend-only access gate. Remove this constant and related checks when normal access is restored. */
 export const KURUKOO_BUILD_EMAIL = "temea.co@gmail.com";
 
 function apiUrl(path: string) {
@@ -21,21 +22,57 @@ export function isAllowedKurukooBuildAccount(user: KurukooAuthUser | null | unde
 export async function getKurukooAuthState(): Promise<{ authenticated: boolean; user: KurukooAuthUser | null }> {
   try {
     const { response, payload } = await readJson<{ success?: boolean; user?: KurukooAuthUser }>("/api/auth/me");
-    if (!response.ok) return { authenticated: false, user: null };
-    return { authenticated: Boolean(payload?.success), user: payload?.user ?? null };
+    if (!response.ok || !payload?.success || !payload.user) return { authenticated: false, user: null };
+    // The canonical auth JWT is phone-rooted and may not carry the profile email.
+    // Read the already-authenticated profile so the temporary frontend gate can
+    // identify the permitted build account without introducing a new backend auth path.
+    try {
+      const profileResponse = await readJson<{ profile?: { email?: string; name?: string; phone?: string } }>("/api/user/profile");
+      if (profileResponse.response.ok && profileResponse.payload?.profile) {
+        return {
+          authenticated: true,
+          user: { ...payload.user, ...profileResponse.payload.profile },
+        };
+      }
+    } catch { /* auth/me remains authoritative if profile lookup is unavailable */ }
+    return { authenticated: true, user: payload.user };
   } catch {
     return { authenticated: false, user: null };
   }
 }
 
-export async function requestPhoneOtp(_phone: string) {
-  throw new Error(`Email sign-in is required for this build. Use ${KURUKOO_BUILD_EMAIL}.`);
+export async function requestPhoneOtp(phone: string) {
+  const normalizedPhone = phone.trim();
+  if (!normalizedPhone) throw new Error("Enter your phone number.");
+  const { response, payload } = await readJson<{ success?: boolean; message?: string; error?: string }>("/api/auth/request-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone: normalizedPhone }),
+  });
+  if (!response.ok || payload.success === false) throw new Error(payload.message || payload.error || "Unable to send a verification code.");
+  return payload;
 }
 
-export async function verifyPhoneOtp(_input: { phone: string; code: string; name?: string; email?: string }) {
-  throw new Error(`Email sign-in is required for this build. Use ${KURUKOO_BUILD_EMAIL}.`);
+export async function verifyPhoneOtp(input: { phone: string; code: string; name?: string; email?: string }) {
+  const phone = input.phone.trim();
+  const code = input.code.trim();
+  if (!phone) throw new Error("Enter your phone number.");
+  if (!code) throw new Error("Enter the verification code.");
+  const email = (input.email || KURUKOO_BUILD_EMAIL).trim().toLowerCase();
+  if (email !== KURUKOO_BUILD_EMAIL) throw new Error(`This build is currently available only to ${KURUKOO_BUILD_EMAIL}.`);
+  const { response, payload } = await readJson<{ success?: boolean; message?: string; error?: string; phone?: string }>("/api/auth/verify-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-kurukoo-device-id": getDeviceId() },
+    body: JSON.stringify({ phone, code, name: input.name?.trim() || undefined, email, deviceId: getDeviceId(), credentialType: "web" }),
+  });
+  if (!response.ok || payload.success === false) throw new Error(payload.message || payload.error || "Unable to verify your phone.");
+  return payload;
 }
 
+/**
+ * Email magic-link delivery is intentionally not used by the temporary frontend
+ * access gate. Keep the helper available for later restoration of normal auth.
+ */
 export async function requestMagicLink(input: { email: string; name?: string; returnPath?: string }) {
   const email = input.email.trim().toLowerCase();
   if (email !== KURUKOO_BUILD_EMAIL) {
