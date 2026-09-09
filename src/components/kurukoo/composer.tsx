@@ -4,217 +4,28 @@ import { LiveVoice } from "@/components/kurukoo/live-voice";
 import { cn } from "@/lib/utils";
 
 type SpeechResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
-type SpeechRecognitionLike = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  start: () => void;
-  stop: () => void;
-  onresult: ((event: SpeechResultEvent) => void) | null;
-  onend: (() => void) | null;
-  onerror: (() => void) | null;
-};
-
+type SpeechRecognitionLike = { lang: string; interimResults: boolean; continuous: boolean; start: () => void; stop: () => void; onresult: ((event: SpeechResultEvent) => void) | null; onend: (() => void) | null; onerror: (() => void) | null };
 function getRecognition(): SpeechRecognitionLike | null {
   if (typeof window === "undefined") return null;
-  const w = window as unknown as {
-    SpeechRecognition?: new () => SpeechRecognitionLike;
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-  };
-  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-  if (!Ctor) return null;
-  const rec = new Ctor();
-  rec.lang = navigator.language || "en-GB";
-  rec.interimResults = true;
-  rec.continuous = false;
-  return rec;
+  const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition; if (!Ctor) return null;
+  const rec = new Ctor(); rec.lang = navigator.language || "en-GB"; rec.interimResults = true; rec.continuous = false; return rec;
 }
-
-const placeholderExamples = [
-  "get me an okada",
-  "fix my phone",
-  "set a reminder",
-  "sell my item",
-  "promote something",
-  "find me a mechanic",
-  "call someone",
-  "track my order",
-  "call me a doctor",
-  "setup a money circle",
-  "book me an artist",
-  "teach me a subject",
-  "book me a flight",
-  "book me a hotel room",
-  "find me an errand boy",
-  "get me a house helper",
-  "find me a local agent",
-  "get me a driver",
-  "find me the nearest filling station",
-  "find me a car part",
-  "get me a job",
-  "order an event ticket",
-  "find me an event planner",
-  "book me an event centre",
-  "tell me a story",
-  "top up my phone",
-  "refer my friend to Kurukoo",
-  "find me a part time job",
-  "refer a business to Kurukoo",
-  "find me a task i can earn from",
-  "find me a ride share",
-  "book me an Uber",
-  "book me a Bolt",
-  "get me garri",
-  "teach me how to make fried rice",
-  "handle my sales",
-];
-
+const placeholderExamples = ["get me an okada", "fix my phone", "set a reminder", "sell my item", "promote something", "find me a mechanic", "call someone", "track my order", "call me a doctor", "setup a money circle", "book me an artist", "teach me a subject", "book me a flight", "book me a hotel room", "find me an errand boy", "get me a house helper", "find me a local agent", "get me a driver", "find me the nearest filling station", "find me a car part", "get me a job", "order an event ticket", "find me an event planner", "book me an event centre", "tell me a story", "top up my phone", "refer my friend to Kurukoo", "find me a part time job", "refer a business to Kurukoo", "find me a task i can earn from", "find me a ride share", "book me an Uber", "book me a Bolt", "get me garri", "teach me how to make fried rice", "handle my sales"];
 function useTypingPlaceholder(disabled: boolean, active: boolean) {
-  const [exampleIndex, setExampleIndex] = useState(0);
-  const [typed, setTyped] = useState("");
-  const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    if (disabled || active) return;
-    const target = placeholderExamples[exampleIndex];
-    const delay = deleting ? 32 : typed.length === target.length ? 1500 : 58;
-    const timer = window.setTimeout(() => {
-      if (!deleting) {
-        if (typed.length < target.length) setTyped(target.slice(0, typed.length + 1));
-        else setDeleting(true);
-      } else if (typed.length > 0) {
-        setTyped(typed.slice(0, -1));
-      } else {
-        setDeleting(false);
-        setExampleIndex((index) => (index + 1) % placeholderExamples.length);
-      }
-    }, delay);
-    return () => window.clearTimeout(timer);
-  }, [active, deleting, disabled, exampleIndex, typed]);
-
+  const [exampleIndex, setExampleIndex] = useState(0); const [typed, setTyped] = useState(""); const [deleting, setDeleting] = useState(false);
+  useEffect(() => { if (disabled || active) return; const target = placeholderExamples[exampleIndex]; const delay = deleting ? 32 : typed.length === target.length ? 1500 : 58; const timer = window.setTimeout(() => { if (!deleting) { if (typed.length < target.length) setTyped(target.slice(0, typed.length + 1)); else setDeleting(true); } else if (typed.length > 0) setTyped(typed.slice(0, -1)); else { setDeleting(false); setExampleIndex((index) => (index + 1) % placeholderExamples.length); } }, delay); return () => window.clearTimeout(timer); }, [active, deleting, disabled, exampleIndex, typed]);
   return active ? "Listening for dictation…" : disabled ? "Kurukoo is working…" : `Ask Kurukoo to ${typed}`;
 }
-
-function DictationIndicator() {
-  return (
-    <span className="flex items-end gap-[3px]" aria-label="Dictating" title="Dictating" role="status">
-      {["h-2", "h-3.5", "h-5", "h-3"].map((height) => (
-        <span key={height} className={cn("w-[3px] rounded-full bg-primary motion-safe:animate-pulse", height)} />
-      ))}
-    </span>
-  );
-}
-
-export function Composer({
-  onSend,
-  placeholder,
-  disabled = false,
-  initialValue = "",
-}: {
-  onSend: (text: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  initialValue?: string;
-}) {
-  const [draft, setDraft] = useState(initialValue);
-  const [dictating, setDictating] = useState(false);
-  const [dictationAvailable, setDictationAvailable] = useState(false);
-  const [mode, setMode] = useState("Ask Kurukoo");
-  const [modeOpen, setModeOpen] = useState(false);
-  const recRef = useRef<SpeechRecognitionLike | null>(null);
-  const hasText = draft.trim().length > 0;
-  const typingPlaceholder = useTypingPlaceholder(disabled, hasText || Boolean(placeholder));
-
-  useEffect(() => {
-    if (initialValue) setDraft(initialValue);
-  }, [initialValue]);
-  useEffect(() => {
-    setDictationAvailable(getRecognition() !== null);
-    return () => recRef.current?.stop();
-  }, []);
-
-  const toggleDictation = () => {
-    if (disabled || !dictationAvailable) return;
-    if (dictating) {
-      recRef.current?.stop();
-      setDictating(false);
-      return;
-    }
-    const rec = getRecognition();
-    if (!rec) return;
-    recRef.current = rec;
-    rec.onresult = (event) => {
-      const transcript = Array.from(event.results).map((result) => result[0]?.transcript ?? "").join(" ");
-      setDraft(transcript.trimStart());
-    };
-    rec.onend = () => setDictating(false);
-    rec.onerror = () => setDictating(false);
-    try {
-      rec.start();
-      setDictating(true);
-    } catch {
-      setDictating(false);
-    }
-  };
-
-  const handleDraftChange = (value: string) => {
-    setDraft(value);
-    if (dictating) {
-      recRef.current?.stop();
-      setDictating(false);
-    }
-  };
-
-  const submit = () => {
-    const clean = draft.trim();
-    if (disabled || !clean) return;
-    onSend(clean);
-    setDraft("");
-  };
-
+function DictationIndicator() { return <span className="flex items-end gap-[3px]" aria-label="Dictating" title="Dictating" role="status">{["h-2", "h-3.5", "h-5", "h-3"].map((height) => <span key={height} className={cn("w-[3px] rounded-full bg-primary motion-safe:animate-pulse", height)} />)}</span>; }
+export function Composer({ onSend, placeholder, disabled = false, initialValue = "" }: { onSend: (text: string) => void; placeholder?: string; disabled?: boolean; initialValue?: string }) {
+  const [draft, setDraft] = useState(initialValue); const [dictating, setDictating] = useState(false); const [dictationAvailable, setDictationAvailable] = useState(false); const [mode, setMode] = useState("Ask Kurukoo"); const [modeOpen, setModeOpen] = useState(false); const recRef = useRef<SpeechRecognitionLike | null>(null); const hasText = draft.trim().length > 0;
+  const typingPlaceholder = useTypingPlaceholder(disabled, hasText || dictating || Boolean(placeholder));
+  useEffect(() => { if (initialValue) setDraft(initialValue); }, [initialValue]);
+  useEffect(() => { setDictationAvailable(getRecognition() !== null); return () => recRef.current?.stop(); }, []);
+  const toggleDictation = () => { if (disabled || !dictationAvailable) return; if (dictating) { recRef.current?.stop(); setDictating(false); return; } const rec = getRecognition(); if (!rec) return; recRef.current = rec; rec.onresult = (event) => { const transcript = Array.from(event.results).map((result) => result[0]?.transcript ?? "").join(" "); setDraft(transcript.trimStart()); }; rec.onend = () => setDictating(false); rec.onerror = () => setDictating(false); try { rec.start(); setDictating(true); } catch { setDictating(false); } };
+  const handleDraftChange = (value: string) => { setDraft(value); if (dictating) { recRef.current?.stop(); setDictating(false); } };
+  const submit = () => { const clean = draft.trim(); if (disabled || !clean) return; onSend(clean); setDraft(""); };
   const primaryClass = "grid size-10 shrink-0 place-items-center rounded-full transition-colors";
-  return (
-    <form onSubmit={(event) => { event.preventDefault(); submit(); }} className="rounded-[22px] border border-border bg-surface/95 p-2 shadow-[var(--shadow-soft)] backdrop-blur">
-      <div className="flex items-center gap-2">
-        <button type="button" aria-label="Add context" title="Add context" disabled={disabled} className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-muted-foreground hover:bg-elevated hover:text-foreground disabled:opacity-40">
-          <Plus className="size-[18px]" />
-        </button>
-        <label htmlFor="ask" className="sr-only">Ask Kurukoo</label>
-        <input
-          id="ask"
-          value={draft}
-          onChange={(event) => handleDraftChange(event.target.value)}
-          placeholder={placeholder ?? typingPlaceholder}
-          autoComplete="off"
-          disabled={disabled}
-          className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-[15px] outline-none placeholder:text-muted-foreground disabled:opacity-60"
-        />
-        {dictating ? <DictationIndicator /> : null}
-        <div className="relative hidden sm:block">
-          <button type="button" disabled={disabled} onClick={() => setModeOpen((value) => !value)} aria-expanded={modeOpen} className="flex h-10 items-center gap-1 rounded-full border border-border bg-background px-3 text-[12px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground disabled:opacity-40">
-            <Sparkles className="size-3.5" />{mode}<ChevronDown className="size-3.5" />
-          </button>
-          {modeOpen ? (
-            <div className="absolute bottom-12 right-0 z-30 w-44 rounded-2xl border border-border bg-surface p-1.5 shadow-[var(--shadow-lift)]">
-              <button type="button" onClick={() => { setMode("Ask Kurukoo"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Ask Kurukoo</button>
-              <button type="button" onClick={() => { setMode("Plan with me"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Plan with me</button>
-              <button type="button" onClick={() => { setMode("Find for me"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Find for me</button>
-            </div>
-          ) : null}
-        </div>
-        <button type="button" onClick={toggleDictation} disabled={disabled || !dictationAvailable} aria-pressed={dictating} aria-label={disabled ? "Kurukoo is working" : dictating ? "Stop dictation" : dictationAvailable ? "Dictate into message" : "Dictation is not available in this browser"} title={disabled ? "Kurukoo is working" : dictating ? "Stop dictation" : dictationAvailable ? "Dictate into message" : "Dictation is not available in this browser"} className={cn(primaryClass, "bg-background text-muted-foreground hover:bg-elevated hover:text-foreground", dictating && "bg-primary text-primary-foreground hover:bg-primary")}>
-          {dictating ? <Square className="size-4" /> : <Mic className="size-[18px]" />}
-        </button>
-        {hasText ? (
-          <button type="submit" disabled={disabled} aria-label="Send" title="Send" className={cn(primaryClass, "bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-35")}><ArrowUp className="size-[18px]" /></button>
-        ) : (
-          <LiveVoice triggerLabel="Use voice mode" triggerIcon={<AudioLines className="size-[18px]" />} triggerClassName="group relative grid size-10 shrink-0 place-items-center rounded-full bg-background text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-        )}
-      </div>
-      <div className="mt-1 flex items-center justify-between px-2 sm:hidden">
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground"><Sparkles className="size-3.5" />{mode}</span>
-        <span className="text-[10.5px] text-muted-foreground">{disabled ? "Working" : dictating ? "Dictating…" : hasText ? "Ready to send" : "Voice mode or type"}</span>
-      </div>
-    </form>
-  );
+  return <form onSubmit={(event) => { event.preventDefault(); submit(); }} className="rounded-[22px] border border-border bg-surface/95 p-2 shadow-[var(--shadow-soft)] backdrop-blur"><div className="flex items-center gap-2"><button type="button" aria-label="Add context" title="Add context" disabled={disabled} className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-muted-foreground hover:bg-elevated hover:text-foreground disabled:opacity-40"><Plus className="size-[18px]" /></button><label htmlFor="ask" className="sr-only">Ask Kurukoo</label><input id="ask" value={draft} onChange={(event) => handleDraftChange(event.target.value)} placeholder={placeholder ?? typingPlaceholder} autoComplete="off" disabled={disabled} className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-[15px] outline-none placeholder:text-muted-foreground disabled:opacity-60" />{dictating ? <DictationIndicator /> : null}<div className="relative hidden sm:block"><button type="button" disabled={disabled} onClick={() => setModeOpen((value) => !value)} aria-expanded={modeOpen} className="flex h-10 items-center gap-1 rounded-full border border-border bg-background px-3 text-[12px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground disabled:opacity-40"><Sparkles className="size-3.5" />{mode}<ChevronDown className="size-3.5" /></button>{modeOpen ? <div className="absolute bottom-12 right-0 z-30 w-44 rounded-2xl border border-border bg-surface p-1.5 shadow-[var(--shadow-lift)]"><button type="button" onClick={() => { setMode("Ask Kurukoo"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Ask Kurukoo</button><button type="button" onClick={() => { setMode("Plan with me"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Plan with me</button><button type="button" onClick={() => { setMode("Find for me"); setModeOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-[12px] hover:bg-elevated">Find for me</button></div> : null}</div><button type="button" onClick={toggleDictation} disabled={disabled || !dictationAvailable} aria-pressed={dictating} aria-label={disabled ? "Kurukoo is working" : dictating ? "Stop dictation" : dictationAvailable ? "Dictate into message" : "Dictation is not available in this browser"} title={disabled ? "Kurukoo is working" : dictating ? "Stop dictation" : dictationAvailable ? "Dictate into message" : "Dictation is not available in this browser"} className={cn(primaryClass, "bg-background text-muted-foreground hover:bg-elevated hover:text-foreground", dictating && "bg-primary text-primary-foreground hover:bg-primary")}>{dictating ? <Square className="size-4" /> : <Mic className="size-[18px]" />}</button>{hasText ? <button type="submit" disabled={disabled} aria-label="Send" title="Send" className={cn(primaryClass, "bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-35")}><ArrowUp className="size-[18px]" /></button> : <LiveVoice triggerLabel="Use voice mode" triggerIcon={<AudioLines className="size-[18px]" />} triggerClassName="group relative grid size-10 shrink-0 place-items-center rounded-full bg-background text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />}</div><div className="mt-1 flex items-center justify-between px-2 sm:hidden"><span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground"><Sparkles className="size-3.5" />{mode}</span><span className="text-[10.5px] text-muted-foreground">{disabled ? "Working" : dictating ? "Dictating…" : hasText ? "Ready to send" : "Voice mode or type"}</span></div></form>;
 }
