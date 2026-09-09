@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Compass,
+  Ellipsis,
   ExternalLink,
   FolderClosed,
   Home,
@@ -36,6 +37,7 @@ import {
   deactivatePulse,
 } from "@/lib/kurukoo-api";
 import { ContextualTrustedRail } from "@/components/contextual-trusted-rail";
+import { ReferralCard } from "@/components/kurukoo/referral-card";
 
 const KURUKOO_LOGO_SRC =
   "https://raw.githubusercontent.com/temeaco-max/kurukoo/main/public/assets/brand/logo-icon.svg";
@@ -127,26 +129,17 @@ const nav = [
   { to: "/chat", label: "Conversation", icon: MessageSquare },
   { to: "/explore", label: "Explore", icon: Compass },
   { to: "/discover", label: "Nearby", icon: MapPin },
+  { to: "/work", label: "Work", icon: ListChecks },
+  { to: "/topics", label: "Topics", icon: Tags },
   { to: "/activity", label: "Activity", icon: Bell },
 ] as const;
 const more = [
-  { to: "/work", label: "Work", icon: ListChecks },
   { to: "/network", label: "Network", icon: Users },
-  { to: "/topics", label: "Topics", icon: Tags },
   { to: "/capabilities", label: "Capabilities", icon: Sparkles },
-  { to: "/messages", label: "Messages", icon: MessageSquare },
-  { to: "/contacts", label: "Contacts", icon: Users },
-  { to: "/artifacts", label: "Files", icon: FolderClosed },
-  { to: "/connect", label: "Connect", icon: Plug },
   { to: "/providers", label: "Providers", icon: Users },
   { to: "/businesses", label: "Businesses", icon: Briefcase },
   { to: "/creators", label: "Creators", icon: Sparkles },
   { to: "/advertising", label: "Advertising", icon: Zap },
-  { to: "/pricing", label: "Plans", icon: Wallet },
-  { to: "/subscriptions", label: "Subscriptions", icon: Wallet },
-  { to: "/wallet", label: "Wallet", icon: Wallet },
-  { to: "/memory", label: "Memory", icon: Brain },
-  { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 function ThemeToggle() {
   const [dark, setDark] = useState(false);
@@ -513,6 +506,7 @@ function Header() {
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [trustedOpen, setTrustedOpen] = useState(true);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [ad, setAd] = useState<AuthenticatedAd | null>(null);
   useEffect(() => {
     if (!collapsed)
@@ -569,22 +563,34 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
           {!collapsed && (
             <>
-              <p className="px-3 pb-1 pt-6 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                More
-              </p>
-              <nav aria-label="More navigation" className="scrollbar-none space-y-1">
-                {more.map(({ to, label, icon: Icon }) => (
-                  <Link
-                    key={to}
-                    to={to}
-                    activeProps={{ className: "bg-elevated font-medium text-foreground" }}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] leading-5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
-                  >
-                    <Icon className="size-[18px] shrink-0" strokeWidth={1.8} />
-                    <span>{label}</span>
-                  </Link>
-                ))}
-              </nav>
+              <button
+                type="button"
+                onClick={() => setMoreOpen((v) => !v)}
+                aria-expanded={moreOpen}
+                aria-controls="kurukoo-more-navigation"
+                className="mt-4 flex w-full items-center justify-between rounded-xl px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground hover:bg-elevated hover:text-foreground"
+              >
+                <span>More</span>
+                <Ellipsis className="size-[17px]" strokeWidth={1.8} />
+              </button>
+              {moreOpen ? (
+                <nav id="kurukoo-more-navigation" aria-label="More navigation" className="scrollbar-none space-y-1">
+                  {more.map(({ to, label, icon: Icon }) => (
+                    <Link
+                      key={to}
+                      to={to}
+                      activeProps={{ className: "bg-elevated font-medium text-foreground" }}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] leading-5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
+                    >
+                      <Icon className="size-[18px] shrink-0" strokeWidth={1.8} />
+                      <span>{label}</span>
+                    </Link>
+                  ))}
+                </nav>
+              ) : null}
+              <div className="mt-4">
+                <ReferralCard />
+              </div>
               <RailAd campaign={ad} />
             </>
           )}
