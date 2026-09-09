@@ -24,6 +24,17 @@ import {
   removeTopic,
   updateTopic,
 } from '../services/topicService.js';
+import {
+  createTopicAdCampaign,
+  ensureCommunityTopicSupport,
+  getCategoryAdRates,
+  getCommunityStats,
+  getCommunityTaxonomy,
+  getTopicAdInventory,
+  seedCommunityWelcomeTopics,
+  touchCommunityPresence,
+} from '../services/communityTopicService.js';
+import { setCommunityAdRate, setCommunityCategoryAds, setCommunitySubcategoryAds } from '../services/communityTopicAdminService.js';
 
 const router = Router();
 
@@ -34,6 +45,49 @@ function sessionPhone(req: AuthRequest): string | null {
 function id(value: unknown): string | null {
   return typeof value === 'string' && /^[a-f0-9-]{20,64}$/i.test(value) ? value : null;
 }
+
+router.get('/topics/community/taxonomy', async (_req, res) => {
+  try { res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600'); res.json({ categories: await getCommunityTaxonomy(false) }); }
+  catch { res.status(500).json({ error: 'Unable to load Topic community taxonomy' }); }
+});
+
+router.get('/topics/community/stats', async (_req, res) => {
+  try { res.setHeader('Cache-Control', 'no-store'); res.json(await getCommunityStats()); }
+  catch { res.status(500).json({ error: 'Unable to load community statistics' }); }
+});
+
+router.post('/topics/community/presence', async (req: AuthRequest, res) => {
+  try { res.json(await touchCommunityPresence({ phone: sessionPhone(req), visitorId: typeof req.body?.visitorId === 'string' ? req.body.visitorId : null })); }
+  catch { res.status(400).json({ error: 'Unable to update community presence' }); }
+});
+
+router.get('/topics/community/ads', async (req, res) => {
+  try { res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120'); res.json({ inventory: await getTopicAdInventory(typeof req.query.category === 'string' ? req.query.category : undefined, typeof req.query.subcategory === 'string' ? req.query.subcategory : undefined) }); }
+  catch { res.status(500).json({ error: 'Unable to load Topic advertising inventory' }); }
+});
+
+router.get('/topics/community/ad-rates', async (req, res) => {
+  if (typeof req.query.category !== 'string') return res.status(400).json({ error: 'category is required' });
+  try { res.json({ rates: await getCategoryAdRates(req.query.category, typeof req.query.subcategory === 'string' ? req.query.subcategory : undefined) }); }
+  catch { res.status(500).json({ error: 'Unable to load Topic advertising rates' }); }
+});
+
+router.get('/topics/community/category/:categorySlug', async (req, res) => {
+  try {
+    const categories = await getCommunityTaxonomy(false);
+    const category = categories.find((item) => item.slug === req.params.categorySlug);
+    if (!category) return res.status(404).json({ error: 'Topic category not found' });
+    const topics = await listPublicTopics({ category: category.slug, limit: 30 });
+    const inventory = await getTopicAdInventory(category.slug);
+    return res.json({ category, topics, inventory });
+  } catch { return res.status(500).json({ error: 'Unable to load Topic category' }); }
+});
+
+router.post('/topics/community/ads', authenticateUser, topicMutationRateLimit, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  try { return res.status(201).json(await createTopicAdCampaign(phone, req.body || {})); }
+  catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to place Topic advert' }); }
+});
 
 /**
  * The Topic boundary only owns durable shared-content lifecycle.
@@ -219,6 +273,26 @@ router.post('/admin/topics/reports/:id/close', authenticateAdmin, async (req: Au
   const reportId = id(req.params.id); if (!reportId) return res.status(400).json({ error: 'A valid report id is required' });
   try { res.json({ report: await closeTopicReport(reportId, req.body?.note) }); }
   catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to close Topic report' }); }
+});
+
+router.post('/admin/topics/community/seed-welcome-topics', authenticateAdmin, async (_req: AuthRequest, res) => {
+  try { await seedCommunityWelcomeTopics(); return res.status(201).json({ ok: true }); }
+  catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to seed community Topics' }); }
+});
+
+router.patch('/admin/topics/community/categories/:slug/ads', authenticateAdmin, async (req: AuthRequest, res) => {
+  try { return res.json(await setCommunityCategoryAds(String(req.params.slug), Boolean(req.body?.enabled))); }
+  catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to update category advertising' }); }
+});
+
+router.patch('/admin/topics/community/subcategories/:slug/ads', authenticateAdmin, async (req: AuthRequest, res) => {
+  try { return res.json(await setCommunitySubcategoryAds(String(req.params.slug), Boolean(req.body?.enabled))); }
+  catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to update subcategory advertising' }); }
+});
+
+router.patch('/admin/topics/community/ad-rates', authenticateAdmin, async (req: AuthRequest, res) => {
+  try { return res.json(await setCommunityAdRate(String(req.body?.categorySlug), req.body?.subcategorySlug ? String(req.body.subcategorySlug) : null, String(req.body?.slot), Number(req.body?.points), Boolean(req.body?.enabled))); }
+  catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to update Topic ad rate' }); }
 });
 
 export default router;
