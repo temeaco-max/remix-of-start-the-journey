@@ -21,6 +21,7 @@ import {
 import { useEffect, useState, type ReactNode, type ComponentType } from "react";
 import { cn } from "@/lib/utils";
 import { useKurukoo } from "@/lib/kurukoo-store";
+import { fetchCommunityStats, type CommunityStats } from "@/lib/community-topics-api";
 import {
   activatePulse,
   deactivatePulse,
@@ -124,6 +125,21 @@ function RailAd({ campaign }: { campaign: AuthenticatedAd | null }) {
         <span className="mt-2 inline-flex text-[10.5px] font-medium">{campaign.ctaText}</span>
       </div>
     </a>
+  );
+}
+function CommunityStatsSection({ stats }: { stats: CommunityStats | null }) {
+  const members = stats?.members ?? 1;
+  const online = stats?.online ?? 1;
+  const guests = stats?.guests ?? 1;
+  return (
+    <section className="rounded-2xl bg-elevated/25 p-3" aria-label="Community statistics">
+      <div className="flex items-center gap-2"><Users className="size-3.5 text-primary"/><h2 className="text-[12.5px] font-semibold">Community</h2></div>
+      <div className="mt-2 grid grid-cols-3 items-end gap-2">
+        <div><p className="text-[9px] text-muted-foreground">Members</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{members}</p></div>
+        <div><p className="text-[9px] text-muted-foreground">Online</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{online}</p></div>
+        <div><p className="text-[9px] text-muted-foreground">Guests</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{guests}</p></div>
+      </div>
+    </section>
   );
 }
 function PulseControl({
@@ -251,6 +267,7 @@ export function ContextualTrustedRail({
   const { work, memory, notifications } = useKurukoo();
   const [readiness, setReadiness] = useState<PulseReadiness | null>(null);
   const [ad, setAd] = useState<AuthenticatedAd | null>(null);
+  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [voiceStyle, setVoiceStyle] = useState<"calm" | "clear" | "warm">("calm");
   const [voiceLanguage, setVoiceLanguage] = useState("en-GB");
@@ -300,6 +317,7 @@ export function ContextualTrustedRail({
     localStorage.setItem("kurukoo-voice-preferences", JSON.stringify({ style: nextStyle, language: nextLanguage }));
     window.dispatchEvent(new CustomEvent("kurukoo-voice-preferences", { detail: { style: nextStyle, language: nextLanguage } }));
   }
+  useEffect(() => { void fetchCommunityStats().then(setCommunityStats).catch(() => undefined); }, []);
   useEffect(() => {
     if (!open) return;
     void fetchAuthenticatedAd("context-rail")
@@ -320,7 +338,7 @@ export function ContextualTrustedRail({
   const defaultContent = (
     <>
       <Section title="Trusted context" icon={Brain} to="/memory">
-        <Row icon={Sparkles} title="For You" detail="Personal operating view" to="/desk" />
+        <Row icon={Sparkles} title="For You" detail="Personal operating view" to="/you" />
         <Row icon={Briefcase} title="Current work" detail={focus?.title ?? "No active work"} to="/work" />
         <Row icon={Brain} title={memory.length ? "Active memory" : "Memory ready"} detail="Private continuity" to="/memory" />
       </Section>
@@ -347,6 +365,7 @@ export function ContextualTrustedRail({
   );
   const topicsContent = (
     <>
+      <CommunityStatsSection stats={communityStats} />
       <Section title="Topic context" icon={Tags} to="/topics"><Row icon={Tags} title="Community discussion" detail="Context, not fulfilment proof" /><Row icon={MapPin} title="Nearby" detail="Local businesses and activity" to="/discover" /></Section>
       <Section title="Opportunities" icon={Target} to="/opportunities"><Row icon={Sparkles} title="Ways to participate" detail="Useful network signals" /></Section>
       {ad ? <RailAd campaign={ad} /> : null}
@@ -373,7 +392,7 @@ export function ContextualTrustedRail({
   else if (pathname.startsWith("/work")) content = workContent;
   else if (pathname.startsWith("/businesses") || pathname.startsWith("/providers")) content = businessContent;
   const compact = [
-    { label: "For You", to: "/desk", Icon: Sparkles },
+    { label: "For You", to: "/you", Icon: Sparkles },
     { label: "Nearby Radar", to: "/discover", Icon: MapPin },
     { label: "Availability", to: "/discover", Icon: Zap },
     { label: "Current work", to: "/work", Icon: Briefcase },
