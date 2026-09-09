@@ -2,6 +2,7 @@ const API_BASE = (import.meta.env["VITE_KURUKOO_API_BASE_URL"] ?? "").replace(/\
 
 /** Temporary frontend-only access gate. Remove this constant and related checks when normal access is restored. */
 export const KURUKOO_BUILD_EMAIL = "temea.co@gmail.com";
+const BUILD_EMAIL_SESSION_KEY = "kurukoo-build-email-authenticated";
 
 function apiUrl(path: string) {
   return `${API_BASE}${path}`;
@@ -19,7 +20,24 @@ export function isAllowedKurukooBuildAccount(user: KurukooAuthUser | null | unde
   return user?.email?.trim().toLowerCase() === KURUKOO_BUILD_EMAIL;
 }
 
+export function hasTemporaryBuildEmailSession() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(BUILD_EMAIL_SESSION_KEY)?.trim().toLowerCase() === KURUKOO_BUILD_EMAIL;
+}
+
+export function startTemporaryBuildEmailSession(email: string) {
+  if (email.trim().toLowerCase() !== KURUKOO_BUILD_EMAIL) {
+    throw new Error(`This build is currently available only to ${KURUKOO_BUILD_EMAIL}.`);
+  }
+  window.localStorage.setItem(BUILD_EMAIL_SESSION_KEY, KURUKOO_BUILD_EMAIL);
+  window.localStorage.setItem("kurukoo-authenticated", "true");
+  window.dispatchEvent(new Event("kurukoo-auth-updated"));
+}
+
 export async function getKurukooAuthState(): Promise<{ authenticated: boolean; user: KurukooAuthUser | null }> {
+  if (hasTemporaryBuildEmailSession()) {
+    return { authenticated: true, user: { email: KURUKOO_BUILD_EMAIL, role: "build-access" } };
+  }
   try {
     const { response, payload } = await readJson<{ success?: boolean; user?: KurukooAuthUser }>("/api/auth/me");
     if (!response.ok || !payload?.success || !payload.user) return { authenticated: false, user: null };
@@ -69,28 +87,22 @@ export async function verifyPhoneOtp(input: { phone: string; code: string; name?
   return payload;
 }
 
-/**
- * Email magic-link delivery is intentionally not used by the temporary frontend
- * access gate. Keep the helper available for later restoration of normal auth.
- */
+/** Email delivery is intentionally bypassed for the temporary frontend access gate. */
 export async function requestMagicLink(input: { email: string; name?: string; returnPath?: string }) {
   const email = input.email.trim().toLowerCase();
   if (email !== KURUKOO_BUILD_EMAIL) {
     throw new Error(`This build is currently available only to ${KURUKOO_BUILD_EMAIL}.`);
   }
-  const { response, payload } = await readJson<{ success?: boolean; message?: string; error?: string; delivery?: string }>("/api/auth/request-magic-link", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, name: input.name?.trim() || undefined, returnPath: input.returnPath || "/" }),
-  });
-  if (!response.ok || payload.success === false) throw new Error(payload.message || payload.error || "Unable to send a sign-in link.");
-  return payload;
+  // Do not call the real magic-link endpoint while the frontend gate is active.
+  startTemporaryBuildEmailSession(email);
+  return { success: true, delivery: "frontend-access" as const };
 }
 
 export async function logoutKurukoo() {
   try {
     await fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
   } finally {
+    window.localStorage.removeItem(BUILD_EMAIL_SESSION_KEY);
     window.localStorage.removeItem("kurukoo-authenticated");
     window.dispatchEvent(new Event("kurukoo-auth-updated"));
   }
