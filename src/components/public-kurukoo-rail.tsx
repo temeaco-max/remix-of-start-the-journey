@@ -132,7 +132,7 @@ export function PublicRail({
             <PublicAdvert />
           </div>
           <div className="mt-5">
-            <ReferralCard />
+            <ReferralCard variant="public" />
           </div>
         </div>
       )}
