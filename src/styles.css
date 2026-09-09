@@ -106,3 +106,52 @@ body:has(aside[aria-label="Trusted context rail"]) main::-webkit-scrollbar-thumb
 
 /* Public context is part of the same scroll plane as the public main surface. */
 aside[aria-label="Kurukoo public context rail"] { height: auto !important; min-height: 100%; overflow: visible !important; }
+
+/* Topics: advertising inventory is intentionally quiet and visibly separated from organic content. */
+body:has(aside[aria-label="Kurukoo public context rail"]) main > div.mx-auto.w-full.max-w-6xl > div.grid.gap-3.md\:grid-cols-3 > a,
+body:has(aside[aria-label="Kurukoo public context rail"]) main > div.mx-auto.w-full.max-w-6xl > div.grid.gap-3.md\:grid-cols-3 > div {
+  border: 1px dotted var(--color-border) !important;
+  background: transparent !important;
+}
+
+/* Topics category heading: keep the eyebrow, with a single-word Browse heading. */
+body:has(aside[aria-label="Kurukoo public context rail"]) main > div.mx-auto.w-full.max-w-6xl > section.space-y-3 > div:first-child h2 {
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+body:has(aside[aria-label="Kurukoo public context rail"]) main > div.mx-auto.w-full.max-w-6xl > section.space-y-3 > div:first-child h2::after {
+  content: "Browse";
+  display: block;
+  font-size: 28px;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+/* Topics feed identity: Kurukoo is the eyebrow and General is the heading. */
+body:has(aside[aria-label="Kurukoo public context rail"]) #general-topics {
+  display: block;
+  width: max-content;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+body:has(aside[aria-label="Kurukoo public context rail"]) #general-topics::before {
+  content: "Kurukoo";
+  display: block;
+  margin-bottom: 4px;
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+body:has(aside[aria-label="Kurukoo public context rail"]) #general-topics::after {
+  content: "General";
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
