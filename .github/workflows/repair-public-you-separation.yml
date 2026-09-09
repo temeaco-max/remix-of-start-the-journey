@@ -20,35 +20,26 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-
           root = Path('src/routes/__root.tsx')
           s = root.read_text()
           s, n = re.subn(r'const anonymousHome = pathname === "/"(?: && !authenticated)?;', 'const anonymousHome = pathname === "/";', s, count=1)
-          if n != 1:
-              raise SystemExit('anonymousHome declaration not found')
-          # The root must always render the public marketing homepage at /, even
-          # when an authenticated session exists. /you is the authenticated For You surface.
+          if n != 1: raise SystemExit('anonymousHome declaration not found')
           pattern = r'(?s)return <QueryClientProvider.*?;</KurukooProvider>\}\s*}'
-          replacement = '''return <QueryClientProvider client={queryClient}><KurukooProvider>{!hydrated ? <PublicKurukooShell><div className="min-h-[60vh]" /></PublicKurukooShell> : needsAuthentication ? <ProtectedPrompt /> : anonymousHome ? <PublicKurukooShell><PublicHome onSend={savePrompt} /></PublicKurukooShell> : !authenticated && isPublic ? <PublicKurukooShell><Outlet /></PublicKurukooShell> : <><AppShell><Outlet /></AppShell><MobileBar /></>}</KurukooProvider></QueryClientProvider>;
+          replacement = '''return <QueryClientProvider client={queryClient}><KurukooProvider>{!hydrated ? <PublicKurukooShell><div className="min-h-[60vh]" /></PublicKurukooShell> : needsAuthentication ? <ProtectedPrompt /> : anonymousHome ? <PublicKurukooShell><PublicHome onSend={savePrompt} /></PublicKurukooShell> : !authenticated && isPublic ? <PublicKurukooShell><Outlet /></PublicKurukooShell> : <><AppShell><Outlet /></AppShell><MobileBar />}</KurukooProvider></QueryClientProvider>;
 }'''
           s, n = re.subn(pattern, replacement, s, count=1)
-          if n != 1:
-              raise SystemExit('root render block not found')
+          if n != 1: raise SystemExit('root render block not found')
           root.write_text(s)
-
           shell = Path('src/components/app-shell-contextual.tsx')
           s = shell.read_text()
           if 'import { logoutKurukoo } from "@/lib/kurukoo-auth";' not in s:
               marker = 'import { ReferralCard } from "@/components/kurukoo/referral-card";'
-              if marker not in s:
-                  raise SystemExit('shell import marker not found')
+              if marker not in s: raise SystemExit('shell import marker not found')
               s = s.replace(marker, marker + '\nimport { logoutKurukoo } from "@/lib/kurukoo-auth";', 1)
           s, n = re.subn(r'const logout = \(\) => \{ localStorage\.removeItem\("kurukoo-authenticated"\); window\.dispatchEvent\(new Event\("kurukoo-auth-updated"\)\); setOpen\(false\); \};', 'const logout = async () => { setOpen(false); await logoutKurukoo(); window.location.href = "/"; };', s, count=1)
-          if n != 1:
-              raise SystemExit('logout implementation not found')
+          if n != 1: raise SystemExit('logout implementation not found')
           s, n = re.subn(r'<Link to="/" aria-label="Go to Kurukoo For You" title="Kurukoo For You"', '<Link to="/you" aria-label="Go to Kurukoo For You" title="Kurukoo For You"', s, count=1)
-          if n != 1:
-              raise SystemExit('authenticated home icon not found')
+          if n != 1: raise SystemExit('authenticated home icon not found')
           shell.write_text(s)
           PY
           git add src/routes/__root.tsx src/components/app-shell-contextual.tsx src/components/public-kurukoo-home.tsx
@@ -61,3 +52,4 @@ jobs:
           bun run build
       - name: Push repair commit
         run: git push origin main
+# Triggered deliberately after correcting the first repair attempt.
