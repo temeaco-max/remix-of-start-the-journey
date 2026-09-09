@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AuthMode } from "@/components/kurukoo/auth";
+import { ReferralCard } from "@/components/kurukoo/referral-card";
 import { userJobs } from "@/lib/skill-catalog";
 
 export function RotatingPublicPrompt() {
@@ -130,14 +131,8 @@ export function PublicRail({
           <div className="mt-5">
             <PublicAdvert />
           </div>
-          <p className="px-3 pb-1 pt-6 text-[10px] font-medium uppercase tracking-[0.14em] leading-4 text-muted-foreground">
-            More
-          </p>
-          <div className="rounded-xl bg-elevated/60 px-3 py-2.5">
-            <p className="text-[11px] font-medium leading-4">Your workspace awaits.</p>
-            <p className="mt-1 text-[10.5px] leading-5 text-muted-foreground">
-              Sign in to unlock your requests, work, memory and personal context.
-            </p>
+          <div className="mt-5">
+            <ReferralCard />
           </div>
         </div>
       )}
