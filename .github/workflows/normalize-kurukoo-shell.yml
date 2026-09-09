@@ -12,11 +12,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - name: Apply shell and Topics refinements
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
           root = Path('.')
           topics = root / 'src/routes/topics.tsx'
           s = topics.read_text()
@@ -27,55 +29,44 @@ jobs:
           topics.write_text(s)
 
           public_context = root / 'src/components/public-kurukoo-context.tsx'
-          s = public_context.read_text()
-          s = s.replace('return <aside aria-label="Kurukoo public context rail"', 'return <aside aria-label="Public context rail"')
+          s = public_context.read_text().replace('return <aside aria-label="Kurukoo public context rail"', 'return <aside aria-label="Public context rail"')
           public_context.write_text(s)
 
           contextual = root / 'src/components/contextual-trusted-rail.tsx'
           s = contextual.read_text()
-          if 'CommunityStats' not in s:
+          if 'fetchCommunityStats' not in s:
             s = s.replace('import { useKurukoo } from "@/lib/kurukoo-store";', 'import { useKurukoo } from "@/lib/kurukoo-store";\nimport { fetchCommunityStats, type CommunityStats } from "@/lib/community-topics-api";')
           if 'function CommunityStatsSection' not in s:
             marker = 'function PulseControl('
             component = '''function CommunityStatsSection({ stats }: { stats: CommunityStats | null }) {\n  const members = stats?.members ?? 1;\n  const online = stats?.online ?? 1;\n  const guests = stats?.guests ?? 1;\n  return (\n    <section className="rounded-2xl bg-elevated/25 p-3" aria-label="Community statistics">\n      <div className="flex items-center gap-2"><Users className="size-3.5 text-primary"/><h2 className="text-[12.5px] font-semibold">Community</h2></div>\n      <div className="mt-2 grid grid-cols-3 items-end gap-2">\n        <div><p className="text-[9px] text-muted-foreground">Members</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{members}</p></div>\n        <div><p className="text-[9px] text-muted-foreground">Online</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{online}</p></div>\n        <div><p className="text-[9px] text-muted-foreground">Guests</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{guests}</p></div>\n      </div>\n    </section>\n  );\n}\n'''
             s = s.replace(marker, component + marker)
-          if 'const [communityStats' not in s:
+          if 'communityStats' not in s:
             s = s.replace('const [ad, setAd] = useState<AuthenticatedAd | null>(null);', 'const [ad, setAd] = useState<AuthenticatedAd | null>(null);\n  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);')
             needle = '  useEffect(() => {\n    if (!open) return;\n    void fetchAuthenticatedAd("context-rail")'
-            effect = '  useEffect(() => { void fetchCommunityStats().then(setCommunityStats).catch(() => undefined); }, []);\n'
-            s = s.replace(needle, effect + needle)
-          topics_marker = '  const topicsContent = (\n    <>\n'
+            s = s.replace(needle, '  useEffect(() => { void fetchCommunityStats().then(setCommunityStats).catch(() => undefined); }, []);\n' + needle)
           if 'CommunityStatsSection stats={communityStats}' not in s:
-            s = s.replace(topics_marker, topics_marker + '      <CommunityStatsSection stats={communityStats} />\n')
-          s = s.replace('to="/desk"', 'to="/you"')
+            s = s.replace('  const topicsContent = (\n    <>\n', '  const topicsContent = (\n    <>\n      <CommunityStatsSection stats={communityStats} />\n')
           contextual.write_text(s)
 
           for path in root.glob('src/**/*'):
-            if not path.is_file() or path.suffix not in {'.tsx', '.ts'}:
-              continue
-            text = path.read_text()
-            if '"/desk"' in text:
-              text = text.replace('"/desk"', '"/you"')
-              path.write_text(text)
+            if path.is_file() and path.suffix in {'.tsx', '.ts'}:
+              text = path.read_text()
+              if '"/desk"' in text:
+                path.write_text(text.replace('"/desk"', '"/you"'))
 
           app_shell = root / 'src/components/app-shell-contextual.tsx'
           if app_shell.exists():
-            text = app_shell.read_text()
-            text = text.replace('Go to Kurukoo home', 'Go to Kurukoo For You').replace('title="Kurukoo home"', 'title="Kurukoo For You"')
+            text = app_shell.read_text().replace('Go to Kurukoo home', 'Go to Kurukoo For You').replace('title="Kurukoo home"', 'title="Kurukoo For You"')
             app_shell.write_text(text)
 
           desk = root / 'src/routes/desk.tsx'
-          if desk.exists():
-            desk.unlink()
-          you = root / 'src/routes/you.tsx'
-          you.write_text('''import { createFileRoute } from "@tanstack/react-router";\nimport { HomePage } from "./index";\n\nexport const Route = createFileRoute("/you")({\n  head: () => ({\n    meta: [\n      { title: "For You — Kurukoo" },\n      { name: "description", content: "Your personal view for getting useful things done with Kurukoo." },\n    ],\n  }),\n  component: HomePage,\n});\n''')
+          if desk.exists(): desk.unlink()
+          (root / 'src/routes/you.tsx').write_text('''import { createFileRoute } from "@tanstack/react-router";\nimport { HomePage } from "./index";\n\nexport const Route = createFileRoute("/you")({\n  head: () => ({ meta: [{ title: "For You — Kurukoo" }, { name: "description", content: "Your personal view for getting useful things done with Kurukoo." }] }),\n  component: HomePage,\n});\n''')
           PY
-
       - name: Rebuild route tree
         run: |
           bun install --frozen-lockfile
           bun run build
-
       - name: Commit normalized shell
         run: |
           git config user.name "github-actions[bot]"
