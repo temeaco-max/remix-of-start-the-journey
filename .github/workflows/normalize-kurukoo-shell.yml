@@ -19,6 +19,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           root = Path('.')
           topics = root / 'src/routes/topics.tsx'
           s = topics.read_text()
@@ -27,41 +28,51 @@ jobs:
           s = s.replace('<h2 className="mt-1.5 font-serif text-[28px] tracking-[-0.035em]">Browse Topics</h2>', '<h2 className="mt-1.5 font-serif text-[28px] tracking-[-0.035em]">Browse</h2>')
           s = s.replace('<h2 id="general-topics" className="font-serif text-[28px] tracking-[-0.035em]">General Topics</h2>', '<div><p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary">Kurukoo</p><h2 id="general-topics" className="font-serif text-[28px] leading-none tracking-[-0.035em]">General</h2></div>')
           topics.write_text(s)
-
           public_context = root / 'src/components/public-kurukoo-context.tsx'
-          s = public_context.read_text().replace('return <aside aria-label="Kurukoo public context rail"', 'return <aside aria-label="Public context rail"')
-          public_context.write_text(s)
-
+          public_context.write_text(public_context.read_text().replace('return <aside aria-label="Kurukoo public context rail"', 'return <aside aria-label="Public context rail"'))
           contextual = root / 'src/components/contextual-trusted-rail.tsx'
           s = contextual.read_text()
           if 'fetchCommunityStats' not in s:
             s = s.replace('import { useKurukoo } from "@/lib/kurukoo-store";', 'import { useKurukoo } from "@/lib/kurukoo-store";\nimport { fetchCommunityStats, type CommunityStats } from "@/lib/community-topics-api";')
           if 'function CommunityStatsSection' not in s:
             marker = 'function PulseControl('
-            component = '''function CommunityStatsSection({ stats }: { stats: CommunityStats | null }) {\n  const members = stats?.members ?? 1;\n  const online = stats?.online ?? 1;\n  const guests = stats?.guests ?? 1;\n  return (\n    <section className="rounded-2xl bg-elevated/25 p-3" aria-label="Community statistics">\n      <div className="flex items-center gap-2"><Users className="size-3.5 text-primary"/><h2 className="text-[12.5px] font-semibold">Community</h2></div>\n      <div className="mt-2 grid grid-cols-3 items-end gap-2">\n        <div><p className="text-[9px] text-muted-foreground">Members</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{members}</p></div>\n        <div><p className="text-[9px] text-muted-foreground">Online</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{online}</p></div>\n        <div><p className="text-[9px] text-muted-foreground">Guests</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{guests}</p></div>\n      </div>\n    </section>\n  );\n}\n'''
-            s = s.replace(marker, component + marker)
-          if 'communityStats' not in s:
-            s = s.replace('const [ad, setAd] = useState<AuthenticatedAd | null>(null);', 'const [ad, setAd] = useState<AuthenticatedAd | null>(null);\n  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);')
-            needle = '  useEffect(() => {\n    if (!open) return;\n    void fetchAuthenticatedAd("context-rail")'
-            s = s.replace(needle, '  useEffect(() => { void fetchCommunityStats().then(setCommunityStats).catch(() => undefined); }, []);\n' + needle)
+            component = '''function CommunityStatsSection({ stats }: { stats: CommunityStats | null }) {\n  const members = stats?.members ?? 1;\n  const online = stats?.online ?? 1;\n  const guests = stats?.guests ?? 1;\n  return <section className="rounded-2xl bg-elevated/25 p-3" aria-label="Community statistics"><div className="flex items-center gap-2"><Users className="size-3.5 text-primary"/><h2 className="text-[12.5px] font-semibold">Community</h2></div><div className="mt-2 grid grid-cols-3 items-end gap-2"><div><p className="text-[9px] text-muted-foreground">Members</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{members}</p></div><div><p className="text-[9px] text-muted-foreground">Online</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{online}</p></div><div><p className="text-[9px] text-muted-foreground">Guests</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{guests}</p></div></div></section>;\n}\n'''
+            if marker in s: s = s.replace(marker, component + marker)
+          if 'const [communityStats' not in s:
+            marker = 'const [ad, setAd] = useState<AuthenticatedAd | null>(null);'
+            if marker in s:
+              s = s.replace(marker, marker + '\n  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);')
+          if 'void fetchCommunityStats().then(setCommunityStats)' not in s:
+            marker = '  useEffect(() => {'
+            pos = s.find(marker)
+            if pos >= 0: s = s[:pos] + '  useEffect(() => { void fetchCommunityStats().then(setCommunityStats).catch(() => undefined); }, []);\n' + s[pos:]
           if 'CommunityStatsSection stats={communityStats}' not in s:
             s = s.replace('  const topicsContent = (\n    <>\n', '  const topicsContent = (\n    <>\n      <CommunityStatsSection stats={communityStats} />\n')
           contextual.write_text(s)
-
           for path in root.glob('src/**/*'):
             if path.is_file() and path.suffix in {'.tsx', '.ts'}:
               text = path.read_text()
-              if '"/desk"' in text:
-                path.write_text(text.replace('"/desk"', '"/you"'))
-
+              if '"/desk"' in text: path.write_text(text.replace('"/desk"', '"/you"'))
           app_shell = root / 'src/components/app-shell-contextual.tsx'
           if app_shell.exists():
-            text = app_shell.read_text().replace('Go to Kurukoo home', 'Go to Kurukoo For You').replace('title="Kurukoo home"', 'title="Kurukoo For You"')
+            text = app_shell.read_text()
+            if 'import { logoutKurukoo } from "@/lib/kurukoo-auth";' not in text:
+              text = text.replace('import { ReferralCard } from "@/components/kurukoo/referral-card";', 'import { ReferralCard } from "@/components/kurukoo/referral-card";\nimport { logoutKurukoo } from "@/lib/kurukoo-auth";')
+            text = re.sub(r'const logout = \(\) => \{ localStorage\.removeItem\("kurukoo-authenticated"\); window\.dispatchEvent\(new Event\("kurukoo-auth-updated"\)\); setOpen\(false\); \};', 'const logout = async () => { setOpen(false); await logoutKurukoo(); window.location.href = "/"; };', text, count=1)
+            text = text.replace('<Link to="/" aria-label="Go to Kurukoo For You" title="Kurukoo For You"', '<Link to="/you" aria-label="Go to Kurukoo For You" title="Kurukoo For You"')
             app_shell.write_text(text)
-
-          desk = root / 'src/routes/desk.tsx'
-          if desk.exists(): desk.unlink()
-          (root / 'src/routes/you.tsx').write_text('''import { createFileRoute } from "@tanstack/react-router";\nimport { HomePage } from "./index";\n\nexport const Route = createFileRoute("/you")({\n  head: () => ({ meta: [{ title: "For You — Kurukoo" }, { name: "description", content: "Your personal view for getting useful things done with Kurukoo." }] }),\n  component: HomePage,\n});\n''')
+          root_route = root / 'src/routes/__root.tsx'
+          text = root_route.read_text()
+          text = re.sub(r'const anonymousHome = pathname === "/"(?: && !authenticated)?;', 'const anonymousHome = pathname === "/";', text, count=1)
+          pattern = r'(?s)return <QueryClientProvider.*?;</KurukooProvider>\}\s*}'
+          replacement = '''return <QueryClientProvider client={queryClient}><KurukooProvider>{!hydrated ? <PublicKurukooShell><div className="min-h-[60vh]" /></PublicKurukooShell> : needsAuthentication ? <ProtectedPrompt /> : anonymousHome ? <PublicKurukooShell><PublicHome onSend={savePrompt} /></PublicKurukooShell> : !authenticated && isPublic ? <PublicKurukooShell><Outlet /></PublicKurukooShell> : <><AppShell><Outlet /></AppShell><MobileBar />}</KurukooProvider></QueryClientProvider>;\n}'''
+          text, n = re.subn(pattern, replacement, text, count=1)
+          if n != 1: raise SystemExit('root render block not found')
+          root_route.write_text(text)
+          # Restore the known-good public homepage composition containing the public "See it in motion" section.
+          import subprocess
+          restored = subprocess.check_output(['git', 'show', '1b77ea62769738cb7d249fb0356ffb233d5e85a3:src/components/public-kurukoo-home.tsx'], text=True)
+          (root / 'src/components/public-kurukoo-home.tsx').write_text(restored)
           PY
       - name: Rebuild route tree
         run: |
@@ -72,6 +83,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src
+          git diff --cached --check
           git diff --cached --quiet && exit 0
-          git commit -m "Normalize Kurukoo shell routing [shell-normalized]"
+          git commit -m "Normalize public homepage and For You separation [shell-normalized]"
           git push
