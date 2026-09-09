@@ -1,4 +1,5 @@
-import { AudioLines, Mic2, X, Volume2 } from "lucide-react";
+import { AudioLines, Mic2, Settings, X, Volume2 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createVoiceSession, endVoiceSession, streamKurukooChat } from "@/lib/kurukoo-api";
 
@@ -6,6 +7,7 @@ type LiveVoiceProps = {
   triggerIcon?: ReactNode;
   triggerLabel?: string;
   triggerClassName?: string;
+  overlayTargetId?: string;
 };
 
 type Recognition = {
@@ -31,13 +33,28 @@ function getRecognition(): Recognition | null {
 }
 
 const VOICE_PREFS_KEY = "kurukoo-voice-preferences";
+const voiceLanguages = [
+  ["en-GB", "English (UK)"],
+  ["en-US", "English (US)"],
+  ["fr-FR", "Français"],
+  ["es-ES", "Español"],
+  ["pt-BR", "Português"],
+  ["sw-KE", "Kiswahili"],
+] as const;
+const voiceStyles = [
+  ["calm", "Calm"],
+  ["clear", "Clear"],
+  ["warm", "Warm"],
+] as const;
 
 export function LiveVoice({
   triggerIcon = <Mic2 className="size-[17px] text-muted-foreground" />,
   triggerLabel = "Talk to Kurukoo",
   triggerClassName = "grid size-9 place-items-center rounded-full hover:bg-elevated",
+  overlayTargetId,
 }: LiveVoiceProps) {
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState("Voice mode is ready.");
   const [heard, setHeard] = useState("");
@@ -79,6 +96,7 @@ export function LiveVoice({
 
   function savePrefs(nextStyle = style, nextLanguage = language) {
     localStorage.setItem(VOICE_PREFS_KEY, JSON.stringify({ style: nextStyle, language: nextLanguage }));
+    window.dispatchEvent(new CustomEvent("kurukoo-voice-preferences", { detail: { style: nextStyle, language: nextLanguage } }));
   }
 
   async function ensureSession() {
@@ -155,12 +173,32 @@ export function LiveVoice({
     recognitionRef.current?.stop();
     window.speechSynthesis?.cancel();
     setListening(false);
+    setSettingsOpen(false);
     if (sessionRef.current) void endVoiceSession(sessionRef.current.sessionId, "user_closed");
     sessionRef.current = null;
     setOpen(false);
   }
 
   const browserVoice = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+  const overlay = open ? (
+    <div role="dialog" aria-modal="true" aria-label="Voice mode" className={overlayTargetId ? "absolute inset-0 z-[100] flex min-h-full flex-col overflow-hidden bg-background/98 backdrop-blur-xl" : "fixed inset-0 z-[100] flex min-h-screen flex-col bg-background lg:right-[224px]"}>
+      <header className="relative flex h-14 shrink-0 items-center justify-between border-b border-border px-5 md:px-8">
+        <div className="flex items-center gap-2"><div className="grid size-7 place-items-center rounded-lg bg-brand-tint text-brand-ink"><AudioLines className="size-4" /></div><div><p className="text-[13px] font-semibold">Kurukoo</p><p className="text-[10px] text-muted-foreground">Voice conversation</p></div></div>
+        <div className="flex items-center gap-1"><button type="button" onClick={() => setSettingsOpen((value) => !value)} aria-label="Voice settings" aria-expanded={settingsOpen} title="Voice settings" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><Settings className="size-[17px]" /></button><button type="button" onClick={close} aria-label="Close voice mode" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><X className="size-[18px]" /></button></div>
+        {settingsOpen ? <div className="absolute right-5 top-[62px] z-[120] w-[min(320px,calc(100vw-40px))] rounded-2xl border border-border bg-surface p-4 text-left shadow-[var(--shadow-lift)]"><div className="flex items-center gap-2"><Settings className="size-4 text-primary"/><p className="text-[12px] font-semibold">Voice settings</p></div><label className="mt-4 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Language<select value={language} onChange={(event) => { const next = event.target.value; setLanguage(next); savePrefs(style, next); }} className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-[12px] font-medium outline-none">{voiceLanguages.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="mt-3 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Voice style<select value={style} onChange={(event) => { const next = event.target.value as "calm" | "clear" | "warm"; setStyle(next); savePrefs(next, language); }} className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-[12px] font-medium outline-none">{voiceStyles.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">These preferences are saved on this device and apply to both voice input and spoken replies.</p></div> : null}
+      </header>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 text-center">
+        <div className={`relative grid size-36 shrink-0 place-items-center rounded-full bg-brand-tint text-brand-ink transition-all duration-500 ${listening ? "scale-110 shadow-[0_0_0_18px_var(--brand-tint)]" : ""}`}><div className={`grid size-24 place-items-center rounded-full bg-background/80 ${listening ? "animate-pulse" : ""}`}><AudioLines className="size-9" strokeWidth={1.5} /></div></div>
+        <p className="mt-8 text-[24px] font-semibold tracking-tight">{listening ? "I'm listening" : "Voice mode"}</p>
+        <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">{status}</p>
+        {heard ? <p className="mt-5 max-w-xl rounded-2xl border border-border bg-surface px-4 py-3 text-[13px] text-foreground">“{heard}”</p> : null}
+        {reply ? <div className="mt-4 max-w-xl rounded-2xl bg-elevated px-4 py-3 text-left text-[13px] leading-relaxed"><div className="mb-2 flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground"><Volume2 className="size-3.5" /> Spoken reply</div>{reply}</div> : null}
+        <button type="button" onClick={() => listening ? void handleStopListening() : startListening()} disabled={!browserVoice} className="mt-8 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-[12px] font-medium text-background disabled:opacity-40"><Mic2 className="size-4" />{listening ? "Finish speaking" : "Start talking"}</button>
+        {!browserVoice ? <p className="mt-3 text-[10.5px] text-muted-foreground">This browser does not expose speech recognition.</p> : null}
+      </div>
+      <footer className="shrink-0 pb-7 text-center text-[10px] text-muted-foreground">Voice uses the same Kurukoo conversation relationship as text. Your session can continue in Chat history.</footer>
+    </div>
+  ) : null;
   return (
     <>
       <span className="relative inline-flex">
@@ -168,24 +206,7 @@ export function LiveVoice({
           {triggerIcon}
         </button>
       </span>
-      {open ? (
-        <div role="dialog" aria-modal="true" aria-label="Voice mode" className="fixed inset-0 z-[100] flex min-h-screen flex-col bg-background lg:right-[224px]">
-          <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-5 md:px-8">
-            <div className="flex items-center gap-2"><div className="grid size-7 place-items-center rounded-lg bg-brand-tint text-brand-ink"><AudioLines className="size-4" /></div><div><p className="text-[13px] font-semibold">Kurukoo</p><p className="text-[10px] text-muted-foreground">Voice conversation</p></div></div>
-            <button type="button" onClick={close} aria-label="Close voice mode" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><X className="size-[18px]" /></button>
-          </header>
-          <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-            <div className={`relative grid size-36 place-items-center rounded-full bg-brand-tint text-brand-ink transition-all duration-500 ${listening ? "scale-110 shadow-[0_0_0_18px_var(--brand-tint)]" : ""}`}><div className={`grid size-24 place-items-center rounded-full bg-background/80 ${listening ? "animate-pulse" : ""}`}><AudioLines className="size-9" strokeWidth={1.5} /></div></div>
-            <p className="mt-8 text-[24px] font-semibold tracking-tight">{listening ? "I'm listening" : "Voice mode"}</p>
-            <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">{status}</p>
-            {heard ? <p className="mt-5 max-w-xl rounded-2xl border border-border bg-surface px-4 py-3 text-[13px] text-foreground">“{heard}”</p> : null}
-            {reply ? <div className="mt-4 max-w-xl rounded-2xl bg-elevated px-4 py-3 text-left text-[13px] leading-relaxed"><div className="mb-2 flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground"><Volume2 className="size-3.5" /> Spoken reply</div>{reply}</div> : null}
-            <button type="button" onClick={() => listening ? void handleStopListening() : startListening()} disabled={!browserVoice} className="mt-8 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-[12px] font-medium text-background disabled:opacity-40"><Mic2 className="size-4" />{listening ? "Finish speaking" : "Start talking"}</button>
-            {!browserVoice ? <p className="mt-3 text-[10.5px] text-muted-foreground">This browser does not expose speech recognition.</p> : null}
-          </div>
-          <footer className="pb-7 text-center text-[10px] text-muted-foreground">Voice uses the same Kurukoo conversation relationship as text. Your session can continue in Chat history.</footer>
-        </div>
-      ) : null}
+      {overlayTargetId && typeof document !== "undefined" ? createPortal(overlay, document.getElementById(overlayTargetId) || document.body) : overlay}
     </>
   );
 }
