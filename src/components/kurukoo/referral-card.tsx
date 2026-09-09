@@ -13,7 +13,13 @@ function buildInviteLink() {
   return `${window.location.origin}/signup?ref=${encodeURIComponent(code)}`;
 }
 
-export function ReferralCard({ collapsed = false }: { collapsed?: boolean }) {
+export function ReferralCard({
+  collapsed = false,
+  variant = "authenticated",
+}: {
+  collapsed?: boolean;
+  variant?: "authenticated" | "public";
+}) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -43,31 +49,42 @@ export function ReferralCard({ collapsed = false }: { collapsed?: boolean }) {
     }
   }
 
+  const publicVariant = variant === "public";
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Share Kurukoo and earn credits"
-        title={collapsed ? "Share Kurukoo" : undefined}
+        aria-label={publicVariant ? "Refer and earn" : "Share Kurukoo and earn credits"}
+        title={collapsed ? (publicVariant ? "Refer & earn" : "Share Kurukoo") : undefined}
         className={cn(
-          "w-full overflow-hidden rounded-2xl border border-border bg-elevated/60 text-left transition-colors hover:bg-elevated",
-          collapsed ? "p-2" : "p-3",
+          publicVariant
+            ? "inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-elevated/60 px-3 py-2.5 text-[12px] font-medium text-foreground transition-colors hover:bg-elevated"
+            : "w-full overflow-hidden rounded-2xl border border-border bg-elevated/60 text-left transition-colors hover:bg-elevated",
+          !publicVariant && (collapsed ? "p-2" : "p-3"),
         )}
       >
-        <div className={cn("flex items-start", collapsed ? "justify-center" : "gap-2.5")}>
-          <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink">
-            <Gift className="size-4" />
-          </span>
-          {!collapsed ? (
-            <div className="min-w-0">
-              <p className="text-[11.5px] font-semibold leading-4">Share Kurukoo</p>
-              <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">
-                Earn 100 credits per paid referral
-              </p>
-            </div>
-          ) : null}
-        </div>
+        {publicVariant ? (
+          <>
+            <span>Refer &amp; earn</span>
+            <Gift className="size-3.5" />
+          </>
+        ) : (
+          <div className={cn("flex items-start", collapsed ? "justify-center" : "gap-2.5")}>
+            <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink">
+              <Gift className="size-4" />
+            </span>
+            {!collapsed ? (
+              <div className="min-w-0">
+                <p className="text-[11.5px] font-semibold leading-4">Share Kurukoo</p>
+                <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">
+                  Earn 100 credits per paid referral
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
       </button>
 
       {open ? (
