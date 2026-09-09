@@ -4,7 +4,6 @@ on:
     branches: [main]
 jobs:
   refine:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -84,8 +83,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/public-kurukoo-context.tsx .github/workflows/refine-agent-advert.yml
-          git commit -m "Refine public AI agent advert carousel" || exit 0
+          git add src/components/public-kurukoo-context.tsx
+          git commit -m "Refine public AI agent advert carousel"
           git rm .github/workflows/refine-agent-advert.yml
           git commit -m "Remove one-time agent advert workflow"
           git push origin main
