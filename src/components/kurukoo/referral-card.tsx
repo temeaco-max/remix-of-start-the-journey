@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Copy, Gift, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const REFERRAL_IMAGE =
-  "https://lovable.dev/cdn-cgi/image/width=1716,f=auto,fit=scale-down/img/referral/light-spread-v3.png";
+const REFERRAL_IMAGE = "https://lovable.dev/cdn-cgi/image/width=1716,f=auto,fit=scale-down/img/referral/light-spread-v3.png";
 
 function buildInviteLink() {
   if (typeof window === "undefined") return "https://kurukoo.com/signup?ref=kurukoo";
@@ -13,171 +13,57 @@ function buildInviteLink() {
   return `${window.location.origin}/signup?ref=${encodeURIComponent(code)}`;
 }
 
-export function ReferralCard({
-  collapsed = false,
-  variant = "authenticated",
-}: {
-  collapsed?: boolean;
-  variant?: "authenticated" | "public";
-}) {
-  const [open, setOpen] = useState(false);
+export function ReferralDialog({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
+  const inviteLink = useMemo(buildInviteLink, []);
+  const qrUrl = useMemo(() => `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(inviteLink)}`, [inviteLink]);
 
   useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
-
-  const inviteLink = useMemo(buildInviteLink, [open]);
-  const qrUrl = useMemo(
-    () =>
-      `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(inviteLink)}`,
-    [inviteLink],
-  );
+  }, [onClose]);
 
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(inviteLink);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopied(false);
-    }
+    } catch { setCopied(false); }
   }
 
-  const publicVariant = variant === "public";
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={publicVariant ? "Refer and earn" : "Share Kurukoo and earn credits"}
-        title={collapsed ? (publicVariant ? "Refer & earn" : "Share Kurukoo") : undefined}
-        className={cn(
-          publicVariant
-            ? "inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-elevated/60 px-3 py-2.5 text-[12px] font-medium text-foreground transition-colors hover:bg-elevated"
-            : "w-full overflow-hidden rounded-2xl border border-border bg-elevated/60 text-left transition-colors hover:bg-elevated",
-          !publicVariant && (collapsed ? "p-2" : "p-3"),
-        )}
-      >
-        {publicVariant ? (
-          <>
-            <span>Refer &amp; earn</span>
-            <Gift className="size-3.5" />
-          </>
-        ) : (
-          <div className={cn("flex items-start", collapsed ? "justify-center" : "gap-2.5")}>
-            <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink">
-              <Gift className="size-4" />
-            </span>
-            {!collapsed ? (
-              <div className="min-w-0">
-                <p className="text-[11.5px] font-semibold leading-4">Share Kurukoo</p>
-                <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">
-                  Earn 100 credits per paid referral
-                </p>
-              </div>
-            ) : null}
+  const modal = (
+    <div className="absolute inset-0 z-[100] grid place-items-center bg-black/35 p-4 backdrop-blur-[2px]" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="kurukoo-referral-title" className="relative max-h-[min(760px,calc(100vh-32px))] w-full max-w-[620px] overflow-y-auto rounded-3xl border border-border bg-surface shadow-[var(--shadow-lift)]">
+        <button type="button" onClick={onClose} aria-label="Close referral dialog" className="absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full border border-border bg-surface/90 text-muted-foreground hover:bg-elevated hover:text-foreground"><X className="size-4" /></button>
+        <div className="grid md:grid-cols-[0.9fr_1.1fr]">
+          <div className="overflow-hidden bg-brand-tint/35 p-5 md:p-6"><img src={REFERRAL_IMAGE} alt="" loading="lazy" className="h-44 w-full rounded-2xl object-cover md:h-full md:min-h-[390px]" /></div>
+          <div className="p-6 md:p-7">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Referral rewards</p>
+            <h2 id="kurukoo-referral-title" className="mt-2 text-[30px] font-semibold leading-tight tracking-[-0.035em]">Earn 100 credits</h2>
+            <p className="mt-1 text-[20px] font-medium tracking-[-0.02em]">Spread the love</p>
+            <p className="mt-1 text-[13px] leading-5 text-muted-foreground">and earn free credits</p>
+            <div className="mt-6"><p className="text-[12px] font-semibold">How it works</p><ol className="mt-2 space-y-2 text-[12px] leading-5 text-muted-foreground"><li><span className="font-medium text-foreground">1.</span> Share your invite link</li><li><span className="font-medium text-foreground">2.</span> They sign up and get <strong className="text-foreground">extra 10 credits</strong></li><li><span className="font-medium text-foreground">3.</span> You get <strong className="text-foreground">100 credits</strong> once they subscribe to a qualifying paid plan</li></ol></div>
+            <div className="mt-5 rounded-2xl border border-border bg-elevated/45 p-3"><div className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Signed up</span><strong>0</strong></div><div className="mt-1 flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Converted</span><strong>0</strong></div></div>
+            <div className="mt-5 flex items-center gap-3"><div className="grid size-[94px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-white"><img src={qrUrl} alt="Your Kurukoo invite QR code" width="88" height="88" /></div><div className="min-w-0 flex-1"><p className="text-[10px] font-medium text-muted-foreground">Your invite link</p><p className="mt-1 truncate rounded-lg border border-border bg-background px-2.5 py-2 text-[10px] text-muted-foreground">{inviteLink}</p><button type="button" onClick={() => void copyLink()} className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-2 text-[11px] font-medium text-background"><Copy className="size-3.5" />{copied ? "Copied" : "Copy link"}</button></div></div>
+            <p className="mt-5 text-[9.5px] leading-4 text-muted-foreground">Referral rewards are subject to Kurukoo referral terms and qualifying plan conditions. Reward tracking will use the invite link attached to your account.</p>
           </div>
-        )}
-      </button>
-
-      {open ? (
-        <div
-          className="fixed inset-0 z-[100] grid place-items-center bg-black/35 p-4 backdrop-blur-[2px]"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setOpen(false);
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="kurukoo-referral-title"
-            className="relative max-h-[min(760px,calc(100vh-32px))] w-full max-w-[620px] overflow-y-auto rounded-3xl border border-border bg-surface shadow-[var(--shadow-lift)]"
-          >
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close referral dialog"
-              className="absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full border border-border bg-surface/90 text-muted-foreground hover:bg-elevated hover:text-foreground"
-            >
-              <X className="size-4" />
-            </button>
-
-            <div className="grid md:grid-cols-[0.9fr_1.1fr]">
-              <div className="overflow-hidden bg-brand-tint/35 p-5 md:p-6">
-                <img
-                  src={REFERRAL_IMAGE}
-                  alt=""
-                  loading="lazy"
-                  className="h-44 w-full rounded-2xl object-cover md:h-full md:min-h-[390px]"
-                />
-              </div>
-
-              <div className="p-6 md:p-7">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
-                  Referral rewards
-                </p>
-                <h2 id="kurukoo-referral-title" className="mt-2 text-[30px] font-semibold leading-tight tracking-[-0.035em]">
-                  Earn 100 credits
-                </h2>
-                <p className="mt-1 text-[20px] font-medium tracking-[-0.02em]">Spread the love</p>
-                <p className="mt-1 text-[13px] leading-5 text-muted-foreground">and earn free credits</p>
-
-                <div className="mt-6">
-                  <p className="text-[12px] font-semibold">How it works</p>
-                  <ol className="mt-2 space-y-2 text-[12px] leading-5 text-muted-foreground">
-                    <li><span className="font-medium text-foreground">1.</span> Share your invite link</li>
-                    <li><span className="font-medium text-foreground">2.</span> They sign up and get <strong className="text-foreground">extra 10 credits</strong></li>
-                    <li><span className="font-medium text-foreground">3.</span> You get <strong className="text-foreground">100 credits</strong> once they subscribe to a qualifying paid plan</li>
-                  </ol>
-                </div>
-
-                <div className="mt-5 rounded-2xl border border-border bg-elevated/45 p-3">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground">Signed up</span>
-                    <strong>0</strong>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground">Converted</span>
-                    <strong>0</strong>
-                  </div>
-                </div>
-
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="grid size-[94px] shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-white">
-                    <img src={qrUrl} alt="Your Kurukoo invite QR code" width="88" height="88" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-medium text-muted-foreground">Your invite link</p>
-                    <p className="mt-1 truncate rounded-lg border border-border bg-background px-2.5 py-2 text-[10px] text-muted-foreground">
-                      {inviteLink}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => void copyLink()}
-                      className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-2 text-[11px] font-medium text-background"
-                    >
-                      <Copy className="size-3.5" />
-                      {copied ? "Copied" : "Copy link"}
-                    </button>
-                  </div>
-                </div>
-
-                <p className="mt-5 text-[9.5px] leading-4 text-muted-foreground">
-                  Referral rewards are subject to Kurukoo referral terms and qualifying plan conditions. Reward tracking will use the invite link attached to your account.
-                </p>
-              </div>
-            </div>
-          </section>
         </div>
-      ) : null}
-    </>
+      </section>
+    </div>
+  );
+
+  if (typeof document === "undefined") return null;
+  const main = document.querySelector("main");
+  if (!main) return null;
+  return createPortal(modal, main);
+}
+
+export function ReferralCard({ collapsed = false, variant = "authenticated", onPublicAuth, onAuthenticatedOpen }: { collapsed?: boolean; variant?: "authenticated" | "public"; onPublicAuth?: () => void; onAuthenticatedOpen?: () => void }) {
+  const publicVariant = variant === "public";
+  return (
+    <button type="button" onClick={publicVariant ? onPublicAuth : onAuthenticatedOpen} aria-label={publicVariant ? "Refer and earn" : "Earn 100 credits per referral"} title={collapsed ? (publicVariant ? "Refer & earn" : "Earn 100 credits per referral") : undefined} className={cn(publicVariant ? "inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-elevated/60 px-3 py-2.5 text-[12px] font-medium text-foreground transition-colors hover:bg-elevated" : "w-full overflow-hidden rounded-2xl border border-border bg-elevated/60 text-left transition-colors hover:bg-elevated", !publicVariant && (collapsed ? "p-2" : "p-3"))}>
+      {publicVariant ? <><span>Refer &amp; earn</span><Gift className="size-3.5" /></> : <div className={cn("flex items-start", collapsed ? "justify-center" : "gap-2.5")}><span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Gift className="size-4" /></span>{!collapsed ? <div className="min-w-0"><p className="text-[11.5px] font-semibold leading-4">Earn 100 credits per referral</p></div> : null}</div>}
+    </button>
   );
 }
