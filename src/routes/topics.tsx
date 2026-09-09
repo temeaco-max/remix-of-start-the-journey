@@ -20,7 +20,7 @@ const pretty = (value: string) => value.replace(/[_-]/g, " ").replace(/\b\w/g, (
 
 function AdCard({ item, label }: { item?: CommunityAdInventory; label: string }) {
   if (item?.campaign) return <a href={item.campaign.destination} target="_blank" rel="noreferrer" className="flex min-h-[104px] items-center rounded-[18px] border border-dotted border-border bg-elevated/35 px-4 transition-colors hover:bg-elevated/55"><div><p className="text-[8.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">Sponsored</p><p className="mt-1 text-[12px] font-semibold">{item.campaign.title}</p><p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{item.campaign.body}</p></div></a>;
-  return <div className="flex min-h-[104px] items-center justify-center rounded-[18px] border border-dotted border-border bg-elevated/20 px-4 text-center"><div><p className="text-[8.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">Advertising</p><p className="mt-1 text-[10px] text-muted-foreground">{item?.points ? label : "Place an Ad here"}</p>{item?.points ? <p className="mt-1 text-[9px] text-muted-foreground">{item.points} Points per placement</p> : null}</div></div>;
+  return <div className="flex min-h-[104px] items-center justify-center rounded-[18px] border border-dotted border-border bg-elevated/20 px-4 text-center"><div><p className="text-[8.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">Advertising</p><p className="mt-1 text-[10px] text-muted-foreground">Place an Ad here</p>{item?.points ? <p className="mt-1 text-[9px] text-muted-foreground">{item.points} Points per placement</p> : null}</div></div>;
 }
 
 function CommunityStatsCard({ stats }: { stats: CommunityStats | null }) {
