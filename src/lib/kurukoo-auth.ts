@@ -1,5 +1,7 @@
 const API_BASE = (import.meta.env["VITE_KURUKOO_API_BASE_URL"] ?? "").replace(/\/$/, "");
 
+export const KURUKOO_BUILD_EMAIL = "temea.co@gmail.com";
+
 function apiUrl(path: string) {
   return `${API_BASE}${path}`;
 }
@@ -10,7 +12,11 @@ async function readJson<T>(path: string, init?: RequestInit): Promise<{ response
   return { response, payload };
 }
 
-export type KurukooAuthUser = { phone?: string; role?: string; [key: string]: unknown };
+export type KurukooAuthUser = { phone?: string; email?: string; role?: string; [key: string]: unknown };
+
+export function isAllowedKurukooBuildAccount(user: KurukooAuthUser | null | undefined) {
+  return user?.email?.trim().toLowerCase() === KURUKOO_BUILD_EMAIL;
+}
 
 export async function getKurukooAuthState(): Promise<{ authenticated: boolean; user: KurukooAuthUser | null }> {
   try {
@@ -22,31 +28,23 @@ export async function getKurukooAuthState(): Promise<{ authenticated: boolean; u
   }
 }
 
-export async function requestPhoneOtp(phone: string) {
-  const { response, payload } = await readJson<{ success?: boolean; message?: string; error?: string; testMode?: boolean; devCode?: string }>("/api/auth/request-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone: phone.trim() }),
-  });
-  if (!response.ok || payload.success === false) throw new Error(payload.message || payload.error || "Unable to send the verification code.");
-  return payload;
+export async function requestPhoneOtp(_phone: string) {
+  throw new Error(`Email sign-in is required for this build. Use ${KURUKOO_BUILD_EMAIL}.`);
 }
 
-export async function verifyPhoneOtp(input: { phone: string; code: string; name?: string; email?: string }) {
-  const { response, payload } = await readJson<{ success?: boolean; message?: string; error?: string; user?: KurukooAuthUser }>("/api/auth/verify-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone: input.phone.trim(), code: input.code.trim(), name: input.name?.trim() || undefined, email: input.email?.trim().toLowerCase() || undefined, deviceId: getDeviceId(), credentialType: "web" }),
-  });
-  if (!response.ok || payload.success !== true) throw new Error(payload.message || payload.error || "That verification code could not be accepted.");
-  return payload;
+export async function verifyPhoneOtp(_input: { phone: string; code: string; name?: string; email?: string }) {
+  throw new Error(`Email sign-in is required for this build. Use ${KURUKOO_BUILD_EMAIL}.`);
 }
 
 export async function requestMagicLink(input: { email: string; name?: string; returnPath?: string }) {
+  const email = input.email.trim().toLowerCase();
+  if (email !== KURUKOO_BUILD_EMAIL) {
+    throw new Error(`This build is currently available only to ${KURUKOO_BUILD_EMAIL}.`);
+  }
   const { response, payload } = await readJson<{ success?: boolean; message?: string; error?: string; delivery?: string }>("/api/auth/request-magic-link", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: input.email.trim().toLowerCase(), name: input.name?.trim() || undefined, returnPath: input.returnPath || "/" }),
+    body: JSON.stringify({ email, name: input.name?.trim() || undefined, returnPath: input.returnPath || "/" }),
   });
   if (!response.ok || payload.success === false) throw new Error(payload.message || payload.error || "Unable to send a sign-in link.");
   return payload;
