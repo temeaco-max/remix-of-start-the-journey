@@ -9,8 +9,8 @@ import { PublicMobileNavigation } from "@/components/public-kurukoo-mobile-nav";
 export { PublicHome } from "@/components/public-kurukoo-home";
 
 const meetKurukoo = [
-  { heading: "Core features", items: [["/kurukoo-ai", "Kurukoo AI"], ["/integrations", "Multi-Channel Access"], ["/kurukoo-ai", "Multi-AI Intelligence"], ["/chat", "Messaging & Calls"], ["/capabilities", "200+ capabilities"]] },
-  { heading: "", items: [["/kurukoo-ai", "Coordinated AI Fulfillment"], ["/provider", "Personal AI Agents"], ["/memory", "Living Memory"], ["/provider", "Agentic AI Providers"]] },
+  { heading: "Core features", items: [["/kurukoo-ai", "Kurukoo AI"], ["/integrations", "Multi-Channel Access"], ["/kurukoo-ai", "Frontier AI Intelligence"], ["/chat", "Messaging & Calls"], ["/capabilities", "200+ capabilities"]] },
+  { heading: "", items: [["/kurukoo-ai", "Coordinated AI Fulfillment"], ["/provider", "Personal AI Agents"], ["/memory", "Living Memory"], ["/provider", "Agentic AI Providers"], ["/businesses", "Agentic Storefront"]] },
   { heading: "Getting Started", items: [["/about", "About"], ["/chat", "Chat/Talk"], ["/discover", "Discover"], ["/opportunities", "Opportunities"]] },
 ] as const;
 const forYou = [
