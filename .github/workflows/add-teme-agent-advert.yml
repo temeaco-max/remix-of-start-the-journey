@@ -1,0 +1,44 @@
+name: Add Teme agent advert
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Update public context rail
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/public-kurukoo-context.tsx')
+          s = p.read_text()
+          s = s.replace('ArrowUpRight, ChevronLeft', 'ArrowUpRight, Bot, ChevronLeft', 1)
+          s = s.replace('<h2 className="text-[13px] font-semibold">Example activity</h2>', '<h2 className="text-[13px] font-semibold">Recent</h2>', 1)
+          marker = '\nfunction TopicCommunityStats()'
+          component = '''\nfunction PublicAgentAdvert() { return <section className="relative overflow-hidden rounded-2xl border border-border bg-foreground p-3 text-background shadow-[var(--shadow-soft)]"><div className="absolute -right-8 -top-8 size-24 rounded-full bg-primary/20 blur-2xl" aria-hidden="true"/><div className="relative"><div className="flex items-start justify-between gap-2"><div className="flex min-w-0 items-center gap-2"><span className="grid size-8 shrink-0 place-items-center rounded-xl bg-background/10"><Bot className="size-4"/></span><div className="min-w-0"><p className="text-[8.5px] font-semibold uppercase tracking-[0.12em] text-background/55">Kurukoo AI Agent</p><h2 className="mt-0.5 truncate text-[13px] font-semibold">Meet Teme</h2></div></div><span className="rounded-full bg-background/10 px-1.5 py-0.5 text-[8px] font-medium text-background/70">AI</span></div><p className="mt-2 text-[10px] font-medium text-background/80">Your customer service adviser on Kurukoo.</p><ul className="mt-2 space-y-1.5 text-[9.5px] leading-snug text-background/70"><li className="flex gap-1.5"><span aria-hidden="true">•</span><span>Answers common customer questions.</span></li><li className="flex gap-1.5"><span aria-hidden="true">•</span><span>Helps customers find the right service or next step.</span></li><li className="flex gap-1.5"><span aria-hidden="true">•</span><span>Keeps customer conversations moving.</span></li><li className="flex gap-1.5"><span aria-hidden="true">•</span><span>Can be added to your profile as a Kurukoo AI agent.</span></li></ul><Link to="/profile/teme-ai" className="mt-3 inline-flex w-full items-center justify-between rounded-lg bg-background px-2.5 py-2 text-[9.5px] font-semibold text-foreground hover:bg-background/90"><span>Meet Teme</span><ArrowUpRight className="size-3"/></Link></div></section>; }\n'''
+          if 'function PublicAgentAdvert()' not in s:
+              s = s.replace(marker, component + marker, 1)
+          old = '<div className="mt-3"><PublicActivityFeed signedIn={signedIn} onOpenAuth={onOpenAuth}/></div>{isTopics ?'
+          new = '<div className="mt-3"><PublicActivityFeed signedIn={signedIn} onOpenAuth={onOpenAuth}/></div><div className="mt-3"><PublicAgentAdvert/></div>{isTopics ?'
+          if old not in s:
+              raise SystemExit('Expected rail insertion point not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/public-kurukoo-context.tsx .github/workflows/add-teme-agent-advert.yml
+          git rm .github/workflows/add-teme-agent-advert.yml
+          git commit -m "Add Teme AI agent advert to public context rail"
+          git push origin main
