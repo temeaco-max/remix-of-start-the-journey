@@ -10,65 +10,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
       - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - name: Apply shell and Topics refinements
+        with: { bun-version: latest }
+      - name: Apply shell and public homepage refinements
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re, subprocess
           root = Path('.')
-          topics = root / 'src/routes/topics.tsx'
+          restored = subprocess.check_output(['git','show','1b77ea62769738cb7d249fb0356ffb233d5e85a3:src/components/public-kurukoo-home.tsx'], text=True)
+          (root/'src/components/public-kurukoo-home.tsx').write_text(restored)
+          rr = root/'src/routes/__root.tsx'
+          s = rr.read_text()
+          s = s.replace('const anonymousHome = pathname === "/" && !authenticated;', 'const anonymousHome = pathname === "/";', 1)
+          s = s.replace(': !authenticated && ((isPublic && !isAuthenticatedSurface) || anonymousHome) ?', ': anonymousHome ?', 1)
+          s = s.replace('<PublicKurukooShell>{anonymousHome ? <PublicHome onSend={savePrompt} /> : <Outlet />}</PublicKurukooShell>', '<PublicKurukooShell><PublicHome onSend={savePrompt} /></PublicKurukooShell>', 1)
+          rr.write_text(s)
+          sh = root/'src/components/app-shell-contextual.tsx'
+          s = sh.read_text()
+          if 'import { logoutKurukoo } from "@/lib/kurukoo-auth";' not in s:
+            s = s.replace('import { ReferralCard } from "@/components/kurukoo/referral-card";', 'import { ReferralCard } from "@/components/kurukoo/referral-card";\nimport { logoutKurukoo } from "@/lib/kurukoo-auth";', 1)
+          s = re.sub(r'const logout = \(\) => \{ localStorage\.removeItem\("kurukoo-authenticated"\); window\.dispatchEvent\(new Event\("kurukoo-auth-updated"\)\); setOpen\(false\); \};', 'const logout = async () => { setOpen(false); await logoutKurukoo(); window.location.href = "/"; };', s, count=1)
+          s = s.replace('<Link to="/" aria-label="Go to Kurukoo For You" title="Kurukoo For You"', '<Link to="/you" aria-label="Go to Kurukoo For You" title="Kurukoo For You"', 1)
+          sh.write_text(s)
+          topics = root/'src/routes/topics.tsx'
           s = topics.read_text()
           s = s.replace('rounded-[18px] bg-elevated/35 px-4 transition-colors hover:bg-elevated/55', 'rounded-[18px] border border-dotted border-border bg-elevated/35 px-4 transition-colors hover:bg-elevated/55')
           s = s.replace('rounded-[18px] bg-elevated/20 px-4 text-center', 'rounded-[18px] border border-dotted border-border bg-elevated/20 px-4 text-center')
           s = s.replace('<h2 className="mt-1.5 font-serif text-[28px] tracking-[-0.035em]">Browse Topics</h2>', '<h2 className="mt-1.5 font-serif text-[28px] tracking-[-0.035em]">Browse</h2>')
           s = s.replace('<h2 id="general-topics" className="font-serif text-[28px] tracking-[-0.035em]">General Topics</h2>', '<div><p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary">Kurukoo</p><h2 id="general-topics" className="font-serif text-[28px] leading-none tracking-[-0.035em]">General</h2></div>')
           topics.write_text(s)
-          public_context = root / 'src/components/public-kurukoo-context.tsx'
-          public_context.write_text(public_context.read_text().replace('return <aside aria-label="Kurukoo public context rail"', 'return <aside aria-label="Public context rail"'))
-          contextual = root / 'src/components/contextual-trusted-rail.tsx'
-          s = contextual.read_text()
-          if 'fetchCommunityStats' not in s:
-            s = s.replace('import { useKurukoo } from "@/lib/kurukoo-store";', 'import { useKurukoo } from "@/lib/kurukoo-store";\nimport { fetchCommunityStats, type CommunityStats } from "@/lib/community-topics-api";')
-          if 'function CommunityStatsSection' not in s:
-            marker = 'function PulseControl('
-            component = '''function CommunityStatsSection({ stats }: { stats: CommunityStats | null }) {\n  const members = stats?.members ?? 1; const online = stats?.online ?? 1; const guests = stats?.guests ?? 1;\n  return <section className="rounded-2xl bg-elevated/25 p-3" aria-label="Community statistics"><div className="flex items-center gap-2"><Users className="size-3.5 text-primary"/><h2 className="text-[12.5px] font-semibold">Community</h2></div><div className="mt-2 grid grid-cols-3 items-end gap-2"><div><p className="text-[9px] text-muted-foreground">Members</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{members}</p></div><div><p className="text-[9px] text-muted-foreground">Online</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{online}</p></div><div><p className="text-[9px] text-muted-foreground">Guests</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{guests}</p></div></div></section>;\n}\n'''
-            if marker in s: s = s.replace(marker, component + marker)
-          if 'const [communityStats' not in s:
-            marker = 'const [ad, setAd] = useState<AuthenticatedAd | null>(null);'
-            if marker in s: s = s.replace(marker, marker + '\n  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);')
-          if 'void fetchCommunityStats().then(setCommunityStats)' not in s:
-            s = s.replace('  useEffect(() => {', '  useEffect(() => { void fetchCommunityStats().then(setCommunityStats).catch(() => undefined); }, []);\n  useEffect(() => {', 1)
-          if 'CommunityStatsSection stats={communityStats}' not in s:
-            s = s.replace('  const topicsContent = (\n    <>\n', '  const topicsContent = (\n    <>\n      <CommunityStatsSection stats={communityStats} />\n')
-          contextual.write_text(s)
+          pc = root/'src/components/public-kurukoo-context.tsx'
+          pc.write_text(pc.read_text().replace('return <aside aria-label="Kurukoo public context rail"', 'return <aside aria-label="Public context rail"'))
           for path in root.glob('src/**/*'):
-            if path.is_file() and path.suffix in {'.tsx', '.ts'}:
-              text = path.read_text().replace('"/desk"', '"/you"')
-              path.write_text(text)
-          app_shell = root / 'src/components/app-shell-contextual.tsx'
-          text = app_shell.read_text()
-          if 'import { logoutKurukoo } from "@/lib/kurukoo-auth";' not in text:
-            text = text.replace('import { ReferralCard } from "@/components/kurukoo/referral-card";', 'import { ReferralCard } from "@/components/kurukoo/referral-card";\nimport { logoutKurukoo } from "@/lib/kurukoo-auth";')
-          text = re.sub(r'const logout = \(\) => \{ localStorage\.removeItem\("kurukoo-authenticated"\); window\.dispatchEvent\(new Event\("kurukoo-auth-updated"\)\); setOpen\(false\); \};', 'const logout = async () => { setOpen(false); await logoutKurukoo(); window.location.href = "/"; };', text, count=1)
-          text = text.replace('<Link to="/" aria-label="Go to Kurukoo For You" title="Kurukoo For You"', '<Link to="/you" aria-label="Go to Kurukoo For You" title="Kurukoo For You"')
-          app_shell.write_text(text)
-          root_route = root / 'src/routes/__root.tsx'
-          text = root_route.read_text()
-          text = text.replace('const anonymousHome = pathname === "/" && !authenticated;', 'const anonymousHome = pathname === "/";', 1)
-          old = ': !authenticated && ((isPublic && !isAuthenticatedSurface) || anonymousHome) ? <PublicKurukooShell>{anonymousHome ? <PublicHome onSend={savePrompt} /> : <Outlet />}</PublicKurukooShell> : <><AppShell><Outlet /></AppShell><MobileBar />}</>'
-          new = ': anonymousHome ? <PublicKurukooShell><PublicHome onSend={savePrompt} /></PublicKurukooShell> : !authenticated && isPublic ? <PublicKurukooShell><Outlet /></PublicKurukooShell> : <><AppShell><Outlet /></AppShell><MobileBar />}</>'
-          if old not in text: raise SystemExit('root route branch not found')
-          text = text.replace(old, new, 1)
-          root_route.write_text(text)
-          restored = subprocess.check_output(['git', 'show', '1b77ea62769738cb7d249fb0356ffb233d5e85a3:src/components/public-kurukoo-home.tsx'], text=True)
-          (root / 'src/components/public-kurukoo-home.tsx').write_text(restored)
+            if path.is_file() and path.suffix in {'.tsx','.ts'}: path.write_text(path.read_text().replace('"/desk"','"/you"'))
+          desk = root/'src/routes/desk.tsx'
+          if desk.exists(): desk.unlink()
+          (root/'src/routes/you.tsx').write_text('''import { createFileRoute } from "@tanstack/react-router";\nimport { HomePage } from "./index";\n\nexport const Route = createFileRoute("/you")({\n  head: () => ({ meta: [{ title: "For You — Kurukoo" }, { name: "description", content: "Your personal view for getting useful things done with Kurukoo." }] }),\n  component: HomePage,\n});\n''')
           PY
-      - name: Rebuild route tree
+      - name: Validate build
         run: |
           bun install --frozen-lockfile
           bun run build
