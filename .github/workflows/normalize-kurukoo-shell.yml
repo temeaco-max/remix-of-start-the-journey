@@ -24,14 +24,31 @@ jobs:
           s = s.replace('rounded-[18px] bg-elevated/20 px-4 text-center', 'rounded-[18px] border border-dotted border-border bg-elevated/20 px-4 text-center')
           s = s.replace('<h2 className="mt-1.5 font-serif text-[28px] tracking-[-0.035em]">Browse Topics</h2>', '<h2 className="mt-1.5 font-serif text-[28px] tracking-[-0.035em]">Browse</h2>')
           s = s.replace('<h2 id="general-topics" className="font-serif text-[28px] tracking-[-0.035em]">General Topics</h2>', '<div><p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary">Kurukoo</p><h2 id="general-topics" className="font-serif text-[28px] leading-none tracking-[-0.035em]">General</h2></div>')
-          s = s.replace('border-dotted border-border bg-elevated/15 flex', 'border-dotted border-border bg-elevated/15 flex')
           topics.write_text(s)
 
           public_context = root / 'src/components/public-kurukoo-context.tsx'
           s = public_context.read_text()
-          s = s.replace('<section className="mt-3 px-1" aria-label="Community statistics">', '<section className="mt-3 px-1" aria-label="Community statistics">')
           s = s.replace('return <aside aria-label="Kurukoo public context rail"', 'return <aside aria-label="Public context rail"')
           public_context.write_text(s)
+
+          contextual = root / 'src/components/contextual-trusted-rail.tsx'
+          s = contextual.read_text()
+          if 'CommunityStats' not in s:
+            s = s.replace('import { useKurukoo } from "@/lib/kurukoo-store";', 'import { useKurukoo } from "@/lib/kurukoo-store";\nimport { fetchCommunityStats, type CommunityStats } from "@/lib/community-topics-api";')
+          if 'function CommunityStatsSection' not in s:
+            marker = 'function PulseControl('
+            component = '''function CommunityStatsSection({ stats }: { stats: CommunityStats | null }) {\n  const members = stats?.members ?? 1;\n  const online = stats?.online ?? 1;\n  const guests = stats?.guests ?? 1;\n  return (\n    <section className="rounded-2xl bg-elevated/25 p-3" aria-label="Community statistics">\n      <div className="flex items-center gap-2"><Users className="size-3.5 text-primary"/><h2 className="text-[12.5px] font-semibold">Community</h2></div>\n      <div className="mt-2 grid grid-cols-3 items-end gap-2">\n        <div><p className="text-[9px] text-muted-foreground">Members</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{members}</p></div>\n        <div><p className="text-[9px] text-muted-foreground">Online</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{online}</p></div>\n        <div><p className="text-[9px] text-muted-foreground">Guests</p><p className="mt-0.5 text-[13px] font-semibold tabular-nums">{guests}</p></div>\n      </div>\n    </section>\n  );\n}\n'''
+            s = s.replace(marker, component + marker)
+          if 'const [communityStats' not in s:
+            s = s.replace('const [ad, setAd] = useState<AuthenticatedAd | null>(null);', 'const [ad, setAd] = useState<AuthenticatedAd | null>(null);\n  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);')
+            needle = '  useEffect(() => {\n    if (!open) return;\n    void fetchAuthenticatedAd("context-rail")'
+            effect = '  useEffect(() => { void fetchCommunityStats().then(setCommunityStats).catch(() => undefined); }, []);\n'
+            s = s.replace(needle, effect + needle)
+          topics_marker = '  const topicsContent = (\n    <>\n'
+          if 'CommunityStatsSection stats={communityStats}' not in s:
+            s = s.replace(topics_marker, topics_marker + '      <CommunityStatsSection stats={communityStats} />\n')
+          s = s.replace('to="/desk"', 'to="/you"')
+          contextual.write_text(s)
 
           for path in root.glob('src/**/*'):
             if not path.is_file() or path.suffix not in {'.tsx', '.ts'}:
