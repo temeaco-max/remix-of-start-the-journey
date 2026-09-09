@@ -1,0 +1,69 @@
+name: Normalize Kurukoo shell
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  normalize:
+    if: ${{ !contains(github.event.head_commit.message, '[shell-normalized]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply shell and Topics refinements
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          topics = root / 'src/routes/topics.tsx'
+          s = topics.read_text()
+          s = s.replace('rounded-[18px] bg-elevated/35 px-4 transition-colors hover:bg-elevated/55', 'rounded-[18px] border border-dotted border-border bg-elevated/35 px-4 transition-colors hover:bg-elevated/55')
+          s = s.replace('rounded-[18px] bg-elevated/20 px-4 text-center', 'rounded-[18px] border border-dotted border-border bg-elevated/20 px-4 text-center')
+          s = s.replace('<h2 className="mt-1.5 font-serif text-[28px] tracking-[-0.035em]">Browse Topics</h2>', '<h2 className="mt-1.5 font-serif text-[28px] tracking-[-0.035em]">Browse</h2>')
+          s = s.replace('<h2 id="general-topics" className="font-serif text-[28px] tracking-[-0.035em]">General Topics</h2>', '<div><p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary">Kurukoo</p><h2 id="general-topics" className="font-serif text-[28px] leading-none tracking-[-0.035em]">General</h2></div>')
+          s = s.replace('border-dotted border-border bg-elevated/15 flex', 'border-dotted border-border bg-elevated/15 flex')
+          topics.write_text(s)
+
+          public_context = root / 'src/components/public-kurukoo-context.tsx'
+          s = public_context.read_text()
+          s = s.replace('<section className="mt-3 px-1" aria-label="Community statistics">', '<section className="mt-3 px-1" aria-label="Community statistics">')
+          s = s.replace('return <aside aria-label="Kurukoo public context rail"', 'return <aside aria-label="Public context rail"')
+          public_context.write_text(s)
+
+          for path in root.glob('src/**/*'):
+            if not path.is_file() or path.suffix not in {'.tsx', '.ts'}:
+              continue
+            text = path.read_text()
+            if '"/desk"' in text:
+              text = text.replace('"/desk"', '"/you"')
+              path.write_text(text)
+
+          app_shell = root / 'src/components/app-shell-contextual.tsx'
+          if app_shell.exists():
+            text = app_shell.read_text()
+            text = text.replace('Go to Kurukoo home', 'Go to Kurukoo For You').replace('title="Kurukoo home"', 'title="Kurukoo For You"')
+            app_shell.write_text(text)
+
+          desk = root / 'src/routes/desk.tsx'
+          if desk.exists():
+            desk.unlink()
+          you = root / 'src/routes/you.tsx'
+          you.write_text('''import { createFileRoute } from "@tanstack/react-router";\nimport { HomePage } from "./index";\n\nexport const Route = createFileRoute("/you")({\n  head: () => ({\n    meta: [\n      { title: "For You — Kurukoo" },\n      { name: "description", content: "Your personal view for getting useful things done with Kurukoo." },\n    ],\n  }),\n  component: HomePage,\n});\n''')
+          PY
+
+      - name: Rebuild route tree
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Commit normalized shell
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          git diff --cached --quiet && exit 0
+          git commit -m "Normalize Kurukoo shell routing [shell-normalized]"
+          git push
