@@ -1,4 +1,4 @@
-import { Tool, Loader2, Check, Shield, Phone, Mail } from "lucide-react";
+import { BriefcaseBusiness, Loader2, Check, Shield, Phone, Mail } from "lucide-react";
 import { useState } from "react";
 import { Panel, Rows } from "@/components/kurukoo/ui";
 import { requestArtistVerification, isKurukooApiConfigured } from "@/lib/kurukoo-api";
@@ -36,7 +36,7 @@ export function ArtistBookingCard() {
     <Panel className="overflow-hidden p-0">
       <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
         <div className="flex items-center gap-2">
-          <Tool className="size-4 text-primary" />
+          <BriefcaseBusiness className="size-4 text-primary" />
           <span className="text-[12.5px] font-medium">Artist booking</span>
           <Shield className="size-3.5 text-muted-foreground" title="Verified artist bookings with escrow protection" />
         </div>
