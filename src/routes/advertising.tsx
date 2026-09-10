@@ -3,35 +3,19 @@ import { ArrowUpRight, Megaphone } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
-import { actionClass } from "@/components/kurukoo/primitives";
-import { AdSlot, Panel, SectionHeader, Tabs } from "@/components/kurukoo/ui";
+import { Action, actionClass } from "@/components/kurukoo/primitives";
+import { AdSlot, Badge, Panel, Rows, SectionHeader, StatTile, Tabs } from "@/components/kurukoo/ui";
+import { campaigns } from "@/lib/kurukoo-demo";
 
-export const Route = createFileRoute("/advertising")({
-  head: () => ({ meta: [
-    { title: "Advertising — Kurukoo" },
-    { name: "description", content: "Promote a relevant service, offer or idea through clearly labelled Kurukoo discovery." },
-  ] }),
-  component: AdvertisingPage,
-});
-
-const tabs = ["Start", "Placements", "Billing"] as const;
+export const Route = createFileRoute("/advertising")({ head: () => ({ meta: [{ title: "Advertising — Kurukoo" }, { name: "description", content: "Create clearly labelled sponsored discovery across Kurukoo and understand campaign performance." }] }), component: AdvertisingPage });
+const tabs = ["Campaigns", "Create", "Placements", "Billing"] as const;
 
 function AdvertisingPage() {
   const [tab, setTab] = useState<string>(tabs[0]);
-  return <>
-    <PageHeader title="Advertising" subtitle="Put your service, offer or idea in front of people when it is relevant to what they are doing." />
-    <Tabs items={tabs} value={tab} onChange={setTab} />
-
-    {tab === "Start" ? <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
-      <Panel className="p-5">
-        <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Megaphone className="size-4.5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Create a promotion</p><h2 className="mt-1.5 font-serif text-[29px] leading-tight tracking-[-0.035em]">Tell Kurukoo what you want to promote.</h2><p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-muted-foreground">Kurukoo can help shape the goal, audience, creative and placement. Publishing, eligibility and billing only happen when the relevant advertising service is available.</p></div></div>
-        <div className="mt-5 flex flex-wrap gap-2"><AskKurukoo prompt="Help me create a Kurukoo advertising campaign for my service or offer." /><Link to="/chat" search={{ query: "Help me create a Kurukoo advertising campaign for my service or offer." } as never} className={actionClass()}>Start in chat <ArrowUpRight className="ml-1 size-3.5" /></Link></div>
-      </Panel>
-      <Panel className="p-5"><SectionHeader title="Where it can appear" subtitle="Sponsored content stays clearly labelled." /><div className="mt-3 space-y-2">{["Explore", "Search", "Topics", "Daily Picks", "Creator discovery"].map((placement) => <div key={placement} className="flex items-center justify-between rounded-xl bg-elevated px-3 py-3"><span className="text-[12.5px] font-medium">{placement}</span><span className="text-[10px] text-muted-foreground">Sponsored</span></div>)}</div></Panel>
-    </div> : null}
-
-    {tab === "Placements" ? <div className="mt-5 space-y-4"><SectionHeader title="Sponsored discovery" subtitle="See how paid placement is separated from organic recommendations." /><div className="grid gap-3 md:grid-cols-2">{["Explore feed", "Search results", "Topic feed", "Daily Picks", "Creator discovery"].map((placement) => <AdSlot key={placement} placement={placement} headline="Sponsored discovery" body="A paid placement may appear here when an eligible campaign is available." advertiser="" />)}</div></div> : null}
-
-    {tab === "Billing" ? <Panel className="mt-5 p-5"><SectionHeader title="Advertising billing" subtitle="Payment methods, spend limits and campaign charges appear here when the advertising billing service is connected." /><div className="mt-4 flex flex-wrap gap-2"><AskKurukoo prompt="Tell me what I need to set up advertising billing on Kurukoo." /><Link to="/wallet" className={actionClass()}>Open Wallet <ArrowUpRight className="ml-1 size-3.5" /></Link></div></Panel> : null}
+  return <><PageHeader title="Advertising" subtitle="Reach people when your service, offer or idea is relevant to what they are doing." /><Tabs items={tabs} value={tab} onChange={setTab} />
+    {tab === "Campaigns" ? <div className="mt-4 space-y-4"><div className="grid gap-3 sm:grid-cols-3"><StatTile label="Spend (30 days)" value="£170.10" note="Example workspace data" /><StatTile label="Impressions" value="82,084" note="Example workspace data" /><StatTile label="Conversions" value="125" note="Example workspace data" /></div><Rows>{campaigns.map((c) => <li key={c.id} className="px-4 py-4"><div className="flex items-center justify-between gap-3"><p className="text-[15.5px] font-medium">{c.name}</p><Badge tone={c.status === "active" ? "success" : "quiet"}>{c.status} · Example</Badge></div><p className="mt-1 text-[13px] text-muted-foreground">{c.budget} · {c.spend} spent · {c.placement}</p><p className="mt-1 text-[13px] text-muted-foreground">{c.impressions} impressions · {c.clicks} clicks · {c.conversions} conversions</p><div className="mt-3 flex gap-2"><Action onClick={() => undefined}>{c.status === "active" ? "Pause" : "Resume"}</Action><Action onClick={() => undefined}>Edit</Action></div></li>)}</Rows><div className="rounded-xl border border-dashed border-border px-4 py-3 text-[11.5px] text-muted-foreground">Example campaign data is shown to demonstrate the complete OS surface. Live campaign delivery and measurement remain separate.</div></div> : null}
+    {tab === "Create" ? <Panel className="mt-4 p-5"><div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Megaphone className="size-4.5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Create a promotion</p><h2 className="mt-1.5 font-serif text-[28px] leading-tight">Tell Kurukoo what you want to promote.</h2><p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">Kurukoo can help shape the goal, audience, creative and placement before an eligible campaign is published.</p></div></div><div className="mt-5 flex flex-wrap gap-2"><AskKurukoo prompt="Help me create a Kurukoo advertising campaign for my service or offer." /><Link to="/chat" search={{ query: "Help me create a Kurukoo advertising campaign for my service or offer." } as never} className={actionClass()}>Start in chat <ArrowUpRight className="ml-1 size-3.5" /></Link></div><div className="mt-5 grid gap-2 sm:grid-cols-2">{[["Goal","Requests, follows or visits"],["Audience","Topic, location and intent"],["Creative","Headline, copy and image"],["Placement","Explore, Daily Picks, search, topics and creator discovery"],["Budget","Daily budget and schedule"]].map(([title,body]) => <div key={title} className="rounded-xl bg-elevated px-3 py-3"><p className="text-[12.5px] font-medium">{title}</p><p className="mt-1 text-[11.5px] text-muted-foreground">{body}</p></div>)}</div></Panel> : null}
+    {tab === "Placements" ? <div className="mt-4 space-y-3"><SectionHeader title="Sponsored discovery" subtitle="Sponsored content is always distinct from organic recommendations." />{["Explore feed", "Daily Picks", "Search results", "Topic feed", "Creator discovery"].map((p) => <AdSlot key={p} placement={p} headline="Sponsored discovery" body="A relevant service, offer or idea can appear here when an eligible campaign exists." advertiser="Example advertiser" />)}</div> : null}
+    {tab === "Billing" ? <Panel className="mt-4 p-5"><SectionHeader title="Advertising billing" subtitle="Payment methods, invoices, spend limits and campaign charges appear here when connected." /><div className="mt-4 flex flex-wrap gap-2"><Link to="/wallet" className={actionClass()}>Open Wallet <ArrowUpRight className="ml-1 size-3.5" /></Link><AskKurukoo prompt="Help me understand what I need to set up advertising billing on Kurukoo." /></div></Panel> : null}
   </>;
 }
