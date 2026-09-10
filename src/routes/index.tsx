@@ -5,6 +5,10 @@ import { Composer } from "@/components/kurukoo/composer";
 import { AIProviderDirectory } from "@/components/kurukoo/ai-provider-directory";
 import { HomeForYou } from "@/components/kurukoo/home-for-you";
 import { HomePromotionCarousel } from "@/components/kurukoo/home-promotion-carousel";
+import { DailyPicksStrip } from "@/components/kurukoo/daily-picks";
+import { QuickRepliesPanel } from "@/components/kurukoo/quick-replies";
+import { SurveyPromptCard } from "@/components/kurukoo/survey-prompt";
+import { ArtistBookingCard } from "@/components/kurukoo/artist-booking";
 import { Panel, ContextIconTile } from "@/components/kurukoo/ui";
 import { PulseControl } from "@/components/kurukoo/pulse-control";
 import { fetchAuthenticatedAd, fetchProactiveFeed, type AuthenticatedAd, type ProactiveOpportunity } from "@/lib/kurukoo-api";
@@ -42,6 +46,14 @@ export function HomePage() {
     {deskAd ? <SponsoredDeskCard campaign={deskAd} /> : null}
 
     <HomeForYou />
+
+    {/* Authenticated dashboard widgets for the new backend endpoints.
+        DailyPicksStrip is shown on both shells (public + auth). The other three
+        are auth-only (they call /api/orphan-wire-back endpoints that require auth). */}
+    <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+      <div className="space-y-4"><DailyPicksStrip /><QuickRepliesPanel /></div>
+      <div className="space-y-4"><SurveyPromptCard /><ArtistBookingCard /></div>
+    </div>
 
     <div className="grid min-w-0 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,.65fr)_minmax(0,.9fr)_minmax(0,1.08fr)]">
       <Panel className="overflow-hidden p-0"><CardHeader title="What needs your attention" count={attention.length} />{attention.length ? <div className="divide-y divide-border/70">{attention.map((item) => <ActiveHomeRequest key={item.id} title={item.title} detail={item.detail} timing={item.updated} needsYou />)}</div> : <div className="px-4 py-5 text-[12px] text-muted-foreground">Nothing needs your attention.</div>}<div className="border-t border-border/60 px-4 py-3"><SectionAction to="/activity">Open Activity</SectionAction></div></Panel>

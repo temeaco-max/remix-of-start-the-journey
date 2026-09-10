@@ -1,3 +1,23 @@
+// ── Shell ownership ─────────────────────────────────────────────────────
+//
+// PUBLIC OS SHELL (`PublicKurukooShell`, `PublicHome`):
+//   - Used on the unauthenticated "/" route and all publicPrefixes entries.
+//   - Renders marketing UI from `frontend/src/components/public-kurukoo-home.tsx`.
+//   - No Kurukoo store / no authenticated API calls.
+//   - Entry points: composer, explore, nearby, channels, opportunities.
+//
+// AUTHENTICATED OS SHELL (`AppShell`, HomePage in `routes/index.tsx`):
+//   - Used on the authenticated "/" route for logged-in Kurukoo users.
+//   - Renders the personal dashboard (`HomeForYou` + authenticated widgets).
+//   - Uses `useKurukoo()` from `@/lib/kurukoo-store` and calls authenticated APIs.
+//   - Widgets wired here: DailyPicksStrip (both shells), QuickRepliesPanel,
+//     SurveyPromptCard, ArtistBookingCard (auth-only — they call the
+//     `/api/orphan-wire-back/*` endpoints that require auth).
+//
+// Component ownership:
+//   - `frontend/src/components/public-kurukoo*.tsx` + `public-kurukoo-home.tsx` → PUBLIC shell.
+//   - `frontend/src/components/app-shell*.tsx` + `frontend/src/components/kurukoo/` (minus the public list above) → AUTHENTICATED shell.
+// ─────────────────────────────────────────────────────────────────────────────
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, useRouter, useRouterState, HeadContent, Scripts } from "@tanstack/react-router";
 import { Compass, Home, MapPin, MoreHorizontal, Sparkles } from "lucide-react";

@@ -498,3 +498,174 @@ export async function fetchConnectedResources() {
 export async function revokeConnectedResource(id: string) {
   return readJson<{ success: boolean; status?: string }>(`/api/connect/resources/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
+
+/* ---- Canonical page content (served by the backend /api/content endpoints) ---- */
+
+export type ChannelStatus = {
+  channelStatuses: Record<string, string | { state?: string; note?: string } | null>;
+  integrationReadiness: Array<{ id: string; name?: string; summary?: string; category?: string; uiState?: string }>;
+};
+
+export async function fetchChannelReadiness() {
+  return readJson<ChannelStatus>("/api/content/channels");
+}
+
+export type ProviderProfileContent = {
+  provider: {
+    name: string;
+    initials: string;
+    location: string;
+    verified: boolean;
+    trustScore: number;
+    skills: Array<{ skill: string; rating: number; jobsCompleted: number; hourlyRate: number }>;
+  };
+};
+
+export async function fetchProviderProfile(slug: string) {
+  return readJson<ProviderProfileContent>(`/api/content/providers/${encodeURIComponent(slug)}`);
+}
+
+export type ResourceGuide = {
+  slug: string;
+  title: string;
+  category: string;
+  body?: string;
+  excerpt: string;
+  updated_at?: string | null;
+};
+
+export async function fetchResourcesList() {
+  return readJson<{ resources?: ResourceGuide[] }>("/api/content/resources");
+}
+
+export async function fetchResource(slug: string) {
+  return readJson<ResourceGuide>(`/api/content/resources/${encodeURIComponent(slug)}`);
+}
+
+/* ── Auth-GATED orphan wire back endpoints ───────────────────────────────────
+//
+// The following endpoints (`/api/orphan-wire-back/*`, `/api/quick-replies`) are
+// available only to authenticated Kurukoo users (see `src/routes/orphanWireBackRoutes.ts`
+// in the backend). They are rendered from the AUTHENTICATED OS shell dashboard
+// (`HomePage` in `routes/index.tsx`). The PUBLIC OS shell (`PublicHome` in
+// `public-kurukoo-home.tsx`) renders no auth-gated widgets except DailyPicksStrip
+// when the API is configured.
+//
+// Public widgets:  DailyPicksStrip
+// Auth widgets:    QuickRepliesPanel, SurveyPromptCard, ArtistBookingCard
+// ───────────────────────────────────────────────────────────────────────────── */
+
+export type DailyPick = {
+  id: string;
+  title: string;
+  description: string;
+  image?: string | null;
+  ctaText: string;
+  ctaLink: string;
+  category: string;
+  tags?: string[];
+  created_at?: string;
+};
+
+export type QuickReply = {
+  id: string;
+  label: string;
+  action: string;
+  icon?: string | null;
+  order: number;
+};
+
+export type SurveyPrompt = {
+  id: string;
+  question: string;
+  topic: string;
+  answerTypes: string[];
+};
+
+export type SurveyResponse = {
+  id: string;
+  question: string;
+  answer: string;
+  topic: string;
+  submitted_at: string;
+};
+
+export type ArtistBooking = {
+  id: string;
+  skill: string;
+  providerPhone: string;
+  providerName: string;
+  managerName: string;
+  managerContact: string;
+  status: 'pending_verification' | 'verification_pending' | 'verified' | 'booking_pending' | 'booked' | 'confirmed' | 'active' | 'completed' | 'refunded';
+  escrowAmount?: number | null;
+  currency?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  verification?: {
+    requested_at?: string;
+    managerName: string;
+    managerContact: string;
+  } | null;
+};
+
+export async function fetchDailyPick(): Promise<DailyPick | null> {
+  const payload = await readJson<{ success: boolean; pick?: DailyPick | null }>('/api/orphan-wire-back/daily-picks');
+  return payload.success && payload.pick ? payload.pick : null;
+}
+
+export async function fetchQuickReplies(): Promise<QuickReply[]> {
+  const payload = await readJson<{ success: boolean; quickReplies?: QuickReply[] }>('/api/orphan-wire-back/quick-replies');
+  return payload.success && Array.isArray(payload.quickReplies) ? payload.quickReplies : [];
+}
+
+export async function fetchSurveyPrompt(): Promise<SurveyPrompt | null> {
+  const payload = await readJson<{ success: boolean; prompt?: SurveyPrompt | null }>('/api/orphan-wire-back/survey-prompt');
+  return payload.success && payload.prompt ? payload.prompt : null;
+}
+
+export async function submitSurveyResponse(question: string, answer: string): Promise<SurveyResponse | null> {
+  const payload = await readJson<{ success: boolean; result?: SurveyResponse }>('/api/orphan-wire-back/survey-response', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, answer }),
+  });
+  return payload.success && payload.result ? payload.result : null;
+}
+
+export async function requestArtistVerification(skill: string, managerName: string, managerContact: string): Promise<{ success: boolean; message?: string }> {
+  const payload = await readJson<{ success: boolean; message?: string }>('/api/orphan-wire-back/artist/request-verification', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ skill, managerName, managerContact }),
+  });
+  return payload;
+}
+
+export async function bookArtist(skill: string, providerPhone: string, requirements?: Record<string, unknown>): Promise<ArtistBooking | null> {
+  const payload = await readJson<{ success: boolean; booking?: ArtistBooking }>('/api/orphan-wire-back/artist/book', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ skill, providerPhone, requirements }),
+  });
+  return payload.success && payload.booking ? payload.booking : null;
+}
+
+export async function confirmArtistBooking(bookingId: string): Promise<ArtistBooking | null> {
+  const payload = await readJson<{ success: boolean; booking?: ArtistBooking }>('/api/orphan-wire-back/artist/confirm-booking', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingId }),
+  });
+  return payload.success && payload.booking ? payload.booking : null;
+}
+
+export async function releaseArtistEscrow(bookingId: string): Promise<{ success: boolean; message?: string }> {
+  const payload = await readJson<{ success: boolean; message?: string }>('/api/orphan-wire-back/artist/release-escrow', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingId }),
+  });
+  return payload;
+}
+
