@@ -8,7 +8,7 @@ import { processExpiredCheckIns } from './safetyService.js';
 import { purgeExpiredData } from '../database.js';
 import { find_worker } from './find-worker.js';
 import { sendFcmPush } from './pushNotifications.js';
-import { drainFcmQueue } from './pushNotificationsCanonical.js';
+import { drainFcmQueue } from './pushNotifications.js';
 import { getEconomicRequest, transitionEconomicRequest } from './skillFlows.js';
 import { ensureTrustScoreSchema, recalculateAllTrustScores } from './trustScore.js';
 import { releaseExpiredDurableJobLeases } from './durableJobQueue.js';

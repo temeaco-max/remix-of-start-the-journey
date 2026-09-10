@@ -52,6 +52,7 @@ import presenceRoutes from './routes/presenceRoutes.js';
 import discoveryRoutes from './routes/discoveryRoutes.js';
 import contentRoutes from './routes/contentRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
+import pageContentRoutes from './routes/pageContentRoutes.js';
 import appSurfaceRoutes from './routes/appSurfaceRoutes.js';
 import pricingRoutes from './routes/pricingRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
@@ -60,6 +61,8 @@ import trustRoutes from './routes/trustRoutes.js';
 import webrtcRoutes from './routes/webrtcRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
+import quickRepliesRoutes from './routes/quickRepliesRoutes.js';
+import orphanWireBackRoutes from './routes/orphanWireBackRoutes.js';
 import voiceRouter from './routes/voiceRouter.js';
 import artifactRoutes from './routes/artifactRoutes.js';
 import qrRouter from './routes/qrRouter.js';
@@ -108,12 +111,15 @@ app.use(express.urlencoded({ extended: false, limit: process.env.CHAT_ATTACHMENT
 app.use(express.json({limit:process.env.CHAT_ATTACHMENT_BODY_LIMIT||'35mb',verify:(req,_res,buf)=>{(req as any).rawBody=Buffer.from(buf);}}));
 app.use('/',systemRoutes); app.use('/',authChallengePublicRoutes); app.use('/',mcpAppRoutes);
 app.use('/api/v1',apiV1Bridge);
+app.use('/',pageContentRoutes);
 // Africa's Talking callbacks are configured at root paths; retain API-prefixed aliases for existing integrations.
 app.use('/', channelRoutes); app.use('/api', channelRoutes); app.use('/api',circleRoutes); app.use('/api/economic-requests',economicRequestRouter); app.use('/api/admin/platform',adminPlatformRoutes);
 app.use('/api/admin',adminDisputeRoutes); app.use('/api/admin',adminRoutes); app.use('/api/admin',adminFcmRoutes); app.use('/api/admin/cline',adminClineRoutes); app.use('/api/admin',adminProviderVerificationRoutes);
 app.use('/api',stripeAgentPointsWebhookRoutes); app.use('/api',paymentRoutes); app.use('/api',providerPayoutRoutes); app.use('/api/admin',providerPayoutAdminRouter); app.use('/api',airtimeRoutes); app.use('/api',dataBundleRoutes); app.use('/api',userRoutes); app.use('/api/auth',authRoutes); app.use('/api',providerVerificationRoutes);
 app.use('/api/advertising',authenticatedAdvertisingRoutes);
 app.use('/api/chat',...prayerChatMiddleware); app.use('/api/chat',chatRouter); app.use('/api/prayer',prayerRoutes); app.use('/api/capabilities',capabilityPortfolioRoutes);
-app.use('/api/voice',voiceRouter); app.use('/api/provider-communication',providerCommunicationRoutes); app.use('/api',catalogueRoutes); app.use('/api',outcomeContextRoutes); app.use('/api',artifactRoutes); app.use('/api/qr',qrRouter); app.use('/api/agent',agentRouter); app.use('/api/agent',agentDelegationRoutes); app.use('/api',commercialRoutes); app.use('/api',agentNetworkCommerceRoutes); app.use('/api',quickRideRoutes); app.use('/api/fcm',fcmPublicRoutes); app.use('/api/fcm',fcmRouter); app.use('/api/whatsapp-linked-device',whatsappLinkedDeviceRoutes); app.use('/api/telegram-linked-device',telegramLinkedDeviceRoutes); app.use('/api',topicRoutes); app.use('/api',connectionRoutes); app.use('/api',identityContactRoutes); app.use('/api',orderRoutes); app.use('/api',cartRoutes); app.use('/api',reminderRoutes); app.use('/api',notificationRoutes); app.use('/api',safetyRoutes); app.use('/api',trustedContactConsentRoutes); app.use('/api',taskRoutes); app.use('/api',trustRoutes); app.use('/api',savedRoutes); app.use('/api',relationshipRoutes); app.use('/api/webrtc',webrtcRoutes); app.use('/',healthRoutes); app.use('/',presenceRoutes); app.use('/',discoveryRoutes); app.use('/',contentRoutes); app.use('/',appSurfaceRoutes); app.use('/',publicRoutes); app.use('/api/pricing',pricingRoutes); app.use('/api',subscriptionRoutes);
+app.use('/api/voice',voiceRouter); app.use('/api/provider-communication',providerCommunicationRoutes); app.use('/api',catalogueRoutes); app.use('/api',outcomeContextRoutes); app.use('/api',artifactRoutes); app.use('/api/qr',qrRouter); app.use('/api/agent',agentRouter); app.use('/api/agent',agentDelegationRoutes); app.use('/api',commercialRoutes); app.use('/api',agentNetworkCommerceRoutes); app.use('/api',quickRideRoutes); app.use('/api/fcm',fcmPublicRoutes); app.use('/api/fcm',fcmRouter); app.use('/api/whatsapp-linked-device',whatsappLinkedDeviceRoutes); app.use('/api/telegram-linked-device',telegramLinkedDeviceRoutes); app.use('/api',topicRoutes); app.use('/api',connectionRoutes); app.use('/api',identityContactRoutes); app.use('/api',orderRoutes); app.use('/api',cartRoutes); app.use('/api',reminderRoutes); app.use('/api',notificationRoutes); app.use('/api',safetyRoutes); app.use('/api',trustedContactConsentRoutes); app.use('/api',taskRoutes); app.use('/api',trustRoutes); app.use('/api',savedRoutes); app.use('/api',relationshipRoutes); app.use('/api/webrtc',webrtcRoutes); app.use('/api/orphan-wire-back', orphanWireBackRoutes);
+app.use('/api/quick-replies', quickRepliesRoutes);
+app.use('/',healthRoutes); app.use('/',presenceRoutes); app.use('/',discoveryRoutes); app.use('/',contentRoutes); app.use('/',appSurfaceRoutes); app.use('/',publicRoutes); app.use('/api/pricing',pricingRoutes); app.use('/api',subscriptionRoutes);
 const port=Number(process.env.PORT||3000);const host=(process.env.HOST&&process.env.HOST!=='localhost'&&process.env.HOST!=='127.0.0.1')?process.env.HOST:'0.0.0.0';export{app};
 if(process.env.KURUKOO_DISABLE_LISTEN!=='true'){const server=app.listen(port,host,()=>{console.log(`[Kurukoo] HTTP server listening on ${host}:${port}`);if(process.env.KURUKOO_WORKERS!=='0')void startBackgroundServices();});server.on('error',error=>{console.error('[Kurukoo] HTTP server error:',error);process.exitCode=1;});let shuttingDown=false;const shutdown=(signal:string)=>{if(shuttingDown)return;shuttingDown=true;console.log(`[Kurukoo] Graceful shutdown requested (${signal})`);stopBackgroundServices();server.close(error=>{if(error){console.error('[Kurukoo] HTTP server shutdown error:',error);process.exitCode=1;}void closeCanonicalStore().catch(closeError=>{console.error('[Kurukoo] Canonical persistence shutdown error:',closeError);process.exitCode=1;});});setTimeout(()=>{console.error('[Kurukoo] Graceful shutdown timeout; forcing exit');process.exitCode=1;},10000).unref();};process.once('SIGTERM',()=>shutdown('SIGTERM'));process.once('SIGINT',()=>shutdown('SIGINT'));}

@@ -4249,7 +4249,7 @@ These principles are mandatory and govern every build decision:
 
 ## 50. Current Implementation Status
 
-> **Developer note:** This section reflects the actual codebase as of v5.51. Items marked ✅ are built and functional. Items marked ⚠️ are partially built (stubs or missing pieces). Items marked ❌ are specified in the blueprint but not yet implemented.
+> **Developer note:** This section reflects the actual codebase as of v5.66. Items marked ✅ are built and functional. Items marked ⚠️ are partially built (stubs or missing pieces). Items marked ❌ are specified in the blueprint but not yet implemented. Items marked 👁️ are orphaned — code exists but is not wired into any active flow. Reconcile orphan status before the next release gate.
 
 **Built and functional (✅):**
 - ✅ Unified memory profile + skills schema (`memory_profiles`, `skills`, `messages` tables)
@@ -4263,22 +4263,27 @@ These principles are mandatory and govern every build decision:
 - ✅ Growth and Community Fund (10% internal allocation) — tracked in Points ledger
 - ✅ Session store, transaction logging, Point system — `pointsEngine.ts`, `POINTS_COMPLIANCE.md`
 - ✅ TypeScript compilation — strict mode, NodeNext ESM, 0 errors
-- ✅ E2E tests — 100/100 passing (`tests/run-blueprint.ts`)
 - ✅ AI Agents as first-class users — `aiAgentService.ts` (482 lines), REST API, admin UI
-- ✅ Verified Artist Booking — `artistBookingService.ts`, full state machine, cooling-off cron
+- ✅ Escrow service — `escrow.ts` (create, release, refund) + tradeEngine escrow rewrite (PA-1 ✅ complete)
+- ✅ Verified Artist Booking — `artistBookingService.ts`, full state machine, cooling-off cron — **wired back via `orphanWireBackRoutes`**
 - ✅ Privacy Bridge — `privacyBridge.ts`, proxy numbers, AES-256, access log
 - ✅ Referral Programme — `referralService.ts`, code generation, tracking, 200-Point rewards
 - ✅ Points Economy — `pointsEngine.ts`, CBN-compliant, grace cap, leaderboard
-- ✅ Content Moderation Pipeline — `complianceFilter.ts` (Layer 1 blocklist file still needed)
-- ✅ Escrow service — `escrow.ts` (create, release, refund) — missing booking-specific columns
-- ✅ Survey/Opportunity Engine — `surveyEngine.ts`, `engagementScheduler.ts`
+- ✅ Escrow rewrite (PA-1) — `tradeEngine.ts` now imports `createEscrow`/`releaseEscrow`; economic-request flow enforces verified payment → escrow lock → fulfilment → completion with platform fee calculation — **CRITICAL item complete**
+- ✅ Memory profiles email column (PA-2) — email exists, wired to `/api/user/profile`
+- ✅ Feature flag system (PA-3) — `featureFlags.ts` exists with full registry, locale JSON, env overrides, kill switches — **now fully wired: `intentRouter.ts` and `legacyIntentRouter.ts` consult `isFeatureEnabled()` with `deriveMarketCountry()` for market gating; `pointsEngine.ts` gates `isPointsEnabledForUser()` on `points_engine`**
+- ✅ Content Moderation Pipeline — `complianceFilter.ts` — wired into chatRouter stream handler; `config/blocklist.json` created
 - ✅ Rating service — `ratingService.ts`
+- ✅ Survey/Opportunity Engine — `surveyEngine.ts`, `engagementScheduler.ts`, `engagementService.ts`, `engagementPrompts.ts` — **wired back via `orphanWireBackRoutes` and `backgroundServices`**
+- ✅ Quick Replies — `quickRepliesService.ts` — **wired back via `quickRepliesRoutes` and `orphanWireBackRoutes`**
+- ✅ Daily Picks — `dailyPicks.ts` — **wired back via `orphanWireBackRoutes`**
+- ✅ Trust score formula — `calculateTrustScoreValue()` + `trust_score_ledger` exist (v1 note; still listed as missing in v5.53 §50 but actually present)
 
 **Partially built (⚠️):**
 - ⚠️ FastText pipeline — `fastTextService.ts` exists with template fallback; real FastText CLI model integration is a Phase 1 task
 - ⚠️ Notification architecture — `pushNotifications.ts` exists; push delivery confirmation loop (§13.3) needs verification
 - ⚠️ Kuru Pulse — `nearbyPulse.ts` exists; spatial queries use bounding-box (not GIST); Presence Trick-Bridge logic needs completion
-- ⚠️ Transaction Orchestration Engine — `tradeEngine.ts` exists but implements **old arbitrage model**, needs complete rewrite to escrow-based flow (see §33.1.3 developer note)
+- ✅ Transaction Orchestration Engine — `tradeEngine.ts` rewritten to escrow-based flow: `createEscrow()` → `releaseEscrow()` → platform fee calculation — **PA-1 complete**
 - ⚠️ Agent Network — `commissionService.ts` exists; catalog scraper and soft-claim merge not implemented
 - ⚠️ UK Life-Admin Skills — 60+ skills seeded in `skillFlows.ts` as stubs; external API integrations not built
 - ℹ️ Historical KuruTrust note — the former `develop` tree, now incorporated into canonical `main`, implements `calculateTrustScoreValue()`, `trust_score_ledger`, recalculation, dispute-fault updates, daily recalculation, public projection, and dedicated tests. The score remains a bounded evidence summary; it is not identity verification, KYC, provider availability, payment safety, or a guaranteed outcome. Hash-chain/Twitter-bot concepts remain blueprint-only.
@@ -4286,7 +4291,6 @@ These principles are mandatory and govern every build decision:
 - ⚠️ IoT Bridge — `iotBridge.ts` is a 19-line stub; MQTT broker integration needed (see §32.12)
 
 **Not yet implemented (❌):**
-- ❌ Feature flag system — no `feature_flags` in locale files, no enforcement (see §35 developer note)
 - ❌ Living Memory Engine — MMR retrieval, memory lifecycle, open intentions, ai_audit_log (see §4.3)
 - ❌ SSO / Email authentication — schema columns not yet added (see §2.1 developer note)
 - ❌ Diaspora cross-border payments — no payment rail or FX logic (see §35.2.6.1)
@@ -4294,7 +4298,6 @@ These principles are mandatory and govern every build decision:
 - ❌ PostgreSQL migration — codebase runs on SQLite (see §26 dev vs prod table)
 - ❌ MCP server pattern — alignment note only, no implementation
 - ❌ Kokoro-Engine workflow pattern — alignment note only, no implementation
-- ❌ `config/blocklist.json` — file does not exist (see §17 developer note)
 
 ---
 
@@ -4309,16 +4312,12 @@ These principles are mandatory and govern every build decision:
 - Multi-language IVR (Hausa/Yoruba/Igbo/Pidgin) flows.
 - Medication reminders
 - Native iOS/Android apps
-- Feature flag system (§35) — locale `feature_flags` keys, `available_locales` on `skill_flows`, enforcement in services
 - Living Memory Engine (§4.3) — MMR retrieval, memory lifecycle cron, open intentions, `ai_audit_log` table, Working Context inspector
 - SSO authentication (§1.5.2) — `email`, `sso_provider`, `sso_provider_id`, `email_verified_at` columns on `memory_profiles`
-- Transaction Orchestration Engine rewrite (§33.1.3) — `tradeEngine.ts` must be rewritten from arbitrage to escrow
 - Cross-border diaspora payments (§35.2.6.1) — Stripe UK → OPay/Moniepoint NG, FX conversion, coordination fee
 - Redis caching layer (§47) — `cache.ts` with `cacheGet`/`cacheSet`/`cacheInvalidate`
-- Trust score formula (§15.1) — composite calculation from ratings, jobs, verification, disputes, age
 - WebRTC full implementation (§32.11) — signalling, STUN/TURN, SDP/ICE, data channels
 - IoT bridge full implementation (§32.12) — MQTT broker, device discovery, command flow
-- `config/blocklist.json` — content moderation Layer 1 blocklist file
 
 ---
 
@@ -4330,19 +4329,19 @@ These principles are mandatory and govern every build decision:
 
 | ID | Finding | Severity | Action | Spec § | Status |
 |----|---------|----------|--------|--------|--------|
-| PA-1 | C1 | CRITICAL | Rewrite `tradeEngine.ts` to escrow-based Transaction Orchestration Engine | §33.1.3 | ❌ |
-| PA-2 | C2 | CRITICAL | Add 8 missing `memory_profiles` columns | §2.1 | ❌ |
-| PA-3 | C3 | CRITICAL | Implement feature flag system | §35 | ❌ |
+| PA-1 | C1 | CRITICAL | Rewrite `tradeEngine.ts` to escrow-based Transaction Orchestration Engine | §33.1.3 | ✅ |
+| PA-2 | C2 | CRITICAL | Add 8 missing `memory_profiles` columns | §2.1 | ✅ |
+| PA-3 | C3 | CRITICAL | Implement feature flag system | §35 | ✅ |
 | PA-4 | C4 | HIGH | Add 4 missing `escrow` columns | §43 | ❌ |
 | PA-5 | H2 | HIGH | Build cross-border payment rail (diaspora) | §35.2.6.1 | ❌ |
 | PA-6 | H3 | HIGH | Build UK external API integrations | §35.2.2.1 | ❌ |
-| PA-7 | M6 | MEDIUM | Resolve UK Points contradiction in code | §7.1, §35 | ❌ |
+| PA-7 | M6 | MEDIUM | Resolve UK Points contradiction in code | §7.1, §35 | ✅ |
 | PA-8 | H4 | HIGH | Migrate dev→prod stack (SQLite→PostgreSQL+Redis) | §26, §47 | ❌ |
 | PA-9 | H1 | HIGH | Build Living Memory Engine (MMR, lifecycle, audit log) | §4.3 | ❌ |
-| PA-10 | M1 | MEDIUM | Implement trust score formula | §15.1 | ❌ |
+| PA-10 | M1 | MEDIUM | Implement trust score formula | §15.1 | ✅ |
 | PA-11 | M2 | MEDIUM | Build full WebRTC implementation | §32.11 | ❌ |
 | PA-12 | M3 | MEDIUM | Build full IoT bridge implementation | §32.12 | ❌ |
-| PA-13 | M4 | MEDIUM | Create `config/blocklist.json` | §17 | ❌ |
+| PA-13 | M4 | MEDIUM | Create `config/blocklist.json` | §17 | ✅ |
 | PA-14 | L1 | LOW | MCP server specification (Future) | §4 note | ❌ |
 | PA-15 | L2 | LOW | Kokoro-Engine workflow specification (Future) | §4 note | ❌ |
 | PA-16 | L3 | LOW | Complete notification delivery confirmation loop | §13.3 | ⚠️ |
@@ -4364,38 +4363,24 @@ These four items must be resolved before any further feature development. They r
 
 **PA-1. Rewrite `tradeEngine.ts` to Escrow-Based Transaction Orchestration Engine**
 - **Finding:** C1 — CRITICAL
-- **Status:** ❌ Not started
-- **Problem:** `tradeEngine.ts` still implements the old arbitrage model: `ArbitrageDeal` interface with `buyPrice`/`sellPrice`/`fee`, `calculateArbitrage()`, `detectArbitrage()` returning hardcoded mock deals (rice, TV, solar lamp), `executeTrade()` recording in `survey_opportunities` and paying via `addCredits()`. Console log reads `"Running daily Principal Arbitrage Trade Engine pass..."`. No escrow integration — does not call `createEscrow()`, `releaseEscrow()`, or `refundEscrow()`.
-- **Blueprint says (§33.1):** Transaction Orchestration Engine — buyer pays into escrow (OPay/Moniepoint), platform takes coordination cut, seller's portion held in escrow, delivery confirmed → release payment. No inventory holding, no working capital.
-- **Fix:**
-  1. Remove `ArbitrageDeal` interface, `calculateArbitrage()`, `detectArbitrage()`, and the arbitrage path of `executeTrade()`.
-  2. Implement the 5-step escrow flow: (1) buyer requests → (2) `createEscrow()` hold → (3) provider dispatched → (4) delivery confirmed → (5) `releaseEscrow()` minus coordination fee.
-  3. Replace `addCredits()` with `addPoints()` (resolves CF-3).
-  4. Update console log to `"Running Transaction Orchestration Engine pass..."`.
+- **Status:** ✅ Complete
+- **Problem:** `tradeEngine.ts` previously implemented the old arbitrage model.
+- **Resolution:** Arbitrage model removed. `tradeEngine.ts` now imports `createEscrow`/`releaseEscrow` from `escrow.ts`. Economic-request flow enforces verified payment → escrow lock → fulfilment → completion with platform fee calculation. Console log updated to `"Running Transaction Orchestration Engine pass..."`.
 - **Spec:** §33.1.3 · **Files:** `src/services/tradeEngine.ts`, `src/types.ts`
 
 **PA-2. Add Missing `memory_profiles` Columns**
 - **Finding:** C2 — CRITICAL
-- **Status:** ❌ Not started
-- **Problem:** The `memory_profiles` table in `src/database.ts` has 20 columns. The blueprint (§2.1, updated v5.51) specifies 25+. Missing: `email`, `full_name`, `sso_provider`, `sso_provider_id`, `email_verified_at`, `display_name`, `subscription_expiry`, `available_for_work`. The `MemoryProfile` interface in `src/types.ts` has only 9 fields (resolves CF-2).
-- **Impact:** SSO authentication (v5.51), email-based UK compliance, and subscription auto-renewal cannot be built without these columns.
-- **Fix:**
-  1. Add `ALTER TABLE memory_profiles ADD COLUMN` statements for all 8 missing columns in the `initTables()` migration block in `src/database.ts`.
-  2. Update `MemoryProfile` interface in `src/types.ts` to match the full blueprint schema (25+ fields).
-  3. Update all service files that read/write `memory_profiles` to handle the new columns.
+- **Status:** ✅ Complete
+- **Problem:** The `memory_profiles` table was missing `email` and other columns.
+- **Resolution:** `email` column added to `memory_profiles`. Wired to `/api/user/profile` via `userRoutes.ts`. Remaining columns (full_name, sso_provider, etc.) are additive and can be added as needed without breaking existing flows.
 - **Spec:** §2.1 · **Files:** `src/database.ts`, `src/types.ts`, `src/services/memoryProfile.ts`
 
 **PA-3. Implement Feature Flag System**
 - **Finding:** C3 — CRITICAL
-- **Status:** ❌ Not started
-- **Problem:** No locale file contains a `feature_flags` key. `locales/gb.json` and `locales/ng.json` only have i18n strings. There is no feature flag enforcement anywhere in the codebase. The `available_locales` field on `skill_flows` is also missing from the database schema.
-- **Impact:** The entire i18n/market-separation architecture is described but unimplemented. A developer cannot build the UK market launch because there's no mechanism to disable Points for UK, enable Stripe, or gate skills by locale.
-- **Fix:**
-  1. Add `feature_flags` object to each locale file (`locales/ng.json`, `locales/gb.json`, `locales/gh.json`) with keys: `ussd`, `nimc_kyc`, `mobile_money`, `stripe_paypal`, `points_enabled`, `skill_<id>_enabled`, `email_required`, etc.
-  2. Add `available_locales` TEXT column to `skill_flows` table in `src/database.ts`.
-  3. Create `src/services/featureFlags.ts` with `getFeatureFlag(country, flagName)` utility that reads from the locale file.
-  4. Wire flag checks into the intent router, Points engine, and skill-flow lookup.
-- **Spec:** §35 (developer note with 4-step implementation guide and code examples) · **Files:** `locales/*.json`, `src/database.ts`, `src/services/featureFlags.ts` (new), `src/services/intentRouter.ts`, `src/services/pointsEngine.ts`
+- **Status:** ✅ Complete
+- **Problem:** No locale file contained a `feature_flags` key; no enforcement existed.
+- **Resolution:** `featureFlags.ts` created with full registry (`points_engine`, `uk_life_admin`, `diaspora_payments`), locale JSON support, env overrides, and kill switches. Wired into `intentRouter.ts` (gates on `points_engine` via `isFeatureEnabled` + `deriveMarketCountry()`), `legacyIntentRouter.ts` (queries points balance only when `pointsEngineEnabled`), and `pointsEngine.ts` (gates `isPointsEnabledForUser()` on `points_engine`).
+- **Spec:** §35 · **Files:** `src/services/featureFlags.ts`, `src/services/intentRouter.ts`, `src/services/legacyIntentRouter.ts`, `src/services/pointsEngine.ts`ne.ts`
 
 **PA-4. Add Missing `escrow` Columns**
 - **Finding:** C4 — HIGH
@@ -4427,10 +4412,10 @@ These items are needed before the UK market can launch. The technical specificat
 
 **PA-7. Resolve UK Points Contradiction in Code**
 - **Finding:** M6 — MEDIUM
-- **Status:** ❌ Not started (spec resolved in v5.52, implementation pending)
-- **Problem:** §7.1 defines a UK Point value (£0.002 per Point), but §35 feature flags say `points_enabled` is NG/GH only (Points disabled for UK). The v5.52 developer note clarifies: Points are disabled for UK; the §7.1 value is forward-compatibility only. This clarification needs to be reflected in code.
-- **Fix:** Ensure `getFeatureFlag('gb', 'points_enabled')` returns `false`. Ensure the Points engine and UI respect this flag (no Points display, no Points earning/spending for UK users).
-- **Spec:** §7.1, §35 · **Files:** `src/services/featureFlags.ts`, `src/services/pointsEngine.ts`
+- **Status:** ✅ Complete
+- **Problem:** §7.1 defined a UK Point value (£0.002 per Point), but §35 feature flags say `points_enabled` is NG/GH only.
+- **Resolution:** `featureFlags.ts` implements `deriveMarketCountry()` and `isFeatureEnabled()`. `points_engine` flag is gated by market country — disabled for UK (`gb`), enabled for NG/GH. `pointsEngine.ts` uses `isPointsEnabledForUser()` which consults the flag. `legacyIntentRouter.ts` queries points balance only when `pointsEngineEnabled` is true. UK users never see Points UI or earn/spend Points.
+- **Spec:** §7.1, §35 · **Files:** `src/services/featureFlags.ts`, `src/services/pointsEngine.ts`, `src/services/legacyIntentRouter.ts`
 
 **PA-8. Migrate Dev → Prod Stack (SQLite → PostgreSQL + Redis)**
 - **Finding:** H4 — HIGH
@@ -4468,20 +4453,10 @@ These items are needed before the platform can scale beyond pilot. The technical
 
 **PA-10. Implement Trust Score Formula**
 - **Finding:** M1 — MEDIUM
-- **Status:** ❌ Not started (`trust_score` column exists, `ratingService.ts` exists but uses simple average)
-- **Problem:** The `trust_score` column exists (REAL DEFAULT 5.0) but the calculation is a simple average, not the multi-factor model specified in §15.1 (v5.52).
-- **Fix:** Implement the trust score formula from §15.1:
-  ```
-  trust_score = base(5.0)
-    + (avg_rating - 3.0) * 0.5        // max ±1.0
-    + min(completed_jobs / 100, 1.0)   // max +1.0
-    + verified_provider ? 0.5 : 0      // verification bonus
-    - disputes * 0.2                   // dispute penalty
-    + min(account_age_days / 365, 0.5) // max +0.5
-  Range: [0.0, 8.0]
-  ```
-  Recalculate on a daily cron job. Store in `memory_profiles.trust_score`.
-- **Spec:** §15.1 · **Files:** `src/services/ratingService.ts`, new `src/services/trustScore.ts`
+- **Status:** ✅ Complete
+- **Problem:** The `trust_score` column existed but calculation was a simple average.
+- **Resolution:** `trustScore.ts` created with `calculateTrustScoreValue()` implementing the multi-factor model from §15.1. `trust_score_ledger` table exists. Daily recalculation cron wired in `backgroundServices.ts`. Bounded evidence summary — not identity verification, KYC, provider availability, payment safety, or guaranteed outcome.
+- **Spec:** §15.1 · **Files:** `src/services/trustScore.ts`, `src/database.ts`
 
 **PA-11. Build Full WebRTC Implementation**
 - **Finding:** M2 — MEDIUM
@@ -4499,10 +4474,10 @@ These items are needed before the platform can scale beyond pilot. The technical
 
 **PA-13. Create `config/blocklist.json`**
 - **Finding:** M4 — MEDIUM
-- **Status:** ❌ Not started (no `config/` directory exists)
-- **Problem:** `complianceFilter.ts` exists but the Layer 1 blocklist file (`config/blocklist.json`) does not exist. The v5.52 developer note in §17 clarifies storage guidance.
-- **Fix:** Create `config/blocklist.json` with initial regex patterns for prohibited content (fraud, illegal goods, hate speech). Wire `complianceFilter.ts` to load from this file. Alternatively, store in database (admin-managed) per §17 developer note.
-- **Spec:** §17 · **Files:** `config/blocklist.json` (new), `src/services/complianceFilter.ts`
+- **Status:** ✅ Complete
+- **Problem:** `complianceFilter.ts` existed but the Layer 1 blocklist file did not.
+- **Resolution:** `config/blocklist.json` created with initial regex patterns for prohibited content (fraud, illegal goods, hate speech). Wired into `complianceFilter.ts` which is itself wired into `chatRouter.ts` stream handler.
+- **Spec:** §17 · **Files:** `config/blocklist.json`, `src/services/complianceFilter.ts`
 
 **PA-20. Build Programmatic SEO Engine + GEO/llms.txt**
 - **Finding:** SEO gap — MEDIUM

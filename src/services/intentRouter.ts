@@ -5,8 +5,36 @@ import { assessConversationQuality } from './conversationQualityService.js';
 import { buildConversationTurnContract, buildConversationalSystemDirective } from './conversationTurnContractService.js';
 import { interpretConversationSemantics } from './semanticConversationInterpreter.js';
 import { routeIntent as legacyRouteIntent } from './legacyIntentRouter.js';
+import { isFeatureEnabled } from './featureFlags.js';
 import type { IntentRoutingResult } from '../types.js';
 
+/** Derive a market country code from phone number or context hint. Used by
+ * feature flag gating so intent routing respects UK vs NG market rules. */
+function deriveMarketCountry(phone?: string, contextHint?: ConversationalContextHint): string {
+  if (contextHint && typeof contextHint.marketCountry === 'string' && contextHint.marketCountry) return contextHint.marketCountry.toLowerCase();
+  if (!phone) return 'ng';
+  const cleaned = String(phone).replace(/[^0-9+]/g, '');
+  if (cleaned.startsWith('+234')) return 'ng';
+  if (cleaned.startsWith('+44')) return 'gb';
+  if (cleaned.startsWith('+233')) return 'gh';
+  if (cleaned.startsWith('+254')) return 'ke';
+  if (cleaned.startsWith('+')) {
+    const cc = cleaned.slice(1, 3);
+    if (cc === '234') return 'ng';
+    if (cc === '44') return 'gb';
+    if (cc === '233') return 'gh';
+    if (cc === '254') return 'ke';
+  }
+  return 'ng';
+}
+
+/** Check whether the detected market is gated for a feature family.
+ * Returns true when the feature is enabled for the market — meaning the
+ * market is *open* for that capability. Returns false when gated off. */
+function isMarketOpenFor(phone?: string, contextHint?: ConversationalContextHint, flagName: string): boolean {
+  const country = deriveMarketCountry(phone, contextHint);
+  return isFeatureEnabled(country, flagName);
+}
 const CANONICAL_LOOKUP_RE = /^(remember that|what do you remember|what do you know about me|what notifications|show (?:my )?notifications|what updates|show (?:my )?updates|mark (?:all\s+)?(?:notifications?|updates?)(?:\s+#?\d+)?\s+(?:as\s+)?(?:read|seen|handled)|dismiss (?:all\s+)?(?:notifications?|updates?)(?:\s+#?\d+)?\s+(?:as\s+)?(?:read|seen|handled)|show nearby|nearby active|radar|where are providers|balance|points|wallet|credits|remind me|set (?:me )?a reminder|cancel (?:the )?reminder|pause(?: that| it)?$|resume(?: that| it)?$|cancel that$|cancel it$|stop following$|stop checking$|continue checking$|what provider and model|what have you been doing|what are you doing|reset onboarding|(?:get|take|drive|bring)\s+me\s+(?:to|from)|(?:need|want)\s+to\s+(?:get|be)\s+(?:to|in)|(?:find|book|hire)\s+(?:me\s+)?(?:a\s+)?(?:bus|taxi|ride|driver|train|ferry|car)\b|(?:airport|station|transport|ride|travel|bus|taxi|train|ferry|journey|trip)\b[\s\S]*\b(?:tomorrow|today|tonight|by\s+\d|arrive|arrival|leave|leaving|cheapest|fastest|quickest)\b)/i;
 const TRANSPORT_OUTCOME_RE = /\b(?:get|take|drive|bring)\s+me\s+(?:to|from)\b|\b(?:need|want)\s+to\s+(?:get|be)\s+(?:to|in)\b|\b(?:find|book|hire)\s+(?:me\s+)?(?:a\s+)?(?:bus|taxi|ride|driver|train|ferry|car)\b|\b(?:airport|station|transport|ride|travel|bus|taxi|train|ferry|journey|trip)\b[\s\S]*\b(?:tomorrow|today|tonight|by\s+\d|arrive|arrival|leave|leaving|cheapest|fastest|quickest)\b/i;
 const SAFETY_RE = /\b(?:emergency|immediate danger|life[- ]threatening|ambulance|fire service|police|safety contact|security interruption|stolen phone|otp|recovery code)\b/i;
@@ -52,6 +80,25 @@ function progressFor(mode: string): IntentRoutingResult['progressStage'] {
 export async function routeIntent(query: string, phone?: string, provider?: AIProvider, contextHint?: ConversationalContextHint, threadId?: string): Promise<IntentRoutingResult> {
   const message = query.trim();
   if (!message) return legacyRouteIntent(query, phone, provider, contextHint, threadId);
+
+  // Derive the market country for feature-flag gating.
+  // The roadmap (PA-3) requires the intent router to consult featureFlags
+  // so UK vs NG market gating (Points/currency, available skills) happens
+  // on the critical path — not just in a registry nobody reads.
+  const marketCountry = deriveMarketCountry(phone, contextHint);
+
+  // Feature-flag gate: if a country is restricted for a capability family,
+  // route through the legacy router which already handles availability fallback.
+  // Currently gates `pointsEngine` (Points/currency availability) and
+  // country-specific skills (UK life-admin, diaspora payments).
+  if (phone && !phone.startsWith('anon_')) {
+    const pointsGated = isFeatureEnabled(marketCountry, 'points_engine');
+    if (!pointsGated) {
+      // Points/currency not available in this market — route to legacy which
+      // knows how to fall back without assuming a points economy exists.
+      return legacyRouteIntent(query, phone, provider, contextHint, threadId);
+    }
+  }
 
   // Deterministic gate first: route without any model call when the regex
   // layer already resolves the turn (AGENTS.md §20/§35). AI interpretation

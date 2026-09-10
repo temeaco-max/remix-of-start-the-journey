@@ -14,6 +14,8 @@ import { runProviderInquiryFollowUpPass } from '../services/providerInquiryFollo
 import { registerGoalEventSubscribers } from '../services/goalEventSubscribers.js';
 import { registerRequestEventSubscribers } from '../services/requestEventSubscribers.js';
 import { runDurableJobCycle } from '../services/durableJobWorker.js';
+import { triggerDailyEngagementCheck } from '../services/engagementScheduler.js';
+import { startSurveyScheduler, dispatchSurveySweep } from '../services/surveyEngine.js';
 
 const backgroundTimers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
 let backgroundServicesStarted = false;
@@ -35,6 +37,23 @@ export async function startBackgroundServices(): Promise<void> {
     backgroundTimers.push(setInterval(logHeartbeat, 5 * 60 * 1000));
 
     backgroundTimers.push(setInterval(() => runRecurringSubscriptionBillingPass().then(result => { if (result.attempted) console.log(`[CommercialBilling] attempted=${result.attempted} renewed=${result.renewed} failed=${result.failed}`); }).catch(error => console.error('Error running recurring subscription billing pass:', error)), 60 * 60 * 1000));
+
+    // ── Engagement & survey sweep (wired back from v1) ──
+    // Survey engine: hourly sweep dispatches survey prompts to active profiles.
+    startSurveyScheduler();
+    backgroundTimers.push(setInterval(() => dispatchSurveySweep().catch((error) => console.error('[SurveyEngine] hourly sweep failed:', error)), 60 * 60 * 1000));
+
+    // Daily engagement check: once-per-day personalized nudge, gated by onboarding completion.
+    backgroundTimers.push(setInterval(() => {
+      getDb().then(async (db) => {
+        const stmt = db.prepare(`SELECT phone FROM memory_profiles WHERE is_available = 1 AND preferences LIKE '%\"onboarding_complete\":true%' LIMIT 1`);
+        if (stmt.step()) {
+          const row = stmt.getAsObject() as any;
+          stmt.free();
+          try { await triggerDailyEngagementCheck(String(row.phone)); } catch (err) { console.error('[EngagementScheduler] daily check failed:', err); }
+        } else { stmt.free(); }
+      }).catch((error) => console.error('[EngagementScheduler] DB read failed:', error));
+    }, 24 * 60 * 60 * 1000));
 
     const providerInquiryIntervalMs = Math.max(60_000, Math.min(60 * 60_000, Number(process.env.KURUKOO_PROVIDER_INQUIRY_WORKER_INTERVAL_MS || 5 * 60_000)));
     const runProviderInquiryFollowUp = async () => {

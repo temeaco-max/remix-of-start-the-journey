@@ -1,0 +1,15 @@
+{
+  "patterns": [
+    "send otp",
+    "give me your code",
+    "verification code",
+    "account locked",
+    "your account has been",
+    "click this link",
+    "urgent action required",
+    "prize winner",
+    "you have won"
+  ],
+  "version": 1,
+  "description": "Blocklist patterns for complianceFilter. Extended at runtime by SCAM_KEYWORDS in complianceFilter.ts."
+}

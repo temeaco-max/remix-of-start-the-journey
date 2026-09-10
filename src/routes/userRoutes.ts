@@ -44,6 +44,17 @@ router.get('/profile', authenticateUser, async (req: AuthRequest, res) => {
   res.json({ profile, skills, progressiveTrust: await getProgressiveTrust(phone) });
 });
 
+/** Alias consumed by the React frontend auth gate (kurukoo-auth.ts): { profile: { phone, name, email } }. */
+router.get('/user/profile', authenticateUser, async (req: AuthRequest, res) => {
+  const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
+  const db = await getDb(); const stmt = db.prepare('SELECT phone, name, email FROM memory_profiles WHERE phone = ? LIMIT 1'); stmt.bind([phone]);
+  let row: Record<string, unknown> | null = null;
+  if (stmt.step()) row = stmt.getAsObject();
+  stmt.free();
+  if (!row) return res.status(404).json({ error: 'Profile not found' });
+  res.json({ profile: { phone: row.phone, name: row.name || null, email: row.email || null } });
+});
+
 router.post('/profile/availability', authenticateUser, async (req: AuthRequest, res) => {
   const phone = sessionPhone(req); if (!phone) return res.status(401).json({ error: 'Authentication required' });
   if (req.body?.phone && req.body.phone !== phone) return res.status(403).json({ error: 'Forbidden: You can only update your own availability' });

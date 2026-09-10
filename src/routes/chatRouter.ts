@@ -11,6 +11,7 @@ import { applyQrReferralAttribution } from '../services/qrContextService.js';
 import { processCanonicalChatTurn } from '../services/canonicalChatTurnService.js';
 import { getAuthState, setAuthState } from '../services/conversationalAuthService.js';
 import { inspectAttachmentSecurity } from '../services/attachmentSecurityBoundary.js';
+import { checkCompliance } from '../services/complianceFilter.js';
 import economicRequestRouter from './economicRequestRouter.js';
 import { listUniversalCapabilities } from '../services/universalCapabilityProtocol.js';
 import { normalizeChannel, Channel } from '../services/channelIdentifiers.js';
@@ -120,6 +121,21 @@ router.post('/stream', optionalAuthenticateUser, async (req: AuthRequest, res) =
   } : undefined;
 
   if (!phone || !message) return res.status(400).json({ error: 'Message is required' });
+
+  // Safety gate: run user-generated content through the compliance boundary
+  // before it enters the AI pipeline. Blocks scam keywords/patterns from
+  // reaching conversation modelling, economic routing, or provider matching.
+  const complianceOk = await checkCompliance(phone, message).catch(() => true);
+  if (!complianceOk) {
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    sse(res, { type: 'status', status: 'error' });
+    sse(res, { type: 'error', error: 'This message looks like it may not be safe. Please rephrase and try again.' });
+    sse(res, '[DONE]');
+    res.end();
+    return;
+  }
 
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');

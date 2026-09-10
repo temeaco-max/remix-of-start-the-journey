@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { getDb, saveDb } from '../database.js';
+import { isFeatureEnabled } from './featureFlags.js';
 
 /**
  * Kurukoo network-unit ledger.
@@ -35,11 +36,16 @@ export const LEAD_CHARGES: Record<string, number> = {
 
 async function isPointsEnabledForUser(db: any, phone: string): Promise<boolean> {
     if (process.env.CREDIT_ECONOMY_ENABLED === 'false') return false;
-    const stmt = db.prepare(`SELECT country FROM memory_profiles WHERE phone = ?`);
-    stmt.bind([phone]);
+    // Feature-flag gate: the points_engine flag controls whether the Points/currency
+    // economy is active for a market. UK users (gb) get false unless the flag is
+    // explicitly enabled for their market via locale JSON or env override.
+    const countryRow = db.prepare(`SELECT country FROM memory_profiles WHERE phone = ?`);
+    countryRow.bind([phone]);
     let country = 'ng';
-    if (stmt.step()) country = String(stmt.getAsObject().country || 'ng').toLowerCase();
-    stmt.free();
+    if (countryRow.step()) country = String(countryRow.getAsObject().country || 'ng').toLowerCase();
+    countryRow.free();
+    const countryEnabled = isFeatureEnabled(country, 'points_engine');
+    if (!countryEnabled) return false;
     return country === 'ng' || !country;
 }
 

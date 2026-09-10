@@ -1,0 +1,9 @@
+{
+  "name": "Kurukoo",
+  "short_name": "Kurukoo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbfaf7",
+  "theme_color": "#b66a3c",
+  "description": "A conversation-first way to discover, decide and get useful things moving."
+}

@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 temeaco-max. All rights reserved. Proprietary and confidential. */
 import { queryUnifiedAI, type AIProvider, type ConversationalContextHint } from './unifiedAiEngine.js';
+import { isFeatureEnabled } from './featureFlags.js';
 import { decideConversationIntelligence } from './conversationIntelligenceService.js';
 import { getProfile, getMemoryFacts, updateProfile } from './memoryProfile.js';
 import { delegateToAgentForSkill } from './aiAgentService.js';
@@ -187,12 +188,13 @@ function matchCanonicalSkill(query: string): string | null {
   return null;
 }
 
-async function balanceReply(phone?: string): Promise<string> {
+async function balanceReply(phone?: string, pointsEngineEnabled: boolean): Promise<string> {
   if (!phone) return 'Your Kurukoo Points balance is available in the header.';
+  if (!pointsEngineEnabled) return 'Points and currency rewards are not available in your region yet. You can still ask Kurukoo to help with everyday tasks - I just cannot show a Points balance until your market is enabled.';
   const profile = await getProfile(phone, 'conversation_balance');
   const points = profile?.points_balance ?? 0;
   const location = profile?.location || 'your area';
-  return `🪙 **${points} Points**\n\nKurukoo remembers you’re in **${location}**. Your Points stay attached to the same Memory Profile across channels.`;
+  return `🪙 **${points} Points**\n\nKurukoo remembers you're in **${location}**. Your Points stay attached to the same Memory Profile across channels.`;
 }
 
 function isResumePhrase(q: string): boolean {
@@ -462,6 +464,7 @@ async function handleExplicitOSAction(phone: string | undefined, q: string, thre
     try { const result = await completeTask(phone, Number(completeTaskMatch[1]), completeTaskMatch[2].trim()); return { skill: 'tasks', reply: result.success ? `Submitted the result for task **${completeTaskMatch[1]}**. The completion record and any eligible Points award are now persisted.` : 'I could not confirm completion of that exact task.', cardData: { type: 'task_action', status: result.success ? 'completed' : 'blocked', taskId: Number(completeTaskMatch[1]), reward: result.reward, evidence: completeTaskMatch[2].trim(), exactContext: true }, canonicalAction: 'task.complete', progressStage: result.success ? 'complete' : 'information' }; } catch (error) { return { skill: 'tasks', reply: error instanceof Error ? error.message : 'I could not complete that exact task.', cardData: { type: 'task_action', status: 'blocked', taskId: Number(completeTaskMatch[1]), exactContext: true }, canonicalAction: 'task.complete.blocked', progressStage: 'information' }; }
   }
   if (/^(?:what is|what's|show) (?:my )?(?:points balance|points history)$/i.test(q)) {
+    if (!pointsEngineEnabled) return { skill: 'view_balance', reply: 'Points and currency rewards are not available in your region yet. You can still ask Kurukoo to help with everyday tasks — I just cannot show a Points balance until your market is enabled.', cardData: { type: 'os_status', domain: 'points', status: 'not_available_in_market', canonicalAction: 'points.unavailable' }, progressStage: 'information' };
     const action = /history/i.test(q) ? 'history' : 'inspect';
     const result = await executeCanonicalCapabilityProposal({ capability: 'points', action, phone, conversationId: threadId, channel: 'chat', idempotencyKey: `route-points:${phone}:${action}` });
     return { skill: 'view_balance', reply: result.message, cardData: { type: 'os_status', domain: 'points', status: result.status, facts: result.canonicalFacts || {}, nextActions: result.nextActions || [], ownerScoped: true }, canonicalAction: `points.${action}`, progressStage: 'information' };
@@ -496,6 +499,32 @@ async function handleExplicitOSAction(phone: string | undefined, q: string, thre
 export async function routeIntent(query: string, phone?: string, provider?: AIProvider, contextHint?: ConversationalContextHint, threadId?: string): Promise<IntentRoutingResult> {
   const q = query.trim().toLowerCase().replace(/[.!?]+$/, '');
   if (!q) return { skill: 'general_question', reply: 'Tell me what you need.' };
+
+  // Country derivation for feature-flag gating (PA-3).
+  // The legacy router is the fallback for country-gated markets; it must
+  // respect the same feature-flag contract as the canonical intentRouter.
+  function deriveMarketCountry(phone?: string, contextHint?: ConversationalContextHint): string {
+    if (contextHint && typeof contextHint.marketCountry === 'string' && contextHint.marketCountry) return contextHint.marketCountry.toLowerCase();
+    if (!phone) return 'ng';
+    const cleaned = String(phone).replace(/[^0-9+]/g, '');
+    if (cleaned.startsWith('+234')) return 'ng';
+    if (cleaned.startsWith('+44')) return 'gb';
+    if (cleaned.startsWith('+233')) return 'gh';
+    if (cleaned.startsWith('+254')) return 'ke';
+    if (cleaned.startsWith('+')) {
+      const cc = cleaned.slice(1, 3);
+      if (cc === '234') return 'ng';
+      if (cc === '44') return 'gb';
+      if (cc === '233') return 'gh';
+      if (cc === '254') return 'ke';
+    }
+    return 'ng';
+  }
+  const marketCountry = deriveMarketCountry(phone, contextHint);
+
+  // Feature-flag gate: if points_engine is disabled for this market,
+  // skip any Points/currency-dependent logic.
+  const pointsEngineEnabled = isFeatureEnabled(marketCountry, 'points_engine');
 
   if (phone && !phone.startsWith('anon_')) {
     const communicationContinuation = await continuePreparedCommunication(phone, query, threadId);
@@ -564,7 +593,7 @@ export async function routeIntent(query: string, phone?: string, provider?: AIPr
       return { skill: 'topic', reply: error instanceof Error ? `I could not prepare that private community draft: ${error.message}` : 'I could not prepare that private community draft yet. Nothing has been shared.' };
     }
   }
-  if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone) };
+  if (q.includes('balance') || q.includes('points') || q.includes('wallet') || q.includes('credits')) return { skill: 'view_balance', reply: await balanceReply(phone, pointsEngineEnabled) };
   if (q.includes('show nearby') || q.includes('nearby active') || q.includes('radar') || q.includes('where are providers')) return { skill: 'nearby_radar', reply: '📡 **Nearby Radar is on.** I’ll use your shared presence and Memory Profile to surface providers around you.', cardData: { type: 'nearby_radar' } };
 
   if (/\b(?:help with|information about|what is)\s+emergency\b/i.test(q)) return { skill: 'safety', reply: 'I can help with emergency and safety guidance. If someone is in immediate danger, use the verified emergency route now; I will not claim that responders were contacted or dispatched.', cardData: { type: 'skill_flow', stage: 'safety', canonicalAction: 'skill_flow.safety', requestId: undefined, truthful: true }, canonicalAction: 'skill_flow.safety', progressStage: 'safety', extractionSource: 'deterministic' };
