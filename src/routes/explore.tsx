@@ -27,6 +27,7 @@ function ExplorePage() {
   const [entities, setEntities] = useState<DiscoveryEntity[]>([]);
   const [topics, setTopics] = useState<CanonicalTopic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,11 +40,21 @@ function ExplorePage() {
     return () => { cancelled = true; };
   }, []);
 
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return entities.slice(0, 6);
-    return entities.filter((item) => `${item.name} ${item.category ?? ""} ${item.description ?? ""} ${item.location ?? ""}`.toLowerCase().includes(term)).slice(0, 8);
-  }, [entities, q]);
+  useEffect(() => {
+    const term = q.trim();
+    if (!term) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setSearching(true);
+      fetchDiscoveryEntities({ radius: 5000, q: term })
+        .then((results) => { if (!cancelled) setEntities(results); })
+        .catch(() => { if (!cancelled) setEntities([]); })
+        .finally(() => { if (!cancelled) setSearching(false); });
+    }, 250);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [q]);
+
+  const filtered = useMemo(() => entities.slice(0, q.trim() ? 8 : 6), [entities, q]);
 
   return <div className="mx-auto w-full max-w-6xl space-y-10 pb-10">
     <PageHeader eyebrow="Explore" title="Get something done" subtitle="Start with the outcome. Choose a useful starting point or describe what you need and let Kurukoo work out the next step." />
@@ -59,7 +70,7 @@ function ExplorePage() {
 
     <section aria-labelledby="around-you"><SectionHeader title="Around you" subtitle="Discovery helps you see what is nearby. A discovery result is context; a fulfilment request follows its own evidence and approval flow."/><div className="grid gap-3 md:grid-cols-3"><Link to="/discover" className="rounded-[19px] border border-primary/20 bg-brand-tint/20 p-4 hover:bg-brand-tint/30"><MapPin className="size-5 text-primary"/><h3 className="mt-3 text-[14px] font-semibold">Nearby</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">Find useful people, places, businesses, offers, events and opportunities.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">Open Nearby <ArrowUpRight className="size-3"/></span></Link><Link to="/topics" className="rounded-[19px] border border-border bg-surface p-4 hover:bg-elevated"><Users className="size-5"/><h3 className="mt-3 text-[14px] font-semibold">Topics</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">Use community questions, experiences and local context when it helps.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">Browse Topics <ArrowUpRight className="size-3"/></span></Link><Link to="/agents" className="rounded-[19px] border border-border bg-surface p-4 hover:bg-elevated"><Sparkles className="size-5 text-primary"/><h3 className="mt-3 text-[14px] font-semibold">Agents</h3><p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">Let bounded agent work keep useful tasks moving when available.</p><span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-medium">See Agents <ArrowUpRight className="size-3"/></span></Link></div></section>
 
-    {q.trim() ? <section aria-labelledby="matches"><SectionHeader title="Matches" subtitle={loading ? "Looking around…" : `${filtered.length} useful result${filtered.length === 1 ? "" : "s"} found`}/>{filtered.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{filtered.map((item) => <article key={item.id} className="rounded-[18px] border border-border bg-surface p-4"><p className="text-[14px] font-semibold">{item.name}</p><p className="mt-1 text-[11px] text-muted-foreground">{pretty(item.category ?? item.kind)}{item.location ? ` · ${item.location}` : ""}</p>{item.description ? <p className="mt-2 line-clamp-2 text-[11.5px] leading-relaxed text-muted-foreground">{item.description}</p> : null}<Link to="/chat" search={{ query: `Help me with ${item.name}` } as never} className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium">Ask Kurukoo <ArrowUpRight className="size-3.5"/></Link></article>)}</div> : <div className="rounded-[18px] border border-dashed border-border p-6 text-center text-[12px] text-muted-foreground">No matching discovery results. Tell Kurukoo what you need and it can work from the request instead.</div>}</section> : null}
+    {q.trim() ? <section aria-labelledby="matches"><SectionHeader title="Matches" subtitle={searching ? "Searching nearby…" : loading ? "Looking around…" : `${filtered.length} useful result${filtered.length === 1 ? "" : "s"} found`}/>{filtered.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{filtered.map((item) => <article key={item.id} className="rounded-[18px] border border-border bg-surface p-4"><p className="text-[14px] font-semibold">{item.name}</p><p className="mt-1 text-[11px] text-muted-foreground">{pretty(item.category ?? item.kind)}{item.location ? ` · ${item.location}` : ""}</p>{item.description ? <p className="mt-2 line-clamp-2 text-[11.5px] leading-relaxed text-muted-foreground">{item.description}</p> : null}<Link to="/chat" search={{ query: `Help me with ${item.name}` } as never} className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium">Ask Kurukoo <ArrowUpRight className="size-3.5"/></Link></article>)}</div> : <div className="rounded-[18px] border border-dashed border-border p-6 text-center text-[12px] text-muted-foreground">No matching discovery results. Tell Kurukoo what you need and it can work from the request instead.</div>}</section> : null}
 
     {topics.length ? <section><SectionHeader title="Community context" subtitle="Recent Topics that may help you understand what is happening around a goal."/><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{topics.map((topic) => <Link key={topic.id} to="/topics/$slug" params={{ slug: topic.slug }} className="rounded-[18px] border border-border bg-surface p-4 hover:bg-elevated/45"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">TOPIC</p><h3 className="mt-2 text-[14px] font-semibold leading-snug">{topic.title}</h3><p className="mt-1.5 line-clamp-2 text-[11.5px] leading-relaxed text-muted-foreground">{topic.body}</p></Link>)}</div></section> : null}
 
