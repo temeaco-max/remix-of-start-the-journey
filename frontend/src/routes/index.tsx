@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Bell, BookOpen, Building2, ExternalLink, Focus, ShoppingBag } from "lucide-react";
+import { ArrowUpRight, Bell, BookOpen, Building2, CreditCard, ExternalLink, Focus, KeyRound, Lock, Monitor, ShoppingBag } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { AIProviderDirectory } from "@/components/kurukoo/ai-provider-directory";
@@ -62,6 +62,18 @@ export function HomePage() {
         <Panel className="p-4"><div className="mb-3 flex items-center justify-between"><h2 className="text-[14px] font-semibold">Explore</h2><SectionAction to="/explore">Open</SectionAction></div><p className="text-[12px] text-muted-foreground">People, places, services and opportunities.</p></Panel>
         <Link to="/resources" className="group block rounded-[18px] border border-border bg-surface p-4 hover:bg-elevated"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-elevated"><BookOpen className="size-4" /></span><div><h2 className="text-[14px] font-semibold">Resources</h2><p className="text-[11.5px] text-muted-foreground">Guides for getting more from Kurukoo.</p></div><ArrowUpRight className="ml-auto size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" /></div></Link>
       </div>
+    </div>
+
+    <div className="grid gap-4 md:grid-cols-2">
+      <Panel className="overflow-hidden p-0">
+        <div className="border-b border-border/70 px-4 py-3"><h2 className="text-[14px] font-semibold">Secure</h2></div>
+        <div className="divide-y divide-border/70">
+          <Link to="/audit" className="flex items-center gap-3 px-4 py-3 hover:bg-elevated"><Lock className="size-4 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-[13px] font-medium">Activity & audit</p><p className="text-[11.5px] text-muted-foreground">What you asked, planned and done</p></div><ArrowUpRight className="size-4 text-muted-foreground" /></Link>
+          <Link to="/credentials" className="flex items-center gap-3 px-4 py-3 hover:bg-elevated"><KeyRound className="size-4 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-[13px] font-medium">Secure credentials</p><p className="text-[11.5px] text-muted-foreground">Secrets Kurukoo can use but never see</p></div><ArrowUpRight className="size-4 text-muted-foreground" /></Link>
+          <Link to="/cards" className="flex items-center gap-3 px-4 py-3 hover:bg-elevated"><CreditCard className="size-4 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-[13px] font-medium">One-time cards</p><p className="text-[11.5px] text-muted-foreground">Virtual cards with purchase protection</p></div><ArrowUpRight className="size-4 text-muted-foreground" /></Link>
+          <Link to="/secure-execution" className="flex items-center gap-3 px-4 py-3 hover:bg-elevated"><Monitor className="size-4 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-[13px] font-medium">Secure execution</p><p className="text-[11.5px] text-muted-foreground">Isolated browser sessions</p></div><ArrowUpRight className="size-4 text-muted-foreground" /></Link>
+        </div>
+      </Panel>
     </div>
   </div>;
 }
