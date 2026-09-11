@@ -16,7 +16,8 @@ export async function getIntegrationStatus(integration: Integration): Promise<In
   const readPath = integration.slug === "google-drive" ? "/api/artifacts" : integration.slug === "google-sheets" ? "/api/artifacts/sheets" : integration.slug === "notion" ? "/api/artifacts/notion" : integration.slug === "onedrive" ? "/api/artifacts/microsoft/onedrive" : integration.slug === "outlook" ? "/api/artifacts/microsoft/outlook" : integration.endpoint.path.replace(/\/connect$/, "");
   const payload = await request<Record<string, unknown>>(readPath);
   const source = (payload.source ?? payload.storage ?? payload) as Record<string, unknown>;
-  return { configured: Boolean(source.configured), enabled: source.enabled === undefined ? true : Boolean(source.enabled), connected: Boolean(source.connected ?? source.status === "connected" || source.status === "active"), status: typeof source.status === "string" ? source.status : undefined, reason: typeof source.reason === "string" ? source.reason : undefined, featureFlagState: typeof source.featureFlagState === "string" ? source.featureFlagState : undefined };
+  const sourceStatus = typeof source.status === "string" ? source.status : undefined;
+  return { configured: Boolean(source.configured), enabled: source.enabled === undefined ? true : Boolean(source.enabled), connected: Boolean(source.connected ?? (sourceStatus === "connected" || sourceStatus === "active")), status: sourceStatus, reason: typeof source.reason === "string" ? source.reason : undefined, featureFlagState: typeof source.featureFlagState === "string" ? source.featureFlagState : undefined };
 }
 
 export async function startIntegrationConnection(integration: Integration) {
