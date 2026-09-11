@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, CheckCircle2, History, MessageCircle, Sparkles
 import { useEffect, useRef, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { Message } from "@/components/kurukoo/primitives";
+import { ChatDiscovery } from "@/components/kurukoo/chat-discovery";
 import { fetchChatHistory } from "@/lib/kurukoo-api";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
@@ -29,6 +30,8 @@ function ChatPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [topicContext, setTopicContext] = useState<TopicContext | null>(null);
   const active = work.filter((w) => w.stage !== "done");
+  const latestRequest = [...messages].reverse().find((message) => message.cardData?.type === "request");
+  const discoveryQuery = latestRequest?.cardData ? String(latestRequest.cardData.title ?? latestRequest.cardData.skill ?? "") : "";
 
   useEffect(() => {
     const draft = localStorage.getItem("kurukoo-chat-draft");
@@ -72,6 +75,7 @@ function ChatPage() {
       <div className="mt-6 flex flex-wrap gap-2">{suggestions.map((s) => <button key={s} type="button" disabled={isSending} onClick={() => send(s)} className="min-h-9 rounded-full border border-border bg-surface px-3.5 py-2 text-[13px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-elevated hover:text-foreground disabled:opacity-40">{s}</button>)}</div>
     </div> : <div className="flex-1 space-y-5 py-4">
       {messages.map((m) => <Message key={m.id} message={m} onAction={(action) => { void send(action); }} />)}
+      {latestRequest ? <ChatDiscovery query={discoveryQuery} onReview={(prompt) => { void send(prompt); }} /> : null}
       {active.length > 0 ? <section aria-label="In progress" className="rounded-2xl border border-border bg-surface px-4 py-4"><div className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[var(--color-success)]" /><p className="text-[12px] font-medium">Working</p></div><ul className="mt-3 space-y-2">{active.map((w) => <li key={w.id} className="flex items-center justify-between gap-4 text-[13.5px]"><Link to="/work/$workId" params={{ workId: w.id }} className="truncate font-medium hover:underline">{w.title}</Link><span className="shrink-0 text-[12px] text-muted-foreground">{w.updated}</span></li>)}</ul></section> : null}
       <div ref={endRef} />
     </div>}
