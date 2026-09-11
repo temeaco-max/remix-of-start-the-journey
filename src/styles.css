@@ -6,7 +6,6 @@
 
 @theme inline {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Instrument Serif", Georgia, serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
   --color-brand-tint: var(--brand-tint);
   --color-brand-ink: var(--brand-ink);
@@ -64,7 +63,7 @@ aside[aria-label="Public Kurukoo navigation"] svg,
 aside[aria-label="Trusted context rail"] svg,
 aside[aria-label="Kurukoo public context rail"] svg { color: var(--primary); }
 
-/* Shared Kurukoo visual language: restrained geometry, editorial type, quiet surfaces. */
+/* Shared Kurukoo visual language: restrained geometry, consistent Geist type, quiet surfaces. */
 .rounded-2xl { border-radius: 1rem !important; }
 .rounded-3xl { border-radius: 1.25rem !important; }
 [class*="rounded-[18px]"] { border-radius: 1rem !important; }
@@ -75,15 +74,12 @@ aside[aria-label="Kurukoo public context rail"] svg { color: var(--primary); }
 /* Avoid the boxed-dashboard look: surfaces use hairlines and depth sparingly. */
 .bg-surface.shadow-\[var\(--shadow-soft\)\] { box-shadow: none !important; }
 
-/* Editorial display type is shared by every intentional serif heading, not only marketing. */
-.font-serif { font-family: var(--font-serif) !important; font-weight: 400 !important; }
-
 /* Shared interactive language across public and authenticated surfaces. */
 button, a { -webkit-tap-highlight-color: transparent; }
 button:not([aria-label="Close menu"]), a { transition-duration: 160ms; }
 
-/* Public marketing typography: every public page uses the same hero title treatment as the homepage. */
-body:has(aside[aria-label="Public Kurukoo navigation"]) h1 { font-family: var(--font-serif) !important; font-size: 40px !important; line-height: 1.02 !important; letter-spacing: -0.045em !important; }
+/* Public marketing typography uses the same Geist display treatment as the rest of Kurukoo. */
+body:has(aside[aria-label="Public Kurukoo navigation"]) h1 { font-family: var(--font-sans) !important; font-size: 40px !important; line-height: 1.02 !important; letter-spacing: -0.045em !important; font-weight: 600 !important; }
 body:has(aside[aria-label="Public Kurukoo navigation"]) main > div > header > p:first-child,
 body:has(aside[aria-label="Public Kurukoo navigation"]) main > div > header > div > p:first-child,
 body:has(aside[aria-label="Public Kurukoo navigation"]) main > div > section:first-child > p:first-child,
@@ -91,8 +87,8 @@ body:has(aside[aria-label="Public Kurukoo navigation"]) main > div > section:fir
 body:has(aside[aria-label="Public Kurukoo navigation"]) h2.font-serif,
 body:has(aside[aria-label="Public Kurukoo navigation"]) h3.font-serif { font-family: var(--font-sans) !important; font-size: 24px !important; font-weight: 700 !important; line-height: 1.08 !important; letter-spacing: -0.03em !important; }
 
-/* Authenticated OS uses the same editorial display hierarchy, but keeps the denser control-surface rhythm. */
-body:has(aside[aria-label="Trusted context rail"]) h1.font-serif { font-family: var(--font-serif) !important; font-weight: 400 !important; }
+/* Authenticated OS keeps the same Geist display hierarchy and denser control-surface rhythm. */
+body:has(aside[aria-label="Trusted context rail"]) h1.font-serif { font-family: var(--font-sans) !important; font-weight: 600 !important; }
 body:has(aside[aria-label="Trusted context rail"]) main h2 { letter-spacing: -0.028em; }
 
 /* Keep authenticated shell scrollbars quiet. */
@@ -119,7 +115,7 @@ body:has(aside[aria-label="Kurukoo public context rail"]) main > div.mx-auto.w-f
 body:has(aside[aria-label="Kurukoo public context rail"]) main > div.mx-auto.w-full.max-w-6xl > section.space-y-3 > div:first-child h2::after { content: "Browse"; display: block; font-size: 28px; line-height: 1.08; letter-spacing: -0.035em; }
 body:has(aside[aria-label="Kurukoo public context rail"]) #general-topics { display: block; width: max-content; font-size: 0 !important; line-height: 1 !important; }
 body:has(aside[aria-label="Kurukoo public context rail"]) #general-topics::before { content: "Kurukoo"; display: block; margin-bottom: 4px; color: var(--primary); font-family: var(--font-sans); font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.14em; text-transform: uppercase; }
-body:has(aside[aria-label="Kurukoo public context rail"]) #general-topics::after { content: "General"; display: block; font-family: var(--font-serif); font-size: 28px; font-weight: 500; line-height: 1.08; letter-spacing: -0.035em; }
+body:has(aside[aria-label="Kurukoo public context rail"]) #general-topics::after { content: "General"; display: block; font-family: var(--font-sans); font-size: 28px; font-weight: 600; line-height: 1.08; letter-spacing: -0.035em; }
 
 /* The authenticated rail's first item remains the public Home destination. */
 body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigation"] a[href="/workspace"] > svg { display: none !important; }
