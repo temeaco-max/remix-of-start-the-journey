@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowUpRight, BriefcaseBusiness, Building2, Compass, MessageCircle, PenLine, Plug, Search, Sparkles, UsersRound } from "lucide-react";
+import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getKurukooRole, KURUKOO_ROLE_STORAGE_KEY, KURUKOO_ROLES, type KurukooRoleId } from "@/lib/kurukoo-personas";
 
@@ -26,7 +26,7 @@ export function HomeForYou() {
     <div className="flex flex-col gap-5 px-1 py-7 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Workspace context</p>
-        <h2 className="mt-2 font-serif text-[30px] leading-[1.02] tracking-[-0.045em]">Set the way you want Kurukoo to work with you.</h2>
+        <h2 className="mt-2 text-[30px] font-semibold leading-[1.02] tracking-[-0.045em]">Set the way you want Kurukoo to work with you.</h2>
         <p className="mt-2.5 max-w-xl text-[13px] leading-6 text-muted-foreground">Your workspace adapts to the things you do. These shortcuts change with your role while the core Kurukoo experience stays simple.</p>
       </div>
       <label className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground"><span>Role</span><select aria-label="Choose your Kurukoo role" value={ready ? roleId : "seeker"} onChange={e => changeRole(e.target.value as KurukooRoleId)} className="min-h-9 rounded-lg border border-border bg-surface px-3 text-[11px] font-medium text-foreground outline-none focus:border-foreground/30">{KURUKOO_ROLES.map(item => <option key={item.id} value={item.id}>{item.shortTitle}</option>)}</select></label>
