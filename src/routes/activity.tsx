@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, CheckCircle2, MessageCircle, Radio, Sparkles } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Action } from "@/components/kurukoo/primitives";
@@ -76,7 +76,7 @@ function ActivityPage() {
   const pending = notifications.filter((n) => n.needsConfirmation);
   const unread = notifications.filter((n) => !n.read).length;
   const systemUpdates = notifications.filter((n) => !n.needsConfirmation);
-  const recentNotifications = [...notifications].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))).slice(0, 4);
+  const recentNotifications = notifications.slice(0, 4);
 
   return <div className="space-y-8 pb-10">
     <PageHeader title="What changed" subtitle="A quiet history of replies, decisions and important updates. Kurukoo will surface something here when it matters." />
@@ -94,7 +94,7 @@ function ActivityPage() {
           </div>
           <StatusPill tone={pending.length ? "peach" : "green"}>{pending.length ? "Needs you" : "Caught up"}</StatusPill>
         </div>
-        {recentNotifications.length ? <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">{recentNotifications.map((n) => <div key={n.id} className="bg-background p-4"><div className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /><span className="text-[11px] font-medium">{n.title}</span><span className="ml-auto text-[10px] text-muted-foreground">{formatWhen(n.createdAt)}</span></div><p className="mt-2 line-clamp-2 text-[12px] leading-5 text-muted-foreground">{n.body}</p></div>)}</div> : null}
+        {recentNotifications.length ? <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">{recentNotifications.map((n) => <div key={n.id} className="bg-background p-4"><div className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /><span className="text-[11px] font-medium">{n.title}</span><span className="ml-auto text-[10px] text-muted-foreground">{n.when}</span></div><p className="mt-2 line-clamp-2 text-[12px] leading-5 text-muted-foreground">{n.body}</p></div>)}</div> : null}
       </div>
       <Tabs items={tabs} value={tab} onChange={setTab} />
     </Panel>
