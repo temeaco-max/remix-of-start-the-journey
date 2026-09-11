@@ -70,7 +70,7 @@ function ChatPage() {
   return <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-[1040px] flex-col">
     <header className="sticky top-0 z-20 -mx-3 flex items-center justify-between border-b border-border/70 bg-background/92 px-3 py-3 backdrop-blur-xl md:-mx-5 md:px-5">
       <div className="flex min-w-0 items-center gap-3">
-        <Link to="/" aria-label="Back to Home" className="grid size-9 shrink-0 place-items-center rounded-full hover:bg-elevated"><ArrowLeft className="size-[18px]" /></Link>
+        <Link to="/workspace" aria-label="Back to Workspace" className="grid size-9 shrink-0 place-items-center rounded-full hover:bg-elevated"><ArrowLeft className="size-[18px]" /></Link>
         <AgentMark active={isSending} />
         <div className="min-w-0"><div className="flex items-center gap-2"><p className="text-[14px] font-semibold tracking-[-0.01em]">Kurukoo</p><span className="border-l border-border pl-2 text-[9.5px] text-muted-foreground">Your everyday AI</span></div><p className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-muted-foreground"><CircleDot className={`size-2.5 ${isSending ? "animate-pulse text-primary" : "text-[var(--color-success)]"}`} />{isSending ? "Working on it" : isLoadingHistory ? "Getting your context" : "Here when you need me"}</p></div>
       </div>
