@@ -17,13 +17,13 @@ const forYou = [
   { heading: "People & communities", items: [["/people", "People"], ["/creators", "Creators"]] },
   { heading: "Services & businesses", items: [["/providers", "Providers"], ["/businesses", "Businesses"]] },
   { heading: "Build with Kurukoo", items: [["/contributors", "Contributors"], ["/partners", "Partners"]] },
-  { heading: "Reach & participate", items: [["/advertise", "Advertisers"], ["/agents-ambassadors", "Agents & ambassadors"]] },
+  { heading: "Reach & participate", items: [["/advertise", "Advertisers"], ["/local-agents", "Local Agents"], ["/ambassadors", "Ambassadors"]] },
 ] as const;
 const resources = [
   { heading: "Learn", items: [["/blog", "Blog"], ["/help", "Help"], ["/developer", "Developer"], ["/how-it-works", "How to Guides"]] },
   { heading: "Trust", items: [["/safety", "Trust & Safety"], ["/legal", "Privacy & legal"]] },
 ] as const;
-const routerDestinations = new Set(["/", "/explore", "/discover", "/network", "/agents-ambassadors", "/how-it-works", "/capabilities", "/topics", "/about", "/blog", "/help", "/login", "/signup", "/contributors", "/partners", "/pricing", "/contact", "/use-cases", "/opportunities", "/advertise", "/advertising", "/providers", "/provider", "/businesses", "/creators", "/people", "/agents", "/kurukoo-ai", "/connect", "/integrations", "/resources", "/legal", "/cookies", "/chat", "/work", "/memory", "/activity", "/notifications"]);
+const routerDestinations = new Set(["/", "/explore", "/discover", "/network", "/local-agents", "/ambassadors", "/how-it-works", "/capabilities", "/topics", "/about", "/blog", "/help", "/login", "/signup", "/contributors", "/partners", "/pricing", "/contact", "/use-cases", "/opportunities", "/advertise", "/advertising", "/providers", "/provider", "/businesses", "/creators", "/people", "/agents", "/kurukoo-ai", "/connect", "/integrations", "/resources", "/legal", "/cookies", "/chat", "/work", "/memory", "/activity", "/notifications"]);
 const canonicalLogo = "https://raw.githubusercontent.com/temeaco-max/kurukoo/ca35abf26b6b07fa234f6b986bd7a52e4e718f86/public/assets/brand/logo-icon.png";
 function KurukooMark({ className = "size-6" }: { className?: string }) { return <img src={canonicalLogo} alt="Kurukoo" aria-hidden="true" className={`shrink-0 object-contain ${className}`} width="32" height="32" />; }
 function PublicDestinationLink({ to, children, className, onClick }: { to: string; children: ReactNode; className: string; onClick?: () => void }) { return routerDestinations.has(to) ? <Link to={to as never} onClick={onClick} className={className}>{children}</Link> : <a href={to} onClick={onClick} className={className}>{children}</a>; }
