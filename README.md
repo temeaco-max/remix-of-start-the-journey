@@ -1,14 +1,16 @@
-# Kurukoo — Everyday, Sorted
+# Kurukoo — AI that gets things done
 
-**Tagline:** Wake up. Get going.
+**Consumer promise:** **AI that gets things done.**
 
-> **Kurukoo is a service that helps people get things done.**
+**Primary action:** Tell Kurukoo what needs doing.
+
+> **Kurukoo turns intentions into outcomes across the digital and physical world.**
 >
 > You tell Kurukoo what you need, want, notice, or are worried about.
 >
-> Kurukoo understands the situation, works out what it can do, takes appropriate action, gets help from people or services when necessary, keeps you informed, and remembers what matters.
+> Kurukoo understands the situation, works out the appropriate route, takes permitted action, gets help from people or services when necessary, keeps you informed, shows what happened, and remembers what matters.
 
-That is the product. Users do not need to understand whether Kurukoo used a skill, capability, agent, AI model, connected device, provider, API, or another internal mechanism. Those are ways Kurukoo gets the job done.
+The execution network is infrastructure, not the consumer-facing definition. Users do not need to understand whether Kurukoo used a skill, capability, agent, AI model, connected device, provider, API, business or another internal mechanism. Those are ways Kurukoo gets the job done.
 
 ## What Kurukoo can help with
 
@@ -28,15 +30,25 @@ Kurukoo is not limited to a single category or vertical. You can start with a ne
 
 This list is illustrative, not a hard ceiling. A new need should be considered another thing Kurukoo may be able to help accomplish before a new product or subsystem is proposed.
 
+## The universal execution loop
+
+**Tell → Understand → Find/Plan → Choose → Approve → Do → Show proof → Done**
+
+Kurukoo supports digital, physical, hybrid and user-assisted execution. The internal graph is:
+
+**Intent → Context → Capability → Execution resource → Consent → Action → Evidence → Outcome → Memory/Trust**
+
+Providers are one execution resource among many. Resources may include people, businesses, inventory, websites, APIs, connected apps, Kurukoo agents, approved third-party agents, communication channels, logistics, devices and future robotics/IoT.
+
 ## How it should feel
 
 You should be able to say:
 
 > “My laptop is slow. Check it.”
 
-Kurukoo should use the information and capabilities actually available to it, ask for permission when required, diagnose what it can, safely fix what it can, verify the result where possible, and tell you plainly what happened. If the problem needs a person, Kurukoo should be able to continue by finding and coordinating the appropriate help rather than making you start again.
+Kurukoo should use the information and capabilities actually available to it, ask for permission when required, diagnose what it can, safely fix what it can, verify the result where possible, and tell you plainly what happened. If the problem needs a person, Kurukoo should continue by finding and coordinating the appropriate help rather than making you start again.
 
-The same principle applies to a request such as:
+The same principle applies to:
 
 > “Check my Wi-Fi.”
 
@@ -50,13 +62,19 @@ The user starts with the outcome. Kurukoo works out the route.
 
 Web, PWA, iOS and Android are first-party presentations of the same Kurukoo service. Chat is the primary conversational control surface. WhatsApp, Telegram, SMS, email, FCM, Voice, USSD and other channels are delivery/interaction paths when configured; they do not become separate assistants or separate sources of truth.
 
-Kurukoo can also work with connected resources, providers, businesses, autonomous agents and physical participants. When direct software help is possible, it should prefer that before unnecessary escalation. When a human or external service is needed, Kurukoo should carry the useful context into the handoff.
+Kurukoo can work with connected resources, providers, businesses, autonomous agents and physical participants. When direct software help is possible, it should prefer that before unnecessary escalation. When a human or external service is needed, Kurukoo should carry useful context into the handoff.
+
+## Global core / local execution
+
+Kurukoo has one global product model. Country and regional adapters provide local execution mechanisms such as payments, identity, language, providers, logistics, communications, government systems and regulatory requirements.
+
+Nigeria is an execution environment, not the definition of Kurukoo. The same core should operate in the UK, Ghana, US, India and other markets without product forks.
 
 ## Architecture — for people building Kurukoo
 
 The implementation is intentionally composable. Existing skills, behaviour instructions, capabilities, agent tools, connected resources, AI adapters, canonical services, Economic Requests, providers, physical participants, evidence, memory, notifications and channels should be reused and extended before new subsystems are introduced.
 
-The architectural rule is therefore **not** “keep Kurukoo artificially bounded to the features already listed.” It is:
+The architectural rule is:
 
 > **Maximise useful capability while preserving genuine safety, privacy, consent, authorization, security, legal and evidence boundaries.**
 
@@ -81,21 +99,27 @@ Admin, operations, provider and developer surfaces are intentionally different. 
 
 Internal surfaces operate on the same canonical OS state; they must not create parallel consumer workflows or authorities.
 
+## Frontend/backend vertical-slice rule
+
+Every user-facing capability is product-complete only when the paired vertical slice exists:
+
+**Frontend surface → canonical backend capability → persistence/state → execution → evidence → UI outcome**
+
+Frontend-only fake completion and backend-only invisible capability do not count as complete. The frontend repository is `temeaco-max/remix-of-start-the-journey`; the canonical backend repository is this repository; `main` is the integration truth for both.
+
 ## Repository authorities
 
-- `BLUEPRINT.md` — canonical long-range product and architecture intent.
-- `docs/product/KURUKOO_USER_OUTCOME_CONTRACT.md` — canonical user-outcome lens for product and implementation decisions.
+- `docs/product/KURUKOO_MASTER_PRODUCT_CONTRACT.md` — locked product definition and frontend/backend vertical-slice contract.
+- `BLUEPRINT.md` — long-range product and architecture intent.
+- `docs/product/KURUKOO_USER_OUTCOME_CONTRACT.md` — user-outcome lens.
 - `docs/architecture/CURRENT_PRODUCT_TRUTH.md` — current-state truth and verification authority.
-- `AGENTS.md` — engineering rules for keeping implementation aligned with the whole service.
+- `AGENTS.md` — engineering rules.
 - `BLUEPRINT_IMPLEMENTATION_ADDENDUM.md` — implementation companion.
 - `BLUEPRINT_AI_MODEL_ADDENDUM.md` — AI/student-model extension.
 - `docs/KURUKOO_AI_MODEL_SYSTEM.md` — AI model architecture and completion contract.
-- `docs/KURUKOO_PRODUCTION_AND_LEARNING_PIPELINES.md` — production and offline learning pipelines.
 - `BUILD_STATUS.md` — route ownership and release verification status.
-- `SECURITY_AUDIT_STATUS.md` — security posture, manual operator actions and scale transition criteria.
+- `SECURITY_AUDIT_STATUS.md` — security posture and residual risks.
 - `ECOSYSTEM.md` — economic taxonomy.
-- `CONTROLLED_PILOT.md` — production environment, release, rollback and external activation profile.
-- `CACHING.md`, `DATA_RETENTION_POLICY.md`, `POINTS_COMPLIANCE.md`, and `WHATSAPP_CONTINGENCY.md` — operating policies.
 
 ## Current implementation
 
