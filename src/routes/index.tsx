@@ -14,8 +14,8 @@ import { PulseControl } from "@/components/kurukoo/pulse-control";
 import { fetchAuthenticatedAd, fetchProactiveFeed, type AuthenticatedAd, type ProactiveOpportunity } from "@/lib/kurukoo-api";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
-const description = "Your personal workspace for getting useful things done with Kurukoo.";
-export const Route = createFileRoute("/")({ head: () => ({ meta: [{ title: "Everyday AI OS for real life" }, { name: "description", content: description }] }), component: HomePage });
+const description = "AI that gets things done across the digital and physical world.";
+export const Route = createFileRoute("/")({ head: () => ({ meta: [{ title: "Kurukoo — AI that gets things done" }, { name: "description", content: description }] }), component: HomePage });
 function SectionAction({ to, children }: { to: string; children: ReactNode }) { return <Link to={to as never} className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80">{children}<ArrowUpRight className="size-3.5" /></Link>; }
 function CardHeader({ title, count }: { title: string; count?: number }) { return <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4"><h2 className="min-w-0 text-[14px] font-semibold tracking-tight">{title}</h2>{count !== undefined ? <span className="grid min-w-6 place-items-center rounded-full bg-elevated px-1.5 py-1 text-[10.5px] text-muted-foreground">{count}</span> : null}</div>; }
 function IconTile({ children, className }: { children: ReactNode; className?: string }) { return <ContextIconTile className={className}>{children}</ContextIconTile>; }
@@ -37,7 +37,7 @@ export function HomePage() {
     <section aria-labelledby="home-hero-title" className="relative overflow-hidden pb-2 pt-4 md:pt-6">
       <HomeHorizonIllustration />
       <div className="relative z-10 max-w-4xl">
-        <p className="mb-1 text-[13px] font-medium text-muted-foreground">Your everyday, moving forward.</p>
+        <p className="mb-1 text-[13px] font-medium text-muted-foreground">AI that gets things done.</p>
         <h1 id="home-hero-title" className="font-serif text-[40px] leading-[1.02] tracking-[-0.045em]">Tell Kurukoo what needs doing</h1>
         <div className="mt-5 max-w-[920px]"><Composer onSend={send} placeholder="What needs your attention?" /></div>
       </div>
@@ -47,9 +47,6 @@ export function HomePage() {
 
     <HomeForYou />
 
-    {/* Authenticated dashboard widgets for the new backend endpoints.
-        DailyPicksStrip is shown on both shells (public + auth). The other three
-        are auth-only (they call /api/orphan-wire-back endpoints that require auth). */}
     <div className="grid min-w-0 gap-4 lg:grid-cols-2">
       <div className="space-y-4"><DailyPicksStrip /><QuickRepliesPanel /></div>
       <div className="space-y-4"><SurveyPromptCard /><ArtistBookingCard /></div>
