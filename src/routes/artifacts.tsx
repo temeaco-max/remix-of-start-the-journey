@@ -9,7 +9,7 @@ import { Panel, SectionHeader } from "@/components/kurukoo/ui";
 import { fetchConnectedResources, type ConnectedResource } from "@/lib/kurukoo-api";
 
 export const Route = createFileRoute("/artifacts")({
-  head: () => ({ meta: [{ title: "Artifacts — Kurukoo" }, { name: "description", content: "Find things Kurukoo has made, found or saved in the context of your work." }] }),
+  head: () => ({ meta: [{ title: "Artifacts — Kurukoo" }, { name: "description", content: "A library of useful things Kurukoo has made, found or saved while helping you." }] }),
   component: ArtifactsPage,
 });
 
@@ -25,48 +25,40 @@ function ArtifactsPage() {
   }, []);
 
   return <div className="space-y-8 pb-10">
-    <PageHeader title="Artifacts" subtitle="The things Kurukoo makes, finds and saves as part of getting something done." />
+    <PageHeader title="Artifacts" subtitle="Useful things Kurukoo has made, found or saved while helping you get something done." />
 
-    <section className="max-w-3xl border-y border-border py-6">
-      <div className="flex items-start gap-4">
-        <span className="grid size-10 shrink-0 place-items-center border border-border bg-elevated"><FolderOpen className="size-4" /></span>
-        <div>
-          <p className="text-[15px] font-medium tracking-[-0.01em]">Outcomes should leave something useful behind.</p>
-          <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">Briefs, files, evidence, links and other outputs belong to the work that created them. Kurukoo will only show an artifact here when it has a real source or a real generated result.</p>
-        </div>
+    <section className="border-y border-border py-7">
+      <div className="max-w-3xl">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">A library, not another workspace</p>
+        <h2 className="mt-2 text-[28px] font-semibold tracking-[-0.04em]">Come back to the things that matter.</h2>
+        <p className="mt-2.5 max-w-2xl text-[12.5px] leading-6 text-muted-foreground">Artifacts belong to the conversation or work that created them. They can be briefs, files, evidence, links, quotes or other useful outputs. Nothing appears here unless Kurukoo has a real source or a real generated result.</p>
       </div>
     </section>
 
     <section>
-      <SectionHeader title="Your artifacts" subtitle="Only verified or actually generated items appear here." />
+      <SectionHeader title="Your library" subtitle="Generated or sourced outcomes appear here when they exist." />
       <div className="border-y border-border py-12 text-center">
-        <FileText className="mx-auto size-6 text-muted-foreground" />
-        <p className="mt-3 text-[14px] font-medium">Nothing saved here yet.</p>
-        <p className="mx-auto mt-1.5 max-w-md text-[11.5px] leading-relaxed text-muted-foreground">When Kurukoo creates or finds something for you, it can become an artifact attached to the conversation or work that produced it.</p>
+        <FolderOpen className="mx-auto size-6 text-muted-foreground" />
+        <p className="mt-3 text-[14px] font-medium">Your library is empty.</p>
+        <p className="mx-auto mt-1.5 max-w-md text-[11.5px] leading-relaxed text-muted-foreground">Ask Kurukoo to create, find or organise something. When there is a real outcome to keep, it can live here without taking the place of your conversation.</p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <Link to="/chat" search={{ prompt: "Create something useful for me" } as never} className={actionClass("primary")}><MessageSquare className="mr-1.5 size-3.5" />Ask Kurukoo</Link>
-          <Link to="/work" className={actionClass()}>View Work <ArrowUpRight className="ml-1 size-3.5" /></Link>
+          <Link to="/chat" search={{ prompt: "Help me create or find something useful" } as never} className={actionClass("primary")}><MessageSquare className="mr-1.5 size-3.5" />Ask Kurukoo</Link>
+          <Link to="/work" className={actionClass()}>See Work <ArrowUpRight className="ml-1 size-3.5" /></Link>
         </div>
       </div>
     </section>
 
-    <section>
-      <SectionHeader title="Storage & connections" subtitle={loading ? "Checking connected resources…" : resources.length ? `${resources.length} connected resource${resources.length === 1 ? "" : "s"}` : "No connected storage resources detected"} />
-      <Panel className="p-4">
-        {resources.length ? <div className="flex flex-wrap gap-2">{resources.map((resource) => <span key={resource.id} className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-[10px]"><DirectoryStateBadge state={resource.state === "active" || resource.state === "connected" ? "available" : "not-connected"} />{resource.vendor || resource.label}</span>)}</div> : <p className="text-[11.5px] text-muted-foreground">Connect a storage or knowledge service when you want Kurukoo to use an external destination.</p>}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link to="/integrations" className={actionClass("primary")}>Connect a service <ArrowUpRight className="ml-1 size-3.5" /></Link>
-          <Link to="/connect" className={actionClass()}>Manage connections</Link>
-        </div>
-      </Panel>
-    </section>
+    {resources.length ? <section>
+      <SectionHeader title="Connected sources" subtitle={`${resources.length} connected resource${resources.length === 1 ? "" : "s"} available to support your work.`} />
+      <Panel className="p-4"><div className="flex flex-wrap gap-2">{resources.map((resource) => <span key={resource.id} className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-[10px]"><DirectoryStateBadge state={resource.state === "active" || resource.state === "connected" ? "available" : "not-connected"} />{resource.vendor || resource.label}</span>)}</div><div className="mt-4 flex flex-wrap gap-2"><Link to="/integrations" className={actionClass()}>Connect another service <ArrowUpRight className="ml-1 size-3.5" /></Link><Link to="/connect" className={actionClass()}>View connections</Link></div></Panel>
+    </section> : loading ? <section className="border-y border-border py-6 text-[11px] text-muted-foreground">Checking connected sources…</section> : null}
 
-    <section className="grid gap-4 border-t border-border pt-6 sm:grid-cols-3">
+    <section className="grid gap-6 border-t border-border pt-6 sm:grid-cols-3">
       <div><FileText className="size-4 text-primary" /><p className="mt-2 text-[12px] font-medium">Made by Kurukoo</p><p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">Briefs, drafts, reports and other generated work.</p></div>
       <div><Link2 className="size-4 text-primary" /><p className="mt-2 text-[12px] font-medium">Found for you</p><p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">Useful links, offers, quotes and discovery evidence.</p></div>
       <div><FolderOpen className="size-4 text-primary" /><p className="mt-2 text-[12px] font-medium">Saved from elsewhere</p><p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">Authorised files and context from connected services.</p></div>
     </section>
 
-    <div className="pt-1"><AskKurukoo prompt="Help me find or create an artifact for something I'm working on." /></div>
+    <div className="pt-1"><AskKurukoo prompt="Help me find or create something useful for what I'm working on." /></div>
   </div>;
 }
