@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
-  Bell, Briefcase, ChevronDown, ChevronLeft, ChevronRight, Compass, Ellipsis, ExternalLink, PanelsTopLeft,
+  Bell, Briefcase, ChevronDown, ChevronLeft, ChevronRight, Compass, Ellipsis, ExternalLink, Home, PanelsTopLeft,
   ListChecks, MapPin, MessageSquare, Moon, Search, Sparkles, Sun, Tags, Users, Wallet, Zap,
 } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -16,7 +16,7 @@ export function useProfileName() { const [name, setName] = useState("Ada"); useE
 export function PageHeader({ title, description, subtitle, eyebrow, action }: { title?: string; description?: string; subtitle?: string; eyebrow?: string; action?: ReactNode }) { return <header className="mb-7 flex items-start justify-between gap-4 border-b border-border/70 pb-5"><div className="min-w-0"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">{eyebrow ?? "Kurukoo OS"}</p>{title ? <h1 className="mt-1.5 text-[28px] font-bold leading-[1.08] tracking-[-0.03em]">{title}</h1> : null}{(description ?? subtitle) ? <p className="mt-2 max-w-2xl text-[13px] leading-5 text-muted-foreground">{description ?? subtitle}</p> : null}</div>{action ? <div className="shrink-0">{action}</div> : null}</header>; }
 export function EmptyState({ title, body, description }: { title: string; body?: string; description?: string }) { const message = body ?? description; return <div className="rounded-2xl border border-dashed border-border bg-elevated/30 px-5 py-8 text-center"><h2 className="text-[15px] font-semibold">{title}</h2>{message ? <p className="mx-auto mt-1.5 max-w-xl text-[13px] leading-relaxed text-muted-foreground">{message}</p> : null}</div>; }
 const nav = [
-  { to: "/workspace", label: "Workspace", icon: PanelsTopLeft }, { to: "/chat", label: "Conversation", icon: MessageSquare },
+  { to: "/", label: "Workspace", icon: Home }, { to: "/chat", label: "Conversation", icon: MessageSquare },
   { to: "/explore", label: "Explore", icon: Compass }, { to: "/discover", label: "Nearby", icon: MapPin },
   { to: "/work", label: "Work", icon: ListChecks }, { to: "/topics", label: "Topics", icon: Tags }, { to: "/activity", label: "Activity", icon: Bell },
 ] as const;
