@@ -47,8 +47,11 @@ function ChatPage() {
   const discoveryQuery = latestRequest?.cardData ? String(latestRequest.cardData.title ?? latestRequest.cardData.skill ?? "") : "";
 
   useEffect(() => {
-    const draft = localStorage.getItem("kurukoo-chat-draft");
-    if (draft) { setInitialDraft(draft); localStorage.removeItem("kurukoo-chat-draft"); }
+    const query = new URLSearchParams(window.location.search).get("query")?.trim() ?? "";
+    const draft = localStorage.getItem("kurukoo-chat-draft")?.trim() ?? "";
+    if (query) setInitialDraft(query);
+    else if (draft) setInitialDraft(draft);
+    if (draft) localStorage.removeItem("kurukoo-chat-draft");
     const openConversation = localStorage.getItem("kurukoo-open-conversation");
     if (openConversation) { localStorage.removeItem("kurukoo-open-conversation"); void loadConversation(openConversation); }
     const rawTopic = localStorage.getItem("kurukoo-topic-context");
