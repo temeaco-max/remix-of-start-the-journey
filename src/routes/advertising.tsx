@@ -1,21 +1,25 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Megaphone } from "lucide-react";
-import { useState } from "react";
-import { PageHeader } from "@/components/app-shell";
-import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
-import { Action, actionClass } from "@/components/kurukoo/primitives";
-import { AdSlot, Badge, Panel, Rows, SectionHeader, StatTile, Tabs } from "@/components/kurukoo/ui";
-import { campaigns } from "@/lib/kurukoo-demo";
+import { createFileRoute } from "@tanstack/react-router";
+import { RoleLanding } from "@/components/kurukoo/role-landing";
 
-export const Route = createFileRoute("/advertising")({ head: () => ({ meta: [{ title: "Advertising — Kurukoo" }, { name: "description", content: "Create clearly labelled sponsored discovery across Kurukoo and understand campaign performance." }] }), component: AdvertisingPage });
-const tabs = ["Campaigns", "Create", "Placements", "Billing"] as const;
+export const Route = createFileRoute("/advertising")({
+  head: () => ({ meta: [{ title: "Advertisers — Kurukoo" }, { name: "description", content: "Understand Kurukoo advertising, who it is for and how to get started." }] }),
+  component: AdvertisingPage,
+});
 
 function AdvertisingPage() {
-  const [tab, setTab] = useState<string>(tabs[0]);
-  return <><PageHeader title="Advertising" subtitle="Reach people when your service, offer or idea is relevant to what they are doing." /><Tabs items={tabs} value={tab} onChange={setTab} />
-    {tab === "Campaigns" ? <div className="mt-4 space-y-4"><div className="grid gap-3 sm:grid-cols-3"><StatTile label="Spend (30 days)" value="£170.10" note="Example workspace data" /><StatTile label="Impressions" value="82,084" note="Example workspace data" /><StatTile label="Conversions" value="125" note="Example workspace data" /></div><Rows>{campaigns.map((c) => <li key={c.id} className="px-4 py-4"><div className="flex items-center justify-between gap-3"><p className="text-[15.5px] font-medium">{c.name}</p><Badge tone={c.status === "active" ? "success" : "quiet"}>{c.status} · Example</Badge></div><p className="mt-1 text-[13px] text-muted-foreground">{c.budget} · {c.spend} spent · {c.placement}</p><p className="mt-1 text-[13px] text-muted-foreground">{c.impressions} impressions · {c.clicks} clicks · {c.conversions} conversions</p><div className="mt-3 flex gap-2"><Action onClick={() => undefined}>{c.status === "active" ? "Pause" : "Resume"}</Action><Action onClick={() => undefined}>Edit</Action></div></li>)}</Rows><div className="rounded-xl border border-dashed border-border px-4 py-3 text-[11.5px] text-muted-foreground">Example campaign data is shown to demonstrate the complete OS surface. Live campaign delivery and measurement remain separate.</div></div> : null}
-    {tab === "Create" ? <Panel className="mt-4 p-5"><div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-xl bg-brand-tint text-brand-ink"><Megaphone className="size-4.5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Create a promotion</p><h2 className="mt-1.5 font-serif text-[28px] leading-tight">Tell Kurukoo what you want to promote.</h2><p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">Kurukoo can help shape the goal, audience, creative and placement before an eligible campaign is published.</p></div></div><div className="mt-5 flex flex-wrap gap-2"><AskKurukoo prompt="Help me create a Kurukoo advertising campaign for my service or offer." /><Link to="/chat" search={{ query: "Help me create a Kurukoo advertising campaign for my service or offer." } as never} className={actionClass()}>Start in chat <ArrowUpRight className="ml-1 size-3.5" /></Link></div><div className="mt-5 grid gap-2 sm:grid-cols-2">{[["Goal","Requests, follows or visits"],["Audience","Topic, location and intent"],["Creative","Headline, copy and image"],["Placement","Explore, Daily Picks, search, topics and creator discovery"],["Budget","Daily budget and schedule"]].map(([title,body]) => <div key={title} className="rounded-xl bg-elevated px-3 py-3"><p className="text-[12.5px] font-medium">{title}</p><p className="mt-1 text-[11.5px] text-muted-foreground">{body}</p></div>)}</div></Panel> : null}
-    {tab === "Placements" ? <div className="mt-4 space-y-3"><SectionHeader title="Sponsored discovery" subtitle="Sponsored content is always distinct from organic recommendations." />{["Explore feed", "Daily Picks", "Search results", "Topic feed", "Creator discovery"].map((p) => <AdSlot key={p} placement={p} headline="Sponsored discovery" body="A relevant service, offer or idea can appear here when an eligible campaign exists." advertiser="Example advertiser" />)}</div> : null}
-    {tab === "Billing" ? <Panel className="mt-4 p-5"><SectionHeader title="Advertising billing" subtitle="Payment methods, invoices, spend limits and campaign charges appear here when connected." /><div className="mt-4 flex flex-wrap gap-2"><Link to="/wallet" className={actionClass()}>Open Wallet <ArrowUpRight className="ml-1 size-3.5" /></Link><AskKurukoo prompt="Help me understand what I need to set up advertising billing on Kurukoo." /></div></Panel> : null}
-  </>;
+  return <RoleLanding
+    eyebrow="For advertisers"
+    title="Reach people when what you offer is relevant."
+    intro="Kurukoo advertising is designed around useful discovery: clearly labelled sponsored offers can appear where people are already exploring services, products, Topics, creators and opportunities."
+    whatKurukooIs="A place to reach people through declared, contextual discovery rather than pretending that private conversations are an advertising feed. Sponsored content is kept distinct from organic recommendations and subject to eligibility, creative and moderation rules."
+    participation={["Promote a genuine business, product, service, event or other eligible offer.", "Choose suitable placements, audience context and campaign goals within Kurukoo's available controls.", "Submit creative that meets advertising and moderation requirements.", "Review serving, spend and performance only from the measurement data Kurukoo actually has."]}
+    benefits={["Reach audiences in discovery contexts where your offer can be useful.", "Connect promotion with Topics, local discovery, offers and creator surfaces where eligible.", "A clearer sponsored label and campaign lifecycle rather than hidden promotion.", "Potentially turn relevant discovery into visits, enquiries, requests or other supported outcomes."]}
+    features={["Campaign creation through Kurukoo", "Sponsored discovery placements", "Topic and local context", "Creative and moderation workflow", "Spend and billing controls", "Campaign measurement when available"]}
+    useCases={["A local restaurant promotes an offer to people exploring nearby food and relevant Topics.", "A service business promotes a seasonal service where people are already looking for that kind of help.", "A creator or eligible organisation promotes useful content into relevant discovery surfaces.", "A business runs a campaign and reviews actual serving and conversion evidence rather than assumed results."]}
+    offer="Ask Kurukoo about current advertiser onboarding or launch incentives. Pricing, credits, placement availability and any promotional deal are confirmed from the live advertising programme rather than assumed from example campaign data."
+    referral="Where an eligible advertiser referral programme is active, Kurukoo can attribute the referred account and apply the current qualification rules. Any commission or reward remains pending until the qualifying conditions are satisfied."
+    joinPrompt="I want to advertise on Kurukoo. Help me understand eligibility, placements, pricing and how to start."
+    primaryLabel="Start advertising"
+    primaryTo="/advertising"
+  />;
 }
