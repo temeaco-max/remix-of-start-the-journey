@@ -9,7 +9,7 @@ import { fetchFollowedTopics, topicApiConfigured, type FollowedTopic } from "@/l
 import { useKurukoo } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/activity")({
-  head: () => ({ meta: [{ title: "Activity — Kurukoo" }, { name: "description", content: "Replies, approvals, follows and system updates in one place." }] }),
+  head: () => ({ meta: [{ title: "Activity — Kurukoo" }, { name: "description", content: "A quiet history of what changed and what needs you." }] }),
   component: ActivityPage,
 });
 
@@ -79,7 +79,7 @@ function ActivityPage() {
   const recentNotifications = [...notifications].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))).slice(0, 4);
 
   return <div className="space-y-8 pb-10">
-    <PageHeader title="Activity" subtitle="What changed, what needs you, and what Kurukoo is moving forward." />
+    <PageHeader title="What changed" subtitle="A quiet history of replies, decisions and important updates. Kurukoo will surface something here when it matters." />
 
     <Panel className="overflow-hidden">
       <div className="flex flex-col gap-5 p-5 sm:p-7">
@@ -87,12 +87,12 @@ function ActivityPage() {
           <div className="flex items-start gap-3.5">
             <ContextIconTile className="size-11 rounded-2xl bg-elevated/80"><Radio className="size-[18px]" /></ContextIconTile>
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Live personal feed</p>
-              <h2 className="mt-1 text-[23px] font-semibold tracking-tight">{pending.length ? `${pending.length} decision${pending.length === 1 ? "" : "s"} waiting` : "Nothing needs a decision"}</h2>
-              <p className="mt-1.5 max-w-xl text-[13.5px] leading-5 text-muted-foreground">{unread ? `${unread} unread update${unread === 1 ? "" : "s"}.` : "You are caught up. New replies, work changes and system events will appear here."}</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Personal updates</p>
+              <h2 className="mt-1 text-[23px] font-semibold tracking-tight">{pending.length ? `${pending.length} decision${pending.length === 1 ? "" : "s"} waiting` : "You are up to date"}</h2>
+              <p className="mt-1.5 max-w-xl text-[13.5px] leading-5 text-muted-foreground">{unread ? `${unread} unread update${unread === 1 ? "" : "s"}.` : "There is nothing you need to check right now."}</p>
             </div>
           </div>
-          <StatusPill tone={pending.length ? "peach" : "green"}>{pending.length ? "Needs you" : "All clear"}</StatusPill>
+          <StatusPill tone={pending.length ? "peach" : "green"}>{pending.length ? "Needs you" : "Caught up"}</StatusPill>
         </div>
         {recentNotifications.length ? <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">{recentNotifications.map((n) => <div key={n.id} className="bg-background p-4"><div className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" /><span className="text-[11px] font-medium">{n.title}</span><span className="ml-auto text-[10px] text-muted-foreground">{formatWhen(n.createdAt)}</span></div><p className="mt-2 line-clamp-2 text-[12px] leading-5 text-muted-foreground">{n.body}</p></div>)}</div> : null}
       </div>
@@ -100,9 +100,9 @@ function ActivityPage() {
     </Panel>
 
     <section>
-      {tab === "Needs you" ? pending.length === 0 ? <EmptyState title="Nothing waiting on you" body="Approval or confirmation events appear here when the connected service provides them." /> : <Rows>{pending.map((n) => <li key={n.id} className="px-4 py-5 sm:px-5"><div className="flex items-start gap-3"><ContextIconTile><CheckCircle2 className="size-[17px]" /></ContextIconTile><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-[15px] font-medium">{n.title}</p><StatusPill tone="peach">Needs approval</StatusPill></div><p className="mt-1 text-[13.5px] leading-5 text-muted-foreground">{n.body}</p><div className="mt-3"><Action onClick={() => markRead(n.id)}>Mark as seen</Action></div></div></div></li>)}</Rows> : null}
+      {tab === "Needs you" ? pending.length === 0 ? <EmptyState title="Nothing waiting on you" body="When Kurukoo reaches a consequential step that needs your decision, it will appear here." /> : <Rows>{pending.map((n) => <li key={n.id} className="px-4 py-5 sm:px-5"><div className="flex items-start gap-3"><ContextIconTile><CheckCircle2 className="size-[17px]" /></ContextIconTile><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-[15px] font-medium">{n.title}</p><StatusPill tone="peach">Needs approval</StatusPill></div><p className="mt-1 text-[13.5px] leading-5 text-muted-foreground">{n.body}</p><div className="mt-3"><Action onClick={() => markRead(n.id)}>Mark as seen</Action></div></div></div></li>)}</Rows> : null}
 
-      {tab === "Replies" ? historyLoading ? <Panel className="p-5"><div className="h-4 w-36 animate-pulse rounded bg-elevated" /><div className="mt-3 h-3 w-64 animate-pulse rounded bg-elevated" /></Panel> : historyError ? <EmptyState title="Conversation activity unavailable" body={historyError} /> : replyItems.length ? <Rows>{replyItems.map(({ conversation, latest }) => <li key={conversation.id}><Link to="/chat" onClick={() => localStorage.setItem("kurukoo-open-conversation", conversation.id)} className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5"><ContextIconTile><MessageCircle className="size-[17px]" /></ContextIconTile><span className="min-w-0 flex-1"><span className="block truncate text-[15px] font-medium group-hover:text-primary">{conversation.title || "Kurukoo conversation"}</span><span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{latest?.content}</span></span><span className="shrink-0 text-[11px] text-muted-foreground">{formatWhen(conversation.updated_at)}</span></Link></li>)}</Rows> : <EmptyState title="No conversation updates yet" body="Your saved Kurukoo conversations will appear here as they develop." /> : null}
+      {tab === "Replies" ? historyLoading ? <Panel className="p-5"><div className="h-4 w-36 animate-pulse rounded bg-elevated" /><div className="mt-3 h-3 w-64 animate-pulse rounded bg-elevated" /></Panel> : historyError ? <EmptyState title="Conversation activity unavailable" body={historyError} /> : replyItems.length ? <Rows>{replyItems.map(({ conversation, latest }) => <li key={conversation.id}><Link to="/chat" onClick={() => localStorage.setItem("kurukoo-open-conversation", conversation.id)} className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5"><ContextIconTile><MessageCircle className="size-[17px]" /></ContextIconTile><span className="min-w-0 flex-1"><span className="block truncate text-[15px] font-medium group-hover:text-primary">{conversation.title || "Kurukoo conversation"}</span><span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{latest?.content}</span></span><span className="shrink-0 text-[11px] text-muted-foreground">{formatWhen(conversation.updated_at)}</span></Link></li>)}</Rows> : <EmptyState title="No conversation updates yet" body="Your conversations stay in Chat. This view only helps you pick up where something changed." /> : null}
 
       {tab === "Following" ? topicFollowingError ? <EmptyState title="Topic updates unavailable" body={topicFollowingError} /> : followedTopics.length ? <Rows>{followedTopics.map((item) => <li key={item.topic.id}><Link to="/topics/$slug" params={{ slug: item.topic.slug }} className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-elevated sm:px-5"><ContextIconTile><Sparkles className="size-[17px]" /></ContextIconTile><span className="min-w-0 flex-1"><span className="block truncate text-[15px] font-medium">{item.topic.title}</span><span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{item.topic.replyCount} moderated {item.topic.replyCount === 1 ? "reply" : "replies"} · Updates {item.relationship.notificationPreference === "muted" ? "off" : "on"}</span></span></Link></li>)}</Rows> : <EmptyState title="No Topic follows yet" body="Follow a Topic to keep its updates attached to your Activity surface." /> : null}
 
