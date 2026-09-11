@@ -60,6 +60,11 @@ export const EXECUTION_NETWORK_PILLARS: readonly ExecutionNetworkPillar[] = [
   P('progressive_disclosure_ux', 'Progressive-disclosure UX', 'implemented', ['chatRouter', 'workSurface', 'activitySurface'], ['economic_request', 'execution'], 'The user sees a simple outcome-first journey while important consent and failure states remain visible.'),
   P('execution_network_effects', 'Execution-network effects', 'plumbed', ['providerNetwork', 'economicRequestService', 'executionPersistence'], ['provider', 'economic_request', 'evidence'], 'Each verified execution can strengthen future matching/trust without becoming an ungrounded claim.'),
   P('provider_consumer_dual_network', 'Provider-consumer dual network', 'plumbed', ['consumerChat', 'providerRoutes', 'economicRequestService'], ['provider', 'economic_request'], 'The consumer and provider sides use the same canonical request/execution objects.'),
+  // ── muse.ai gap-fill pillars ─────────────────────────────────────────
+  P('secure_credential_vault', 'Secure credential vault', 'plumbed', ['secureCredentialStore'], ['credential_vault'], 'User-scoped encrypted credential store the agent cannot see.'),
+  P('one_time_card_protection', 'One-time card + purchase protection', 'plumbed', ['oneTimeCardService'], ['payment_protection'], 'Virtual cards with single-use tokens and purchase protection claims.'),
+  P('isolated_execution_surface', 'Isolated execution surface', 'external_activation_required', ['secureExecutionEnvironment'], ['sandboxed_execution'], 'Sandboxed browser/VM execution surface for agent tasks.'),
+  P('user_audit_timeline', 'User-facing audit timeline', 'implemented', ['executionAuditService'], ['audit_timeline'], 'Single timeline showing what was requested, planned and happened.'),
 ];
 
 export const EXECUTION_NETWORK_CONTRACT_VERSION = '1.0';
@@ -83,5 +88,5 @@ export function validateExecutionNetworkContract(): { valid: boolean; count: num
     seen.add(pillar.id);
     if (!['implemented', 'plumbed', 'external_activation_required'].includes(pillar.state)) invalidStates.push(pillar.id);
   }
-  return { valid: EXECUTION_NETWORK_PILLARS.length === 39 && duplicateIds.length === 0 && invalidStates.length === 0, count: EXECUTION_NETWORK_PILLARS.length, duplicateIds, invalidStates };
+  return { valid: EXECUTION_NETWORK_PILLARS.length === 43 && duplicateIds.length === 0 && invalidStates.length === 0, count: EXECUTION_NETWORK_PILLARS.length, duplicateIds, invalidStates };
 }

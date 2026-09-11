@@ -36,6 +36,8 @@
     "test:feature-flags": "node --import tsx --test test/feature-flags.test.ts",
     "test:compliance": "node --import tsx --test test/compliance.test.ts",
     "test:intent-routing": "node --import tsx --test test/intent-routing.test.ts",
+    "test:secure-services": "node --import tsx --test test/secure-services.test.ts",
+    "test:execution-network-contract": "tsx scripts/test-execution-network-contract.ts",
     "test:conversation-reconciliation": "tsx scripts/test-conversation-reconciliation.ts",
     "test:conversation-cache-isolation": "tsx scripts/test-conversation-cache-isolation.ts",
     "test:universal-conversation-card-boundary": "tsx scripts/test-universal-conversation-card-boundary.ts",
