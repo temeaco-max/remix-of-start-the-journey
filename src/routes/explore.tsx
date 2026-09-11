@@ -1,4 +1,4 @@
-import { ArrowRight, Compass, MapPin, Search, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Compass, MapPin, Search, Sparkles, Users, X } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
@@ -18,6 +18,10 @@ function ExplorePage() {
     if (initialQuery) setQ(initialQuery);
     let cancelled = false; Promise.allSettled([fetchDiscoveryEntities({ radius: 5000 }), fetchCanonicalTopics(6), fetchProactiveFeed()]).then(([d, t, o]) => { if (cancelled) return; if (d.status === "fulfilled") setEntities(d.value); if (t.status === "fulfilled") setTopics(t.value); if (o.status === "fulfilled") setOpportunities(o.value); setLoading(false); }); return () => { cancelled = true; };
   }, []);
+  useEffect(() => {
+    const url = new URL(window.location.href); const current = url.searchParams.get("query")?.trim() ?? ""; const next = q.trim();
+    if (current === next) return; if (next) url.searchParams.set("query", next); else url.searchParams.delete("query"); window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [q]);
   useEffect(() => { if (!term) return; let cancelled = false; const timer = window.setTimeout(() => { setSearching(true); fetchDiscoveryEntities({ radius: 5000, q: term }).then((value) => { if (!cancelled) setEntities(value); }).catch(() => { if (!cancelled) setEntities([]); }).finally(() => { if (!cancelled) setSearching(false); }); }, 250); return () => { cancelled = true; window.clearTimeout(timer); }; }, [term]);
   const matches = useMemo(() => entities.slice(0, 6), [entities]); const featuredGroups = exploreGoalGroups.slice(0, 4);
   return <div className="mx-auto w-full max-w-6xl space-y-10 pb-10">
@@ -25,7 +29,8 @@ function ExplorePage() {
 
     <section className="border-y border-border py-6 md:py-7">
       <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center bg-brand-tint text-brand-ink"><Compass className="size-4.5" /></span><div><p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary">Need a starting point?</p><h2 className="mt-1.5 text-[28px] font-semibold tracking-[-0.04em]">Tell Kurukoo what you are trying to change.</h2><p className="mt-2 max-w-xl text-[12.5px] leading-6 text-muted-foreground">Search when you already have something specific in mind. Otherwise, describe the result you want and let Kurukoo take it from there.</p></div></div>
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input aria-label="Search Explore" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Try “I need a plumber” or “find dinner nearby”…" className="min-h-12 w-full border border-border bg-background pl-10 pr-3 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring" /></div><AskKurukoo prompt={q.trim() ? `Help me with ${q.trim()}.` : "Help me choose what to do next."} /></div>
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input aria-label="Search Explore" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Try “I need a plumber” or “find dinner nearby”…" className="min-h-12 w-full border border-border bg-background pl-10 pr-10 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring" />{q ? <button type="button" aria-label="Clear Explore search" onClick={() => setQ("")} className="absolute right-3 top-1/2 grid size-7 -translate-y-1/2 place-items-center text-muted-foreground hover:text-foreground"><X className="size-4" /></button> : null}</div><AskKurukoo prompt={q.trim() ? `Help me with ${q.trim()}.` : "Help me choose what to do next."} /></div>
+      {q.trim() ? <p className="mt-2 text-[10.5px] text-muted-foreground">This search is shareable from the address bar and stays connected to the same Explore context.</p> : null}
     </section>
 
     {opportunities.length ? <section><div className="mb-3 flex items-end justify-between"><div><p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary">Worth knowing</p><h2 className="mt-1 text-[17px] font-semibold">Things Kurukoo found</h2></div><Link to="/opportunities" className="text-[10.5px] font-medium">See all <ArrowRight className="ml-1 inline size-3.5" /></Link></div><div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-3">{opportunities.slice(0, 3).map((item) => <Link key={item.id} to={item.ctaLink as never} className="bg-surface p-5 transition-colors hover:bg-elevated/45"><p className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-primary">{item.type}</p><h3 className="mt-2 text-[13.5px] font-semibold">{item.title}</h3><p className="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">{item.subtitle}</p><span className="mt-4 inline-flex items-center gap-1 text-[10.5px] font-medium">{item.ctaText}<ArrowRight className="size-3.5" /></span></Link>)}</div></section> : null}
