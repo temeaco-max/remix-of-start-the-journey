@@ -17,7 +17,7 @@ export const Route = createFileRoute("/chat")({
   component: ChatPage,
 });
 
-const suggestions = ["Get me a ride.", "Find me a plumber.", "Book me a dentist.", "Get me some suya.", "Plan my day.", "What am I waiting for?"];
+const suggestions = ["Find someone to fix my phone.", "Get me a ride.", "Find a trusted plumber.", "Order something for me.", "Plan what I need to do today.", "Show me what I'm waiting for."];
 type TopicContext = { id: string; slug: string; title: string; type: string; category: string | null; city: string | null; lga: string | null };
 
 function ChatPage() {
@@ -65,10 +65,11 @@ function ChatPage() {
     {topicContext ? <section className="mt-3 rounded-xl border border-border bg-surface px-3.5 py-2.5"><div className="flex items-center gap-2.5"><span className="grid size-7 shrink-0 place-items-center rounded-lg bg-elevated"><MessageCircle className="size-3.5" /></span><div className="min-w-0 flex-1"><p className="text-[10.5px] text-muted-foreground">From Topic</p><Link to="/topics/$slug" params={{ slug: topicContext.slug }} className="block truncate text-[12.5px] font-medium hover:underline">{topicContext.title}</Link></div><button type="button" onClick={clearTopicContext} aria-label="Clear Topic context" className="grid size-7 place-items-center rounded-lg text-muted-foreground hover:bg-elevated"><X className="size-3.5" /></button></div></section> : null}
 
     {messages.length === 0 ? <div className="flex flex-1 flex-col justify-start pb-10 pt-[clamp(1.5rem,8vh,5rem)]">
-      <p className="text-[12px] font-medium text-muted-foreground">{isSending ? "Working" : "Ready when you are"}</p>
-      <h1 className="mt-1 text-[30px] font-semibold leading-tight tracking-[-0.035em] md:text-[38px]">What do you need done?</h1>
-      <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">Say it plainly.</p>
-      <div className="mt-7 flex flex-wrap gap-2">{suggestions.map((s) => <button key={s} type="button" disabled={isSending} onClick={() => send(s)} className="min-h-9 rounded-full border border-border bg-surface px-3.5 py-2 text-[13.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-elevated hover:text-foreground disabled:opacity-40">{s}</button>)}</div>
+      <p className="text-[12px] font-medium text-primary">Start with the outcome</p>
+      <h1 className="mt-1 text-[30px] font-semibold leading-tight tracking-[-0.035em] md:text-[40px]">What do you need done?</h1>
+      <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted-foreground">Say it naturally. Kurukoo will work out what matters, ask only when it needs to, and keep consequential actions under your control.</p>
+      <div className="mt-6 grid gap-2 rounded-2xl border border-border bg-surface p-3 sm:grid-cols-3"><div className="rounded-xl bg-elevated/60 px-3 py-3"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">1 · Understand</p><p className="mt-1 text-[12px] leading-relaxed">Turn what you said into a clear outcome.</p></div><div className="rounded-xl bg-elevated/60 px-3 py-3"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">2 · Find</p><p className="mt-1 text-[12px] leading-relaxed">Use available providers, offers and evidence.</p></div><div className="rounded-xl bg-elevated/60 px-3 py-3"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">3 · Do</p><p className="mt-1 text-[12px] leading-relaxed">Ask before consequential actions and show what happened.</p></div></div>
+      <div className="mt-6 flex flex-wrap gap-2">{suggestions.map((s) => <button key={s} type="button" disabled={isSending} onClick={() => send(s)} className="min-h-9 rounded-full border border-border bg-surface px-3.5 py-2 text-[13px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-elevated hover:text-foreground disabled:opacity-40">{s}</button>)}</div>
     </div> : <div className="flex-1 space-y-5 py-4">
       {messages.map((m) => <Message key={m.id} message={m} onAction={(action) => { void send(action); }} />)}
       {active.length > 0 ? <section aria-label="In progress" className="rounded-2xl border border-border bg-surface px-4 py-4"><div className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[var(--color-success)]" /><p className="text-[12px] font-medium">Working</p></div><ul className="mt-3 space-y-2">{active.map((w) => <li key={w.id} className="flex items-center justify-between gap-4 text-[13.5px]"><Link to="/work/$workId" params={{ workId: w.id }} className="truncate font-medium hover:underline">{w.title}</Link><span className="shrink-0 text-[12px] text-muted-foreground">{w.updated}</span></li>)}</ul></section> : null}
