@@ -5,6 +5,7 @@ import { actionClass } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
 
 export type RoleLandingProps = {
+  eyebrow?: string;
   title: string;
   intro: string;
   whatKurukooIs: string;
