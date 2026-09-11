@@ -12,7 +12,48 @@ export type MemoryNote = { id: string; label: string; value: string; source: str
 type State = { messages: Message[]; work: WorkItem[]; notifications: NotificationItem[]; contacts: Contact[]; memory: MemoryNote[]; isSending: boolean; isLoadingHistory: boolean; lastError: string | null; send: (text: string) => void; loadConversation: (id: string) => Promise<void>; advance: (id: string) => void; confirm: (id: string) => void; markRead: (id: string) => void };
 const KurukooContext = createContext<State | null>(null);
 const uid = () => Math.random().toString(36).slice(2, 10);
-function reply(text: string): { answer: string; work?: WorkItem; cardData?: MessageCardData } { const t = text.toLowerCase(); const asks = /find|book|repair|fix|need|get me|order|arrange|call|hire/.test(t); if (/what am i waiting for|status|show me what/.test(t)) return { answer: "Here's where everything stands right now.", cardData: { type: "request_status", title: "Current work", status: "ready", body: "Open Work to follow each request from discovery through completion." } }; if (asks) { const ride = /ride|taxi|transport|driver/.test(t); const id = uid(); const work: WorkItem = { id, title: text.replace(/^\s*(please\s+)?/i, "").replace(/\.$/, ""), stage: "understanding", detail: "Reading your request and lining up suitable options.", updated: "just now", steps: [{ label: "Understand the request", done: true }, { label: "Reach suitable people", done: false }, { label: "Bring back options", done: false }, { label: "Confirm with you", done: false }] }; const cardData: MessageCardData = ride ? { type: "request", requestId: id, title: "Ride request", status: "awaiting_match", skill: "ride", pickup: "Your pickup point", destination: "Your destination", body: "Finding suitable ride options." } : { type: "request", requestId: id, title: work.title, status: "awaiting_match", skill: "service", body: "Finding suitable options." }; return { answer: "On it.", work, cardData }; } return { answer: "Tell me what you want done and I’ll take it from there.", cardData: { type: "action", title: "What should I do?", options: ["Get me a ride", "Find a provider", "Order something", "Track a request"] } }; }
+
+function cleanTitle(text: string) { return text.replace(/^\s*(please\s+)?/i, "").replace(/[.!?]+$/, "").trim(); }
+
+function reply(text: string): { answer: string; work?: WorkItem; cardData?: MessageCardData } {
+  const t = text.toLowerCase();
+  const asks = /find|book|repair|fix|need|get me|order|arrange|call|hire|help me/.test(t);
+  if (/what am i waiting for|status|show me what|what are you doing/.test(t)) return {
+    answer: "Here's where everything stands right now.",
+    cardData: { type: "request_status", title: "Current work", status: "ready", body: "Open Work to follow each request from discovery through completion." },
+  };
+  if (/explain|how does this work|how do you work/.test(t)) return {
+    answer: "Kurukoo turns a plain-language request into a visible piece of work. It understands what you mean, finds or coordinates suitable options when connected evidence is available, asks before consequential actions, then keeps the outcome here.",
+    cardData: { type: "action", title: "The Kurukoo flow", body: "Tell → Understand → Find → Choose → Approve → Do → Show proof → Done", options: ["Tell Kurukoo what I need", "Open Work"] },
+  };
+  if (asks) {
+    const ride = /ride|taxi|transport|driver/.test(t);
+    const id = uid();
+    const title = cleanTitle(text);
+    const work: WorkItem = {
+      id,
+      title,
+      stage: "understanding",
+      detail: "Request received. Kurukoo is ready to clarify the outcome and find a supported route.",
+      updated: "just now",
+      steps: [
+        { label: "Understand the request", done: true },
+        { label: "Find or coordinate suitable options", done: false },
+        { label: "Review the next step with you", done: false },
+        { label: "Complete and show the outcome", done: false },
+      ],
+    };
+    const cardData: MessageCardData = ride
+      ? { type: "request", requestId: id, title: "Ride request", status: "understanding", skill: "ride", body: "The preview has captured the request. Live provider matching requires a connected source of current provider evidence.", pickup: "Not provided", destination: "Not provided", evidence: "No live provider evidence in preview", options: ["Tell Kurukoo my pickup and destination", "Open this request"] }
+      : { type: "request", requestId: id, title, status: "understanding", skill: "service", body: "The preview has captured the request. Kurukoo will only present providers or offers when connected evidence supports them.", evidence: "No live provider evidence in preview", options: ["Add more details", "Open this request"] };
+    return { answer: "I’ve got the job. Before I claim I can fulfil it, I’ll make the missing context and available evidence clear.", work, cardData };
+  }
+  return {
+    answer: "Tell me the outcome you want, in your own words. You don't need to know the right category first.",
+    cardData: { type: "action", title: "Start with the outcome", body: "Kurukoo can help with services, products, places, mobility, repairs, coordination and other supported real-world requests.", options: ["Find me a trusted provider", "Get me a ride", "Order something", "Help me fix something"] },
+  };
+}
+
 function mapHistoryMessages(input: Array<{ id: number; sender: string; content: string; card_data?: Record<string, unknown> | null; cardData?: Record<string, unknown> | null; metadata?: string | Record<string, unknown> | null }>): Message[] { return input.filter((item) => item.sender === "user" || item.sender === "assistant").map((item) => { let metadata: Record<string, unknown> | null = null; if (item.metadata && typeof item.metadata === "object") metadata = item.metadata; if (typeof item.metadata === "string") { try { const parsed = JSON.parse(item.metadata); if (parsed && typeof parsed === "object") metadata = parsed; } catch {} } return { id: String(item.id), role: item.sender === "user" ? "you" : "kurukoo", text: item.content, cardData: item.card_data ?? item.cardData ?? (metadata?.["cardData"] as Record<string, unknown> | undefined) ?? null }; }); }
 function mapEconomicRequestToWork(item: EconomicRequest): WorkItem { const req = item.requirements ?? {}; const requestLabel = Object.values(req).filter((v) => typeof v === "string" && v.trim()).slice(0, 2).join(" · "); const labels: Record<string, string> = { requested: "Request received", awaiting_match: "Finding suitable options", partially_matched: "Checking available options", matched: "Options found", quoting: "Getting a quote", quoted: "Quote ready", awaiting_confirmation: "Needs your confirmation", reserved: "Reserved", payment_pending: "Payment needs review", paid: "Payment confirmed", in_fulfillment: "In fulfilment", fulfilled: "Ready to complete", completed: "Completed", cancelled: "Cancelled", disputed: "Under review", failed: "Needs attention", abandoned: "Expired" }; const stage: WorkStage = ["completed", "cancelled", "abandoned"].includes(item.status) ? "done" : ["awaiting_confirmation", "payment_pending", "quoted"].includes(item.status) ? "needs_you" : ["requested", "awaiting_match", "partially_matched"].includes(item.status) ? "understanding" : "working"; return { id: item.id, title: requestLabel ? item.skill.replace(/[_-]/g, " ") + " · " + requestLabel : item.skill.replace(/[_-]/g, " "), stage, detail: labels[item.status] ?? item.status.replace(/[_-]/g, " "), updated: item.updated_at ? new Date(item.updated_at).toLocaleString() : "recently", steps: [{ label: "Understand the request", done: item.status !== "requested" }, { label: "Find or coordinate suitable options", done: !["requested", "awaiting_match", "partially_matched"].includes(item.status) }, { label: "Review quote or next step", done: !["quoting", "matched"].includes(item.status) }, { label: "Confirm and complete", done: ["paid", "in_fulfillment", "fulfilled", "completed"].includes(item.status) }] }; }
 function mapNotifications(input: Array<{ id: string | number; title?: string | null; body?: string | null; createdAt?: string | null; type?: string | null; read?: boolean; readAt?: string | null }>): NotificationItem[] { return input.map((item) => ({ id: String(item.id), title: item.title ?? "Kurukoo update", body: item.body ?? "", when: item.createdAt ? new Date(item.createdAt).toLocaleString() : "Recently", needsConfirmation: ["approval", "confirmation"].some((term) => String(item.type ?? "").includes(term)), read: Boolean(item.read || item.readAt) })); }
