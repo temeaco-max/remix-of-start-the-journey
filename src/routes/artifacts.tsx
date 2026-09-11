@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, FileText, FolderOpen, Link2, MessageSquare, Share2, Download } from "lucide-react";
+import { ArrowUpRight, FileText, FolderOpen, Link2, MessageSquare } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
