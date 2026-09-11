@@ -5,7 +5,7 @@ import { actionClass } from "@/components/kurukoo/primitives";
 import { Badge } from "@/components/kurukoo/ui";
 import { fetchConnectedResources, revokeConnectedResource, type ConnectedResource } from "@/lib/kurukoo-api";
 import { activateConnectedResource, issueConnectionChallenge, registerConnectedResource, type ConnectResourceKind, type ConnectionPairing } from "@/lib/kurukoo-connect";
-import { getIntegration, integrations } from "@/lib/integration-catalog";
+import { getIntegration } from "@/lib/integration-catalog";
 import { getIntegrationStatus, revokeIntegrationConnection, startIntegrationConnection, type IntegrationConnectionState } from "@/lib/kurukoo-integrations";
 
 export const Route = createFileRoute("/connect")({
@@ -48,10 +48,7 @@ function Pairing({ resource, pairing, onDone }: { resource: ConnectedResource; p
 }
 
 function ConnectPage() {
-  const [states, setStates] = useState<Record<string, IntegrationConnectionState>>({});
-  const [resources, setResources] = useState<ConnectedResource[]>([]);
-  const [pairing, setPairing] = useState<{ resource: ConnectedResource; pairing: ConnectionPairing } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [states, setStates] = useState<Record<string, IntegrationConnectionState>>({}); const [resources, setResources] = useState<ConnectedResource[]>([]); const [pairing, setPairing] = useState<{ resource: ConnectedResource; pairing: ConnectionPairing } | null>(null); const [loading, setLoading] = useState(true);
   async function refresh() { setLoading(true); const next: Record<string, IntegrationConnectionState> = {}; await Promise.all(managedSlugs.map(async (slug) => { const integration = getIntegration(slug)!; try { next[slug] = await getIntegrationStatus(integration); } catch { next[slug] = { configured: false, enabled: false, reason: "Connection status is unavailable for this session." }; } })); setStates(next); try { setResources(await fetchConnectedResources()); } catch { setResources([]); } setLoading(false); }
   useEffect(() => { void refresh(); }, []);
   return <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
