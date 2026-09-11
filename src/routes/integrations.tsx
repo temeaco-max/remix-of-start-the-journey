@@ -1,17 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, Plus, Search, ShieldCheck, X } from "lucide-react";
+import { ExternalLink, Plus, Search, ShieldCheck, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { FAQSection } from "@/components/kurukoo/faq-section";
 import { actionClass } from "@/components/kurukoo/primitives";
 import { getKurukooAuthState } from "@/lib/kurukoo-auth";
-import { getIntegration, integrationCategories, integrations, type Integration } from "@/lib/integration-catalog";
+import { integrationCategories, integrations, type Integration } from "@/lib/integration-catalog";
 import { getIntegrationStatus, startIntegrationConnection, type IntegrationConnectionState } from "@/lib/kurukoo-integrations";
 
 export const Route = createFileRoute("/integrations")({
-  head: () => ({ meta: [
-    { title: "Integrations — Kurukoo" },
-    { name: "description", content: "Connect the tools, channels and services that can help Kurukoo get a job done." },
-  ] }),
+  head: () => ({ meta: [{ title: "Integrations — Kurukoo" }, { name: "description", content: "Connect the tools, channels and services that can help Kurukoo get a job done." }] }),
   component: IntegrationsPage,
 });
 
@@ -29,7 +26,6 @@ function statusLabel(integration: Integration, state?: IntegrationConnectionStat
 function statusTone(integration: Integration, state?: IntegrationConnectionState) {
   if (integration.status === "native" || state?.connected) return "bg-brand-tint text-brand-ink";
   if (integration.status === "planned") return "bg-elevated text-muted-foreground";
-  if (state?.configured && state?.enabled) return "bg-elevated text-foreground";
   return "bg-elevated text-muted-foreground";
 }
 
@@ -40,12 +36,12 @@ function IntegrationCard({ integration, state, onAdd }: { integration: Integrati
   return <article className="group relative flex min-h-[178px] flex-col rounded-[20px] border border-border bg-surface p-5 transition hover:border-foreground/20 hover:shadow-sm">
     <div className="flex items-start justify-between gap-3">
       <span className="grid size-11 shrink-0 place-items-center rounded-[14px] bg-elevated text-foreground"><Icon className="size-5" /></span>
-      <button type="button" onClick={() => onAdd(integration)} disabled={disabled} aria-label={`${disabled ? "View" : "Add"} ${integration.name}`} className="grid size-9 place-items-center rounded-full border border-border bg-background text-muted-foreground transition hover:border-foreground/30 hover:text-foreground disabled:cursor-default disabled:opacity-60">
+      <button type="button" onClick={() => onAdd(integration)} aria-label={`${disabled ? "View" : "Add"} ${integration.name}`} className="grid size-9 place-items-center rounded-full border border-border bg-background text-muted-foreground transition hover:border-foreground/30 hover:text-foreground">
         {disabled ? <ExternalLink className="size-4" /> : connected ? <span className="text-[10px] font-semibold">✓</span> : <Plus className="size-4" />}
       </button>
     </div>
     <div className="mt-4 flex-1">
-      <div className="flex flex-wrap items-center gap-2"><h3 className="text-[14.5px] font-semibold tracking-[-0.01em]">{integration.name}</h3><span className={`rounded-full px-2 py-1 text-[9px] font-medium ${statusTone(integration, state)}`}>{statusLabel(integration, state)}</span></div>
+      <div className="flex flex-wrap items-center gap-2"><h3 className="text-[14.5px] font-semibold tracking-[-0.01em]"><Link to="/integrations/$integrationId" params={{ integrationId: integration.slug }} className="hover:underline">{integration.name}</Link></h3><span className={`rounded-full px-2 py-1 text-[9px] font-medium ${statusTone(integration, state)}`}>{statusLabel(integration, state)}</span></div>
       <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">{integration.description}</p>
     </div>
     <div className="mt-4 flex flex-wrap gap-1.5">{integration.capabilities.slice(0, 3).map((capability) => <span key={capability} className="rounded-full bg-elevated/70 px-2 py-1 text-[9px] text-muted-foreground">{capability}</span>)}</div>
@@ -80,7 +76,7 @@ function IntegrationsPage() {
     let cancelled = false;
     const liveIntegrations = integrations.filter((integration) => integration.status === "available" && integration.endpoint);
     void Promise.all(liveIntegrations.map(async (integration) => {
-      try { const state = await getIntegrationStatus(integration); if (!cancelled) setStates((current) => ({ ...current, [integration.slug]: state })); } catch { /* Unavailable deployments stay visibly unconnected. */ }
+      try { const state = await getIntegrationStatus(integration); if (!cancelled) setStates((current) => ({ ...current, [integration.slug]: state })); } catch { /* unavailable deployments remain visibly unconnected */ }
     }));
     return () => { cancelled = true; };
   }, []);
@@ -105,45 +101,14 @@ function IntegrationsPage() {
       const result = await startIntegrationConnection(integration);
       if (result.authorizationUrl) setModal({ integration, status, authorizationUrl: result.authorizationUrl });
       else setModal({ integration, status, message: "The provider did not return an authorization link." });
-    } catch (error) {
-      setModal({ integration, status: states[integration.slug], message: error instanceof Error ? error.message : "The connection could not be started." });
-    }
+    } catch (error) { setModal({ integration, status: states[integration.slug], message: error instanceof Error ? error.message : "The connection could not be started." }); }
   }
 
   return <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
-    <header className="max-w-3xl">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">Integrations</p>
-      <h1 className="mt-2 font-serif text-[40px] leading-[1.02] tracking-[-0.045em] md:text-[52px]">Connect the tools you already use</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-7 text-muted-foreground">Kurukoo can connect supported services and resources so authorised context can help get a job done. Connections are scoped, visible and under your control. Bring your tools into the flow.</p>
-      <div className="mt-5 flex flex-wrap gap-2"><Link to="/connect" className={actionClass("primary")}>Manage connections</Link><Link to="/chat" className={actionClass()}>Use Kurukoo</Link></div>
-    </header>
-
-    <section aria-label="Integration directory" className="space-y-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Directory</p><h2 className="mt-1.5 font-serif text-[29px] tracking-[-0.035em]">Add what Kurukoo needs</h2></div>
-        <label className="flex h-10 w-full max-w-sm items-center gap-2 rounded-xl border border-border bg-surface px-3"><Search className="size-4 text-muted-foreground" /><span className="sr-only">Search integrations</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search integrations" className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-muted-foreground" /></label>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Integration categories">
-        {["All", ...integrationCategories].map((item) => <button key={item} type="button" role="tab" aria-selected={category === item} onClick={() => setCategory(item as typeof category)} className={`whitespace-nowrap rounded-full px-3 py-2 text-[10.5px] font-medium ${category === item ? "bg-foreground text-background" : "bg-elevated text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
-      </div>
-      {integrationCategories.map((group) => {
-        const items = filtered.filter((integration) => integration.category === group);
-        if (!items.length) return null;
-        return <section key={group} aria-labelledby={`integration-group-${group}`}><div className="mb-3 flex items-end justify-between gap-3"><div><h3 id={`integration-group-${group}`} className="text-[14px] font-semibold">{group}</h3><p className="mt-0.5 text-[10.5px] text-muted-foreground">{group === "Built into Kurukoo" ? "No external account required." : group === "AI assistants" ? "External conversation surfaces for the same Kurukoo OS." : "Connect only what a request needs."}</p></div></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{items.map((integration) => <IntegrationCard key={integration.slug} integration={integration} state={states[integration.slug]} onAdd={openAdd} />)}</div></section>;
-      })}
-    </section>
-
-    <section className="rounded-[22px] border border-border bg-surface p-5 md:p-6">
-      <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink"><ShieldCheck className="size-5" /></span><div><h2 className="text-[15px] font-semibold">You stay in control</h2><p className="mt-1.5 max-w-3xl text-[12.5px] leading-relaxed text-muted-foreground">A connection is a defined doorway into a service. It does not mean unlimited access or automatic permission to act. Important external actions follow the relevant approval and evidence flow.</p></div></div>
-    </section>
-
-    <FAQSection items={[
-      { question: "What happens when I add an integration?", answer: "Kurukoo either opens the relevant provider authorization flow or takes you to the supported setup for that source. You review the provider's permissions before approving access." },
-      { question: "Does connecting a service give Kurukoo unlimited access?", answer: "No. A connection only exposes the scope supported and authorised by the service and account. Kurukoo does not infer access that the provider has not granted." },
-      { question: "Can I connect more than one source?", answer: "Yes, where the provider supports it. Connected sources remain separate and are only used when the relevant request can use them." },
-      { question: "Can I disconnect a service?", answer: "Yes. Open Connections to review active sources and disconnect supported services." },
-      { question: "Why are some integrations marked coming soon?", answer: "Kurukoo keeps the directory complete without pretending a provider connection is live. A source is only shown as connected after its actual authorization or setup flow confirms it." },
-    ]} />
+    <header className="max-w-3xl"><p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">Integrations</p><h1 className="mt-2 font-serif text-[40px] leading-[1.02] tracking-[-0.045em] md:text-[52px]">Connect the tools you already use</h1><p className="mt-4 max-w-2xl text-[15px] leading-7 text-muted-foreground">Kurukoo can connect supported services and resources so authorised context can help get a job done. Connections are scoped, visible and under your control. Bring your tools into the flow.</p><div className="mt-5 flex flex-wrap gap-2"><Link to="/connect" className={actionClass("primary")}>Manage connections</Link><Link to="/chat" className={actionClass()}>Use Kurukoo</Link></div></header>
+    <section aria-label="Integration directory" className="space-y-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Directory</p><h2 className="mt-1.5 font-serif text-[29px] tracking-[-0.035em]">Add what Kurukoo needs</h2></div><label className="flex h-10 w-full max-w-sm items-center gap-2 rounded-xl border border-border bg-surface px-3"><Search className="size-4 text-muted-foreground" /><span className="sr-only">Search integrations</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search integrations" className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-muted-foreground" /></label></div><div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Integration categories">{["All", ...integrationCategories].map((item) => <button key={item} type="button" role="tab" aria-selected={category === item} onClick={() => setCategory(item as typeof category)} className={`whitespace-nowrap rounded-full px-3 py-2 text-[10.5px] font-medium ${category === item ? "bg-foreground text-background" : "bg-elevated text-muted-foreground hover:text-foreground"}`}>{item}</button>)}</div>{integrationCategories.map((group) => { const items = filtered.filter((integration) => integration.category === group); if (!items.length) return null; return <section key={group} aria-labelledby={`integration-group-${group}`}><div className="mb-3"><h3 id={`integration-group-${group}`} className="text-[14px] font-semibold">{group}</h3><p className="mt-0.5 text-[10.5px] text-muted-foreground">{group === "Built into Kurukoo" ? "No external account required." : group === "AI assistants" ? "External conversation surfaces for the same Kurukoo OS." : "Connect only what a request needs."}</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{items.map((integration) => <IntegrationCard key={integration.slug} integration={integration} state={states[integration.slug]} onAdd={openAdd} />)}</div></section>; })}</section>
+    <section className="rounded-[22px] border border-border bg-surface p-5 md:p-6"><div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink"><ShieldCheck className="size-5" /></span><div><h2 className="text-[15px] font-semibold">You stay in control</h2><p className="mt-1.5 max-w-3xl text-[12.5px] leading-relaxed text-muted-foreground">A connection is a defined doorway into a service. It does not mean unlimited access or automatic permission to act. Important external actions follow the relevant approval and evidence flow.</p></div></div></section>
+    <FAQSection items={[{ question: "What happens when I add an integration?", answer: "Kurukoo either opens the relevant provider authorization flow or takes you to the supported setup for that source. You review the provider's permissions before approving access." }, { question: "Does connecting a service give Kurukoo unlimited access?", answer: "No. A connection only exposes the scope supported and authorised by the service and account. Kurukoo does not infer access that the provider has not granted." }, { question: "Can I connect more than one source?", answer: "Yes, where the provider supports it. Connected sources remain separate and are only used when the relevant request can use them." }, { question: "Can I disconnect a service?", answer: "Yes. Open Connections to review active sources and disconnect supported services." }, { question: "Why are some integrations marked coming soon?", answer: "Kurukoo keeps the directory complete without pretending a provider connection is live. A source is only shown as connected after its actual authorization or setup flow confirms it." }]} />
     <ConnectModal modal={modal} onClose={() => setModal(null)} />
   </div>;
 }
