@@ -43,8 +43,14 @@ function ChatPage() {
   const [historyItems, setHistoryItems] = useState<Array<{ id: string; title?: string | null; updated_at?: string; channel?: string }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [topicContext, setTopicContext] = useState<TopicContext | null>(null);
-  const latestRequest = [...messages].reverse().find((message) => message.cardData?.type === "request");
-  const discoveryQuery = latestRequest?.cardData ? String(latestRequest.cardData.title ?? latestRequest.cardData.skill ?? "") : "";
+  const latestRequestIndex = [...messages].map((message, index) => ({ message, index })).reverse().find(({ message }) => {
+    const card = message.cardData;
+    if (!card) return false;
+    const type = String(card.type ?? "").toLowerCase();
+    return ["request", "agentic_storefront", "provider_match", "provider_card", "offer", "offer_card", "quote", "quote_card"].includes(type) && Boolean(card.requestId || ["request", "agentic_storefront", "offer", "offer_card", "quote", "quote_card"].includes(type));
+  });
+  const latestRequest = latestRequestIndex?.message;
+  const discoveryQuery = latestRequestIndex ? [...messages].slice(0, latestRequestIndex.index).reverse().find((message) => message.role === "you")?.text?.trim() || String(latestRequest?.cardData?.objective ?? latestRequest?.cardData?.product ?? latestRequest?.cardData?.skill ?? "") : "";
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search).get("query")?.trim() ?? "";
