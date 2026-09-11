@@ -39,14 +39,13 @@ export function HomePage() {
   const active = work.filter((item) => item.stage !== "done");
   const attention = active.filter((item) => item.stage === "needs_you").slice(0, 3);
   const moving = active.filter((item) => item.stage !== "needs_you").slice(0, 3);
-  const firstName = "you";
 
   return <div className="min-w-0 space-y-8 pb-8">
     <section aria-labelledby="home-hero-title" className="relative overflow-hidden pt-5 md:pt-9">
       <HomeHorizonIllustration />
       <div className="relative z-10 mx-auto max-w-4xl text-center">
         <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-1.5 text-[11px] text-muted-foreground shadow-[var(--shadow-soft)] backdrop-blur"><span className="grid size-5 place-items-center rounded-full bg-elevated"><Sparkles className="size-3 text-primary" /></span>Kurukoo is ready</div>
-        <h1 id="home-hero-title" className="mt-5 font-serif text-[42px] leading-[.98] tracking-[-0.055em] md:text-[60px]">Tell Kurukoo what needs doing.</h1>
+        <h1 id="home-hero-title" className="mt-5 text-[42px] font-semibold leading-[.98] tracking-[-0.055em] md:text-[60px]">Tell Kurukoo what needs doing.</h1>
         <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground md:text-[16px]">You say what you want. Kurukoo works out what matters, finds the best route, and keeps you in control when an action needs your approval.</p>
         <div className="mx-auto mt-6 max-w-3xl text-left"><Composer onSend={send} placeholder="What would you like me to get done?" /></div>
         <div className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2 text-[11.5px] text-muted-foreground"><span>Personal</span><span>Digital</span><span>Real-world</span><span>Always show me what happened</span></div>
