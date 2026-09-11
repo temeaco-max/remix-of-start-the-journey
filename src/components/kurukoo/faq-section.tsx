@@ -24,7 +24,15 @@ export function FAQSection({ title = "Frequently asked questions", items, pagePa
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [pagePath]);
-  const resolvedItems = canonicalItems ?? items;
+
+  const resolvedItems = (() => {
+    if (!canonicalItems?.length) return items;
+    const managedByQuestion = new Map(canonicalItems.map((item) => [item.question.toLowerCase(), item]));
+    const merged = items.map((item) => managedByQuestion.get(item.question.toLowerCase()) ?? item);
+    const fallbackQuestions = new Set(items.map((item) => item.question.toLowerCase()));
+    return [...merged, ...canonicalItems.filter((item) => !fallbackQuestions.has(item.question.toLowerCase()))];
+  })();
+
   if (!resolvedItems.length && !loading) return null;
   return (
     <section className="rounded-[22px] border border-border bg-surface p-5 md:p-6" aria-labelledby="faq-heading">
@@ -32,7 +40,7 @@ export function FAQSection({ title = "Frequently asked questions", items, pagePa
         <div className="max-w-2xl">
           <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Questions</p>
           <h2 id="faq-heading" className="mt-1.5 font-serif text-[27px] leading-[1.05] tracking-[-0.035em] md:text-[31px]">{title}</h2>
-          {pagePath ? <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">Answers are maintained in Kurukoo’s content system.</p> : null}
+          {pagePath ? <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">Answers are maintained in Kurukoo’s content system when managed content is available; built-in role answers keep the page useful when it is not.</p> : null}
         </div>
         {loading ? <RefreshCw className="mt-1 size-4 shrink-0 animate-spin text-muted-foreground" aria-label="Loading managed FAQs" /> : null}
       </div>
