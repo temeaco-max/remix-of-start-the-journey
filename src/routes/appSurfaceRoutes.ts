@@ -9,6 +9,7 @@ import { getCanonicalDiscoverablePlatformFeatures } from '../services/canonicalP
 import { getPageContentContract } from '../services/pageContentContracts.js';
 import { getProfile } from '../services/memoryProfile.js';
 import economicDispatchRoutes from './economicDispatchRoutes.js';
+import executionOverviewRoutes from './executionOverviewRoutes.js';
 
 const router = express.Router();
 
@@ -59,9 +60,7 @@ function renderApp(req: express.Request, res: express.Response, section = 'desk'
   const integrations = getExternalIntegrationReadiness();
   const enabledIntegrations = integrations.filter((item: any) => item.implementation?.state === 'IMPLEMENTED' || item.implementation?.implemented === true).length;
   const content = getPageContentContract(section);
-  const canonicalPath = requestedPath && cleanCanonicalSections[requestedPath] === section && requestedPath.startsWith('/')
-    ? (canonicalPathBySection[section] ?? requestedPath)
-    : (canonicalPathBySection[section] ?? '/home');
+  const canonicalPath = requestedPath && cleanCanonicalSections[requestedPath] === section && requestedPath.startsWith('/') ? (canonicalPathBySection[section] ?? requestedPath) : (canonicalPathBySection[section] ?? '/home');
   return res.render('app', { selected, section, canonicalPath, displayName: authReq.user.name || authReq.user.phone, phone: authReq.user.phone, surfaces, readiness, integrations, enabledIntegrations, integrationCount: integrations.length, visualFeatures: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')), contentContract: content }, (error, html) => {
     if (error) return res.status(500).send('Unable to render application surface');
     const assets = screenAssets(section);
@@ -82,19 +81,14 @@ router.get('/api/memory/profile', optionalAuthenticateUser, async (req: express.
 
 router.get('/api/platform/feature-visuals', (_req, res) => res.json({ success: true, features: getCanonicalDiscoverablePlatformFeatures().filter(feature => !feature.audience.includes('admin')) }));
 router.use('/api', economicDispatchRoutes);
+router.use('/api', executionOverviewRoutes);
 
 router.get('/features', (_req, res) => res.render('features'));
 router.get('/developers', (_req, res) => res.render('developers'));
 router.get('/developers/api', (_req, res) => res.render('developers'));
 
-router.get('/chat/:conversationId', (req, res) => {
-  res.setHeader('X-Kurukoo-Conversation-Id', String(req.params.conversationId));
-  return res.redirect(302, `/chat?conversationId=${encodeURIComponent(req.params.conversationId)}`);
-});
-router.get('/share/:shareId', (req, res) => {
-  res.setHeader('X-Kurukoo-Share-Id', String(req.params.shareId));
-  return res.redirect(302, `/chat?shareId=${encodeURIComponent(req.params.shareId)}`);
-});
+router.get('/chat/:conversationId', (req, res) => { res.setHeader('X-Kurukoo-Conversation-Id', String(req.params.conversationId)); return res.redirect(302, `/chat?conversationId=${encodeURIComponent(req.params.conversationId)}`); });
+router.get('/share/:shareId', (req, res) => { res.setHeader('X-Kurukoo-Share-Id', String(req.params.shareId)); return res.redirect(302, `/chat?shareId=${encodeURIComponent(req.params.shareId)}`); });
 
 for (const [pathname, section] of Object.entries(cleanCanonicalSections)) {
   router.get(pathname, optionalAuthenticateUser, (req, res, next) => {
