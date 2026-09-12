@@ -4,8 +4,8 @@ import { WorkspaceHome } from "@/components/kurukoo/workspace-home";
 export const Route = createFileRoute("/workspace")({
   head: () => ({
     meta: [
-      { title: "Workspace — Kurukoo" },
-      { name: "description", content: "Your personal Kurukoo workspace for getting useful things done." },
+      { title: "Perch — Kurukoo" },
+      { name: "description", content: "Your personal Perch for getting useful things done with Kurukoo." },
     ],
   }),
   component: WorkspacePage,
