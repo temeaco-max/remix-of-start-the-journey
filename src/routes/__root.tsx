@@ -4,7 +4,7 @@
 // `/workspace` is the canonical authenticated personal surface; its product name is Perch.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, useRouter, useRouterState, HeadContent, Scripts } from "@tanstack/react-router";
-import { Compass, MapPin, MoreHorizontal, PanelsTopLeft, Sparkles } from "lucide-react";
+import { Compass, Home, MapPin, MoreHorizontal, PanelsTopLeft, Sparkles } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
