@@ -6,7 +6,7 @@ import type { AuthMode } from "@/components/kurukoo/auth";
 function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) { return <span aria-hidden="true" className={`relative inline-block shrink-0 ${className}`}><MessageCircle className="absolute inset-0 size-full" strokeWidth={1.8}/><span className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[1px]"><i className="h-[5px] w-px rounded-full bg-current"/><i className="h-[8px] w-px rounded-full bg-current"/><i className="h-[5px] w-px rounded-full bg-current"/></span></span>; }
 const items = [
   ["/", "Home", Home],
-  ["/chat", "Chat / Voice", ChatVoiceIcon],
+  ["/chat", "Chat / Voice", MessageCircle],
   ["/discover", "Discover", Compass],
   ["/discover", "Nearby", MapPin],
   ["/topics", "Topics", Tags],
