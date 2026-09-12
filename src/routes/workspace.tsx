@@ -1,16 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { WorkspaceHome } from "@/components/kurukoo/workspace-home";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/workspace")({
+  beforeLoad: () => { throw redirect({ to: "/perch" }); },
   head: () => ({
     meta: [
       { title: "Perch — Kurukoo" },
       { name: "description", content: "Your personal Perch for getting useful things done with Kurukoo." },
     ],
   }),
-  component: WorkspacePage,
 });
-
-function WorkspacePage() {
-  return <WorkspaceHome />;
-}
