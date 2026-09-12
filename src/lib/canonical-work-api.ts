@@ -20,6 +20,16 @@ export async function approveEconomicRequest(id: string) {
   return payload.request;
 }
 
+export async function lockEconomicEscrow(id: string) {
+  const payload = await readJson<{ success: boolean; request?: EconomicRequest; message?: string }>(`/api/economic-requests/${encodeURIComponent(id)}/escrow`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (payload.request) return payload.request;
+  throw new Error(payload.message || "Payment could not be authorised for this request.");
+}
+
 export async function completeEconomicRequest(id: string, evidence?: Record<string, unknown>) {
   const payload = await readJson<{ success: boolean; request?: EconomicRequest }>(`/api/economic-requests/${encodeURIComponent(id)}/complete`, {
     method: "POST",
