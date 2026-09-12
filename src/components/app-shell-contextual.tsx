@@ -15,7 +15,7 @@ export function EmptyState({ title, body, description }: { title: string; body?:
 function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) { return <span aria-hidden="true" className={`relative inline-block shrink-0 ${className}`}><MessageCircle className="absolute inset-0 size-full" strokeWidth={1.8}/><span className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[1px]"><i className="h-[5px] w-px rounded-full bg-current"/><i className="h-[8px] w-px rounded-full bg-current"/><i className="h-[5px] w-px rounded-full bg-current"/></span></span>; }
 const nav = [
  { to: "/perch", label: "Your Perch", icon: LayoutDashboard, color: "text-sky-500" }, { to: "/chat", label: "Chat / Voice", icon: MessageCircle, color: "text-violet-500" },
- { to: "/work", label: "Actions", icon: ListChecks, color: "text-emerald-500" }, { to: "/explore", label: "Explore", icon: Compass, color: "text-amber-500" },
+ { to: "/work", label: "Work", icon: ListChecks, color: "text-emerald-500" }, { to: "/explore", label: "Explore", icon: Compass, color: "text-amber-500" },
  { to: "/artifacts", label: "Artifacts", icon: Tags, color: "text-rose-500" }, { to: "/connect", label: "Connect", icon: Users, color: "text-cyan-500" },
 ] as const;
 const more = [
