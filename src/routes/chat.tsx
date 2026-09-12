@@ -7,7 +7,7 @@ import { ChatDiscovery } from "@/components/kurukoo/chat-discovery";
 import { fetchChatHistory } from "@/lib/kurukoo-api";
 import { useKurukoo } from "@/lib/kurukoo-store";
 
-export const Route = createFileRoute("/chat")({ head: () => ({ meta: [{ title: "Kurukoo — Your everyday AI" }, { name: "description", content: "Tell Kurukoo what needs doing." }, { name: "robots", content: "noindex" }] }), component: ChatPage });
+export const Route = createFileRoute("/chat")({ head: () => ({ meta: [{ title: "Croon — Kurukoo" }, { name: "description", content: "Talk to Kurukoo and tell it what needs doing." }, { name: "robots", content: "noindex" }] }), component: ChatPage });
 
 const suggestions = ["Get me a ride.", "Find someone to fix my phone.", "Find a trusted plumber.", "Order something for me.", "Plan my day."];
 type TopicContext = { id: string; slug: string; title: string; type: string; category: string | null; city: string | null; lga: string | null };
@@ -76,9 +76,9 @@ function ChatPage() {
   return <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-[1040px] flex-col">
     <header className="sticky top-0 z-20 -mx-3 flex items-center justify-between border-b border-border/70 bg-background/92 px-3 py-3 backdrop-blur-xl md:-mx-5 md:px-5">
       <div className="flex min-w-0 items-center gap-3">
-        <Link to="/workspace" aria-label="Back to Workspace" className="grid size-9 shrink-0 place-items-center rounded-full hover:bg-elevated"><ArrowLeft className="size-[18px]" /></Link>
+        <Link to="/workspace" aria-label="Back to Perch" title="Back to Perch" className="grid size-9 shrink-0 place-items-center rounded-full hover:bg-elevated"><ArrowLeft className="size-[18px]" /></Link>
         <AgentMark active={isSending} />
-        <div className="min-w-0"><div className="flex items-center gap-2"><p className="text-[14px] font-semibold tracking-[-0.01em]">Kurukoo</p><span className="border-l border-border pl-2 text-[9.5px] text-muted-foreground">Your everyday AI</span></div><p className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-muted-foreground"><CircleDot className={`size-2.5 ${isSending ? "animate-pulse text-primary" : "text-[var(--color-success)]"}`} />{isSending ? "Working on it" : isLoadingHistory ? "Getting your context" : "Here when you need me"}</p></div>
+        <div className="min-w-0"><div className="flex items-center gap-2"><p className="text-[14px] font-semibold tracking-[-0.01em]">Croon</p><span className="border-l border-border pl-2 text-[9.5px] text-muted-foreground">Talk to Kurukoo</span></div><p className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-muted-foreground"><CircleDot className={`size-2.5 ${isSending ? "animate-pulse text-primary" : "text-[var(--color-success)]"}`} />{isSending ? "Working on it" : isLoadingHistory ? "Getting your context" : "Here when you need me"}</p></div>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <div className="hidden items-center gap-1.5 border-r border-border pr-3 text-[9.5px] text-muted-foreground sm:flex"><ShieldCheck className="size-3.5 text-primary" /> You stay in control</div>
@@ -90,7 +90,7 @@ function ChatPage() {
 
     {messages.length === 0 ? <main className="flex flex-1 flex-col justify-center pb-10 pt-8 md:pt-[clamp(2rem,11vh,7rem)]">
       <div className="mx-auto w-full max-w-[820px]">
-        <div className="flex items-center gap-3"><AgentMark /><div><p className="text-[12px] font-medium text-primary">Your Kurukoo</p><p className="text-[10.5px] text-muted-foreground">Tell me what you want to get done. I'll work it out with you.</p></div></div>
+        <div className="flex items-center gap-3"><AgentMark /><div><p className="text-[12px] font-medium text-primary">Croon</p><p className="text-[10.5px] text-muted-foreground">Talk to Kurukoo in your own words, by typing or by voice.</p></div></div>
         <h1 className="mt-7 max-w-[780px] text-[42px] font-semibold leading-[1.01] tracking-[-0.055em] md:text-[68px]">What needs doing?</h1>
         <p className="mt-5 max-w-[650px] text-[15px] leading-7 text-muted-foreground">You don't need to know the right service, provider or next step. Start with the outcome. Kurukoo can work through the route, involve you when a decision matters, and show you what actually happened.</p>
         <div className="mt-8 border-y border-border">
@@ -104,7 +104,7 @@ function ChatPage() {
       </div>
       <ActiveWork work={work} />
     </main> : <main className="flex-1 space-y-5 py-5 md:py-7">
-      <div className="mx-auto flex max-w-[820px] items-center gap-2.5 px-1"><AgentMark active={isSending} /><div><p className="text-[11px] font-medium">Kurukoo</p><p className="text-[10px] text-muted-foreground">{isSending ? "Working through this with you" : "I'm here. Keep going."}</p></div></div>
+      <div className="mx-auto flex max-w-[820px] items-center gap-2.5 px-1"><AgentMark active={isSending} /><div><p className="text-[11px] font-medium">Croon</p><p className="text-[10px] text-muted-foreground">{isSending ? "Working through this with you" : "I'm here. Keep going."}</p></div></div>
       <div className="mx-auto max-w-[820px] space-y-5">{messages.map((message) => <Message key={message.id} message={message} onAction={(action) => { void send(action); }} />)}</div>
       {latestRequest ? <ChatDiscovery query={discoveryQuery} onReview={(prompt) => { void send(prompt); }} /> : null}
       <ActiveWork work={work} />
@@ -112,7 +112,7 @@ function ChatPage() {
     </main>}
 
     {lastError ? <p role="alert" className="pb-1 text-center text-[12px] text-destructive">{lastError}</p> : null}
-    <div className="sticky bottom-0 z-10 bg-gradient-to-t from-background via-background to-transparent pb-3 pt-5"><div className="mx-auto max-w-[980px]"><Composer onSend={send} disabled={isSending} initialValue={initialDraft} /></div></div>
+    <div className="sticky bottom-0 z-10 bg-gradient-to-t from-background via-background to-transparent pb-3 pt-5"><div className="mx-auto max-w-[980px]"><p className="mb-2 text-center text-[10.5px] text-muted-foreground">Say “Hey Kurukoo” in voice mode, or type what needs doing.</p><Composer onSend={send} disabled={isSending} initialValue={initialDraft} /></div></div>
 
     {historyOpen ? <div className="fixed inset-0 z-[90] bg-foreground/15 backdrop-blur-[1px]" onClick={() => setHistoryOpen(false)}><aside aria-label="Conversation history" className="absolute bottom-0 left-0 top-0 w-[min(380px,92vw)] border-r border-border bg-surface p-4 shadow-[var(--shadow-lift)]" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Your conversations</p><h2 className="mt-1 text-[18px] font-semibold">History</h2></div><button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close history" className="grid size-9 place-items-center rounded-full hover:bg-elevated"><X className="size-4" /></button></div><p className="mt-2 text-[11px] leading-5 text-muted-foreground">Pick up where you left off. Kurukoo keeps the conversation context so you don't have to start again.</p><div className="mt-4 space-y-1.5">{historyLoading ? <div className="h-16 animate-pulse bg-elevated" /> : historyItems.length ? historyItems.map((item) => <button type="button" key={item.id} onClick={() => { setHistoryOpen(false); void loadConversation(item.id); }} className="w-full border border-border px-3 py-3 text-left hover:bg-elevated"><p className="truncate text-[12px] font-medium">{item.title || "Untitled conversation"}</p><p className="mt-1 text-[10px] text-muted-foreground">{item.channel || "web"}{item.updated_at ? ` · ${new Date(item.updated_at).toLocaleString()}` : ""}</p></button>) : <div className="border border-dashed border-border px-3 py-4 text-[11.5px] text-muted-foreground">No saved conversations yet.</div>}</div></aside></div> : null}
   </div>;
