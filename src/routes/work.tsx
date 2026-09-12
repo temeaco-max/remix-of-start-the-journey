@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle2, Clock3, FileCheck2, LockKeyhole, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock3, FileCheck2, LockKeyhole, MessageCircle, RefreshCw, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchExecutionOverview, type ExecutionOverview } from "@/lib/execution-api";
+import { fetchLiveEconomicRequests } from "@/lib/live-economic-requests";
+import { canonicalWorkItem } from "@/lib/work-projection";
 import { useKurukoo } from "@/lib/kurukoo-store";
+import type { WorkItem } from "@/lib/kurukoo-store";
 
 export const Route = createFileRoute("/work")({
   head: () => ({ meta: [{ title: "Things Kurukoo is taking care of — Kurukoo" }, { name: "description", content: "See what Kurukoo is taking care of, what needs you, and what has been completed." }] }),
@@ -10,10 +13,33 @@ export const Route = createFileRoute("/work")({
 });
 
 function WorkPage() {
-  const { work } = useKurukoo();
+  const { work: localWork } = useKurukoo();
   const [overview, setOverview] = useState<ExecutionOverview | null>(null);
-  useEffect(() => { void fetchExecutionOverview().then(setOverview).catch(() => setOverview(null)); }, []);
+  const [canonicalWork, setCanonicalWork] = useState<WorkItem[] | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
+  async function refreshCanonicalWork() {
+    setRefreshing(true);
+    try {
+      const requests = await fetchLiveEconomicRequests();
+      setCanonicalWork(requests.map(canonicalWorkItem));
+    } catch {
+      setCanonicalWork(null);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshCanonicalWork();
+    void fetchExecutionOverview().then(setOverview).catch(() => setOverview(null));
+    const timer = window.setInterval(() => void refreshCanonicalWork(), 10_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // Once the canonical API is reachable, an empty response is authoritative: it means
+  // there is no server-side work rather than a reason to show stale local/demo state.
+  const work = canonicalWork ?? localWork;
   const active = work.filter((item) => item.stage !== "done");
   const completed = work.filter((item) => item.stage === "done");
   const needsYou = active.filter((item) => item.stage === "needs_you");
@@ -21,9 +47,14 @@ function WorkPage() {
 
   return <div className="min-w-0 pb-12">
     <header className="max-w-3xl border-b border-border pb-8 pt-4 md:pt-7">
-      <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground"><span className="size-1.5 rounded-full bg-[var(--color-success)]" />{active.length ? `${active.length} ${active.length === 1 ? "thing" : "things"} in motion` : "Ready when you are"}</div>
-      <h1 className="mt-3 text-[42px] font-semibold leading-[1] tracking-[-0.055em]">Things Kurukoo is taking care of.</h1>
-      <p className="mt-4 max-w-2xl text-[14px] leading-6 text-muted-foreground">This is the place to look when you want to see what Kurukoo is working on, what needs a decision from you, and what it has actually completed.</p>
+      <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground"><span className="size-1.5 rounded-full bg-[var(--color-success)]" />{active.length ? `${active.length} ${active.length === 1 ? "thing" : "things"} in motion` : "Ready when you are"}{canonicalWork !== null ? <span className="ml-1 text-[10px] text-muted-foreground/70">· live</span> : null}</div>
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="mt-3 text-[42px] font-semibold leading-[1] tracking-[-0.055em]">Things Kurukoo is taking care of.</h1>
+          <p className="mt-4 max-w-2xl text-[14px] leading-6 text-muted-foreground">This is the place to look when you want to see what Kurukoo is working on, what needs a decision from you, and what it has actually completed.</p>
+        </div>
+        <button type="button" onClick={() => void refreshCanonicalWork()} disabled={refreshing} className="hidden shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground sm:inline-flex"> <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} /> {refreshing ? "Refreshing…" : "Refresh"}</button>
+      </div>
     </header>
 
     {needsYou.length ? <section className="border-b border-border py-6"><div className="flex flex-wrap items-center justify-between gap-4"><div><div className="flex items-center gap-2 text-[13px] font-semibold"><LockKeyhole className="size-4 text-primary" />Something needs you</div><p className="mt-1 text-[12px] text-muted-foreground">Kurukoo has reached a consequential step and is waiting for your decision.</p></div><Link to={(`/work/${needsYou[0].id}`) as never} className="inline-flex items-center gap-2 bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground">Review <ArrowRight className="size-3.5" /></Link></div><div className="mt-5 divide-y divide-border border-y border-border">{needsYou.slice(0, 4).map((item) => <Link key={item.id} to={(`/work/${item.id}`) as never} className="flex items-center gap-3 py-3 hover:bg-elevated"><LockKeyhole className="size-4 text-primary" /><span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">{item.title}</span><span className="text-[11px] text-muted-foreground">Needs you</span><ArrowRight className="size-3.5 text-muted-foreground" /></Link>)}</div></section> : null}
