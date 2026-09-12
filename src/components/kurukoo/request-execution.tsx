@@ -1,4 +1,4 @@
-import { Check, Circle, CreditCard, FileCheck2, MapPin, MessageCircle, ShieldCheck, Star, Truck, UserRound, XCircle } from "lucide-react";
+import { Check, Circle, CreditCard, FileCheck2, MapPin, MessageCircle, ShieldCheck, Star, Truck, UserRound, Users, XCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { approveEconomicRequest, broadcastEconomicRequest, cancelEconomicRequest, completeEconomicRequest, confirmDispatchCompletion, lockEconomicEscrow, submitEconomicReview } from "@/lib/canonical-work-api";
