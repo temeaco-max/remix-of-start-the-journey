@@ -17,7 +17,7 @@ export function PageHeader({ title, description, subtitle, eyebrow, action }: { 
 export function EmptyState({ title, body, description }: { title: string; body?: string; description?: string }) { const message = body ?? description; return <div className="rounded-2xl border border-dashed border-border bg-elevated/30 px-5 py-8 text-center"><h2 className="text-[15px] font-semibold">{title}</h2>{message ? <p className="mx-auto mt-1.5 max-w-xl text-[13px] leading-relaxed text-muted-foreground">{message}</p> : null}</div>; }
 function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) { return <span aria-hidden="true" className={`relative inline-block shrink-0 ${className}`}><MessageSquare className="absolute inset-0 size-full" strokeWidth={1.8}/><span className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[1px]"><i className="h-[5px] w-px rounded-full bg-current"/><i className="h-[8px] w-px rounded-full bg-current"/><i className="h-[5px] w-px rounded-full bg-current"/></span></span>; }
 const nav = [
-  { to: "/workspace", label: "Your Perch", icon: LayoutDashboard }, { to: "/chat", label: "Chat / Voice", icon: MessageSquare },
+  { to: "/perch", label: "Your Perch", icon: LayoutDashboard }, { to: "/chat", label: "Chat / Voice", icon: MessageSquare },
   { to: "/explore", label: "Explore", icon: Compass }, { to: "/discover", label: "Nearby", icon: MapPin },
   { to: "/work", label: "Actions", icon: ListChecks }, { to: "/topics", label: "Topics", icon: Tags }, { to: "/activity", label: "Activity", icon: Bell },
 ] as const;
