@@ -1,13 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Brain, CheckCircle2, FileCheck2, MessageCircle, Network, RefreshCw, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { fetchCanonicalMemoryFacts, fetchEconomicCoordination, fetchEconomicExecution, type EconomicCoordination, type EconomicExecution } from "@/lib/kurukoo-api";
+import { fetchCanonicalMemoryFacts, fetchEconomicCoordination, fetchEconomicExecution, type EconomicCoordination, type ExecutionRequest } from "@/lib/kurukoo-api";
 import { fetchTrustOverview, type AuditEntry } from "@/lib/trust-api";
 
 export function ContinuityContext({ requestId, status }: { requestId: string; status: string }) {
   const [memoryCount, setMemoryCount] = useState<number | null>(null);
   const [coordination, setCoordination] = useState<EconomicCoordination | null>(null);
-  const [execution, setExecution] = useState<EconomicExecution | null>(null);
+  const [execution, setExecution] = useState<ExecutionRequest[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [error, setError] = useState(false);
 
@@ -32,7 +32,8 @@ export function ContinuityContext({ requestId, status }: { requestId: string; st
   }, [requestId]);
 
   const participants = coordination?.participants ?? [];
-  const executionState = execution?.status ?? status;
+  const latestExecution = execution[execution.length - 1];
+  const executionState = latestExecution?.status ?? status;
   const normalized = executionState.toLowerCase();
   const recoveryNeeded = /failed|blocked|error|cancelled|expired/.test(normalized);
   const participantLabel = useMemo(() => {
