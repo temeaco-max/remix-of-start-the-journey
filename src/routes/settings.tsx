@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, Download, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Check, Download, ShieldCheck, Sparkles, UserRound, Waves } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { actionClass } from "@/components/kurukoo/primitives";
@@ -144,9 +145,11 @@ function SettingsPage() {
           <SettingsRow title="Connected services" description="Storage, messaging, email, calendar and other resources" control={<Link to="/connect" className={actionClass()}>Open Connect</Link>} />
           <SettingsRow title="Outcomes and files" description="Connected resources and completed outputs" control={<Link to="/artifacts" className={actionClass()}>Open Artifacts</Link>} />
         </Rows></>}
-        {tab === "Voice" && <><SettingIntro icon={Sparkles} eyebrow="Voice" title="Talk to Kurukoo naturally" description="Voice sessions use the configured Kurukoo voice service and fail clearly when that provider is unavailable." /><Rows>
+        {tab === "Voice" && <><SettingIntro icon={Waves} eyebrow="Croon voice" title="Talk to Kurukoo naturally" description="Use voice as another way to tell Kurukoo what needs doing. Voice features fail clearly when the configured provider or browser capability is unavailable." /><Rows>
           <SettingsRow title="Voice input" description="Use voice in conversations" control={<PersistentToggle storageKey="kurukoo-voice-input" label="Voice input" defaultOn />} />
           <SettingsRow title="Read replies aloud" description="Browser speech output" control={<PersistentToggle storageKey="kurukoo-voice-output" label="Read replies aloud" />} />
+          <SettingsRow title="Hey Kurukoo wake phrase" description="Listen for the phrase inside the open Croon voice screen" control={<PersistentToggle storageKey="kurukoo-voice-wake" label="Hey Kurukoo wake phrase" />} />
+          <SettingsRow title="Voice preferences" description="Language and voice style are managed when you open Croon voice mode" control={<Link to="/chat" className={actionClass()}>Open Croon</Link>} />
           <SettingsRow title="Calls" description="Voice sessions connected to requests" control={<Link to="/calls" className={actionClass()}>Open Calls</Link>} />
         </Rows></>}
         {tab === "Money" && <><SettingIntro icon={ShieldCheck} eyebrow="Money" title="Keep payments under your control" description="Payment instruments and secure execution controls live in Trust." /><Rows>
