@@ -39,6 +39,21 @@ export async function cancelEconomicRequest(id: string) {
   return payload.request;
 }
 
+/** Ask the canonical dispatch coordinator to find eligible live providers. */
+export async function broadcastEconomicRequest(input: { requestId: string; skill: string; vehicleType?: string; location?: string }) {
+  const payload = await readJson<{ success: boolean; requestId: string; offers?: Array<{ id: string; providerPhone: string; skill: string; status: string }>; providers?: unknown[]; error?: string }>(`/api/economic-requests/${encodeURIComponent(input.requestId)}/dispatch/broadcast`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      skill: input.skill,
+      vehicleType: input.vehicleType || undefined,
+      location: input.location || undefined,
+      maxProviders: 8,
+    }),
+  });
+  return { ...payload, offers: payload.offers ?? [], providers: payload.providers ?? [] };
+}
+
 /** Confirm a provider-reported real-world completion as the request owner. */
 export async function confirmDispatchCompletion(leadId: string) {
   const payload = await readJson<{ success: boolean; lead?: { status?: string } }>(`/api/dispatch-leads/${encodeURIComponent(leadId)}/confirm-completion`, {
