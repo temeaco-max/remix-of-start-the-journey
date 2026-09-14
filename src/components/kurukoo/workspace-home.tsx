@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useKurukoo } from "@/lib/kurukoo-store";
 import { fetchEconomicRequests, isKurukooApiConfigured, type EconomicRequest } from "@/lib/kurukoo-api";
 import { canonicalWorkItem } from "@/lib/work-projection";
+import { SurfaceNext } from "@/components/kurukoo/surface-next";
 
 export function WorkspaceHome() {
   const { work: localWork } = useKurukoo();
@@ -74,5 +75,10 @@ export function WorkspaceHome() {
       <div className="flex items-end justify-between gap-4 border-b border-border/80 px-5 py-5"><div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">In motion</p><h2 className="mt-1.5 text-[18px] font-semibold tracking-[-0.02em]">Things Kurukoo is handling</h2></div><Link to="/work" className="text-[10.5px] font-medium text-muted-foreground hover:text-foreground">View all Work</Link></div>
       <div className="divide-y divide-border/70">{active.map((item) => <Link key={item.id} to="/work/$workId" params={{ workId: item.id }} className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface"><span className="grid size-8 shrink-0 place-items-center border border-border bg-background"><CheckCircle2 className="size-3.5 text-primary" /></span><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-medium">{item.title}</p><p className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.detail}</p></div><span className="hidden shrink-0 text-[10.5px] text-muted-foreground sm:block">{item.updated}</span><ArrowRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" /></Link>)}</div>
     </section> : <section className="border border-border/80 px-5 py-8"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Nothing in motion</p><h2 className="mt-2 text-[27px] font-semibold tracking-[-0.035em]">Tell Kurukoo what you want to move forward.</h2><Link to="/chat" className="mt-5 inline-flex items-center gap-1.5 bg-primary px-4 py-2.5 text-[11px] font-medium text-primary-foreground">Start with Kurukoo <ArrowRight className="size-3.5" /></Link></section>}
+
+    <section>
+      <div className="mb-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Continue from here</p><h2 className="mt-1.5 text-[20px] font-semibold tracking-[-0.025em]">The rest of Kurukoo</h2><p className="mt-1 text-[11.5px] leading-5 text-muted-foreground">Move from conversation into discovery, agents, artifacts or local signals when the task calls for it.</p></div>
+      <SurfaceNext />
+    </section>
   </div>;
 }
