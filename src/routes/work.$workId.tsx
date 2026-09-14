@@ -37,10 +37,24 @@ function WorkDetail() {
 
   useEffect(() => {
     if (!configured) return;
-    setRequestError("");
-    void fetchEconomicRequest(workId)
-      .then(setRequest)
-      .catch((error) => setRequestError(error instanceof Error ? error.message : "Unable to load request."));
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const next = await fetchEconomicRequest(workId);
+        if (!cancelled) {
+          setRequest(next);
+          setRequestError("");
+        }
+      } catch (error) {
+        if (!cancelled) setRequestError(error instanceof Error ? error.message : "Unable to load request.");
+      }
+    };
+    void load();
+    const timer = window.setInterval(() => void load(), 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, [configured, workId]);
 
   const displayItem = useMemo(
