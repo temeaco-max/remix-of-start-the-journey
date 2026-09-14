@@ -1,4 +1,4 @@
-import { ArrowRight, Compass, FileStack, Radio, UsersRound } from "lucide-react";
+import { ArrowRight, Compass, FileStack, MapPin, UsersRound } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { actionClass } from "@/components/kurukoo/primitives";
 
@@ -6,7 +6,7 @@ const items = [
   { href: "/explore", label: "Explore", description: "People, businesses, services, products and opportunities.", icon: Compass },
   { href: "/agents", label: "Agents", description: "See the agents available to help and what they can access.", icon: UsersRound },
   { href: "/artifacts", label: "Artifacts", description: "Keep useful outputs connected to the work that created them.", icon: FileStack },
-  { href: "/pulse", label: "Pulse", description: "See live local signals without confusing discovery with confirmation.", icon: Radio },
+  { href: "/discover", label: "Nearby", description: "See local signals without confusing discovery with confirmation.", icon: MapPin },
 ] as const;
 
 export function SurfaceNext() {
