@@ -121,13 +121,24 @@ function TrustPage() {
 
   const states = Object.values(data.availability);
   const enabled = states.filter((state) => state.state === "available").length;
+  const unavailable = states.filter((state) => state.state === "unavailable").length;
+  const errored = states.filter((state) => state.state === "error").length;
   const activeSessions = data.sessions.filter((session) => ["ready", "busy", "starting", "pending"].includes(session.status)).length;
+  const controls = !states.length
+    ? { dot: "bg-muted-foreground", headline: loading ? "Checking your account controls…" : "Account controls are not readable yet", detail: "Availability depends on the connected service and your market." }
+    : errored
+      ? { dot: "bg-destructive", headline: "Some account controls could not be checked", detail: `${errored} of ${states.length} capabilities could not be read from Kurukoo. ${enabled ? `${enabled} are available.` : ""}`.trim() }
+      : enabled === states.length
+        ? { dot: "bg-[var(--color-success)]", headline: "Your account controls are active", detail: `All ${states.length} capabilities are enabled for this account.` }
+        : enabled > 0
+          ? { dot: "bg-accent", headline: "Only some account controls are active", detail: `${enabled} of ${states.length} capabilities are enabled for this account; ${unavailable} are not enabled here yet.` }
+          : { dot: "bg-accent", headline: "No account controls are enabled for this account yet", detail: `All ${states.length} capabilities are feature-gated for this account or market, so Kurukoo shows their real state instead of a placeholder.` };
   return <div className="space-y-8 pb-12">
     <PageHeader title="Trust" subtitle="The controls around what Kurukoo may use, spend and do on your behalf. Important actions stay bounded, reviewable and reversible where the underlying service supports it." />
 
     <div className="flex flex-wrap items-center gap-2 border-y border-border py-3">
-      <span className="inline-flex items-center gap-2 text-[11px] font-medium"><span className="size-2 rounded-full bg-[var(--color-success)]" /> Your account controls are active</span>
-      <span className="text-[10.5px] text-muted-foreground">{states.length ? `${enabled} of ${states.length} capabilities are enabled for this account.` : "Availability depends on the connected service and your market."}</span>
+      <span className="inline-flex items-center gap-2 text-[11px] font-medium" role="status"><span aria-hidden="true" className={`size-2 rounded-full ${controls.dot}`} /> {controls.headline}</span>
+      <span className="text-[10.5px] text-muted-foreground">{controls.detail}</span>
       <button type="button" disabled={loading} onClick={() => void load()} className={`${actionClass()} ml-auto`}><RefreshCw className="size-3.5" />{loading ? "Checking…" : "Refresh"}</button>
     </div>
 

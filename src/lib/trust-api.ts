@@ -1,9 +1,14 @@
 /**
  * Canonical Trust API layer.
  *
- * Wraps the authenticated `/api/v1` secure-services contract owned by the Kurukoo backend
- * (`src/routes/secureServicesRoutes.ts`): encrypted credentials, one-time cards + purchase
- * protection, secure execution sessions and the execution audit timeline.
+ * Wraps the authenticated `/api/v1` secure-services contract. That contract is owned by the
+ * **canonical backend repository** (`temeaco-max/kurukoo` → `src/routes/secureServicesRoutes.ts`)
+ * and is intentionally not duplicated here: this repository contains only the client, so the
+ * endpoints below cannot be re-verified from this checkout — they must be checked against the
+ * backend, or against a running backend, before any claim about them is treated as proven.
+ *
+ * Covered capabilities: encrypted credentials, one-time cards + purchase protection, secure
+ * execution sessions and the execution audit timeline.
  *
  * Every wrapper returns what the backend actually returns, and failures are typed so the UI can
  * tell "not available for this account or market" apart from a real error.

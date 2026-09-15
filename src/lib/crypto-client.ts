@@ -9,7 +9,14 @@ const PBKDF2_ITERATIONS = 200_000;
 const KEY_LENGTH = 32;
 const IV_LENGTH = 16;
 const SALT_LENGTH = 32;
-const ALGORITHM = "aes-256-gcm";
+/**
+ * Web Crypto (SubtleCrypto) uses the standard WebCrypto/JOSE name `AES-GCM`. It does NOT accept
+ * the OpenSSL/Node label `aes-256-gcm` that the backend service uses, so the name here must stay
+ * `AES-GCM` even though the backend records `aes-256-gcm` in its stored metadata.
+ *
+ * The key is still AES-256 because `length: KEY_LENGTH * 8` (256 bits) is requested when deriving.
+ */
+const ALGORITHM = "AES-GCM";
 
 export type EncryptedSecret = { ciphertext: string; iv: string; salt: string };
 
