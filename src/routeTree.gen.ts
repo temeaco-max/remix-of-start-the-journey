@@ -67,6 +67,7 @@ import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SurveysRouteImport } from './routes/surveys'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as TrustRouteImport } from './routes/trust'
+import { Route as UsageRouteImport } from './routes/usage'
 import { Route as UseCasesRouteImport } from './routes/use-cases'
 import { Route as VideosRouteImport } from './routes/videos'
 import { Route as WalletRouteImport } from './routes/wallet'
@@ -400,6 +401,11 @@ const TrustRoute = TrustRouteImport.update({
   path: '/trust',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsageRoute = UsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UseCasesRoute = UseCasesRouteImport.update({
   id: '/use-cases',
   path: '/use-cases',
@@ -673,6 +679,7 @@ export interface FileRoutesByFullPath {
   '/surveys': typeof SurveysRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
+  '/usage': typeof UsageRoute
   '/use-cases': typeof UseCasesRoute
   '/videos': typeof VideosRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -775,6 +782,7 @@ export interface FileRoutesByTo {
   '/surveys': typeof SurveysRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
+  '/usage': typeof UsageRoute
   '/use-cases': typeof UseCasesRoute
   '/videos': typeof VideosRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -877,6 +885,7 @@ export interface FileRoutesById {
   '/surveys': typeof SurveysRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
+  '/usage': typeof UsageRoute
   '/use-cases': typeof UseCasesRoute
   '/videos': typeof VideosRouteWithChildren
   '/wallet': typeof WalletRoute
@@ -981,6 +990,7 @@ export interface FileRouteTypes {
     | '/surveys'
     | '/topics'
     | '/trust'
+    | '/usage'
     | '/use-cases'
     | '/videos'
     | '/wallet'
@@ -1083,6 +1093,7 @@ export interface FileRouteTypes {
     | '/surveys'
     | '/topics'
     | '/trust'
+    | '/usage'
     | '/use-cases'
     | '/videos'
     | '/wallet'
@@ -1184,6 +1195,7 @@ export interface FileRouteTypes {
     | '/surveys'
     | '/topics'
     | '/trust'
+    | '/usage'
     | '/use-cases'
     | '/videos'
     | '/wallet'
@@ -1287,6 +1299,7 @@ export interface RootRouteChildren {
   SurveysRoute: typeof SurveysRoute
   TopicsRoute: typeof TopicsRouteWithChildren
   TrustRoute: typeof TrustRoute
+  UsageRoute: typeof UsageRoute
   UseCasesRoute: typeof UseCasesRoute
   VideosRoute: typeof VideosRouteWithChildren
   WalletRoute: typeof WalletRoute
@@ -1702,6 +1715,13 @@ declare module '@tanstack/react-router' {
       path: '/trust'
       fullPath: '/trust'
       preLoaderRoute: typeof TrustRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/usage': {
+      id: '/usage'
+      path: '/usage'
+      fullPath: '/usage'
+      preLoaderRoute: typeof UsageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/use-cases': {
@@ -2239,6 +2259,7 @@ const rootRouteChildren: RootRouteChildren = {
   SurveysRoute: SurveysRoute,
   TopicsRoute: TopicsRouteWithChildren,
   TrustRoute: TrustRoute,
+  UsageRoute: UsageRoute,
   UseCasesRoute: UseCasesRoute,
   VideosRoute: VideosRouteWithChildren,
   WalletRoute: WalletRoute,
