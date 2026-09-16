@@ -1,0 +1,57 @@
+name: Finalize canonical convergence
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reconcile shell and generate routes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          shell = Path('src/components/app-shell-contextual.tsx')
+          text = shell.read_text()
+          marker = 'import { ReferralCard } from "@/components/kurukoo/referral-card";'
+          if 'presence-radar-control' not in text:
+              text = text.replace(marker, marker + '\nimport { PresenceRadarControl } from "@/components/kurukoo/presence-radar-control";')
+          text = re.sub(r'function PresenceRadarControl\(\) \{.*?\nfunction HeaderSearch\(\)', 'function HeaderSearch()', text, count=1, flags=re.S)
+          text = text.replace('{ to: "/perch", label: "Your Perch",', '{ to: "/perch", label: "Field",')
+          shell.write_text(text)
+          replacements = {'Open Actions': 'Open Work', 'Start with Croon': 'Start with Kurukoo', 'Your Perch': 'Field'}
+          for path in Path('src').rglob('*'):
+              if path.suffix not in {'.ts', '.tsx', '.css', '.md'} or path == shell:
+                  continue
+              try: value = path.read_text()
+              except UnicodeDecodeError: continue
+              updated = value
+              for old, new in replacements.items(): updated = updated.replace(old, new)
+              if updated != value: path.write_text(updated)
+          PY
+          npx tsr generate
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Remove temporary workflow and commit
+        shell: bash
+        run: |
+          rm -f .github/workflows/master-convergence-finalize.yml .github/workflows/master-convergence-pass.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src .github/workflows
+          git diff --cached --quiet || git commit -m "feat(frontend): reconcile canonical shell and route tree"
+          git push origin main
