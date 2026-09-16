@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Bell, CalendarDays, CheckCircle2, CircleAlert, Clock3, MapPin, MessageCircle, Play, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Bell, CalendarDays, CheckCircle2, CircleAlert, Clock3, MapPin, MessageCircle, Play, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Composer } from "@/components/kurukoo/composer";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
@@ -11,26 +11,20 @@ import { entities, topics, videos, entityById } from "@/lib/kurukoo-demo";
 const terminalStatuses = new Set(["completed", "cancelled", "abandoned", "disputed", "failed"]);
 const attentionStatuses = new Set(["awaiting_approval", "awaiting_payment", "awaiting_confirmation"]);
 
-type WeatherState = { temperature: number; label: string; location: string } | null;
+type WeatherState = { temperature: number; label: string; location: string; icon: string } | null;
 
-const weatherLabels: Record<number, string> = {
-  0: "Clear", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Foggy", 48: "Foggy",
-  51: "Drizzle", 53: "Drizzle", 55: "Drizzle", 56: "Freezing drizzle", 57: "Freezing drizzle",
-  61: "Rain", 63: "Rain", 65: "Heavy rain", 66: "Freezing rain", 67: "Freezing rain",
-  71: "Snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains", 80: "Showers", 81: "Showers", 82: "Heavy showers",
-  85: "Snow showers", 86: "Snow showers", 95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm",
-};
-
-const weatherIcons: Record<number, string> = {
-  0: "☀", 1: "🌤", 2: "⛅", 3: "☁", 45: "🌫", 48: "🌫", 51: "🌦", 53: "🌦", 55: "🌦", 56: "🌧", 57: "🌧",
-  61: "🌧", 63: "🌧", 65: "🌧", 66: "🌧", 67: "🌧", 71: "🌨", 73: "🌨", 75: "❄", 77: "❄", 80: "🌦", 81: "🌦", 82: "🌧",
-  85: "🌨", 86: "🌨", 95: "⛈", 96: "⛈", 99: "⛈",
+const weatherConditions: Record<number, { label: string; icon: string }> = {
+  0: { label: "Clear", icon: "☀" }, 1: { label: "Mainly clear", icon: "🌤" }, 2: { label: "Partly cloudy", icon: "⛅" }, 3: { label: "Overcast", icon: "☁" },
+  45: { label: "Foggy", icon: "🌫" }, 48: { label: "Foggy", icon: "🌫" }, 51: { label: "Drizzle", icon: "🌦" }, 53: { label: "Drizzle", icon: "🌦" }, 55: { label: "Drizzle", icon: "🌦" },
+  56: { label: "Freezing drizzle", icon: "🌧" }, 57: { label: "Freezing drizzle", icon: "🌧" }, 61: { label: "Rain", icon: "🌧" }, 63: { label: "Rain", icon: "🌧" }, 65: { label: "Heavy rain", icon: "🌧" },
+  66: { label: "Freezing rain", icon: "🌧" }, 67: { label: "Freezing rain", icon: "🌧" }, 71: { label: "Snow", icon: "🌨" }, 73: { label: "Snow", icon: "🌨" }, 75: { label: "Heavy snow", icon: "❄" },
+  77: { label: "Snow grains", icon: "❄" }, 80: { label: "Showers", icon: "🌦" }, 81: { label: "Showers", icon: "🌦" }, 82: { label: "Heavy showers", icon: "🌧" },
+  85: { label: "Snow showers", icon: "🌨" }, 86: { label: "Snow showers", icon: "🌨" }, 95: { label: "Thunderstorm", icon: "⛈" }, 96: { label: "Thunderstorm", icon: "⛈" }, 99: { label: "Thunderstorm", icon: "⛈" },
 };
 
 const timezoneFallbacks: Record<string, string> = {
-  "Africa/Accra": "Accra", "Europe/London": "London", "Europe/Dublin": "Dublin", "Europe/Paris": "Paris",
-  "Europe/Berlin": "Berlin", "Europe/Madrid": "Madrid", "America/New_York": "New York", "America/Chicago": "Chicago",
-  "America/Los_Angeles": "Los Angeles", "Asia/Dubai": "Dubai", "Asia/Kolkata": "Kolkata", "Asia/Tokyo": "Tokyo",
+  "Africa/Accra": "Accra", "Europe/London": "London", "Europe/Dublin": "Dublin", "Europe/Paris": "Paris", "Europe/Berlin": "Berlin", "Europe/Madrid": "Madrid",
+  "America/New_York": "New York", "America/Chicago": "Chicago", "America/Los_Angeles": "Los Angeles", "Asia/Dubai": "Dubai", "Asia/Kolkata": "Kolkata", "Asia/Tokyo": "Tokyo",
 };
 
 function greeting(hour: number) {
@@ -78,8 +72,9 @@ async function readWeather(): Promise<WeatherState> {
     if (!response.ok) throw new Error("weather request failed");
     const payload = (await response.json()) as { current?: { temperature_2m?: number; weather_code?: number }; timezone?: string };
     if (typeof payload.current?.temperature_2m !== "number" || typeof payload.current.weather_code !== "number") return null;
+    const condition = weatherConditions[payload.current.weather_code] ?? { label: "Current conditions", icon: "☼" };
     const location = payload.timezone?.split("/").pop()?.replaceAll("_", " ") || fallbackLocation;
-    return { temperature: Math.round(payload.current.temperature_2m), label: weatherLabels[payload.current.weather_code] ?? "Current conditions", location };
+    return { temperature: Math.round(payload.current.temperature_2m), label: condition.label, icon: condition.icon, location };
   } catch {
     return null;
   }
@@ -94,14 +89,16 @@ export function FieldDashboard() {
   const [error, setError] = useState("");
   const [profileName, setProfileName] = useState("there");
   const [weather, setWeather] = useState<WeatherState>(null);
+  const [now, setNow] = useState(() => new Date());
   const [topicTab, setTopicTab] = useState<"trending" | "new">("trending");
-  const now = new Date();
   const unread = notifications.filter((notification) => !notification.read).length;
   const trustedPeople = entities.filter((entity) => entity.kind === "person").slice(0, 3);
 
   useEffect(() => {
     void readProfileName().then(setProfileName);
     void readWeather().then(setWeather);
+    const timer = window.setInterval(() => setNow(new Date()), 60000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -129,12 +126,14 @@ export function FieldDashboard() {
   const needsYou = useMemo(() => configured
     ? requests.filter((request) => attentionStatuses.has(request.status))
     : localWork.filter((item) => item.stage === "needs_you"), [configured, localWork, requests]);
-  const visibleTopics = useMemo(() => topicTab === "trending" ? [...topics].sort((a, b) => b.followers - a.followers) : [...topics].sort((a, b) => (b.posts[0]?.when ?? "").localeCompare(a.posts[0]?.when ?? "")), [topicTab]);
+  const visibleTopics = useMemo(() => topicTab === "trending" ? [...topics].sort((a, b) => b.followers - a.followers) : topics, [topicTab]);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown timezone";
+  const fallbackLocation = timezoneFallbacks[timezone] ?? timezone;
 
   return <div className="kurukoo-field min-w-0 pb-10">
     <section className="field-welcome" aria-labelledby="field-title">
       <div className="field-welcome-copy"><p className="field-kicker">{greeting(now.getHours())}, {profileName}</p><h1 id="field-title">Your field</h1><p className="field-subtitle">Wake up. Get going.</p></div>
-      <div className="field-welcome-meta"><div className="field-weather"><span className="field-sun" aria-hidden="true">{weather ? weatherIcons[Object.keys(weatherLabels).find((code) => weatherLabels[Number(code)] === weather.label) as unknown as number] ?? "☼" : "☼"}</span><strong>{weather ? `${weather.temperature}°C` : "Weather unavailable"}</strong><span>•</span><span>{weather?.location ?? (timezoneFallbacks[Intl.DateTimeFormat().resolvedOptions().timeZone] ?? Intl.DateTimeFormat().resolvedOptions().timeZone)}</span></div><div className="field-date"><CalendarDays className="size-4" /><span>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span><span className="field-notification"><Bell className="size-4" />{unread ? unread : ""}</span></div></div>
+      <div className="field-welcome-meta"><div className="field-weather"><span className="field-sun" aria-hidden="true">{weather?.icon ?? "☼"}</span><strong>{weather ? `${weather.temperature}°C` : "Weather unavailable"}</strong><span>•</span><span>{weather?.location ?? fallbackLocation}</span></div><div className="field-date"><CalendarDays className="size-4" /><span>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span><span className="field-notification"><Bell className="size-4" />{unread ? unread : ""}</span></div></div>
       <div className="field-horizon" aria-hidden="true"><span className="field-horizon-sun" /><span className="field-horizon-city" /><span className="field-horizon-water" /></div>
     </section>
 
