@@ -67,7 +67,7 @@ export function FieldDashboard() {
   const unread = notifications.filter((notification) => !notification.read).length;
 
   return (
-    <div className="min-w-0 space-y-6 pb-10 md:space-y-7">
+    <div className="kurukoo-field min-w-0 space-y-6 pb-10 md:space-y-7">
       <section className="relative overflow-hidden rounded-[30px] border border-border bg-surface px-5 py-7 md:px-8 md:py-9">
         <div className="pointer-events-none absolute -right-24 -top-28 size-[320px] rounded-full bg-brand-tint/35 blur-3xl" />
         <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
