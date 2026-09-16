@@ -1,0 +1,30 @@
+name: Kurukoo route tree sync
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/routes/**'
+      - 'src/routeTree.gen.ts'
+      - 'vite.config.ts'
+      - 'package.json'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Commit generated route tree
+        run: |
+          if git diff --quiet -- src/routeTree.gen.ts; then
+            echo 'route tree already current'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routeTree.gen.ts
+          git commit -m 'chore: sync generated route tree [skip ci]'
+          git push
