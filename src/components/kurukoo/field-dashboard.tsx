@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import "@/components/kurukoo/field-surface.css";
 import {
   ArrowRight,
   Bell,
