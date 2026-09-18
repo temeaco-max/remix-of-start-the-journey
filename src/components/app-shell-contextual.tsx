@@ -23,7 +23,7 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useKurukoo } from "@/lib/kurukoo-store";
 import { fetchAuthenticatedAd, type AuthenticatedAd } from "@/lib/kurukoo-api";
