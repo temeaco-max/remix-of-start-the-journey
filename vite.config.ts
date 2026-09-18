@@ -10,6 +10,14 @@ export default defineConfig({
   vite: {
     server: {
       allowedHosts: true,
+      proxy: {
+        // Bridge the frontend's /backend/* calls to the canonical backend API.
+        "/backend": {
+          target: process.env["KURUKOO_BACKEND_URL"] || "http://127.0.0.1:3100",
+          changeOrigin: true,
+          rewrite: (p: string) => p.replace(/^\/backend/, ""),
+        },
+      },
     },
   },
   tanstackStart: {

@@ -21,10 +21,12 @@ import { Route as AmbassadorsRouteImport } from './routes/ambassadors'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as ArtistBookingRouteImport } from './routes/artist-booking'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as CallsRouteImport } from './routes/calls'
 import { Route as CapabilitiesRouteImport } from './routes/capabilities'
+import { Route as CardsRouteImport } from './routes/cards'
 import { Route as CareersRouteImport } from './routes/careers'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as ChatRouteImport } from './routes/chat'
@@ -34,6 +36,7 @@ import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as ContributorsRouteImport } from './routes/contributors'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as CreatorsRouteImport } from './routes/creators'
+import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as DailyPicksRouteImport } from './routes/daily-picks'
 import { Route as DeveloperRouteImport } from './routes/developer'
 import { Route as DiscoverRouteImport } from './routes/discover'
@@ -61,10 +64,12 @@ import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as QuickActionsRouteImport } from './routes/quick-actions'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as SafetyRouteImport } from './routes/safety'
+import { Route as SecureExecutionRouteImport } from './routes/secure-execution'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SurveysRouteImport } from './routes/surveys'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as TrustRouteImport } from './routes/trust'
 import { Route as UsageRouteImport } from './routes/usage'
@@ -171,6 +176,11 @@ const ArtistBookingRoute = ArtistBookingRouteImport.update({
   path: '/artist-booking',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogRoute = BlogRouteImport.update({
   id: '/blog',
   path: '/blog',
@@ -189,6 +199,11 @@ const CallsRoute = CallsRouteImport.update({
 const CapabilitiesRoute = CapabilitiesRouteImport.update({
   id: '/capabilities',
   path: '/capabilities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CardsRoute = CardsRouteImport.update({
+  id: '/cards',
+  path: '/cards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CareersRoute = CareersRouteImport.update({
@@ -234,6 +249,11 @@ const CookiesRoute = CookiesRouteImport.update({
 const CreatorsRoute = CreatorsRouteImport.update({
   id: '/creators',
   path: '/creators',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CredentialsRoute = CredentialsRouteImport.update({
+  id: '/credentials',
+  path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DailyPicksRoute = DailyPicksRouteImport.update({
@@ -371,6 +391,11 @@ const SafetyRoute = SafetyRouteImport.update({
   path: '/safety',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SecureExecutionRoute = SecureExecutionRouteImport.update({
+  id: '/secure-execution',
+  path: '/secure-execution',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -389,6 +414,11 @@ const SubscriptionsRoute = SubscriptionsRouteImport.update({
 const SurveysRoute = SurveysRouteImport.update({
   id: '/surveys',
   path: '/surveys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TopicsRoute = TopicsRouteImport.update({
@@ -633,10 +663,12 @@ export interface FileRoutesByFullPath {
   '/api-docs': typeof ApiDocsRoute
   '/artifacts': typeof ArtifactsRouteWithChildren
   '/artist-booking': typeof ArtistBookingRoute
+  '/audit': typeof AuditRoute
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
   '/capabilities': typeof CapabilitiesRoute
+  '/cards': typeof CardsRoute
   '/careers': typeof CareersRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
@@ -646,6 +678,7 @@ export interface FileRoutesByFullPath {
   '/contributors': typeof ContributorsRoute
   '/cookies': typeof CookiesRoute
   '/creators': typeof CreatorsRoute
+  '/credentials': typeof CredentialsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/developer': typeof DeveloperRoute
   '/discover': typeof DiscoverRoute
@@ -673,10 +706,12 @@ export interface FileRoutesByFullPath {
   '/quick-actions': typeof QuickActionsRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/safety': typeof SafetyRoute
+  '/secure-execution': typeof SecureExecutionRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/surveys': typeof SurveysRoute
+  '/tasks': typeof TasksRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
   '/usage': typeof UsageRoute
@@ -736,10 +771,12 @@ export interface FileRoutesByTo {
   '/api-docs': typeof ApiDocsRoute
   '/artifacts': typeof ArtifactsRouteWithChildren
   '/artist-booking': typeof ArtistBookingRoute
+  '/audit': typeof AuditRoute
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
   '/capabilities': typeof CapabilitiesRoute
+  '/cards': typeof CardsRoute
   '/careers': typeof CareersRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
@@ -749,6 +786,7 @@ export interface FileRoutesByTo {
   '/contributors': typeof ContributorsRoute
   '/cookies': typeof CookiesRoute
   '/creators': typeof CreatorsRoute
+  '/credentials': typeof CredentialsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/developer': typeof DeveloperRoute
   '/discover': typeof DiscoverRoute
@@ -776,10 +814,12 @@ export interface FileRoutesByTo {
   '/quick-actions': typeof QuickActionsRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/safety': typeof SafetyRoute
+  '/secure-execution': typeof SecureExecutionRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/surveys': typeof SurveysRoute
+  '/tasks': typeof TasksRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
   '/usage': typeof UsageRoute
@@ -839,10 +879,12 @@ export interface FileRoutesById {
   '/api-docs': typeof ApiDocsRoute
   '/artifacts': typeof ArtifactsRouteWithChildren
   '/artist-booking': typeof ArtistBookingRoute
+  '/audit': typeof AuditRoute
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
   '/calls': typeof CallsRoute
   '/capabilities': typeof CapabilitiesRoute
+  '/cards': typeof CardsRoute
   '/careers': typeof CareersRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
@@ -852,6 +894,7 @@ export interface FileRoutesById {
   '/contributors': typeof ContributorsRoute
   '/cookies': typeof CookiesRoute
   '/creators': typeof CreatorsRoute
+  '/credentials': typeof CredentialsRoute
   '/daily-picks': typeof DailyPicksRoute
   '/developer': typeof DeveloperRoute
   '/discover': typeof DiscoverRoute
@@ -879,10 +922,12 @@ export interface FileRoutesById {
   '/quick-actions': typeof QuickActionsRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/safety': typeof SafetyRoute
+  '/secure-execution': typeof SecureExecutionRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/surveys': typeof SurveysRoute
+  '/tasks': typeof TasksRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
   '/usage': typeof UsageRoute
@@ -944,10 +989,12 @@ export interface FileRouteTypes {
     | '/api-docs'
     | '/artifacts'
     | '/artist-booking'
+    | '/audit'
     | '/blog'
     | '/businesses'
     | '/calls'
     | '/capabilities'
+    | '/cards'
     | '/careers'
     | '/cart'
     | '/chat'
@@ -957,6 +1004,7 @@ export interface FileRouteTypes {
     | '/contributors'
     | '/cookies'
     | '/creators'
+    | '/credentials'
     | '/daily-picks'
     | '/developer'
     | '/discover'
@@ -984,10 +1032,12 @@ export interface FileRouteTypes {
     | '/quick-actions'
     | '/resources'
     | '/safety'
+    | '/secure-execution'
     | '/settings'
     | '/signup'
     | '/subscriptions'
     | '/surveys'
+    | '/tasks'
     | '/topics'
     | '/trust'
     | '/usage'
@@ -1047,10 +1097,12 @@ export interface FileRouteTypes {
     | '/api-docs'
     | '/artifacts'
     | '/artist-booking'
+    | '/audit'
     | '/blog'
     | '/businesses'
     | '/calls'
     | '/capabilities'
+    | '/cards'
     | '/careers'
     | '/cart'
     | '/chat'
@@ -1060,6 +1112,7 @@ export interface FileRouteTypes {
     | '/contributors'
     | '/cookies'
     | '/creators'
+    | '/credentials'
     | '/daily-picks'
     | '/developer'
     | '/discover'
@@ -1087,10 +1140,12 @@ export interface FileRouteTypes {
     | '/quick-actions'
     | '/resources'
     | '/safety'
+    | '/secure-execution'
     | '/settings'
     | '/signup'
     | '/subscriptions'
     | '/surveys'
+    | '/tasks'
     | '/topics'
     | '/trust'
     | '/usage'
@@ -1149,10 +1204,12 @@ export interface FileRouteTypes {
     | '/api-docs'
     | '/artifacts'
     | '/artist-booking'
+    | '/audit'
     | '/blog'
     | '/businesses'
     | '/calls'
     | '/capabilities'
+    | '/cards'
     | '/careers'
     | '/cart'
     | '/chat'
@@ -1162,6 +1219,7 @@ export interface FileRouteTypes {
     | '/contributors'
     | '/cookies'
     | '/creators'
+    | '/credentials'
     | '/daily-picks'
     | '/developer'
     | '/discover'
@@ -1189,10 +1247,12 @@ export interface FileRouteTypes {
     | '/quick-actions'
     | '/resources'
     | '/safety'
+    | '/secure-execution'
     | '/settings'
     | '/signup'
     | '/subscriptions'
     | '/surveys'
+    | '/tasks'
     | '/topics'
     | '/trust'
     | '/usage'
@@ -1253,10 +1313,12 @@ export interface RootRouteChildren {
   ApiDocsRoute: typeof ApiDocsRoute
   ArtifactsRoute: typeof ArtifactsRouteWithChildren
   ArtistBookingRoute: typeof ArtistBookingRoute
+  AuditRoute: typeof AuditRoute
   BlogRoute: typeof BlogRouteWithChildren
   BusinessesRoute: typeof BusinessesRoute
   CallsRoute: typeof CallsRoute
   CapabilitiesRoute: typeof CapabilitiesRoute
+  CardsRoute: typeof CardsRoute
   CareersRoute: typeof CareersRoute
   CartRoute: typeof CartRoute
   ChatRoute: typeof ChatRoute
@@ -1266,6 +1328,7 @@ export interface RootRouteChildren {
   ContributorsRoute: typeof ContributorsRoute
   CookiesRoute: typeof CookiesRoute
   CreatorsRoute: typeof CreatorsRoute
+  CredentialsRoute: typeof CredentialsRoute
   DailyPicksRoute: typeof DailyPicksRoute
   DeveloperRoute: typeof DeveloperRoute
   DiscoverRoute: typeof DiscoverRoute
@@ -1293,10 +1356,12 @@ export interface RootRouteChildren {
   QuickActionsRoute: typeof QuickActionsRoute
   ResourcesRoute: typeof ResourcesRouteWithChildren
   SafetyRoute: typeof SafetyRoute
+  SecureExecutionRoute: typeof SecureExecutionRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   SurveysRoute: typeof SurveysRoute
+  TasksRoute: typeof TasksRoute
   TopicsRoute: typeof TopicsRouteWithChildren
   TrustRoute: typeof TrustRoute
   UsageRoute: typeof UsageRoute
@@ -1395,6 +1460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistBookingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog': {
       id: '/blog'
       path: '/blog'
@@ -1421,6 +1493,13 @@ declare module '@tanstack/react-router' {
       path: '/capabilities'
       fullPath: '/capabilities'
       preLoaderRoute: typeof CapabilitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cards': {
+      id: '/cards'
+      path: '/cards'
+      fullPath: '/cards'
+      preLoaderRoute: typeof CardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/careers': {
@@ -1484,6 +1563,13 @@ declare module '@tanstack/react-router' {
       path: '/creators'
       fullPath: '/creators'
       preLoaderRoute: typeof CreatorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/credentials': {
+      id: '/credentials'
+      path: '/credentials'
+      fullPath: '/credentials'
+      preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/daily-picks': {
@@ -1675,6 +1761,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/secure-execution': {
+      id: '/secure-execution'
+      path: '/secure-execution'
+      fullPath: '/secure-execution'
+      preLoaderRoute: typeof SecureExecutionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -1701,6 +1794,13 @@ declare module '@tanstack/react-router' {
       path: '/surveys'
       fullPath: '/surveys'
       preLoaderRoute: typeof SurveysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/topics': {
@@ -2213,10 +2313,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDocsRoute: ApiDocsRoute,
   ArtifactsRoute: ArtifactsRouteWithChildren,
   ArtistBookingRoute: ArtistBookingRoute,
+  AuditRoute: AuditRoute,
   BlogRoute: BlogRouteWithChildren,
   BusinessesRoute: BusinessesRoute,
   CallsRoute: CallsRoute,
   CapabilitiesRoute: CapabilitiesRoute,
+  CardsRoute: CardsRoute,
   CareersRoute: CareersRoute,
   CartRoute: CartRoute,
   ChatRoute: ChatRoute,
@@ -2226,6 +2328,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContributorsRoute: ContributorsRoute,
   CookiesRoute: CookiesRoute,
   CreatorsRoute: CreatorsRoute,
+  CredentialsRoute: CredentialsRoute,
   DailyPicksRoute: DailyPicksRoute,
   DeveloperRoute: DeveloperRoute,
   DiscoverRoute: DiscoverRoute,
@@ -2253,10 +2356,12 @@ const rootRouteChildren: RootRouteChildren = {
   QuickActionsRoute: QuickActionsRoute,
   ResourcesRoute: ResourcesRouteWithChildren,
   SafetyRoute: SafetyRoute,
+  SecureExecutionRoute: SecureExecutionRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   SurveysRoute: SurveysRoute,
+  TasksRoute: TasksRoute,
   TopicsRoute: TopicsRouteWithChildren,
   TrustRoute: TrustRoute,
   UsageRoute: UsageRoute,

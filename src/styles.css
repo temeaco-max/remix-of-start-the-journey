@@ -1,5 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
 
@@ -62,7 +62,7 @@
 aside[aria-label="OS navigation"] svg,
 aside[aria-label="Public Kurukoo navigation"] svg,
 aside[aria-label="Trusted context rail"] svg,
-aside[aria-label="Kurukoo public context rail"] svg { color: var(--primary); }
+aside[aria-label="Kurukoo public context rail"] svg { color: inherit; }
 
 /* Shared Kurukoo visual language: restrained geometry, consistent Geist type, quiet surfaces. */
 .rounded-2xl { border-radius: 1rem !important; }
@@ -182,55 +182,67 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 
 @layer base {
   body { background: var(--background); font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; }
-  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; letter-spacing: -0.045em; }
+  h1, h2, h3 { font-weight: 500; letter-spacing: -0.045em; }
   button, a, input, textarea, select { font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; }
   button:active, a:active { transform: scale(0.985); }
 }
 
 .kurukoo-os-shell { background: var(--background); }
-.kurukoo-os-header { height: 68px; background: color-mix(in oklab, var(--background) 92%, white) !important; }
-.kurukoo-os-header > div:first-child { height: 68px; }
+.kurukoo-os-header { height: 50px; background: color-mix(in oklab, var(--background) 92%, white) !important; }
+.kurukoo-os-header > div:first-child { height: 50px; }
 .kurukoo-os-grid { height: calc(100vh - 68px) !important; }
-.kurukoo-os-grid > aside[aria-label="OS navigation"] { background: color-mix(in oklab, var(--background) 76%, white); border-color: color-mix(in oklab, var(--border) 88%, transparent); width: 252px; padding: 28px 18px 20px; }
+.kurukoo-os-grid > aside[aria-label="OS navigation"] { background: color-mix(in oklab, var(--background) 76%, white); border-color: color-mix(in oklab, var(--border) 88%, transparent); padding: 28px 18px 20px; }
+/* Width comes from AppShell Tailwind state (w-[200px] expanded / w-[76px] collapsed)
+   so collapsing the OS rail hands space back to the main surface. */
 .kurukoo-os-grid > aside[aria-label="OS navigation"] nav[aria-label="OS navigation"] { padding-top: 0; }
 .kurukoo-os-grid > aside[aria-label="OS navigation"] nav a { border-radius: 14px; padding: 12px 14px; font-size: 14px; color: var(--foreground); }
 .kurukoo-os-grid > aside[aria-label="OS navigation"] nav a[data-status="active"],
 .kurukoo-os-grid > aside[aria-label="OS navigation"] nav a[aria-current="page"] { background: var(--accent); color: var(--foreground); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 12%, transparent); }
 .kurukoo-os-grid > aside[aria-label="OS navigation"] nav a:hover { background: color-mix(in oklab, var(--accent) 70%, var(--surface)); }
 .kurukoo-os-grid > main { background: var(--background); }
-.kurukoo-os-grid > main > div { max-width: 1180px; padding: 42px 44px 64px; }
-.kurukoo-os-grid > aside[aria-label="Trusted context rail"] { width: 282px; padding: 20px 16px; background: color-mix(in oklab, var(--background) 82%, white); border-color: color-mix(in oklab, var(--border) 88%, transparent); }
+.kurukoo-os-grid > main > div { max-width: 100%; padding: 30px 17px 17px; }
+.kurukoo-os-grid > aside[aria-label="Trusted context rail"] { padding: 20px 16px; background: color-mix(in oklab, var(--background) 82%, white); border-color: color-mix(in oklab, var(--border) 88%, transparent); overflow: visible !important; }
+/* Width comes from ContextualTrustedRail Tailwind state (w-[224px] open). */
 .kurukoo-os-grid > aside[aria-label="Trusted context rail"] section { border-radius: 18px; border-color: color-mix(in oklab, var(--border) 88%, transparent); background: color-mix(in oklab, var(--surface) 88%, transparent); padding: 14px; box-shadow: 0 1px 1px oklch(0.19 0.018 55 / 0.025); }
 .kurukoo-os-grid > aside[aria-label="Trusted context rail"] section h2 { font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: -0.01em; }
 .kurukoo-os-grid > aside[aria-label="Trusted context rail"] section + section { margin-top: 4px; }
-.kurukoo-os-grid > aside[aria-label="Trusted context rail"] .rounded-full { background: var(--brand-tint); color: var(--brand-ink); }
+/* Row icon bubbles only (span, not the collapse toggle button): muted by default,
+   brand tint only for live rows via .bg-brand-tint.text-brand-ink utilities. */
+.kurukoo-os-grid > aside[aria-label="Trusted context rail"] section span.rounded-full { background: var(--elevated); color: var(--muted-foreground); }
+.kurukoo-os-grid > aside[aria-label="Trusted context rail"] section span.rounded-full.bg-brand-tint { background: var(--brand-tint); color: var(--brand-ink); }
+/* Rail collapse toggles straddle the rail border — keep them above it. */
+.kurukoo-os-grid > aside > button[aria-label="Expand navigation"],
+.kurukoo-os-grid > aside > button[aria-label="Collapse navigation"],
+.kurukoo-os-grid > aside > button[aria-label="Open trusted context"],
+.kurukoo-os-grid > aside > button[aria-label="Close trusted context"] { z-index: 80; }
 
-.kurukoo-field { max-width: 920px; margin-inline: auto; }
-.kurukoo-field > section:first-child { border: 0; background: transparent; padding: 0 0 10px; }
-.kurukoo-field > section:first-child h1 { font-size: clamp(46px, 6vw, 76px); line-height: .92; }
+.kurukoo-field { max-width: 100%; margin-inline: auto; }
+.kurukoo-field > section:first-child { border: 0; background: transparent; padding: 0px 10px 10px; }
+.kurukoo-field > section:first-child h1 { font-size: clamp(36px, 6vw, 40px); line-height: .92; }
 .kurukoo-field > section:first-child h1 span { color: color-mix(in oklab, var(--foreground) 54%, transparent); }
 .kurukoo-field > section:first-child p { font-size: 15px; color: var(--muted-foreground); }
-.kurukoo-field section { border-color: color-mix(in oklab, var(--border) 92%, transparent); border-radius: 22px; }
+.kurukoo-field section { border-color: color-mix(in oklab, var(--border) 92%, transparent); border-radius: revert-rule; }
 .kurukoo-field .bg-surface { background: var(--surface); }
 .kurukoo-field .bg-background { background: color-mix(in oklab, var(--surface) 68%, var(--background)); }
 .kurukoo-field h2 { font-size: 22px; }
 .kurukoo-field [class*="uppercase"] { color: var(--primary); letter-spacing: .15em; }
 
-.kurukoo-public-home h1 { font-size: clamp(46px, 7vw, 82px); }
+.kurukoo-public-home h1 { font-size: clamp(46px, 7vw, 40px); }
 .kurukoo-public-home > section:first-child { min-height: 340px; display: grid; place-items: center; }
 
 @media (min-width: 768px) {
-  .kurukoo-os-grid { grid-template-columns: 252px minmax(0, 1fr) !important; }
-  .kurukoo-os-grid:has(> aside[aria-label="Trusted context rail"]) { grid-template-columns: 252px minmax(0, 1fr) 282px !important; }
-  .kurukoo-os-grid > aside[aria-label="OS navigation"] { width: 252px !important; }
-  .kurukoo-os-grid > aside[aria-label="Trusted context rail"] { width: 282px !important; }
+  /* Grid columns and rail widths are driven by AppShell Tailwind classes
+     (collapsed 76px vs expanded 200px, trusted 224px) so the main surface
+     reclaims space when a rail collapses. Do not force widths here. */
+  .kurukoo-os-grid > aside[aria-label="OS navigation"],
+  .kurukoo-os-grid > aside[aria-label="Trusted context rail"] { overflow: visible; }
 }
 @media (max-width: 767px) {
-  .kurukoo-os-header { height: auto; min-height: 58px; }
-  .kurukoo-os-header > div:first-child { height: 58px; }
-  .kurukoo-os-grid { height: calc(100vh - 58px) !important; }
-  .kurukoo-os-grid > main > div { padding: 26px 18px 76px; }
-  .kurukoo-field > section:first-child h1 { font-size: 48px; }
+  .kurukoo-os-header { height: auto; min-height: 50px; }
+  .kurukoo-os-header > div:first-child { height: 50px; }
+  .kurukoo-os-grid { height: calc(100vh - 50px) !important; }
+  .kurukoo-os-grid > main > div { padding: 26px 26px 26px; }
+  .kurukoo-field > section:first-child h1 { font-size: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
   button, a { transition: none !important; }
@@ -241,7 +253,7 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .field-welcome { position: relative; min-height: 196px; display: flex; align-items: flex-start; justify-content: space-between; overflow: hidden; padding: 10px 6px 0; }
 .field-welcome-copy { position: relative; z-index: 2; }
 .field-kicker { margin: 0 0 16px; color: var(--muted-foreground); font-size: 15px; font-weight: 500; }
-.field-welcome h1 { margin: 0; color: var(--foreground); font-size: clamp(58px, 7vw, 84px); line-height: .86; }
+.field-welcome h1 { margin: 0; color: var(--foreground); font-size: clamp(58px, 7vw, 40px); line-height: .42; }
 .field-subtitle { margin: 18px 0 0; color: var(--muted-foreground); font-size: 19px; }
 .field-welcome-meta { position: relative; z-index: 3; display: flex; align-items: center; gap: 28px; color: var(--muted-foreground); font-size: 12px; }
 .field-weather, .field-date { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
@@ -258,9 +270,9 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .field-composer-hint { font-size: 11px; }
 .field-composer-card > div:last-child { margin: 0 !important; }
 .field-inline-alert, .field-preview-note { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 18px; padding: 11px 14px; border: 1px solid var(--border); border-radius: 13px; color: var(--muted-foreground); font-size: 11px; line-height: 1.5; background: var(--elevated); }
-.field-main-grid { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(230px, .84fr) minmax(250px, .94fr); gap: 14px; align-items: start; }
+.field-main-grid { display: grid; grid-template-columns: minmax(0, .94fr) minmax(230px, .88fr) minmax(270px, 1.18fr); gap: 14px; align-items: start; }
 .field-card { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-soft); }
-.field-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 18px 14px; }
+.field-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1px; padding: 18px 18px 14px; }
 .field-card-heading h2 { margin: 4px 0 0; font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -.025em; }
 .field-eyebrow { margin: 0; color: var(--muted-foreground); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .field-card-action, .field-agent-row > a, .field-see-all { display: inline-flex; align-items: center; gap: 4px; color: var(--muted-foreground); font-size: 10.5px; white-space: nowrap; }
@@ -291,8 +303,8 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .field-loading span:nth-child(2) { animation-delay: 120ms; }.field-loading span:nth-child(3) { animation-delay: 240ms; }
 @keyframes field-pulse { 50% { opacity: .48; } }
 .field-timeline { position: relative; padding: 2px 18px 18px 20px; }
-.field-timeline::before { content: ""; position: absolute; left: 72px; top: 13px; bottom: 23px; width: 1px; background: var(--border); }
-.field-timeline-item { position: relative; display: grid; grid-template-columns: 42px 14px minmax(0, 1fr); gap: 8px; align-items: start; min-height: 51px; color: var(--muted-foreground); font-size: 10px; }
+.field-timeline::before { content: ""; position: absolute; left: 62px; top: 13px; bottom: 23px; width: 1px; background: var(--border); }
+.field-timeline-item { position: relative; display: grid; grid-template-columns: 30px 14px minmax(0, 1fr); gap: 8px; align-items: start; min-height: 44px; color: var(--muted-foreground); font-size: 10px; }
 .field-timeline-item > span { padding-top: 1px; }
 .field-timeline-item > div { display: grid; gap: 3px; padding-bottom: 10px; }
 .field-timeline-item strong { color: var(--foreground); font-size: 11px; font-weight: 600; }.field-timeline-item small { font-size: 10px; }
@@ -300,6 +312,10 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .field-side-stack { display: grid; gap: 14px; }.field-agent-row { display: flex; align-items: center; gap: 9px; padding: 10px 18px; border-top: 1px solid color-mix(in oklab, var(--border) 72%, transparent); }.field-agent-row > span:nth-child(2) { display: grid; min-width: 0; flex: 1; gap: 3px; }.field-agent-icon { width: 30px; height: 30px; border-radius: 9px; }.field-see-all { margin: 7px 18px 16px; color: var(--primary); font-weight: 600; }
 .field-people-row { display: flex; align-items: center; gap: 0; padding: 4px 18px 18px; }.field-person, .field-person-add { display: grid; width: 34px; height: 34px; place-items: center; margin-right: -5px; border: 2px solid var(--surface); border-radius: 50%; color: var(--foreground); font-size: 11px; font-weight: 700; }.field-person-a { background: #e8b892; }.field-person-b { background: #9cc1a7; }.field-person-c { background: #c0a2bd; }.field-person-add { margin-left: 6px; color: var(--muted-foreground); background: var(--elevated); font-size: 18px; font-weight: 400; }.field-people-row > div { display: grid; gap: 3px; min-width: 0; margin-left: 14px; }.field-people-row strong { font-size: 11px; }.field-people-row small { color: var(--muted-foreground); font-size: 9.5px; line-height: 1.35; }
 .field-lower-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }.field-lower-grid .field-card-heading { padding-bottom: 10px; }.field-lower-content { display: flex; align-items: center; gap: 11px; padding: 0 18px 18px; }.field-lower-content > div { display: grid; min-width: 0; gap: 4px; }.field-lower-icon { width: 38px; height: 38px; }.field-preview-note { margin-top: 16px; margin-bottom: 0; }
+.field-topics-split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 14px; }
+.field-topics-split .field-topics-card { margin-top: 0; }
+.field-composer-card-bottom { margin-top: 20px; }
+@media (max-width: 900px) { .field-topics-split { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 1120px) { .field-main-grid { grid-template-columns: minmax(0, 1.1fr) minmax(220px, .9fr); }.field-side-stack { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }.field-people-card { grid-column: 2; }.field-lower-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.field-lower-grid .field-card:last-child { grid-column: 1 / -1; } }
-@media (max-width: 720px) { .field-welcome { min-height: 236px; padding-top: 4px; }.field-welcome-meta { position: absolute; left: 6px; right: 6px; bottom: 11px; justify-content: space-between; }.field-weather { display: none; }.field-horizon { right: -20px; width: 90%; opacity: .55; }.field-welcome h1 { font-size: 58px; }.field-subtitle { font-size: 17px; }.field-composer-card { padding: 15px; }.field-composer-hint { display: none; }.field-main-grid, .field-side-stack, .field-lower-grid { grid-template-columns: 1fr; }.field-side-stack, .field-people-card, .field-lower-grid .field-card:last-child { grid-column: auto; }.field-status { display: none; } }
+@media (max-width: 720px) { .field-welcome { min-height: 236px; padding-top: 4px; }.field-welcome-meta { position: absolute; left: 6px; right: 6px; bottom: 11px; justify-content: space-between; }.field-weather { display: none; }.field-horizon { right: -20px; width: 90%; opacity: .55; }.field-welcome h1 { font-size: 58px; }.field-subtitle { font-size: 17px; }.field-composer-card { padding: 15px; }.field-composer-hint { display: none; }.field-main-grid, .field-side-stack, .field-lower-grid, .field-topics-split { grid-template-columns: 1fr; }.field-side-stack, .field-people-card, .field-lower-grid .field-card:last-child { grid-column: auto; }.field-status { display: none; } }
 @media (prefers-reduced-motion: reduce) { .field-loading span { animation: none; } }
