@@ -133,9 +133,9 @@ function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) {
 const nav = [
   { to: "/perch", label: "Field", icon: LayoutDashboard, color: "text-muted-foreground" },
   { to: "/chat", label: "Conversation", icon: MessageCircle, color: "text-muted-foreground" },
-  { to: "/work", label: "Requests", icon: ListChecks, color: "text-muted-foreground" },
-  { to: "/tasks", label: "Tasks", icon: Bell, color: "text-muted-foreground" },
-  { to: "/memory", label: "Memory", icon: Sparkles, color: "text-muted-foreground" },
+  { to: "/work", label: "Requests", icon: ClipboardList, color: "text-muted-foreground" },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare2, color: "text-muted-foreground" },
+  { to: "/memory", label: "Memory", icon: Brain, color: "text-muted-foreground" },
   { to: "/discover", label: "Nearby", icon: MapPin, color: "text-muted-foreground" },
 ] as const;
 const more = [
@@ -505,7 +505,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <aside
           aria-label="OS navigation"
           className={cn(
-            "relative z-30 min-h-0 h-full hidden flex-col border-r border-border bg-surface/90 py-0 backdrop-blur md:flex overflow-visible",
+            "relative z-30 min-h-0 h-full hidden flex-col bg-surface/90 py-0 backdrop-blur md:flex overflow-visible",
             collapsed ? "w-[76px] px-3" : "w-[200px] px-3",
           )}
         >
