@@ -794,6 +794,5 @@ export function ProviderWorkspace() {
           </section>
         </div>
       )}
-    </>
-  );
+    </div>  );
 }
