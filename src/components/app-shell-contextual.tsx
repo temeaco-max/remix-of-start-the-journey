@@ -165,7 +165,7 @@ function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) {
 
 const nav = [
   { to: "/perch", label: "Field", icon: LayoutDashboard, color: "text-muted-foreground" },
-  { to: "/chat", label: "Conversation", icon: MessageCircle, color: "text-muted-foreground" },
+  { to: "/chat", label: "Chat", icon: MessageCircle, color: "text-muted-foreground" },
   { to: "/work", label: "Requests", icon: ListChecks, color: "text-muted-foreground" },
   { to: "/tasks", label: "Tasks", icon: CheckCircle2, color: "text-muted-foreground" },
   { to: "/memory", label: "Memory", icon: Brain, color: "text-muted-foreground" },
@@ -574,7 +574,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
                 title={collapsed ? label : undefined}
               >
-                {label === "Conversation" ? (
+                {label === "Chat" ? (
                   <ChatVoiceIcon className={cn("size-[18px]", color)} />
                 ) : (
                   <Icon className={cn("size-[18px] shrink-0", color)} strokeWidth={1.8} />
