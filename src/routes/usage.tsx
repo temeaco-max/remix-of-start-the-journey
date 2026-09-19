@@ -19,8 +19,9 @@ export const Route = createFileRoute("/usage")({
 
 function UsagePage() {
   return (
-    <>
+    <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Account / Usage"
         title="Usage"
         eyebrow="Account / Usage"
         subtitle="Usage is a quiet account surface: current consumption, Points activity and AI/channel metering belong here when the canonical readers are available."
@@ -89,6 +90,6 @@ function UsagePage() {
           Account settings <ArrowRight className="size-3.5" />
         </Link>
       </div>
-    </>
+    </div>
   );
 }
