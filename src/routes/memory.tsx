@@ -75,9 +75,9 @@ function MemoryPage() {
         subtitle="The useful things Kurukoo remembers so you do not have to repeat yourself. Review or remove anything here whenever you like."
       />
 
-      <section className="border-y border-border py-6">
+      <section className="rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-6">
         <div className="flex items-start gap-3.5">
-          <span className="grid size-10 shrink-0 place-items-center bg-elevated">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-elevated">
             <Brain className="size-[18px]" />
           </span>
           <div className="max-w-2xl">
@@ -93,7 +93,7 @@ function MemoryPage() {
             </p>
           </div>
         </div>
-        <div className="mt-5 grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">
+        <div className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2">
           <div className="bg-background p-4">
             <ShieldCheck className="size-4 text-muted-foreground" />
             <p className="mt-2 text-[12.5px] font-medium">Context, not consent</p>
