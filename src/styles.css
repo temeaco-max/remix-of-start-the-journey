@@ -332,8 +332,19 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .profile-avatar{position:relative;z-index:1;}
 .profile-status-dot{position:absolute;right:-1px;bottom:0;width:9px;height:9px;border:2px solid var(--background);border-radius:999px;background:#9ca3af;}
 .profile-status-dot.is-online{background:#22c55e}.profile-status-dot.is-away{background:#f59e0b}.profile-status-dot.is-offline{background:#9ca3af}
-.trusted-context-card{box-shadow:0 1px 2px rgba(0,0,0,.035)}
+.trusted-context-card{border:0;background:color-mix(in oklab,var(--surface) 90%,var(--background));box-shadow:0 8px 24px oklch(0.19 0.018 55 / 0.035)}
 .trusted-context-view{display:inline-flex;align-items:center}
 .safety-state-card{display:flex;align-items:center;gap:10px;border-radius:14px;background:color-mix(in oklab,var(--surface) 72%,var(--background));padding:11px}
 .safety-state-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:999px;background:color-mix(in oklab,#22c55e 12%,transparent);color:#16a34a}
 .activity-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.activity-summary-grid>div{border-radius:13px;background:color-mix(in oklab,var(--surface) 72%,var(--background));padding:10px}.activity-summary-grid strong{display:block;font-size:18px;line-height:1.1}.activity-summary-grid span{display:block;margin-top:4px;font-size:9.5px;color:var(--muted-foreground)}
+
+
+/* Perch canonical card hierarchy: titles carry the hierarchy; eyebrow labels stay hidden. */
+.field-card-heading h2 { margin-top: 0; }
+.field-subhead-title { font-size: 12px; font-weight: 700; color: var(--foreground); }
+.field-earnings-card .field-metric-row:last-child { background: color-mix(in oklab, var(--accent) 55%, var(--surface)); border-radius: 14px; margin: 4px 12px; padding-inline: 10px; }
+.field-earnings-card .field-metric-muted { font-size: 10px; font-weight: 600; color: var(--muted-foreground); }
+.profile-completeness-ring { flex: 0 0 auto; }
+@media (max-width: 1023px) {
+  .profile-completeness-ring { width: 38px; height: 38px; }
+}
