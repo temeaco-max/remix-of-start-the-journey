@@ -45,7 +45,7 @@ function StateCard({
 
 function WalletPage() {
   return (
-    <>
+    <div className="space-y-7 pb-12">
       <PageHeader
         eyebrow="Wallet"
         title="Wallet"
