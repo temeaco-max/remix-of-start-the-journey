@@ -81,6 +81,7 @@ function CallsPage() {
   return (
     <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Voice & calls"
         title="Voice and calls"
         subtitle="Speaking is another way into the same Kurukoo conversation."
       />
