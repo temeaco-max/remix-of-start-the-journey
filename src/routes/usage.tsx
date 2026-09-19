@@ -89,6 +89,6 @@ function UsagePage() {
           Account settings <ArrowRight className="size-3.5" />
         </Link>
       </div>
-    </>
+    </div>
   );
 }
