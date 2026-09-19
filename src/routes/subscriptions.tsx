@@ -36,6 +36,7 @@ function SubscriptionsPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Plans"
         title="Subscriptions / Plans"
         subtitle="Plan definitions remain available as product information. Billing state is shown only when the canonical account and commercial services expose it."
       />
