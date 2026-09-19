@@ -68,12 +68,12 @@ function NotificationsPage() {
   }
 
   return (
-    <div className="w-full max-w-4xl">
+    <div className="w-full max-w-4xl space-y-7 pb-12">
       <PageHeader
         title="Notifications"
         subtitle="Control the Topic updates you have chosen to receive."
       />
-      <Panel className="mt-6 p-4">
+      <Panel className="p-4">
         <div className="flex items-start gap-3">
           <Bell className="mt-0.5 size-4 text-muted-foreground" />
           <div>
