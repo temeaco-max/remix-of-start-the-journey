@@ -35,7 +35,7 @@ function MessagesPage() {
   }, [query]);
   const unread = threads.reduce((sum, t) => sum + (t.unread ?? 0), 0);
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 pb-12">
       <PageHeader
         title="Messages"
         subtitle="Your conversations stay close to the work they belong to."
