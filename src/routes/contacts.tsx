@@ -87,8 +87,9 @@ function ContactsPage() {
       : base;
   }, [demo, query, tab]);
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Contacts"
         title="Contacts"
         subtitle="People and providers you can bring back into a conversation or piece of work."
       />
