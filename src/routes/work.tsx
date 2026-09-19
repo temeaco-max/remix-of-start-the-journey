@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchExecutionOverview, type ExecutionOverview } from "@/lib/execution-api";
+import { PageHeader } from "@/components/app-shell";
 import { fetchLiveEconomicRequests } from "@/lib/live-economic-requests";
 import { canonicalWorkItem } from "@/lib/work-projection";
 import { useKurukoo } from "@/lib/kurukoo-store";
@@ -63,41 +64,24 @@ function WorkPage() {
   const latest = active.slice(0, 6);
 
   return (
-    <div className="min-w-0 pb-12">
-      <header className="max-w-3xl border-b border-border pb-8 pt-4 md:pt-7">
-        <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
-          {active.length
-            ? `${active.length} ${active.length === 1 ? "thing" : "things"} in motion`
-            : "Ready when you are"}
-          {canonicalWork !== null ? (
-            <span className="ml-1 text-[10px] text-muted-foreground/70">· live</span>
-          ) : null}
-        </div>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
-              Work
-            </p>
-            <h1 className="mt-1.5 text-[42px] font-semibold leading-[1] tracking-[-0.055em]">
-              Things Kurukoo is taking care of.
-            </h1>
-            <p className="mt-4 max-w-2xl text-[14px] leading-6 text-muted-foreground">
-              See what is in motion, what needs a decision from you, and what Kurukoo has actually
-              completed.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void refreshCanonicalWork()}
-            disabled={refreshing}
-            className="hidden shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
-          >
-            <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} />{" "}
+    <div className="work-surface min-w-0 pb-12">
+      <PageHeader
+        eyebrow="Work"
+        title="Things Kurukoo is taking care of."
+        subtitle="See what is in motion, what needs a decision from you, and what Kurukoo has actually completed."
+        action={
+          <button type="button" onClick={() => void refreshCanonicalWork()} disabled={refreshing}
+            className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[11px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground sm:inline-flex">
+            <RefreshCw className={refreshing ? "size-3.5 animate-spin" : "size-3.5"} />
             {refreshing ? "Refreshing…" : "Refresh"}
           </button>
-        </div>
-      </header>
+        }
+      />
+      <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+        <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
+        {active.length ? (active.length === 1 ? "1 thing in motion" : active.length + " things in motion") : "Ready when you are"}
+        {canonicalWork !== null ? <span className="ml-1 text-[10px] text-muted-foreground/70">· live</span> : null}
+      </div>
 
       {needsYou.length ? (
         <section className="border-b border-border py-6">
@@ -113,12 +97,12 @@ function WorkPage() {
             </div>
             <Link
               to={`/work/${needsYou[0].id}` as never}
-              className="inline-flex items-center gap-2 bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground"
             >
               Review <ArrowRight className="size-3.5" />
             </Link>
           </div>
-          <div className="mt-5 divide-y divide-border border-y border-border">
+          <div className="mt-5 divide-y divide-border overflow-hidden rounded-2xl border border-border">
             {needsYou.slice(0, 4).map((item) => (
               <Link
                 key={item.id}
@@ -171,7 +155,7 @@ function WorkPage() {
               Ask Kurukoo
             </Link>
           </div>
-          <div className="divide-y divide-border border-y border-border">
+          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
             {latest.map((item) => (
               <Link
                 key={item.id}
@@ -212,7 +196,7 @@ function WorkPage() {
           </div>
         </section>
       ) : (
-        <section className="border-y border-border py-14 text-center">
+        <section className="rounded-2xl border border-border py-14 text-center">
           <Sparkles className="mx-auto size-6 text-muted-foreground" />
           <h2 className="mt-3 text-[16px] font-semibold">Nothing is being taken care of yet.</h2>
           <p className="mx-auto mt-1 max-w-md text-[12px] leading-5 text-muted-foreground">
