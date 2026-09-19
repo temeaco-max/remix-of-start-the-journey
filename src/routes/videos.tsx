@@ -22,13 +22,12 @@ export const Route = createFileRoute("/videos")({
 });
 function VideosPage() {
   return (
-    <div className="space-y-7 pb-12">
+    <>
       <PageHeader
-        eyebrow="Watch"
         title="Watch"
         subtitle="Useful videos for things you are trying to understand or get done."
       />
-      <section className="rounded-2xl border border-border bg-surface p-5 md:p-6">
+      <section className="rounded-[22px] border border-border bg-surface p-5 md:p-6">
         <div className="flex items-start gap-3">
           <span className="grid size-10 place-items-center rounded-xl bg-brand-tint text-brand-ink">
             <Sparkles className="size-4.5" />
@@ -69,7 +68,7 @@ function VideosPage() {
           ))}
         </div>
       </section>
-      <section className="mt-7 rounded-2xl border border-border bg-elevated/35 p-5">
+      <section className="mt-7 rounded-[20px] border border-border bg-elevated/35 p-5">
         <div className="flex items-center gap-3">
           <span className="grid size-9 place-items-center rounded-xl bg-surface">
             <Play className="size-4" />
@@ -85,5 +84,6 @@ function VideosPage() {
           </Link>
         </div>
       </section>
-    </div>  );
+    </>
+  );
 }

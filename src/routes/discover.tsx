@@ -356,13 +356,12 @@ function DiscoverPage() {
     .slice(0, 30);
   const featuredGroups = exploreGoalGroups.slice(0, 4);
   return (
-    <div className="space-y-7 pb-12">
+    <div className="space-y-10">
       <PageHeader
-        eyebrow="Discover"
         title="Discover"
         subtitle="Nearby context, useful ideas, people, places, offers, events and opportunities — with the route into action kept close."
       />
-      <section className="rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-6">
+      <section className="border-y border-border py-6 md:py-7">
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center bg-brand-tint text-brand-ink">
             <Compass className="size-4.5" />
@@ -388,7 +387,7 @@ function DiscoverPage() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Try “I need a plumber” or “find dinner nearby”…"
-              className="min-h-12 w-full rounded-xl border border-border bg-background pl-10 pr-10 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-12 w-full border border-border bg-background pl-10 pr-10 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             {q ? (
               <button
@@ -419,7 +418,7 @@ function DiscoverPage() {
             Examples of outcomes Kurukoo can help you move forward.
           </p>
         </div>
-        <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2">
+        <div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2">
           {featuredGroups.map((group) => {
             const Icon = group.icon;
             return (
@@ -436,7 +435,7 @@ function DiscoverPage() {
                       key={goal.id}
                       to={(destination[goal.id] ?? "/chat") as never}
                       search={destination[goal.id] ? undefined : ({ query: goal.prompt } as never)}
-                      className="rounded-xl border border-border bg-background p-3 transition-colors hover:bg-elevated"
+                      className="border border-border bg-background p-3 transition-colors hover:bg-elevated"
                     >
                       <p className="text-[12px] font-medium">{goal.label}</p>
                       {goal.description ? (
@@ -468,7 +467,7 @@ function DiscoverPage() {
               See all <ArrowRight className="ml-1 inline size-3.5" />
             </Link>
           </div>
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
+          <div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-3">
             {opportunities.slice(0, 3).map((item) => (
               <Link
                 key={item.id}
@@ -568,7 +567,7 @@ function DiscoverPage() {
               Topics can help you understand context. They are not fulfilment proof.
             </p>
           </div>
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
             {topics.map((topic) => (
               <Link
                 key={topic.id}

@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   Bell,
   Brain,
@@ -95,12 +95,6 @@ export function useProfileName() {
   }, []);
   return name;
 }
-const authenticatedHeaderPrefixes = [
-  "/perch", "/chat", "/workspace", "/explore", "/discover", "/activity", "/work", "/tasks",
-  "/notifications", "/contacts", "/messages", "/memory", "/artifacts", "/calls", "/subscriptions",
-  "/wallet", "/settings", "/agents", "/connect", "/provider", "/advertising", "/profile",
-] as const;
-
 export function PageHeader({
   title,
   description,
@@ -114,12 +108,8 @@ export function PageHeader({
   eyebrow?: string;
   action?: ReactNode;
 }) {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isAuthenticatedSurface = authenticatedHeaderPrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
   return (
-    <header className={`mb-7 flex items-start justify-between gap-4 border-b border-border/70 pb-5 ${isAuthenticatedSurface ? "os-page-header" : ""}`}>
+    <header className="mb-7 flex items-start justify-between gap-4 border-b border-border/70 pb-5">
       <div className="min-w-0">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
           {eyebrow ?? "Kurukoo OS"}
@@ -176,7 +166,7 @@ function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) {
 const nav = [
   { to: "/perch", label: "Field", icon: LayoutDashboard, color: "text-muted-foreground" },
   { to: "/chat", label: "Chat", icon: MessageCircle, color: "text-muted-foreground" },
-  { to: "/work", label: "Work", icon: ListChecks, color: "text-muted-foreground" },
+  { to: "/work", label: "Requests", icon: ListChecks, color: "text-muted-foreground" },
   { to: "/tasks", label: "Tasks", icon: CheckCircle2, color: "text-muted-foreground" },
   { to: "/memory", label: "Memory", icon: Brain, color: "text-muted-foreground" },
   { to: "/discover", label: "Nearby", icon: MapPin, color: "text-muted-foreground" },

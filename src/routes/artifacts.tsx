@@ -33,9 +33,8 @@ function ArtifactsPage() {
   }, []);
 
   return (
-    <div className="space-y-7 pb-12">
+    <div className="space-y-8 pb-10">
       <PageHeader
-        eyebrow="Artifacts"
         title="Artifacts"
         subtitle="Useful things Kurukoo has made, found or saved while helping you get something done."
       />

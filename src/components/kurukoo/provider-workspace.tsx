@@ -593,8 +593,8 @@ export function ProviderWorkspace() {
       />
       <Tabs items={tabs} value={tab} onChange={setTab} />
       {tab === "Requests" ? (
-        <div className="space-y-7 pb-12">
-          <section className="rounded-2xl border border-border bg-surface p-5">
+        <div className="mt-4 space-y-4">
+          <section className="rounded-[22px] border border-border bg-surface p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
@@ -794,5 +794,6 @@ export function ProviderWorkspace() {
           </section>
         </div>
       )}
-    </div>  );
+    </>
+  );
 }

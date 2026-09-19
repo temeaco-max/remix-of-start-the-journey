@@ -212,9 +212,8 @@ function DataExport() {
 function SettingsPage() {
   const [tab, setTab] = useState<string>(tabs[0]);
   return (
-    <div className="space-y-7 pb-12">
+    <>
       <PageHeader
-        eyebrow="Settings"
         title="Settings"
         subtitle="Control how Kurukoo behaves, remembers, communicates and works for you."
       />
@@ -550,6 +549,6 @@ function SettingsPage() {
         connected service is unavailable, Kurukoo shows that boundary instead of presenting an
         invented state.
       </div>
-    </div>
+    </>
   );
 }

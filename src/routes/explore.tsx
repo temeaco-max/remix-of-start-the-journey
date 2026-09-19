@@ -26,13 +26,13 @@ function ExplorePage() {
   const [q, setQ] = useState(initial);
   const discoverHref = q.trim() ? `/discover?query=${encodeURIComponent(q.trim())}` : "/discover";
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-7 pb-12">
+    <div className="mx-auto w-full max-w-4xl space-y-8">
       <PageHeader
         eyebrow="Kurukoo OS"
         title="Explore"
         subtitle="Explore is now part of Discover. This authenticated surface keeps the OS shell in place while sending discovery into the single public Discover experience."
       />
-      <section className="rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-soft)] md:p-6">
+      <section className="border-y border-border py-8">
         <div className="flex items-start gap-4">
           <span className="grid size-11 shrink-0 place-items-center bg-brand-tint text-brand-ink">
             <Compass className="size-5" />
@@ -59,12 +59,12 @@ function ExplorePage() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="What are you looking for?"
-              className="min-h-11 w-full rounded-xl border border-border bg-background pl-10 pr-3 text-[12.5px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-11 w-full border border-border bg-background pl-10 pr-3 text-[12.5px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
           <Link
             to={discoverHref as never}
-            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[11.5px] font-medium text-primary-foreground"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 bg-primary px-4 text-[11.5px] font-medium text-primary-foreground"
           >
             Open Discover <ArrowUpRight className="size-3.5" />
           </Link>

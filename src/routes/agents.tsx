@@ -78,9 +78,9 @@ function GoalCard({
     }
   }
   return (
-    <article className="rounded-2xl border border-border bg-surface p-4">
+    <article className="border border-border bg-surface p-4">
       <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink">
+        <span className="grid size-9 shrink-0 place-items-center bg-brand-tint text-brand-ink">
           <Bot className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
@@ -258,9 +258,8 @@ function AuthenticatedAgents() {
     capabilities: entity.category ? [entity.category] : [],
   }));
   return (
-    <div className="space-y-7 pb-12">
+    <div className="space-y-7">
       <PageHeader
-        eyebrow="Agents"
         title="Agents"
         subtitle="Advanced capabilities for work that can continue under defined rules. Most of the time, you can simply ask Kurukoo."
       />

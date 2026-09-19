@@ -34,9 +34,8 @@ function SubscriptionsPage() {
           : "creator";
   const selectedPlans = plans.filter((plan) => plan.audience === audience);
   return (
-    <div className="space-y-7 pb-12">
+    <>
       <PageHeader
-        eyebrow="Plans"
         title="Subscriptions / Plans"
         subtitle="Plan definitions remain available as product information. Billing state is shown only when the canonical account and commercial services expose it."
       />
@@ -115,6 +114,6 @@ function SubscriptionsPage() {
           </p>
         </Panel>
       </div>
-    </div>
+    </>
   );
 }

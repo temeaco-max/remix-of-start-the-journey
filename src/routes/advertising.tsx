@@ -51,7 +51,6 @@ function AdvertisingPage() {
       referral="Where an eligible advertiser referral programme is active, Kurukoo can attribute the referred account and apply the current qualification rules. Any commission or reward remains pending until the qualifying conditions are satisfied."
       joinPrompt="I want to advertise on Kurukoo. Help me understand eligibility, placements, pricing and how to start."
       primaryLabel="Start advertising"
-      osHeader
       primaryTo="/advertising"
     />
   );
