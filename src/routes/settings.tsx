@@ -214,6 +214,7 @@ function SettingsPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Settings"
         title="Settings"
         subtitle="Control how Kurukoo behaves, remembers, communicates and works for you."
       />
