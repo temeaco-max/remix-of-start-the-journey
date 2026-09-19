@@ -84,6 +84,5 @@ function VideosPage() {
           </Link>
         </div>
       </section>
-    </>
-  );
+    </div>  );
 }
