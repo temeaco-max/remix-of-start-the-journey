@@ -450,7 +450,7 @@ export function ContextualTrustedRail({
     <aside
       aria-label="Trusted context rail"
       className={cn(
-        "relative min-h-0 h-full hidden overflow-visible bg-surface py-4 lg:flex lg:flex-col",
+        "relative min-h-0 h-full hidden overflow-visible bg-surface py-4 lg:flex lg:flex-col border-l border-border",
         open ? "w-[224px] px-3" : "w-[48px] px-1.5",
       )}
     >
