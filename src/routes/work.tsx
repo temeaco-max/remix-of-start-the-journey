@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchExecutionOverview, type ExecutionOverview } from "@/lib/execution-api";
+import { PageHeader } from "@/components/app-shell";
 import { fetchLiveEconomicRequests } from "@/lib/live-economic-requests";
 import { canonicalWorkItem } from "@/lib/work-projection";
 import { useKurukoo } from "@/lib/kurukoo-store";
@@ -64,40 +65,23 @@ function WorkPage() {
 
   return (
     <div className="work-surface min-w-0 pb-12">
-      <header className="max-w-3xl border-b border-border pb-8 pt-4 md:pt-7">
-        <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
-          {active.length
-            ? `${active.length} ${active.length === 1 ? "thing" : "things"} in motion`
-            : "Ready when you are"}
-          {canonicalWork !== null ? (
-            <span className="ml-1 text-[10px] text-muted-foreground/70">· live</span>
-          ) : null}
-        </div>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
-              Work
-            </p>
-            <h1 className="mt-1.5 text-[42px] font-semibold leading-[1] tracking-[-0.055em]">
-              Things Kurukoo is taking care of.
-            </h1>
-            <p className="mt-4 max-w-2xl text-[14px] leading-6 text-muted-foreground">
-              See what is in motion, what needs a decision from you, and what Kurukoo has actually
-              completed.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void refreshCanonicalWork()}
-            disabled={refreshing}
-            className="hidden shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
-          >
-            <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} />{" "}
+      <PageHeader
+        eyebrow="Work"
+        title="Things Kurukoo is taking care of."
+        subtitle="See what is in motion, what needs a decision from you, and what Kurukoo has actually completed."
+        action={
+          <button type="button" onClick={() => void refreshCanonicalWork()} disabled={refreshing}
+            className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[11px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground sm:inline-flex">
+            <RefreshCw className={refreshing ? "size-3.5 animate-spin" : "size-3.5"} />
             {refreshing ? "Refreshing…" : "Refresh"}
           </button>
-        </div>
-      </header>
+        }
+      />
+      <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+        <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
+        {active.length ? (active.length === 1 ? "1 thing in motion" : active.length + " things in motion") : "Ready when you are"}
+        {canonicalWork !== null ? <span className="ml-1 text-[10px] text-muted-foreground/70">· live</span> : null}
+      </div>
 
       {needsYou.length ? (
         <section className="border-b border-border py-6">
