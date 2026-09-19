@@ -63,7 +63,7 @@ function WorkPage() {
   const latest = active.slice(0, 6);
 
   return (
-    <div className="min-w-0 pb-12">
+    <div className="work-surface min-w-0 pb-12">
       <header className="max-w-3xl border-b border-border pb-8 pt-4 md:pt-7">
         <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
           <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
@@ -113,12 +113,12 @@ function WorkPage() {
             </div>
             <Link
               to={`/work/${needsYou[0].id}` as never}
-              className="inline-flex items-center gap-2 bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground"
             >
               Review <ArrowRight className="size-3.5" />
             </Link>
           </div>
-          <div className="mt-5 divide-y divide-border border-y border-border">
+          <div className="mt-5 divide-y divide-border overflow-hidden rounded-2xl border border-border">
             {needsYou.slice(0, 4).map((item) => (
               <Link
                 key={item.id}
@@ -171,7 +171,7 @@ function WorkPage() {
               Ask Kurukoo
             </Link>
           </div>
-          <div className="divide-y divide-border border-y border-border">
+          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
             {latest.map((item) => (
               <Link
                 key={item.id}
@@ -212,7 +212,7 @@ function WorkPage() {
           </div>
         </section>
       ) : (
-        <section className="border-y border-border py-14 text-center">
+        <section className="rounded-2xl border border-border py-14 text-center">
           <Sparkles className="mx-auto size-6 text-muted-foreground" />
           <h2 className="mt-3 text-[16px] font-semibold">Nothing is being taken care of yet.</h2>
           <p className="mx-auto mt-1 max-w-md text-[12px] leading-5 text-muted-foreground">
