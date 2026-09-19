@@ -165,7 +165,7 @@ function ActivityPage() {
   const systemUpdates = notifications.filter((n) => !n.needsConfirmation);
   const recentNotifications = notifications.slice(0, 4);
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-7 pb-12">
       <PageHeader
         title="Activity"
         subtitle="A quiet continuity surface for replies, Work changes, decisions and important updates. Return to the same conversation or object when something needs you."
