@@ -253,6 +253,7 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .field-welcome { position: relative; min-height: 196px; display: flex; align-items: flex-start; justify-content: space-between; overflow: hidden; padding: 10px 6px 0; }
 .field-welcome-copy { position: relative; z-index: 2; }
 .field-kicker { margin: 0 0 16px; color: var(--muted-foreground); font-size: 15px; font-weight: 500; }
+.field-welcome-weather { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--border); color: var(--foreground); }
 .field-welcome h1 { margin: 0; color: var(--foreground); font-size: clamp(40px, 7vw, 58px); line-height: .42; }
 .field-subtitle { margin: 18px 0 0; color: var(--muted-foreground); font-size: 19px; }
 .field-welcome-meta { position: relative; z-index: 3; display: flex; align-items: center; gap: 28px; color: var(--muted-foreground); font-size: 12px; }
