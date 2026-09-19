@@ -190,6 +190,5 @@ function CallsPage() {
           is configured, it uses the same conversation ID and returns to the same Chat history.
         </IntegrationGap>
       ) : null}
-    </>
-  );
+    </div>  );
 }
