@@ -343,10 +343,18 @@ export function FieldDashboard() {
         </div>
       </section>
 
-      <div className="field-creator-slot-row" aria-label="Reserved cards">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div key={index} className="field-creator-slot" aria-hidden="true" />
-        ))}
+      <div className="field-creator-slot-row" aria-label="Creator and account cards">
+        <div className="field-creator-slot" aria-hidden="true" />
+        <FieldCard className="field-creator-slot field-account-card">
+          <CardHeading title="Points" />
+          <div className="field-account-value">Not available</div>
+          <p className="field-account-note">No canonical Points balance is exposed yet.</p>
+        </FieldCard>
+        <FieldCard className="field-creator-slot field-account-card">
+          <CardHeading title="Wallet balance" />
+          <div className="field-account-value">Not available</div>
+          <p className="field-account-note">No canonical wallet balance is exposed yet.</p>
+        </FieldCard>
         <FieldCard className="field-creator-slot field-creator-activity-card">
           <CardHeading title="Activity summary" action={<Link to="/activity" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>} />
           <div className="activity-summary-grid">
