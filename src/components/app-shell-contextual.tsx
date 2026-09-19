@@ -562,7 +562,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <ChevronLeft className="size-[17px]" strokeWidth={1.8} />
             )}
           </button>
-          <nav aria-label="OS navigation" className="scrollbar-none space-y-1 overflow-y-auto pt-5">
+          <nav aria-label="OS navigation" className="scrollbar-none min-h-0 space-y-1 overflow-y-auto pt-5">
             {nav.map(({ to, label, icon: Icon, color }) => (
               <Link
                 key={to}
