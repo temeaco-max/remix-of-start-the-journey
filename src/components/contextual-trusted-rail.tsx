@@ -40,14 +40,14 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-3">
+    <section className="trusted-context-card rounded-2xl p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Icon className="size-3.5 shrink-0 text-muted-foreground" />
           <h2 className="truncate text-[12.5px] font-semibold">{title}</h2>
         </div>
         <Link to={to as never} className="text-[10px] text-muted-foreground hover:text-foreground">
-          Open
+          View <ChevronRight className="ml-0.5 inline size-3" />
         </Link>
       </div>
       <div className="mt-2">{children}</div>
@@ -288,14 +288,12 @@ export function ContextualTrustedRail({
       <Section title="Trusted context" icon={Brain} to="/memory">
         <Row icon={Sparkles} title="Home" detail="Your Field" to="/perch" />
         <Row icon={Briefcase} title="Work" detail={focus?.title ?? "No active Work"} to="/work" />
-        <Row
-          icon={Brain}
-          title="Memory"
-          detail={memory.length ? "Private continuity" : "No saved context shown"}
-          to="/memory"
-        />
+        <Row icon={Brain} title="Memory" detail={memory.length ? "Private continuity" : "No saved context shown"} to="/memory" />
+        <Link to="/memory" className="trusted-context-view mt-2 text-[10px] font-medium text-primary">
+          View memory <ChevronRight className="size-3" />
+        </Link>
       </Section>
-      <Section title="Nearby pulse" icon={MapPin} to="/discover">
+      <Section title="Nearby" icon={MapPin} to="/discover">
         <Row
           icon={MapPin}
           title="Nearby"
@@ -303,15 +301,20 @@ export function ContextualTrustedRail({
           to="/discover"
         />
         <PulseControl readiness={readiness} onChange={setReadiness} />
+        <Link to="/discover" className="trusted-context-view mt-2 text-[10px] font-medium text-primary">
+          See nearby <ChevronRight className="size-3" />
+        </Link>
       </Section>
-      <Section title="Safety state" icon={ShieldCheck} to="/trust">
-        <Row
-          icon={ShieldCheck}
-          title="Trust controls"
-          detail="Review permissions and account state"
-          to="/trust"
-        />
-      </Section>
+      <section className="safety-state-card">
+        <span className="safety-state-icon"><ShieldCheck className="size-4" /></span>
+        <div className="min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-[12.5px] font-semibold">Safety state</h2>
+            <Link to="/trust" className="text-[10px] text-muted-foreground hover:text-foreground">View <ChevronRight className="ml-0.5 inline size-3" /></Link>
+          </div>
+          <p className="mt-1 text-[10px] text-muted-foreground">Trust controls are explicit before consequential action.</p>
+        </div>
+      </section>
       <Section title="Current focus" icon={Target} to="/work">
         {focus ? (
           <Row
@@ -330,18 +333,17 @@ export function ContextualTrustedRail({
         )}
       </Section>
       <Section title="People & continuity" icon={Users} to="/connect">
-        <Row
-          icon={Users}
-          title="Trusted people"
-          detail="Relationships and consent"
-          to="/contacts"
-        />
-        <Row
-          icon={Bell}
-          title={unread ? `${unread} unread updates` : "No unread updates"}
-          detail="Activity and notifications"
-          to="/activity"
-        />
+        <Row icon={Users} title="Trusted people" detail="Relationships and consent" to="/contacts" />
+        <Row icon={Bell} title={unread ? `${unread} unread updates` : "No unread updates"} detail="Activity and notifications" to="/activity" />
+      </Section>
+      <Section title="Activity summary" icon={Bell} to="/activity">
+        <div className="activity-summary-grid">
+          <div><strong>{work.filter((item) => item.stage === "done").length}</strong><span>Tasks completed</span></div>
+          <div><strong>{focus ? 1 : 0}</strong><span>In motion</span></div>
+        </div>
+        <Link to="/activity" className="trusted-context-view mt-2 text-[10px] font-medium text-primary">
+          View activity <ChevronRight className="size-3" />
+        </Link>
       </Section>
       {ad ? <RailAd campaign={ad} /> : null}
     </>
@@ -448,7 +450,7 @@ export function ContextualTrustedRail({
     <aside
       aria-label="Trusted context rail"
       className={cn(
-        "relative min-h-0 h-full hidden overflow-visible border-l border-border bg-surface py-4 lg:flex lg:flex-col",
+        "relative min-h-0 h-full hidden overflow-visible bg-surface py-4 lg:flex lg:flex-col",
         open ? "w-[224px] px-3" : "w-[48px] px-1.5",
       )}
     >
