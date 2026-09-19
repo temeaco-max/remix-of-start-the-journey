@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/app-shell";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
 import { FAQSection } from "@/components/kurukoo/faq-section";
 import {
