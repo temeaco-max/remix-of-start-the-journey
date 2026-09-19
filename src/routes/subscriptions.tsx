@@ -34,7 +34,7 @@ function SubscriptionsPage() {
           : "creator";
   const selectedPlans = plans.filter((plan) => plan.audience === audience);
   return (
-    <>
+    <div className="space-y-7 pb-12">
       <PageHeader
         eyebrow="Plans"
         title="Subscriptions / Plans"
