@@ -212,7 +212,7 @@ function DataExport() {
 function SettingsPage() {
   const [tab, setTab] = useState<string>(tabs[0]);
   return (
-    <>
+    <div className="space-y-7 pb-12">
       <PageHeader
         eyebrow="Settings"
         title="Settings"
