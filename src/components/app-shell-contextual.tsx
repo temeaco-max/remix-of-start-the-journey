@@ -3,8 +3,8 @@ import {
   Bell,
   Brain,
   Briefcase,
-  CheckSquare2,
-  ClipboardList,
+  CheckCircle2,
+  ListChecks,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -50,6 +50,35 @@ export function KurukooLogo({ className = "size-6" }: { className?: string }) {
     />
   );
 }
+function useHeaderEnvironment() {
+  const [environment, setEnvironment] = useState({ temperature: "--°", location: "London" });
+  useEffect(() => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const fallback = timezone.split("/").pop()?.replace(/_/g, " ") || "Local";
+    setEnvironment((value) => ({ ...value, location: fallback }));
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const response = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current=temperature_2m&temperature_unit=celsius`,
+          );
+          if (!response.ok) return;
+          const data = (await response.json()) as { current?: { temperature_2m?: number } };
+          if (typeof data.current?.temperature_2m === "number") {
+            setEnvironment((value) => ({ ...value, temperature: `${Math.round(data.current!.temperature_2m)}°` }));
+          }
+        } catch {
+          /* weather is enhancement-only; keep the local fallback */
+        }
+      },
+      () => undefined,
+      { maximumAge: 300000, timeout: 5000 },
+    );
+  }, []);
+  return environment;
+}
+
 export function useProfileName() {
   const [name, setName] = useState("Ada");
   useEffect(() => {
@@ -138,8 +167,8 @@ function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) {
 const nav = [
   { to: "/perch", label: "Field", icon: LayoutDashboard, color: "text-muted-foreground" },
   { to: "/chat", label: "Conversation", icon: MessageCircle, color: "text-muted-foreground" },
-  { to: "/work", label: "Requests", icon: ClipboardList, color: "text-muted-foreground" },
-  { to: "/tasks", label: "Tasks", icon: CheckSquare2, color: "text-muted-foreground" },
+  { to: "/work", label: "Requests", icon: ListChecks, color: "text-muted-foreground" },
+  { to: "/tasks", label: "Tasks", icon: CheckCircle2, color: "text-muted-foreground" },
   { to: "/memory", label: "Memory", icon: Brain, color: "text-muted-foreground" },
   { to: "/discover", label: "Nearby", icon: MapPin, color: "text-muted-foreground" },
 ] as const;
@@ -264,6 +293,7 @@ function RailAd({ campaign }: { campaign: AuthenticatedAd | null }) {
 }
 function Header() {
   const name = useProfileName();
+  const environment = useHeaderEnvironment();
   const { notifications } = useKurukoo();
   const unread = notifications.filter((n) => !n.read).length;
   const [open, setOpen] = useState(false);
@@ -324,8 +354,13 @@ function Header() {
           </Link>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <div className="hidden items-center gap-2 text-[11px] text-muted-foreground lg:flex">
+            <span className="font-medium text-foreground">{environment.temperature}</span>
+            <span>{environment.location}</span>
+          </div>
+          <span className="mx-1 hidden h-6 w-px bg-border lg:block" aria-hidden />
           <PresenceRadarControl />
-          <span className="mx-1 h-8 w-px bg-border" aria-hidden />
+          <span className="mx-1 hidden h-6 w-px bg-border lg:block" aria-hidden />
           <div className="relative">
             <button
               type="button"
@@ -334,11 +369,15 @@ function Header() {
               aria-expanded={open}
               className="flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1.5 hover:bg-elevated"
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-tint text-[12px] font-semibold text-brand-ink">
-                {name.charAt(0).toUpperCase() || "A"}
+              <span className="profile-completeness-ring" style={{ "--profile-complete": "50%" } as CSSProperties}>
+                <span className="profile-avatar grid size-[34px] place-items-center rounded-full bg-brand-tint text-[12px] font-semibold text-brand-ink">
+                  {name.charAt(0).toUpperCase() || "A"}
+                  <span className="profile-status-dot is-online" aria-label="Online" />
+                </span>
               </span>
-              <span className="hidden max-w-[110px] truncate text-[13px] font-medium sm:inline">
-                {name}
+              <span className="hidden min-w-0 max-w-[120px] text-left sm:grid">
+                <span className="truncate text-[13px] font-medium">{name}</span>
+                <span className="text-[9.5px] text-muted-foreground">Personal</span>
               </span>
               <ChevronDown
                 className={cn(
