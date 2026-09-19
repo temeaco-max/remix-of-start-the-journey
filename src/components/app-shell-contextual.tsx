@@ -51,11 +51,11 @@ export function KurukooLogo({ className = "size-6" }: { className?: string }) {
   );
 }
 function useHeaderEnvironment() {
-  const [environment, setEnvironment] = useState({ temperature: "--°", location: "London" });
+  const [environment, setEnvironment] = useState({ temperature: "--°", location: "London", date: "" });
   useEffect(() => {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const fallback = timezone.split("/").pop()?.replace(/_/g, " ") || "Local";
-    setEnvironment((value) => ({ ...value, location: fallback }));
+    setEnvironment((value) => ({ ...value, location: fallback, date: new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(new Date()) }));
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
@@ -357,6 +357,8 @@ function Header() {
           <div className="hidden items-center gap-2 text-[11px] text-muted-foreground lg:flex">
             <span className="font-medium text-foreground">{environment.temperature}</span>
             <span>{environment.location}</span>
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+            <span>{environment.date}</span>
           </div>
           <span className="mx-1 hidden h-6 w-px bg-border lg:block" aria-hidden />
           <PresenceRadarControl />
