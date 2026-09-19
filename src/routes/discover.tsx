@@ -358,6 +358,7 @@ function DiscoverPage() {
   return (
     <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Discover"
         title="Discover"
         subtitle="Nearby context, useful ideas, people, places, offers, events and opportunities — with the route into action kept close."
       />
