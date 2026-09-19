@@ -305,10 +305,10 @@ export function FieldDashboard() {
     <div className="kurukoo-field min-w-0 pb-10">
       <section className="field-welcome" aria-labelledby="field-title">
         <div className="field-welcome-copy">
-          <p className="field-kicker">
+          <p className="field-kicker field-welcome-meta">
             {greeting(now.getHours())}, {profileName}
             <span className="field-welcome-separator" aria-hidden="true" />
-            <span className="field-weather field-welcome-meta">
+            <span className="field-weather">
               <span className="field-sun" aria-hidden="true">
                 {weather?.icon ?? "☼"}
               </span>
@@ -344,9 +344,16 @@ export function FieldDashboard() {
       </section>
 
       <div className="field-creator-slot-row" aria-label="Reserved cards">
-        {Array.from({ length: 5 }, (_, index) => (
+        {Array.from({ length: 3 }, (_, index) => (
           <div key={index} className="field-creator-slot" aria-hidden="true" />
         ))}
+        <FieldCard className="field-creator-slot field-creator-activity-card">
+          <CardHeading title="Activity summary" action={<Link to="/activity" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>} />
+          <div className="activity-summary-grid">
+            <div><strong>{completedCount}</strong><span>Tasks completed</span></div>
+            <div><strong>{active.length}</strong><span>In motion</span></div>
+          </div>
+        </FieldCard>
       </div>
 
       <section className="field-creators-card">
