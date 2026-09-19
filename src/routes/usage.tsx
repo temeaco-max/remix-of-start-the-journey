@@ -19,7 +19,7 @@ export const Route = createFileRoute("/usage")({
 
 function UsagePage() {
   return (
-    <>
+    <div className="space-y-7 pb-12">
       <PageHeader
         eyebrow="Account / Usage"
         title="Usage"
