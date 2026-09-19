@@ -350,10 +350,12 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 }
 
 .field-welcome-separator{display:inline-block;width:1px;height:18px;margin:0 2px 0 4px;background:var(--border);vertical-align:middle}
-.field-creator-slot-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 14px;padding:0}
-.field-creator-slot{min-width:0;min-height:72px;border:0;border-radius:0;background:transparent}
-.field-horizon{position:absolute;right:0;bottom:0;width:62%;height:150px;overflow:hidden;opacity:.82;pointer-events:none}
-.field-horizon::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 22%,color-mix(in oklab,var(--primary) 18%,transparent),transparent 28%),linear-gradient(to top,color-mix(in oklab,var(--brand-tint) 12%,transparent),transparent 70%);opacity:.8}
-.field-horizon-sun{position:absolute;right:25%;top:8px;width:58px;height:58px;border-radius:50%;background:color-mix(in oklab,var(--primary) 55%,white);box-shadow:0 0 34px color-mix(in oklab,var(--primary) 30%,transparent);opacity:.72}
-.field-horizon-city{bottom:30px}
-.field-horizon-water{bottom:16px}
+.field-creator-slot-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px;padding:0}
+.field-creator-slot{min-width:0;min-height:72px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.field-creator-activity-card{min-height:72px;overflow:hidden}
+.field-creator-activity-card .field-card-heading{padding:12px 12px 8px}
+.field-creator-activity-card .activity-summary-grid{padding:0 12px 12px}
+.field-horizon { position: absolute; right: 0; bottom: 2px; width: 54%; height: 126px; overflow: hidden; opacity: .7; }
+.field-horizon-sun { position: absolute; right: 25%; top: 0; width: 54px; height: 54px; border-radius: 50%; background: color-mix(in oklab, var(--primary) 55%, white); opacity: .7; }
+.field-horizon-city { position: absolute; left: 13%; right: 4%; bottom: 33px; height: 48px; background: linear-gradient(to top, color-mix(in oklab, var(--brand-ink) 23%, transparent), transparent 75%); clip-path: polygon(0 100%, 4% 70%, 8% 82%, 13% 42%, 17% 76%, 21% 51%, 25% 78%, 30% 20%, 33% 73%, 39% 59%, 42% 76%, 47% 34%, 51% 77%, 57% 54%, 62% 73%, 68% 43%, 72% 75%, 78% 55%, 83% 80%, 90% 62%, 95% 85%, 100% 66%, 100% 100%); }
+.field-horizon-water { position: absolute; left: 8%; right: 0; bottom: 21px; height: 1px; background: color-mix(in oklab, var(--brand-ink) 28%, transparent); box-shadow: 0 8px 0 color-mix(in oklab, var(--brand-ink) 12%, transparent), 0 16px 0 color-mix(in oklab, var(--brand-ink) 9%, transparent); }
