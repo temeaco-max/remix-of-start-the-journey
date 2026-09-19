@@ -191,7 +191,7 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .kurukoo-os-header { height: 50px; background: color-mix(in oklab, var(--background) 92%, white) !important; }
 .kurukoo-os-header > div:first-child { height: 50px; }
 .kurukoo-os-grid { height: calc(100vh - 68px) !important; }
-.kurukoo-os-grid > aside[aria-label="OS navigation"] { background: color-mix(in oklab, var(--background) 76%, white); border-color: color-mix(in oklab, var(--border) 88%, transparent); padding: 28px 18px 20px; }
+.kurukoo-os-grid > aside[aria-label="OS navigation"] { background: var(--background); border-color: var(--border); padding: 28px 18px 20px; }
 /* Width comes from AppShell Tailwind state (w-[200px] expanded / w-[76px] collapsed)
    so collapsing the OS rail hands space back to the main surface. */
 .kurukoo-os-grid > aside[aria-label="OS navigation"] nav[aria-label="OS navigation"] { padding-top: 0; }
@@ -201,9 +201,9 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .kurukoo-os-grid > aside[aria-label="OS navigation"] nav a:hover { background: color-mix(in oklab, var(--accent) 70%, var(--surface)); }
 .kurukoo-os-grid > main { background: var(--background); }
 .kurukoo-os-grid > main > div { max-width: 100%; padding: 30px 17px 17px; }
-.kurukoo-os-grid > aside[aria-label="Trusted context rail"] { padding: 20px 16px; background: color-mix(in oklab, var(--background) 82%, white); border-color: color-mix(in oklab, var(--border) 88%, transparent); overflow: visible !important; }
+.kurukoo-os-grid > aside[aria-label="Trusted context rail"] { padding: 20px 16px; background: var(--background); border-color: var(--border); overflow: visible !important; }
 /* Width comes from ContextualTrustedRail Tailwind state (w-[224px] open). */
-.kurukoo-os-grid > aside[aria-label="Trusted context rail"] section { border-radius: 18px; border-color: color-mix(in oklab, var(--border) 88%, transparent); background: color-mix(in oklab, var(--surface) 88%, transparent); padding: 14px; box-shadow: 0 1px 1px oklch(0.19 0.018 55 / 0.025); }
+.kurukoo-os-grid > aside[aria-label="Trusted context rail"] section { border: 1px solid var(--border); border-radius: 18px; border-color: var(--border); background: var(--surface); padding: 14px; box-shadow: 0 1px 1px oklch(0.19 0.018 55 / 0.025); }
 .kurukoo-os-grid > aside[aria-label="Trusted context rail"] section h2 { font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: -0.01em; }
 .kurukoo-os-grid > aside[aria-label="Trusted context rail"] section + section { margin-top: 4px; }
 /* Row icon bubbles only (span, not the collapse toggle button): muted by default,
@@ -253,11 +253,10 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .field-welcome { position: relative; min-height: 196px; display: flex; align-items: flex-start; justify-content: space-between; overflow: hidden; padding: 10px 6px 0; }
 .field-welcome-copy { position: relative; z-index: 2; }
 .field-kicker { margin: 0 0 16px; color: var(--muted-foreground); font-size: 15px; font-weight: 500; }
-.field-welcome-weather { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--border); color: var(--foreground); }
 .field-welcome h1 { margin: 0; color: var(--foreground); font-size: clamp(40px, 7vw, 58px); line-height: .42; }
 .field-subtitle { margin: 18px 0 0; color: var(--muted-foreground); font-size: 19px; }
 .field-welcome-meta { position: relative; z-index: 3; display: flex; align-items: center; gap: 28px; color: var(--muted-foreground); font-size: 12px; }
-.field-weather, .field-date { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+ .field-weather, .field-date { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .field-weather strong { color: var(--foreground); font-weight: 600; }
 .field-sun { color: var(--primary); font-size: 25px; line-height: 1; }
 .field-notification { position: relative; display: inline-flex; align-items: center; gap: 2px; margin-left: 10px; color: var(--foreground); }
@@ -321,7 +320,7 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 @media (max-width: 720px) { .field-welcome { min-height: 236px; padding-top: 4px; }.field-welcome-meta { position: absolute; left: 6px; right: 6px; bottom: 11px; justify-content: space-between; }.field-weather { display: none; }.field-horizon { right: -20px; width: 90%; opacity: .55; }.field-welcome h1 { font-size: 58px; }.field-subtitle { font-size: 17px; }.field-composer-card { padding: 15px; }.field-composer-hint { display: none; }.field-main-grid, .field-side-stack, .field-lower-grid, .field-topics-split { grid-template-columns: 1fr; }.field-side-stack, .field-people-card, .field-lower-grid .field-card:last-child { grid-column: auto; }.field-status { display: none; } }
 @media (prefers-reduced-motion: reduce) { .field-loading span { animation: none; } }
 
-.field-creators-card{padding-bottom:10px}.field-creators-card .field-video-scroller{padding-bottom:22px}
+.field-creators-card{padding-bottom:10px;margin-bottom:14px}.field-creators-card .field-video-scroller{padding-bottom:22px}.field-creator-slot-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:0 14px 14px}.field-creator-slot{min-width:0;min-height:72px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
 
 .kurukoo-os-grid{background:var(--background)}
 
