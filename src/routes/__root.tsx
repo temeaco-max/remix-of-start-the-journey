@@ -76,6 +76,7 @@ const authenticatedSurfacePrefixes = [
   "/discover",
   "/activity",
   "/work",
+  "/tasks",
   "/notifications",
   "/contacts",
   "/messages",
