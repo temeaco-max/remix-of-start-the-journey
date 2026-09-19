@@ -165,8 +165,9 @@ function ActivityPage() {
   const systemUpdates = notifications.filter((n) => !n.needsConfirmation);
   const recentNotifications = notifications.slice(0, 4);
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Activity"
         title="Activity"
         subtitle="A quiet continuity surface for replies, Work changes, decisions and important updates. Return to the same conversation or object when something needs you."
       />
@@ -198,7 +199,7 @@ function ActivityPage() {
             </StatusPill>
           </div>
           {recentNotifications.length ? (
-            <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">
+            <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2">
               {recentNotifications.map((n) => (
                 <div key={n.id} className="bg-background p-4">
                   <div className="flex items-center gap-2">
