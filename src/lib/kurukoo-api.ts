@@ -811,3 +811,53 @@ export async function releaseArtistEscrow(bookingId: string) {
     },
   );
 }
+
+
+export type KurukooTask = {
+  id: number;
+  title: string;
+  description?: string;
+  status: string;
+  assignedTo?: string;
+  sourceType?: string;
+  sourceId?: string;
+  conversationId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  creditsReward?: number;
+};
+
+export async function fetchTasks(): Promise<KurukooTask[]> {
+  const payload = await readJson<KurukooTask[]>("/api/tasks");
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function fetchTaskSummary() {
+  const payload = await readJson<{
+    success?: boolean;
+    metrics?: { available?: number; inProgress?: number; completed?: number };
+  }>("/api/tasks/summary");
+  return {
+    available: Number(payload.metrics?.available ?? 0),
+    inProgress: Number(payload.metrics?.inProgress ?? 0),
+    completed: Number(payload.metrics?.completed ?? 0),
+  };
+}
+
+export async function acceptTask(taskId: number) {
+  const payload = await readJson<{ success?: boolean; task?: KurukooTask }>("/api/tasks/accept", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ taskId }),
+  });
+  if (!payload.task) throw new Error("Task acceptance was not confirmed.");
+  return payload.task;
+}
+
+export async function completeTask(taskId: number, result = "") {
+  return readJson<{ success?: boolean; reward?: number; sourceType?: string }>("/api/tasks/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ taskId, result }),
+  });
+}
