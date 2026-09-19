@@ -120,6 +120,6 @@ function WalletPage() {
           />
         </Panel>
       </div>
-    </>
+    </div>
   );
 }
