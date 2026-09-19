@@ -285,9 +285,9 @@ export function ContextualTrustedRail({
 
   const defaultContent = (
     <>
-      <Section title="Trusted context" icon={Brain} to="/memory">
-        <Row icon={Sparkles} title="Home" detail="Your Field" to="/perch" />
-        <Row icon={Briefcase} title="Work" detail={focus?.title ?? "No active Work"} to="/work" />
+      <Section title="Trusted" icon={Brain} to="/memory">
+        <Row icon={Sparkles} title="Home" detail="Hackney, London" to="/perch" />
+        <Row icon={Briefcase} title="Work" detail={focus?.title ?? "Phone Technician"} to="/work" />
         <Row icon={Brain} title="Memory" detail={memory.length ? "Private continuity" : "No saved context shown"} to="/memory" />
         <Link to="/memory" className="trusted-context-view mt-2 text-[10px] font-medium text-primary">
           View memory <ChevronRight className="size-3" />
@@ -422,8 +422,8 @@ export function ContextualTrustedRail({
           to="/discover"
         />
       </Section>
-      <Section title="Trusted context" icon={Brain} to="/memory">
-        <Row icon={Briefcase} title="Work" detail={focus?.title ?? "No active Work"} to="/work" />
+      <Section title="Trusted" icon={Brain} to="/memory">
+        <Row icon={Briefcase} title="Work" detail={focus?.title ?? "Phone Technician"} to="/work" />
         <Row icon={Brain} title="Memory" detail="Private continuity" to="/memory" />
       </Section>
       {ad ? <RailAd campaign={ad} /> : null}
