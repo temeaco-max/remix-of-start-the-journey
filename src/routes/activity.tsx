@@ -198,7 +198,7 @@ function ActivityPage() {
             </StatusPill>
           </div>
           {recentNotifications.length ? (
-            <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">
+            <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2">
               {recentNotifications.map((n) => (
                 <div key={n.id} className="bg-background p-4">
                   <div className="flex items-center gap-2">
