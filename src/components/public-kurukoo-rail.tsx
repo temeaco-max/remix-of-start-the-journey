@@ -100,7 +100,7 @@ export function PublicRail({
 }) {
   const publicNav = [
     ["/", "Home", Home],
-    ["/chat", "Conversation", MessageCircle],
+    ["/chat", "Chat", MessageCircle],
     ["/integrations", "Integrations", Compass],
     ["/use-cases", "Use Cases", Tags],
     ["/pricing", "Pricing", Gift],
@@ -136,7 +136,7 @@ export function PublicRail({
             className={`flex items-center rounded-xl py-2.5 text-[13.5px] leading-5 transition-colors ${collapsed ? "justify-center px-2" : "gap-3 px-3"} text-muted-foreground hover:bg-elevated hover:text-foreground`}
             title={collapsed ? label : undefined}
           >
-            {label === "Conversation" ? (
+            {label === "Chat" ? (
               <ChatVoiceIcon />
             ) : (
               <Icon className="size-[18px] shrink-0" strokeWidth={1.8} />
