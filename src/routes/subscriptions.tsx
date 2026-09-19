@@ -114,6 +114,6 @@ function SubscriptionsPage() {
           </p>
         </Panel>
       </div>
-    </>
+    </div>
   );
 }
