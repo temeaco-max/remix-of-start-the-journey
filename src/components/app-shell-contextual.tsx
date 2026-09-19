@@ -166,7 +166,7 @@ function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) {
 const nav = [
   { to: "/perch", label: "Field", icon: LayoutDashboard, color: "text-muted-foreground" },
   { to: "/chat", label: "Chat", icon: MessageCircle, color: "text-muted-foreground" },
-  { to: "/work", label: "Requests", icon: ListChecks, color: "text-muted-foreground" },
+  { to: "/work", label: "Work", icon: ListChecks, color: "text-muted-foreground" },
   { to: "/tasks", label: "Tasks", icon: CheckCircle2, color: "text-muted-foreground" },
   { to: "/memory", label: "Memory", icon: Brain, color: "text-muted-foreground" },
   { to: "/discover", label: "Nearby", icon: MapPin, color: "text-muted-foreground" },
