@@ -410,7 +410,7 @@ function ConnectPage() {
     void refresh();
   }, []);
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
+    <div className="mx-auto w-full max-w-6xl space-y-7 pb-12">
       <header className="max-w-3xl">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">
           Connections
