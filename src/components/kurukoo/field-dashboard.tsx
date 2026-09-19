@@ -306,8 +306,9 @@ export function FieldDashboard() {
       <section className="field-welcome" aria-labelledby="field-title">
         <div className="field-welcome-copy">
           <p className="field-kicker">
-            {greeting(now.getHours())}, {profileName}{" "}
-            <span className="field-weather">
+            {greeting(now.getHours())}, {profileName}
+            <span className="field-welcome-separator" aria-hidden="true" />
+            <span className="field-weather field-welcome-meta">
               <span className="field-sun" aria-hidden="true">
                 {weather?.icon ?? "☼"}
               </span>
@@ -342,12 +343,13 @@ export function FieldDashboard() {
         </div>
       </section>
 
+      <div className="field-creator-slot-row" aria-label="Reserved cards">
+        {Array.from({ length: 5 }, (_, index) => (
+          <div key={index} className="field-creator-slot" aria-hidden="true" />
+        ))}
+      </div>
+
       <section className="field-creators-card">
-        <div className="field-creator-slot-row" aria-label="Reserved cards">
-          {Array.from({ length: 5 }, (_, index) => (
-            <div key={index} className="field-creator-slot" aria-hidden="true" />
-          ))}
-        </div>
         <CardHeading
           eyebrow="From creators"
           title="Useful things to watch"
