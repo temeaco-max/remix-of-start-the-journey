@@ -71,6 +71,7 @@ function MemoryPage() {
   return (
     <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Memory"
         title="Memory"
         subtitle="The useful things Kurukoo remembers so you do not have to repeat yourself. Review or remove anything here whenever you like."
       />
