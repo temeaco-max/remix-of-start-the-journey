@@ -22,7 +22,7 @@ export const Route = createFileRoute("/videos")({
 });
 function VideosPage() {
   return (
-    <>
+    <div className="space-y-7 pb-12">
       <PageHeader
         title="Watch"
         subtitle="Useful videos for things you are trying to understand or get done."
