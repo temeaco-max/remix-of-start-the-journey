@@ -307,7 +307,12 @@ export function FieldDashboard() {
         <div className="field-welcome-copy">
           <p className="field-kicker">
             {greeting(now.getHours())}, {profileName}
-          </p>
+          <span className="field-welcome-weather"><span className="field-sun" aria-hidden="true">
+              {weather?.icon ?? "☼"}
+            </span>
+            <strong>{weather ? `${weather.temperature}°C` : "Weather unavailable"}</strong>
+            <span>•</span>
+            <span>{weather?.location ?? fallbackLocation}</span></span></p>
           <h1 id="field-title">Your field</h1>
           <p className="field-subtitle">Wake up. Get going.</p>
         </div>
