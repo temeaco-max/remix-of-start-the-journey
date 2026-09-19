@@ -356,7 +356,7 @@ function DiscoverPage() {
     .slice(0, 30);
   const featuredGroups = exploreGoalGroups.slice(0, 4);
   return (
-    <div className="space-y-10">
+    <div className="space-y-7 pb-12">
       <PageHeader
         title="Discover"
         subtitle="Nearby context, useful ideas, people, places, offers, events and opportunities — with the route into action kept close."
