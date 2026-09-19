@@ -79,7 +79,7 @@ function CallsPage() {
     }
   }
   return (
-    <>
+    <div className="space-y-7 pb-12">
       <PageHeader
         title="Voice and calls"
         subtitle="Speaking is another way into the same Kurukoo conversation."
@@ -190,6 +190,5 @@ function CallsPage() {
           is configured, it uses the same conversation ID and returns to the same Chat history.
         </IntegrationGap>
       ) : null}
-    </>
-  );
+    </div>  );
 }
