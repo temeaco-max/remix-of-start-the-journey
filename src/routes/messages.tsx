@@ -37,6 +37,7 @@ function MessagesPage() {
   return (
     <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Messages"
         title="Messages"
         subtitle="Your conversations stay close to the work they belong to."
       />
