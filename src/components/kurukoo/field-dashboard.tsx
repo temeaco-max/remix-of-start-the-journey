@@ -105,7 +105,6 @@ function CardHeading({
   return (
     <div className="field-card-heading">
       <div>
-        {eyebrow ? <p className="field-eyebrow">{eyebrow}</p> : null}
         <h2>{title}</h2>
       </div>
       {action}
@@ -643,7 +642,7 @@ export function FieldDashboard() {
             </div>
           </div>
           <div className="field-subhead">
-            <p className="field-eyebrow">Opportunities</p>
+            <strong className="field-subhead-title">Opportunities</strong>
             <span className="field-count">{opportunities.length}</span>
           </div>
           {opportunities.length ? (
