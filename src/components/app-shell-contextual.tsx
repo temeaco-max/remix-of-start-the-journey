@@ -291,7 +291,7 @@ function RailAd({ campaign }: { campaign: AuthenticatedAd | null }) {
   );
 }
 function Header() {
-  const name = useProfileName(); const [headerDate, setHeaderDate] = useState(() => new Date()); useEffect(() => { const timer = window.setInterval(() => setHeaderDate(new Date()), 60000); return () => window.clearInterval(timer); }, []);
+  const name = useProfileName();
   const environment = useHeaderEnvironment();
   const { notifications } = useKurukoo();
   const unread = notifications.filter((n) => !n.read).length;
@@ -354,11 +354,9 @@ function Header() {
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
           <div className="hidden items-center gap-2 text-[11px] text-muted-foreground lg:flex">
-            <span>{headerDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
           </div>
-          <span className="mx-1 hidden h-6 w-px bg-border lg:block" aria-hidden />
-          <PresenceRadarControl /><span className="mx-1 h-8 w-px bg-border" aria-hidden /><ThemeToggle />
-          <span className="mx-1 hidden h-6 w-px bg-border lg:block" aria-hidden />
+          <PresenceRadarControl />
+           <ThemeToggle />
           <div className="relative">
             <button
               type="button"
