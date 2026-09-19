@@ -167,6 +167,7 @@ function ActivityPage() {
   return (
     <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Activity"
         title="Activity"
         subtitle="A quiet continuity surface for replies, Work changes, decisions and important updates. Return to the same conversation or object when something needs you."
       />
