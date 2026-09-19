@@ -90,7 +90,7 @@ function ServiceRow({
     }
   }
   return (
-    <article className="rounded-[19px] border border-border bg-surface p-4">
+    <article className="rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-elevated">
           <Icon className="size-[18px]" />
@@ -436,7 +436,7 @@ function ConnectPage() {
           </button>
         </div>
       </header>
-      <section className="rounded-[22px] border border-border bg-surface p-5 md:p-6">
+      <section className="rounded-2xl border border-border bg-surface p-5 md:p-6">
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink">
             <ShieldCheck className="size-5" />
