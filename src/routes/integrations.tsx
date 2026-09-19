@@ -58,16 +58,16 @@ function IntegrationCard({
   const connected = Boolean(state?.connected);
   const disabled = integration.status === "planned";
   return (
-    <article className="group relative flex min-h-[178px] flex-col border border-border bg-surface p-5 transition hover:border-foreground/20 hover:shadow-sm">
+    <article className="group relative flex min-h-[178px] flex-col rounded-2xl border border-border bg-surface p-5 transition hover:border-foreground/20 hover:shadow-sm">
       <div className="flex items-start justify-between gap-3">
-        <span className="grid size-11 shrink-0 place-items-center bg-elevated text-foreground">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-elevated text-foreground">
           <Icon className="size-5" />
         </span>
         <button
           type="button"
           onClick={() => onAdd(integration)}
           aria-label={`${disabled ? "View" : "Add"} ${integration.name}`}
-          className="grid size-9 place-items-center border border-border bg-background text-muted-foreground transition hover:border-foreground/30 hover:text-foreground"
+          className="grid size-9 place-items-center rounded-lg border border-border bg-background text-muted-foreground transition hover:border-foreground/30 hover:text-foreground"
         >
           {disabled ? (
             <ExternalLink className="size-4" />
@@ -129,7 +129,7 @@ function ConnectModal({ modal, onClose }: { modal: ModalState; onClose: () => vo
         role="dialog"
         aria-modal="true"
         aria-labelledby="integration-modal-title"
-        className="w-full max-w-md border border-border bg-background p-5 shadow-2xl md:p-6"
+        className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-2xl md:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -157,7 +157,7 @@ function ConnectModal({ modal, onClose }: { modal: ModalState; onClose: () => vo
         <p className="mt-5 text-[12.5px] leading-relaxed text-muted-foreground">
           {integration.detail}
         </p>
-        <div className="mt-5 border border-border bg-elevated/45 p-4">
+        <div className="mt-5 rounded-xl border border-border bg-elevated/45 p-4">
           {needsLogin ? (
             <>
               <p className="text-[13px] font-semibold">Sign in to connect {integration.name}</p>
@@ -326,7 +326,7 @@ function IntegrationsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
+    <div className="mx-auto w-full max-w-6xl space-y-7 pb-12">
             <header className="max-w-3xl">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">
           Integrations
@@ -361,7 +361,7 @@ function IntegrationsPage() {
               Add what Kurukoo needs
             </h2>
           </div>
-          <label className="flex h-10 w-full max-w-sm items-center gap-2 border border-border bg-surface px-3">
+          <label className="flex h-10 w-full max-w-sm items-center gap-2 rounded-xl border border-border bg-surface px-3">
             <Search className="size-4 text-muted-foreground" />
             <span className="sr-only">Search integrations</span>
             <input
@@ -445,7 +445,7 @@ function IntegrationsPage() {
           );
         })}
       </section>
-      <section className="border border-border bg-surface p-5 md:p-6">
+      <section className="rounded-2xl border border-border bg-surface p-5 md:p-6">
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center bg-brand-tint text-brand-ink">
             <ShieldCheck className="size-5" />
