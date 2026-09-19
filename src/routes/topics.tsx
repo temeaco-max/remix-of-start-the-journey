@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/app-shell";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
 import { FAQSection } from "@/components/kurukoo/faq-section";
 import {
@@ -305,62 +306,57 @@ function TopicsPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-7 pb-10">
-      <header>
-        <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary">TOPICS</p>
-        <h1 className="mt-2 font-serif text-[40px] leading-[1.02] tracking-[-0.045em] md:text-[52px]">
-          What people are talking about
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-6 text-muted-foreground">
-          Useful questions, experiences, local context and conversations, organised into community
-          spaces.
-        </p>
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/topics/create"
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-[11.5px] font-medium text-primary-foreground"
-            >
-              <Plus className="size-3.5" />
-              Create a Topic
-            </Link>
-            <Link
-              to="/topics/mine"
-              className="inline-flex min-h-9 items-center rounded-xl border border-border px-3.5 text-[11.5px] font-medium hover:bg-elevated"
-            >
-              Your Topics
-            </Link>
-            <AskKurukoo prompt="Help me find a useful Topic for what I am trying to do." />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <select
-              aria-label="Filter Topics by type"
-              value={type}
-              onChange={(event) => setType(event.target.value)}
-              className="min-h-9 rounded-lg border border-border bg-background px-3 text-[11px]"
-            >
-              <option value="">All types</option>
-              {taxonomy.types.map((item) => (
-                <option key={item} value={item}>
-                  {pretty(item)}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Filter Topics by category"
-              value={category}
-              onChange={(event) => selectCategory(event.target.value)}
-              className="min-h-9 rounded-lg border border-border bg-background px-3 text-[11px]"
-            >
-              <option value="">All categories</option>
-              {categories.map((item) => (
-                <option key={item.slug} value={item.slug}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      <PageHeader
+        eyebrow="Topics"
+        title="What people are talking about"
+        subtitle="Useful questions, experiences, local context and conversations, organised into community spaces."
+      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/topics/create"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-[11.5px] font-medium text-primary-foreground"
+          >
+            <Plus className="size-3.5" />
+            Create a Topic
+          </Link>
+          <Link
+            to="/topics/mine"
+            className="inline-flex min-h-9 items-center rounded-xl border border-border px-3.5 text-[11.5px] font-medium hover:bg-elevated"
+          >
+            Your Topics
+          </Link>
+          <AskKurukoo prompt="Help me find a useful Topic for what I am trying to do." />
         </div>
-      </header>
+        <div className="flex flex-wrap gap-2">
+          <select
+            aria-label="Filter Topics by type"
+            value={type}
+            onChange={(event) => setType(event.target.value)}
+            className="min-h-9 rounded-lg border border-border bg-background px-3 text-[11px]"
+          >
+            <option value="">All types</option>
+            {taxonomy.types.map((item) => (
+              <option key={item} value={item}>
+                {pretty(item)}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Filter Topics by category"
+            value={category}
+            onChange={(event) => selectCategory(event.target.value)}
+            className="min-h-9 rounded-lg border border-border bg-background px-3 text-[11px]"
+          >
+            <option value="">All categories</option>
+            {categories.map((item) => (
+              <option key={item.slug} value={item.slug}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <div className="grid gap-3">
         <CategoryDirectory
