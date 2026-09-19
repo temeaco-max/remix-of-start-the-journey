@@ -50,3 +50,10 @@
 
 
 .field-topics-card .field-card-heading,.field-earnings-card .field-card-heading,.field-creators-card .field-card-heading{min-width:0}
+
+.field-creator-slot-row .field-account-card,.field-creator-slot-row .field-creator-activity-card{display:flex;flex-direction:column;min-height:180px}
+.field-creator-slot-row .field-card-actions{display:flex;align-items:center;gap:14px;margin-top:auto;padding-top:14px}
+.field-creator-slot-row .field-card-action{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--primary)}
+.field-daily-wisdom{display:grid;gap:4px;max-width:720px}
+.field-daily-wisdom-text{font-size:14px;line-height:1.5;font-weight:500;color:var(--foreground)}
+.field-daily-wisdom-source{font-size:9.5px;color:var(--muted-foreground)}
