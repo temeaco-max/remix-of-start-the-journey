@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { PageHeader } from "@/components/app-shell";
 import {
   ArrowRight,
   CheckCircle2,
@@ -29,6 +30,7 @@ type RoleLandingProps = {
   joinPrompt: string;
   primaryLabel?: string;
   primaryTo?: string;
+  osHeader?: boolean;
 };
 
 const roleStories: Record<string, { label: string; primary: string }> = {
@@ -526,23 +528,33 @@ export function RoleLanding({
   const faqs = roleFaqs[story.label] ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 pb-8">
-      <header className="max-w-4xl">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">
-          {story.label}
-        </p>
-        <h1 className="mt-2 max-w-4xl font-serif text-[40px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">
-          {story.primary}
-        </h1>
-        <p className="mt-4 max-w-3xl text-[14px] leading-7 text-muted-foreground">{intro}</p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link to={primaryTo as never} className={actionClass("primary")}>
-            {primaryLabel}
-            <ArrowRight className="ml-1 size-3.5" />
-          </Link>
-          <AskKurukoo prompt={joinPrompt}>Ask Kurukoo</AskKurukoo>
-        </div>
-      </header>
+    <div className="mx-auto w-full max-w-6xl space-y-7 pb-12">
+      {osHeader ? (
+        <PageHeader
+          eyebrow={story.label}
+          title={story.primary}
+          subtitle={intro}
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Link to={primaryTo as never} className={actionClass("primary")}>
+                {primaryLabel}
+                <ArrowRight className="ml-1 size-3.5" />
+              </Link>
+              <AskKurukoo prompt={joinPrompt}>Ask Kurukoo</AskKurukoo>
+            </div>
+          }
+        />
+      ) : (
+        <header className="max-w-4xl">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">{story.label}</p>
+          <h1 className="mt-2 max-w-4xl font-serif text-[40px] leading-[1.02] tracking-[-0.045em] md:text-[54px]">{story.primary}</h1>
+          <p className="mt-4 max-w-3xl text-[14px] leading-7 text-muted-foreground">{intro}</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link to={primaryTo as never} className={actionClass("primary")}>{primaryLabel}<ArrowRight className="ml-1 size-3.5" /></Link>
+            <AskKurukoo prompt={joinPrompt}>Ask Kurukoo</AskKurukoo>
+          </div>
+        </header>
+      )}
 
       <section className="rounded-[22px] border border-primary/20 bg-brand-tint/20 p-5 md:p-6">
         <div className="flex items-start gap-3">
