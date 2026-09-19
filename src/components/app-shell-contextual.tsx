@@ -354,10 +354,7 @@ function Header() {
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
           <div className="hidden items-center gap-2 text-[11px] text-muted-foreground lg:flex">
-            <span className="font-medium text-foreground">{environment.temperature}</span>
-            <span>{environment.location}</span>
-            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
-            <span>{environment.date}</span>
+            <span>{headerDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
           </div>
           <span className="mx-1 hidden h-6 w-px bg-border lg:block" aria-hidden />
           <PresenceRadarControl /><span className="mx-1 h-8 w-px bg-border" aria-hidden /><ThemeToggle />
