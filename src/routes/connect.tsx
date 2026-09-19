@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plus, RefreshCw, ShieldCheck, Smartphone } from "lucide-react";
+import { ExternalLink, Plus, RefreshCw, ShieldCheck, Smartphone } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { actionClass } from "@/components/kurukoo/primitives";
 import { Badge } from "@/components/kurukoo/ui";
@@ -90,7 +90,7 @@ function ServiceRow({
     }
   }
   return (
-    <article className="rounded-[19px] border border-border bg-surface p-4">
+    <article className="rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-elevated">
           <Icon className="size-[18px]" />
@@ -130,7 +130,14 @@ function ServiceRow({
           >
             {busy ? "Preparing…" : integration.connectionLabel}
           </button>
-          ) : null}
+        ) : null}
+        <Link
+          to="/integrations/$integrationId"
+          params={{ integrationId: integration.slug }}
+          className={actionClass()}
+        >
+          <ExternalLink className="size-3.5" /> Details
+        </Link>
       </div>
       {message ? <p className="mt-3 text-[10.5px] text-destructive">{message}</p> : null}
     </article>
@@ -403,7 +410,7 @@ function ConnectPage() {
     void refresh();
   }, []);
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
+    <div className="mx-auto w-full max-w-6xl space-y-7 pb-12">
       <header className="max-w-3xl">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">
           Connections
@@ -429,7 +436,7 @@ function ConnectPage() {
           </button>
         </div>
       </header>
-      <section className="rounded-[22px] border border-border bg-surface p-5 md:p-6">
+      <section className="rounded-2xl border border-border bg-surface p-5 md:p-6">
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink">
             <ShieldCheck className="size-5" />
