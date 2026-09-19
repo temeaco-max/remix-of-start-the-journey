@@ -162,7 +162,7 @@ function PublicMenu({
               ref={menuRef}
               role="menu"
               id={menuId}
-              className="fixed top-[50px] z-[70] max-h-[calc(100vh-50px)] overflow-y-auto border-b border-border/80 bg-surface/98 shadow-[0_24px_70px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+              className="fixed top-[50px] z-[70] max-h-[calc(100vh-50px)] overflow-y-auto rounded-b-2xl border-b border-border/80 bg-surface/98 shadow-[0_24px_70px_rgba(0,0,0,0.12)] backdrop-blur-xl"
               style={{ left: railCollapsed ? 76 : 200, right: 224 }}
             >
               <div className="mx-auto w-full max-w-[1160px] px-6 py-7 md:px-9">
@@ -181,7 +181,7 @@ function PublicMenu({
                             key={`${to}-${title}`}
                             to={to}
                             onClick={() => setOpen(false)}
-                            className="group block border-b border-border/50 px-1 py-3 text-[12px] font-medium text-foreground transition-colors last:border-b-0 hover:text-muted-foreground"
+                            className="group block rounded-lg border-b border-border/50 px-2 py-3 text-[12px] font-medium text-foreground transition-colors last:border-b-0 hover:bg-elevated hover:text-muted-foreground"
                           >
                             <div className="flex flex-col">
                               <span className="text-foreground group-hover:text-muted-foreground">{title}</span>
@@ -203,11 +203,11 @@ function PublicMenu({
                         to="/resources/$slug"
                         params={{ slug: "how-kurukoo-works" }}
                         onClick={() => setOpen(false)}
-                        className="group block overflow-hidden border border-border bg-foreground text-background"
+                        className="group block overflow-hidden rounded-2xl border border-border bg-foreground text-background"
                       >
                         <div className="relative aspect-[16/9] overflow-hidden bg-[radial-gradient(circle_at_72%_22%,color-mix(in_oklch,var(--brand-tint)_70%,transparent),transparent_32%),linear-gradient(145deg,var(--foreground),color-mix(in_oklch,var(--foreground)_78%,var(--primary)))]">
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="grid size-11 place-items-center bg-background/12 ring-1 ring-background/20 backdrop-blur transition-transform group-hover:scale-105">
+                            <span className="grid size-11 place-items-center rounded-full bg-background/12 ring-1 ring-background/20 backdrop-blur transition-transform group-hover:scale-105">
                               <span className="ml-1 border-y-[7px] border-y-transparent border-l-[10px] border-l-background" />
                             </span>
                           </div>
