@@ -306,25 +306,20 @@ export function FieldDashboard() {
       <section className="field-welcome" aria-labelledby="field-title">
         <div className="field-welcome-copy">
           <p className="field-kicker">
-            {greeting(now.getHours())}, {profileName}
-          <span className="field-welcome-weather"><span className="field-sun" aria-hidden="true">
-              {weather?.icon ?? "☼"}
+            {greeting(now.getHours())}, {profileName}{" "}
+            <span className="field-weather">
+              <span className="field-sun" aria-hidden="true">
+                {weather?.icon ?? "☼"}
+              </span>
+              <strong>{weather ? `${weather.temperature}°C` : "Weather unavailable"}</strong>
+              <span>•</span>
+              <span>{weather?.location ?? fallbackLocation}</span>
             </span>
-            <strong>{weather ? `${weather.temperature}°C` : "Weather unavailable"}</strong>
-            <span>•</span>
-            <span>{weather?.location ?? fallbackLocation}</span></span></p>
+          </p>
           <h1 id="field-title">Your field</h1>
           <p className="field-subtitle">Wake up. Get going.</p>
         </div>
         <div className="field-welcome-meta">
-          <div className="field-weather">
-            <span className="field-sun" aria-hidden="true">
-              {weather?.icon ?? "☼"}
-            </span>
-            <strong>{weather ? `${weather.temperature}°C` : "Weather unavailable"}</strong>
-            <span>•</span>
-            <span>{weather?.location ?? fallbackLocation}</span>
-          </div>
           <div className="field-date">
             <CalendarDays className="size-4" />
             <span>
@@ -348,6 +343,11 @@ export function FieldDashboard() {
       </section>
 
       <section className="field-creators-card">
+        <div className="field-creator-slot-row" aria-label="Reserved cards">
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} className="field-creator-slot" aria-hidden="true" />
+          ))}
+        </div>
         <CardHeading
           eyebrow="From creators"
           title="Useful things to watch"
