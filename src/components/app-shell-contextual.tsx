@@ -13,7 +13,6 @@ import {
   ExternalLink,
   Home,
   LayoutDashboard,
-  ListChecks,
   MapPin,
   MessageCircle,
   Moon,
