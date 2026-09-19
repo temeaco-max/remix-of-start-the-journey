@@ -549,6 +549,6 @@ function SettingsPage() {
         connected service is unavailable, Kurukoo shows that boundary instead of presenting an
         invented state.
       </div>
-    </>
+    </div>
   );
 }
