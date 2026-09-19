@@ -36,6 +36,19 @@ const attentionStatuses = new Set([
   "awaiting_confirmation",
 ]);
 
+const contributorWisdom = [
+  { text: "Small steps become big progress when you keep moving.", source: "Kurukoo contributor" },
+  { text: "Clarity grows when you turn intention into action.", source: "Kurukoo contributor" },
+  { text: "Do the next useful thing, then let the next step reveal itself.", source: "Kurukoo contributor" },
+  { text: "Good work starts with a clear outcome and one honest next step.", source: "Kurukoo contributor" },
+];
+
+function getDailyWisdom() {
+  const day = Math.floor(Date.now() / 86400000);
+  return contributorWisdom[day % contributorWisdom.length];
+}
+
+
 type WeatherState = { temperature: number; label: string; location: string; icon: string } | null;
 
 const weatherConditions: Record<number, { label: string; icon: string }> = {
@@ -148,6 +161,7 @@ async function readProfileName() {
 }
 
 async function readWeather(): Promise<WeatherState> {
+  const dailyWisdom = getDailyWisdom();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown timezone";
   const fallbackLocation = timezoneFallbacks[timezone] ?? timezone;
   if (!navigator.geolocation) return null;
@@ -318,7 +332,7 @@ export function FieldDashboard() {
             </span>
           </p>
           <h1 id="field-title">Your field</h1>
-          <p className="field-subtitle">Wake up. Get going.</p>
+          <div className="field-daily-wisdom" aria-live="polite"><p className="field-daily-wisdom-text">{dailyWisdom.text}</p><span className="field-daily-wisdom-source">— {dailyWisdom.source}</span></div>
         </div>
         <div className="field-welcome-meta">
           <div className="field-date">
@@ -349,17 +363,27 @@ export function FieldDashboard() {
           <CardHeading title="Points" />
           <div className="field-account-value">Not available</div>
           <p className="field-account-note">No canonical Points balance is exposed yet.</p>
+          <div className="field-card-actions">
+            <Link to="/wallet" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>
+            <Link to="/wallet" className="field-card-action">Top up <ArrowRight className="size-3.5" /></Link>
+          </div>
         </FieldCard>
         <FieldCard className="field-creator-slot field-account-card">
           <CardHeading title="Wallet balance" />
           <div className="field-account-value">Not available</div>
           <p className="field-account-note">No canonical wallet balance is exposed yet.</p>
+          <div className="field-card-actions">
+            <Link to="/wallet" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>
+          </div>
         </FieldCard>
         <FieldCard className="field-creator-slot field-creator-activity-card">
-          <CardHeading title="Activity summary" action={<Link to="/activity" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>} />
+          <CardHeading title="Activity summary" />
           <div className="activity-summary-grid">
             <div><strong>{completedCount}</strong><span>Tasks completed</span></div>
             <div><strong>{active.length}</strong><span>In motion</span></div>
+          </div>
+          <div className="field-card-actions">
+            <Link to="/activity" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>
           </div>
         </FieldCard>
       </div>
