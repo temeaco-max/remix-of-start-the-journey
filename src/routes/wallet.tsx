@@ -47,6 +47,7 @@ function WalletPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Wallet"
         title="Wallet"
         subtitle="Money, Points and subscription billing stay separate. This surface only shows state that can be supported by the canonical account services."
       />
