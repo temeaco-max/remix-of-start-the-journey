@@ -291,7 +291,7 @@ function RailAd({ campaign }: { campaign: AuthenticatedAd | null }) {
   );
 }
 function Header() {
-  const name = useProfileName();
+  const name = useProfileName(); const [headerDate, setHeaderDate] = useState(() => new Date()); useEffect(() => { const timer = window.setInterval(() => setHeaderDate(new Date()), 60000); return () => window.clearInterval(timer); }, []);
   const environment = useHeaderEnvironment();
   const { notifications } = useKurukoo();
   const unread = notifications.filter((n) => !n.read).length;
@@ -360,7 +360,7 @@ function Header() {
             <span>{environment.date}</span>
           </div>
           <span className="mx-1 hidden h-6 w-px bg-border lg:block" aria-hidden />
-          <PresenceRadarControl />
+          <PresenceRadarControl /><span className="mx-1 h-8 w-px bg-border" aria-hidden /><ThemeToggle />
           <span className="mx-1 hidden h-6 w-px bg-border lg:block" aria-hidden />
           <div className="relative">
             <button
@@ -483,7 +483,7 @@ function Header() {
                   Help
                 </Link>
                 <div className="px-1">
-                  <ThemeToggle />
+                  
                 </div>
                 <button
                   type="button"
