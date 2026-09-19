@@ -260,6 +260,7 @@ function AuthenticatedAgents() {
   return (
     <div className="space-y-7 pb-12">
       <PageHeader
+        eyebrow="Agents"
         title="Agents"
         subtitle="Advanced capabilities for work that can continue under defined rules. Most of the time, you can simply ask Kurukoo."
       />
