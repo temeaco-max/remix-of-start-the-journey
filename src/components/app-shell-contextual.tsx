@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import {
   Bell,
+  Brain,
   Briefcase,
+  CheckSquare2,
+  ClipboardList,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
