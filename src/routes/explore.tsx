@@ -26,7 +26,7 @@ function ExplorePage() {
   const [q, setQ] = useState(initial);
   const discoverHref = q.trim() ? `/discover?query=${encodeURIComponent(q.trim())}` : "/discover";
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-8">
+    <div className="mx-auto w-full max-w-4xl space-y-7 pb-12">
       <PageHeader
         eyebrow="Kurukoo OS"
         title="Explore"
