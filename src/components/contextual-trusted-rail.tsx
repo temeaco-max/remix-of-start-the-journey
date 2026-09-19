@@ -33,14 +33,16 @@ function Section({
   icon: Icon,
   to,
   children,
+  className,
 }: {
   title: string;
   icon: Icon;
   to: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="trusted-context-card rounded-2xl p-3">
+    <section className={cn("trusted-context-card rounded-2xl p-3", className)}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Icon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -348,7 +350,7 @@ export function ContextualTrustedRail({
           Ad
         </div>
       </div>
-      <Section title="Chat Context" icon={MessageSquare} to="/chat">
+      <Section title="Chat Context" icon={MessageSquare} to="/chat" className="h-[132px]">
         <Row
           icon={MessageSquare}
           title="Current conversation"
