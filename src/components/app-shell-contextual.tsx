@@ -26,6 +26,8 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
+
+// Keep canonical Perch rail icon imports explicit for Vite module evaluation.
 import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useKurukoo } from "@/lib/kurukoo-store";
