@@ -161,7 +161,6 @@ async function readProfileName() {
 }
 
 async function readWeather(): Promise<WeatherState> {
-  const dailyWisdom = getDailyWisdom();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown timezone";
   const fallbackLocation = timezoneFallbacks[timezone] ?? timezone;
   if (!navigator.geolocation) return null;
@@ -314,6 +313,7 @@ export function FieldDashboard() {
   );
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown timezone";
   const fallbackLocation = timezoneFallbacks[timezone] ?? timezone;
+  const dailyWisdom = getDailyWisdom();
 
   return (
     <div className="kurukoo-field min-w-0 pb-10">
