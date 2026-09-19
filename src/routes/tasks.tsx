@@ -16,7 +16,7 @@ export const Route = createFileRoute("/tasks")({
 
 function sourceLink(task: KurukooTask) {
   if (!task.sourceType || !task.sourceId) return null;
-  if (task.sourceType === "topic") return { href: "/topics/" + encodeURIComponent(task.sourceId), label: "Open Topic" };
+  if (task.sourceType === "topic") return { href: "/topics", label: "Open Topics" };
   if (task.sourceType === "conversation") return { href: "/chat", label: "Open conversation" };
   if (["request", "economic_request", "work"].includes(task.sourceType)) {
     return { href: "/work/" + encodeURIComponent(task.sourceId), label: "Open Work" };
