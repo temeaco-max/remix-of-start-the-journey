@@ -336,15 +336,6 @@ export function ContextualTrustedRail({
         <Row icon={Users} title="Trusted people" detail="Relationships and consent" to="/contacts" />
         <Row icon={Bell} title={unread ? `${unread} unread updates` : "No unread updates"} detail="Activity and notifications" to="/activity" />
       </Section>
-      <Section title="Activity summary" icon={Bell} to="/activity">
-        <div className="activity-summary-grid">
-          <div><strong>{work.filter((item) => item.stage === "done").length}</strong><span>Tasks completed</span></div>
-          <div><strong>{focus ? 1 : 0}</strong><span>In motion</span></div>
-        </div>
-        <Link to="/activity" className="trusted-context-view mt-2 text-[10px] font-medium text-primary">
-          View activity <ChevronRight className="size-3" />
-        </Link>
-      </Section>
       {ad ? <RailAd campaign={ad} /> : null}
     </>
   );
