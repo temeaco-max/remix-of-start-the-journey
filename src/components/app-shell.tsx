@@ -1,3 +1,4 @@
+import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import {
   AppShell as ContextualAppShell,
@@ -60,7 +61,17 @@ export function PageHeader({
   eyebrow?: string;
   action?: ReactNode;
 }) {
-  if (!isMarketingPath()) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const osSurfacePrefixes = [
+    "/perch", "/chat", "/workspace", "/explore", "/discover", "/activity", "/work", "/tasks",
+    "/notifications", "/contacts", "/messages", "/memory", "/artifacts", "/calls", "/subscriptions",
+    "/wallet", "/settings", "/agents", "/connect", "/provider", "/advertising", "/profile",
+    "/topics", "/videos",
+  ];
+  const isOsSurface = osSurfacePrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  if (isOsSurface || !isMarketingPath()) {
     return (
       <ContextualPageHeader
         title={title}
