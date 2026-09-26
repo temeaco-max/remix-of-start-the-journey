@@ -467,13 +467,17 @@ export async function submitCanonicalTopic(input: {
   if (!payload.topic) throw new Error("Topic could not be submitted");
   return payload.topic;
 }
+// Memory facts are served by the economic-request router, which is the canonical
+// owner for living memory. The previous "/api/memory/facts" path never existed
+// and always 404'd, so the continuity rail silently showed no facts.
+const MEMORY_FACTS_PATH = "/api/economic-requests/memory/facts";
 export async function fetchCanonicalMemoryFacts() {
-  const payload = await readJson<{ facts?: CanonicalMemoryFact[] }>("/api/memory/facts");
+  const payload = await readJson<{ facts?: CanonicalMemoryFact[] }>(MEMORY_FACTS_PATH);
   return Array.isArray(payload.facts) ? payload.facts : [];
 }
 export async function revokeCanonicalMemoryFact(id: number) {
   return readJson<{ success: boolean; revoked?: boolean }>(
-    `/api/memory/facts/${encodeURIComponent(String(id))}`,
+    `${MEMORY_FACTS_PATH}/${encodeURIComponent(String(id))}`,
     { method: "DELETE" },
   );
 }
