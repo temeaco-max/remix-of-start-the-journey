@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   Coffee,
+  ChevronDown,
   Heart,
   Lock,
   MapPin,
@@ -91,6 +92,23 @@ const howItWorks = [
   [CheckCircle2, "You see what happens", "Important actions are shown to you first, then the request keeps moving."],
 ] as const;
 
+const everydayFeatures = [
+  [Car, "Rides & errands", "Get help getting around or running quick errands."],
+  [ShoppingBag, "Food & essentials", "Find help with meals, groceries, and daily needs."],
+  [Wrench, "Repairs & local help", "Connect with trusted help for home fixes and more."],
+  [Store, "Work & earning", "Discover opportunities and support to grow your income."],
+  [CalendarDays, "Reminders", "Never miss an important task or commitment."],
+  [ShieldCheck, "Safety check-ins", "Share your journey and check in with people you trust."],
+] as const;
+
+const faqs = [
+  ["What can I ask Kurukoo to do?", "Anything that starts with a need: find a service, plan your day, get somewhere, remember something, organise a task, or work out what to do next."],
+  ["Do I need to know which service I need?", "No. Tell Kurukoo what you are trying to achieve in your own words. We help you work out the useful next step."],
+  ["Will Kurukoo do things without asking me?", "You stay in control. Kurukoo shows important actions, options, and details before anything consequential happens."],
+  ["Can Kurukoo remember things for me?", "You can choose useful preferences, places, and reminders to keep connected. You can edit, forget, or turn off personalisation whenever you want."],
+  ["What happens when a request needs another person?", "Kurukoo can help find a relevant person, provider, or service when reliable information is available. It will be clear about what is confirmed and what is still being checked."],
+] as const;
+
 function HowStepVisual({ index }: { index: number }) {
   if (index === 0) {
     return (
@@ -125,6 +143,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
   const [promptIndex, setPromptIndex] = useState(0);
   const [exampleIndex, setExampleIndex] = useState(0);
   const [dayIndex, setDayIndex] = useState(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
     const timer = window.setInterval(
@@ -215,25 +234,28 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
         </div>
       </section>
 
-      <section className="border-b border-border/80 py-14 md:py-20" aria-labelledby="how-title">
-        <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">How it works</p>
-            <h2 id="how-title" className="mt-3 max-w-md text-[38px] leading-[.98] tracking-[-0.06em] md:text-[54px]">Start with a message. End with a useful next step.</h2>
-            <p className="mt-5 max-w-md text-[14px] leading-6 text-muted-foreground">You do not need to know which app, service or person can help. Start with the thing you want to happen.</p>
-            <Link to="/how-it-works" className="mt-6 inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80">See how Kurukoo works <ArrowUpRight className="size-3.5" /></Link>
-          </div>
-          <div className="border-t border-border/80">
-            {howItWorks.map(([Icon, title, detail], index) => (
-              <div key={title} className="grid gap-4 border-b border-border/80 py-6 sm:grid-cols-[34px_190px_150px_minmax(0,1fr)] sm:items-center">
-                <span className="text-[10px] tabular-nums text-muted-foreground">0{index + 1}</span>
-                <div className="flex items-center gap-2"><Icon className="size-4 text-primary" strokeWidth={1.7} /><p className="text-[13px] font-semibold">{title}</p></div>
-                <HowStepVisual index={index} />
-                <p className="text-[11.5px] leading-5 text-muted-foreground">{detail}</p>
-              </div>
-            ))}
+      <section className="border-b border-border/80 bg-surface/45 py-14 md:py-20" aria-labelledby="how-title">
+        <div className="text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">How it works</p>
+          <h2 id="how-title" className="mx-auto mt-3 max-w-3xl text-[38px] leading-[.98] tracking-[-0.06em] md:text-[54px]">One conversation. Many ways forward.</h2>
+          <p className="mx-auto mt-4 max-w-xl text-[14px] leading-6 text-muted-foreground">Start with what is on your mind. Kurukoo helps turn it into a clearer next step.</p>
+        </div>
+        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          {howItWorks.map(([Icon, title, detail], index) => (
+            <div key={title} className={`how-flow-card how-flow-card-${index + 1}`}>
+              <div className="flex items-start justify-between gap-4"><div className="flex items-center gap-3"><span className="how-flow-number">{index + 1}</span><h3>{title}</h3></div><Icon className="size-5 text-primary" strokeWidth={1.7} /></div>
+              <p>{detail}</p>
+              <HowStepVisual index={index} />
+            </div>
+          ))}
+        </div>
+        <div className="mt-12">
+          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Built for the way life moves</p>
+          <div className="mt-5 grid gap-px border border-border/80 bg-border/80 sm:grid-cols-2 lg:grid-cols-6">
+            {everydayFeatures.map(([Icon, title, detail]) => <div key={title} className="bg-background p-4 transition-colors hover:bg-elevated"><span className="grid size-9 place-items-center rounded-full bg-brand-tint text-brand-ink"><Icon className="size-4" /></span><h3 className="mt-7 text-[12px] font-semibold">{title}</h3><p className="mt-2 text-[10.5px] leading-5 text-muted-foreground">{detail}</p></div>)}
           </div>
         </div>
+        <div className="mt-8 text-center"><Link to="/how-it-works" className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80">See the full story <ArrowUpRight className="size-3.5" /></Link></div>
       </section>
 
       <section className="border-b border-border/80 py-14 md:py-20" aria-labelledby="real-life-title">
@@ -268,6 +290,13 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
       </section>
 
       <section className="border-b border-border/80 py-14 md:py-20"><div className="grid gap-10 lg:grid-cols-2 lg:items-center"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Your control</p><h2 className="mt-3 text-[38px] leading-[.98] tracking-[-0.06em] md:text-[54px]">Helpful does not mean out of your hands.</h2><p className="mt-5 max-w-xl text-[14px] leading-6 text-muted-foreground">Kurukoo shows you what is known, what is still being checked, and what needs your say-so. Your conversations and memory stay yours.</p><div className="mt-7 flex flex-wrap gap-4"><Link to="/legal/$section" params={{ section: "privacy" }} className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground hover:opacity-70">Privacy policy <ArrowRight className="size-3" /></Link><Link to="/legal/$section" params={{ section: "safety" }} className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground hover:opacity-70">Trust & safety <ArrowRight className="size-3" /></Link></div></div><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border border-border bg-surface p-5"><ShieldCheck className="size-5 text-primary" /><p className="mt-10 text-[12px] font-semibold">You approve first</p><p className="mt-2 text-[10.5px] leading-5 text-muted-foreground">Important actions need your sign-off.</p></div><div className="rounded-2xl border border-border bg-surface p-5"><Lock className="size-5 text-primary" /><p className="mt-10 text-[12px] font-semibold">Data stays private</p><p className="mt-2 text-[10.5px] leading-5 text-muted-foreground">Your conversations are not sold.</p></div><div className="rounded-2xl border border-border bg-surface p-5"><Heart className="size-5 text-primary" /><p className="mt-10 text-[12px] font-semibold">Memory is yours</p><p className="mt-2 text-[10.5px] leading-5 text-muted-foreground">Keep, edit or forget what you choose.</p></div></div></div></section>
+
+      <section className="border-b border-border/80 py-14 md:py-20" aria-labelledby="faq-title">
+        <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
+          <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Questions, answered</p><h2 id="faq-title" className="mt-3 max-w-md text-[38px] leading-[.98] tracking-[-0.06em] md:text-[54px]">Good to know before you start.</h2><p className="mt-5 max-w-md text-[14px] leading-6 text-muted-foreground">A few simple answers about how Kurukoo helps and how you stay in control.</p></div>
+          <div className="border-t border-border/80">{faqs.map(([question, answer], index) => { const isOpen = openFaq === index; return <div key={question} className="border-b border-border/80"><button type="button" onClick={() => setOpenFaq(isOpen ? null : index)} aria-expanded={isOpen} className="flex w-full items-center justify-between gap-5 py-5 text-left text-[13px] font-semibold"><span>{question}</span><ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} /></button>{isOpen ? <p className="max-w-2xl pb-5 pr-8 text-[12px] leading-6 text-muted-foreground">{answer}</p> : null}</div>; })}</div>
+        </div>
+      </section>
 
       <section className="py-14 md:py-20"><div className="relative overflow-hidden rounded-[28px] bg-foreground px-6 py-12 text-background md:px-10 md:py-16"><div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-primary/35 blur-3xl" /><div className="relative grid gap-8 md:grid-cols-[1fr_auto] md:items-end"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-background/55">Ready when you are</p><h2 className="mt-4 max-w-2xl text-[42px] leading-[.98] tracking-[-0.06em] md:text-[62px]">Bring one thing.<br />Then another.</h2><p className="mt-5 max-w-xl text-[13px] leading-6 text-background/65">Start with a message. Kurukoo will help you work out what comes next.</p></div><Link to="/chat" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-background px-5 text-[11px] font-semibold text-foreground transition-transform hover:-translate-y-0.5">Start with Kurukoo <ArrowRight className="size-4" /></Link></div></div></section>
     </div>

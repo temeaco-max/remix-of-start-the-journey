@@ -240,8 +240,18 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 .how-step-visual-route span { display: flex; align-items: center; gap: 4px; font-size: 8px; }
 .how-step-visual-route svg { color: var(--primary); }
 .how-step-visual-confirm { display: flex; align-items: center; gap: 6px; background: color-mix(in oklab, var(--success) 10%, var(--surface)); color: var(--success); font-size: 8.5px; font-weight: 600; }
+.how-flow-card { position: relative; min-height: 270px; overflow: hidden; border: 1px solid var(--border); border-radius: 22px; padding: 22px; background: var(--background); box-shadow: var(--shadow-soft); }
+.how-flow-card h3 { margin: 0; font-size: 17px; letter-spacing: -.025em; }
+.how-flow-card > p { max-width: 230px; margin: 22px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.6; }
+.how-flow-number { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 999px; background: var(--brand-ink); color: var(--background); font-size: 12px; font-weight: 700; }
+.how-flow-card-2 { background: color-mix(in oklab, #edf2f8 70%, var(--background)); }
+.how-flow-card-3 { background: color-mix(in oklab, var(--accent) 27%, var(--background)); }
+.how-flow-card .how-step-visual { position: absolute; right: 18px; bottom: 18px; width: 155px; }
+.how-flow-card-1::after, .how-flow-card-3::after { content: ""; position: absolute; right: -42px; bottom: -48px; width: 170px; height: 130px; border-radius: 50%; background: color-mix(in oklab, var(--brand-tint) 55%, transparent); opacity: .7; }
+.how-flow-card-3::after { background: color-mix(in oklab, var(--accent) 60%, transparent); }
 @media (max-width: 767px) {
   .how-step-visual { max-width: 170px; }
+  .how-flow-card { min-height: 250px; }
 }
 
 @media (min-width: 768px) {
