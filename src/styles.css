@@ -248,6 +248,11 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
   button, a { transition: none !important; }
 }
 
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 
 /* Field surface composition: concept-accurate welcome, composer, and three-column card grid. */
 .field-welcome { position: relative; min-height: 196px; display: flex; align-items: flex-start; justify-content: space-between; overflow: hidden; padding: 10px 6px 0; }

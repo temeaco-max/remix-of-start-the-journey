@@ -434,6 +434,18 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
               items={productFeatures}
               railCollapsed={railCollapsed}
             />
+            <Link
+              to="/explore"
+              className="inline-flex h-full items-center text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Explore
+            </Link>
+            <Link
+              to="/pricing"
+              className="inline-flex h-full items-center text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Pricing
+            </Link>
             <PublicMenu
               label="Resources"
               kind="resources"

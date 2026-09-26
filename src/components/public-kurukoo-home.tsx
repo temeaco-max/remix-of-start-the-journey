@@ -1,9 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  ArrowUpRight,
   Car,
+  Check,
   Compass,
   Coffee,
+  Globe2,
   Heart,
   Lock,
   MessageCircle,
@@ -15,11 +18,13 @@ import {
   Store,
   Sun,
   Target,
+  Workflow,
   Wrench,
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
+import { integrations } from "@/lib/integration-catalog";
 import { getLocale, type KurukooLocale } from "@/lib/kurukoo-locale";
 
 const prompts: Record<KurukooLocale, readonly string[]> = {
@@ -78,6 +83,17 @@ const capabilities = [
   [Heart, "Remember", "Keep useful context so future conversations can start further ahead."],
   [Zap, "Notice", "Get useful proactive help when there is a genuine reason to interrupt you."],
 ] as const;
+
+const processSteps = [
+  [MessageCircle, "Start anywhere", "Say what you need in plain language — a question, a task, or a goal."],
+  [Compass, "Kurukoo makes sense of it", "Context, location, timing, people and tools come together in one working thread."],
+  [Workflow, "The work moves", "Kurukoo finds a useful route, coordinates the next steps, and keeps you updated."],
+  [ShieldCheck, "You stay in control", "You see consequential actions before they happen, with evidence attached to the outcome."],
+] as const;
+
+const featuredIntegrations = integrations
+  .filter((integration) => integration.status === "available" || integration.status === "native")
+  .slice(0, 10);
 
 const dayMoments: Record<
   KurukooLocale,
@@ -219,13 +235,12 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
               Kurukoo AI
             </div>
             <h1 className="max-w-4xl font-serif text-[52px] leading-[.92] tracking-[-0.065em] md:text-[78px] lg:text-[92px]">
-              Your Everyday AI
+              The intelligence layer
               <br />
-              <span className="text-muted-foreground/70">that gets things done.</span>
+              <span className="text-muted-foreground/70">for everyday life.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-[15px] leading-7 text-muted-foreground md:text-[17px]">
-              You say what you want. Kurukoo works out what matters, helps find the route, and stays
-              with you until there is a useful outcome.
+              Say what you need. Kurukoo understands the context, finds a useful route, coordinates the work, and stays with you until there is a real outcome.
             </p>
             <div className="mt-7 max-w-3xl">
               <Composer
@@ -263,25 +278,22 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
           </div>
           <aside className="hidden border-l border-border/80 pl-7 lg:block">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              The promise
+              From intent to outcome
             </p>
             <p className="mt-4 font-serif text-[27px] leading-[1.05] tracking-[-0.035em]">
-              Less figuring out.
+              One place to
               <br />
-              More moving forward.
+              move life forward.
             </p>
             <div className="mt-8 space-y-4 text-[11.5px] leading-5 text-muted-foreground">
               <p>
-                <span className="text-foreground">Digital.</span> Research, organise, plan, write
-                and coordinate.
+                <span className="text-foreground">Understand.</span> Conversation, memory and context in one thread.
               </p>
               <p>
-                <span className="text-foreground">Real world.</span> Find people, places and
-                services that can help.
+                <span className="text-foreground">Coordinate.</span> People, places, tools and services that can help.
               </p>
               <p>
-                <span className="text-foreground">Your call.</span> Kurukoo asks before
-                consequential actions.
+                <span className="text-foreground">Stay in control.</span> Kurukoo asks before consequential actions.
               </p>
             </div>
           </aside>
@@ -319,6 +331,98 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border/80 py-14 md:py-20" aria-labelledby="process-title">
+        <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              How Kurukoo turns intent into progress
+            </p>
+            <h2 id="process-title" className="mt-3 max-w-md font-serif text-[36px] leading-[.98] tracking-[-0.05em] md:text-[50px]">
+              One conversation.
+              <br />
+              Real movement.
+            </h2>
+            <p className="mt-5 max-w-md text-[14px] leading-6 text-muted-foreground">
+              Kurukoo is the connective layer between what you mean and what needs to happen next — across your digital life and the real world around you.
+            </p>
+            <Link to="/how-it-works" className="mt-6 inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80">
+              See how it works <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="border-t border-border/80">
+            {processSteps.map(([Icon, title, detail], index) => (
+              <div key={title} className="grid gap-4 border-b border-border/80 py-5 sm:grid-cols-[34px_190px_minmax(0,1fr)] sm:items-start">
+                <span className="text-[10px] tabular-nums text-muted-foreground">0{index + 1}</span>
+                <div className="flex items-center gap-2">
+                  <Icon className="size-4 text-primary" strokeWidth={1.7} />
+                  <p className="text-[13px] font-semibold">{title}</p>
+                </div>
+                <p className="text-[11.5px] leading-5 text-muted-foreground">{detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden border-b border-border/80 py-14 md:py-20" aria-labelledby="integrations-title">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-xl">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">All your context, in one place</p>
+            <h2 id="integrations-title" className="mt-3 font-serif text-[36px] leading-[.98] tracking-[-0.05em] md:text-[50px]">
+              Bring the tools you already use.
+            </h2>
+            <p className="mt-4 text-[14px] leading-6 text-muted-foreground">
+              Connect sources, channels, knowledge and devices without losing the thread. Every doorway stays scoped, visible and owner-controlled.
+            </p>
+          </div>
+          <Link to="/integrations" className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80">
+            Explore integrations <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+        <div className="relative mt-10 overflow-hidden border-y border-border/80 py-4">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-background to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-background to-transparent" />
+          <div className="flex min-w-max animate-[marquee_28s_linear_infinite] gap-3 pr-3 motion-reduce:animate-none">
+            {[...featuredIntegrations, ...featuredIntegrations].map((integration, index) => {
+              const Icon = integration.icon;
+              return (
+                <Link key={`${integration.slug}-${index}`} to="/integrations" className="flex min-w-[170px] items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 transition-colors hover:bg-elevated">
+                  <span className="grid size-8 place-items-center rounded-lg bg-brand-tint text-brand-ink"><Icon className="size-4" /></span>
+                  <span className="grid gap-0.5"><strong className="text-[11px] font-semibold">{integration.name}</strong><small className="text-[9.5px] text-muted-foreground">{integration.category}</small></span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border/80 py-14 md:py-20" aria-labelledby="scale-title">
+        <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:items-end">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">What you get</p>
+            <h2 id="scale-title" className="mt-3 max-w-md font-serif text-[36px] leading-[.98] tracking-[-0.05em] md:text-[50px]">
+              A calmer operating system for real life.
+            </h2>
+            <p className="mt-5 max-w-md text-[14px] leading-6 text-muted-foreground">
+              Useful for the small things, dependable when the work gets real, and designed to grow with the context you choose to share.
+            </p>
+          </div>
+          <div className="grid gap-px border border-border/80 bg-border/80 sm:grid-cols-3">
+            {[
+              [Globe2, "Everyday help", "From a ride or repair to planning, research and reminders."],
+              [Network, "One connected thread", "People, places, tools and outcomes stay related."],
+              [Check, "Visible control", "Approvals, boundaries and evidence are part of the flow."],
+            ].map(([Icon, title, detail]) => (
+              <div key={title as string} className="min-h-[190px] bg-background p-5 transition-colors hover:bg-surface">
+                <Icon className="size-5 text-primary" strokeWidth={1.7} />
+                <p className="mt-12 text-[13px] font-semibold">{title as string}</p>
+                <p className="mt-2 text-[11px] leading-5 text-muted-foreground">{detail as string}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
