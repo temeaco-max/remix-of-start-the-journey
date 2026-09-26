@@ -467,13 +467,15 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <div
-        className={`min-h-[calc(100vh-50px)] md:grid ${railCollapsed ? "md:grid-cols-[76px_minmax(0,1fr)]" : "md:grid-cols-[200px_minmax(0,1fr)]"}`}
+        className={`min-h-[calc(100vh-50px)] md:grid ${isPublicHome ? "md:grid-cols-1" : railCollapsed ? "md:grid-cols-[76px_minmax(0,1fr)]" : "md:grid-cols-[200px_minmax(0,1fr)]"}`}
       >
-        <PublicRail
-          collapsed={railCollapsed}
-          onToggle={() => setRailCollapsed((v) => !v)}
-          onAuth={openAuth}
-        />
+        {!isPublicHome ? (
+          <PublicRail
+            collapsed={railCollapsed}
+            onToggle={() => setRailCollapsed((v) => !v)}
+            onAuth={openAuth}
+          />
+        ) : null}
         <div className="min-w-0">
           <div
             className={
