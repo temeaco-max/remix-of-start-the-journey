@@ -229,6 +229,20 @@ body:has(aside[aria-label="Trusted context rail"]) aside[aria-label="OS navigati
 
 .kurukoo-public-home h1 { font-size: clamp(40px, 7vw, 58px); }
 .kurukoo-public-home > section:first-child { min-height: 340px; display: grid; place-items: center; }
+.kurukoo-home h1,
+.kurukoo-home h2,
+.kurukoo-home h3 { font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif !important; font-weight: 600; }
+.how-step-visual { min-height: 52px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 8px; color: var(--muted-foreground); }
+.how-step-visual-message { position: relative; display: flex; align-items: flex-start; justify-content: flex-end; background: color-mix(in oklab, var(--brand-tint) 45%, var(--surface)); }
+.how-step-bubble { max-width: 112px; border-radius: 10px 10px 2px 10px; background: var(--foreground); padding: 6px 7px; color: var(--background); font-size: 8px; line-height: 1.35; }
+.how-step-caret { position: absolute; right: 12px; bottom: 7px; width: 0; height: 0; border-top: 5px solid var(--foreground); border-left: 5px solid transparent; }
+.how-step-visual-route { display: grid; gap: 4px; background: color-mix(in oklab, var(--elevated) 65%, var(--surface)); }
+.how-step-visual-route span { display: flex; align-items: center; gap: 4px; font-size: 8px; }
+.how-step-visual-route svg { color: var(--primary); }
+.how-step-visual-confirm { display: flex; align-items: center; gap: 6px; background: color-mix(in oklab, var(--success) 10%, var(--surface)); color: var(--success); font-size: 8.5px; font-weight: 600; }
+@media (max-width: 767px) {
+  .how-step-visual { max-width: 170px; }
+}
 
 @media (min-width: 768px) {
   /* Grid columns and rail widths are driven by AppShell Tailwind classes
