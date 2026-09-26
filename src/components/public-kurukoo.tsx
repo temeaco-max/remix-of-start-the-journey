@@ -472,7 +472,7 @@ export function PublicKurukooShell({ children }: { children: ReactNode }) {
             ) : (
               <>
                 <button type="button" onClick={() => openAuth("login")} className="px-3 py-2 text-[12px] font-medium text-muted-foreground hover:text-foreground">Log In</button>
-                <button type="button" onClick={() => openAuth("signup")} className="bg-primary px-4 py-2 text-[12px] font-medium text-primary-foreground">Try for free</button>
+                <button type="button" onClick={() => openAuth("signup")} className="rounded-full bg-primary px-4 py-2 text-[12px] font-medium text-primary-foreground">Try for free</button>
               </>
             )}
           </div>
