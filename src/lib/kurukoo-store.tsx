@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -16,6 +17,7 @@ import {
   markNotificationRead,
   streamKurukooChat,
   type EconomicRequest,
+  type ToolActivityEntry,
 } from "@/lib/kurukoo-api";
 
 export type WorkStage = "understanding" | "working" | "needs_you" | "done";
@@ -36,6 +38,10 @@ export type Message = {
   cardData?: MessageCardData | null;
   canonicalAction?: string;
   progressStage?: string;
+  capabilityResult?: MessageCardData | null;
+  /** Real observed agent tool steps, so the user can see the work happen. */
+  toolActivity?: ToolActivityEntry[];
+  createdAt?: string | null;
 };
 export type NotificationItem = {
   id: string;
@@ -62,7 +68,10 @@ type State = {
   isSending: boolean;
   isLoadingHistory: boolean;
   lastError: string | null;
-  send: (text: string) => void;
+  conversationId: string | undefined;
+  send: (text: string, attachment?: unknown) => void;
+  regenerateLast: () => void;
+  notifyAssistant: (text: string, cardData?: MessageCardData | null) => void;
   loadConversation: (id: string) => Promise<void>;
   advance: (id: string) => void;
   confirm: (id: string) => void;
@@ -175,6 +184,8 @@ function mapHistoryMessages(
     card_data?: Record<string, unknown> | null;
     cardData?: Record<string, unknown> | null;
     metadata?: string | Record<string, unknown> | null;
+    created_at?: string | null;
+    createdAt?: string | null;
   }>,
 ): Message[] {
   return input
@@ -192,6 +203,7 @@ function mapHistoryMessages(
         id: String(item.id),
         role: item.sender === "user" ? "you" : "kurukoo",
         text: item.content,
+        createdAt: item.createdAt ?? item.created_at ?? null,
         cardData:
           item.card_data ??
           item.cardData ??
@@ -311,6 +323,11 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const conversationIdRef = useRef<string | undefined>(undefined);
+  const ephemeralRef = useRef(new Map<string, Message[]>());
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
   const refreshCanonicalState = useCallback(async () => {
     if (!isKurukooApiConfigured()) return;
     try {
@@ -366,7 +383,9 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
     try {
       const history = await fetchChatHistory(id, 100);
       setConversationId(id);
-      setMessages(mapHistoryMessages(history.messages ?? []));
+      const server = mapHistoryMessages(history.messages ?? []);
+      const stashed = ephemeralRef.current.get(id) ?? [];
+      setMessages(stashed.length ? [...server, ...stashed] : server);
     } catch (error) {
       setLastError(error instanceof Error ? error.message : "Unable to open that conversation.");
     } finally {
@@ -374,19 +393,21 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
     }
   }, []);
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, attachment?: unknown) => {
       const clean = text.trim();
       if (!clean || isSending) return;
       setLastError(null);
       if (!isKurukooApiConfigured()) {
         const local = reply(clean);
+        const stamped = new Date().toISOString();
         setMessages((m) => [
           ...m,
-          { id: uid(), role: "you", text: clean },
+          { id: uid(), role: "you", text: clean, createdAt: stamped },
           {
             id: uid(),
             role: "kurukoo",
             text: local.answer,
+            createdAt: stamped,
             workId: local.work?.id,
             cardData: local.cardData,
           },
@@ -406,16 +427,31 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
         return;
       }
       const assistantId = uid();
+      const stamped = new Date().toISOString();
+      const attachedNames = Array.isArray(attachment)
+        ? attachment
+            .map((a) =>
+              a && typeof a === "object" ? String((a as Record<string, unknown>).name || "") : "",
+            )
+            .filter(Boolean)
+        : [];
+      const displayText = attachedNames.length
+        ? `${clean}\n[Attached: ${attachedNames.join(", ")}]`
+        : clean;
       setMessages((m) => [
         ...m,
-        { id: uid(), role: "you", text: clean },
-        { id: assistantId, role: "kurukoo", text: "" },
+        { id: uid(), role: "you", text: displayText, createdAt: stamped },
+        { id: assistantId, role: "kurukoo", text: "", createdAt: stamped },
       ]);
       setIsSending(true);
+      const streamController = new AbortController();
+      const streamTimeout = window.setTimeout(() => streamController.abort(), 120_000);
       try {
         const result = await streamKurukooChat({
-          message: clean,
+          message: displayText,
           conversationId,
+          attachment,
+          signal: streamController.signal,
           onEvent: (event) => {
             if (event.type === "conversation" && event.conversationId)
               setConversationId(event.conversationId);
@@ -446,11 +482,37 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
                         cardData: event.cardData ?? null,
                         canonicalAction: event.canonicalAction,
                         progressStage: event.progressStage,
+                        capabilityResult: event.capabilityResult ?? m.capabilityResult ?? null,
                       }
                     : m,
                 ),
               );
+            if (event.type === "capability_result") {
+              const carried = (event.capabilityResult ??
+                (event as unknown as { result?: MessageCardData | null }).result ??
+                null) as MessageCardData | null;
+              if (carried)
+                setMessages((current) =>
+                  current.map((m) =>
+                    m.id === assistantId ? { ...m, capabilityResult: carried } : m,
+                  ),
+                );
+            }
             if (event.type === "error" && event.error) setLastError(event.error);
+            if (event.type === "tool_activity" && event.toolActivity) {
+              const step = event.toolActivity;
+              setMessages((current) =>
+                current.map((m) => {
+                  if (m.id !== assistantId) return m;
+                  const existing = m.toolActivity ?? [];
+                  const at = existing.findIndex((entry) => entry.step === step.step);
+                  const next = at >= 0
+                    ? existing.map((entry, i) => (i === at ? step : entry))
+                    : [...existing, step];
+                  return { ...m, toolActivity: next };
+                }),
+              );
+            }
           },
         });
         if (result.conversationId) setConversationId(result.conversationId);
@@ -461,7 +523,11 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
         await refreshCanonicalState();
       } catch (error) {
         setLastError(
-          error instanceof Error ? error.message : "Kurukoo could not complete that request.",
+          error instanceof DOMException && error.name === "AbortError"
+            ? "Kurukoo took too long to reply. Please try again."
+            : error instanceof Error
+              ? error.message
+              : "Kurukoo could not complete that request.",
         );
         setMessages((current) =>
           current.map((m) =>
@@ -471,11 +537,39 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
           ),
         );
       } finally {
+        window.clearTimeout(streamTimeout);
         setIsSending(false);
       }
     },
     [conversationId, isSending, refreshCanonicalState],
   );
+  /** Revise-in-place: drops the last user turn and everything after it, then
+   * resends the same text so history holds one attempt instead of duplicates. */
+  const regenerateLast = useCallback(() => {
+    if (isSending) return;
+    const reversed = [...messages].reverse();
+    const offset = reversed.findIndex((m) => m.role === "you" && m.text.trim());
+    if (offset === -1) return;
+    const lastUser = messages[messages.length - 1 - offset];
+    setMessages((m) => m.slice(0, m.length - 1 - offset));
+    void send(lastUser.text);
+  }, [isSending, messages, send]);
+  /** Truthful outcome injector: appends an assistant message stating exactly
+   * what a completed coordinator call returned. Never invents state. */
+  const notifyAssistant = useCallback((text: string, cardData?: MessageCardData | null) => {
+    const clean = text.trim();
+    if (!clean) return;
+    const message: Message = {
+      id: uid(),
+      role: "kurukoo",
+      text: clean,
+      createdAt: new Date().toISOString(),
+      cardData: cardData ?? null,
+    };
+    const key = conversationIdRef.current ?? "unscoped";
+    ephemeralRef.current.set(key, [...(ephemeralRef.current.get(key) ?? []), message].slice(-5));
+    setMessages((m) => [...m, message]);
+  }, []);
   const advance = useCallback(
     (id: string) => {
       if (isKurukooApiConfigured()) {
@@ -547,7 +641,10 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
       isSending,
       isLoadingHistory,
       lastError,
+      conversationId,
       send,
+      regenerateLast,
+      notifyAssistant,
       loadConversation,
       advance,
       confirm,
@@ -562,7 +659,10 @@ export function KurukooProvider({ children }: { children: ReactNode }) {
       isSending,
       isLoadingHistory,
       lastError,
+      conversationId,
       send,
+      regenerateLast,
+      notifyAssistant,
       loadConversation,
       advance,
       confirm,

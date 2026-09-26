@@ -12,42 +12,34 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as AdCampaignRouteImport } from './routes/ad-campaign'
 import { Route as AdvertiseRouteImport } from './routes/advertise'
-import { Route as AdvertisingRouteImport } from './routes/advertising'
 import { Route as AgentsRouteImport } from './routes/agents'
-import { Route as AgentsAmbassadorsRouteImport } from './routes/agents-ambassadors'
-import { Route as AiTermsRouteImport } from './routes/ai-terms'
-import { Route as AmbassadorsRouteImport } from './routes/ambassadors'
 import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as ArtifactsRouteImport } from './routes/artifacts'
-import { Route as ArtistBookingRouteImport } from './routes/artist-booking'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as BusinessesRouteImport } from './routes/businesses'
-import { Route as CallsRouteImport } from './routes/calls'
 import { Route as CapabilitiesRouteImport } from './routes/capabilities'
-import { Route as CardsRouteImport } from './routes/cards'
 import { Route as CareersRouteImport } from './routes/careers'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ContactsRouteImport } from './routes/contacts'
-import { Route as ContributorsRouteImport } from './routes/contributors'
 import { Route as CookiesRouteImport } from './routes/cookies'
-import { Route as CreatorsRouteImport } from './routes/creators'
-import { Route as CredentialsRouteImport } from './routes/credentials'
-import { Route as DailyPicksRouteImport } from './routes/daily-picks'
 import { Route as DeveloperRouteImport } from './routes/developer'
+import { Route as DevelopersRouteImport } from './routes/developers'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as FieldRouteImport } from './routes/field'
 import { Route as FollowingRouteImport } from './routes/following'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as KurukooAiRouteImport } from './routes/kurukoo-ai'
 import { Route as LegalRouteImport } from './routes/legal'
-import { Route as LocalAgentsRouteImport } from './routes/local-agents'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as MessagesRouteImport } from './routes/messages'
@@ -55,35 +47,25 @@ import { Route as NetworkRouteImport } from './routes/network'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OpportunitiesRouteImport } from './routes/opportunities'
 import { Route as PartnersRouteImport } from './routes/partners'
-import { Route as PeopleRouteImport } from './routes/people'
-import { Route as PerchRouteImport } from './routes/perch'
 import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProviderRouteImport } from './routes/provider'
-import { Route as ProvidersRouteImport } from './routes/providers'
-import { Route as QuickActionsRouteImport } from './routes/quick-actions'
+import { Route as ReferralQrRouteImport } from './routes/referral-qr'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as SafetyRouteImport } from './routes/safety'
-import { Route as SecureExecutionRouteImport } from './routes/secure-execution'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
-import { Route as SurveysRouteImport } from './routes/surveys'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as TrustRouteImport } from './routes/trust'
 import { Route as UsageRouteImport } from './routes/usage'
-import { Route as UseCasesRouteImport } from './routes/use-cases'
 import { Route as VideosRouteImport } from './routes/videos'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as WorkRouteImport } from './routes/work'
 import { Route as WorkspaceRouteImport } from './routes/workspace'
-import { Route as YouRouteImport } from './routes/you'
 import { Route as AgentsAgentIdRouteImport } from './routes/agents.$agentId'
 import { Route as ArtifactsArtifactIdRouteImport } from './routes/artifacts.$artifactId'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as BlogTheCallThatGetsThingsMovingRouteImport } from './routes/blog.the-call-that-gets-things-moving'
-import { Route as EarnTopicRouteImport } from './routes/earn.$topic'
 import { Route as ExploreCommunityRouteImport } from './routes/explore/community'
 import { Route as ExploreEventsRouteImport } from './routes/explore/events'
 import { Route as ExploreFoodRouteImport } from './routes/explore/food'
@@ -99,12 +81,10 @@ import { Route as ExploreRepairsRouteImport } from './routes/explore/repairs'
 import { Route as ExploreSafetyRouteImport } from './routes/explore/safety'
 import { Route as ExploreSellingRouteImport } from './routes/explore/selling'
 import { Route as ExploreWorkRouteImport } from './routes/explore/work'
+import { Route as IntegrationsIntegrationIdRouteImport } from './routes/integrations.$integrationId'
 import { Route as LegalSectionRouteImport } from './routes/legal.$section'
 import { Route as MessagesThreadIdRouteImport } from './routes/messages.$threadId'
 import { Route as ProfileEntityIdRouteImport } from './routes/profile.$entityId'
-import { Route as ProfileSlugRouteImport } from './routes/profile.$slug'
-import { Route as ProfileKurukooAiRouteImport } from './routes/profile/kurukoo-ai'
-import { Route as ProfileTemeAiRouteImport } from './routes/profile/teme-ai'
 import { Route as ResourcesSlugRouteImport } from './routes/resources.$slug'
 import { Route as TopicsSlugRouteImport } from './routes/topics.$slug'
 import { Route as TopicsCreateRouteImport } from './routes/topics.create'
@@ -130,34 +110,19 @@ const ActivityRoute = ActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdCampaignRoute = AdCampaignRouteImport.update({
+  id: '/ad-campaign',
+  path: '/ad-campaign',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdvertiseRoute = AdvertiseRouteImport.update({
   id: '/advertise',
   path: '/advertise',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdvertisingRoute = AdvertisingRouteImport.update({
-  id: '/advertising',
-  path: '/advertising',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AgentsRoute = AgentsRouteImport.update({
   id: '/agents',
   path: '/agents',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentsAmbassadorsRoute = AgentsAmbassadorsRouteImport.update({
-  id: '/agents-ambassadors',
-  path: '/agents-ambassadors',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AiTermsRoute = AiTermsRouteImport.update({
-  id: '/ai-terms',
-  path: '/ai-terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AmbassadorsRoute = AmbassadorsRouteImport.update({
-  id: '/ambassadors',
-  path: '/ambassadors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDocsRoute = ApiDocsRouteImport.update({
@@ -168,11 +133,6 @@ const ApiDocsRoute = ApiDocsRouteImport.update({
 const ArtifactsRoute = ArtifactsRouteImport.update({
   id: '/artifacts',
   path: '/artifacts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistBookingRoute = ArtistBookingRouteImport.update({
-  id: '/artist-booking',
-  path: '/artist-booking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditRoute = AuditRouteImport.update({
@@ -190,19 +150,9 @@ const BusinessesRoute = BusinessesRouteImport.update({
   path: '/businesses',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CallsRoute = CallsRouteImport.update({
-  id: '/calls',
-  path: '/calls',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CapabilitiesRoute = CapabilitiesRouteImport.update({
   id: '/capabilities',
   path: '/capabilities',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CardsRoute = CardsRouteImport.update({
-  id: '/cards',
-  path: '/cards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CareersRoute = CareersRouteImport.update({
@@ -235,34 +185,19 @@ const ContactsRoute = ContactsRouteImport.update({
   path: '/contacts',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ContributorsRoute = ContributorsRouteImport.update({
-  id: '/contributors',
-  path: '/contributors',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CookiesRoute = CookiesRouteImport.update({
   id: '/cookies',
   path: '/cookies',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CreatorsRoute = CreatorsRouteImport.update({
-  id: '/creators',
-  path: '/creators',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CredentialsRoute = CredentialsRouteImport.update({
-  id: '/credentials',
-  path: '/credentials',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DailyPicksRoute = DailyPicksRouteImport.update({
-  id: '/daily-picks',
-  path: '/daily-picks',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DeveloperRoute = DeveloperRouteImport.update({
   id: '/developer',
   path: '/developer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevelopersRoute = DevelopersRouteImport.update({
+  id: '/developers',
+  path: '/developers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoverRoute = DiscoverRouteImport.update({
@@ -273,6 +208,16 @@ const DiscoverRoute = DiscoverRouteImport.update({
 const ExploreRoute = ExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FieldRoute = FieldRouteImport.update({
+  id: '/field',
+  path: '/field',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FollowingRoute = FollowingRouteImport.update({
@@ -303,11 +248,6 @@ const KurukooAiRoute = KurukooAiRouteImport.update({
 const LegalRoute = LegalRouteImport.update({
   id: '/legal',
   path: '/legal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LocalAgentsRoute = LocalAgentsRouteImport.update({
-  id: '/local-agents',
-  path: '/local-agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -345,24 +285,9 @@ const PartnersRoute = PartnersRouteImport.update({
   path: '/partners',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PeopleRoute = PeopleRouteImport.update({
-  id: '/people',
-  path: '/people',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PerchRoute = PerchRouteImport.update({
-  id: '/perch',
-  path: '/perch',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProviderRoute = ProviderRouteImport.update({
@@ -370,14 +295,9 @@ const ProviderRoute = ProviderRouteImport.update({
   path: '/provider',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProvidersRoute = ProvidersRouteImport.update({
-  id: '/providers',
-  path: '/providers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuickActionsRoute = QuickActionsRouteImport.update({
-  id: '/quick-actions',
-  path: '/quick-actions',
+const ReferralQrRoute = ReferralQrRouteImport.update({
+  id: '/referral-qr',
+  path: '/referral-qr',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResourcesRoute = ResourcesRouteImport.update({
@@ -388,11 +308,6 @@ const ResourcesRoute = ResourcesRouteImport.update({
 const SafetyRoute = SafetyRouteImport.update({
   id: '/safety',
   path: '/safety',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SecureExecutionRoute = SecureExecutionRouteImport.update({
-  id: '/secure-execution',
-  path: '/secure-execution',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -408,11 +323,6 @@ const SignupRoute = SignupRouteImport.update({
 const SubscriptionsRoute = SubscriptionsRouteImport.update({
   id: '/subscriptions',
   path: '/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SurveysRoute = SurveysRouteImport.update({
-  id: '/surveys',
-  path: '/surveys',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TasksRoute = TasksRouteImport.update({
@@ -435,11 +345,6 @@ const UsageRoute = UsageRouteImport.update({
   path: '/usage',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UseCasesRoute = UseCasesRouteImport.update({
-  id: '/use-cases',
-  path: '/use-cases',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const VideosRoute = VideosRouteImport.update({
   id: '/videos',
   path: '/videos',
@@ -460,11 +365,6 @@ const WorkspaceRoute = WorkspaceRouteImport.update({
   path: '/workspace',
   getParentRoute: () => rootRouteImport,
 } as any)
-const YouRoute = YouRouteImport.update({
-  id: '/you',
-  path: '/you',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AgentsAgentIdRoute = AgentsAgentIdRouteImport.update({
   id: '/$agentId',
   path: '/$agentId',
@@ -479,17 +379,6 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => BlogRoute,
-} as any)
-const BlogTheCallThatGetsThingsMovingRoute =
-  BlogTheCallThatGetsThingsMovingRouteImport.update({
-    id: '/the-call-that-gets-things-moving',
-    path: '/the-call-that-gets-things-moving',
-    getParentRoute: () => BlogRoute,
-  } as any)
-const EarnTopicRoute = EarnTopicRouteImport.update({
-  id: '/earn/$topic',
-  path: '/earn/$topic',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreCommunityRoute = ExploreCommunityRouteImport.update({
   id: '/community',
@@ -566,6 +455,12 @@ const ExploreWorkRoute = ExploreWorkRouteImport.update({
   path: '/work',
   getParentRoute: () => ExploreRoute,
 } as any)
+const IntegrationsIntegrationIdRoute =
+  IntegrationsIntegrationIdRouteImport.update({
+    id: '/$integrationId',
+    path: '/$integrationId',
+    getParentRoute: () => IntegrationsRoute,
+  } as any)
 const LegalSectionRoute = LegalSectionRouteImport.update({
   id: '/$section',
   path: '/$section',
@@ -577,24 +472,9 @@ const MessagesThreadIdRoute = MessagesThreadIdRouteImport.update({
   getParentRoute: () => MessagesRoute,
 } as any)
 const ProfileEntityIdRoute = ProfileEntityIdRouteImport.update({
-  id: '/$entityId',
-  path: '/$entityId',
-  getParentRoute: () => ProfileRoute,
-} as any)
-const ProfileSlugRoute = ProfileSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => ProfileRoute,
-} as any)
-const ProfileKurukooAiRoute = ProfileKurukooAiRouteImport.update({
-  id: '/kurukoo-ai',
-  path: '/kurukoo-ai',
-  getParentRoute: () => ProfileRoute,
-} as any)
-const ProfileTemeAiRoute = ProfileTemeAiRouteImport.update({
-  id: '/teme-ai',
-  path: '/teme-ai',
-  getParentRoute: () => ProfileRoute,
+  id: '/profile/$entityId',
+  path: '/profile/$entityId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ResourcesSlugRoute = ResourcesSlugRouteImport.update({
   id: '/$slug',
@@ -647,42 +527,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activity': typeof ActivityRoute
+  '/ad-campaign': typeof AdCampaignRoute
   '/advertise': typeof AdvertiseRoute
-  '/advertising': typeof AdvertisingRoute
   '/agents': typeof AgentsRouteWithChildren
-  '/agents-ambassadors': typeof AgentsAmbassadorsRoute
-  '/ai-terms': typeof AiTermsRoute
-  '/ambassadors': typeof AmbassadorsRoute
   '/api-docs': typeof ApiDocsRoute
   '/artifacts': typeof ArtifactsRouteWithChildren
-  '/artist-booking': typeof ArtistBookingRoute
   '/audit': typeof AuditRoute
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
-  '/calls': typeof CallsRoute
   '/capabilities': typeof CapabilitiesRoute
-  '/cards': typeof CardsRoute
   '/careers': typeof CareersRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
-  '/contributors': typeof ContributorsRoute
   '/cookies': typeof CookiesRoute
-  '/creators': typeof CreatorsRoute
-  '/credentials': typeof CredentialsRoute
-  '/daily-picks': typeof DailyPicksRoute
   '/developer': typeof DeveloperRoute
+  '/developers': typeof DevelopersRoute
   '/discover': typeof DiscoverRoute
   '/explore': typeof ExploreRouteWithChildren
+  '/features': typeof FeaturesRoute
+  '/field': typeof FieldRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
-  '/integrations': typeof IntegrationsRoute
+  '/integrations': typeof IntegrationsRouteWithChildren
   '/kurukoo-ai': typeof KurukooAiRoute
   '/legal': typeof LegalRouteWithChildren
-  '/local-agents': typeof LocalAgentsRoute
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
@@ -690,35 +562,25 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/opportunities': typeof OpportunitiesRoute
   '/partners': typeof PartnersRoute
-  '/people': typeof PeopleRoute
-  '/perch': typeof PerchRoute
   '/pricing': typeof PricingRoute
-  '/profile': typeof ProfileRouteWithChildren
   '/provider': typeof ProviderRoute
-  '/providers': typeof ProvidersRoute
-  '/quick-actions': typeof QuickActionsRoute
+  '/referral-qr': typeof ReferralQrRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/safety': typeof SafetyRoute
-  '/secure-execution': typeof SecureExecutionRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/surveys': typeof SurveysRoute
   '/tasks': typeof TasksRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
   '/usage': typeof UsageRoute
-  '/use-cases': typeof UseCasesRoute
   '/videos': typeof VideosRouteWithChildren
   '/wallet': typeof WalletRoute
   '/work': typeof WorkRouteWithChildren
   '/workspace': typeof WorkspaceRoute
-  '/you': typeof YouRoute
   '/agents/$agentId': typeof AgentsAgentIdRoute
   '/artifacts/$artifactId': typeof ArtifactsArtifactIdRoute
   '/blog/$slug': typeof BlogSlugRoute
-  '/blog/the-call-that-gets-things-moving': typeof BlogTheCallThatGetsThingsMovingRoute
-  '/earn/$topic': typeof EarnTopicRoute
   '/explore/community': typeof ExploreCommunityRoute
   '/explore/events': typeof ExploreEventsRoute
   '/explore/food': typeof ExploreFoodRoute
@@ -734,12 +596,10 @@ export interface FileRoutesByFullPath {
   '/explore/safety': typeof ExploreSafetyRoute
   '/explore/selling': typeof ExploreSellingRoute
   '/explore/work': typeof ExploreWorkRoute
+  '/integrations/$integrationId': typeof IntegrationsIntegrationIdRoute
   '/legal/$section': typeof LegalSectionRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
-  '/profile/$slug': typeof ProfileSlugRoute
-  '/profile/kurukoo-ai': typeof ProfileKurukooAiRoute
-  '/profile/teme-ai': typeof ProfileTemeAiRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/topics/$slug': typeof TopicsSlugRoute
   '/topics/create': typeof TopicsCreateRoute
@@ -754,42 +614,34 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activity': typeof ActivityRoute
+  '/ad-campaign': typeof AdCampaignRoute
   '/advertise': typeof AdvertiseRoute
-  '/advertising': typeof AdvertisingRoute
   '/agents': typeof AgentsRouteWithChildren
-  '/agents-ambassadors': typeof AgentsAmbassadorsRoute
-  '/ai-terms': typeof AiTermsRoute
-  '/ambassadors': typeof AmbassadorsRoute
   '/api-docs': typeof ApiDocsRoute
   '/artifacts': typeof ArtifactsRouteWithChildren
-  '/artist-booking': typeof ArtistBookingRoute
   '/audit': typeof AuditRoute
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
-  '/calls': typeof CallsRoute
   '/capabilities': typeof CapabilitiesRoute
-  '/cards': typeof CardsRoute
   '/careers': typeof CareersRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
-  '/contributors': typeof ContributorsRoute
   '/cookies': typeof CookiesRoute
-  '/creators': typeof CreatorsRoute
-  '/credentials': typeof CredentialsRoute
-  '/daily-picks': typeof DailyPicksRoute
   '/developer': typeof DeveloperRoute
+  '/developers': typeof DevelopersRoute
   '/discover': typeof DiscoverRoute
   '/explore': typeof ExploreRouteWithChildren
+  '/features': typeof FeaturesRoute
+  '/field': typeof FieldRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
-  '/integrations': typeof IntegrationsRoute
+  '/integrations': typeof IntegrationsRouteWithChildren
   '/kurukoo-ai': typeof KurukooAiRoute
   '/legal': typeof LegalRouteWithChildren
-  '/local-agents': typeof LocalAgentsRoute
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
@@ -797,34 +649,24 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/opportunities': typeof OpportunitiesRoute
   '/partners': typeof PartnersRoute
-  '/people': typeof PeopleRoute
-  '/perch': typeof PerchRoute
   '/pricing': typeof PricingRoute
-  '/profile': typeof ProfileRouteWithChildren
   '/provider': typeof ProviderRoute
-  '/providers': typeof ProvidersRoute
-  '/quick-actions': typeof QuickActionsRoute
+  '/referral-qr': typeof ReferralQrRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/safety': typeof SafetyRoute
-  '/secure-execution': typeof SecureExecutionRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/surveys': typeof SurveysRoute
   '/tasks': typeof TasksRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
   '/usage': typeof UsageRoute
-  '/use-cases': typeof UseCasesRoute
   '/videos': typeof VideosRouteWithChildren
   '/wallet': typeof WalletRoute
   '/workspace': typeof WorkspaceRoute
-  '/you': typeof YouRoute
   '/agents/$agentId': typeof AgentsAgentIdRoute
   '/artifacts/$artifactId': typeof ArtifactsArtifactIdRoute
   '/blog/$slug': typeof BlogSlugRoute
-  '/blog/the-call-that-gets-things-moving': typeof BlogTheCallThatGetsThingsMovingRoute
-  '/earn/$topic': typeof EarnTopicRoute
   '/explore/community': typeof ExploreCommunityRoute
   '/explore/events': typeof ExploreEventsRoute
   '/explore/food': typeof ExploreFoodRoute
@@ -840,12 +682,10 @@ export interface FileRoutesByTo {
   '/explore/safety': typeof ExploreSafetyRoute
   '/explore/selling': typeof ExploreSellingRoute
   '/explore/work': typeof ExploreWorkRoute
+  '/integrations/$integrationId': typeof IntegrationsIntegrationIdRoute
   '/legal/$section': typeof LegalSectionRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
-  '/profile/$slug': typeof ProfileSlugRoute
-  '/profile/kurukoo-ai': typeof ProfileKurukooAiRoute
-  '/profile/teme-ai': typeof ProfileTemeAiRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/topics/$slug': typeof TopicsSlugRoute
   '/topics/create': typeof TopicsCreateRoute
@@ -861,42 +701,34 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activity': typeof ActivityRoute
+  '/ad-campaign': typeof AdCampaignRoute
   '/advertise': typeof AdvertiseRoute
-  '/advertising': typeof AdvertisingRoute
   '/agents': typeof AgentsRouteWithChildren
-  '/agents-ambassadors': typeof AgentsAmbassadorsRoute
-  '/ai-terms': typeof AiTermsRoute
-  '/ambassadors': typeof AmbassadorsRoute
   '/api-docs': typeof ApiDocsRoute
   '/artifacts': typeof ArtifactsRouteWithChildren
-  '/artist-booking': typeof ArtistBookingRoute
   '/audit': typeof AuditRoute
   '/blog': typeof BlogRouteWithChildren
   '/businesses': typeof BusinessesRoute
-  '/calls': typeof CallsRoute
   '/capabilities': typeof CapabilitiesRoute
-  '/cards': typeof CardsRoute
   '/careers': typeof CareersRoute
   '/cart': typeof CartRoute
   '/chat': typeof ChatRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/contacts': typeof ContactsRoute
-  '/contributors': typeof ContributorsRoute
   '/cookies': typeof CookiesRoute
-  '/creators': typeof CreatorsRoute
-  '/credentials': typeof CredentialsRoute
-  '/daily-picks': typeof DailyPicksRoute
   '/developer': typeof DeveloperRoute
+  '/developers': typeof DevelopersRoute
   '/discover': typeof DiscoverRoute
   '/explore': typeof ExploreRouteWithChildren
+  '/features': typeof FeaturesRoute
+  '/field': typeof FieldRoute
   '/following': typeof FollowingRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
-  '/integrations': typeof IntegrationsRoute
+  '/integrations': typeof IntegrationsRouteWithChildren
   '/kurukoo-ai': typeof KurukooAiRoute
   '/legal': typeof LegalRouteWithChildren
-  '/local-agents': typeof LocalAgentsRoute
   '/login': typeof LoginRoute
   '/memory': typeof MemoryRoute
   '/messages': typeof MessagesRouteWithChildren
@@ -904,35 +736,25 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/opportunities': typeof OpportunitiesRoute
   '/partners': typeof PartnersRoute
-  '/people': typeof PeopleRoute
-  '/perch': typeof PerchRoute
   '/pricing': typeof PricingRoute
-  '/profile': typeof ProfileRouteWithChildren
   '/provider': typeof ProviderRoute
-  '/providers': typeof ProvidersRoute
-  '/quick-actions': typeof QuickActionsRoute
+  '/referral-qr': typeof ReferralQrRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/safety': typeof SafetyRoute
-  '/secure-execution': typeof SecureExecutionRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/surveys': typeof SurveysRoute
   '/tasks': typeof TasksRoute
   '/topics': typeof TopicsRouteWithChildren
   '/trust': typeof TrustRoute
   '/usage': typeof UsageRoute
-  '/use-cases': typeof UseCasesRoute
   '/videos': typeof VideosRouteWithChildren
   '/wallet': typeof WalletRoute
   '/work': typeof WorkRouteWithChildren
   '/workspace': typeof WorkspaceRoute
-  '/you': typeof YouRoute
   '/agents/$agentId': typeof AgentsAgentIdRoute
   '/artifacts/$artifactId': typeof ArtifactsArtifactIdRoute
   '/blog/$slug': typeof BlogSlugRoute
-  '/blog/the-call-that-gets-things-moving': typeof BlogTheCallThatGetsThingsMovingRoute
-  '/earn/$topic': typeof EarnTopicRoute
   '/explore/community': typeof ExploreCommunityRoute
   '/explore/events': typeof ExploreEventsRoute
   '/explore/food': typeof ExploreFoodRoute
@@ -948,12 +770,10 @@ export interface FileRoutesById {
   '/explore/safety': typeof ExploreSafetyRoute
   '/explore/selling': typeof ExploreSellingRoute
   '/explore/work': typeof ExploreWorkRoute
+  '/integrations/$integrationId': typeof IntegrationsIntegrationIdRoute
   '/legal/$section': typeof LegalSectionRoute
   '/messages/$threadId': typeof MessagesThreadIdRoute
   '/profile/$entityId': typeof ProfileEntityIdRoute
-  '/profile/$slug': typeof ProfileSlugRoute
-  '/profile/kurukoo-ai': typeof ProfileKurukooAiRoute
-  '/profile/teme-ai': typeof ProfileTemeAiRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/topics/$slug': typeof TopicsSlugRoute
   '/topics/create': typeof TopicsCreateRoute
@@ -970,42 +790,34 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/activity'
+    | '/ad-campaign'
     | '/advertise'
-    | '/advertising'
     | '/agents'
-    | '/agents-ambassadors'
-    | '/ai-terms'
-    | '/ambassadors'
     | '/api-docs'
     | '/artifacts'
-    | '/artist-booking'
     | '/audit'
     | '/blog'
     | '/businesses'
-    | '/calls'
     | '/capabilities'
-    | '/cards'
     | '/careers'
     | '/cart'
     | '/chat'
     | '/connect'
     | '/contact'
     | '/contacts'
-    | '/contributors'
     | '/cookies'
-    | '/creators'
-    | '/credentials'
-    | '/daily-picks'
     | '/developer'
+    | '/developers'
     | '/discover'
     | '/explore'
+    | '/features'
+    | '/field'
     | '/following'
     | '/help'
     | '/how-it-works'
     | '/integrations'
     | '/kurukoo-ai'
     | '/legal'
-    | '/local-agents'
     | '/login'
     | '/memory'
     | '/messages'
@@ -1013,35 +825,25 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/opportunities'
     | '/partners'
-    | '/people'
-    | '/perch'
     | '/pricing'
-    | '/profile'
     | '/provider'
-    | '/providers'
-    | '/quick-actions'
+    | '/referral-qr'
     | '/resources'
     | '/safety'
-    | '/secure-execution'
     | '/settings'
     | '/signup'
     | '/subscriptions'
-    | '/surveys'
     | '/tasks'
     | '/topics'
     | '/trust'
     | '/usage'
-    | '/use-cases'
     | '/videos'
     | '/wallet'
     | '/work'
     | '/workspace'
-    | '/you'
     | '/agents/$agentId'
     | '/artifacts/$artifactId'
     | '/blog/$slug'
-    | '/blog/the-call-that-gets-things-moving'
-    | '/earn/$topic'
     | '/explore/community'
     | '/explore/events'
     | '/explore/food'
@@ -1057,12 +859,10 @@ export interface FileRouteTypes {
     | '/explore/safety'
     | '/explore/selling'
     | '/explore/work'
+    | '/integrations/$integrationId'
     | '/legal/$section'
     | '/messages/$threadId'
     | '/profile/$entityId'
-    | '/profile/$slug'
-    | '/profile/kurukoo-ai'
-    | '/profile/teme-ai'
     | '/resources/$slug'
     | '/topics/$slug'
     | '/topics/create'
@@ -1077,42 +877,34 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/activity'
+    | '/ad-campaign'
     | '/advertise'
-    | '/advertising'
     | '/agents'
-    | '/agents-ambassadors'
-    | '/ai-terms'
-    | '/ambassadors'
     | '/api-docs'
     | '/artifacts'
-    | '/artist-booking'
     | '/audit'
     | '/blog'
     | '/businesses'
-    | '/calls'
     | '/capabilities'
-    | '/cards'
     | '/careers'
     | '/cart'
     | '/chat'
     | '/connect'
     | '/contact'
     | '/contacts'
-    | '/contributors'
     | '/cookies'
-    | '/creators'
-    | '/credentials'
-    | '/daily-picks'
     | '/developer'
+    | '/developers'
     | '/discover'
     | '/explore'
+    | '/features'
+    | '/field'
     | '/following'
     | '/help'
     | '/how-it-works'
     | '/integrations'
     | '/kurukoo-ai'
     | '/legal'
-    | '/local-agents'
     | '/login'
     | '/memory'
     | '/messages'
@@ -1120,34 +912,24 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/opportunities'
     | '/partners'
-    | '/people'
-    | '/perch'
     | '/pricing'
-    | '/profile'
     | '/provider'
-    | '/providers'
-    | '/quick-actions'
+    | '/referral-qr'
     | '/resources'
     | '/safety'
-    | '/secure-execution'
     | '/settings'
     | '/signup'
     | '/subscriptions'
-    | '/surveys'
     | '/tasks'
     | '/topics'
     | '/trust'
     | '/usage'
-    | '/use-cases'
     | '/videos'
     | '/wallet'
     | '/workspace'
-    | '/you'
     | '/agents/$agentId'
     | '/artifacts/$artifactId'
     | '/blog/$slug'
-    | '/blog/the-call-that-gets-things-moving'
-    | '/earn/$topic'
     | '/explore/community'
     | '/explore/events'
     | '/explore/food'
@@ -1163,12 +945,10 @@ export interface FileRouteTypes {
     | '/explore/safety'
     | '/explore/selling'
     | '/explore/work'
+    | '/integrations/$integrationId'
     | '/legal/$section'
     | '/messages/$threadId'
     | '/profile/$entityId'
-    | '/profile/$slug'
-    | '/profile/kurukoo-ai'
-    | '/profile/teme-ai'
     | '/resources/$slug'
     | '/topics/$slug'
     | '/topics/create'
@@ -1183,42 +963,34 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/activity'
+    | '/ad-campaign'
     | '/advertise'
-    | '/advertising'
     | '/agents'
-    | '/agents-ambassadors'
-    | '/ai-terms'
-    | '/ambassadors'
     | '/api-docs'
     | '/artifacts'
-    | '/artist-booking'
     | '/audit'
     | '/blog'
     | '/businesses'
-    | '/calls'
     | '/capabilities'
-    | '/cards'
     | '/careers'
     | '/cart'
     | '/chat'
     | '/connect'
     | '/contact'
     | '/contacts'
-    | '/contributors'
     | '/cookies'
-    | '/creators'
-    | '/credentials'
-    | '/daily-picks'
     | '/developer'
+    | '/developers'
     | '/discover'
     | '/explore'
+    | '/features'
+    | '/field'
     | '/following'
     | '/help'
     | '/how-it-works'
     | '/integrations'
     | '/kurukoo-ai'
     | '/legal'
-    | '/local-agents'
     | '/login'
     | '/memory'
     | '/messages'
@@ -1226,35 +998,25 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/opportunities'
     | '/partners'
-    | '/people'
-    | '/perch'
     | '/pricing'
-    | '/profile'
     | '/provider'
-    | '/providers'
-    | '/quick-actions'
+    | '/referral-qr'
     | '/resources'
     | '/safety'
-    | '/secure-execution'
     | '/settings'
     | '/signup'
     | '/subscriptions'
-    | '/surveys'
     | '/tasks'
     | '/topics'
     | '/trust'
     | '/usage'
-    | '/use-cases'
     | '/videos'
     | '/wallet'
     | '/work'
     | '/workspace'
-    | '/you'
     | '/agents/$agentId'
     | '/artifacts/$artifactId'
     | '/blog/$slug'
-    | '/blog/the-call-that-gets-things-moving'
-    | '/earn/$topic'
     | '/explore/community'
     | '/explore/events'
     | '/explore/food'
@@ -1270,12 +1032,10 @@ export interface FileRouteTypes {
     | '/explore/safety'
     | '/explore/selling'
     | '/explore/work'
+    | '/integrations/$integrationId'
     | '/legal/$section'
     | '/messages/$threadId'
     | '/profile/$entityId'
-    | '/profile/$slug'
-    | '/profile/kurukoo-ai'
-    | '/profile/teme-ai'
     | '/resources/$slug'
     | '/topics/$slug'
     | '/topics/create'
@@ -1291,42 +1051,34 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ActivityRoute: typeof ActivityRoute
+  AdCampaignRoute: typeof AdCampaignRoute
   AdvertiseRoute: typeof AdvertiseRoute
-  AdvertisingRoute: typeof AdvertisingRoute
   AgentsRoute: typeof AgentsRouteWithChildren
-  AgentsAmbassadorsRoute: typeof AgentsAmbassadorsRoute
-  AiTermsRoute: typeof AiTermsRoute
-  AmbassadorsRoute: typeof AmbassadorsRoute
   ApiDocsRoute: typeof ApiDocsRoute
   ArtifactsRoute: typeof ArtifactsRouteWithChildren
-  ArtistBookingRoute: typeof ArtistBookingRoute
   AuditRoute: typeof AuditRoute
   BlogRoute: typeof BlogRouteWithChildren
   BusinessesRoute: typeof BusinessesRoute
-  CallsRoute: typeof CallsRoute
   CapabilitiesRoute: typeof CapabilitiesRoute
-  CardsRoute: typeof CardsRoute
   CareersRoute: typeof CareersRoute
   CartRoute: typeof CartRoute
   ChatRoute: typeof ChatRoute
   ConnectRoute: typeof ConnectRoute
   ContactRoute: typeof ContactRoute
   ContactsRoute: typeof ContactsRoute
-  ContributorsRoute: typeof ContributorsRoute
   CookiesRoute: typeof CookiesRoute
-  CreatorsRoute: typeof CreatorsRoute
-  CredentialsRoute: typeof CredentialsRoute
-  DailyPicksRoute: typeof DailyPicksRoute
   DeveloperRoute: typeof DeveloperRoute
+  DevelopersRoute: typeof DevelopersRoute
   DiscoverRoute: typeof DiscoverRoute
   ExploreRoute: typeof ExploreRouteWithChildren
+  FeaturesRoute: typeof FeaturesRoute
+  FieldRoute: typeof FieldRoute
   FollowingRoute: typeof FollowingRoute
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
-  IntegrationsRoute: typeof IntegrationsRoute
+  IntegrationsRoute: typeof IntegrationsRouteWithChildren
   KurukooAiRoute: typeof KurukooAiRoute
   LegalRoute: typeof LegalRouteWithChildren
-  LocalAgentsRoute: typeof LocalAgentsRoute
   LoginRoute: typeof LoginRoute
   MemoryRoute: typeof MemoryRoute
   MessagesRoute: typeof MessagesRouteWithChildren
@@ -1334,31 +1086,23 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   OpportunitiesRoute: typeof OpportunitiesRoute
   PartnersRoute: typeof PartnersRoute
-  PeopleRoute: typeof PeopleRoute
-  PerchRoute: typeof PerchRoute
   PricingRoute: typeof PricingRoute
-  ProfileRoute: typeof ProfileRouteWithChildren
   ProviderRoute: typeof ProviderRoute
-  ProvidersRoute: typeof ProvidersRoute
-  QuickActionsRoute: typeof QuickActionsRoute
+  ReferralQrRoute: typeof ReferralQrRoute
   ResourcesRoute: typeof ResourcesRouteWithChildren
   SafetyRoute: typeof SafetyRoute
-  SecureExecutionRoute: typeof SecureExecutionRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
-  SurveysRoute: typeof SurveysRoute
   TasksRoute: typeof TasksRoute
   TopicsRoute: typeof TopicsRouteWithChildren
   TrustRoute: typeof TrustRoute
   UsageRoute: typeof UsageRoute
-  UseCasesRoute: typeof UseCasesRoute
   VideosRoute: typeof VideosRouteWithChildren
   WalletRoute: typeof WalletRoute
   WorkRoute: typeof WorkRouteWithChildren
   WorkspaceRoute: typeof WorkspaceRoute
-  YouRoute: typeof YouRoute
-  EarnTopicRoute: typeof EarnTopicRoute
+  ProfileEntityIdRoute: typeof ProfileEntityIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1384,6 +1128,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ad-campaign': {
+      id: '/ad-campaign'
+      path: '/ad-campaign'
+      fullPath: '/ad-campaign'
+      preLoaderRoute: typeof AdCampaignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/advertise': {
       id: '/advertise'
       path: '/advertise'
@@ -1391,39 +1142,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdvertiseRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/advertising': {
-      id: '/advertising'
-      path: '/advertising'
-      fullPath: '/advertising'
-      preLoaderRoute: typeof AdvertisingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/agents': {
       id: '/agents'
       path: '/agents'
       fullPath: '/agents'
       preLoaderRoute: typeof AgentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agents-ambassadors': {
-      id: '/agents-ambassadors'
-      path: '/agents-ambassadors'
-      fullPath: '/agents-ambassadors'
-      preLoaderRoute: typeof AgentsAmbassadorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ai-terms': {
-      id: '/ai-terms'
-      path: '/ai-terms'
-      fullPath: '/ai-terms'
-      preLoaderRoute: typeof AiTermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ambassadors': {
-      id: '/ambassadors'
-      path: '/ambassadors'
-      fullPath: '/ambassadors'
-      preLoaderRoute: typeof AmbassadorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api-docs': {
@@ -1438,13 +1161,6 @@ declare module '@tanstack/react-router' {
       path: '/artifacts'
       fullPath: '/artifacts'
       preLoaderRoute: typeof ArtifactsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artist-booking': {
-      id: '/artist-booking'
-      path: '/artist-booking'
-      fullPath: '/artist-booking'
-      preLoaderRoute: typeof ArtistBookingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audit': {
@@ -1468,25 +1184,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/calls': {
-      id: '/calls'
-      path: '/calls'
-      fullPath: '/calls'
-      preLoaderRoute: typeof CallsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/capabilities': {
       id: '/capabilities'
       path: '/capabilities'
       fullPath: '/capabilities'
       preLoaderRoute: typeof CapabilitiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cards': {
-      id: '/cards'
-      path: '/cards'
-      fullPath: '/cards'
-      preLoaderRoute: typeof CardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/careers': {
@@ -1531,13 +1233,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/contributors': {
-      id: '/contributors'
-      path: '/contributors'
-      fullPath: '/contributors'
-      preLoaderRoute: typeof ContributorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/cookies': {
       id: '/cookies'
       path: '/cookies'
@@ -1545,32 +1240,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/creators': {
-      id: '/creators'
-      path: '/creators'
-      fullPath: '/creators'
-      preLoaderRoute: typeof CreatorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/credentials': {
-      id: '/credentials'
-      path: '/credentials'
-      fullPath: '/credentials'
-      preLoaderRoute: typeof CredentialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/daily-picks': {
-      id: '/daily-picks'
-      path: '/daily-picks'
-      fullPath: '/daily-picks'
-      preLoaderRoute: typeof DailyPicksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/developer': {
       id: '/developer'
       path: '/developer'
       fullPath: '/developer'
       preLoaderRoute: typeof DeveloperRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/developers': {
+      id: '/developers'
+      path: '/developers'
+      fullPath: '/developers'
+      preLoaderRoute: typeof DevelopersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discover': {
@@ -1585,6 +1266,20 @@ declare module '@tanstack/react-router' {
       path: '/explore'
       fullPath: '/explore'
       preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/field': {
+      id: '/field'
+      path: '/field'
+      fullPath: '/field'
+      preLoaderRoute: typeof FieldRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/following': {
@@ -1627,13 +1322,6 @@ declare module '@tanstack/react-router' {
       path: '/legal'
       fullPath: '/legal'
       preLoaderRoute: typeof LegalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/local-agents': {
-      id: '/local-agents'
-      path: '/local-agents'
-      fullPath: '/local-agents'
-      preLoaderRoute: typeof LocalAgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1685,32 +1373,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartnersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/people': {
-      id: '/people'
-      path: '/people'
-      fullPath: '/people'
-      preLoaderRoute: typeof PeopleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/perch': {
-      id: '/perch'
-      path: '/perch'
-      fullPath: '/perch'
-      preLoaderRoute: typeof PerchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/provider': {
@@ -1720,18 +1387,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProviderRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/providers': {
-      id: '/providers'
-      path: '/providers'
-      fullPath: '/providers'
-      preLoaderRoute: typeof ProvidersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quick-actions': {
-      id: '/quick-actions'
-      path: '/quick-actions'
-      fullPath: '/quick-actions'
-      preLoaderRoute: typeof QuickActionsRouteImport
+    '/referral-qr': {
+      id: '/referral-qr'
+      path: '/referral-qr'
+      fullPath: '/referral-qr'
+      preLoaderRoute: typeof ReferralQrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/resources': {
@@ -1746,13 +1406,6 @@ declare module '@tanstack/react-router' {
       path: '/safety'
       fullPath: '/safety'
       preLoaderRoute: typeof SafetyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/secure-execution': {
-      id: '/secure-execution'
-      path: '/secure-execution'
-      fullPath: '/secure-execution'
-      preLoaderRoute: typeof SecureExecutionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -1774,13 +1427,6 @@ declare module '@tanstack/react-router' {
       path: '/subscriptions'
       fullPath: '/subscriptions'
       preLoaderRoute: typeof SubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/surveys': {
-      id: '/surveys'
-      path: '/surveys'
-      fullPath: '/surveys'
-      preLoaderRoute: typeof SurveysRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tasks': {
@@ -1811,13 +1457,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsageRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/use-cases': {
-      id: '/use-cases'
-      path: '/use-cases'
-      fullPath: '/use-cases'
-      preLoaderRoute: typeof UseCasesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/videos': {
       id: '/videos'
       path: '/videos'
@@ -1846,13 +1485,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/you': {
-      id: '/you'
-      path: '/you'
-      fullPath: '/you'
-      preLoaderRoute: typeof YouRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/agents/$agentId': {
       id: '/agents/$agentId'
       path: '/$agentId'
@@ -1873,20 +1505,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof BlogRoute
-    }
-    '/blog/the-call-that-gets-things-moving': {
-      id: '/blog/the-call-that-gets-things-moving'
-      path: '/the-call-that-gets-things-moving'
-      fullPath: '/blog/the-call-that-gets-things-moving'
-      preLoaderRoute: typeof BlogTheCallThatGetsThingsMovingRouteImport
-      parentRoute: typeof BlogRoute
-    }
-    '/earn/$topic': {
-      id: '/earn/$topic'
-      path: '/earn/$topic'
-      fullPath: '/earn/$topic'
-      preLoaderRoute: typeof EarnTopicRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/explore/community': {
       id: '/explore/community'
@@ -1993,6 +1611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreWorkRouteImport
       parentRoute: typeof ExploreRoute
     }
+    '/integrations/$integrationId': {
+      id: '/integrations/$integrationId'
+      path: '/$integrationId'
+      fullPath: '/integrations/$integrationId'
+      preLoaderRoute: typeof IntegrationsIntegrationIdRouteImport
+      parentRoute: typeof IntegrationsRoute
+    }
     '/legal/$section': {
       id: '/legal/$section'
       path: '/$section'
@@ -2009,31 +1634,10 @@ declare module '@tanstack/react-router' {
     }
     '/profile/$entityId': {
       id: '/profile/$entityId'
-      path: '/$entityId'
+      path: '/profile/$entityId'
       fullPath: '/profile/$entityId'
       preLoaderRoute: typeof ProfileEntityIdRouteImport
-      parentRoute: typeof ProfileRoute
-    }
-    '/profile/$slug': {
-      id: '/profile/$slug'
-      path: '/$slug'
-      fullPath: '/profile/$slug'
-      preLoaderRoute: typeof ProfileSlugRouteImport
-      parentRoute: typeof ProfileRoute
-    }
-    '/profile/kurukoo-ai': {
-      id: '/profile/kurukoo-ai'
-      path: '/kurukoo-ai'
-      fullPath: '/profile/kurukoo-ai'
-      preLoaderRoute: typeof ProfileKurukooAiRouteImport
-      parentRoute: typeof ProfileRoute
-    }
-    '/profile/teme-ai': {
-      id: '/profile/teme-ai'
-      path: '/teme-ai'
-      fullPath: '/profile/teme-ai'
-      preLoaderRoute: typeof ProfileTemeAiRouteImport
-      parentRoute: typeof ProfileRoute
+      parentRoute: typeof rootRouteImport
     }
     '/resources/$slug': {
       id: '/resources/$slug'
@@ -2126,12 +1730,10 @@ const ArtifactsRouteWithChildren = ArtifactsRoute._addFileChildren(
 
 interface BlogRouteChildren {
   BlogSlugRoute: typeof BlogSlugRoute
-  BlogTheCallThatGetsThingsMovingRoute: typeof BlogTheCallThatGetsThingsMovingRoute
 }
 
 const BlogRouteChildren: BlogRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
-  BlogTheCallThatGetsThingsMovingRoute: BlogTheCallThatGetsThingsMovingRoute,
 }
 
 const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
@@ -2175,6 +1777,18 @@ const ExploreRouteChildren: ExploreRouteChildren = {
 const ExploreRouteWithChildren =
   ExploreRoute._addFileChildren(ExploreRouteChildren)
 
+interface IntegrationsRouteChildren {
+  IntegrationsIntegrationIdRoute: typeof IntegrationsIntegrationIdRoute
+}
+
+const IntegrationsRouteChildren: IntegrationsRouteChildren = {
+  IntegrationsIntegrationIdRoute: IntegrationsIntegrationIdRoute,
+}
+
+const IntegrationsRouteWithChildren = IntegrationsRoute._addFileChildren(
+  IntegrationsRouteChildren,
+)
+
 interface LegalRouteChildren {
   LegalSectionRoute: typeof LegalSectionRoute
 }
@@ -2196,23 +1810,6 @@ const MessagesRouteChildren: MessagesRouteChildren = {
 const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
   MessagesRouteChildren,
 )
-
-interface ProfileRouteChildren {
-  ProfileEntityIdRoute: typeof ProfileEntityIdRoute
-  ProfileSlugRoute: typeof ProfileSlugRoute
-  ProfileKurukooAiRoute: typeof ProfileKurukooAiRoute
-  ProfileTemeAiRoute: typeof ProfileTemeAiRoute
-}
-
-const ProfileRouteChildren: ProfileRouteChildren = {
-  ProfileEntityIdRoute: ProfileEntityIdRoute,
-  ProfileSlugRoute: ProfileSlugRoute,
-  ProfileKurukooAiRoute: ProfileKurukooAiRoute,
-  ProfileTemeAiRoute: ProfileTemeAiRoute,
-}
-
-const ProfileRouteWithChildren =
-  ProfileRoute._addFileChildren(ProfileRouteChildren)
 
 interface ResourcesRouteChildren {
   ResourcesSlugRoute: typeof ResourcesSlugRoute
@@ -2272,42 +1869,34 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ActivityRoute: ActivityRoute,
+  AdCampaignRoute: AdCampaignRoute,
   AdvertiseRoute: AdvertiseRoute,
-  AdvertisingRoute: AdvertisingRoute,
   AgentsRoute: AgentsRouteWithChildren,
-  AgentsAmbassadorsRoute: AgentsAmbassadorsRoute,
-  AiTermsRoute: AiTermsRoute,
-  AmbassadorsRoute: AmbassadorsRoute,
   ApiDocsRoute: ApiDocsRoute,
   ArtifactsRoute: ArtifactsRouteWithChildren,
-  ArtistBookingRoute: ArtistBookingRoute,
   AuditRoute: AuditRoute,
   BlogRoute: BlogRouteWithChildren,
   BusinessesRoute: BusinessesRoute,
-  CallsRoute: CallsRoute,
   CapabilitiesRoute: CapabilitiesRoute,
-  CardsRoute: CardsRoute,
   CareersRoute: CareersRoute,
   CartRoute: CartRoute,
   ChatRoute: ChatRoute,
   ConnectRoute: ConnectRoute,
   ContactRoute: ContactRoute,
   ContactsRoute: ContactsRoute,
-  ContributorsRoute: ContributorsRoute,
   CookiesRoute: CookiesRoute,
-  CreatorsRoute: CreatorsRoute,
-  CredentialsRoute: CredentialsRoute,
-  DailyPicksRoute: DailyPicksRoute,
   DeveloperRoute: DeveloperRoute,
+  DevelopersRoute: DevelopersRoute,
   DiscoverRoute: DiscoverRoute,
   ExploreRoute: ExploreRouteWithChildren,
+  FeaturesRoute: FeaturesRoute,
+  FieldRoute: FieldRoute,
   FollowingRoute: FollowingRoute,
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
-  IntegrationsRoute: IntegrationsRoute,
+  IntegrationsRoute: IntegrationsRouteWithChildren,
   KurukooAiRoute: KurukooAiRoute,
   LegalRoute: LegalRouteWithChildren,
-  LocalAgentsRoute: LocalAgentsRoute,
   LoginRoute: LoginRoute,
   MemoryRoute: MemoryRoute,
   MessagesRoute: MessagesRouteWithChildren,
@@ -2315,31 +1904,23 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   OpportunitiesRoute: OpportunitiesRoute,
   PartnersRoute: PartnersRoute,
-  PeopleRoute: PeopleRoute,
-  PerchRoute: PerchRoute,
   PricingRoute: PricingRoute,
-  ProfileRoute: ProfileRouteWithChildren,
   ProviderRoute: ProviderRoute,
-  ProvidersRoute: ProvidersRoute,
-  QuickActionsRoute: QuickActionsRoute,
+  ReferralQrRoute: ReferralQrRoute,
   ResourcesRoute: ResourcesRouteWithChildren,
   SafetyRoute: SafetyRoute,
-  SecureExecutionRoute: SecureExecutionRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   SubscriptionsRoute: SubscriptionsRoute,
-  SurveysRoute: SurveysRoute,
   TasksRoute: TasksRoute,
   TopicsRoute: TopicsRouteWithChildren,
   TrustRoute: TrustRoute,
   UsageRoute: UsageRoute,
-  UseCasesRoute: UseCasesRoute,
   VideosRoute: VideosRouteWithChildren,
   WalletRoute: WalletRoute,
   WorkRoute: WorkRouteWithChildren,
   WorkspaceRoute: WorkspaceRoute,
-  YouRoute: YouRoute,
-  EarnTopicRoute: EarnTopicRoute,
+  ProfileEntityIdRoute: ProfileEntityIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

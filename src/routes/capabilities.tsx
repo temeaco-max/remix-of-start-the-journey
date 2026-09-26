@@ -15,7 +15,7 @@ import { useMemo, useState } from "react";
 import { FAQSection } from "@/components/kurukoo/faq-section";
 import { SearchField } from "@/components/kurukoo/ui";
 import { capabilityCount, skillCategories, userJobs } from "@/lib/skill-catalog";
-import { exploreGoalGroups } from "@/lib/explore-goals";
+import { exploreGoalGroups, goalDestinations } from "@/lib/explore-goals";
 
 export const Route = createFileRoute("/capabilities")({
   head: () => ({
@@ -45,27 +45,6 @@ const groupIcons: Record<string, typeof ShoppingBag> = {
   life: HeartPulse,
   community: Users,
   safety: ShieldCheck,
-};
-
-const goalRoutes: Record<string, string> = {
-  food: "/explore/food",
-  groceries: "/explore/groceries",
-  ride: "/explore/mobility",
-  travel: "/explore/mobility",
-  repair: "/explore/repairs",
-  cleaning: "/explore/home",
-  solar: "/explore/home",
-  "money-circle": "/explore/money-circle",
-  work: "/explore/work",
-  sell: "/explore/selling",
-  business: "/explore/work",
-  health: "/explore/health",
-  education: "/explore/learning",
-  events: "/explore/events",
-  spiritual: "/explore/prayer",
-  connect: "/explore/community",
-  emergency: "/explore/safety",
-  security: "/explore/safety",
 };
 
 function CapabilitiesPage() {
@@ -139,7 +118,7 @@ function CapabilitiesPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.goals.map((goal) => {
                 const GoalIcon = goal.icon;
-                const destination = goalRoutes[goal.id] ?? "/chat";
+                const destination = goalDestinations[goal.id] ?? "/chat";
                 const isChat = destination === "/chat";
                 return (
                   <Link

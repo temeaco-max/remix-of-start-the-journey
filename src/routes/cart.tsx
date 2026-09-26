@@ -203,18 +203,20 @@ function CartPage() {
           </aside>
         </div>
       ) : (
-        <EmptyState
-          title="Your review cart is empty"
-          body="Choose a sourced seller offer in Discover or Chat before starting checkout."
-          action={
+        <div>
+          <EmptyState
+            title="Your review cart is empty"
+            body="Choose a sourced seller offer in Discover or Chat before starting checkout."
+          />
+          <div className="mt-4 flex justify-center">
             <Link
               to="/discover"
               className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[11px]"
             >
               Return to Discover <ArrowRight className="size-3.5" />
             </Link>
-          }
-        />
+          </div>
+        </div>
       )}
       {items.some((item) => item.externalUrl) ? (
         <section>

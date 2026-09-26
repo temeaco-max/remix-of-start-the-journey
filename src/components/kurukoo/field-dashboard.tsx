@@ -1,5 +1,6 @@
 import "@/components/kurukoo/field-surface.css";
 import { Link } from "@tanstack/react-router";
+import { HomePage } from "@/routes/index";
 import {
   ArrowRight,
   Bell,
@@ -39,15 +40,20 @@ const attentionStatuses = new Set([
 const contributorWisdom = [
   { text: "Small steps become big progress when you keep moving.", source: "Kurukoo contributor" },
   { text: "Clarity grows when you turn intention into action.", source: "Kurukoo contributor" },
-  { text: "Do the next useful thing, then let the next step reveal itself.", source: "Kurukoo contributor" },
-  { text: "Good work starts with a clear outcome and one honest next step.", source: "Kurukoo contributor" },
+  {
+    text: "Do the next useful thing, then let the next step reveal itself.",
+    source: "Kurukoo contributor",
+  },
+  {
+    text: "Good work starts with a clear outcome and one honest next step.",
+    source: "Kurukoo contributor",
+  },
 ];
 
 function getDailyWisdom() {
   const day = Math.floor(Date.now() / 86400000);
   return contributorWisdom[day % contributorWisdom.length];
 }
-
 
 type WeatherState = { temperature: number; label: string; location: string; icon: string } | null;
 
@@ -332,7 +338,10 @@ export function FieldDashboard() {
             </span>
           </p>
           <h1 id="field-title">Your field</h1>
-          <div className="field-daily-wisdom" aria-live="polite"><p className="field-daily-wisdom-text">{dailyWisdom.text}</p><span className="field-daily-wisdom-source">— {dailyWisdom.source}</span></div>
+          <div className="field-daily-wisdom" aria-live="polite">
+            <p className="field-daily-wisdom-text">{dailyWisdom.text}</p>
+            <span className="field-daily-wisdom-source">— {dailyWisdom.source}</span>
+          </div>
         </div>
         <div className="field-welcome-meta">
           <div className="field-date">
@@ -364,8 +373,12 @@ export function FieldDashboard() {
           <div className="field-account-value">Not available</div>
           <p className="field-account-note">No canonical Points balance is exposed yet.</p>
           <div className="field-card-actions">
-            <Link to="/wallet" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>
-            <Link to="/wallet" className="field-card-action">Top up <ArrowRight className="size-3.5" /></Link>
+            <Link to="/wallet" className="field-card-action">
+              View <ArrowRight className="size-3.5" />
+            </Link>
+            <Link to="/wallet" className="field-card-action">
+              Top up <ArrowRight className="size-3.5" />
+            </Link>
           </div>
         </FieldCard>
         <FieldCard className="field-creator-slot field-account-card">
@@ -373,17 +386,27 @@ export function FieldDashboard() {
           <div className="field-account-value">Not available</div>
           <p className="field-account-note">No canonical wallet balance is exposed yet.</p>
           <div className="field-card-actions">
-            <Link to="/wallet" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>
+            <Link to="/wallet" className="field-card-action">
+              View <ArrowRight className="size-3.5" />
+            </Link>
           </div>
         </FieldCard>
         <FieldCard className="field-creator-slot field-creator-activity-card">
           <CardHeading title="Activity summary" />
           <div className="activity-summary-grid">
-            <div><strong>{completedCount}</strong><span>Tasks completed</span></div>
-            <div><strong>{active.length}</strong><span>In motion</span></div>
+            <div>
+              <strong>{completedCount}</strong>
+              <span>Tasks completed</span>
+            </div>
+            <div>
+              <strong>{active.length}</strong>
+              <span>In motion</span>
+            </div>
           </div>
           <div className="field-card-actions">
-            <Link to="/activity" className="field-card-action">View <ArrowRight className="size-3.5" /></Link>
+            <Link to="/activity" className="field-card-action">
+              View <ArrowRight className="size-3.5" />
+            </Link>
           </div>
         </FieldCard>
       </div>
@@ -803,6 +826,12 @@ export function FieldDashboard() {
           outcome is represented as real.
         </div>
       ) : null}
+
+      {/* HomePage content (Hero, Working, Role paths, Daily picks, ecosystem) —
+          temporarily appended to /field as the authenticated home. */}
+      <div className="mt-10 border-t border-border/80 pt-10">
+        <HomePage />
+      </div>
     </div>
   );
 }

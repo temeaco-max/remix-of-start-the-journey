@@ -1,9 +1,5 @@
 const API_BASE = (import.meta.env["VITE_KURUKOO_API_BASE_URL"] ?? "").replace(/\/$/, "");
 
-/** Temporary frontend-only access gate. Remove this constant and related checks when normal access is restored. */
-export const KURUKOO_BUILD_EMAIL = "temea.co@gmail.com";
-const BUILD_EMAIL_SESSION_KEY = "kurukoo-build-email-authenticated";
-
 function apiUrl(path: string) {
   return `${API_BASE}${path}`;
 }
@@ -24,56 +20,17 @@ export type KurukooAuthUser = {
   [key: string]: unknown;
 };
 
-export function isAllowedKurukooBuildAccount(user: KurukooAuthUser | null | undefined) {
-  return user?.email?.trim().toLowerCase() === KURUKOO_BUILD_EMAIL;
-}
-
-export function hasTemporaryBuildEmailSession() {
-  if (typeof window === "undefined") return false;
-  return (
-    window.localStorage.getItem(BUILD_EMAIL_SESSION_KEY)?.trim().toLowerCase() ===
-    KURUKOO_BUILD_EMAIL
-  );
-}
-
-export function startTemporaryBuildEmailSession(email: string) {
-  if (email.trim().toLowerCase() !== KURUKOO_BUILD_EMAIL) {
-    throw new Error(`This build is currently available only to ${KURUKOO_BUILD_EMAIL}.`);
-  }
-  window.localStorage.setItem(BUILD_EMAIL_SESSION_KEY, KURUKOO_BUILD_EMAIL);
-  window.localStorage.setItem("kurukoo-authenticated", "true");
-  window.dispatchEvent(new Event("kurukoo-auth-updated"));
-}
-
 export async function getKurukooAuthState(): Promise<{
   authenticated: boolean;
   user: KurukooAuthUser | null;
 }> {
-  if (hasTemporaryBuildEmailSession()) {
-    return { authenticated: true, user: { email: KURUKOO_BUILD_EMAIL, role: "build-access" } };
-  }
   try {
     const { response, payload } = await readJson<{ success?: boolean; user?: KurukooAuthUser }>(
       "/api/auth/me",
     );
     if (!response.ok || !payload?.success || !payload.user)
       return { authenticated: false, user: null };
-    // The canonical auth JWT is phone-rooted and may not carry the profile email.
-    // Read the already-authenticated profile so the temporary frontend gate can
-    // identify the permitted build account without introducing a new backend auth path.
-    try {
-      const profileResponse = await readJson<{
-        profile?: { email?: string; name?: string; phone?: string };
-      }>("/api/user/profile");
-      if (profileResponse.response.ok && profileResponse.payload?.profile) {
-        return {
-          authenticated: true,
-          user: { ...payload.user, ...profileResponse.payload.profile },
-        };
-      }
-    } catch {
-      /* auth/me remains authoritative if profile lookup is unavailable */
-    }
+    // The canonical /api/auth/me response already includes the safe profile identity.
     return { authenticated: true, user: payload.user };
   } catch {
     return { authenticated: false, user: null };
@@ -107,9 +64,7 @@ export async function verifyPhoneOtp(input: {
   const code = input.code.trim();
   if (!phone) throw new Error("Enter your phone number.");
   if (!code) throw new Error("Enter the verification code.");
-  const email = (input.email || KURUKOO_BUILD_EMAIL).trim().toLowerCase();
-  if (email !== KURUKOO_BUILD_EMAIL)
-    throw new Error(`This build is currently available only to ${KURUKOO_BUILD_EMAIL}.`);
+  const email = input.email?.trim().toLowerCase();
   const { response, payload } = await readJson<{
     success?: boolean;
     message?: string;
@@ -132,19 +87,18 @@ export async function verifyPhoneOtp(input: {
   return payload;
 }
 
-/** Email delivery is intentionally bypassed for the temporary frontend access gate. */
 export async function requestMagicLink(input: {
   email: string;
   name?: string;
   returnPath?: string;
 }) {
-  const email = input.email.trim().toLowerCase();
-  if (email !== KURUKOO_BUILD_EMAIL) {
-    throw new Error(`This build is currently available only to ${KURUKOO_BUILD_EMAIL}.`);
-  }
-  // Do not call the real magic-link endpoint while the frontend gate is active.
-  startTemporaryBuildEmailSession(email);
-  return { success: true, delivery: "frontend-access" as const };
+  const { response, payload } = await readJson<{ success?: boolean; message?: string; error?: string }>("/api/auth/request-magic-link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: input.email.trim().toLowerCase(), name: input.name?.trim() || undefined, returnPath: input.returnPath }),
+  });
+  if (!response.ok || payload.success === false) throw new Error(payload.message || payload.error || "Unable to send your sign-in link.");
+  return payload;
 }
 
 export async function logoutKurukoo() {
@@ -156,8 +110,6 @@ export async function logoutKurukoo() {
       body: "{}",
     });
   } finally {
-    window.localStorage.removeItem(BUILD_EMAIL_SESSION_KEY);
-    window.localStorage.removeItem("kurukoo-authenticated");
     window.dispatchEvent(new Event("kurukoo-auth-updated"));
   }
 }

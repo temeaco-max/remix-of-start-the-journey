@@ -9,6 +9,17 @@ export type ChatStreamEvent = {
   canonicalAction?: string;
   progressStage?: string;
   capabilityResult?: Record<string, unknown> | null;
+  /** One observed agent tool step, streamed live so work is visible. */
+  toolActivity?: ToolActivityEntry;
+  diagnostics?: { toolActivity?: ToolActivityEntry[] };
+};
+export type ToolActivityEntry = {
+  step: number;
+  tool: string;
+  ok: boolean;
+  label: string;
+  detail: string;
+  evidence?: string;
 };
 export type CanonicalTopicReply = {
   id: string;
@@ -220,7 +231,19 @@ function apiUrl(path: string) {
   return `${API_BASE}${path}`;
 }
 export function isKurukooApiConfigured() {
-  return Boolean(API_BASE);
+  try {
+    if (
+      typeof window !== "undefined" &&
+      window.localStorage?.getItem("kurukoo-api-demo") === "true"
+    ) {
+      return false;
+    }
+  } catch {
+    /* storage unavailable — fall through to origin detection */
+  }
+  if (API_BASE) return true;
+  if (typeof window === "undefined") return false;
+  return window.location.protocol === "http:" || window.location.protocol === "https:";
 }
 async function readJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(path), { credentials: "include", ...init });
@@ -245,6 +268,36 @@ export async function fetchAuthenticatedAd(
 export async function fetchSponsoredAds() {
   const payload = await readJson<{ campaigns?: SponsoredAd[] }>("/api/chat/sponsored");
   return Array.isArray(payload.campaigns) ? payload.campaigns : [];
+}
+export type QrActivation = {
+  conversationId?: string;
+  messageId?: number;
+  intro?: string;
+  context?: unknown;
+  guest?: boolean;
+  activated?: boolean;
+};
+/** Open a signed Kurukoo QR context. Verification happens server-side; the contextual intro is appended exactly once per guest/account. */
+export async function activateQrContext(qr: string): Promise<QrActivation> {
+  return readJson<QrActivation>("/api/qr/activate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ qr }),
+  });
+}
+export type QrGeneration = {
+  context?: unknown;
+  entryUrl?: string;
+  svg?: string;
+  description?: string;
+};
+/** Generate a signed Kurukoo QR context for sharing. Requires authentication for referral codes. */
+export async function generateQrContext(input: Record<string, unknown>): Promise<QrGeneration> {
+  return readJson<QrGeneration>("/api/qr/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
 }
 /** All Topics ad placements from the admin campaign system in one request. Unauthenticated callers receive an empty map. */
 export async function fetchTopicsAdSlots() {
@@ -447,16 +500,20 @@ export async function streamKurukooChat(input: {
   message: string;
   conversationId?: string;
   channel?: string;
+  attachment?: unknown;
+  signal?: AbortSignal;
   onEvent: (event: ChatStreamEvent) => void;
 }): Promise<{ conversationId?: string; reply: string }> {
   const response = await fetch(apiUrl("/api/v1/chat/stream"), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
+    signal: input.signal,
     body: JSON.stringify({
       message: input.message.trim(),
       conversationId: input.conversationId,
       channel: input.channel ?? "web",
+      ...(input.attachment !== undefined ? { attachment: input.attachment } : {}),
     }),
   });
   if (!response.ok || !response.body) {
@@ -507,26 +564,84 @@ export async function streamKurukooChat(input: {
 }
 export type VoiceSession = {
   sessionId: string;
+  token?: string;
   conversationId?: string;
   provider?: string;
   model?: string;
   capability?: string;
+  mode?: "live" | "in_chat";
   expiresAt?: string;
+  webrtc?: {
+    enabled: boolean;
+    signalUrl?: string;
+    data_channel: boolean;
+  };
+  idleTimeoutSeconds?: number;
+  clientConfig?: any;
+  guest?: boolean;
 };
-export async function createVoiceSession(conversationId?: string) {
+
+export async function createVoiceSession(params?: {
+  conversationId?: string;
+  mode?: "live" | "in_chat";
+  webrtcOffer?: any;
+  webrtcIce?: any;
+}) {
   const payload = await readJson<{ voice?: VoiceSession }>("/api/voice/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(conversationId ? { conversationId } : {}),
+    body: JSON.stringify(params ? params : {}),
   });
   if (!payload.voice) throw new Error("Voice session could not be started.");
   return payload.voice;
+}
+export async function executeVoiceTool(
+  sessionId: string,
+  name: string,
+  args: Record<string, unknown>,
+) {
+  return readJson<{ result?: unknown }>("/api/voice/tools", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId, name, args }),
+  });
 }
 export async function endVoiceSession(sessionId: string, reason = "client_disconnect") {
   return readJson<{ ended: boolean }>("/api/voice/end", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId, reason }),
+  });
+}
+
+export async function getTtsAudio(
+  text: string,
+): Promise<{ data: ArrayBuffer; provider: string; model: string } | null> {
+  try {
+    const response = await fetch("/api/voice/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!response.ok) return null;
+    const data = await response.arrayBuffer();
+    const provider = response.headers.get("X-Kurukoo-Tts-Provider") || "unknown";
+    const model = response.headers.get("X-Kurukoo-Tts-Model") || "unknown";
+    return { data, provider, model };
+  } catch {
+    return null;
+  }
+}
+
+export async function submitVoiceTranscript(
+  sessionId: string,
+  role: "user" | "assistant",
+  content: string,
+) {
+  return readJson<{ messageId: string; conversationId: string }>("/api/voice/transcript", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId, role, content }),
   });
 }
 export async function fetchEconomicRequests() {
@@ -557,6 +672,98 @@ export async function fetchEconomicExecution(id: string) {
     `/api/economic-requests/${encodeURIComponent(id)}/execution`,
   );
   return Array.isArray(payload.executionRequests) ? payload.executionRequests : [];
+}
+export type CartAddResult = {
+  success: boolean;
+  message?: string;
+  error?: string;
+};
+/** Review-cart handoff: adds a known economic offer, or a catalogue/affiliate
+ * product, to the canonical review cart.
+ *
+ * The backend validates an offer exists and is available (404/409 otherwise),
+ * and that a catalogue product comes from a verified source with a destination.
+ * Rows stay in `review` status — no payment, no commitment, no fulfilment. */
+export async function addCartItem(
+  reference: string,
+  quantity = 1,
+  kind: "offer" | "catalogue" = "offer",
+): Promise<CartAddResult> {
+  const clean = reference.trim();
+  if (!clean)
+    throw new Error(
+      kind === "catalogue" ? "A product reference is required." : "An offer reference is required.",
+    );
+  const quantityValue = Math.max(1, quantity || 1);
+  const body =
+    kind === "catalogue"
+      ? { catalogueProductId: clean, quantity: quantityValue }
+      : { offerId: clean, quantity: quantityValue };
+  const payload = await readJson<{ success: boolean; message?: string; error?: string }>(
+    "/api/cart/items",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!payload.success) throw new Error(payload.error || "Could not add that item.");
+  return { success: true, message: payload.message };
+}
+export type StorefrontAdvanceResult = {
+  card?: Record<string, unknown> | null;
+  message?: string;
+};
+/** Canonical storefront advance: runs a card action id (request_quote,
+ * confirm_escrow, confirm_complete, select_provider, cancel, …) against the
+ * Economic Request with the backend identity gate. The backend appends the
+ * resulting card to the conversation and enforces every state transition —
+ * the client never infers payment, fulfilment, or completion. */
+export async function advanceStorefrontAction(
+  requestId: string,
+  action: string,
+  options?: { patch?: Record<string, unknown>; conversationId?: string },
+): Promise<StorefrontAdvanceResult> {
+  const cleanId = requestId.trim();
+  const cleanAction = action.trim();
+  if (!cleanId || !cleanAction) throw new Error("A request and action are required.");
+  const payload = await readJson<{
+    success: boolean;
+    card?: Record<string, unknown> | null;
+    error?: string;
+  }>(`/api/economic-requests/storefront/${encodeURIComponent(cleanId)}/advance`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: cleanAction,
+      ...(options?.patch ? { requirements: options.patch } : {}),
+      ...(options?.conversationId ? { conversationId: options.conversationId } : {}),
+    }),
+  });
+  if (!payload.success) throw new Error(payload.error || "Could not advance that request.");
+  return { card: payload.card ?? null };
+}
+/** Compare-then-hire: selects one recorded fulfilment offer. Owner-scoped;
+ * the fulfilment moves to awaiting confirmation — no booking or payment. */
+export async function selectFulfilmentOffer(
+  fulfilmentId: string,
+  offerId: string,
+): Promise<{ offerTitle?: string; message?: string }> {
+  const cleanF = fulfilmentId.trim();
+  const cleanO = offerId.trim();
+  if (!cleanF || !cleanO) throw new Error("A fulfilment and offer are required.");
+  const payload = await readJson<{
+    success: boolean;
+    offer?: { title?: string };
+    message?: string;
+    error?: string;
+  }>(`/api/economic-requests/fulfilments/${encodeURIComponent(cleanF)}/select-offer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ offerId: cleanO }),
+  });
+  if (!payload.success) throw new Error(payload.error || "Could not select that offer.");
+  return { offerTitle: payload.offer?.title, message: payload.message };
 }
 export async function fetchDeliveryCandidates(id: string) {
   const payload = await readJson<{ providers?: EconomicParticipant[] }>(
@@ -640,8 +847,26 @@ export async function revokeConnectedResource(id: string) {
     { method: "DELETE" },
   );
 }
+export type ChannelReadiness = {
+  id: string;
+  label: string;
+  kind: string;
+  description: string;
+  provider: string;
+  country: string;
+  featureFlag: string;
+  enabled: boolean;
+  configured: boolean;
+  readiness: string;
+  missingConfiguration: string[];
+  callbackPath: string;
+  configurationKeys: string[];
+  note: string;
+};
+
 export type ChannelStatus = {
   channelStatuses: Record<string, string | { state?: string; note?: string } | null>;
+  channelReadiness: ChannelReadiness[];
   integrationReadiness: Array<{
     id: string;
     name?: string;
@@ -652,6 +877,21 @@ export type ChannelStatus = {
 };
 export async function fetchChannelReadiness() {
   return readJson<ChannelStatus>("/api/content/channels");
+}
+export type CanonicalContact = {
+  personPhone?: string | null;
+  phone?: string | null;
+  displayName?: string | null;
+  name?: string | null;
+  label?: string | null;
+};
+/** Canonical contacts (owner-scoped person directory). Used for member
+ * invites; Kurukoo never messages contacts on the user's behalf. */
+export async function fetchContacts(): Promise<CanonicalContact[]> {
+  const payload = await readJson<{ success: boolean; contacts?: CanonicalContact[] }>(
+    "/api/contacts",
+  );
+  return payload.success && Array.isArray(payload.contacts) ? payload.contacts : [];
 }
 export type ProviderProfileContent = {
   provider: {
@@ -713,16 +953,33 @@ export type ArtistBooking = {
   providerName: string;
   managerName: string;
   managerContact: string;
+  /**
+   * Verification states are provider-side profile data. Booking states mirror
+   * the canonical Economic Request lifecycle — artist booking has no private
+   * lifecycle of its own.
+   */
   status:
     | "pending_verification"
     | "verification_pending"
     | "verified"
-    | "booking_pending"
-    | "booked"
-    | "confirmed"
-    | "active"
+    // Canonical Economic Request lifecycle states:
+    | "requested"
+    | "awaiting_match"
+    | "partially_matched"
+    | "matched"
+    | "quoting"
+    | "quoted"
+    | "awaiting_confirmation"
+    | "reserved"
+    | "payment_pending"
+    | "paid"
+    | "in_fulfillment"
+    | "fulfilled"
     | "completed"
-    | "refunded";
+    | "cancelled"
+    | "disputed"
+    | "failed"
+    | "abandoned";
   escrowAmount?: number | null;
   currency?: string | null;
   created_at?: string;
@@ -734,6 +991,208 @@ export async function fetchDailyPick(): Promise<DailyPick | null> {
     "/api/orphan-wire-back/daily-picks",
   );
   return payload.success && payload.pick ? payload.pick : null;
+}
+export type CalendarEventItem = {
+  id: string;
+  title: string;
+  startAt: string;
+  endAt?: string | null;
+  location?: string | null;
+};
+/** Canonical calendar (owner-scoped). External provider sync is an explicit
+ * non-goal: only locally recorded events are ever returned. */
+export async function fetchCalendarEvents(input?: {
+  from?: string;
+  to?: string;
+}): Promise<CalendarEventItem[]> {
+  const query = new URLSearchParams();
+  if (input?.from) query.set("from", input.from);
+  if (input?.to) query.set("to", input.to);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const payload = await readJson<{ success: boolean; events?: CalendarEventItem[] }>(
+    `/api/calendar/events${suffix}`,
+  );
+  return payload.success && Array.isArray(payload.events) ? payload.events : [];
+}
+export async function createCalendarEvent(input: {
+  title: string;
+  startAt: string;
+  endAt?: string;
+  location?: string;
+}): Promise<{ event: CalendarEventItem; conflicts: CalendarEventItem[] }> {
+  const payload = await readJson<{
+    success: boolean;
+    event?: CalendarEventItem;
+    conflicts?: CalendarEventItem[];
+    error?: string;
+  }>("/api/calendar/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!payload.success || !payload.event)
+    throw new Error(payload.error || "Could not create that event.");
+  return { event: payload.event, conflicts: payload.conflicts ?? [] };
+}
+export async function cancelCalendarEvent(id: string): Promise<void> {
+  const payload = await readJson<{ success: boolean; error?: string }>(
+    `/api/calendar/events/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+  if (!payload.success) throw new Error(payload.error || "Could not cancel that event.");
+}
+/** User-confirmed email send. Fires only from the explicit Send action on a
+ * reviewed draft — never automatically. Delivery truth comes from transport. */
+export async function sendComposedEmail(input: {
+  to: string;
+  subject: string;
+  body: string;
+  inReplyTo?: string;
+}): Promise<{ message?: string }> {
+  const to = input.to.trim();
+  const subject = input.subject.trim();
+  const body = input.body.trim();
+  if (!to || !subject || !body) throw new Error("Recipient, subject, and body are all required.");
+  const payload = await readJson<{ success: boolean; message?: string; error?: string }>(
+    "/api/email/send",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, subject, body, inReplyTo: input.inReplyTo }),
+    },
+  );
+  if (!payload.success) throw new Error(payload.error || "Email was not sent.");
+  return { message: payload.message };
+}
+export type FormFieldItem = {
+  key: string;
+  label: string;
+  required?: boolean;
+  value: string | null;
+  provenance: string;
+};
+/** Form packets: autofill comes only from held profile fields (marked), the
+ * rest stays blank. Filing records prepared evidence, never a filed claim. */
+export async function prepareFormPacket(
+  schemaId: string,
+  values?: Record<string, unknown>,
+): Promise<{ title?: string; fields: FormFieldItem[] }> {
+  const payload = await readJson<{
+    success: boolean;
+    schema?: { title?: string };
+    fields?: FormFieldItem[];
+    error?: string;
+  }>(`/api/forms/${encodeURIComponent(schemaId)}/prepare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ values: values ?? {} }),
+  });
+  if (!payload.success) throw new Error(payload.error || "Could not prepare that form.");
+  return { title: payload.schema?.title, fields: payload.fields ?? [] };
+}
+export async function submitFormPacket(
+  schemaId: string,
+  values: Record<string, string>,
+): Promise<{ submissionId?: string; message?: string; missing?: string[] }> {
+  const payload = await readJson<{
+    success: boolean;
+    submissionId?: string;
+    message?: string;
+    missing?: string[];
+    error?: string;
+  }>(`/api/forms/${encodeURIComponent(schemaId)}/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ values }),
+  });
+  if (!payload.success) {
+    const error = new Error(payload.error || "Could not file that form.");
+    (error as Error & { missing?: string[] }).missing = payload.missing;
+    throw error;
+  }
+  return { submissionId: payload.submissionId, message: payload.message };
+}
+/** Server text-to-speech for an assistant reply. Returns an object URL for
+ * playback, or throws the transport's honest reason (disabled/unavailable). */
+export async function fetchTtsAudio(text: string): Promise<string> {
+  const clean = text.trim().slice(0, 600);
+  if (!clean) throw new Error("Nothing to read aloud.");
+  const base = (import.meta.env["VITE_KURUKOO_API_BASE_URL"] ?? "").replace(/\/$/, "");
+  const response = await fetch(`${base}/api/voice/tts`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: clean }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(
+      typeof payload?.error === "string" ? payload.error : "Voice playback is unavailable.",
+    );
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+export type FitnessPlanItem = {
+  id: string;
+  goal: string;
+  activity: string;
+  daysPerWeek: number;
+  sessionMinutes: number;
+  schedule: Array<{ day: string; focus: string; durationMin: number }>;
+  status: string;
+};
+export type FitnessProgress = {
+  sessionsThisWeek: number;
+  minutesThisWeek: number;
+  totalSessions: number;
+  averages7d: Record<string, number>;
+  streakWeeks: number;
+};
+/** Personal progress: plans + logs + computed trends. Trends derive strictly
+ * from recorded logs; empty logs read as empty, never as progress. */
+export async function fetchFitnessPlans(): Promise<FitnessPlanItem[]> {
+  const payload = await readJson<{ success: boolean; plans?: FitnessPlanItem[] }>(
+    "/api/fitness/plans",
+  );
+  return payload.success && Array.isArray(payload.plans) ? payload.plans : [];
+}
+export async function createFitnessPlan(input: {
+  goal: string;
+  activity?: string;
+  daysPerWeek?: number;
+  sessionMinutes?: number;
+}): Promise<FitnessPlanItem> {
+  const payload = await readJson<{ success: boolean; plan?: FitnessPlanItem; error?: string }>(
+    "/api/fitness/plans",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+  if (!payload.success || !payload.plan)
+    throw new Error(payload.error || "Could not create that plan.");
+  return payload.plan;
+}
+export async function logFitnessMetric(input: {
+  kind: string;
+  value: number;
+  note?: string;
+  planId?: string;
+}): Promise<void> {
+  const payload = await readJson<{ success: boolean; error?: string }>("/api/fitness/logs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!payload.success) throw new Error(payload.error || "Could not record that.");
+}
+export async function fetchFitnessProgress(): Promise<FitnessProgress | null> {
+  const payload = await readJson<{ success: boolean; progress?: FitnessProgress }>(
+    "/api/fitness/progress",
+  );
+  return payload.success ? (payload.progress ?? null) : null;
 }
 export async function fetchQuickReplies(): Promise<QuickReply[]> {
   const payload = await readJson<{ success: boolean; quickReplies?: QuickReply[] }>(
@@ -766,14 +1225,11 @@ export async function requestArtistVerification(
   managerName: string,
   managerContact: string,
 ) {
-  return readJson<{ success: boolean; message?: string }>(
-    "/api/orphan-wire-back/artist/request-verification",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skill, managerName, managerContact }),
-    },
-  );
+  return readJson<{ success: boolean; message?: string }>("/api/artist/request-verification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ skill, managerName, managerContact }),
+  });
 }
 export async function bookArtist(
   skill: string,
@@ -781,7 +1237,7 @@ export async function bookArtist(
   requirements?: Record<string, unknown>,
 ) {
   const payload = await readJson<{ success: boolean; booking?: ArtistBooking }>(
-    "/api/orphan-wire-back/artist/book",
+    "/api/artist/book",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -792,7 +1248,7 @@ export async function bookArtist(
 }
 export async function confirmArtistBooking(bookingId: string) {
   const payload = await readJson<{ success: boolean; booking?: ArtistBooking }>(
-    "/api/orphan-wire-back/artist/confirm-booking",
+    "/api/artist/confirm-booking",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -802,14 +1258,29 @@ export async function confirmArtistBooking(bookingId: string) {
   return payload.success && payload.booking ? payload.booking : null;
 }
 export async function releaseArtistEscrow(bookingId: string) {
-  return readJson<{ success: boolean; message?: string }>(
-    "/api/orphan-wire-back/artist/release-escrow",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId }),
-    },
-  );
+  return readJson<{ success: boolean; message?: string }>("/api/artist/release-escrow", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bookingId }),
+  });
+}
+
+export type CreatedMoneyCircle = {
+  success: boolean;
+  circleId?: number;
+  message?: string;
+};
+/** Registers a Money Circle through the canonical circle boundary. This does not move money. */
+export async function createMoneyCircleApi(
+  name: string,
+  targetAmount: number,
+  mode: "Standard" | "BuyingCircle" | "SafetyCircle" = "Standard",
+): Promise<CreatedMoneyCircle> {
+  return readJson<CreatedMoneyCircle>("/api/circle/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, target_amount: targetAmount, mode }),
+  });
 }
 
 export type KurukooTask = {
@@ -854,9 +1325,12 @@ export async function acceptTask(taskId: number) {
 }
 
 export async function completeTask(taskId: number, result = "") {
-  return readJson<{ success?: boolean; reward?: number; sourceType?: string }>("/api/tasks/complete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ taskId, result }),
-  });
+  return readJson<{ success?: boolean; reward?: number; sourceType?: string }>(
+    "/api/tasks/complete",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId, result }),
+    },
+  );
 }

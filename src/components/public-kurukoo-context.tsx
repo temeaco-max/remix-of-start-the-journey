@@ -144,6 +144,7 @@ const roleGuide: Record<KurukooRoleId, keyof typeof guideScenes> = {
   partner: "partner",
   advertiser: "advertiser",
   "local-agent": "general",
+  ambassador: "partner",
 };
 
 function SearchBox() {
@@ -379,36 +380,42 @@ function PublicRailAd() {
 }
 
 function PublicAgentAdvert() {
-  const agents = [
+  const agents: Array<{
+    name: string;
+    role: string;
+    description: string;
+    entityId?: string;
+    to?: "/agents";
+  }> = [
     {
       name: "Teme",
       role: "Customer service",
       description:
         "Deploy me as your customer service assistant and I can answer common questions, guide customers, capture requests and keep conversations moving.",
-      href: "/profile/teme-ai",
+      entityId: "teme-ai",
     },
     {
       name: "Milo",
       role: "Sales assistant",
       description:
         "Deploy me to welcome prospects, explain what you offer, qualify enquiries and help customers take the next step.",
-      href: "/profile/teme-ai",
+      to: "/agents",
     },
     {
       name: "Nia",
       role: "Operations assistant",
       description:
         "Deploy me to keep everyday requests organised, coordinate follow-ups and help your team move work toward completion.",
-      href: "/profile/teme-ai",
+      to: "/agents",
     },
     {
       name: "Kito",
       role: "Bookings assistant",
       description:
         "Deploy me to handle booking enquiries, collect the details you need and help customers get to the right service.",
-      href: "/profile/teme-ai",
+      to: "/agents",
     },
-  ] as const;
+  ];
   const [slide, setSlide] = useState(0);
   const [playing, setPlaying] = useState(true);
   useEffect(() => {
@@ -453,13 +460,24 @@ function PublicAgentAdvert() {
           {agent.description}
         </p>
         <p className="mt-1 text-center text-[8.5px] text-background/45">{agent.role}</p>
-        <Link
-          to={agent.href}
-          className="mt-3 inline-flex w-full items-center justify-between rounded-lg bg-background px-2.5 py-2 text-[9.5px] font-semibold text-foreground hover:bg-background/90"
-        >
-          <span>View {agent.name} profile</span>
-          <ArrowUpRight className="size-3" />
-        </Link>
+        {agent.entityId ? (
+          <Link
+            to="/profile/$entityId"
+            params={{ entityId: agent.entityId }}
+            className="mt-3 inline-flex w-full items-center justify-between rounded-lg bg-background px-2.5 py-2 text-[9.5px] font-semibold text-foreground hover:bg-background/90"
+          >
+            <span>View {agent.name} profile</span>
+            <ArrowUpRight className="size-3" />
+          </Link>
+        ) : (
+          <Link
+            to={agent.to ?? "/agents"}
+            className="mt-3 inline-flex w-full items-center justify-between rounded-lg bg-background px-2.5 py-2 text-[9.5px] font-semibold text-foreground hover:bg-background/90"
+          >
+            <span>View {agent.name} profile</span>
+            <ArrowUpRight className="size-3" />
+          </Link>
+        )}
         <div className="mt-2 flex items-center justify-center gap-1" aria-label="Agent carousel">
           {agents.map((item, index) => (
             <button
@@ -583,13 +601,13 @@ export function PublicContextRail({
     };
   }, []);
   const guide = useMemo(() => {
-    if (pathname.startsWith("/providers"))
+    if (pathname.startsWith("/network"))
       return { key: "provider" as const, resourceSlug: "provider-and-capability-guides" };
-    if (pathname.startsWith("/contributors"))
+    if (pathname.startsWith("/network"))
       return { key: "contributor" as const, resourceSlug: "contributors-and-tasks" };
-    if (pathname.startsWith("/partners"))
+    if (pathname.startsWith("/network"))
       return { key: "partner" as const, resourceSlug: "channels-and-connected-doors" };
-    if (pathname.startsWith("/advertising"))
+        if (pathname.startsWith("/ad-campaign"))
       return { key: "advertiser" as const, resourceSlug: "how-kurukoo-works" };
     return {
       key: roleGuide[role.id],

@@ -140,8 +140,8 @@ function LegalHub() {
               {group.items.map(([slug, title, body, Icon]) => (
                 <Link
                   key={slug}
-                  to={slug === "ai-terms" ? "/ai-terms" : "/legal/$section"}
-                  params={slug === "ai-terms" ? undefined : { section: slug }}
+                  to="/legal/$section"
+                  params={{ section: slug }}
                   className="group"
                 >
                   <Panel className="h-full p-5 transition-colors group-hover:bg-elevated/50">

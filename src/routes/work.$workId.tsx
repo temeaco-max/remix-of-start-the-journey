@@ -13,6 +13,8 @@ import { ExecutionStory } from "@/components/kurukoo/execution-story";
 import { Rows, SectionHeader } from "@/components/kurukoo/ui";
 import { artifacts, entities } from "@/lib/kurukoo-demo";
 import { ArtifactRow, ContactRow } from "@/components/kurukoo/cards";
+import { WorkContextRail } from "@/components/kurukoo/work-context-rail";
+import { useRailContent } from "@/components/kurukoo/rail-content-context";
 import {
   fetchEconomicRequest,
   isKurukooApiConfigured,
@@ -38,6 +40,31 @@ function WorkDetail() {
   const localItem = work.find((item) => item.id === workId);
   const [request, setRequest] = useState<EconomicRequest | null>(null);
   const [requestError, setRequestError] = useState("");
+
+  const rail = useRailContent();
+  useEffect(() => {
+    if (!localItem && !request) {
+      rail.setContent(null);
+      return;
+    }
+    const title = localItem?.title ?? request?.skill ?? "Request";
+    const status = request?.status ?? "in_progress";
+    const stage = localItem?.stage ?? "working";
+    const terminal = request
+      ? ["completed", "cancelled", "abandoned", "disputed", "failed"].includes(request.status)
+      : false;
+
+    rail.setContent(
+      <WorkContextRail
+        status={status}
+        stage={stage}
+        title={title}
+        isTerminal={terminal}
+        onAskKurukoo={`What is the status of "${title}"?`}
+      />,
+    );
+    return () => rail.setContent(null);
+  }, [localItem, request, workId, rail]);
 
   useEffect(() => {
     if (!configured) return;

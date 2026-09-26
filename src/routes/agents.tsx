@@ -190,10 +190,10 @@ function PublicAgents() {
           <Link to="/discover" className={actionClass()}>
             Discover nearby
           </Link>
-          <Link to="/local-agents" className={actionClass()}>
+          <Link to="/network" className={actionClass()}>
             Local Agents
           </Link>
-          <Link to="/ambassadors" className={actionClass()}>
+          <Link to="/network" className={actionClass()}>
             Ambassadors
           </Link>
         </div>

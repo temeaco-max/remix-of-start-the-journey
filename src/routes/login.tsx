@@ -27,6 +27,10 @@ function LoginPage() {
           <Link to="/signup" className="underline">
             Create an account
           </Link>
+          <span className="mx-2 text-muted-foreground">·</span>
+          <a href="/admin/login.html" className="underline">
+            Operator sign-in
+          </a>
         </>
       }
     />

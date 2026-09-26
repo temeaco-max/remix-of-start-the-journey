@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { RoleLanding } from "@/components/kurukoo/role-landing";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, BadgeCheck, ClipboardCheck, LineChart, UserRound } from "lucide-react";
+import { Panel } from "@/components/kurukoo/ui";
+import { actionClass } from "@/components/kurukoo/primitives";
 
 export const Route = createFileRoute("/partners")({
   head: () => ({
@@ -7,51 +9,77 @@ export const Route = createFileRoute("/partners")({
       { title: "Partners — Kurukoo" },
       {
         name: "description",
-        content: "Understand partner participation in the Kurukoo ecosystem and how to join.",
+        content:
+          "Join a trusted network of experts helping organizations make better decisions and deliver meaningful outcomes.",
       },
     ],
   }),
   component: PartnersPage,
 });
 
+const STEPS = [
+  {
+    icon: UserRound,
+    title: "Share what you genuinely provide",
+    body: "Tell us about yourself so we can connect you with the right opportunities. Start with the work you can genuinely provide.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Strengthen with evidence",
+    body: "Add experience or evidence to strengthen your profile. Opportunities, profile strength, evidence and earnings remain distinct states.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Respond to briefs",
+    body: "Review the brief and share your approach to the key questions. A transparent pipeline from invite to impact, with clear next actions.",
+  },
+  {
+    icon: LineChart,
+    title: "Track impact",
+    body: "Track your impact, provide evidence and manage payment states. Completed, verified and paid are separate states — a proposal never becomes a promise.",
+  },
+];
+
 function PartnersPage() {
   return (
-    <RoleLanding
-      eyebrow="For partners"
-      title="Bring your organisation's capability into Kurukoo."
-      intro="Partners extend what Kurukoo can help people accomplish by bringing services, distribution, infrastructure or specialist capability into defined, authorised relationships."
-      whatKurukooIs="A coordination layer between people with goals and organisations that can help fulfil them. Partnership is about a clear capability and a defined way to connect it—not simply placing a logo in a directory."
-      participation={[
-        "Bring a service, distribution channel, integration or specialist capability.",
-        "Define what your organisation can support and the boundaries of that support.",
-        "Work with Kurukoo on authorised discovery, coordination or integrations.",
-        "Provide the evidence and operational contacts needed to keep the relationship trustworthy.",
-      ]}
-      benefits={[
-        "Access to relevant demand and new distribution opportunities.",
-        "A clearer route from discovery to authorised coordination.",
-        "Potential commercial or strategic partnership opportunities.",
-        "A durable relationship with an execution-focused AI platform.",
-      ]}
-      features={[
-        "Partner profile and capability description",
-        "Integration and connection options",
-        "Opportunity discovery",
-        "Coordinated work and requests",
-        "Authorised service connections",
-        "Partner support and onboarding",
-      ]}
-      useCases={[
-        "A service company connects an authorised capability so Kurukoo can route suitable requests into its existing operation.",
-        "A distribution partner helps extend access to a service in locations Kurukoo cannot directly serve.",
-        "A technology partner provides a supported integration that lets people complete a task through Kurukoo.",
-        "An organisation works with Kurukoo on a defined campaign, service or community initiative.",
-      ]}
-      offer="Ask Kurukoo about the current partner onboarding programme. Any launch terms, pilot arrangements or commercial incentives depend on the partnership and are confirmed before you commit."
-      referral="Eligible partner referrals can be attributed through Kurukoo's referral system. Where a referral qualifies for a reward, the current programme rules determine when it is approved; pending referrals are not represented as settled earnings."
-      joinPrompt="I want to partner with Kurukoo. Help me understand the partner opportunities and onboarding requirements."
-      primaryLabel="Explore partnership"
-      primaryTo="/connect"
-    />
+    <div className="mx-auto w-full max-w-5xl">
+      <section>
+        <p className="text-[12px] font-medium text-muted-foreground">Partners</p>
+        <h1 className="mt-2 max-w-4xl font-serif text-[44px] leading-[1.01] tracking-[-0.05em] md:text-[62px]">
+          Expertise, matched with evidence.
+        </h1>
+        <p className="mt-5 max-w-3xl text-[16px] leading-7 text-muted-foreground">
+          Join a trusted network of experts helping organizations make better decisions and
+          deliver meaningful outcomes. Each role begins as a conversation and becomes a
+          canonical partner profile only after review and authorization.
+        </p>
+        <div className="mt-7 flex flex-wrap gap-2">
+          <Link to="/chat" search={{ query: "I want to join as a partner" } as never} className={actionClass()}>
+            Become a partner <ArrowRight className="size-4" />
+          </Link>
+          <Link to="/network" className={actionClass()}>
+            Explore the network
+          </Link>
+        </div>
+      </section>
+      <section className="mt-12 grid gap-3 md:grid-cols-2">
+        {STEPS.map((step) => (
+          <Panel key={step.title} className="p-5">
+            <step.icon className="size-5 text-primary" />
+            <p className="mt-3 text-[14px] font-semibold">{step.title}</p>
+            <p className="mt-1.5 text-[12.5px] leading-6 text-muted-foreground">{step.body}</p>
+          </Panel>
+        ))}
+      </section>
+      <Panel className="mt-6 border-dashed p-5">
+        <p className="text-[13px] font-medium">Support organizations with decisions</p>
+        <p className="mt-1.5 text-[12px] leading-6 text-muted-foreground">
+          Share knowledge and create impact across local support, onboarding and distribution —
+          products and services represented with evidence, plus review, verification and
+          specialist expertise. Authorization and the next supported action are always confirmed
+          in the current partner flow.
+        </p>
+      </Panel>
+    </div>
   );
 }

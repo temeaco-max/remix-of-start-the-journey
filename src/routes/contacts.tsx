@@ -11,7 +11,7 @@ import { useMemo, useState } from "react";
 import { EmptyState, PageHeader } from "@/components/app-shell";
 import { AIProviderDirectory } from "@/components/kurukoo/ai-provider-directory";
 import { ContactRow } from "@/components/kurukoo/cards";
-import { actionClass } from "@/components/kurukoo/primitives";
+import { actionClass, DemoDataBadge } from "@/components/kurukoo/primitives";
 import {
   Avatar,
   Badge,
@@ -55,7 +55,7 @@ function ContactActions({ name }: { name: string }) {
         <MessageCircle className="size-3.5" />
       </button>
       <Link
-        to="/calls"
+        to="/chat"
         aria-label={`Call ${name}`}
         className="grid size-8 place-items-center rounded-lg hover:bg-elevated"
       >
@@ -88,6 +88,7 @@ function ContactsPage() {
   }, [demo, query, tab]);
   return (
     <div className="space-y-7 pb-12">
+      <DemoDataBadge />
       <PageHeader
         eyebrow="Contacts"
         title="Contacts"
@@ -201,7 +202,7 @@ function ContactsPage() {
         )}
       </section>
       <div className="flex flex-wrap gap-2">
-        <Link to="/providers" className={actionClass()}>
+        <Link to="/network" className={actionClass()}>
           Find providers
         </Link>
         <Link to="/messages" className={actionClass()}>

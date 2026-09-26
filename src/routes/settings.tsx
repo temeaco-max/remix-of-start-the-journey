@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { actionClass } from "@/components/kurukoo/primitives";
 import { Panel, Rows, SettingsRow, Tabs } from "@/components/kurukoo/ui";
+import { KurukooModal } from "@/components/kurukoo/kurukoo-modal";
+import { PasskeySettings } from "@/components/PasskeySettings";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -120,7 +122,7 @@ function ProfileEditor() {
           onChange={(e) => setLocation(e.target.value)}
           aria-label="Location"
           placeholder="Location"
-          className="h-9 w-32 rounded-lg border border-border bg-background px-2.5 text-[12.5px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-9 w-32 rounded-lg border border-border bg-background px-2.5 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <button
           type="button"
@@ -132,9 +134,51 @@ function ProfileEditor() {
         </button>
       </div>
       <span className="text-[11px] text-muted-foreground">
-        {message || email || "Account profile"}
+        {message || email || "Saved to your Kurukoo account profile"}
       </span>
     </div>
+  );
+}
+function SimpleWordsToggle() {
+  const [on, setOn] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    void api<{ simple_words?: boolean }>("/api/profile/communication")
+      .then(({ simple_words }) => {
+        if (simple_words) setOn(true);
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+  async function toggle() {
+    const next = !on;
+    setOn(next);
+    try {
+      await api("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ simple_words: next }),
+      });
+    } catch {
+      setOn(!next);
+    }
+  }
+  if (!loaded) return <span className="text-[12px] text-muted-foreground">Loading…</span>;
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label="Simple words"
+      onClick={() => void toggle()}
+      className="flex h-9 min-w-11 items-center rounded-full border border-border px-1 transition-colors"
+    >
+      <span
+        className={`grid size-6 place-items-center rounded-full text-[10px] font-bold transition-all ${on ? "ml-auto bg-primary text-primary-foreground" : "bg-elevated text-muted-foreground"}`}
+      >
+        {on ? "✓" : "○"}
+      </span>
+    </button>
   );
 }
 function PersistentToggle({
@@ -211,6 +255,7 @@ function DataExport() {
 }
 function SettingsPage() {
   const [tab, setTab] = useState<string>(tabs[0]);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   return (
     <div className="space-y-7 pb-12">
       <PageHeader
@@ -231,7 +276,7 @@ function SettingsPage() {
             <Rows>
               <SettingsRow
                 title="Profile"
-                description="Name and location"
+                description="Name and location · saved to your Kurukoo account"
                 control={<ProfileEditor />}
               />
               <SettingsRow
@@ -262,17 +307,25 @@ function SettingsPage() {
                 }
               />
               <SettingsRow
-                title="Usage"
-                description="Points and AI/channel consumption"
-                control={
-                  <Link to="/usage" className={actionClass()}>
-                    Open
-                  </Link>
-                }
+                title="Simple words"
+                description="Short sentences, plain words in replies"
+                control={<SimpleWordsToggle />}
               />
-            </Rows>
-          </>
-        )}
+               <SettingsRow
+                 title="Usage"
+                 description="Points and AI/channel consumption"
+                 control={
+                   <Link to="/usage" className={actionClass()}>
+                     Open
+                   </Link>
+                 }
+               />
+             </Rows>
+             <div className="mt-5">
+               <PasskeySettings />
+             </div>
+           </>
+         )}
         {tab === "Privacy" && (
           <>
             <SettingIntro
@@ -450,7 +503,7 @@ function SettingsPage() {
                 title="Calls"
                 description="Voice sessions connected to requests"
                 control={
-                  <Link to="/calls" className={actionClass()}>
+                  <Link to="/chat" className={actionClass()}>
                     Open Calls
                   </Link>
                 }
@@ -544,12 +597,81 @@ function SettingsPage() {
             </Rows>
           </>
         )}
+        {tab === "Appearance" && (
+          <>
+            <SettingIntro
+              icon={Sparkles}
+              eyebrow="System"
+              title="Diagnostics and limits"
+              description="See which Kurukoo surfaces are active and what boundary is being shown."
+            />
+            <Rows>
+              <SettingsRow
+                title="Run diagnostics"
+                description="Check shell status, provider readiness and evidence state"
+                control={
+                  <button
+                    type="button"
+                    onClick={() => setDiagnosticsOpen(true)}
+                    className={actionClass("primary")}
+                  >
+                    Open
+                  </button>
+                }
+              />
+            </Rows>
+          </>
+        )}
       </div>
       <div className="mt-4 rounded-2xl border border-border bg-surface px-4 py-3 text-[11px] leading-5 text-muted-foreground">
         Account controls reflect the canonical services available to this deployment. When a
         connected service is unavailable, Kurukoo shows that boundary instead of presenting an
         invented state.
       </div>
+
+      {/* Diagnostics modal (pop-up modal example) */}
+      <KurukooModal
+        open={diagnosticsOpen}
+        title="Kurukoo diagnostics"
+        onClose={() => setDiagnosticsOpen(false)}
+        size="lg"
+      >
+        <div className="space-y-4 text-[13px]">
+          <p className="text-[12px] text-muted-foreground">
+            This report shows the shell status for the current session. None of these states imply
+            that an external provider is live or that any economic action has completed.
+          </p>
+          <div className="grid gap-3">
+            <div className="rounded-xl border border-border bg-elevated/45 px-3 py-2.5">
+              <span className="font-medium">Shell</span>
+              <span className="text-muted-foreground"> / Authenticated OS surface</span>
+            </div>
+            <div className="rounded-xl border border-border bg-elevated/45 px-3 py-2.5">
+              <span className="font-medium">Backend</span>
+              <span className="text-muted-foreground">
+                {" "}
+                {import.meta.env.MODE === "development"
+                  ? "Local development session"
+                  : "Production session"}
+              </span>
+            </div>
+            <div className="rounded-xl border border-border bg-elevated/45 px-3 py-2.5">
+              <span className="font-medium">Rail takeover</span>
+              <span className="text-muted-foreground">
+                {" "}
+                Active when a route injects contextual content
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDiagnosticsOpen(false)}
+            className="rounded-lg border border-border px-3 py-2 text-[11px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground"
+          >
+            Close
+          </button>
+        </div>
+      </KurukooModal>
     </div>
   );
 }

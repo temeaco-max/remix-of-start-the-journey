@@ -23,7 +23,6 @@ function UsagePage() {
       <PageHeader
         eyebrow="Account / Usage"
         title="Usage"
-        eyebrow="Account / Usage"
         subtitle="Usage is a quiet account surface: current consumption, Points activity and AI/channel metering belong here when the canonical readers are available."
       />
       <Panel className="border-dashed p-5">

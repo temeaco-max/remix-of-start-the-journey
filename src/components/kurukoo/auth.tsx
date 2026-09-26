@@ -1,12 +1,8 @@
 import { Mail, Phone, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Panel } from "@/components/kurukoo/ui";
-import {
-  KURUKOO_BUILD_EMAIL,
-  requestMagicLink,
-  requestPhoneOtp,
-  verifyPhoneOtp,
-} from "@/lib/kurukoo-auth";
+import { PasskeyLoginButton } from "@/components/PasskeySettings";
+import { requestMagicLink, requestPhoneOtp, verifyPhoneOtp } from "@/lib/kurukoo-auth";
 
 export type AuthMode = "login" | "signup";
 type AuthFlowProps = { mode: AuthMode; compact?: boolean; onClose?: () => void };
@@ -35,16 +31,11 @@ function AuthFlow({ mode, compact = false, onClose }: AuthFlowProps) {
   async function signInWithEmail() {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) return setMessage("Enter your email address.");
-    if (normalizedEmail !== KURUKOO_BUILD_EMAIL)
-      return setMessage(`This build is currently available only to ${KURUKOO_BUILD_EMAIL}.`);
     setBusy(true);
     setMessage(null);
     try {
-      // requestMagicLink is deliberately a frontend access-gate action here:
-      // it validates the permitted account and opens the authenticated shell
-      // without requiring an actual email delivery service.
       await requestMagicLink({ email: normalizedEmail, name: name || undefined });
-      onClose?.();
+      setMessage("Check your email for the sign-in link. You can close this window after opening it.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "We could not sign you in.");
     } finally {
@@ -79,9 +70,8 @@ function AuthFlow({ mode, compact = false, onClose }: AuthFlowProps) {
         phone: normalizedPhone,
         code: normalizedCode,
         name: name || undefined,
-        email: KURUKOO_BUILD_EMAIL,
+        email: email.trim() || undefined,
       });
-      window.localStorage.setItem("kurukoo-authenticated", "true");
       window.dispatchEvent(new Event("kurukoo-auth-updated"));
       onClose?.();
     } catch (error) {
@@ -102,7 +92,7 @@ function AuthFlow({ mode, compact = false, onClose }: AuthFlowProps) {
             {mode === "login" ? "Welcome back" : "Join Kurukoo"}
           </h2>
           <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">
-            Sign in with email or phone to access Kurukoo.
+              Sign in with your email address. Use a phone code only when you need fallback, recovery, provider approval, or account verification.
           </p>
         </div>
         {onClose ? (
@@ -148,7 +138,7 @@ function AuthFlow({ mode, compact = false, onClose }: AuthFlowProps) {
               className={`rounded-lg px-3 py-2 text-[11.5px] font-medium ${method === "phone" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
             >
               <Phone className="mr-1.5 inline size-3.5" />
-              Phone
+              Phone code (fallback / verification)
             </button>
           </div>
 
@@ -190,7 +180,7 @@ function AuthFlow({ mode, compact = false, onClose }: AuthFlowProps) {
                 {busy ? "Signing in…" : mode === "login" ? "Log in" : "Create account"}
               </button>
               <p className="text-[10.5px] leading-relaxed text-muted-foreground">
-                For this build, the permitted email opens access directly without email delivery.
+                We’ll email you a secure sign-in link. No SMS is used for the main login path.
               </p>
             </>
           ) : (
@@ -210,16 +200,27 @@ function AuthFlow({ mode, compact = false, onClose }: AuthFlowProps) {
                   />
                 </div>
               </label>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void sendCode()}
-                className="min-h-11 w-full rounded-xl bg-primary px-4 text-[13px] font-medium text-primary-foreground disabled:opacity-50"
-              >
-                {busy ? "Working…" : "Send verification code"}
-              </button>
-            </>
-          )}
+               <button
+                 type="button"
+                 disabled={busy}
+                 onClick={() => void sendCode()}
+                 className="min-h-11 w-full rounded-xl bg-primary px-4 text-[13px] font-medium text-primary-foreground disabled:opacity-50"
+               >
+                 {busy ? "Working…" : "Send verification code"}
+               </button>
+               {phone.trim() ? (
+                  <PasskeyLoginButton
+                    phone={phone}
+                    onSuccess={() => {
+                      window.dispatchEvent(new Event("kurukoo-auth-updated"));
+                      onClose?.();
+                    }}
+                  />
+                ) : (
+                 <p className="text-center text-[11px] text-muted-foreground">Enter your phone number to use a passkey saved for this account.</p>
+               )}
+             </>
+           )}
         </>
       ) : null}
 

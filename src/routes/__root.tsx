@@ -1,7 +1,7 @@
 // ── Shell ownership ─────────────────────────────────────────────────────
 // PUBLIC OS SHELL: `/` and publicPrefixes use PublicKurukooShell + PublicHome.
 // AUTHENTICATED OS SHELL: authenticated prefixes use AppShell + Trusted Context Rail.
-// `/perch` is the canonical authenticated personal surface; `/workspace` remains a compatibility route.
+// `/field` is the canonical authenticated personal surface; `/workspace` remains a compatibility route.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -12,67 +12,46 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import {
-  Compass,
-  Home,
-  LayoutDashboard,
-  MapPin,
-  MessageCircle,
-  MoreHorizontal,
-  Sparkles,
-} from "lucide-react";
+import { Briefcase, LayoutDashboard, MapPin, MessageCircle, MoreHorizontal } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "../components/app-shell-contextual";
 import { PublicHome, PublicKurukooShell } from "../components/public-kurukoo";
 import { KurukooProvider } from "@/lib/kurukoo-store";
-import {
-  getKurukooAuthState,
-  hasTemporaryBuildEmailSession,
-  isAllowedKurukooBuildAccount,
-  logoutKurukoo,
-} from "@/lib/kurukoo-auth";
+import { RailContentProvider } from "@/components/kurukoo/rail-content-context";
+import { getKurukooAuthState } from "@/lib/kurukoo-auth";
 const publicPrefixes = [
   "/about",
   "/blog",
   "/capabilities",
-  "/contributors",
   "/contact",
-  "/creators",
-  "/advertise",
-  "/developer",
+  "/ad-campaign",
+  "/developers",
   "/api-docs",
   "/careers",
-  "/earn",
   "/help",
   "/how-it-works",
   "/legal",
   "/cookies",
   "/login",
-  "/partners",
-  "/people",
   "/pricing",
-  "/providers",
   "/businesses",
   "/kurukoo-ai",
   "/integrations",
   "/resources",
   "/signup",
   "/topics",
-  "/use-cases",
   "/opportunities",
   "/safety",
   "/network",
-  "/local-agents",
-  "/ambassadors",
-  "/ai-terms",
+  "/trust",
+  "/explore",
 ] as const;
 const authenticatedSurfacePrefixes = [
-  "/perch",
+  "/field",
   "/chat",
   "/workspace",
-  "/explore",
   "/discover",
   "/activity",
   "/work",
@@ -81,15 +60,15 @@ const authenticatedSurfacePrefixes = [
   "/messages",
   "/memory",
   "/artifacts",
-  "/calls",
   "/subscriptions",
   "/wallet",
   "/settings",
   "/agents",
   "/connect",
   "/provider",
-  "/advertising",
+  "/ad-campaign",
   "/profile",
+  "/trust",
 ] as const;
 const moreItems = [
   ["/work", "Actions"],
@@ -97,8 +76,7 @@ const moreItems = [
   ["/capabilities", "Capabilities"],
   ["/provider", "Providers"],
   ["/businesses", "Businesses"],
-  ["/creators", "Creators"],
-  ["/advertising", "Advertising"],
+  ["/ad-campaign", "Advertising"],
   ["/pricing", "Plans"],
   ["/subscriptions", "Subscriptions"],
   ["/wallet", "Wallet"],
@@ -169,35 +147,35 @@ function MobileBar() {
   useEffect(() => setMoreOpen(false), [pathname]);
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/98 backdrop-blur md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/98 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         <nav className="mx-auto grid max-w-lg grid-cols-5 px-2 py-2">
           <Link
-            to="/perch"
-            className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] ${pathname.startsWith("/perch") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}
+            to="/field"
+            className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] ${pathname.startsWith("/field") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}
           >
             <LayoutDashboard className="size-[17px]" />
-            Perch
-          </Link>
-          <Link
-            to="/chat"
-            className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] ${pathname.startsWith("/chat") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}
-          >
-            <ChatVoiceIcon />
-            Chat / Voice
-          </Link>
-          <Link
-            to="/explore"
-            className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] ${pathname.startsWith("/explore") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}
-          >
-            <Compass className="size-[17px]" />
-            Explore
+            Field
           </Link>
           <Link
             to="/discover"
             className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] ${pathname.startsWith("/discover") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}
           >
             <MapPin className="size-[17px]" />
-            Nearby
+            Discover
+          </Link>
+          <Link
+            to="/chat"
+            className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] ${pathname.startsWith("/chat") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}
+          >
+            <ChatVoiceIcon />
+            Chat
+          </Link>
+          <Link
+            to="/work"
+            className={`grid place-items-center rounded-xl px-1 py-1.5 text-[10px] ${pathname.startsWith("/work") ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}
+          >
+            <Briefcase className="size-[17px]" />
+            Work
           </Link>
           <button
             type="button"
@@ -256,7 +234,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "apple-touch-icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/assets/icons/icon-192.png", type: "image/png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
@@ -286,7 +264,7 @@ function ProtectedPrompt() {
           Log in to continue
         </h1>
         <p className="mx-auto mt-3 max-w-md text-[13px] leading-relaxed text-muted-foreground">
-          Your Perch keeps your conversations, work and account context private. Sign in to continue
+          Your Field keeps your conversations, work and account context private. Sign in to continue
           where you left off.
         </p>
         <Link
@@ -305,44 +283,25 @@ function RootComponent() {
   const [authenticated, setAuthenticated] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
+    // PWA shell worker: static-asset caching only; API + navigations stay live.
+    if ("serviceWorker" in navigator && !String(window.location.pathname).startsWith("/admin")) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+      });
+    }
+  }, []);
+  useEffect(() => {
     let cancelled = false;
-    let previousLocalAuth = window.localStorage.getItem("kurukoo-authenticated") === "true";
     const read = async () => {
-      const localAuth = window.localStorage.getItem("kurukoo-authenticated") === "true";
-      if (previousLocalAuth && !localAuth) {
-        try {
-          await fetch("/api/auth/logout", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: "{}",
-          });
-        } catch {}
-      }
-      previousLocalAuth = localAuth;
       const state = await getKurukooAuthState();
       if (cancelled) return;
-      const allowed =
-        state.authenticated &&
-        (isAllowedKurukooBuildAccount(state.user) || hasTemporaryBuildEmailSession());
-      if (state.authenticated && !allowed) {
-        await logoutKurukoo();
-        if (cancelled) return;
-      }
-      setAuthenticated(allowed);
+      setAuthenticated(state.authenticated);
       setHydrated(true);
-      if (allowed) window.localStorage.setItem("kurukoo-authenticated", "true");
-      else window.localStorage.removeItem("kurukoo-authenticated");
     };
     void read();
     const onAuth = () => void read();
     window.addEventListener("kurukoo-auth-updated", onAuth);
-    window.addEventListener("storage", onAuth);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("kurukoo-auth-updated", onAuth);
-      window.removeEventListener("storage", onAuth);
-    };
+    return () => { cancelled = true; window.removeEventListener("kurukoo-auth-updated", onAuth); };
   }, []);
   const isPublic = publicPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const isAuthenticatedSurface = authenticatedSurfacePrefixes.some(
@@ -351,19 +310,10 @@ function RootComponent() {
   const anonymousHome = pathname === "/";
   const needsAuthentication = !authenticated && isAuthenticatedSurface;
   const savePrompt = (prompt: string) => window.localStorage.setItem("kurukoo-chat-draft", prompt);
-  const localAuthHint =
-    typeof window !== "undefined" &&
-    window.localStorage.getItem("kurukoo-authenticated") === "true";
   const hydrationView = !hydrated ? (
-    isAuthenticatedSurface && localAuthHint ? (
-      <AppShell>
-        <div className="min-h-[60vh]" />
-      </AppShell>
-    ) : (
-      <PublicKurukooShell>
-        <div className="min-h-[60vh]" />
-      </PublicKurukooShell>
-    )
+    <PublicKurukooShell>
+      <div className="min-h-[60vh]" />
+    </PublicKurukooShell>
   ) : null;
   return (
     <QueryClientProvider client={queryClient}>
@@ -380,12 +330,12 @@ function RootComponent() {
               <Outlet />
             </PublicKurukooShell>
           ) : (
-            <>
+            <RailContentProvider>
               <AppShell>
                 <Outlet />
               </AppShell>
               <MobileBar />
-            </>
+            </RailContentProvider>
           ))}
       </KurukooProvider>
     </QueryClientProvider>

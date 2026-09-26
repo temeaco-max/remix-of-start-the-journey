@@ -274,3 +274,31 @@ export const exploreGoalGroups: ExploreGoalGroup[] = exploreGoalSeeds.map((group
 export const exploreGoalById = Object.fromEntries(
   exploreGoalGroups.flatMap((group) => group.goals.map((goal) => [goal.id, goal])),
 ) as Record<string, ExploreGoal>;
+
+/**
+ * Canonical goal → subcategory destination map.
+ *
+ * Single source of truth for routing a goal into its Explore subcategory.
+ * Previously duplicated across /explore, /capabilities and /discover.
+ * Goals absent from this map route into Chat with their own prompt instead.
+ */
+export const goalDestinations: Record<string, string> = {
+  food: "/explore/food",
+  groceries: "/explore/groceries",
+  ride: "/explore/mobility",
+  travel: "/explore/mobility",
+  repair: "/explore/repairs",
+  cleaning: "/explore/home",
+  solar: "/explore/home",
+  "money-circle": "/explore/money-circle",
+  work: "/explore/work",
+  business: "/explore/work",
+  sell: "/explore/selling",
+  health: "/explore/health",
+  education: "/explore/learning",
+  events: "/explore/events",
+  spiritual: "/explore/prayer",
+  connect: "/explore/community",
+  emergency: "/explore/safety",
+  security: "/explore/safety",
+};

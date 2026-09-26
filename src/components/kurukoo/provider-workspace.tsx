@@ -39,6 +39,7 @@ import {
   type ProviderRequest,
 } from "@/lib/provider-execution-api";
 import { entities } from "@/lib/kurukoo-demo";
+import { ArtistVerificationCard } from "@/components/kurukoo/artist-booking";
 
 const tabs = ["Requests", "Find help", "Offer your capability"] as const;
 function label(value: string) {
@@ -520,7 +521,7 @@ export function ProviderWorkspace() {
             status: detail.request.status,
             participant: {
               ...base.participant,
-              status: detail.participant.status,
+              status: detail.participant.status ?? base.participant.status,
               evidence: detail.participant.evidence || {},
             },
           });
@@ -546,7 +547,7 @@ export function ProviderWorkspace() {
           status: detail.request.status,
           participant: {
             ...base.participant,
-            status: detail.participant.status,
+            status: detail.participant.status ?? base.participant.status,
             evidence: detail.participant.evidence || {},
           },
         });
@@ -763,6 +764,7 @@ export function ProviderWorkspace() {
               </Link>
             </div>
           </Panel>
+          <ArtistVerificationCard />
           <section>
             <SectionHeader
               title="Provider tools"
@@ -794,5 +796,6 @@ export function ProviderWorkspace() {
           </section>
         </div>
       )}
-    </div>  );
+    </>
+  );
 }

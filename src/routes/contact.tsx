@@ -20,10 +20,10 @@ export const Route = createFileRoute("/contact")({
 });
 
 const routes = [
-  ["Support", "Something isn't working, or you need a hand with a request."],
-  ["Partnerships", "Businesses and organisations wanting to work with Kurukoo."],
-  ["Press", "Questions about the product or the company."],
-];
+  ["Support", "Something isn't working, or you need a hand with a request.", "/"],
+  ["Partnerships", "Businesses and organisations wanting to work with Kurukoo.", "/network"],
+  ["Press", "Questions about the product or the company.", null],
+] as Array<[string, string, string | null]>;
 
 function ContactPage() {
   return (
@@ -46,17 +46,28 @@ function ContactPage() {
       <section className="mt-8">
         <SectionHeader title="Other enquiries" />
         <Rows>
-          {routes.map(([title, note]) => (
-            <li key={title} className="px-4 py-3.5">
-              <p className="text-[15px]">{title}</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">{note}</p>
+          {routes.map(([title, note, href]) => (
+            <li key={title} className="flex items-center justify-between gap-4 px-4 py-3.5">
+              <div className="min-w-0">
+                <p className="text-[15px]">{title}</p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">{note}</p>
+              </div>
+              {href ? (
+                <Link to={href as never} className="shrink-0 text-[13.5px] underline">
+                  Open
+                </Link>
+              ) : (
+                <span className="shrink-0 text-[12px] text-muted-foreground">Soon</span>
+              )}
             </li>
           ))}
         </Rows>
       </section>
 
       <IntegrationGap>
-        Contact forms and email routing are not connected yet, so no real addresses are shown here.
+        Press enquiries have no dedicated channel yet — check the blog and about pages for
+        the latest public information. Contact forms and email routing are not connected
+        yet, so no addresses are shown here.
       </IntegrationGap>
     </MarketingPage>
   );

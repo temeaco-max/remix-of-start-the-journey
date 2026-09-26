@@ -45,7 +45,7 @@ export function ContinuityContext({ requestId, status }: { requestId: string; st
       if (run.status === "fulfilled") setExecution(run.value);
       if (trust.status === "fulfilled")
         setAudit(
-          (trust.value.audit.timeline ?? []).filter((entry) => entry.requestId === requestId),
+          (trust.value.audit.entries ?? []).filter((entry) => entry.requestId === requestId),
         );
       setError(results.every((result) => result.status === "rejected"));
     });
@@ -112,7 +112,7 @@ export function ContinuityContext({ requestId, status }: { requestId: string; st
           </p>
           <p className="mt-1 text-[9.5px] leading-4 text-muted-foreground">Context, not consent.</p>
         </Link>
-        <Link to="/providers" className="rounded-xl bg-elevated/60 p-3 hover:bg-elevated">
+        <Link to="/network" className="rounded-xl bg-elevated/60 p-3 hover:bg-elevated">
           <div className="flex items-center gap-2">
             <Users className="size-3.5" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">Network</span>
@@ -186,7 +186,7 @@ export function ContinuityContext({ requestId, status }: { requestId: string; st
           Businesses
         </Link>
         <Link
-          to="/providers"
+          to="/network"
           className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1.5 hover:bg-elevated"
         >
           Providers

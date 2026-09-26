@@ -1,42 +1,75 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  Car,
   Compass,
+  Coffee,
   Heart,
   Lock,
   MessageCircle,
   Network,
+  ShoppingBag,
   ShieldCheck,
   Shuffle,
   Sparkles,
+  Store,
+  Sun,
   Target,
+  Wrench,
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Composer } from "@/components/kurukoo/composer";
+import { getLocale, type KurukooLocale } from "@/lib/kurukoo-locale";
 
-const prompts = [
-  "Find someone to fix my phone",
-  "Help me plan my day",
-  "Find somewhere good for dinner",
-  "Get me a ride",
-  "Remind me about something",
-  "Help me get this done",
-] as const;
-const examples = [
-  [
-    "Find a reliable electrician tomorrow",
-    "Work through the requirement, timing and route before anything consequential happens.",
+const prompts: Record<KurukooLocale, readonly string[]> = {
+  gb: [
+    "Find someone to fix my boiler",
+    "Help me plan my day",
+    "Find somewhere good for dinner",
+    "Get me a ride",
+    "Remind me about bin day",
+    "Help me get this done",
   ],
-  [
-    "Prepare me for my client call",
-    "Bring together useful context, structure the work and keep the result with you.",
+  ng: [
+    "Find someone to fix my phone",
+    "Help me plan my day",
+    "Find somewhere good for dinner",
+    "Get me a ride",
+    "Remind me about something",
+    "Help me get this done",
   ],
-  [
-    "Find somewhere good for dinner nearby",
-    "Start with the outcome and narrow the choice with useful context.",
+};
+const examples: Record<KurukooLocale, readonly (readonly string[])[]> = {
+  gb: [
+    [
+      "Find a reliable plumber tomorrow",
+      "Work through the requirement, timing and postcode before anything consequential happens.",
+    ],
+    [
+      "Prepare me for my client call",
+      "Bring together useful context, structure the work and keep the result with you.",
+    ],
+    [
+      "When is my MOT due?",
+      "Track dates that matter and get reminded before they arrive.",
+    ],
   ],
-] as const;
+  ng: [
+    [
+      "Find a reliable electrician tomorrow",
+      "Work through the requirement, timing and route before anything consequential happens.",
+    ],
+    [
+      "Prepare me for my client call",
+      "Bring together useful context, structure the work and keep the result with you.",
+    ],
+    [
+      "Find somewhere good for dinner nearby",
+      "Start with the outcome and narrow the choice with useful context.",
+    ],
+  ],
+};
 const capabilities = [
   [MessageCircle, "Ask", "Start naturally. No category, form or workflow to learn."],
   [Target, "Get things done", "Turn a request into real work and keep it moving."],
@@ -46,13 +79,119 @@ const capabilities = [
   [Zap, "Notice", "Get useful proactive help when there is a genuine reason to interrupt you."],
 ] as const;
 
+const dayMoments: Record<
+  KurukooLocale,
+  readonly { time: string; Icon: typeof Sun; title: string; subtitle: string; prompt: string }[]
+> = {
+  gb: [
+    {
+      time: "06:30",
+      Icon: Sun,
+      title: "Wake up",
+      subtitle: "Need a lift this morning?",
+      prompt: "Get me a ride to the station",
+    },
+    {
+      time: "09:00",
+      Icon: ShoppingBag,
+      title: "Morning errand",
+      subtitle: "Pick up a prescription on the way to work.",
+      prompt: "Find someone to pick up a prescription",
+    },
+    {
+      time: "12:00",
+      Icon: Coffee,
+      title: "Lunch break",
+      subtitle: "Looking for lunch? Tell me what you'd like to order.",
+      prompt: "Find somewhere good for lunch nearby",
+    },
+    {
+      time: "14:00",
+      Icon: Wrench,
+      title: "Get it fixed",
+      subtitle: "Describe the repair and your postcode.",
+      prompt: "Find someone to fix my boiler",
+    },
+    {
+      time: "16:00",
+      Icon: Store,
+      title: "Hustle time",
+      subtitle: "Want to offer a skill? Tell me what work you do.",
+      prompt: "I can assemble flatpack this week",
+    },
+    {
+      time: "18:00",
+      Icon: Car,
+      title: "Send it",
+      subtitle: "Share pickup and delivery postcodes to coordinate a parcel.",
+      prompt: "Help me send a package to my client",
+    },
+  ],
+  ng: [
+    {
+      time: "06:30",
+      Icon: Sun,
+      title: "Wake up",
+      subtitle: "Need a lift this morning?",
+      prompt: "Get me a ride to the airport",
+    },
+    {
+      time: "09:00",
+      Icon: ShoppingBag,
+      title: "Morning errand",
+      subtitle: "Pick up a prescription on the way to work.",
+      prompt: "Find someone to pick up a prescription",
+    },
+    {
+      time: "12:00",
+      Icon: Coffee,
+      title: "Lunch break",
+      subtitle: "Looking for lunch? Tell me what you'd like to order.",
+      prompt: "Find somewhere good for lunch nearby",
+    },
+    {
+      time: "14:00",
+      Icon: Wrench,
+      title: "Get it fixed",
+      subtitle: "Describe the repair and your area.",
+      prompt: "Find someone to fix my phone",
+    },
+    {
+      time: "16:00",
+      Icon: Store,
+      title: "Hustle time",
+      subtitle: "Want to offer a skill? Tell me what work you do.",
+      prompt: "I can repair iPhones this week",
+    },
+    {
+      time: "18:00",
+      Icon: Car,
+      title: "Send it",
+      subtitle: "Share pickup and delivery areas to coordinate a parcel.",
+      prompt: "Help me send a package to my client",
+    },
+  ],
+};
+
 export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
+  const locale = getLocale();
+  const localePrompts = prompts[locale];
+  const localeExamples = examples[locale];
+  const localeMoments = dayMoments[locale];
   const [promptIndex, setPromptIndex] = useState(0);
   const [exampleIndex, setExampleIndex] = useState(0);
+  const [dayIndex, setDayIndex] = useState(0);
   useEffect(() => {
     const timer = window.setInterval(
-      () => setPromptIndex((value) => (value + 1) % prompts.length),
+      () => setPromptIndex((value) => (value + 1) % localePrompts.length),
       5200,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setDayIndex((value) => (value + 1) % localeMoments.length),
+      7000,
     );
     return () => window.clearInterval(timer);
   }, []);
@@ -62,7 +201,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
   };
   const shuffle = () =>
     setPromptIndex(
-      (value) => (value + 1 + Math.floor(Math.random() * (prompts.length - 1))) % prompts.length,
+      (value) => (value + 1 + Math.floor(Math.random() * (localePrompts.length - 1))) % localePrompts.length,
     );
 
   return (
@@ -98,7 +237,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
               <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none">
                 <div className="flex min-w-max gap-2">
                   {Array.from({ length: 4 }, (_, offset) => {
-                    const prompt = prompts[(promptIndex + offset) % prompts.length];
+                    const prompt = localePrompts[(promptIndex + offset) % localePrompts.length];
                     return (
                       <button
                         key={prompt}
@@ -204,7 +343,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
             <button
               type="button"
               onClick={() =>
-                setExampleIndex((value) => (value + examples.length - 1) % examples.length)
+                setExampleIndex((value) => (value + localeExamples.length - 1) % localeExamples.length)
               }
               aria-label="Previous example"
               className="grid size-9 place-items-center border border-border text-muted-foreground hover:text-foreground"
@@ -213,7 +352,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
             </button>
             <button
               type="button"
-              onClick={() => setExampleIndex((value) => (value + 1) % examples.length)}
+              onClick={() => setExampleIndex((value) => (value + 1) % localeExamples.length)}
               aria-label="Next example"
               className="grid size-9 place-items-center border border-border text-muted-foreground hover:text-foreground"
             >
@@ -222,7 +361,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
           </div>
         </div>
         <div className="mt-8 grid gap-px border border-border/80 bg-border/80 md:grid-cols-3">
-          {examples.map(([ask, answer], index) => (
+          {localeExamples.map(([ask, answer], index) => (
             <Link
               key={ask}
               to="/chat"
@@ -296,6 +435,88 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
         </div>
       </section>
 
+      <section className="border-b border-border/80 py-14 md:py-20">
+        <div className="mx-auto w-full max-w-[1160px] px-5 md:px-9">
+          <div className="grid gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                An illustrative day
+              </p>
+              <h2 className="mt-3 font-serif text-[36px] leading-[.98] tracking-[-0.05em] md:text-[48px]">
+                From morning move to evening chop.
+              </h2>
+              <p className="mt-4 max-w-xl text-[15px] leading-7 text-muted-foreground md:text-[17px]">
+                One conversation can coordinate the day without asking you to juggle apps.
+              </p>
+            </div>
+            <div className="lg:justify-end">
+              <div className="flex items-end justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {localeMoments[dayIndex].time}
+                </p>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDayIndex((value) => (value + localeMoments.length - 1) % localeMoments.length)
+                    }
+                    aria-label="Previous day moment"
+                    className="grid size-8 place-items-center border border-border text-muted-foreground hover:text-foreground"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDayIndex((value) => (value + 1) % localeMoments.length)}
+                    aria-label="Next day moment"
+                    className="grid size-8 place-items-center border border-border text-muted-foreground hover:text-foreground"
+                  >
+                    →
+                  </button>
+                </div>
+              </div>
+              <div
+                key={dayIndex}
+                className="mt-6 rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-soft)]"
+              >
+                <div className="flex items-start gap-4">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-elevated">
+                    {(() => {
+                      const Icon = localeMoments[dayIndex].Icon as typeof Sparkles;
+                      return <Icon className="size-5 text-primary" />;
+                    })()}
+                  </span>
+                  <div className="flex-1">
+                    <h3 className="text-[17px] font-semibold">{localeMoments[dayIndex].title}</h3>
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                      {localeMoments[dayIndex].subtitle}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => sendPrompt(localeMoments[dayIndex].prompt)}
+                  className="mt-4 inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80"
+                >
+                  Try in Chat <ArrowRight className="size-3" />
+                </button>
+              </div>
+              <div className="mt-4 flex justify-center gap-1.5">
+                {localeMoments.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setDayIndex(index)}
+                    aria-label={`Go to day moment ${index + 1}`}
+                    className={`h-1.5 w-1.5 rounded-full ${index === dayIndex ? "bg-primary" : "bg-border"}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-14 md:py-20">
         <div className="relative overflow-hidden bg-foreground px-6 py-12 text-background md:px-10 md:py-16">
           <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-background/10 blur-3xl" />
@@ -321,7 +542,7 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
               Start with Kurukoo <ArrowRight className="size-4" />
             </Link>
           </div>
-                </div>
+        </div>
       </section>
 
       <section className="py-14 md:py-20">
@@ -341,13 +562,15 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
-                  to="/legal/privacy"
+                  to="/legal/$section"
+                  params={{ section: "privacy" }}
                   className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground hover:opacity-70"
                 >
                   Read the privacy policy <ArrowRight className="size-3" />
                 </Link>
                 <Link
-                  to="/legal/safety"
+                  to="/legal/$section"
+                  params={{ section: "safety" }}
                   className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground hover:opacity-70"
                 >
                   Trust & safety <ArrowRight className="size-3" />
@@ -380,6 +603,145 @@ export function PublicHome({ onSend }: { onSend?: (message: string) => void }) {
           </div>
         </div>
       </section>
+
+      <section className="border-b border-border/80 py-14 md:py-20">
+        <div className="mx-auto w-full max-w-[1160px] px-5 md:px-9">
+          <div className="grid gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-center">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Connections
+              </p>
+              <h2 className="mt-3 font-serif text-[36px] leading-[.98] tracking-[-0.05em] md:text-[48px]">
+                Connect what matters.
+              </h2>
+              <p className="mt-4 max-w-xl text-[15px] leading-7 text-muted-foreground md:text-[17px]">
+                Connect your tools, sources and channels. Every connection is scoped and
+                owner-controlled — configuration alone never means a live provider.
+              </p>
+              <Link
+                to="/integrations"
+                className="mt-6 inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:opacity-80"
+              >
+                Browse integrations <ArrowRight className="size-3" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:justify-end">
+              <div className="flex flex-col items-center rounded-xl border border-border/60 bg-surface p-4 text-center">
+                <MessageCircle className="size-6 text-primary" />
+                <p className="mt-2 text-[11px] font-semibold">Built in</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">Web Chat, Voice, Presence</p>
+              </div>
+              <div className="flex flex-col items-center rounded-xl border border-border/60 bg-surface p-4 text-center">
+                <Compass className="size-6 text-primary" />
+                <p className="mt-2 text-[11px] font-semibold">Sources</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Drive, Notion, Outlook, OneDrive
+                </p>
+              </div>
+              <div className="flex flex-col items-center rounded-xl border border-border/60 bg-surface p-4 text-center">
+                <Network className="size-6 text-primary" />
+                <p className="mt-2 text-[11px] font-semibold">Channels</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  WhatsApp, Telegram, SMS, Email
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <LocalSpotlight />
     </div>
+  );
+}
+
+const SPOTLIGHT_FALLBACK: Record<
+  KurukooLocale,
+  { eyebrow: string; title: string; body: string; items: string[]; cta: string; prompt: string }
+> = {
+  gb: {
+    eyebrow: "United Kingdom",
+    title: "Everyday help, UK-wide.",
+    body: "Tell Kurukoo what needs doing in your own words — a boiler repair in Manchester, an MOT reminder, garden clearance before the weekend. You will always see what is known before anything consequential happens.",
+    items: [
+      "Boiler, plumbing & electrical repairs by postcode",
+      "MOT, driving lessons & theory test prep",
+      "Bin days, council tax & local services",
+      "Cleaning, gardening, removals & flatpack",
+    ],
+    cta: "Start with your postcode",
+    prompt: "I need help at home",
+  },
+  ng: {
+    eyebrow: "Nigeria",
+    title: "Everyday help, wherever you are.",
+    body: "Tell Kurukoo what needs doing in your own words — phone repairs in Ikeja, a ride to the airport, dinner nearby. You will always see what is known before anything consequential happens.",
+    items: [
+      "Phone, electrical & appliance repairs by area",
+      "Rides, dispatch & errands",
+      "Food, groceries & home cooking",
+      "Tailoring, cleaning & home services",
+    ],
+    cta: "Start with your area",
+    prompt: "I need help around me",
+  },
+};
+
+function LocalSpotlight() {
+  const locale = getLocale();
+  const [cms, setCms] = useState<{ title?: string; body?: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const base = (import.meta.env["VITE_KURUKOO_API_BASE_URL"] ?? "").replace(/\/$/, "");
+    fetch(`${base}/api/resources/homepage-spotlight-${locale}`, { credentials: "omit" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data && (data.title || data.body)) setCms({ title: data.title, body: data.body });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+  const fallback = SPOTLIGHT_FALLBACK[locale];
+  const stripHtml = (html: string): string =>
+    html
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/<\/(p|div|li|h[1-6])>/gi, " ")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const title = cms?.title || fallback.title;
+  const body = cms?.body ? stripHtml(cms.body) : fallback.body;
+  return (
+    <section className="py-14 md:py-20">
+      <div className="mx-auto w-full max-w-[1160px] px-5 md:px-9">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {fallback.eyebrow}
+        </p>
+        <h2 className="mt-4 font-serif text-[36px] leading-[.98] tracking-[-0.05em] md:text-[48px]">
+          {title}
+        </h2>
+        <p className="mt-5 max-w-xl text-[15px] leading-7 text-muted-foreground md:text-[17px]">
+          {body}
+        </p>
+        <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {fallback.items.map((item) => (
+            <li
+              key={item}
+              className="rounded-xl border border-border/60 bg-surface p-4 text-[12.5px] font-medium"
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+        <Link
+          to="/chat"
+          search={{ query: fallback.prompt } as never}
+          className="mt-8 inline-flex min-h-11 items-center justify-center gap-2 bg-background px-5 text-[11px] font-semibold text-foreground transition-transform hover:-translate-y-0.5"
+        >
+          {fallback.cta} <ArrowRight className="size-4" />
+        </Link>
+      </div>
+    </section>
   );
 }

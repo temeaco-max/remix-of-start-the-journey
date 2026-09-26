@@ -1,7 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, BookOpen, Feather } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Panel } from "@/components/kurukoo/ui";
-import { articles } from "@/lib/kurukoo-demo";
+
+type BlogMetadata = {
+  slug: string;
+  title: string;
+  date: string;
+  author: string;
+  category: string;
+  excerpt: string;
+};
 
 export const Route = createFileRoute("/blog")({
   head: () => ({
@@ -21,23 +30,56 @@ export const Route = createFileRoute("/blog")({
   component: BlogPage,
 });
 
+function formatArticleDate(value: string) {
+  if (!value) return "";
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return value;
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function BlogPage() {
+  const [articles, setArticles] = useState<BlogMetadata[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/blog")
+      .then((response) => {
+        if (!response.ok) throw new Error();
+        return response.json() as Promise<BlogMetadata[]>;
+      })
+      .then((payload) => {
+        if (!cancelled) setArticles(Array.isArray(payload) ? payload : []);
+      })
+      .catch(() => {
+        if (!cancelled) setArticles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const featured = articles[0];
   const rest = articles.slice(1);
   return (
     <div className="mx-auto w-full max-w-5xl">
       <section className="max-w-4xl">
-        <p className="text-[12px] font-medium text-muted-foreground">Kurukoo journal</p>
+        <p className="text-[12px] font-medium text-muted-foreground">Blog</p>
         <h1 className="mt-2 font-serif text-[44px] leading-[1.01] tracking-[-0.05em] md:text-[60px]">
-          Notes on building AI that is useful after the chat.
+          Ideas, Updates & Stories.
         </h1>
         <p className="mt-5 max-w-3xl text-[16px] leading-7 text-muted-foreground">
           Writing about handover, trust, coordination, discovery and the product decisions behind
-          Kurukoo.
+          Kurukoo. Notes on building AI that is useful after the chat.
         </p>
       </section>
 
-      <Link to="/blog/the-call-that-gets-things-moving" className="group mt-10 block">
+      <Link to="/blog/$slug" params={{ slug: "the-call-that-gets-things-moving" }} className="group mt-10 block">
         <Panel className="overflow-hidden border-primary/20 p-0 transition-colors group-hover:bg-elevated/45">
           <div className="grid md:grid-cols-[1.15fr_.85fr]">
             <div className="p-6 md:p-8">
@@ -69,14 +111,22 @@ function BlogPage() {
         </Panel>
       </Link>
 
-      {featured ? (
+      {loading ? (
+        <div className="mt-8">
+          <div className="h-32 animate-pulse rounded-2xl border border-border bg-elevated/50" />
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="h-40 animate-pulse rounded-2xl border border-border bg-elevated/50" />
+            <div className="h-40 animate-pulse rounded-2xl border border-border bg-elevated/50" />
+          </div>
+        </div>
+      ) : featured ? (
         <Link to="/blog/$slug" params={{ slug: featured.slug }} className="group mt-8 block">
           <Panel className="overflow-hidden p-0 transition-colors group-hover:bg-elevated/45">
             <div className="grid md:grid-cols-[1.15fr_.85fr]">
               <div className="p-6 md:p-8">
                 <div className="flex items-center gap-2 text-[10.5px] text-muted-foreground">
                   <span className="border border-border px-2 py-1">Featured</span>
-                  <span>{featured.date}</span>
+                  <span>{formatArticleDate(featured.date)}</span>
                 </div>
                 <h2 className="mt-4 max-w-2xl text-[25px] font-semibold tracking-tight md:text-[30px]">
                   {featured.title}
@@ -108,41 +158,58 @@ function BlogPage() {
               More from the journal
             </h2>
           </div>
-          <span className="text-[11px] text-muted-foreground">{articles.length} articles</span>
+          {!loading ? (
+            <span className="text-[11px] text-muted-foreground">{articles.length} articles</span>
+          ) : null}
         </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          {rest.map((article, index) => (
-            <Link
-              key={article.slug}
-              to="/blog/$slug"
-              params={{ slug: article.slug }}
-              className="group"
-            >
-              <Panel className="h-full p-5 transition-colors group-hover:bg-elevated/45">
-                <div className="flex items-center gap-2 text-[10.5px] text-muted-foreground">
-                  <span>0{index + 2}</span>
-                  <span>·</span>
-                  <span>{article.date}</span>
-                </div>
-                <div className="mt-3 flex items-start gap-3">
-                  <span className="grid size-9 shrink-0 place-items-center border border-border bg-elevated">
-                    <BookOpen className="size-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="text-[16px] font-semibold tracking-tight">{article.title}</h3>
-                    <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                      {article.excerpt}
-                    </p>
-                    <span className="mt-4 inline-flex items-center gap-1 text-[11.5px] font-medium">
-                      Read{" "}
-                      <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                    </span>
+        {loading ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="h-40 animate-pulse rounded-2xl border border-border bg-elevated/50" />
+            <div className="h-40 animate-pulse rounded-2xl border border-border bg-elevated/50" />
+          </div>
+        ) : rest.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {rest.map((article, index) => (
+              <Link
+                key={article.slug}
+                to="/blog/$slug"
+                params={{ slug: article.slug }}
+                className="group"
+              >
+                <Panel className="h-full p-5 transition-colors group-hover:bg-elevated/45">
+                  <div className="flex items-center gap-2 text-[10.5px] text-muted-foreground">
+                    <span>0{index + 2}</span>
+                    <span>·</span>
+                    <span>{formatArticleDate(article.date)}</span>
                   </div>
-                </div>
-              </Panel>
-            </Link>
-          ))}
-        </div>
+                  <div className="mt-3 flex items-start gap-3">
+                    <span className="grid size-9 shrink-0 place-items-center border border-border bg-elevated">
+                      <BookOpen className="size-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="text-[16px] font-semibold tracking-tight">{article.title}</h3>
+                      <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                        {article.excerpt}
+                      </p>
+                      <span className="mt-4 inline-flex items-center gap-1 text-[11.5px] font-medium">
+                        Read{" "}
+                        <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </div>
+                  </div>
+                </Panel>
+              </Link>
+            ))}
+          </div>
+        ) : !loading ? (
+          <div className="rounded-2xl border border-dashed border-border px-5 py-10 text-center">
+            <BookOpen className="mx-auto size-5 text-muted-foreground" />
+            <p className="mt-3 text-[14px] font-medium">Notes are being prepared.</p>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              The journal is warming up. Check back soon.
+            </p>
+          </div>
+        ) : null}
       </section>
       <p className="mt-8 text-[12px] text-muted-foreground">
         Editorial content explains the system, documents decisions and gives people useful context

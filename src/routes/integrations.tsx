@@ -1,9 +1,10 @@
 import { Search, ShieldCheck } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FAQSection } from "@/components/kurukoo/faq-section";
 import { actionClass } from "@/components/kurukoo/primitives";
 import { integrationCategories, integrations, type Integration } from "@/lib/integration-catalog";
+import { fetchChannelReadiness, type ChannelReadiness } from "@/lib/kurukoo-api";
 
 export const Route = createFileRoute("/integrations")({
   head: () => ({
@@ -43,9 +44,7 @@ function IntegrationCard({ integration }: { integration: Integration }) {
       </div>
       <div className="mt-4 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[14.5px] font-semibold tracking-[-0.01em]">
-            {integration.name}
-          </h3>
+          <h3 className="text-[14.5px] font-semibold tracking-[-0.01em]">{integration.name}</h3>
         </div>
         <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
           {integration.description}
@@ -71,9 +70,7 @@ function IntegrationCard({ integration }: { integration: Integration }) {
             {integration.setupLabel || integration.connectionLabel}
           </Link>
         ) : (
-          <span className="text-[11px] text-muted-foreground">
-            {integration.connectionLabel}
-          </span>
+          <span className="text-[11px] text-muted-foreground">{integration.connectionLabel}</span>
         )}
       </div>
     </article>
@@ -83,6 +80,12 @@ function IntegrationCard({ integration }: { integration: Integration }) {
 function IntegrationsPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"All" | (typeof integrationCategories)[number]>("All");
+  const [channelReadiness, setChannelReadiness] = useState<ChannelReadiness[]>([]);
+  useEffect(() => {
+    let active = true;
+    void fetchChannelReadiness().then((data) => { if (active) setChannelReadiness(data.channelReadiness || []); }).catch(() => { if (active) setChannelReadiness([]); });
+    return () => { active = false; };
+  }, []);
   const filtered = useMemo(
     () =>
       integrations.filter((integration) => {
@@ -96,7 +99,7 @@ function IntegrationsPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
-            <header className="max-w-3xl">
+      <header className="max-w-3xl">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-primary">
           Integrations
         </p>
@@ -108,8 +111,8 @@ function IntegrationsPage() {
           context into the flow of work, with every connection scoped and under your control.
         </p>
         <p className="mt-4 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-          Connect via OAuth where supported, link through MCP for AI assistant doorways, use
-          native capabilities built into Kurukoo, or pair devices and IoT resources directly.
+          Connect via OAuth where supported, link through MCP for AI assistant doorways, use native
+          capabilities built into Kurukoo, or pair devices and IoT resources directly.
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link to="/connect" className={actionClass("primary")}>
@@ -120,6 +123,22 @@ function IntegrationsPage() {
           </Link>
         </div>
       </header>
+      <section className="border-y border-border bg-elevated/30">
+        <div className="mx-auto w-full max-w-[1160px] px-5 md:px-9 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+              A configured credential, a linked device, and a live verified provider are different
+              states. Configuration alone never means a live provider is active.
+            </p>
+            <Link
+              to="/chat"
+              className="whitespace-nowrap text-[11.5px] font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:opacity-80"
+            >
+              Continue in Chat →
+            </Link>
+          </div>
+        </div>
+      </section>
       <section aria-label="Integration directory" className="space-y-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -146,7 +165,7 @@ function IntegrationsPage() {
           role="tablist"
           aria-label="Integration categories"
         >
-                    {["All", ...integrationCategories].map((item) => {
+          {["All", ...integrationCategories].map((item) => {
             const count =
               item === "All"
                 ? integrations.length
@@ -177,40 +196,55 @@ function IntegrationsPage() {
           if (!items.length) return null;
           return (
             <section key={group} aria-labelledby={`integration-group-${group}`}>
-                              <div className="mb-3 flex items-baseline justify-between gap-2">
-                  <h3 id={`integration-group-${group}`} className="text-[14px] font-semibold">
-                    {group}
-                  </h3>
-                  <span className="text-[10.5px] text-muted-foreground">
-                    {items.length} {items.length === 1 ? "integration" : "integrations"}
-                  </span>
-                </div>
-                <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-muted-foreground">
-                  {group === "Storage & knowledge"
-                    ? "Files, notes and knowledge bases you authorise Kurukoo to search."
-                    : group === "Work & productivity"
-                      ? "Email, calendars and productivity tools for request context."
-                      : group === "Communication"
-                        ? "Talk to Kurukoo through your existing chat apps."
-                        : group === "AI assistants"
-                          ? "ChatGPT, Claude and Gemini connect to the same Kurukoo execution layer."
-                          : group === "Built into Kurukoo"
-                            ? "No external account required — these run inside Kurukoo."
-                            : group === "Devices & resources"
-                              ? "Phones, cameras, computers and IoT resources paired directly."
-                                                               : "Connect only what a request needs."}
-                </p>
-                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mb-3 flex items-baseline justify-between gap-2">
+                <h3 id={`integration-group-${group}`} className="text-[14px] font-semibold">
+                  {group}
+                </h3>
+                <span className="text-[10.5px] text-muted-foreground">
+                  {items.length} {items.length === 1 ? "integration" : "integrations"}
+                </span>
+              </div>
+              <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-muted-foreground">
+                {group === "Storage & knowledge"
+                  ? "Files, notes and knowledge bases you authorise Kurukoo to search."
+                  : group === "Work & productivity"
+                    ? "Email, calendars and productivity tools for request context."
+                    : group === "Communication"
+                      ? "Talk to Kurukoo through your existing chat apps."
+                      : group === "AI assistants"
+                        ? "ChatGPT, Claude and Gemini connect to the same Kurukoo execution layer."
+                        : group === "Built into Kurukoo"
+                          ? "No external account required — these run inside Kurukoo."
+                          : group === "Devices & resources"
+                            ? "Phones, cameras, computers and IoT resources paired directly."
+                            : "Connect only what a request needs."}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((integration) => (
-                  <IntegrationCard
-                    key={integration.slug}
-                    integration={integration}
-                  />
+                  <IntegrationCard key={integration.slug} integration={integration} />
                 ))}
               </div>
             </section>
           );
         })}
+      </section>
+      <section aria-label="Channel readiness" className="border border-border bg-surface p-5 md:p-6">
+        <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center bg-brand-tint text-brand-ink"><ShieldCheck className="size-5" /></span><div><h2 className="text-[15px] font-semibold">Channel readiness</h2><p className="mt-1.5 max-w-3xl text-[12.5px] leading-relaxed text-muted-foreground">Current operator and provider state for supported channels. Enabling a channel does not prove a live provider connection or delivery.</p></div></div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{channelReadiness.map((channel) => <div key={channel.id} className="border border-border bg-elevated/30 p-3"><p className="text-[12px] font-semibold">{channel.label}</p><p className="mt-1 text-[10.5px] text-muted-foreground">{channel.readiness} · {channel.provider}</p><p className="mt-1 text-[10.5px] text-muted-foreground">{channel.note}</p></div>)}</div>
+      </section>
+      <section className="border border-border bg-surface p-5 md:p-6">
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center bg-brand-tint text-brand-ink">
+            <ShieldCheck className="size-5" />
+          </span>
+          <div>
+            <h2 className="text-[15px] font-semibold">Connection readiness</h2>
+            <p className="mt-1.5 max-w-3xl text-[12.5px] leading-relaxed text-muted-foreground">
+              Credential-ready is not live-verified. Kurukoo enables a provider only after an
+              authorized flag change and controlled evidence of the actual external lifecycle.
+            </p>
+          </div>
+        </div>
       </section>
       <section className="border border-border bg-surface p-5 md:p-6">
         <div className="flex items-start gap-3">
@@ -253,6 +287,16 @@ function IntegrationsPage() {
             question: "Why are some integrations marked coming soon?",
             answer:
               "Kurukoo keeps the directory complete without pretending a provider connection is live. A source is only shown as connected after its actual authorization or setup flow confirms it.",
+          },
+          {
+            question: "What is the difference between a source and a channel?",
+            answer:
+              "A source (like Google Drive or Notion) provides information context for requests. A channel (like WhatsApp or SMS) is how you communicate with Kurukoo. Both are integrations, and both remain owner-controlled.",
+          },
+          {
+            question: "Does 'Available' mean a provider is live?",
+            answer:
+              "No. 'Available' means the connection method is implemented and the authorization path is ready. Kurukoo only treats a provider as live after independent external evidence confirms the actual external lifecycle.",
           },
         ]}
       />

@@ -1,5 +1,5 @@
-import { ArrowUpRight, CheckCircle2, CircleDashed, Info, Search } from "lucide-react";
-import type { LucideIcon, ReactNode } from "react";
+import { ArrowUpRight, CheckCircle2, CircleDashed, Info, Search, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export type DirectoryState = "live" | "available" | "example" | "planned" | "not-connected";

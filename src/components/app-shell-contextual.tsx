@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Moon,
   Search,
+  Shield,
   ShoppingCart,
   Sparkles,
   Sun,
@@ -26,7 +27,7 @@ import {
   Zap,
 } from "lucide-react";
 
-// Keep canonical Perch rail icon imports explicit for Vite module evaluation.
+// Keep canonical Field rail icon imports explicit for Vite module evaluation.
 import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useKurukoo } from "@/lib/kurukoo-store";
@@ -34,12 +35,32 @@ import { fetchAuthenticatedAd, type AuthenticatedAd } from "@/lib/kurukoo-api";
 import { ContextualTrustedRail } from "@/components/contextual-trusted-rail";
 import { ReferralCard } from "@/components/kurukoo/referral-card";
 import { PresenceRadarControl } from "@/components/kurukoo/presence-radar-control";
-import { logoutKurukoo } from "@/lib/kurukoo-auth";
+import { getKurukooAuthState, logoutKurukoo } from "@/lib/kurukoo-auth";
+import { useUserLocation } from "@/lib/user-location-state";
 
 const authenticatedHeaderPrefixes = [
-  "/perch", "/chat", "/workspace", "/explore", "/discover", "/activity", "/work", "/tasks",
-  "/notifications", "/contacts", "/messages", "/memory", "/artifacts", "/calls", "/subscriptions",
-  "/wallet", "/settings", "/agents", "/connect", "/provider", "/advertising", "/profile",
+  "/field",
+  "/chat",
+  "/workspace",
+  "/explore",
+  "/discover",
+  "/activity",
+  "/work",
+  "/tasks",
+  "/notifications",
+  "/contacts",
+  "/messages",
+  "/memory",
+  "/artifacts",
+  "/subscriptions",
+  "/wallet",
+  "/settings",
+  "/agents",
+  "/connect",
+  "/provider",
+  "/ad-campaign",
+  "/profile",
+  "/trust",
 ] as const;
 
 const KURUKOO_LOGO_SRC =
@@ -56,11 +77,23 @@ export function KurukooLogo({ className = "size-6" }: { className?: string }) {
   );
 }
 function useHeaderEnvironment() {
-  const [environment, setEnvironment] = useState({ temperature: "--°", location: "London", date: "" });
+  const [environment, setEnvironment] = useState({
+    temperature: "--°",
+    location: "London",
+    date: "",
+  });
   useEffect(() => {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const fallback = timezone.split("/").pop()?.replace(/_/g, " ") || "Local";
-    setEnvironment((value) => ({ ...value, location: fallback, date: new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(new Date()) }));
+    setEnvironment((value) => ({
+      ...value,
+      location: fallback,
+      date: new Intl.DateTimeFormat(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }).format(new Date()),
+    }));
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
@@ -70,8 +103,9 @@ function useHeaderEnvironment() {
           );
           if (!response.ok) return;
           const data = (await response.json()) as { current?: { temperature_2m?: number } };
-          if (typeof data.current?.temperature_2m === "number") {
-            setEnvironment((value) => ({ ...value, temperature: `${Math.round(data.current!.temperature_2m)}°` }));
+          const celsius = data.current?.temperature_2m;
+          if (typeof celsius === "number") {
+            setEnvironment((value) => ({ ...value, temperature: `${Math.round(celsius)}°` }));
           }
         } catch {
           /* weather is enhancement-only; keep the local fallback */
@@ -85,22 +119,108 @@ function useHeaderEnvironment() {
 }
 
 export function useProfileName() {
-  const [name, setName] = useState("Ada");
+  const [name, setName] = useState("Kurukoo user");
   useEffect(() => {
-    const read = () => {
-      const value = localStorage.getItem("kurukoo-profile-name")?.trim();
-      if (value) setName(value);
+    let cancelled = false;
+    const read = async () => {
+      const state = await getKurukooAuthState();
+      if (!cancelled) setName(String(state.user?.name || state.user?.email || "Kurukoo user").trim() || "Kurukoo user");
     };
-    read();
-    window.addEventListener("storage", read);
-    window.addEventListener("kurukoo-profile-updated", read);
-    return () => {
-      window.removeEventListener("storage", read);
-      window.removeEventListener("kurukoo-profile-updated", read);
-    };
+    void read();
+    window.addEventListener("kurukoo-auth-updated", read);
+    return () => { cancelled = true; window.removeEventListener("kurukoo-auth-updated", read); };
   }, []);
   return name;
 }
+export interface AccountStatus {
+  tier: string;
+  completion: number;
+  needsAttention: boolean;
+  title: string;
+  message: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+}
+
+/**
+ * Canonical account-status control for the OS shell header.
+ * It reads the single progressive identity authority and only asks for
+ * completion when a durable upgrade is genuinely outstanding.
+ */
+export function useAccountStatus(): AccountStatus | null {
+  const [status, setStatus] = useState<AccountStatus | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const read = async () => {
+      try {
+        const response = await fetch("/api/auth/identity/me", { credentials: "include" });
+        const payload = (await response.json().catch(() => ({}))) as {
+          success?: boolean;
+          identity?: {
+            tier?: string;
+            hasName?: boolean;
+            hasEmail?: boolean;
+            emailVerified?: boolean;
+            phoneVerified?: boolean;
+            isGuest?: boolean;
+            isProvisionalEmail?: boolean;
+            nextUpgrade?: { kind?: string; title?: string; message?: string; ctaHref?: string; ctaLabel?: string };
+          };
+        };
+        if (cancelled || !response.ok || !payload?.success || !payload.identity) return;
+        const identity = payload.identity;
+        const next = identity.nextUpgrade;
+        const steps = [Boolean(identity.hasName), Boolean(identity.hasEmail), Boolean(identity.emailVerified), Boolean(identity.phoneVerified)];
+        const completion = Math.round((steps.filter(Boolean).length / steps.length) * 100);
+        const needsAttention = Boolean(identity.isGuest || identity.isProvisionalEmail || (next && next.kind !== "none"));
+        if (cancelled) return;
+        setStatus({
+          tier: identity.tier || "presence",
+          completion,
+          needsAttention,
+          title: next?.title || "Account ready",
+          message: next?.message || "",
+          ctaHref: next?.ctaHref,
+          ctaLabel: next?.ctaLabel,
+        });
+      } catch {
+        if (!cancelled) setStatus(null);
+      }
+    };
+    void read();
+    window.addEventListener("kurukoo-auth-updated", read);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("kurukoo-auth-updated", read);
+    };
+  }, []);
+  return status;
+}
+
+function AccountStatusControl({ status }: { status: AccountStatus | null }) {
+  if (!status) return null;
+  return (
+    <Link
+      to={(status.ctaHref || "/connect") as never}
+      aria-label={status.needsAttention ? `Account needs attention: ${status.title}` : `Account status: ${status.title}`}
+      title={status.needsAttention ? status.title : status.title}
+      className={cn(
+        "grid size-9 shrink-0 place-items-center rounded-full",
+        status.needsAttention ? "animate-pulse text-primary hover:bg-elevated" : "text-muted-foreground hover:bg-elevated",
+      )}
+    >
+      <span
+        className="profile-completeness-ring"
+        style={{ "--profile-complete": `${status.completion}%`, width: 34, height: 34 } as CSSProperties}
+      >
+        <span className="grid size-[26px] place-items-center rounded-full bg-background text-[9px] font-semibold text-muted-foreground">
+          {status.completion}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
 export function PageHeader({
   title,
   description,
@@ -119,10 +239,12 @@ export function PageHeader({
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
   return (
-    <header className={cn(
-      "mb-7 flex items-start justify-between gap-4 border-b border-border/70 pb-5",
-      isAuthenticatedSurface ? "os-page-header" : "",
-    )}>
+    <header
+      className={cn(
+        "mb-7 flex items-start justify-between gap-4 border-b border-border/70 pb-5",
+        isAuthenticatedSurface ? "os-page-header" : "",
+      )}
+    >
       <div className="min-w-0">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
           {eyebrow ?? "Kurukoo OS"}
@@ -177,14 +299,19 @@ function ChatVoiceIcon({ className = "size-[18px]" }: { className?: string }) {
 }
 
 const nav = [
-  { to: "/perch", label: "Field", icon: LayoutDashboard, color: "text-muted-foreground" },
+  { to: "/field", label: "Field", icon: LayoutDashboard, color: "text-muted-foreground" },
   { to: "/chat", label: "Chat", icon: MessageCircle, color: "text-muted-foreground" },
-  { to: "/work", label: "Requests", icon: ListChecks, color: "text-muted-foreground" },
+  { to: "/work", label: "Work", icon: ListChecks, color: "text-muted-foreground" },
   { to: "/tasks", label: "Tasks", icon: CheckCircle2, color: "text-muted-foreground" },
-  { to: "/memory", label: "Memory", icon: Brain, color: "text-muted-foreground" },
-  { to: "/discover", label: "Nearby", icon: MapPin, color: "text-muted-foreground" },
+  { to: "/artifacts", label: "Artifacts", icon: Tags, color: "text-muted-foreground" },
+  { to: "/discover", label: "Discover", icon: MapPin, color: "text-muted-foreground" },
+  { to: "/more", label: "More", icon: Ellipsis, color: "text-muted-foreground" },
 ] as const;
+// `more` powers the "More" dropdown on both desktop (filtered) and mobile.
+// Tasks and Artifacts remain here so the mobile More menu can reach them.
 const more = [
+  { to: "/tasks", label: "Tasks", icon: CheckCircle2 },
+  { to: "/memory", label: "Memory", icon: Brain },
   { to: "/settings", label: "Settings", icon: Wallet },
   { to: "/activity", label: "Activity", icon: Bell },
   { to: "/explore", label: "Explore", icon: Compass },
@@ -193,13 +320,40 @@ const more = [
   { to: "/connect", label: "Connect", icon: Users },
   { to: "/network", label: "Network", icon: Users },
   { to: "/capabilities", label: "Capabilities", icon: Sparkles },
-  { to: "/providers", label: "Providers", icon: Users },
+  { to: "/network", label: "Providers", icon: Users },
   { to: "/businesses", label: "Businesses", icon: Briefcase },
-  { to: "/creators", label: "Creators", icon: Sparkles },
-  { to: "/advertising", label: "Advertising", icon: Zap },
+  { to: "/network", label: "Creators", icon: Sparkles },
+  { to: "/ad-campaign", label: "Advertising", icon: Zap },
+  { to: "/trust", label: "Trust & Security", icon: Shield },
 ] as const;
-const mobileNav = nav.slice(0, 5);
+// Mobile bottom bar keeps exactly five canonical items; Tasks/Artifacts are
+// reachable through the mobile More dropdown (which uses `more`).
+const mobileNav = [
+  { to: "/field", label: "Field", icon: LayoutDashboard },
+  { to: "/chat", label: "Chat", icon: MessageCircle },
+  { to: "/work", label: "Work", icon: ListChecks },
+  { to: "/discover", label: "Discover", icon: MapPin },
+  { to: "/more", label: "More", icon: Ellipsis },
+] as const;
 
+function UserLocationButton() {
+  const { geo, locating, shareLocation } = useUserLocation();
+  return (
+    <button
+      type="button"
+      onClick={shareLocation}
+      disabled={locating}
+      aria-label={geo ? "Pickup point shared" : "Share pickup point location"}
+      title="Share your current pickup point — coordinates ride along for dispatch; nothing is dispatched yet"
+      className={cn(
+        "grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-elevated disabled:opacity-50",
+        geo && "bg-primary text-primary-foreground hover:bg-primary",
+      )}
+    >
+      <MapPin className="size-[18px]" strokeWidth={1.8} />
+    </button>
+  );
+}
 function ThemeToggle() {
   const [dark, setDark] = useState(false);
   useEffect(() => {
@@ -366,10 +520,11 @@ function Header() {
           </Link>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          <div className="hidden items-center gap-2 text-[11px] text-muted-foreground lg:flex">
-          </div>
+          <div className="hidden items-center gap-2 text-[11px] text-muted-foreground lg:flex"></div>
           <PresenceRadarControl />
-           <ThemeToggle />
+          <UserLocationButton />
+          <AccountStatusControl status={useAccountStatus()} />
+          <ThemeToggle />
           <div className="relative">
             <button
               type="button"
@@ -378,7 +533,10 @@ function Header() {
               aria-expanded={open}
               className="flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1.5 hover:bg-elevated"
             >
-              <span className="profile-completeness-ring" style={{ "--profile-complete": "50%" } as CSSProperties}>
+              <span
+                className="profile-completeness-ring"
+                style={{ "--profile-complete": "50%" } as CSSProperties}
+              >
                 <span className="profile-avatar grid size-[34px] place-items-center rounded-full bg-brand-tint text-[12px] font-semibold text-brand-ink">
                   {name.charAt(0).toUpperCase() || "A"}
                   <span className="profile-status-dot is-online" aria-label="Online" />
@@ -403,7 +561,7 @@ function Header() {
               >
                 <Link
                   role="menuitem"
-                  to="/profile"
+                  to="/settings"
                   onClick={() => setOpen(false)}
                   className="block rounded-xl px-3 py-2.5 text-[12.5px] hover:bg-elevated"
                 >
@@ -476,7 +634,7 @@ function Header() {
                 </Link>
                 <Link
                   role="menuitem"
-                  to="/advertising"
+                  to="/ad-campaign"
                   onClick={() => setOpen(false)}
                   className="block rounded-xl px-3 py-2.5 text-[12.5px] hover:bg-elevated"
                 >
@@ -490,9 +648,7 @@ function Header() {
                 >
                   Help
                 </Link>
-                <div className="px-1">
-                  
-                </div>
+                <div className="px-1"></div>
                 <button
                   type="button"
                   role="menuitem"
@@ -535,6 +691,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [trustedOpen, setTrustedOpen] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [ad, setAd] = useState<AuthenticatedAd | null>(null);
   useEffect(() => {
     if (!collapsed)
@@ -575,60 +732,78 @@ export function AppShell({ children }: { children: ReactNode }) {
               <ChevronLeft className="size-[17px]" strokeWidth={1.8} />
             )}
           </button>
-          <nav aria-label="OS navigation" className="scrollbar-none min-h-0 space-y-1 overflow-y-auto pt-5">
-            {nav.map(({ to, label, icon: Icon, color }) => (
-              <Link
-                key={to}
-                to={to}
-                activeProps={{ className: "bg-elevated font-medium text-foreground" }}
-                className={cn(
-                  "flex items-center rounded-xl py-2.5 text-[13.5px] leading-5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground",
-                  collapsed ? "justify-center px-2" : "gap-3 px-3",
-                )}
-                title={collapsed ? label : undefined}
-              >
-                {label === "Chat" ? (
-                  <ChatVoiceIcon className={cn("size-[18px]", color)} />
-                ) : (
-                  <Icon className={cn("size-[18px] shrink-0", color)} strokeWidth={1.8} />
-                )}{" "}
-                {!collapsed && <span>{label}</span>}
-              </Link>
-            ))}
+          <nav
+            aria-label="OS navigation"
+            className="scrollbar-none min-h-0 space-y-1 overflow-y-auto pt-5"
+          >
+            {nav.map(({ to, label, icon: Icon, color }) =>
+              label === "More" ? (
+                <div key={to} className="relative">
+                  <button
+                    type="button"
+                    aria-expanded={moreOpen}
+                    aria-controls={collapsed ? undefined : "kurukoo-more-navigation"}
+                    onClick={() => setMoreOpen((v) => !v)}
+                    className={cn(
+                      "flex w-full items-center rounded-xl py-2.5 text-[13.5px] leading-5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground",
+                      collapsed ? "justify-center px-2" : "gap-3 px-3",
+                    )}
+                    title={collapsed ? label : undefined}
+                  >
+                    <Icon className={cn("size-[18px] shrink-0", color)} strokeWidth={1.8} />
+                    {!collapsed && <span>More</span>}
+                  </button>
+                  {moreOpen ? (
+                    <nav
+                      id={collapsed ? undefined : "kurukoo-more-navigation"}
+                      aria-label="More navigation"
+                      className={cn(
+                        "scrollbar-none space-y-1 overflow-y-auto overscroll-contain pr-1",
+                        collapsed
+                          ? "absolute left-full top-0 z-[45] ml-1 max-h-[260px] min-w-[180px] rounded-xl border border-border bg-surface p-1 shadow-[var(--shadow-lift)]"
+                          : "mt-1 max-h-[220px]",
+                      )}
+                    >
+                      {more
+                        .filter((item) => item.to !== "/tasks" && item.to !== "/artifacts")
+                        .map(({ to, label, icon: Icon }) => (
+                          <Link
+                            key={`${to}-${label}`}
+                            to={to}
+                            activeProps={{ className: "bg-elevated font-medium text-foreground" }}
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] leading-5 text-muted-foreground hover:bg-elevated hover:text-foreground"
+                            onClick={() => setMoreOpen(false)}
+                          >
+                            <Icon className="size-[18px] shrink-0" strokeWidth={1.8} />
+                            <span>{label}</span>
+                          </Link>
+                        ))}
+                    </nav>
+                  ) : null}
+                </div>
+              ) : (
+                <Link
+                  key={to}
+                  to={to}
+                  activeProps={{ className: "bg-elevated font-medium text-foreground" }}
+                  className={cn(
+                    "flex items-center rounded-xl py-2.5 text-[13.5px] leading-5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground",
+                    collapsed ? "justify-center px-2" : "gap-3 px-3",
+                  )}
+                  title={collapsed ? label : undefined}
+                >
+                  {label === "Chat" ? (
+                    <ChatVoiceIcon className={cn("size-[18px]", color)} />
+                  ) : (
+                    <Icon className={cn("size-[18px] shrink-0", color)} strokeWidth={1.8} />
+                  )}{" "}
+                  {!collapsed && <span>{label}</span>}
+                </Link>
+              ),
+            )}
           </nav>
           {!collapsed ? (
             <>
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => setMoreOpen((v) => !v)}
-                  aria-expanded={moreOpen}
-                  aria-controls="kurukoo-more-navigation"
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground hover:bg-elevated hover:text-foreground"
-                >
-                  <span>More</span>
-                  <Ellipsis className="size-[17px]" strokeWidth={1.8} />
-                </button>
-                {moreOpen ? (
-                  <nav
-                    id="kurukoo-more-navigation"
-                    aria-label="More navigation"
-                    className="scrollbar-none mt-1 max-h-[220px] space-y-1 overflow-y-auto overscroll-contain pr-1"
-                  >
-                    {more.map(({ to, label, icon: Icon }) => (
-                      <Link
-                        key={to}
-                        to={to}
-                        activeProps={{ className: "bg-elevated font-medium text-foreground" }}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] leading-5 text-muted-foreground hover:bg-elevated hover:text-foreground"
-                      >
-                        <Icon className="size-[18px] shrink-0" strokeWidth={1.8} />
-                        <span>{label}</span>
-                      </Link>
-                    ))}
-                  </nav>
-                ) : null}
-              </div>
               <div className="mt-4">
                 <ReferralCard />
               </div>
@@ -659,19 +834,52 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
         <nav
           aria-label="Mobile OS navigation"
-          className="fixed inset-x-0 bottom-0 z-[70] grid grid-cols-5 border-t border-border bg-background/95 px-2 py-1.5 backdrop-blur md:hidden"
+          className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-background/95 px-2 py-1.5 backdrop-blur md:hidden"
         >
-          {mobileNav.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className="flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] text-muted-foreground [&.active]:bg-elevated [&.active]:font-medium [&.active]:text-foreground"
-              activeProps={{ className: "active" }}
+          <div className="grid grid-cols-5">
+            {mobileNav.map(({ to, label, icon: Icon }) =>
+              label === "More" ? (
+                <button
+                  key={label}
+                  type="button"
+                  aria-label="Open More menu"
+                  onClick={() => setMobileMoreOpen((v) => !v)}
+                  className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] ${mobileMoreOpen ? "bg-elevated font-medium text-foreground" : "text-muted-foreground"}`}
+                >
+                  <Icon className="size-[18px]" strokeWidth={1.8} />
+                  <span>{label}</span>
+                </button>
+              ) : (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] text-muted-foreground [&.active]:bg-elevated [&.active]:font-medium [&.active]:text-foreground"
+                  activeProps={{ className: "active" }}
+                >
+                  <Icon className="size-[18px]" strokeWidth={1.8} />
+                  <span>{label}</span>
+                </Link>
+              ),
+            )}
+          </div>
+          {mobileMoreOpen ? (
+            <div
+              className="scrollbar-none mt-1 grid max-h-[260px] grid-cols-2 gap-1 overflow-y-auto overscroll-contain pb-2"
+              aria-label="More navigation"
             >
-              <Icon className="size-[18px]" strokeWidth={1.8} />
-              <span>{label === "Conversation" ? "Chat" : label}</span>
-            </Link>
-          ))}
+              {more.map(({ to, label, icon: Icon }) => (
+                <Link
+                  key={`${to}-${label}`}
+                  to={to}
+                  onClick={() => setMobileMoreOpen(false)}
+                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12.5px] leading-5 text-muted-foreground hover:bg-elevated hover:text-foreground"
+                >
+                  <Icon className="size-[17px] shrink-0" strokeWidth={1.8} />
+                  <span>{label}</span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </nav>
       </div>
     </div>

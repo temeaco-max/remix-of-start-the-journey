@@ -41,6 +41,28 @@ export const legalPolicies: Record<string, LegalPolicy> = {
       },
     ],
   },
+  "ai-terms": {
+    title: "AI Use Terms",
+    summary:
+      "How Kurukoo's conversational AI may be used, what it will not do, and how model-generated content is treated.",
+    status: commonStatus,
+    updated: "September 2026",
+    related: ["terms", "acceptable-use", "safety", "privacy"],
+    sections: [
+      {
+        heading: "Assistant, not authority",
+        body: "Kurukoo's AI assists with conversation, coordination and information. Canonical services own identity, payment, requests, providers, evidence and fulfilment — an AI reply never itself completes those actions.",
+      },
+      {
+        heading: "No fabricated outcomes",
+        body: "The assistant must not invent providers, prices, availability, bookings, payments, delivery or completion. Unverified states are stated as such.",
+      },
+      {
+        heading: "Your responsibility",
+        body: "Confirm consequential actions before they proceed, and report incorrect or unsafe assistant behaviour through the Help centre.",
+      },
+    ],
+  },
   terms: {
     title: "Terms of Service",
     summary:

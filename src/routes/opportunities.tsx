@@ -39,14 +39,14 @@ const paths = [
     "Offer a service",
     "Make a real capability easier to discover and turn relevant demand into work.",
     HandCoins,
-    "/providers",
+    "/network",
     "I want to offer a service.",
   ],
   [
     "Offer delivery",
     "Make delivery capability discoverable when people need something moved.",
     Package,
-    "/providers",
+    "/network",
     "I want to offer delivery.",
   ],
   [
@@ -60,14 +60,14 @@ const paths = [
     "Create and share",
     "Turn useful ideas, recommendations and community knowledge into something people can use.",
     Sparkles,
-    "/creators",
+    "/network",
     "I want to become a creator.",
   ],
   [
     "Promote a business",
     "Reach relevant discovery with clear commercial disclosure.",
     Zap,
-    "/advertising",
+    "/ad-campaign",
     "Help me promote something.",
   ],
 ] as const;
@@ -124,7 +124,7 @@ function Opportunities() {
             className="min-h-9 bg-primary text-primary-foreground hover:bg-primary/90"
           />
           <Link
-            to="/businesses"
+            to="/network"
             className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[11.5px] font-medium hover:bg-elevated"
           >
             Business tools <ArrowRight className="size-3.5" />

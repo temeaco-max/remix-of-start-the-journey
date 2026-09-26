@@ -3,7 +3,7 @@ import { ArrowUpRight, Play, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { VideoCard } from "@/components/kurukoo/cards";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
-import { actionClass } from "@/components/kurukoo/primitives";
+import { actionClass, DemoDataBadge } from "@/components/kurukoo/primitives";
 import { SectionHeader } from "@/components/kurukoo/ui";
 import { entityById, videos } from "@/lib/kurukoo-demo";
 
@@ -23,6 +23,7 @@ export const Route = createFileRoute("/videos")({
 function VideosPage() {
   return (
     <div className="space-y-7 pb-12">
+      <DemoDataBadge />
       <PageHeader
         eyebrow="Watch"
         title="Watch"
@@ -48,7 +49,7 @@ function VideosPage() {
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <AskKurukoo prompt="Find me a useful video for something I am trying to get done." />
-          <Link to="/creators" className={actionClass()}>
+          <Link to="/network" className={actionClass()}>
             Creator channels <ArrowUpRight className="ml-1 size-3.5" />
           </Link>
         </div>
@@ -80,7 +81,7 @@ function VideosPage() {
               Open Creator Studio and start a useful channel.
             </p>
           </div>
-          <Link to="/creators" className="ml-auto text-[11.5px] font-medium underline">
+          <Link to="/network" className="ml-auto text-[11.5px] font-medium underline">
             Open studio
           </Link>
         </div>

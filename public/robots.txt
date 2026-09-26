@@ -1,14 +1,17 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /field/
+Disallow: /chat/
+Disallow: /work/
+Disallow: /workspace/
+Disallow: /wallet/
+Disallow: /settings/
+Disallow: /memory/
+Disallow: /artifacts/
+Disallow: /messages/
+Disallow: /notifications/
+Disallow: /activity/
+
+Sitemap: https://kurukoo.com/sitemap.xml

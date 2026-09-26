@@ -341,7 +341,7 @@ function ActivityPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-[15px] font-medium">{n.title}</p>
-                        {!n.read ? <StatusPill tone="blue">Unread</StatusPill> : null}
+                        {!n.read ? <StatusPill tone="peach">Unread</StatusPill> : null}
                       </div>
                       <p className="mt-1 text-[13.5px] leading-5 text-muted-foreground">{n.body}</p>
                       <NotificationSource notification={n} />

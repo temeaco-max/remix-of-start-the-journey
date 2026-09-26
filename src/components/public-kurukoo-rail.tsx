@@ -80,7 +80,7 @@ function PublicAdvert() {
           Relevant services, offers and ideas can appear in context.
         </p>
         <Link
-          to="/advertise"
+          to="/ad-campaign"
           className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-medium text-brand-ink hover:opacity-80"
         >
           Advertise with Kurukoo <ChevronRight className="size-3" />
@@ -102,9 +102,9 @@ export function PublicRail({
     ["/", "Home", Home],
     ["/chat", "Chat", MessageCircle],
     ["/integrations", "Integrations", Compass],
-    ["/use-cases", "Use Cases", Tags],
-    ["/pricing", "Pricing", Gift],
+    ["/explore", "Explore", Tags],
     ["/capabilities", "Capabilities", MapPin],
+    ["/pricing", "Pricing", Gift],
   ] as const;
   return (
     <aside

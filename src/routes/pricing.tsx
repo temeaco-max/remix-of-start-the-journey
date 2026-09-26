@@ -55,19 +55,19 @@ const valuePaths = [
   [
     "Advertising",
     "Businesses can use clearly disclosed commercial placements where the advertising service is available.",
-    "/advertising",
+    "/ad-campaign",
     "Explore advertising",
   ],
   [
     "Creator revenue",
     "Creators can build useful content and eligible revenue opportunities around their audience.",
-    "/creators",
+    "/network",
     "Explore creators",
   ],
   [
     "Partners and referrals",
     "Partner and referral relationships can create value around useful discovery without taking control away from the user.",
-    "/partners",
+    "/network",
     "Explore partners",
   ],
 ] as const;

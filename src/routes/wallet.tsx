@@ -1,9 +1,115 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, CreditCard, Coins, WalletCards } from "lucide-react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
 import { actionClass } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
+
+const API_BASE = (import.meta.env["VITE_KURUKOO_API_BASE_URL"] ?? "").replace(/\/$/, "");
+
+type PointsBalance = { success?: boolean; points?: number; tier?: string; currency?: string };
+type PointsEntry = { id?: number; amount?: number; type?: string; description?: string; created_at?: string };
+
+async function readPointsJson<T>(path: string): Promise<{ response: Response; payload: T }> {
+  const response = await fetch(`${API_BASE}${path}`, { credentials: "include" });
+  const payload = (await response.json().catch(() => ({}))) as T;
+  return { response, payload };
+}
+
+function PointsCard() {
+  const [state, setState] = useState<
+    | { kind: "loading" }
+    | { kind: "signed_out" }
+    | { kind: "ready"; points: number; tier: string; history: PointsEntry[] }
+    | { kind: "error"; message: string }
+  >({ kind: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const balance = await readPointsJson<PointsBalance>("/api/points/balance");
+        if (balance.response.status === 401) {
+          if (!cancelled) setState({ kind: "signed_out" });
+          return;
+        }
+        if (!balance.response.ok || typeof balance.payload.points !== "number") {
+          if (!cancelled)
+            setState({ kind: "error", message: "Points balance is unavailable right now." });
+          return;
+        }
+        const history = await readPointsJson<{ success?: boolean; history?: PointsEntry[] }>(
+          "/api/points/history?limit=5",
+        );
+        if (!cancelled)
+          setState({
+            kind: "ready",
+            points: balance.payload.points,
+            tier: balance.payload.tier || "Base",
+            history: Array.isArray(history.payload.history) ? history.payload.history : [],
+          });
+      } catch {
+        if (!cancelled) setState({ kind: "error", message: "Points balance is unavailable right now." });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (state.kind === "loading") {
+    return (
+      <StateCard
+        icon={Coins}
+        label="Points"
+        title="Loading…"
+        body="Reading your canonical Points balance."
+      />
+    );
+  }
+  if (state.kind === "signed_out") {
+    return (
+      <StateCard
+        icon={Coins}
+        label="Points"
+        title="Sign in to view"
+        body="Your Points balance appears here once you are signed in."
+      />
+    );
+  }
+  if (state.kind === "error") {
+    return <StateCard icon={Coins} label="Points" title="Unavailable" body={state.message} />;
+  }
+  return (
+    <Panel className="p-4">
+      <span className="grid size-9 place-items-center rounded-xl bg-elevated text-muted-foreground">
+        <Coins className="size-4" />
+      </span>
+      <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        Points · {state.tier}
+      </p>
+      <p className="mt-1 text-[17px] font-semibold">{state.points.toLocaleString()} pts</p>
+      {state.history.length > 0 ? (
+        <ul className="mt-3 space-y-1.5 border-t border-border pt-3">
+          {state.history.slice(0, 5).map((entry, index) => (
+            <li key={entry.id ?? index} className="text-[11px] leading-4 text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {typeof entry.amount === "number" && entry.amount > 0 ? "+" : ""}
+                {typeof entry.amount === "number" ? entry.amount : "—"}
+              </span>{" "}
+              {entry.description || entry.type || "Points movement"}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 border-t border-border pt-3 text-[11px] leading-4 text-muted-foreground">
+          No Points movements yet.
+        </p>
+      )}
+    </Panel>
+  );
+}
 
 export const Route = createFileRoute("/wallet")({
   head: () => ({
@@ -53,11 +159,11 @@ function WalletPage() {
       />
       <Panel className="mb-4 border-dashed p-4">
         <p className="text-[12.5px] font-medium">
-          Financial state is not exposed to this frontend yet.
+          Points are live. Money movement is not shown here.
         </p>
         <p className="mt-1.5 text-[11.5px] leading-5 text-muted-foreground">
-          The previous wallet figures were illustrative data and have been removed. No balance,
-          payment method, payout or transaction is being inferred from the UI.
+          Your Points balance and recent movements below come from the canonical Points service.
+          No money balance, payment method, payout or transaction is inferred from the UI.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
@@ -76,12 +182,7 @@ function WalletPage() {
         </div>
       </Panel>
       <div className="grid gap-3 md:grid-cols-3">
-        <StateCard
-          icon={Coins}
-          label="Points"
-          title="Not available"
-          body="No canonical Points balance is currently exposed through the authenticated frontend contract."
-        />
+        <PointsCard />
         <StateCard
           icon={WalletCards}
           label="Wallet balance"

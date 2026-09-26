@@ -24,5 +24,10 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // Render the app shell for every route and serve a root index.html
+    // so the backend can host the frontend as a single-page application.
+    spa: {
+      enabled: true,
+    },
   },
 });

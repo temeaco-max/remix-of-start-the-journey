@@ -15,6 +15,7 @@ import { actionClass } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
 
 type FAQItem = { question: string; answer: string };
+type FAQTuple = [question: string, answer: string];
 
 type RoleLandingProps = {
   eyebrow?: string;
@@ -45,7 +46,7 @@ const roleStories: Record<string, { label: string; primary: string }> = {
   ambassadors: { label: "Ambassadors", primary: "Grow Kurukoo through trusted referrals" },
 };
 
-const roleFaqs: Record<string, FAQItem[]> = {
+const roleFaqs: Record<string, FAQTuple[]> = {
   People: [
     [
       "What is Kurukoo?",
@@ -518,6 +519,7 @@ export function RoleLanding({
   joinPrompt,
   primaryLabel = "Join Kurukoo",
   primaryTo = "/signup",
+  osHeader,
 }: RoleLandingProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const key = roleKey(eyebrow, title);
@@ -525,7 +527,10 @@ export function RoleLanding({
     label: eyebrow?.replace(/^for\s+/i, "") ?? title,
     primary: title,
   };
-  const faqs = roleFaqs[story.label] ?? [];
+  const faqs: FAQItem[] = (roleFaqs[story.label] ?? []).map(([question, answer]) => ({
+    question,
+    answer,
+  }));
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-7 pb-12">

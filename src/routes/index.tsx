@@ -1,4 +1,14 @@
-import { ArrowUpRight, Bell, BookOpen, CheckCircle2, Focus, Sparkles } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bell,
+  BookOpen,
+  CheckCircle2,
+  Focus,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  TrendingUp,
+} from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Composer } from "@/components/kurukoo/composer";
@@ -7,7 +17,6 @@ import { HomePromotionCarousel } from "@/components/kurukoo/home-promotion-carou
 import { DailyPicksStrip } from "@/components/kurukoo/daily-picks";
 import { QuickRepliesPanel } from "@/components/kurukoo/quick-replies";
 import { SurveyPromptCard } from "@/components/kurukoo/survey-prompt";
-import { ArtistBookingCard } from "@/components/kurukoo/artist-booking";
 import { Panel, ContextIconTile } from "@/components/kurukoo/ui";
 import { PulseControl } from "@/components/kurukoo/pulse-control";
 import { fetchProactiveFeed, type ProactiveOpportunity } from "@/lib/kurukoo-api";
@@ -241,6 +250,54 @@ export function HomePage() {
         </section>
       )}
 
+      <section aria-label="Quick pathways" className="grid gap-4 md:grid-cols-3">
+        <Link
+          to={"/chat?prompt=I%20need%20a%20service" as never}
+          className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface p-6 text-center shadow-[var(--shadow-soft)] transition-all hover:border-primary/50 hover:shadow-md"
+        >
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-elevated text-primary">
+            <ShoppingBag className="size-5" />
+          </span>
+          <h3 className="text-[13px] font-semibold">Request a service</h3>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Start with a need — repair, delivery, food, ride or anything else.
+          </p>
+          <span className="text-[10px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+            Start →
+          </span>
+        </Link>
+        <Link
+          to={"/chat?prompt=I%20want%20to%20offer%20my%20skills" as never}
+          className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface p-6 text-center shadow-[var(--shadow-soft)] transition-all hover:border-primary/50 hover:shadow-md"
+        >
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-elevated text-primary">
+            <Store className="size-5" />
+          </span>
+          <h3 className="text-[13px] font-semibold">Offer your skills</h3>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Describe what you do and keep your provider journey connected.
+          </p>
+          <span className="text-[10px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+            Start →
+          </span>
+        </Link>
+        <Link
+          to={"/chat?prompt=I%20want%20to%20grow%20my%20business" as never}
+          className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface p-6 text-center shadow-[var(--shadow-soft)] transition-all hover:border-primary/50 hover:shadow-md"
+        >
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-elevated text-primary">
+            <TrendingUp className="size-5" />
+          </span>
+          <h3 className="text-[13px] font-semibold">Grow a business</h3>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Turn requests into work and let your services be discovered.
+          </p>
+          <span className="text-[10px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+            Start →
+          </span>
+        </Link>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-2">
         <DailyPicksStrip />
         <QuickRepliesPanel />
@@ -274,7 +331,6 @@ export function HomePage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <SurveyPromptCard />
-        <ArtistBookingCard />
       </div>
     </div>
   );

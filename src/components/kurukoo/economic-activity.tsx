@@ -9,7 +9,7 @@ function label(status: string) {
   return status.replace(/[_-]/g, " ");
 }
 
-function tone(status: string): "green" | "peach" | "blue" | "neutral" {
+function tone(status: string): "green" | "peach" | "neutral" {
   const value = status.toLowerCase();
   if (["completed", "confirmed", "fulfilled", "settled"].some((item) => value.includes(item)))
     return "green";
@@ -19,9 +19,7 @@ function tone(status: string): "green" | "peach" | "blue" | "neutral" {
     )
   )
     return "peach";
-  if (["cancelled", "failed", "rejected", "expired"].some((item) => value.includes(item)))
-    return "neutral";
-  return "blue";
+  return "neutral";
 }
 
 export function EconomicActivity() {

@@ -67,7 +67,7 @@ export function QuickRepliesPanel() {
           <span className="text-[12.5px] font-medium">Quick actions</span>
         </div>
         <Link
-          to="/quick-actions"
+          to="/tasks"
           className="text-[10.5px] text-muted-foreground hover:text-foreground"
         >
           Open all

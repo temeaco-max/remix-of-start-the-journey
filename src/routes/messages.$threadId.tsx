@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Paperclip, Phone } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Composer } from "@/components/kurukoo/composer";
-import { Action, IntegrationGap } from "@/components/kurukoo/primitives";
+import { Action, DemoDataBadge, IntegrationGap } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
 import { entityById, threadById } from "@/lib/kurukoo-demo";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,7 @@ function ThreadPage() {
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col">
       <PageHeader title={who?.name ?? "Conversation"} subtitle={thread.subject} />
+      <DemoDataBadge />
 
       <Panel className="mb-4 flex flex-wrap items-center justify-between gap-3 p-3">
         <p className="text-[13.5px] text-muted-foreground">
@@ -51,7 +52,7 @@ function ThreadPage() {
           <Link to="/work">
             <Action>Open work</Action>
           </Link>
-          <Link to="/calls">
+          <Link to="/chat">
             <Action>
               <span className="inline-flex items-center gap-1.5">
                 <Phone className="size-4" /> Call

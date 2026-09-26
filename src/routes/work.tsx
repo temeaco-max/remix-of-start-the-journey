@@ -6,8 +6,10 @@ import {
   FileCheck2,
   LockKeyhole,
   MessageCircle,
+  Plus,
   RefreshCw,
   Sparkles,
+  TextCursorInput,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchExecutionOverview, type ExecutionOverview } from "@/lib/execution-api";
@@ -16,6 +18,9 @@ import { fetchLiveEconomicRequests } from "@/lib/live-economic-requests";
 import { canonicalWorkItem } from "@/lib/work-projection";
 import { useKurukoo } from "@/lib/kurukoo-store";
 import type { WorkItem } from "@/lib/kurukoo-store";
+import { KurukooModal } from "@/components/kurukoo/kurukoo-modal";
+import { SurfacePanel } from "@/components/kurukoo/surface-panel";
+import { WorkItemCard } from "@/components/kurukoo/primitives";
 
 export const Route = createFileRoute("/work")({
   head: () => ({
@@ -31,10 +36,13 @@ export const Route = createFileRoute("/work")({
 });
 
 function WorkPage() {
-  const { work: localWork } = useKurukoo();
+  const { work: localWork, send } = useKurukoo();
   const [overview, setOverview] = useState<ExecutionOverview | null>(null);
   const [canonicalWork, setCanonicalWork] = useState<WorkItem[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [newRequestOpen, setNewRequestOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<WorkItem | null>(null);
+  const [draft, setDraft] = useState("");
 
   async function refreshCanonicalWork() {
     setRefreshing(true);
@@ -64,225 +72,329 @@ function WorkPage() {
   const latest = active.slice(0, 6);
 
   return (
-    <div className="work-surface min-w-0 pb-12">
-      <PageHeader
-        eyebrow="Work"
-        title="Things Kurukoo is taking care of."
-        subtitle="See what is in motion, what needs a decision from you, and what Kurukoo has actually completed."
-        action={
-          <button type="button" onClick={() => void refreshCanonicalWork()} disabled={refreshing}
-            className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[11px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground sm:inline-flex">
-            <RefreshCw className={refreshing ? "size-3.5 animate-spin" : "size-3.5"} />
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </button>
-        }
-      />
-      <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-        <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
-        {active.length ? (active.length === 1 ? "1 thing in motion" : active.length + " things in motion") : "Ready when you are"}
-        {canonicalWork !== null ? <span className="ml-1 text-[10px] text-muted-foreground/70">· live</span> : null}
-      </div>
+    <>
+      <div className="work-surface min-w-0 pb-12">
+        <PageHeader
+          eyebrow="Work"
+          title="Things Kurukoo is taking care of."
+          subtitle="See what is in motion, what needs a decision from you, and what Kurukoo has actually completed."
+          action={
+            <>
+              <button
+                type="button"
+                onClick={() => setNewRequestOpen(true)}
+                className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[11px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground sm:inline-flex"
+              >
+                <Plus className="size-3.5" />
+                New request
+              </button>
+              <button
+                type="button"
+                onClick={() => void refreshCanonicalWork()}
+                disabled={refreshing}
+                className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[11px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground sm:inline-flex"
+              >
+                <RefreshCw className={refreshing ? "size-3.5 animate-spin" : "size-3.5"} />
+                {refreshing ? "Refreshing…" : "Refresh"}
+              </button>
+            </>
+          }
+        />
+        <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
+          {active.length
+            ? active.length === 1
+              ? "1 thing in motion"
+              : active.length + " things in motion"
+            : "Ready when you are"}
+          {canonicalWork !== null ? (
+            <span className="ml-1 text-[10px] text-muted-foreground/70">· live</span>
+          ) : null}
+        </div>
 
-      {needsYou.length ? (
-        <section className="border-b border-border py-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-[13px] font-semibold">
-                <LockKeyhole className="size-4 text-primary" />
-                Something needs you
+        {needsYou.length ? (
+          <section className="border-b border-border py-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-[13px] font-semibold">
+                  <LockKeyhole className="size-4 text-primary" />
+                  Something needs you
+                </div>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  Kurukoo has reached a consequential step and is waiting for your decision.
+                </p>
               </div>
-              <p className="mt-1 text-[12px] text-muted-foreground">
-                Kurukoo has reached a consequential step and is waiting for your decision.
-              </p>
-            </div>
-            <Link
-              to={`/work/${needsYou[0].id}` as never}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground"
-            >
-              Review <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-          <div className="mt-5 divide-y divide-border overflow-hidden rounded-2xl border border-border">
-            {needsYou.slice(0, 4).map((item) => (
               <Link
-                key={item.id}
-                to={`/work/${item.id}` as never}
-                className="flex items-center gap-3 py-3 hover:bg-elevated"
+                to={`/work/${needsYou[0].id}` as never}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground"
               >
-                <LockKeyhole className="size-4 text-primary" />
-                <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">
-                  {item.title}
-                </span>
-                <span className="text-[11px] text-muted-foreground">Needs you</span>
-                <ArrowRight className="size-3.5 text-muted-foreground" />
+                Review <ArrowRight className="size-3.5" />
               </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="grid grid-cols-3 border-b border-border">
-        <div className="py-5 pr-4">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">In motion</p>
-          <p className="mt-1 text-3xl font-semibold tracking-[-0.04em]">{active.length}</p>
-        </div>
-        <div className="border-l border-border px-4 py-5">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-            Waiting for you
-          </p>
-          <p className="mt-1 text-3xl font-semibold tracking-[-0.04em]">{needsYou.length}</p>
-        </div>
-        <div className="border-l border-border pl-4 py-5">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Completed</p>
-          <p className="mt-1 text-3xl font-semibold tracking-[-0.04em]">{completed.length}</p>
-        </div>
-      </section>
-
-      {active.length ? (
-        <section className="py-8">
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <h2 className="text-[17px] font-semibold tracking-tight">In motion</h2>
-              <p className="mt-1 text-[12px] text-muted-foreground">
-                Open anything to see its current state, next step and available evidence.
-              </p>
             </div>
-            <Link
-              to="/chat"
-              search={{ prompt: "Show me what you're taking care of" } as never}
-              className="text-[12px] font-medium text-primary"
-            >
-              Ask Kurukoo
-            </Link>
-          </div>
-          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
-            {latest.map((item) => (
-              <Link
-                key={item.id}
-                to={`/work/${item.id}` as never}
-                className="group flex gap-4 py-5 hover:bg-elevated/50"
-              >
-                <div className="grid size-8 shrink-0 place-items-center border border-border bg-surface">
-                  {item.stage === "needs_you" ? (
-                    <LockKeyhole className="size-3.5 text-primary" />
-                  ) : (
-                    <Clock3 className="size-3.5 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start gap-4">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-[14px] font-semibold">{item.title}</h3>
-                      <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-muted-foreground">
-                        {item.detail}
-                      </p>
-                    </div>
-                    <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                  <div className="mt-3 flex items-center gap-3 text-[10.5px] text-muted-foreground">
-                    <span>
-                      {item.stage === "needs_you"
-                        ? "Needs you"
-                        : item.stage === "understanding"
-                          ? "Getting started"
-                          : "Working"}
-                    </span>
-                    <span>·</span>
-                    <span>{item.updated}</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : (
-        <section className="rounded-2xl border border-border py-14 text-center">
-          <Sparkles className="mx-auto size-6 text-muted-foreground" />
-          <h2 className="mt-3 text-[16px] font-semibold">Nothing is being taken care of yet.</h2>
-          <p className="mx-auto mt-1 max-w-md text-[12px] leading-5 text-muted-foreground">
-            Tell Kurukoo what you want done. You do not need to work out the route first.
-          </p>
-          <Link
-            to="/chat"
-            className="mt-5 inline-flex items-center gap-2 bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground"
-          >
-            Tell Kurukoo what needs doing <ArrowRight className="size-3.5" />
-          </Link>
-        </section>
-      )}
-
-      <section className="grid gap-8 border-t border-border py-8 lg:grid-cols-[1.15fr_.85fr]">
-        <div>
-          <div className="flex items-center gap-2">
-            <FileCheck2 className="size-4" />
-            <h2 className="text-[16px] font-semibold">Recent activity</h2>
-          </div>
-          <p className="mt-1 text-[12px] text-muted-foreground">
-            Completed actions stay tied to the evidence Kurukoo received.
-          </p>
-          {completed.length ? (
-            <div className="mt-4 divide-y divide-border border-y border-border">
-              {completed.slice(0, 4).map((item) => (
+            <div className="mt-5 divide-y divide-border overflow-hidden rounded-2xl border border-border">
+              {needsYou.slice(0, 4).map((item) => (
                 <Link
                   key={item.id}
                   to={`/work/${item.id}` as never}
                   className="flex items-center gap-3 py-3 hover:bg-elevated"
                 >
-                  <CheckCircle2 className="size-4 text-[var(--color-success)]" />
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium">
+                  <LockKeyhole className="size-4 text-primary" />
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">
                     {item.title}
                   </span>
-                  <span className="text-[10.5px] text-muted-foreground">{item.updated}</span>
+                  <span className="text-[11px] text-muted-foreground">Needs you</span>
                   <ArrowRight className="size-3.5 text-muted-foreground" />
                 </Link>
               ))}
             </div>
-          ) : (
-            <p className="mt-4 border-y border-dashed border-border py-5 text-[11.5px] text-muted-foreground">
-              No completed work to revisit yet.
-            </p>
-          )}
-        </div>
-        <div className="border-l border-border pl-6">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="size-4" />
-            <h2 className="text-[16px] font-semibold">You stay in control</h2>
-          </div>
-          <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
-            Kurukoo can work through supported steps, but consequential actions still come back to
-            you for approval. A request is not presented as complete without supporting evidence.
-          </p>
-          <div className="mt-5 space-y-3 text-[11.5px]">
-            <div className="flex gap-2">
-              <LockKeyhole className="size-3.5 shrink-0" />
-              Your approval stays yours
-            </div>
-            <div className="flex gap-2">
-              <FileCheck2 className="size-3.5 shrink-0" />
-              Evidence stays with the work
-            </div>
-            <div className="flex gap-2">
-              <MessageCircle className="size-3.5 shrink-0" />
-              Kurukoo remains the easiest way to ask what is happening
-            </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        ) : null}
 
-      {overview?.executionLoop?.length ? (
-        <section className="border-t border-border pt-7">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-            Behind the scenes
-          </p>
-          <h2 className="mt-1 text-[15px] font-semibold">
-            Kurukoo handles the route. You handle the outcome.
-          </h2>
-          <p className="mt-2 max-w-2xl text-[11.5px] leading-5 text-muted-foreground">
-            The execution machinery remains available to the product, but you do not need to manage
-            it. Ask Kurukoo when you want to understand a particular step.
-          </p>
+        <section className="grid grid-cols-3 border-b border-border">
+          <div className="py-5 pr-4">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              In motion
+            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-[-0.04em]">{active.length}</p>
+          </div>
+          <div className="border-l border-border px-4 py-5">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              Waiting for you
+            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-[-0.04em]">{needsYou.length}</p>
+          </div>
+          <div className="border-l border-border pl-4 py-5">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              Completed
+            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-[-0.04em]">{completed.length}</p>
+          </div>
         </section>
-      ) : null}
-    </div>
+
+        {active.length ? (
+          <section className="py-8">
+            <div className="mb-4 flex items-end justify-between">
+              <div>
+                <h2 className="text-[17px] font-semibold tracking-tight">In motion</h2>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  Open anything to see its current state, next step and available evidence.
+                </p>
+              </div>
+              <Link
+                to="/chat"
+                search={{ prompt: "Show me what you're taking care of" } as never}
+                className="text-[12px] font-medium text-primary"
+              >
+                Ask Kurukoo
+              </Link>
+            </div>
+            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
+              {latest.map((item) => (
+                <div
+                  key={item.id}
+                  className="group flex items-center justify-between gap-4 border-b border-border py-5 last:border-0 hover:bg-elevated/50"
+                >
+                  <Link to={`/work/${item.id}` as never} className="flex flex-1 gap-4">
+                    <div className="grid size-8 shrink-0 place-items-center border border-border bg-surface">
+                      {item.stage === "needs_you" ? (
+                        <LockKeyhole className="size-3.5 text-primary" />
+                      ) : (
+                        <Clock3 className="size-3.5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[14px] font-semibold">{item.title}</h3>
+                          <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-muted-foreground">
+                            {item.detail}
+                          </p>
+                        </div>
+                        <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                      </div>
+                      <div className="mt-3 flex items-center gap-3 text-[10.5px] text-muted-foreground">
+                        <span>
+                          {item.stage === "needs_you"
+                            ? "Needs you"
+                            : item.stage === "understanding"
+                              ? "Getting started"
+                              : "Working"}
+                        </span>
+                        <span>·</span>
+                        <span>{item.updated}</span>
+                      </div>
+                    </div>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewItem(item)}
+                    aria-label={`Preview ${item.title}`}
+                    className="shrink-0 rounded-lg border border-border px-2 py-1.5 text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity hover:bg-elevated hover:text-foreground group-hover:opacity-100"
+                  >
+                    Preview
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="rounded-2xl border border-border py-14 text-center">
+            <Sparkles className="mx-auto size-6 text-muted-foreground" />
+            <h2 className="mt-3 text-[16px] font-semibold">Nothing is being taken care of yet.</h2>
+            <p className="mx-auto mt-1 max-w-md text-[12px] leading-5 text-muted-foreground">
+              Tell Kurukoo what you want done. You do not need to work out the route first.
+            </p>
+            <Link
+              to="/chat"
+              className="mt-5 inline-flex items-center gap-2 bg-primary px-4 py-2.5 text-[12px] font-medium text-primary-foreground"
+            >
+              Tell Kurukoo what needs doing <ArrowRight className="size-3.5" />
+            </Link>
+          </section>
+        )}
+
+        <section className="grid gap-8 border-t border-border py-8 lg:grid-cols-[1.15fr_.85fr]">
+          <div>
+            <div className="flex items-center gap-2">
+              <FileCheck2 className="size-4" />
+              <h2 className="text-[16px] font-semibold">Recent activity</h2>
+            </div>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              Completed actions stay tied to the evidence Kurukoo received.
+            </p>
+            {completed.length ? (
+              <div className="mt-4 divide-y divide-border border-y border-border">
+                {completed.slice(0, 4).map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/work/${item.id}` as never}
+                    className="flex items-center gap-3 py-3 hover:bg-elevated"
+                  >
+                    <CheckCircle2 className="size-4 text-[var(--color-success)]" />
+                    <span className="min-w-0 flex-1 truncate text-[12px] font-medium">
+                      {item.title}
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground">{item.updated}</span>
+                    <ArrowRight className="size-3.5 text-muted-foreground" />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 border-y border-dashed border-border py-5 text-[11.5px] text-muted-foreground">
+                No completed work to revisit yet.
+              </p>
+            )}
+          </div>
+          <div className="border-l border-border pl-6">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="size-4" />
+              <h2 className="text-[16px] font-semibold">You stay in control</h2>
+            </div>
+            <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
+              Kurukoo can work through supported steps, but consequential actions still come back to
+              you for approval. A request is not presented as complete without supporting evidence.
+            </p>
+            <div className="mt-5 space-y-3 text-[11.5px]">
+              <div className="flex gap-2">
+                <LockKeyhole className="size-3.5 shrink-0" />
+                Your approval stays yours
+              </div>
+              <div className="flex gap-2">
+                <FileCheck2 className="size-3.5 shrink-0" />
+                Evidence stays with the work
+              </div>
+              <div className="flex gap-2">
+                <MessageCircle className="size-3.5 shrink-0" />
+                Kurukoo remains the easiest way to ask what is happening
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {overview?.executionLoop?.length ? (
+          <section className="border-t border-border pt-7">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              Behind the scenes
+            </p>
+            <h2 className="mt-1 text-[15px] font-semibold">
+              Kurukoo handles the route. You handle the outcome.
+            </h2>
+            <p className="mt-2 max-w-2xl text-[11.5px] leading-5 text-muted-foreground">
+              The execution machinery remains available to the product, but you do not need to
+              manage it. Ask Kurukoo when you want to understand a particular step.
+            </p>
+          </section>
+        ) : null}
+      </div>
+
+      {/* New request modal */}
+      <KurukooModal
+        open={newRequestOpen}
+        title="New request"
+        onClose={() => setNewRequestOpen(false)}
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-[12.5px] text-muted-foreground">
+            Describe what you need done and Kurukoo will interpret it, determine what is safe to do,
+            and prepare the next step.
+          </p>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="e.g. Schedule a car wash for next Saturday"
+            className="w-full resize-y min-h-[100px] rounded-xl border border-border bg-background px-3 py-2.5 text-[13px] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setNewRequestOpen(false)}
+              className="rounded-lg border border-border px-3 py-2 text-[11px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <Link
+              to="/chat"
+              search={{ prompt: draft.trim() || undefined } as never}
+              onClick={() => {
+                setNewRequestOpen(false);
+                setDraft("");
+              }}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-[11px] font-medium text-primary-foreground hover:opacity-90"
+            >
+              <TextCursorInput className="size-3.5" />
+              Send to Kurukoo
+            </Link>
+          </div>
+        </div>
+      </KurukooModal>
+
+      {/* Work item preview drawer (SurfacePanel) */}
+      <SurfacePanel
+        open={!!previewItem}
+        title={previewItem?.stage === "needs_you" ? "Needs you — Preview" : "In motion — Preview"}
+        onOpenChange={(open) => !open && setPreviewItem(null)}
+      >
+        {previewItem ? (
+          <div className="space-y-4">
+            <WorkItemCard item={previewItem} onAdvance={() => {}} />
+            <p className="text-[11.5px] text-muted-foreground">
+              This is a quick preview. Open the full Work detail page to see evidence, safety
+              controls, and the complete execution story.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <Link
+                to={`/work/${previewItem.id}` as never}
+                onClick={() => setPreviewItem(null)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[11px] font-medium text-muted-foreground hover:bg-elevated hover:text-foreground"
+              >
+                <ArrowRight className="size-3.5" />
+                Open full detail
+              </Link>
+            </div>
+          </div>
+        ) : null}
+      </SurfacePanel>
+    </>
   );
 }

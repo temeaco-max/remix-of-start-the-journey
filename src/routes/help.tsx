@@ -64,7 +64,7 @@ const sections = [
     "Providers and businesses",
     "Find the right route",
     "Explore people and organisations that can participate in requests, with trust and fulfilment kept distinct from community context.",
-    "/providers",
+    "/network",
     "Explore Providers",
   ],
 ];
@@ -81,11 +81,11 @@ function HelpPage() {
       <section className="max-w-3xl">
         <p className="text-[12px] font-medium text-muted-foreground">Help centre</p>
         <h1 className="mt-2 max-w-3xl font-serif text-[40px] leading-[1.02] tracking-[-0.045em] md:text-[48px]">
-          Find the answer, or just ask.
+          Find answers and get support.
         </h1>
         <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-muted-foreground">
           Learn how to use Kurukoo, find the right surface, or take a question straight into
-          Conversation.
+          conversation, connect your sources and keep your Kurukoo relationship moving.
         </p>
       </section>
       <div className="mt-8 max-w-2xl">

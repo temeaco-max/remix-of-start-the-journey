@@ -35,7 +35,7 @@ import {
   type ProactiveOpportunity,
   type PulseProvider,
 } from "@/lib/kurukoo-api";
-import { exploreGoalGroups } from "@/lib/explore-goals";
+import { exploreGoalGroups, goalDestinations } from "@/lib/explore-goals";
 
 export const Route = createFileRoute("/discover")({
   head: () => ({
@@ -59,26 +59,6 @@ const layers = [
   "Events",
   "Opportunities",
 ] as const;
-const destination: Record<string, string> = {
-  food: "/explore/food",
-  groceries: "/explore/groceries",
-  ride: "/explore/mobility",
-  travel: "/explore/mobility",
-  repair: "/explore/repairs",
-  cleaning: "/explore/home",
-  solar: "/explore/home",
-  "money-circle": "/explore/money-circle",
-  work: "/explore/work",
-  business: "/explore/work",
-  sell: "/explore/selling",
-  health: "/explore/health",
-  education: "/explore/learning",
-  events: "/explore/events",
-  spiritual: "/explore/prayer",
-  connect: "/explore/community",
-  emergency: "/explore/safety",
-  security: "/explore/safety",
-};
 function pretty(value: string) {
   return value.replace(/[_-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -433,8 +413,10 @@ function DiscoverPage() {
                   {group.goals.slice(0, 4).map((goal) => (
                     <Link
                       key={goal.id}
-                      to={(destination[goal.id] ?? "/chat") as never}
-                      search={destination[goal.id] ? undefined : ({ query: goal.prompt } as never)}
+                      to={(goalDestinations[goal.id] ?? "/chat") as never}
+                      search={
+                        goalDestinations[goal.id] ? undefined : ({ query: goal.prompt } as never)
+                      }
                       className="border border-border bg-background p-3 transition-colors hover:bg-elevated"
                     >
                       <p className="text-[12px] font-medium">{goal.label}</p>

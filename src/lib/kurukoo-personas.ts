@@ -49,7 +49,7 @@ export const KURUKOO_ROLES: KurukooRole[] = [
         to: "/discover",
       },
       { title: "Manage requests", detail: "See work that needs your attention.", to: "/work" },
-      { title: "Your provider profile", detail: "See how people can find you.", to: "/providers" },
+            { title: "Your provider profile", detail: "See how people can find you.", to: "/network" },
     ],
   },
   {
@@ -59,7 +59,7 @@ export const KURUKOO_ROLES: KurukooRole[] = [
     description: "Turn local demand into customers, work and repeat business.",
     homeLabel: "Grow your business",
     actions: [
-      {
+            {
         title: "Be discoverable",
         detail: "Put your business where people look.",
         to: "/businesses",
@@ -78,7 +78,7 @@ export const KURUKOO_ROLES: KurukooRole[] = [
       {
         title: "Publish",
         detail: "Create useful content and connect it to discovery.",
-        to: "/creators",
+        to: "/network",
       },
       { title: "Explore opportunities", detail: "Find ways to participate.", to: "/explore" },
       { title: "Connect", detail: "Build useful relationships.", to: "/contacts" },
@@ -134,7 +134,7 @@ export const KURUKOO_ROLES: KurukooRole[] = [
         detail: "Find relevant network signals.",
         to: "/opportunities",
       },
-      { title: "Start a campaign", detail: "Promote an eligible offer.", to: "/advertise" },
+      { title: "Start a campaign", detail: "Promote an eligible offer.", to: "/ad-campaign" },
     ],
   },
   {
@@ -160,12 +160,12 @@ export const KURUKOO_ROLES: KurukooRole[] = [
       {
         title: "Introduce Kurukoo",
         detail: "Help someone understand what Kurukoo can do.",
-        to: "/ambassadors",
+        to: "/network",
       },
       {
         title: "Share your referral",
         detail: "Bring people into Kurukoo through an eligible referral path.",
-        to: "/ambassadors",
+        to: "/network",
       },
       {
         title: "See opportunities",
@@ -189,7 +189,7 @@ export const KURUKOO_PUBLIC_ROLES: KurukooPublicRole[] = [
     title: "Providers",
     description:
       "Offer a genuine skill, become discoverable when eligible and coordinate work with customers.",
-    to: "/providers",
+    to: "/network",
     cta: "For providers",
   },
   {
@@ -205,7 +205,7 @@ export const KURUKOO_PUBLIC_ROLES: KurukooPublicRole[] = [
     title: "Creators",
     description:
       "Share useful ideas, build an audience and create value around content and Topics.",
-    to: "/creators",
+    to: "/network",
     cta: "For creators",
   },
   {
@@ -213,7 +213,7 @@ export const KURUKOO_PUBLIC_ROLES: KurukooPublicRole[] = [
     title: "Contributors",
     description:
       "Help add useful information, local context, curation or onboarding through scoped workflows.",
-    to: "/contributors",
+    to: "/network",
     cta: "For contributors",
   },
   {
@@ -221,7 +221,7 @@ export const KURUKOO_PUBLIC_ROLES: KurukooPublicRole[] = [
     title: "Partners",
     description:
       "Connect organisations and services to Kurukoo through defined capabilities and authorised integrations.",
-    to: "/partners",
+    to: "/network",
     cta: "For partners",
   },
   {
@@ -229,7 +229,7 @@ export const KURUKOO_PUBLIC_ROLES: KurukooPublicRole[] = [
     title: "Advertisers",
     description:
       "Reach relevant Kurukoo audiences through clearly labelled sponsored discovery, offers and campaigns.",
-    to: "/advertise",
+    to: "/ad-campaign",
     cta: "For advertisers",
   },
   {
@@ -237,7 +237,7 @@ export const KURUKOO_PUBLIC_ROLES: KurukooPublicRole[] = [
     title: "Local Agents",
     description:
       "Represent Kurukoo locally, help people and organisations get started, and participate in authorised field, referral or support work.",
-    to: "/local-agents",
+    to: "/network",
     cta: "For local agents",
   },
   {
@@ -245,7 +245,7 @@ export const KURUKOO_PUBLIC_ROLES: KurukooPublicRole[] = [
     title: "Ambassadors",
     description:
       "Help more people discover Kurukoo, understand its value and join through trusted local advocacy.",
-    to: "/ambassadors",
+    to: "/network",
     cta: "For ambassadors",
   },
 ];

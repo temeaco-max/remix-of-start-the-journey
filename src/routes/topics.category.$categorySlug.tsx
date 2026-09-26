@@ -11,7 +11,14 @@ import {
   type CommunityCategory,
 } from "@/lib/community-topics-api";
 
+const topicCategorySearchSchema = {
+  subcategory: (value: unknown) => (typeof value === "string" && value ? value : undefined),
+} as const;
+
 export const Route = createFileRoute("/topics/category/$categorySlug")({
+  validateSearch: (search) => ({
+    subcategory: topicCategorySearchSchema.subcategory(search.subcategory),
+  }),
   head: ({ params }) => ({
     meta: [{ title: `${params.categorySlug.replace(/-/g, " ")} Topics — Kurukoo` }],
   }),
@@ -51,6 +58,8 @@ function Ad({ item, label }: { item?: CommunityAdInventory; label: string }) {
 
 function TopicCategoryPage() {
   const { categorySlug } = Route.useParams();
+  const { subcategory } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [category, setCategory] = useState<CommunityCategory | null>(null);
   const [topics, setTopics] = useState<CanonicalTopic[]>([]);
   const [ads, setAds] = useState<CommunityAdInventory[]>([]);
@@ -65,10 +74,10 @@ function TopicCategoryPage() {
     void fetchCanonicalTopics(100, { category: categorySlug })
       .then(setTopics)
       .catch(() => setTopics([]));
-    void fetchCommunityAdInventory(categorySlug)
+    void fetchCommunityAdInventory(categorySlug, subcategory)
       .then(setAds)
       .catch(() => setAds([]));
-  }, [categorySlug]);
+  }, [categorySlug, subcategory]);
 
   if (error)
     return (
@@ -126,15 +135,20 @@ function TopicCategoryPage() {
         </div>
         <div className="mt-4 flex flex-wrap gap-1.5">
           {category.subcategories.map((sub) => (
-            <Link
+            <button
               key={sub.slug}
-              to="/topics/category/$categorySlug"
-              params={{ categorySlug: category.slug }}
-              search={{ subcategory: sub.slug } as never}
-              className="rounded-full bg-elevated px-2.5 py-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+              type="button"
+              onClick={() =>
+                void navigate({
+                  to: "/topics/category/$categorySlug",
+                  params: { categorySlug: category.slug },
+                  search: { subcategory: subcategory === sub.slug ? undefined : sub.slug },
+                })
+              }
+              className={`rounded-full border px-2.5 py-1.5 text-[10px] ${subcategory === sub.slug ? "border-primary bg-brand-tint text-brand-ink" : "border-border bg-background text-muted-foreground hover:text-foreground"}`}
             >
               {sub.name}
-            </Link>
+            </button>
           ))}
         </div>
         <div className="mt-4 divide-y divide-border">

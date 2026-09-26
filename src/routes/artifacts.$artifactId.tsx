@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ExternalLink, FileText, FolderOpen, MessageSquare, Share2 } from "lucide-react";
 import { artifacts } from "@/lib/kurukoo-demo";
-import { actionClass } from "@/components/kurukoo/primitives";
+import { actionClass, DemoDataBadge } from "@/components/kurukoo/primitives";
 import { Panel } from "@/components/kurukoo/ui";
 import { AskKurukoo } from "@/components/kurukoo/ask-kurukoo";
 import { DirectoryStateBadge } from "@/components/kurukoo/surface-directory";
@@ -32,6 +32,7 @@ function ArtifactDetailPage() {
       >
         <ArrowLeft className="size-3.5" /> All artifacts
       </Link>
+      <DemoDataBadge />
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand-ink">

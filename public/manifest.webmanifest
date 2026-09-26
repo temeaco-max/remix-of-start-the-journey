@@ -2,8 +2,39 @@
   "name": "Kurukoo",
   "short_name": "Kurukoo",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#fbfaf7",
   "theme_color": "#b66a3c",
-  "description": "A conversation-first way to discover, decide and get useful things moving."
+  "description": "A conversation-first way to discover, decide and get useful things moving.",
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Chat with Kurukoo",
+      "url": "/chat/"
+    },
+    {
+      "name": "Discover",
+      "url": "/discover/"
+    }
+  ]
 }

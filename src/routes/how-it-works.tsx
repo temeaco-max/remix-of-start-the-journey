@@ -97,13 +97,13 @@ const starts = [
 ] as const;
 
 const audiences = [
-  ["People", "/people"],
-  ["Providers", "/providers"],
+  ["People", "/network"],
+  ["Providers", "/network"],
   ["Businesses", "/businesses"],
-  ["Creators", "/creators"],
-  ["Contributors", "/contributors"],
-  ["Partners", "/partners"],
-  ["Advertisers", "/advertising"],
+  ["Creators", "/network"],
+  ["Contributors", "/network"],
+  ["Partners", "/network"],
+  ["Advertisers", "/ad-campaign"],
   ["Local agents", "/agents"],
 ] as const;
 

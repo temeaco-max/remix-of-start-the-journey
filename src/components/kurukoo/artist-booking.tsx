@@ -1,10 +1,27 @@
-import { BriefcaseBusiness, Loader2, Check, Shield, Phone, Mail } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  Loader2,
+  Check,
+  Shield,
+  Phone,
+  Mail,
+  MessageCircle,
+} from "lucide-react";
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Panel, Rows } from "@/components/kurukoo/ui";
 import { requestArtistVerification, isKurukooApiConfigured } from "@/lib/kurukoo-api";
 import { cn } from "@/lib/utils";
 
-export function ArtistBookingCard() {
+/**
+ * Artist verification card (provider-side).
+ *
+ * This is the representation-verification flow only. Consumer bookings are
+ * canonical Economic Requests (`verified_artist` skill) and happen through
+ * Chat/Work after the manager verification completes — never through this
+ * card.
+ */
+export function ArtistVerificationCard() {
   const [step, setStep] = useState<"select" | "details" | "done">("select");
   const [skill, setSkill] = useState("dj");
   const [managerName, setManagerName] = useState("");
@@ -37,17 +54,18 @@ export function ArtistBookingCard() {
       <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
         <div className="flex items-center gap-2">
           <BriefcaseBusiness className="size-4 text-primary" />
-          <span className="text-[12.5px] font-medium">Artist booking</span>
+          <span className="text-[12.5px] font-medium">Artist verification</span>
           <Shield
             className="size-3.5 text-muted-foreground"
-            title="Verified artist bookings with escrow protection"
+            aria-label="Verified representation before bookings"
           />
         </div>
       </div>
       {step === "select" ? (
         <div className="px-4 py-4">
           <p className="text-[11.5px] text-muted-foreground">
-            Start by telling Kurukoo what kind of performer you need.
+            Choose the kind of performer you represent. Verification confirms your booking manager
+            before any customer booking can be accepted.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {SKILL_OPTIONS.map((option) => (
@@ -177,7 +195,8 @@ export function ArtistBookingCard() {
                 <span className="font-medium text-foreground">
                   {SKILL_OPTIONS.find((o) => o.value === skill)?.label}
                 </span>{" "}
-                and will verify the booking manager details.
+                and will verify the booking manager details. This is a representation check only —
+                no booking exists yet and no money is committed.
               </p>
               <Rows>
                 <li className="flex items-center justify-between gap-4 px-4 py-2 text-left">
@@ -195,7 +214,19 @@ export function ArtistBookingCard() {
               </Rows>
             </div>
           </div>
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            <Link
+              to="/chat"
+              search={
+                {
+                  query: `I want to book a ${SKILL_OPTIONS.find((o) => o.value === skill)?.label ?? "performer"} for an event. Help me start the request.`,
+                } as never
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[11.5px] text-muted-foreground hover:bg-elevated hover:text-foreground"
+            >
+              <MessageCircle className="size-3.5" />
+              Start a booking in Chat
+            </Link>
             <button
               type="button"
               onClick={() => {

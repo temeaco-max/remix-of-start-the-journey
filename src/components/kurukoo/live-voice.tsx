@@ -1,74 +1,85 @@
-import { AudioLines, Check, Mic2, Settings, X, Volume2, Waves } from "lucide-react";
+import { AudioLines, Volume2, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createVoiceSession, endVoiceSession, streamKurukooChat } from "@/lib/kurukoo-api";
+import { createVoiceSession, endVoiceSession, executeVoiceTool, streamKurukooChat } from "@/lib/kurukoo-api";
 
 type LiveVoiceProps = {
   triggerIcon?: ReactNode;
   triggerLabel?: string;
   triggerClassName?: string;
   overlayTargetId?: string;
+  conversationId?: string;
+  onVoiceStateChange?: (active: boolean) => void;
 };
+type RecognitionAlternative = { transcript?: string };
+type RecognitionResult = ArrayLike<RecognitionAlternative> & { isFinal?: boolean };
+type RecognitionResultEvent = { results?: ArrayLike<RecognitionResult> };
 type Recognition = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
   start: () => void;
   stop: () => void;
-  onresult: ((event: any) => void) | null;
+  onresult: ((event: RecognitionResultEvent) => void) | null;
   onend: (() => void) | null;
   onerror: (() => void) | null;
 };
 function getRecognition(): Recognition | null {
   if (typeof window === "undefined") return null;
-  const Ctor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => Recognition;
+    webkitSpeechRecognition?: new () => Recognition;
+  };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!Ctor) return null;
   const rec: Recognition = new Ctor();
   rec.interimResults = true;
-  rec.continuous = false;
+  rec.continuous = true;
   return rec;
 }
 const VOICE_PREFS_KEY = "kurukoo-voice-preferences";
-const WAKE_PREF_KEY = "kurukoo-voice-wake";
-const voiceLanguages = [
-  ["en-GB", "English (UK)"],
-  ["en-US", "English (US)"],
-  ["fr-FR", "Français"],
-  ["es-ES", "Español"],
-  ["pt-BR", "Português"],
-  ["sw-KE", "Kiswahili"],
-] as const;
-const voiceStyles = [
-  ["calm", "Calm"],
-  ["clear", "Clear"],
-  ["warm", "Warm"],
-] as const;
 
 export function LiveVoice({
-  triggerIcon = <Mic2 className="size-[17px] text-muted-foreground" />,
+  triggerIcon = <AudioLines className="size-[17px] text-muted-foreground" />,
   triggerLabel = "Talk to Kurukoo",
   triggerClassName = "grid size-9 place-items-center rounded-full hover:bg-elevated",
   overlayTargetId,
+  conversationId,
+  onVoiceStateChange,
 }: LiveVoiceProps) {
   const [open, setOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [listening, setListening] = useState(false);
-  const [wakeListening, setWakeListening] = useState(false);
-  const [wakeEnabled, setWakeEnabled] = useState(false);
-  const [status, setStatus] = useState("Voice mode is ready. Say “Hey Kurukoo” or start talking.");
+  const [speaking, setSpeaking] = useState(false);
+  const [status, setStatus] = useState("Voice mode is ready.");
   const [heard, setHeard] = useState("");
   const [reply, setReply] = useState("");
+  const [exchanges, setExchanges] = useState<Array<{ role: "user" | "assistant"; text: string }>>(
+    [],
+  );
+  const replyRef = useRef("");
   const [style, setStyle] = useState<"calm" | "clear" | "warm">("calm");
   const [language, setLanguage] = useState("en-GB");
+  const [ttsEnabled, setTtsEnabled] = useState(true);
   const recognitionRef = useRef<Recognition | null>(null);
   const sessionRef = useRef<{ sessionId: string; conversationId?: string } | null>(null);
-  const wakeArmedRef = useRef(false);
+  const nativeSessionRef = useRef<{ socket: WebSocket; stream: MediaStream; input: AudioContext; output: AudioContext } | null>(null);
+  const openRef = useRef(false);
   const closingRef = useRef(false);
+  const heardRef = useRef("");
+  const submittedRef = useRef(false);
+  const errorRef = useRef(false);
+  const greetedRef = useRef(false);
+  const stateNotifyRef = useRef(onVoiceStateChange);
+  stateNotifyRef.current = onVoiceStateChange;
+
   useEffect(() => {
     const onPrefs = (event: Event) => {
-      const d = (event as CustomEvent<{ style?: string; language?: string }>).detail || {};
+      const d =
+        (event as CustomEvent<{ style?: string; language?: string; ttsEnabled?: boolean }>)
+          .detail || {};
       if (d.style === "calm" || d.style === "clear" || d.style === "warm") setStyle(d.style);
-      if (d.language) setLanguage(d.language);
+      if (typeof d.language === "string") setLanguage(d.language);
+      if (typeof d.ttsEnabled === "boolean") setTtsEnabled(d.ttsEnabled);
     };
     window.addEventListener("kurukoo-voice-preferences", onPrefs);
     return () => window.removeEventListener("kurukoo-voice-preferences", onPrefs);
@@ -78,82 +89,277 @@ export function LiveVoice({
       const p = JSON.parse(localStorage.getItem(VOICE_PREFS_KEY) || "{}");
       if (p.style === "calm" || p.style === "clear" || p.style === "warm") setStyle(p.style);
       if (typeof p.language === "string") setLanguage(p.language);
-      setWakeEnabled(localStorage.getItem(WAKE_PREF_KEY) === "true");
-    } catch {}
+      if (typeof p.ttsEnabled === "boolean") setTtsEnabled(p.ttsEnabled);
+    } catch {
+      /* voice preferences are optional */
+    }
   }, []);
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("kurukoo-voice-state", {
-        detail: { open, listening, wakeListening, style, language },
+        detail: { open, listening, speaking, style, language },
       }),
     );
     if (open) localStorage.setItem("kurukoo-voice-open", "1");
     else localStorage.removeItem("kurukoo-voice-open");
-  }, [open, listening, wakeListening, style, language]);
+  }, [open, listening, speaking, style, language]);
   useEffect(
     () => () => {
       closingRef.current = true;
+      openRef.current = false;
       recognitionRef.current?.stop();
+      window.speechSynthesis?.cancel();
+      closeNativeSession();
       if (sessionRef.current) void endVoiceSession(sessionRef.current.sessionId, "client_unmount");
     },
     [],
   );
-  function savePrefs(nextStyle = style, nextLanguage = language) {
-    localStorage.setItem(
-      VOICE_PREFS_KEY,
-      JSON.stringify({ style: nextStyle, language: nextLanguage }),
-    );
-    window.dispatchEvent(
-      new CustomEvent("kurukoo-voice-preferences", {
-        detail: { style: nextStyle, language: nextLanguage },
-      }),
-    );
+
+  async function ensureNativeSession() {
+    if (nativeSessionRef.current) return nativeSessionRef.current;
+    const session = await createVoiceSession({ conversationId, mode: "live" });
+    if (!session.token || session.provider !== "gemini-live") throw new Error("Native live voice is unavailable right now.");
+    const input = new AudioContext({ sampleRate: 16000 });
+    const output = new AudioContext({ sampleRate: 24000 });
+    await input.resume(); await output.resume();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    // Exception to the no-credentials-in-URLs rule: browsers cannot set headers
+    // on WebSocket handshakes, and this constrained endpoint requires query auth.
+    // Exposure is bounded: single-use token, 60s expiry, server-constrained model.
+    const socket = new WebSocket(`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(session.token)}`);
+    const native = { socket, stream, input, output }; nativeSessionRef.current = native; sessionRef.current = session;
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ setup: { model: `models/${session.model}`, responseModalities: ["AUDIO"] } }));
+      const source = input.createMediaStreamSource(stream);
+      const processor = input.createScriptProcessor(4096, 1, 1);
+      const silent = input.createGain(); silent.gain.value = 0;
+      processor.onaudioprocess = (event) => {
+        if (socket.readyState !== WebSocket.OPEN) return;
+        const inputData = event.inputBuffer.getChannelData(0); const pcm = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i += 1) pcm[i] = Math.max(-1, Math.min(1, inputData[i])) * 32767;
+        const bytes = new Uint8Array(pcm.buffer); let binary = ""; for (const byte of bytes) binary += String.fromCharCode(byte);
+        socket.send(JSON.stringify({ realtimeInput: { audio: { data: window.btoa(binary), mimeType: "audio/pcm;rate=16000" } } }));
+      };
+      source.connect(processor); processor.connect(silent); silent.connect(input.destination); setListening(true); setStatus("Listening with Gemini Live…");
+    };
+    socket.onmessage = (event) => {
+      const message = JSON.parse(String(event.data || "{}")) as Record<string, any>;
+      const parts = message?.serverContent?.modelTurn?.parts || [];
+      let audible = false;
+      for (const part of parts) {
+        if (typeof part?.text === "string") {
+          replyRef.current = `${replyRef.current}${part.text}`;
+          setReply(replyRef.current);
+        }
+        if (typeof part?.inlineData?.data === "string") {
+          audible = true; const binary = window.atob(part.inlineData.data); const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+          const pcm = new Int16Array(bytes.buffer); const samples = new Float32Array(pcm.length);
+          for (let i = 0; i < pcm.length; i += 1) samples[i] = pcm[i] / 32768;
+          const buffer = output.createBuffer(1, samples.length, 24000); buffer.copyToChannel(samples, 0);
+          const source = output.createBufferSource(); source.buffer = buffer; source.connect(output.destination); source.start();
+        }
+      }
+      if (Array.isArray(message?.toolCall?.functionCalls) && socket.readyState === WebSocket.OPEN) {
+        void Promise.all(message.toolCall.functionCalls.map(async (call: { name?: string; id?: string; args?: Record<string, unknown> }) => {
+          const response = await executeVoiceTool(session.sessionId, String(call.name || ''), call.args || {});
+          return { name: String(call.name || ''), id: String(call.id || ''), response: { result: response.result ?? { ok: false } } };
+        })).then((functionResponses) => socket.send(JSON.stringify({ toolResponse: { functionResponses } }))).catch(() => undefined);
+      }
+      const inputText = message?.serverContent?.inputTranscription?.text; const outputText = message?.serverContent?.outputTranscription?.text;
+      if (inputText) { heardRef.current = inputText; setHeard(inputText); }
+      if (outputText) { replyRef.current = outputText; setReply(outputText); }
+      if (message?.serverContent?.interrupted) setSpeaking(false);
+      if (audible || parts.some((part: any) => typeof part?.inlineData?.data === "string")) setSpeaking(true);
+      if (message?.serverContent?.turnComplete) {
+        setSpeaking(false);
+        const userText = heardRef.current.trim();
+        const assistantText = replyRef.current.trim();
+        const done: Array<{ role: "user" | "assistant"; text: string }> = [];
+        if (userText) done.push({ role: "user", text: userText });
+        if (assistantText) done.push({ role: "assistant", text: assistantText });
+        if (done.length) setExchanges((current) => [...current, ...done].slice(-6));
+        heardRef.current = "";
+        replyRef.current = "";
+        setHeard("");
+        setReply("");
+        setStatus("You can keep talking.");
+      }
+    };
+    socket.onerror = () => setStatus("Native live voice could not connect. Try again or continue in Chat.");
+    return native;
   }
+
+  function closeNativeSession() {
+    const native = nativeSessionRef.current; nativeSessionRef.current = null;
+    if (!native) return;
+    try { native.socket.close(); } catch { /* already closed */ }
+    native.stream.getTracks().forEach((track) => track.stop()); void native.input.close(); void native.output.close();
+  }
+
   async function ensureSession() {
     if (sessionRef.current) return sessionRef.current;
     setStatus("Starting your voice session…");
-    const s = await createVoiceSession();
+    const s = await createVoiceSession({ conversationId, mode: "in_chat" });
     sessionRef.current = s;
     return s;
   }
-  async function speak(text: string) {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = language;
-    u.rate = style === "clear" ? 0.94 : style === "warm" ? 0.98 : 0.9;
-    u.pitch = style === "warm" ? 1.04 : style === "clear" ? 0.98 : 0.92;
-    window.speechSynthesis.speak(u);
-  }
-  async function submitSpokenRequest(text: string) {
-    const clean = text.replace(/^[,.:;\s]+/, "").trim();
-    if (!clean) {
-      setStatus("I'm listening for what you need.");
-      return;
+
+  function continueLoop() {
+    if (openRef.current && !closingRef.current) {
+      submittedRef.current = false;
+      startListening();
+    } else {
+      setListening(false);
+      setSpeaking(false);
     }
+  }
+
+  function speak(text: string): Promise<void> {
+    return new Promise((resolve) => {
+      const finish = () => {
+        setSpeaking(false);
+        resolve();
+        continueLoop();
+      };
+      setSpeaking(true);
+      if (ttsEnabled && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = language;
+        u.rate = style === "clear" ? 0.94 : style === "warm" ? 0.98 : 0.9;
+        u.pitch = style === "warm" ? 1.04 : style === "clear" ? 0.98 : 0.92;
+        u.onend = finish;
+        u.onerror = finish;
+        window.speechSynthesis.speak(u);
+        return;
+      }
+      void fetchLocalTts(text).then(finish);
+    });
+  }
+
+  async function fetchLocalTts(text: string): Promise<void> {
+    try {
+      const response = await fetch("/api/voice/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!response.ok) {
+        setStatus("You can keep talking. (Spoken audio is not available right now.)");
+        return;
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const w = window as unknown as { webkitAudioContext?: typeof AudioContext };
+      const audioContext = new (window.AudioContext || w.webkitAudioContext!)();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      await new Promise<void>((done) => {
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.onended = () => done();
+        source.start(0);
+      }).finally(() => {
+        void audioContext.close().catch(() => undefined);
+      });
+    } catch {
+      setStatus("You can keep talking. (Spoken audio is not available right now.)");
+    }
+  }
+
+  async function fetchProfileName(): Promise<string | null> {
+    try {
+      const response = await fetch("/api/user/profile", { credentials: "include" });
+      if (!response.ok) return null;
+      const payload = (await response.json()) as { profile?: { name?: string | null } };
+      const name = payload.profile?.name?.trim();
+      return name || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function greetAndListen() {
     try {
       const s = await ensureSession();
+      if (!openRef.current || !s) {
+        continueLoop();
+        return;
+      }
+      const name = await fetchProfileName();
+      if (!openRef.current) {
+        continueLoop();
+        return;
+      }
+      greetedRef.current = true;
+      setStatus(
+        name ? `Good to see you, ${name}. What needs doing today?` : "What needs doing today?",
+      );
+      await speak(
+        name
+          ? `Hi, I'm Kurukoo. Good to see you, ${name}. What needs doing today?`
+          : `Hi, I'm Kurukoo. What should I call you, and what needs doing today?`,
+      );
+    } catch {
+      continueLoop();
+    }
+  }
+
+  async function submitSpokenRequest(text: string) {
+    const clean = text.replace(/^[,.:;\s]+/, "").trim();
+    if (!clean || submittedRef.current) {
+      if (!clean) setStatus("I'm listening for what you need.");
+      else continueLoop();
+      return;
+    }
+    submittedRef.current = true;
+    setListening(false);
+    setExchanges((current) => [...current, { role: "user" as const, text: clean }].slice(-6));
+    try {
+      const s = await ensureSession();
+      if (!openRef.current) {
+        continueLoop();
+        return;
+      }
       setStatus("Kurukoo is working on it…");
+      replyRef.current = "";
       setReply("");
       const result = await streamKurukooChat({
         message: clean,
         conversationId: s.conversationId,
         channel: "web_voice",
         onEvent: (e) => {
-          if (e.type === "conversation" && e.conversationId) s.conversationId = e.conversationId;
+          if (e.type === "conversation" && e.conversationId) {
+            s.conversationId = e.conversationId;
+            sessionRef.current = s;
+          }
         },
       });
+      if (!openRef.current) {
+        continueLoop();
+        return;
+      }
       s.conversationId = result.conversationId;
+      replyRef.current = result.reply;
       setReply(result.reply);
+      if (result.reply.trim()) {
+        setExchanges((current) =>
+          [...current, { role: "assistant" as const, text: result.reply.trim() }].slice(-6),
+        );
+      }
       setStatus("You can keep talking.");
       if (result.reply) await speak(result.reply);
+      else continueLoop();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Voice conversation is unavailable right now.",
       );
+      continueLoop();
     }
   }
+
   function startListening() {
+    if (!openRef.current || closingRef.current) return;
     const r = getRecognition();
     if (!r) {
       setStatus(
@@ -161,313 +367,204 @@ export function LiveVoice({
       );
       return;
     }
-    wakeArmedRef.current = false;
-    r.continuous = false;
+    errorRef.current = false;
+    submittedRef.current = false;
+    r.continuous = true;
     r.lang = language;
+    heardRef.current = "";
     setHeard("");
+    setListening(true);
     setStatus("Listening…");
-    r.onresult = (e) =>
-      setHeard(
-        Array.from(e.results || [])
-          .map((x: any) => x?.[0]?.transcript || "")
-          .join(" ")
-          .trim(),
-      );
-    r.onend = () => setListening(false);
-    r.onerror = () => {
+    r.onresult = (e) => {
+      const results = Array.from(e.results || []);
+      const text = results
+        .map((x) => x?.[0]?.transcript || "")
+        .join(" ")
+        .trim();
+      heardRef.current = text;
+      setHeard(text);
+      const hasFinal = results.some((x) => x?.isFinal);
+      if (hasFinal && text && !submittedRef.current) {
+        try {
+          r.stop();
+        } catch {
+          /* recognition already ended */
+        }
+        setListening(false);
+        void submitSpokenRequest(text);
+      }
+    };
+    r.onend = () => {
       setListening(false);
+      if (errorRef.current || closingRef.current || !openRef.current) return;
+      if (submittedRef.current) return;
+      const text = heardRef.current.trim();
+      if (text) {
+        void submitSpokenRequest(text);
+        return;
+      }
+      startListening();
+    };
+    r.onerror = () => {
+      errorRef.current = true;
+      setListening(false);
+      if (!openRef.current || closingRef.current) return;
       setStatus("I couldn't hear that clearly. Try again.");
     };
     recognitionRef.current = r;
     try {
       r.start();
-      setListening(true);
     } catch {
       setListening(false);
+      setStatus("Voice input could not start in this browser.");
     }
   }
-  function startWakePhraseListener() {
-    const r = getRecognition();
-    if (!r) {
-      setStatus("Wake phrase listening is not available in this browser.");
+
+  function stopSession(reason: "user_closed" | "user_toggled") {
+    closingRef.current = true;
+    openRef.current = false;
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      /* recognition already ended */
+    }
+    recognitionRef.current = null;
+    window.speechSynthesis?.cancel();
+    setListening(false);
+    setSpeaking(false);
+    closeNativeSession();
+    if (sessionRef.current) void endVoiceSession(sessionRef.current.sessionId, reason);
+    sessionRef.current = null;
+    greetedRef.current = false;
+    replyRef.current = "";
+    heardRef.current = "";
+    setHeard("");
+    setReply("");
+    setExchanges([]);
+    setOpen(false);
+    stateNotifyRef.current?.(false);
+  }
+
+  function toggle() {
+    if (openRef.current) {
+      stopSession("user_toggled");
       return;
     }
     closingRef.current = false;
-    wakeArmedRef.current = false;
-    r.continuous = true;
-    r.lang = language;
-    setHeard("");
-    setStatus("Listening for “Hey Kurukoo”…");
-    r.onresult = (e) => {
-      const text = Array.from(e.results || [])
-        .map((x: any) => x?.[0]?.transcript || "")
-        .join(" ")
-        .trim();
-      const wake = /\bhey\s+kurukoo\b/i.exec(text);
-      if (wake) {
-        const after = text.slice((wake.index ?? 0) + wake[0].length).trim();
-        setHeard(after || "Hey Kurukoo");
-        wakeArmedRef.current = !after;
-        if (after) {
-          r.stop();
-          setWakeListening(false);
-          void submitSpokenRequest(after);
-        } else setStatus("I'm listening for what you need.");
-      } else if (wakeArmedRef.current && text) {
-        r.stop();
-        setWakeListening(false);
-        wakeArmedRef.current = false;
-        setHeard(text);
-        void submitSpokenRequest(text);
-      }
-    };
-    r.onend = () => {
-      setWakeListening(false);
-      if (!closingRef.current)
-        setStatus("Wake phrase listening stopped. Start it again when ready.");
-    };
-    r.onerror = () => {
-      setWakeListening(false);
-      wakeArmedRef.current = false;
-      setStatus("Wake phrase listening stopped. Try again.");
-    };
-    recognitionRef.current = r;
-    try {
-      r.start();
-      setWakeListening(true);
-    } catch {
-      setWakeListening(false);
+    openRef.current = true;
+    greetedRef.current = false;
+    setOpen(true);
+    stateNotifyRef.current?.(true);
+    setStatus("Starting your voice session…");
+    if (overlayTargetId) {
+      window.setTimeout(
+        () =>
+          document
+            .getElementById(overlayTargetId)
+            ?.scrollIntoView({ behavior: "smooth", block: "end" }),
+        80,
+      );
     }
+    void (async () => {
+      try { await ensureNativeSession(); }
+      catch { setStatus("Native live voice is unavailable. Continuing with browser voice and Chat."); greetAndListen(); }
+    })();
   }
-  function stopListening() {
-    recognitionRef.current?.stop();
-    setListening(false);
-    setWakeListening(false);
-    wakeArmedRef.current = false;
-  }
-  async function handleStopListening() {
-    recognitionRef.current?.stop();
-    setListening(false);
-    const text = heard.trim();
-    if (!text) {
-      setStatus("No spoken request was captured.");
-      return;
-    }
-    await submitSpokenRequest(text);
-  }
-  function toggleWakeEnabled() {
-    const next = !wakeEnabled;
-    setWakeEnabled(next);
-    localStorage.setItem(WAKE_PREF_KEY, String(next));
-    if (next && open) startWakePhraseListener();
-    if (!next) stopListening();
-  }
-  function close() {
-    closingRef.current = true;
-    stopListening();
-    window.speechSynthesis?.cancel();
-    setSettingsOpen(false);
-    if (sessionRef.current) void endVoiceSession(sessionRef.current.sessionId, "user_closed");
-    sessionRef.current = null;
-    setOpen(false);
-  }
+
   const browserVoice =
     typeof window !== "undefined" &&
     ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
-  const overlay = open ? (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Kurukoo voice mode"
-      className={
-        overlayTargetId
-          ? "absolute inset-0 z-[100] flex min-h-full flex-col overflow-hidden bg-background/98 backdrop-blur-xl"
-          : "fixed inset-0 z-[100] flex min-h-screen flex-col bg-background lg:right-[224px]"
-      }
+  const active = listening || speaking;
+  const card = open ? (
+    <section
+      aria-label="Kurukoo voice"
+      className={overlayTargetId ? "px-3 pb-3" : "fixed inset-x-0 bottom-0 z-[100] px-3 pb-3"}
     >
-      <header className="relative flex h-14 shrink-0 items-center justify-between border-b border-border px-5 md:px-8">
-        <div className="flex items-center gap-2">
-          <div className="grid size-7 place-items-center rounded-lg bg-brand-tint text-brand-ink">
-            <AudioLines className="size-4" />
-          </div>
-          <div>
-            <p className="text-[13px] font-semibold">Kurukoo</p>
-            <p className="text-[10px] text-muted-foreground">Voice conversation</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setSettingsOpen((v) => !v)}
-            aria-label="Voice settings"
-            aria-expanded={settingsOpen}
-            className="grid size-9 place-items-center rounded-full hover:bg-elevated"
+      <div className="mx-auto w-full max-w-[640px] rounded-2xl border border-border bg-surface/95 shadow-[var(--shadow-lift)] backdrop-blur-xl">
+        <div className="flex items-center gap-3 px-4 pt-3.5">
+          <span
+            className={`relative grid size-10 shrink-0 place-items-center rounded-full bg-brand-tint text-brand-ink ${active ? "motion-safe:animate-pulse" : ""}`}
+            aria-hidden="true"
           >
-            <Settings className="size-[17px]" />
-          </button>
+            <AudioLines className="size-5" strokeWidth={1.8} />
+            {active ? (
+              <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-primary motion-safe:animate-ping" />
+            ) : null}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold">
+              {active ? "Voice: Active" : "Voice session"}
+            </p>
+            <p className="truncate text-[11.5px] text-muted-foreground" aria-live="polite">
+              {status}
+            </p>
+          </div>
           <button
             type="button"
-            onClick={close}
-            aria-label="Close voice mode"
-            className="grid size-9 place-items-center rounded-full hover:bg-elevated"
+            onClick={() => stopSession("user_closed")}
+            aria-label="Stop voice session"
+            className="grid size-9 shrink-0 place-items-center rounded-full hover:bg-elevated"
           >
             <X className="size-[18px]" />
           </button>
         </div>
-        {settingsOpen ? (
-          <div className="absolute right-5 top-[62px] z-[120] w-[min(340px,calc(100vw-40px))] rounded-2xl border border-border bg-surface p-4 text-left shadow-[var(--shadow-lift)]">
-            <div className="flex items-center gap-2">
-              <Settings className="size-4 text-primary" />
-              <p className="text-[12px] font-semibold">Voice settings</p>
-            </div>
-            <label className="mt-4 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-              Language
-              <select
-                value={language}
-                onChange={(e) => {
-                  const n = e.target.value;
-                  setLanguage(n);
-                  savePrefs(style, n);
-                }}
-                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-[12px] font-medium outline-none"
-              >
-                {voiceLanguages.map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="mt-3 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-              Voice style
-              <select
-                value={style}
-                onChange={(e) => {
-                  const n = e.target.value as "calm" | "clear" | "warm";
-                  setStyle(n);
-                  savePrefs(n, language);
-                }}
-                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-[12px] font-medium outline-none"
-              >
-                {voiceStyles.map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={toggleWakeEnabled}
-              disabled={!browserVoice}
-              className="mt-4 flex w-full items-start gap-3 rounded-xl border border-border bg-background p-3 text-left disabled:opacity-50"
+        <div className="max-h-[38vh] min-h-[96px] overflow-y-auto px-4 pb-4">
+          {exchanges.map((exchange, index) => (
+            <p
+              key={`${exchange.role}-${index}`}
+              className={
+                exchange.role === "user"
+                  ? "mt-2.5 rounded-2xl rounded-tr-md border border-border bg-background px-4 py-2.5 text-[13px]"
+                  : "mt-2.5 rounded-2xl rounded-tl-md bg-elevated px-4 py-2.5 text-left text-[13px] leading-relaxed"
+              }
             >
-              <span
-                className={`grid size-8 shrink-0 place-items-center rounded-lg ${wakeEnabled ? "bg-primary text-primary-foreground" : "bg-elevated text-muted-foreground"}`}
-              >
-                {wakeEnabled ? <Check className="size-4" /> : <Waves className="size-4" />}
-              </span>
-              <span>
-                <span className="block text-[11.5px] font-semibold">Hey Kurukoo wake phrase</span>
-                <span className="mt-0.5 block text-[10.5px] leading-4 text-muted-foreground">
-                  Listens only while this Voice screen is active.
-                </span>
-              </span>
-            </button>
-            <p className="mt-3 text-[10px] text-muted-foreground">
-              Preferences are saved on this device.
+              {exchange.role === "user" ? `“${exchange.text}”` : exchange.text}
             </p>
-          </div>
-        ) : null}
-      </header>
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 text-center">
-        <div
-          className={`relative grid size-36 shrink-0 place-items-center rounded-full bg-brand-tint text-brand-ink transition-all duration-500 ${listening || wakeListening ? "scale-110 shadow-[0_0_0_18px_var(--brand-tint)]" : ""}`}
-        >
-          <div
-            className={`grid size-24 place-items-center rounded-full bg-background/80 ${listening || wakeListening ? "animate-pulse" : ""}`}
-          >
-            <AudioLines className="size-9" strokeWidth={1.5} />
-          </div>
-        </div>
-        <p className="mt-8 text-[24px] font-semibold tracking-tight">
-          {wakeListening ? "Listening for Hey Kurukoo" : listening ? "I'm listening" : "Voice mode"}
-        </p>
-        <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">{status}</p>
-        {heard ? (
-          <p className="mt-5 max-w-xl rounded-2xl border border-border bg-surface px-4 py-3 text-[13px]">
-            “{heard}”
-          </p>
-        ) : null}
-        {reply ? (
-          <div className="mt-4 max-w-xl rounded-2xl bg-elevated px-4 py-3 text-left text-[13px] leading-relaxed">
-            <div className="mb-2 flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground">
-              <Volume2 className="size-3.5" /> Spoken reply
+          ))}
+          {heard ? (
+            <p className="mt-2.5 rounded-2xl rounded-tr-md border border-border bg-background px-4 py-2.5 text-[13px]">
+              “{heard}”
+            </p>
+          ) : null}
+          {reply ? (
+            <div className="mt-2.5 rounded-2xl rounded-tl-md bg-elevated px-4 py-2.5 text-left text-[13px] leading-relaxed">
+              <div className="mb-1.5 flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground">
+                <Volume2 className="size-3.5" /> Spoken reply
+              </div>
+              {reply}
             </div>
-            {reply}
-          </div>
-        ) : null}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              listening
-                ? void handleStopListening()
-                : wakeListening
-                  ? stopListening()
-                  : startListening()
-            }
-            disabled={!browserVoice}
-            className="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-[12px] font-medium text-background disabled:opacity-40"
-          >
-            <Mic2 className="size-4" />
-            {listening ? "Finish speaking" : wakeListening ? "Stop listening" : "Start talking"}
-          </button>
-          <button
-            type="button"
-            onClick={() => (wakeListening ? stopListening() : startWakePhraseListener())}
-            disabled={!browserVoice}
-            className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-[12px] font-medium disabled:opacity-40 ${wakeListening ? "border-primary/30 bg-brand-tint text-brand-ink" : "border-border bg-surface hover:bg-elevated"}`}
-          >
-            <Waves className="size-4" />
-            {wakeListening ? "Listening…" : "Hey Kurukoo"}
-          </button>
+          ) : null}
+          {!browserVoice ? (
+            <p className="mt-2.5 text-[11px] text-muted-foreground">
+              This browser does not expose speech recognition. You can use the text composer
+              instead.
+            </p>
+          ) : null}
         </div>
-        {!browserVoice ? (
-          <p className="mt-3 text-[10.5px] text-muted-foreground">
-            This browser does not expose speech recognition.
-          </p>
-        ) : null}
       </div>
-      <footer className="shrink-0 pb-7 text-center text-[10px] text-muted-foreground">
-        Voice uses the same Kurukoo conversation relationship as text. Sessions continue in Chat
-        history.
-      </footer>
-    </div>
+    </section>
   ) : null;
-  useEffect(() => {
-    if (open && wakeEnabled && browserVoice && !wakeListening && !listening)
-      startWakePhraseListener();
-  }, [open, wakeEnabled]);
   return (
     <>
       <span className="relative inline-flex">
         <button
           type="button"
-          aria-label={triggerLabel}
-          title={triggerLabel}
-          onClick={() => {
-            closingRef.current = false;
-            setOpen(true);
-          }}
+          aria-label={open ? "Stop voice session" : triggerLabel}
+          title={open ? "Stop voice session" : triggerLabel}
+          aria-pressed={open}
+          onClick={toggle}
+          disabled={!browserVoice}
           className={triggerClassName}
         >
           {triggerIcon}
         </button>
+        {open ? (
+          <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-primary motion-safe:animate-ping" />
+        ) : null}
       </span>
       {overlayTargetId && typeof document !== "undefined"
-        ? createPortal(overlay, document.getElementById(overlayTargetId) || document.body)
-        : overlay}
+        ? createPortal(card, document.getElementById(overlayTargetId) || document.body)
+        : card}
     </>
   );
 }

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BellOff, BellRing, Eye, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { DemoDataBadge } from "@/components/kurukoo/primitives";
 import { ContactRow } from "@/components/kurukoo/cards";
 import { FollowButton, Rows, Tabs } from "@/components/kurukoo/ui";
 import { entities } from "@/lib/kurukoo-demo";
@@ -146,6 +147,7 @@ function FollowingPage() {
   return (
     <>
       <PageHeader title="Following" subtitle="The network behind your requests." />
+      <DemoDataBadge />
       <Tabs items={tabs} value={tab} onChange={(value) => setTab(value as (typeof tabs)[number])} />
       <div className="mt-4">
         {tab === "Topics" ? (

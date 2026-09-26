@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Compass,
   ExternalLink,
+  History,
   MapPin,
   MessageSquare,
   ShieldCheck,
@@ -25,6 +26,7 @@ import {
   type AuthenticatedAd,
   type PulseReadiness,
 } from "@/lib/kurukoo-api";
+import { useRailContentNode } from "@/components/kurukoo/rail-content-context";
 
 type Icon = ComponentType<{ className?: string }>;
 
@@ -63,12 +65,14 @@ function Row({
   detail,
   to,
   live = false,
+  onSelect,
 }: {
   icon: Icon;
   title: string;
   detail: string;
   to?: string;
   live?: boolean;
+  onSelect?: () => void;
 }) {
   const row = (
     <div className="flex min-w-0 items-center gap-2.5 rounded-xl px-1.5 py-1.5">
@@ -86,6 +90,17 @@ function Row({
       </div>
     </div>
   );
+  if (onSelect) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        className="block w-full rounded-xl text-left hover:bg-elevated"
+      >
+        {row}
+      </button>
+    );
+  }
   return to ? (
     <Link to={to as never} className="block rounded-xl hover:bg-elevated">
       {row}
@@ -288,10 +303,18 @@ export function ContextualTrustedRail({
   const defaultContent = (
     <>
       <Section title="Trusted" icon={Brain} to="/memory">
-        <Row icon={Sparkles} title="Home" detail="Hackney, London" to="/perch" />
+        <Row icon={Sparkles} title="Home" detail="Hackney, London" to="/field" />
         <Row icon={Briefcase} title="Work" detail={focus?.title ?? "Phone Technician"} to="/work" />
-        <Row icon={Brain} title="Memory" detail={memory.length ? "Private continuity" : "No saved context shown"} to="/memory" />
-        <Link to="/memory" className="trusted-context-view mt-2 text-[10px] font-medium text-primary">
+        <Row
+          icon={Brain}
+          title="Memory"
+          detail={memory.length ? "Private continuity" : "No saved context shown"}
+          to="/memory"
+        />
+        <Link
+          to="/memory"
+          className="trusted-context-view mt-2 text-[10px] font-medium text-primary"
+        >
           View memory <ChevronRight className="size-3" />
         </Link>
       </Section>
@@ -303,18 +326,27 @@ export function ContextualTrustedRail({
           to="/discover"
         />
         <PulseControl readiness={readiness} onChange={setReadiness} />
-        <Link to="/discover" className="trusted-context-view mt-2 text-[10px] font-medium text-primary">
+        <Link
+          to="/discover"
+          className="trusted-context-view mt-2 text-[10px] font-medium text-primary"
+        >
           See nearby <ChevronRight className="size-3" />
         </Link>
       </Section>
       <section className="safety-state-card">
-        <span className="safety-state-icon"><ShieldCheck className="size-4" /></span>
+        <span className="safety-state-icon">
+          <ShieldCheck className="size-4" />
+        </span>
         <div className="min-w-0">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-[12.5px] font-semibold">Safety state</h2>
-            <Link to="/trust" className="text-[10px] text-muted-foreground hover:text-foreground">View <ChevronRight className="ml-0.5 inline size-3" /></Link>
+            <Link to="/trust" className="text-[10px] text-muted-foreground hover:text-foreground">
+              View <ChevronRight className="ml-0.5 inline size-3" />
+            </Link>
           </div>
-          <p className="mt-1 text-[10px] text-muted-foreground">Trust controls are explicit before consequential action.</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Trust controls are explicit before consequential action.
+          </p>
         </div>
       </section>
       <Section title="Current focus" icon={Target} to="/work">
@@ -335,8 +367,18 @@ export function ContextualTrustedRail({
         )}
       </Section>
       <Section title="People & continuity" icon={Users} to="/connect">
-        <Row icon={Users} title="Trusted people" detail="Relationships and consent" to="/contacts" />
-        <Row icon={Bell} title={unread ? `${unread} unread updates` : "No unread updates"} detail="Activity and notifications" to="/activity" />
+        <Row
+          icon={Users}
+          title="Trusted people"
+          detail="Relationships and consent"
+          to="/contacts"
+        />
+        <Row
+          icon={Bell}
+          title={unread ? `${unread} unread updates` : "No unread updates"}
+          detail="Activity and notifications"
+          to="/activity"
+        />
       </Section>
       {ad ? <RailAd campaign={ad} /> : null}
     </>
@@ -346,16 +388,18 @@ export function ContextualTrustedRail({
     <>
       {ad ? (
         <div className="mb-2">
-          <div className="px-1 pb-1 text-center text-[11px] font-semibold text-muted-foreground">Daily Picks</div>
+          <div className="px-1 pb-1 text-center text-[11px] font-semibold text-muted-foreground">
+            Daily Picks
+          </div>
           <RailAd campaign={ad} />
         </div>
       ) : null}
       <Section title="Chat Context" icon={MessageSquare} to="/chat" className="h-[132px]">
         <Row
-          icon={MessageSquare}
-          title="Current conversation"
-          detail="Continue where you left off"
-          to="/chat"
+          icon={History}
+          title="History"
+          detail="Browse past conversations"
+          onSelect={() => window.dispatchEvent(new CustomEvent("kurukoo-open-history"))}
         />
         <Row icon={Sparkles} title="Assistant" detail="Ask Kurukoo" to="/chat" />
       </Section>
@@ -428,15 +472,18 @@ export function ContextualTrustedRail({
       {ad ? <RailAd campaign={ad} /> : null}
     </>
   );
-  const content = pathname.startsWith("/chat")
-    ? chatContent
-    : pathname.startsWith("/work")
-      ? workContent
-      : pathname.startsWith("/discover")
-        ? nearbyContent
-        : defaultContent;
+  const railOverride = useRailContentNode();
+  const content =
+    railOverride ??
+    (pathname.startsWith("/chat")
+      ? chatContent
+      : pathname.startsWith("/work")
+        ? workContent
+        : pathname.startsWith("/discover")
+          ? nearbyContent
+          : defaultContent);
   const compact = [
-    { label: "Field", to: "/perch", Icon: Sparkles },
+    { label: "Field", to: "/field", Icon: Sparkles },
     { label: "Work", to: "/work", Icon: Briefcase },
     { label: "Memory", to: "/memory", Icon: Brain },
     { label: "Nearby", to: "/discover", Icon: MapPin },

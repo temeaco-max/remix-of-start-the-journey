@@ -3,7 +3,7 @@ import { ArrowUpRight, MessageSquare, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { AgentIntelligence } from "@/components/kurukoo/agent-intelligence";
-import { IntegrationGap } from "@/components/kurukoo/primitives";
+import { DemoDataBadge, IntegrationGap } from "@/components/kurukoo/primitives";
 import { Avatar, Badge, ContextIconTile, Panel, Rows, StatusPill } from "@/components/kurukoo/ui";
 import { entityById, threads } from "@/lib/kurukoo-demo";
 
@@ -36,6 +36,7 @@ function MessagesPage() {
   const unread = threads.reduce((sum, t) => sum + (t.unread ?? 0), 0);
   return (
     <div className="space-y-7 pb-12">
+      <DemoDataBadge />
       <PageHeader
         eyebrow="Messages"
         title="Messages"
